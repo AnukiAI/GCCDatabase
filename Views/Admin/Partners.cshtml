@@ -1,0 +1,471 @@
+﻿@{
+    ViewData["Title"] = "Partners Management";
+    ViewData["BodyClass"] = "role-admin";
+    ViewData["UserName"] = "Jane Smith";
+}
+
+@section Styles {
+    <link href="~/css/partners.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Data Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Partners</span>
+    </span>
+}
+
+@section PageActions {
+    <button id="partners-import-btn" class="btn btn-outline">
+        <i class="fas fa-upload"></i> Import
+    </button>
+    <button id="partners-export-btn" class="btn btn-outline">
+        <i class="fas fa-download"></i> Export
+    </button>
+    <button id="partners-add-btn" class="btn btn-add">
+        <i class="fas fa-plus"></i> Add New Partner
+    </button>
+}
+
+<div class="partners-search-filter-bar">
+    <div class="partners-search-box">
+        <input type="text" id="partners-search-input" placeholder="Search partners...">
+        <i class="fas fa-search partners-search-icon"></i>
+    </div>
+</div>
+
+<div class="partners-table-container" id="partners-table-container">
+    <table id="partners-table" class="partners-table">
+        <thead>
+            <tr>
+                <th width="60%" data-sort="name">
+                    Partner Name
+                    <span class="partners-sort-icon"><i class="fas fa-sort"></i></span>
+                </th>
+                <th width="40%" class="actions-col">Actions</th>
+            </tr>
+        </thead>
+        <tbody id="partners-table-body">
+            <!-- Table rows will be populated by JavaScript -->
+        </tbody>
+    </table>
+</div>
+
+<div class="partners-footer-info">
+    <span id="partners-count">Loading partners...</span>
+</div>
+
+<!-- Toast for notifications -->
+<div id="partners-toast" class="partners-toast"></div>
+
+@section Scripts {
+    <script>
+        // Initialize partners management
+        let partnersData = [];
+        let sortColumn = 'name';
+        let sortDirection = 'asc';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePartnersManagement();
+        });
+
+        function initializePartnersManagement() {
+            // Load initial data
+            loadPartners();
+
+            // Initialize search
+            const searchInput = document.getElementById('partners-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', window.GreenCircle.debounce(handlePartnersSearch, 300));
+            }
+
+            // Initialize sorting
+            initializePartnersSorting();
+
+            // Initialize page actions
+            initializePartnersPageActions();
+        }
+
+        function loadPartners() {
+            // In a real MVC app, this would be an AJAX call to your controller
+            // For demo purposes, using sample data
+            partnersData = [
+                { id: 1, name: "Amazon" },
+                { id: 2, name: "Walmart" },
+                { id: 3, name: "Target" },
+                { id: 4, name: "Microsoft" },
+                { id: 5, name: "Google" },
+                { id: 6, name: "Apple" },
+                { id: 7, name: "Other" }
+            ];
+
+            populatePartnersTable(partnersData);
+        }
+
+        function populatePartnersTable(data) {
+            const tableBody = document.getElementById('partners-table-body');
+            if (!tableBody) return;
+
+            tableBody.innerHTML = '';
+
+            // Add new partner row (initially hidden)
+            const addRow = document.createElement('tr');
+            addRow.className = 'partners-add-row';
+            addRow.id = 'partners-add-row';
+
+            const nameCell = document.createElement('td');
+            nameCell.innerHTML = `<input type="text" class="partners-edit-input" id="new-partner-name" placeholder="Enter partner name">`;
+
+            const actionsCell = document.createElement('td');
+            actionsCell.innerHTML = `
+                <button class="partners-btn-save" onclick="saveNewPartner()">Save</button>
+                <button class="partners-btn-cancel" onclick="cancelAddPartner()">Cancel</button>
+            `;
+
+            addRow.appendChild(nameCell);
+            addRow.appendChild(actionsCell);
+            tableBody.appendChild(addRow);
+
+            // Add existing partners
+            data.forEach(partner => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-id', partner.id);
+
+                // Partner Name cell
+                const nameCell = document.createElement('td');
+
+                // View mode
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'partner-name';
+                nameSpan.textContent = partner.name;
+                nameCell.appendChild(nameSpan);
+
+                // Edit mode
+                const nameEditDiv = document.createElement('div');
+                nameEditDiv.className = 'partner-name-edit';
+                nameEditDiv.innerHTML = `<input type="text" class="partners-edit-input" value="${partner.name}">`;
+                nameCell.appendChild(nameEditDiv);
+
+                // Actions cell
+                const actionsCell = document.createElement('td');
+
+                // Regular action buttons
+                const actionButtons = document.createElement('div');
+                actionButtons.className = 'action-buttons';
+                actionButtons.innerHTML = `
+                    <button class="partners-btn-edit" onclick="editPartner(${partner.id})" title="Edit Partner">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="partners-btn-delete" onclick="deletePartner(${partner.id})" title="Delete Partner">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                `;
+                actionsCell.appendChild(actionButtons);
+
+                // Edit action buttons
+                const editActions = document.createElement('div');
+                editActions.className = 'partners-edit-actions';
+                editActions.innerHTML = `
+                    <button class="partners-btn-save" onclick="savePartner(${partner.id})">Save</button>
+                    <button class="partners-btn-cancel" onclick="cancelEdit(${partner.id})">Cancel</button>
+                `;
+                actionsCell.appendChild(editActions);
+
+                row.appendChild(nameCell);
+                row.appendChild(actionsCell);
+                tableBody.appendChild(row);
+            });
+
+            // Update partner count
+            updatePartnersCount(data.length);
+        }
+
+        function initializePartnersSorting() {
+            const headers = document.querySelectorAll('#partners-table th[data-sort]');
+
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const column = header.getAttribute('data-sort');
+
+                    // Toggle sort direction if clicking the same column
+                    if (sortColumn === column) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = column;
+                        sortDirection = 'asc';
+                    }
+
+                    // Update header styling
+                    headers.forEach(h => {
+                        h.classList.remove('active-sort');
+                        const icon = h.querySelector('.partners-sort-icon i');
+                        if (icon) {
+                            icon.className = 'fas fa-sort';
+                        }
+                    });
+
+                    header.classList.add('active-sort');
+                    const sortIcon = header.querySelector('.partners-sort-icon i');
+                    if (sortIcon) {
+                        sortIcon.className = sortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                    }
+
+                    // Sort the data
+                    sortPartnersData();
+                });
+            });
+        }
+
+        function sortPartnersData() {
+            const filteredData = getFilteredPartnersData();
+
+            filteredData.sort((a, b) => {
+                const valueA = a[sortColumn].toString().toLowerCase();
+                const valueB = b[sortColumn].toString().toLowerCase();
+
+                if (sortDirection === 'asc') {
+                    return valueA.localeCompare(valueB);
+                } else {
+                    return valueB.localeCompare(valueA);
+                }
+            });
+
+            populatePartnersTable(filteredData);
+        }
+
+        function getFilteredPartnersData() {
+            const searchInput = document.getElementById('partners-search-input');
+            const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+            if (!searchTerm) {
+                return [...partnersData];
+            }
+
+            return partnersData.filter(partner =>
+                partner.name.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        function handlePartnersSearch() {
+            sortPartnersData();
+        }
+
+        function updatePartnersCount(count) {
+            const countElement = document.getElementById('partners-count');
+            if (countElement) {
+                countElement.textContent = `Showing ${count} of ${partnersData.length} partners`;
+            }
+        }
+
+        function initializePartnersPageActions() {
+            const addBtn = document.getElementById('partners-add-btn');
+            const importBtn = document.getElementById('partners-import-btn');
+            const exportBtn = document.getElementById('partners-export-btn');
+
+            if (addBtn) {
+                addBtn.addEventListener('click', showAddPartnerRow);
+            }
+
+            if (importBtn) {
+                importBtn.addEventListener('click', importPartners);
+            }
+
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportPartners);
+            }
+        }
+
+        // Partner Management Functions
+        function showAddPartnerRow() {
+            const addRow = document.getElementById('partners-add-row');
+            if (addRow) {
+                addRow.classList.add('active');
+                const input = document.getElementById('new-partner-name');
+                if (input) {
+                    input.focus();
+                }
+            }
+        }
+
+        function saveNewPartner() {
+            const nameInput = document.getElementById('new-partner-name');
+            const name = nameInput ? nameInput.value.trim() : '';
+
+            if (!name) {
+                showPartnersToast('Partner name cannot be empty', 'error');
+                if (nameInput) nameInput.focus();
+                return;
+            }
+
+            // In real MVC app, make AJAX call to controller
+            // For demo, add to local data
+            const newId = partnersData.length > 0 ? Math.max(...partnersData.map(p => p.id)) + 1 : 1;
+            const newPartner = { id: newId, name: name };
+
+            partnersData.push(newPartner);
+
+            // Reset add row
+            if (nameInput) nameInput.value = '';
+            const addRow = document.getElementById('partners-add-row');
+            if (addRow) addRow.classList.remove('active');
+
+            // Refresh table
+            sortPartnersData();
+            showPartnersToast('Partner added successfully', 'success');
+        }
+
+        function cancelAddPartner() {
+            const nameInput = document.getElementById('new-partner-name');
+            if (nameInput) nameInput.value = '';
+
+            const addRow = document.getElementById('partners-add-row');
+            if (addRow) addRow.classList.remove('active');
+        }
+
+        function editPartner(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            row.classList.add('partners-edit-row');
+            const input = row.querySelector('.partners-edit-input');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }
+
+        function savePartner(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            const input = row.querySelector('.partners-edit-input');
+            const newName = input ? input.value.trim() : '';
+
+            if (!newName) {
+                showPartnersToast('Partner name cannot be empty', 'error');
+                if (input) input.focus();
+                return;
+            }
+
+            // In real MVC app, make AJAX call to controller
+            // For demo, update local data
+            const partnerIndex = partnersData.findIndex(p => p.id === id);
+            if (partnerIndex !== -1) {
+                partnersData[partnerIndex].name = newName;
+            }
+
+            // Update display
+            const nameSpan = row.querySelector('.partner-name');
+            if (nameSpan) nameSpan.textContent = newName;
+
+            // Remove edit class
+            row.classList.remove('partners-edit-row');
+            showPartnersToast('Partner updated successfully', 'success');
+        }
+
+        function cancelEdit(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            // Get original name
+            const partner = partnersData.find(p => p.id === id);
+            if (!partner) return;
+
+            // Reset input value to original
+            const input = row.querySelector('.partners-edit-input');
+            if (input) input.value = partner.name;
+
+            // Remove edit class
+            row.classList.remove('partners-edit-row');
+        }
+
+        function deletePartner(id) {
+            if (confirm('Are you sure you want to delete this partner?')) {
+                // In real MVC app, make AJAX call to controller
+                // For demo, remove from local data
+                partnersData = partnersData.filter(partner => partner.id !== id);
+                sortPartnersData();
+                showPartnersToast('Partner deleted successfully', 'success');
+            }
+        }
+
+        function importPartners() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.csv';
+
+            fileInput.addEventListener('change', event => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const content = e.target.result;
+                    const lines = content.split('\n');
+
+                    const newPartners = [];
+                    let maxId = partnersData.length > 0 ? Math.max(...partnersData.map(p => p.id)) : 0;
+
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+
+                        const values = line.split(',');
+                        if (values.length < 1) continue;
+
+                        const name = values[0].trim();
+                        if (!name) continue;
+
+                        maxId++;
+                        newPartners.push({ id: maxId, name: name });
+                    }
+
+                    if (newPartners.length > 0) {
+                        partnersData = [...partnersData, ...newPartners];
+                        sortPartnersData();
+                        showPartnersToast(`${newPartners.length} partners imported successfully`, 'success');
+                    } else {
+                        showPartnersToast('No valid partners found in import file', 'error');
+                    }
+                };
+
+                reader.readAsText(file);
+            });
+
+            fileInput.click();
+        }
+
+        function exportPartners() {
+            const header = 'Partner Name\n';
+            const rows = partnersData.map(partner => `${partner.name}`).join('\n');
+            const csv = header + rows;
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'partners.csv';
+            a.click();
+
+            URL.revokeObjectURL(url);
+            showPartnersToast('Partners exported successfully', 'success');
+        }
+
+        function showPartnersToast(message, type = 'info') {
+            const toast = document.getElementById('partners-toast');
+            if (!toast) return;
+
+            toast.textContent = message;
+            toast.className = `partners-toast ${type} show`;
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+}

@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenCircle Certified Database - Certificate List</title>
+    <style>
+        /* Font import for Century Gothic or equivalent */
+        @import url('https://fonts.googleapis.com/css2?family=Didact+Gothic&display=swap');
+
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Didact Gothic', 'Century Gothic', sans-serif;
+        }
+
+        :root {
+            --dark-green: #447638;
+            --light-green: #92C83E;
+            --light-blue: #00AEEF;
+            --dark-blue: #002B76;
+            --white: #FFFFFF;
+            --light-gray: #F5F5F5;
+            --medium-gray: #DDDDDD;
+            --dark-gray: #333333;
+            --badge-blue: #00AEEF;
+        }
+
+        body {
+            background-color: var(--white);
+            color: var(--dark-gray);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        /* Header */
+        header {
+            background-color: var(--white);
+            border-bottom: 1px solid var(--medium-gray);
+            padding: 15px 0;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+        }
+
+            .logo img {
+                height: 60px;
+                margin-right: 15px;
+            }
+
+            .logo h1 {
+                font-size: 24px;
+                color: var(--dark-gray);
+                font-weight: normal;
+            }
+
+        .sign-in {
+            padding: 6px 20px;
+            background-color: var(--light-gray);
+            border: 1px solid var(--medium-gray);
+            border-radius: 4px;
+            color: var(--dark-gray);
+            text-decoration: none;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+            .sign-in:hover {
+                background-color: var(--medium-gray);
+            }
+
+        /* Certificate Badge */
+        .certificate-badge {
+            background-color: var(--badge-blue);
+            color: var(--white);
+            padding: 5px 15px;
+            font-weight: bold;
+            position: absolute;
+            top: 0;
+            right: 0;
+        }
+
+        /* Main Container */
+        .main-container {
+            display: flex;
+            position: relative;
+        }
+
+        /* Left Sidebar (Filters) */
+        .sidebar {
+            width: 300px;
+            background-color: var(--white);
+            border-right: 1px solid var(--medium-gray);
+            padding: 20px;
+            padding-top: 0;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        /* Search Section */
+        .search-section {
+            padding: 20px;
+            background-color: var(--white);
+            border-bottom: 1px solid var(--medium-gray);
+        }
+
+        .search-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .search-bar {
+            display: flex;
+            flex: 1;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid var(--medium-gray);
+            border-right: none;
+            border-radius: 4px 0 0 4px;
+            font-size: 14px;
+        }
+
+        .search-button {
+            background-color: var(--dark-gray);
+            color: var(--white);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+
+        .sort-by {
+            display: flex;
+            align-items: center;
+            margin-left: 20px;
+        }
+
+        .sort-by-label {
+            margin-right: 10px;
+            white-space: nowrap;
+        }
+
+        .sort-dropdown {
+            position: relative;
+        }
+
+        .sort-dropdown-button {
+            background-color: var(--white);
+            border: 1px solid var(--medium-gray);
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+
+            .sort-dropdown-button svg {
+                margin-left: 5px;
+            }
+
+        .sort-dropdown-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background-color: var(--white);
+            min-width: 250px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+            z-index: 10;
+            border-radius: 4px;
+            border: 1px solid var(--medium-gray);
+        }
+
+        .sort-option {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            text-decoration: none;
+            color: var(--dark-gray);
+            border-bottom: 1px solid var(--light-gray);
+        }
+
+            .sort-option svg {
+                margin-right: 10px;
+            }
+
+            .sort-option:hover {
+                background-color: var(--light-gray);
+            }
+
+        .sort-dropdown:hover .sort-dropdown-content {
+            display: block;
+        }
+
+        .more-options {
+            color: var(--dark-gray);
+            text-align: center;
+            padding: 10px;
+            border-top: 1px solid var(--medium-gray);
+            font-size: 14px;
+        }
+
+        /* Filter panels */
+        .filters-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-top: 20px;
+            border-top: 1px solid var(--medium-gray);
+        }
+
+        .filters-label {
+            font-weight: bold;
+        }
+
+        .clear-filters {
+            color: var(--dark-blue);
+            text-decoration: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+            .clear-filters:hover {
+                text-decoration: underline;
+            }
+
+        .filter-panel {
+            margin-bottom: 15px;
+            border: 1px solid var(--medium-gray);
+        }
+
+        .filter-header {
+            padding: 10px 15px;
+            background-color: var(--light-gray);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+        }
+
+            .filter-header h3 {
+                font-size: 14px;
+                font-weight: bold;
+            }
+
+        .filter-content {
+            padding: 10px 15px;
+            border-top: 1px solid var(--medium-gray);
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .filter-tree {
+            list-style-type: none;
+        }
+
+        .filter-item {
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+            .filter-item label {
+                display: flex;
+                align-items: center;
+            }
+
+            .filter-item input[type="checkbox"] {
+                margin-right: 10px;
+            }
+
+        .filter-level-1 {
+            margin-left: 0;
+        }
+
+        .filter-level-2 {
+            margin-left: 20px;
+        }
+
+        .filter-level-3 {
+            margin-left: 40px;
+        }
+
+        /* Results Section */
+        .results-count {
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .certificates-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .certificate-card {
+            background-color: var(--white);
+            border: 1px solid var(--medium-gray);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .certificate-header {
+            background-color: #3a5a97;
+            color: var(--white);
+            padding: 10px 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+            .certificate-header h3 {
+                margin: 0;
+                font-size: 14px;
+            }
+
+        .certificate-info {
+            padding: 15px;
+        }
+
+        .certificate-number {
+            font-size: 14px;
+            color: var(--dark-gray);
+            margin-bottom: 10px;
+        }
+
+        .company-name {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .product-name {
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 15px;
+            margin-bottom: 5px;
+        }
+
+        .product-category {
+            font-size: 12px;
+            color: var(--dark-gray);
+            margin-bottom: 15px;
+        }
+
+        .certification-period {
+            margin-top: 15px;
+            font-size: 12px;
+            color: var(--dark-gray);
+        }
+
+        .certificate-location {
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .certificate-actions {
+            display: flex;
+            justify-content: flex-end;
+            padding: 10px;
+            border-top: 1px solid var(--medium-gray);
+        }
+
+        .action-button {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 5px;
+            margin-left: 10px;
+            color: var(--dark-blue);
+        }
+
+        /* Disclaimer */
+        .disclaimer {
+            padding: 5px;
+            text-align:center;
+            margin-top: 10px;
+            font-size: 12px;
+            line-height: 1.5;            
+        }
+
+        /* Responsive design */
+        @media (max-width: 968px) {
+            .main-container {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid var(--medium-gray);
+            }
+
+            .search-container {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .sort-by {
+                margin-left: 0;
+                margin-top: 15px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .certificates-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .header-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .logo {
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+
+    <!-- Search Section -->
+    <div class="search-section">
+        <div class="search-container">
+            <div class="search-bar">
+                <input type="text" class="search-input" placeholder="Search...">
+                <button class="search-button">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="sort-by">
+                <div class="sort-by-label">Sort By</div>
+                <div class="sort-dropdown">
+                    <button class="sort-dropdown-button">
+                        <span>Default</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                        </svg>
+                    </button>
+                    <div class="sort-dropdown-content">
+                        <a href="#" class="sort-option">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
+                            </svg>
+                            Newest Effective Date
+                        </a>
+                        <a href="#" class="sort-option">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
+                            </svg>
+                            Expiring Soon
+                        </a>
+                        <a href="#" class="sort-option">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
+                            </svg>
+                            Product Name A-Z
+                        </a>
+                        <a href="#" class="sort-option">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
+                            </svg>
+                            Company A-Z
+                        </a>
+                        <a href="#" class="sort-option">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
+                            </svg>
+                            Status
+                        </a>
+                        <a href="#" class="sort-option">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
+                            </svg>
+                            Certification Type
+                        </a>
+                        <a href="#" class="sort-option">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
+                            </svg>
+                            Country
+                        </a>
+                        <div class="more-options">More sort options</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Sidebar (Filters) -->
+        <div class="sidebar">
+            <div class="filters-header">
+                <div class="filters-label">Filters</div>
+                <a href="#" class="clear-filters">Clear Filters</a>
+            </div>
+
+            <!-- Certification Type Filter -->
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <h3>Certification Type</h3>
+                    <span class="filter-icon">▼</span>
+                </div>
+                <div class="filter-content">
+                    <!-- Certification type filters would go here -->
+                </div>
+            </div>
+
+            <!-- Product Categories Filter -->
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <h3>Product Categories</h3>
+                    <span class="filter-icon">▼</span>
+                </div>
+                <div class="filter-content">
+                    <ul class="filter-tree">
+                        <li class="filter-item filter-level-1">
+                            <label>
+                                <input type="checkbox" checked>
+                                Level 1 - Category
+                            </label>
+                        </li>
+                        <li class="filter-item filter-level-2">
+                            <label>
+                                <input type="checkbox" checked>
+                                Level 2 - Type
+                            </label>
+                        </li>
+                        <li class="filter-item filter-level-1">
+                            <label>
+                                <input type="checkbox">
+                                Level 1 - Category
+                            </label>
+                        </li>
+                        <li class="filter-item filter-level-2">
+                            <label>
+                                <input type="checkbox">
+                                Level 2 - Type
+                            </label>
+                        </li>
+                        <li class="filter-item filter-level-3">
+                            <label>
+                                <input type="checkbox">
+                                Level 3 - Subcategory
+                            </label>
+                        </li>
+                        <li class="filter-item filter-level-1">
+                            <label>
+                                <input type="checkbox">
+                                Level 1 - Category
+                            </label>
+                        </li>
+                        <li class="filter-item filter-level-2">
+                            <label>
+                                <input type="checkbox">
+                                Level 2 - Type
+                            </label>
+                        </li>
+                        <li class="filter-item filter-level-1">
+                            <label>
+                                <input type="checkbox">
+                                Level 1 - Category
+                            </label>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Company Filter -->
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <h3>Company</h3>
+                    <span class="filter-icon">▼</span>
+                </div>
+                <div class="filter-content">
+                    <!-- Company filters would go here -->
+                </div>
+            </div>
+
+            <!-- Countries Filter -->
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <h3>Countries</h3>
+                    <span class="filter-icon">▼</span>
+                </div>
+                <div class="filter-content">
+                    <!-- Countries filters would go here -->
+                </div>
+            </div>
+
+            <!-- Additional Filter -->
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <h3>Additional</h3>
+                    <span class="filter-icon">▼</span>
+                </div>
+                <div class="filter-content">
+                    <!-- Additional filters would go here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Area -->
+        <div class="main-content">
+            <div class="results-count">201 Results</div>
+
+            <div class="certificates-grid">
+                <!-- Certificate Card 1 -->
+                <div class="certificate-card">
+                    <div class="certificate-header">
+                        <h3>CERTIFIED SUSTAINABILITY FACTS</h3>
+                    </div>
+                    <div class="certificate-info">
+                        <div class="certificate-number">Certificate #: 24-1605</div>
+                        <div class="company-name">ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division</div>
+                        <div class="product-name">900ET Exit Device Trim with EcoFlex®</div>
+                        <div class="product-category">Construction / Building Products</div>
+                        <div class="certification-period">
+                            <strong>Certification Period:</strong><br>
+                            7/1/2024 - 6/31/2027
+                        </div>
+                        <div class="certificate-location">
+                            Berlin, CT<br>
+                            United States
+                        </div>
+                    </div>
+                    <div class="certificate-actions">
+                        <button class="action-button" title="Download Certificate">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z" />
+                            </svg>
+                        </button>
+                        <button class="action-button" title="Expand Certificate">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M5.828 10.172a.5.5 0 0 0-.707 0l-4.096 4.096V11.5a.5.5 0 0 0-1 0v3.975a.5.5 0 0 0 .5.5H4.5a.5.5 0 0 0 0-1H1.732l4.096-4.096a.5.5 0 0 0 0-.707zm4.344 0a.5.5 0 0 1 .707 0l4.096 4.096V11.5a.5.5 0 1 1 1 0v3.975a.5.5 0 0 1-.5.5H11.5a.5.5 0 0 1 0-1h2.768l-4.096-4.096a.5.5 0 0 1 0-.707zm0-4.344a.5.5 0 0 0 .707 0l4.096-4.096V4.5a.5.5 0 1 0 1 0V.525a.5.5 0 0 0-.5-.5H11.5a.5.5 0 0 0 0 1h2.768l-4.096 4.096a.5.5 0 0 0 0 .707zm-4.344 0a.5.5 0 0 1-.707 0L1.025 1.732V4.5a.5.5 0 0 1-1 0V.525a.5.5 0 0 1 .5-.5H4.5a.5.5 0 0 1 0 1H1.732l4.096 4.096a.5.5 0 0 1 0 .707z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Certificate Card 2 (Template) -->
+                <div class="certificate-card">
+                    <div class="certificate-header">
+                        <h3>CERTIFIED SUSTAINABILITY FACTS</h3>
+                    </div>
+                    <div class="certificate-info">
+                        <div class="certificate-number">Certificate #: XX-XXXX</div>
+                        <div class="company-name">Company</div>
+                        <div class="product-name">Product Name</div>
+                        <div class="product-category">ProductType / ProductType Subcategory</div>
+                        <div class="certification-period">
+                            <strong>Certification Period:</strong><br>
+                            Effective Date - Expiration Date
+                        </div>
+                        <div class="certificate-location">
+                            Location<br>
+                            Country
+                        </div>
+                    </div>
+                    <div class="certificate-actions">
+                        <button class="action-button" title="Download Certificate">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z" />
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1
+
+                                      

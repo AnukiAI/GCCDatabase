@@ -1,0 +1,420 @@
+/* partners.css - Partners Management specific styles */
+/* These styles are loaded only on partners management pages */
+
+/* Partners Header */
+.partners-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.partners-title-area {
+    flex-grow: 1;
+}
+
+.partners-title {
+    color: var(--blue-dark);
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+}
+
+.partners-buttons-area {
+    display: flex;
+    gap: 10px;
+}
+
+/* Partners specific buttons */
+.partners-btn {
+    background-color: var(--white);
+    color: var(--blue-dark);
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+}
+
+    .partners-btn:hover {
+        background-color: var(--light-gray);
+    }
+
+.partners-btn-primary {
+    background-color: var(--blue-primary);
+    color: white;
+    border: none;
+}
+
+    .partners-btn-primary:hover {
+        background-color: #0089BC;
+    }
+
+.partners-btn-add {
+    background-color: var(--green-secondary);
+    color: white;
+    border: none;
+}
+
+    .partners-btn-add:hover {
+        background-color: var(--green-primary);
+    }
+
+.partners-btn-delete, .partners-btn-edit {
+    color: #e74c3c;
+    background: none;
+    border: none;
+    padding: 4px;
+    font-size: 16px;
+}
+
+.partners-btn-edit {
+    color: var(--blue-primary);
+}
+
+.partners-btn-delete:hover {
+    background-color: #fee;
+}
+
+.partners-btn-edit:hover {
+    background-color: #eef;
+}
+
+/* Search and Filter Bar */
+.partners-search-filter-bar {
+    display: flex;
+    align-items: center;
+    background-color: var(--light-gray);
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.partners-search-box {
+    position: relative;
+    flex-grow: 1;
+    min-width: 200px;
+}
+
+    .partners-search-box input {
+        width: 100%;
+        padding: 8px 10px 8px 35px;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        background-color: white;
+        font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+        box-sizing: border-box;
+    }
+
+        .partners-search-box input:focus {
+            outline: none;
+            border-color: var(--blue-primary);
+            box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+        }
+
+.partners-search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #777;
+}
+
+/* Partners Table */
+.partners-table-container {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 20px;
+    background-color: var(--white);
+}
+
+.partners-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    .partners-table th,
+    .partners-table td {
+        padding: 12px 15px;
+        text-align: left;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .partners-table th {
+        background-color: var(--light-gray);
+        color: var(--blue-dark);
+        font-weight: 500;
+        position: sticky;
+        top: 0;
+        cursor: pointer;
+        user-select: none;
+    }
+
+        .partners-table th:hover {
+            background-color: #f0f0f0;
+        }
+
+        .partners-table th .partners-sort-icon {
+            display: inline-block;
+            margin-left: 6px;
+            font-size: 10px;
+            opacity: 0.6;
+            transition: var(--transition);
+        }
+
+        .partners-table th.active-sort .partners-sort-icon {
+            opacity: 1;
+            color: var(--blue-primary);
+        }
+
+    .partners-table tbody tr {
+        transition: var(--transition);
+    }
+
+        .partners-table tbody tr:hover {
+            background-color: var(--light-gray);
+        }
+
+        .partners-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+/* Edit Mode Styles */
+.partners-edit-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--blue-primary);
+    border-radius: 4px;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    box-sizing: border-box;
+}
+
+    .partners-edit-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+    }
+
+.partners-edit-row .partner-name {
+    display: none;
+}
+
+.partner-name-edit {
+    display: none;
+}
+
+.partners-edit-row .partner-name-edit {
+    display: block;
+}
+
+.partners-edit-row .action-buttons {
+    display: none;
+}
+
+.partners-edit-actions {
+    display: none;
+}
+
+.partners-edit-row .partners-edit-actions {
+    display: flex;
+    gap: 5px;
+}
+
+.partners-add-row {
+    display: none;
+    background-color: #f8f9fa;
+}
+
+    .partners-add-row.active {
+        display: table-row;
+    }
+
+.partners-btn-save, .partners-btn-cancel {
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    transition: var(--transition);
+}
+
+.partners-btn-save {
+    background-color: var(--green-secondary);
+    color: white;
+}
+
+    .partners-btn-save:hover {
+        background-color: var(--green-primary);
+    }
+
+.partners-btn-cancel {
+    background-color: #f8f9fa;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+    .partners-btn-cancel:hover {
+        background-color: #e2e6ea;
+    }
+
+/* Footer Info */
+.partners-footer-info {
+    text-align: right;
+    color: #777;
+    font-size: 0.9rem;
+    margin-top: 10px;
+    padding: 0 5px;
+}
+
+/* Partners Toast Notification */
+.partners-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--green-secondary);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 4px;
+    box-shadow: var(--shadow);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    max-width: 300px;
+    word-wrap: break-word;
+}
+
+    .partners-toast.show {
+        opacity: 1;
+    }
+
+    .partners-toast.error {
+        background-color: var(--warning);
+    }
+
+    .partners-toast.success {
+        background-color: var(--success);
+    }
+
+/* Loading State */
+.partners-loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    color: #666;
+}
+
+    .partners-loading::before {
+        content: '';
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--border-color);
+        border-top: 2px solid var(--blue-primary);
+        border-radius: 50%;
+        animation: partners-spin 1s linear infinite;
+        margin-right: 10px;
+    }
+
+@keyframes partners-spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Empty State */
+.partners-empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+    .partners-empty-state h3 {
+        color: var(--blue-dark);
+        margin-bottom: 10px;
+    }
+
+    .partners-empty-state p {
+        margin-bottom: 20px;
+    }
+
+/* Responsive Design for Partners */
+@media (max-width: 768px) {
+    .partners-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .partners-buttons-area {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .partners-search-filter-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .partners-search-box {
+        width: 100%;
+    }
+
+    .partners-table-container {
+        overflow-x: auto;
+    }
+
+    .partners-table {
+        min-width: 500px;
+    }
+
+        .partners-table th,
+        .partners-table td {
+            padding: 8px 10px;
+        }
+
+    .partners-edit-actions {
+        flex-direction: column;
+        gap: 3px;
+    }
+
+    .partners-btn-save,
+    .partners-btn-cancel {
+        padding: 4px 8px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 576px) {
+    .partners-buttons-area {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .partners-btn {
+        justify-content: center;
+    }
+
+    .partners-table th,
+    .partners-table td {
+        padding: 6px 8px;
+        font-size: 14px;
+    }
+
+    .partners-footer-info {
+        text-align: center;
+        font-size: 0.8rem;
+    }
+}

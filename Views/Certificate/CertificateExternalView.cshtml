@@ -1,0 +1,147 @@
+@{
+   // ViewData["Title"] = "Certificate External View";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<!-- Main Content -->
+<link href="~/css/certificatesexternal.css" rel="stylesheet" />
+<div class="certificate-external">
+    <!-- Everything inside remains unchanged structurally -->
+    <div class="main-content">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <!-- Search -->
+            <div class="search-container">
+                <input type="text" class="search-input" placeholder="Search...">
+                <button class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters-header">
+                <div>Filters</div>
+                <div class="clear-filters">Clear Filters</div>
+            </div>
+
+            <!-- Certification Type Filter -->
+            <div class="filter-section">
+                <div class="filter-header">
+                    <div>Certification Type</div>
+                    <div><i class="fas fa-chevron-down"></i></div>
+                </div>
+            </div>
+
+            <!-- Product Categories Filter -->
+            <div class="filter-section">
+                <div class="filter-header">
+                    <div>Product Categories</div>
+                    <div><i class="fas fa-chevron-down"></i></div>
+                </div>
+                <div class="filter-content">
+                    <!-- Categories and subcategories -->
+                    <div class="category-item">
+                        <label class="checkbox-container"><input type="checkbox"> Level 1 - Category</label>
+                        <div class="subcategory">
+                            <label class="checkbox-container"><input type="checkbox"> Level 2 - Type</label>
+                            <div class="sub-subcategory">
+                                <label class="checkbox-container"><input type="checkbox"> Level 3 - Subcategory</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="category-item">
+                        <label class="checkbox-container"><input type="checkbox"> Level 1 - Category</label>
+                        <div class="subcategory">
+                            <label class="checkbox-container"><input type="checkbox"> Level 2 - Type</label>
+                        </div>
+                    </div>
+                    <div class="category-item">
+                        <label class="checkbox-container"><input type="checkbox"> Level 1 - Category</label>
+                    </div>
+                    <div class="category-item">
+                        <label class="checkbox-container"><input type="checkbox"> Level 1 - Category</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Company Filter -->
+            <div class="filter-section">
+                <div class="filter-header">
+                    <div>Company</div>
+                    <div><i class="fas fa-chevron-down"></i></div>
+                </div>
+            </div>
+
+            <!-- Countries Filter -->
+            <div class="filter-section">
+                <div class="filter-header">
+                    <div>Countries</div>
+                    <div><i class="fas fa-chevron-down"></i></div>
+                </div>
+            </div>
+
+            <!-- Additional Filter -->
+            <div class="filter-section">
+                <div class="filter-header">
+                    <div>Additional</div>
+                    <div><i class="fas fa-chevron-down"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="results-container">
+            <div class="results-header">
+                <div class="results-count">201 Results</div>
+                <div class="view-options">
+                    <div class="view-option">Tile</div>
+                    <div class="view-option active">List</div>
+                </div>
+            </div>
+
+            <div class="export-options">
+                <button class="export-button">Export (selected) to Excel</button>
+                <button class="export-button">Export All to Excel</button>
+                <button class="export-button">Download Selected</button>
+            </div>
+
+            <!-- Results Table -->
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox"></th>
+                        <th>Company <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                        <th>Product <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                        <th>Type <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                        <th>Certification <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                        <th>Effective <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                        <th>Expiration <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                        <th>ASN <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (int i = 1; i <= 9; i++)
+                    {
+                        <tr>
+                            <td><input type="checkbox"></td>
+                            <td>Company @i</td>
+                            <td>Product @i</td>
+                            <td>Type @(i % 3 + 1)</td>
+                            <td>Cert Name</td>
+                            <td>DD/MM/YYYY</td>
+                            <td>DD/MM/YYYY</td>
+                            <td>ASN0000@i</td>
+                            <td>
+                                <div class="action-icons">
+                                    <span class="action-icon"><i class="fas fa-eye"></i></span>
+                                    <span class="action-icon"><i class="fas fa-download"></i></span>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script src="~/js/certificatesexternal.js"></script>

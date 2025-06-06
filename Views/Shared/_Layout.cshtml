@@ -1,0 +1,224 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - GreenCircle Certified Database</title>
+
+    <!-- Unified CSS -->
+    <link href="~/css/main.css" rel="stylesheet" />
+    <link href="~/css/dashboard.css" rel="stylesheet" />
+    <link href="~/css/certificates.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
+
+    <!-- Component-specific CSS loaded per page -->
+    @RenderSection("Styles", required: false)
+
+    
+
+</head>
+<body class="@ViewData["BodyClass"]">
+    <!-- Header -->
+    <header class="header">
+        <!-- Top bar with user controls -->
+        <div class="header-top">
+            <div class="logo-text"></div>
+            <div class="user-controls">
+                <div class="user-profile">
+                    <span class="user-name">@ViewData["UserName"]</span>
+                    <i class="fas fa-chevron-down user-dropdown-toggle"></i>
+                    <div class="user-dropdown">
+                        <a href="#" class="dropdown-item role-element role-public-hide">
+                            <i class="fas fa-user"></i> My Profile
+                        </a>
+                        <a href="#" class="dropdown-item role-element role-public-hide">
+                            <i class="fas fa-cog"></i> Account Settings
+                        </a>
+                        <div class="divider role-element role-public-hide"></div>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                        <a href="#" class="dropdown-item role-element role-public-show">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle section with logo and branding -->
+        <div class="header-middle">
+            <div class="logo-area">
+                <div class="logo-img">
+                    <img src="~/img/gcclogo-transparent.webp" alt="GreenCircle Certified Logo">
+                </div>
+                <div class="logo-text">GreenCircle Certified Database</div>
+            </div>
+        </div>
+
+        <!-- Navigation wrapper -->
+        <div class="nav-wrapper">
+            <nav class="main-nav">
+                <div class="mobile-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+
+                <ul class="nav-links">
+                    <!-- Public Navigation Items -->
+                    <li class="nav-item role-element role-public-show">
+                        <!-- Public nav items -->
+                        <a href="#" class="nav-link">
+                            Temp links
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
+                        </a>
+                        <div class="submenu">
+                        <a asp-controller="Certificate" asp-action="CertificateExternalView" class="nav-link">CertificateExternalView</a>
+                        <a asp-controller="Certificate" asp-action="CertificateInternalView" class="nav-link">CertificateInternalView</a>
+                        <a asp-controller="Certificate" asp-action="CertificateSingleView" class="nav-link">CertificateSingleView</a>
+                        <a asp-controller="Certificate" asp-action="CertificateTileView" class="nav-link">CertificateTileView</a>
+                        <a asp-controller="Certificate" asp-action="CertificateTileViewAltView1" class="nav-link">CertificateTileViewAltView1</a>
+                        <a asp-controller="Certificate" asp-action="CertificateTileViewAltView2" class="nav-link">CertificateTileViewAltView2</a>
+                        </div>  
+                    </li>
+                      
+                    <!-- External Navigation Items -->
+                    <li class="nav-item role-element role-external-show">
+                        <a asp-controller="Certificate" asp-action="CertificateExternalView" class="nav-link">Certificates</a>
+                    </li>
+                    <li class="nav-item role-element role-external-show">
+                        <a asp-controller="Product" asp-action="Index" class="nav-link">Products</a>
+                    </li>
+
+                    <!-- Analyst & Admin Navigation Items -->
+                    <li class="nav-item role-element role-analyst-show role-admin-show">
+                        <a asp-controller="Certificate" asp-action="CertificateInternalView" class="nav-link">Certificates</a>
+                    </li>
+
+                    <li class="nav-item role-element role-analyst-show role-admin-show">
+                        <a asp-controller="Dashboard" asp-action="Dashboard" class="nav-link">Dashboard</a>
+                    </li>
+
+                    <li class="nav-item role-element role-analyst-show role-admin-show">
+                        <a href="#" class="nav-link">
+                            Companies & Products
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
+                        </a>
+                        <div class="submenu">
+                            <a asp-controller="Company" asp-action="Index">Companies</a>
+                            <a asp-controller="Product" asp-action="Management">Products</a>
+                        </div>
+                    </li>
+
+                    <li class="nav-item role-element role-admin-show">
+                        <a href="#" class="nav-link">
+                            Administration
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
+                        </a>
+                        <div class="submenu">
+                            <a asp-controller="Admin" asp-action="RoleManagement">Role Management</a>
+                            <a asp-controller="Admin" asp-action="UserManagement">User Management</a>
+
+                            <!-- Configuration/Settings submenu -->
+                            <div class="submenu-item">
+                                <div class="submenu-toggle">
+                                    Configuration/Settings
+                                    <i class="fas fa-chevron-right toggle-icon"></i>
+                                </div>
+                                <div class="nested-submenu">
+                                    <a asp-controller="Admin" asp-action="GoogleAnalytics">Google Analytics Tracking</a>
+                                </div>
+                            </div>
+
+                            <!-- API Management submenu -->
+                            <div class="submenu-item">
+                                <div class="submenu-toggle">
+                                    API Management
+                                    <i class="fas fa-chevron-right toggle-icon"></i>
+                                </div>
+                                <div class="nested-submenu">
+                                    <a asp-controller="Admin" asp-action="AmazonAPI">Amazon API Integration</a>
+                                </div>
+                            </div>
+
+                            <!-- Data Management submenu -->
+                            <div class="submenu-item">
+                                <div class="submenu-toggle">
+                                    Data Management
+                                    <i class="fas fa-chevron-right toggle-icon"></i>
+                                </div>
+                                <div class="nested-submenu">
+                                    <a asp-controller="Admin" asp-action="CertificateTypes">Certificate Types</a>
+                                    <a asp-controller="Admin" asp-action="ProductTypes">Product Types</a>
+                                    <a asp-controller="Admin" asp-action="CertificateFields">Certificate Fields</a>
+                                    <a asp-controller="Admin" asp-action="CSFAttributes">CSF Attributes</a>
+                                    <a asp-controller="Admin" asp-action="Tags">Tags</a>
+                                    <a asp-controller="Admin" asp-action="Partners">Partners</a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="search-bar role-element role-public-hide">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search certificates...">
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs">
+        <div class="breadcrumb-wrapper">
+            @RenderSection("Breadcrumbs", required: false)
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <main class="main-content">
+        <div class="page-container">
+            <div class="page-header">
+                <h1 class="page-title">@ViewData["Title"]</h1>
+                <div class="page-actions">
+                    @RenderSection("PageActions", required: false)
+                </div>
+            </div>
+
+            <div class="page-content">
+                @RenderBody()
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <li class="nav-item role-element role-public-show">
+                <div class="disclaimer">
+                The certificates in this public database are available for viewing at the consent of the client; not all awarded certificates are made publicly available. Additionally, some previously awarded certificates might not come up in a search of this database but may be valid for products in circulation that were produced during the evaluation period.
+                Please contact <a href="mailto:info@greencirclecertified.com">GreenCircle</a> with questions.
+            </div></li>
+            <div class="footer-links">
+                &copy; @DateTime.Now.Year GreenCircle Certified. All rights reserved.
+                <a asp-controller="Home" asp-action="Privacy">Privacy Policy</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Role Selector for Demo -->
+    <div class="role-selector">
+        <h4>Demo Role Switcher</h4>
+        <select id="role-toggle">
+            <option value="public">Public</option>
+            <option value="external">External</option>
+            <option value="analyst">Analyst</option>
+            <option value="admin" selected>Admin</option>
+        </select>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="~/js/main.js"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

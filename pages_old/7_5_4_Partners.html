@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Partners Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="css/Partners.css" rel="stylesheet" />
+   
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="title-area">
+                <h1>Partners Management</h1>
+            </div>
+            <div class="buttons-area">
+                <button id="import-btn" class="btn">
+                    <i class="fas fa-upload"></i> Import
+                </button>
+                <button id="export-btn" class="btn">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                <button id="add-partner-btn" class="btn btn-add">
+                    <i class="fas fa-plus"></i> Add New Partner
+                </button>
+            </div>
+        </header>
+
+        <div class="search-filter-bar">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search partners...">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="partners-table">
+                <thead>
+                    <tr>
+                        <th width="60%" data-sort="name">Partner Name <span class="sort-icon">▼</span></th>
+                        <th width="40%" class="actions-col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Table rows will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        <div class="footer-info">
+            <span id="partner-count">Showing 0 of 0 partners</span>
+        </div>
+    </div>
+
+    <!-- Toast for notifications -->
+    <div id="toast" class="toast"></div>
+
+    <script>
+        // Sample data for initial display
+        let partners = [
+            { id: 1, name: "Amazon" },
+            { id: 2, name: "Walmart" },
+            { id: 3, name: "Target" },
+            { id: 4, name: "Microsoft" },
+            { id: 5, name: "Google" },
+            { id: 6, name: "Apple" },
+            { id: 7, name: "Other" }
+        ];
+
+        // DOM Elements
+        const partnersTable = document.getElementById('partners-table');
+        const partnersTableBody = partnersTable.querySelector('tbody');
+        const partnerCountElement = document.getElementById('partner-count');
+        const searchInput = document.getElementById('search-input');
+        const addPartnerBtn = document.getElementById('add-partner-btn');
+        const importBtn = document.getElementById('import-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const toast = document.getElementById('toast');
+
+        // Sorting variables
+        let sortColumn = 'name';
+        let sortDirection = 'asc';
+
+        // Function to populate the table
+        function populateTable(data) {
+            partnersTableBody.innerHTML = '';
+
+            // Add new partner row (initially hidden)
+            const addRow = document.createElement('tr');
+            addRow.className = 'add-row';
+            addRow.id = 'add-row';
+
+            const nameCell = document.createElement('td');
+            nameCell.innerHTML = `<input type="text" class="edit-input" id="new-partner-name" placeholder="Enter partner name">`;
+
+            const actionsCell = document.createElement('td');
+            actionsCell.innerHTML = `
+                    <button class="btn-save" onclick="saveNewPartner()">Save</button>
+                    <button class="btn-cancel" onclick="cancelAddPartner()">Cancel</button>
+                `;
+
+            addRow.appendChild(nameCell);
+            addRow.appendChild(actionsCell);
+            partnersTableBody.appendChild(addRow);
+
+            // Add existing partners
+            data.forEach(partner => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-id', partner.id);
+
+                // Partner Name cell
+                const nameCell = document.createElement('td');
+
+                // View mode
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'partner-name';
+                nameSpan.textContent = partner.name;
+                nameCell.appendChild(nameSpan);
+
+                // Edit mode
+                const nameEditDiv = document.createElement('div');
+                nameEditDiv.className = 'partner-name-edit';
+                nameEditDiv.innerHTML = `<input type="text" class="edit-input" value="${partner.name}">`;
+                nameCell.appendChild(nameEditDiv);
+
+                // Actions cell
+                const actionsCell = document.createElement('td');
+
+                // Regular action buttons
+                const actionButtons = document.createElement('div');
+                actionButtons.className = 'action-buttons';
+                actionButtons.innerHTML = `
+                        <button class="btn-edit" onclick="editPartner(${partner.id})"><i class="fas fa-edit"></i></button>
+                        <button class="btn-delete" onclick="deletePartner(${partner.id})"><i class="fas fa-trash-alt"></i></button>
+                    `;
+                actionsCell.appendChild(actionButtons);
+
+                // Edit action buttons
+                const editActions = document.createElement('div');
+                editActions.className = 'edit-actions';
+                editActions.innerHTML = `
+                        <button class="btn-save" onclick="savePartner(${partner.id})">Save</button>
+                        <button class="btn-cancel" onclick="cancelEdit(${partner.id})">Cancel</button>
+                    `;
+                actionsCell.appendChild(editActions);
+
+                row.appendChild(nameCell);
+                row.appendChild(actionsCell);
+
+                partnersTableBody.appendChild(row);
+            });
+
+            // Update partner count
+            partnerCountElement.textContent = `Showing ${data.length} of ${partners.length} partners`;
+        }
+
+        // Initialize table with sortable headers
+        function initializeSortableHeaders() {
+            const headers = partnersTable.querySelectorAll('th[data-sort]');
+
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const column = header.getAttribute('data-sort');
+
+                    // Toggle sort direction if clicking the same column
+                    if (sortColumn === column) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = column;
+                        sortDirection = 'asc';
+                    }
+
+                    // Update header styling
+                    headers.forEach(h => {
+                        h.classList.remove('active-sort');
+                        const icon = h.querySelector('.sort-icon');
+                        if (icon) {
+                            icon.textContent = '▼';
+                        }
+                    });
+
+                    header.classList.add('active-sort');
+                    const sortIcon = header.querySelector('.sort-icon');
+                    if (sortIcon) {
+                        sortIcon.textContent = sortDirection === 'asc' ? '▼' : '▲';
+                    }
+
+                    // Sort the data
+                    sortData();
+                });
+            });
+        }
+
+        // Function to sort the data
+        function sortData() {
+            const filteredData = getFilteredData();
+
+            filteredData.sort((a, b) => {
+                const valueA = a[sortColumn].toString().toLowerCase();
+                const valueB = b[sortColumn].toString().toLowerCase();
+
+                if (sortDirection === 'asc') {
+                    return valueA.localeCompare(valueB);
+                } else {
+                    return valueB.localeCompare(valueA);
+                }
+            });
+
+            populateTable(filteredData);
+        }
+
+        // Function to filter partners based on search input
+        function getFilteredData() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+
+            if (!searchTerm) {
+                return [...partners];
+            }
+
+            return partners.filter(partner =>
+                partner.name.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        // Function to show the add partner row
+        function showAddPartnerRow() {
+            const addRow = document.getElementById('add-row');
+            addRow.style.display = 'table-row';
+            document.getElementById('new-partner-name').focus();
+        }
+
+        // Function to save a new partner
+        function saveNewPartner() {
+            const nameInput = document.getElementById('new-partner-name');
+            const name = nameInput.value.trim();
+
+            if (!name) {
+                showToast('Partner name cannot be empty');
+                nameInput.focus();
+                return;
+            }
+
+            // Create new partner with next ID
+            const newId = partners.length > 0 ? Math.max(...partners.map(p => p.id)) + 1 : 1;
+            const newPartner = {
+                id: newId,
+                name: name
+            };
+
+            // Add to partners array
+            partners.push(newPartner);
+
+            // Reset add row
+            nameInput.value = '';
+            document.getElementById('add-row').style.display = 'none';
+
+            // Refresh table
+            sortData();
+
+            // Show success message
+            showToast('Partner added successfully');
+        }
+
+        // Function to cancel adding a new partner
+        function cancelAddPartner() {
+            document.getElementById('new-partner-name').value = '';
+            document.getElementById('add-row').style.display = 'none';
+        }
+
+        // Function to edit a partner
+        function editPartner(id) {
+            // Find the row with the specified partner id
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            // Add edit class to row
+            row.classList.add('edit-row');
+
+            // Find the input and focus on it
+            const input = row.querySelector('.edit-input');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }
+
+        // Function to save edited partner
+        function savePartner(id) {
+            // Find the row
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            // Get input value
+            const input = row.querySelector('.edit-input');
+            const newName = input.value.trim();
+
+            if (!newName) {
+                showToast('Partner name cannot be empty');
+                input.focus();
+                return;
+            }
+
+            // Update partner in array
+            const partnerIndex = partners.findIndex(p => p.id === id);
+            if (partnerIndex !== -1) {
+                partners[partnerIndex].name = newName;
+            }
+
+            // Update display
+            row.querySelector('.partner-name').textContent = newName;
+
+            // Remove edit class
+            row.classList.remove('edit-row');
+
+            // Show success message
+            showToast('Partner updated successfully');
+        }
+
+        // Function to cancel edit
+        function cancelEdit(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            // Get original name
+            const partner = partners.find(p => p.id === id);
+            if (!partner) return;
+
+            // Reset input value to original
+            const input = row.querySelector('.edit-input');
+            input.value = partner.name;
+
+            // Remove edit class
+            row.classList.remove('edit-row');
+        }
+
+        // Function to delete a partner
+        function deletePartner(id) {
+            if (confirm('Are you sure you want to delete this partner?')) {
+                // Remove from array
+                partners = partners.filter(partner => partner.id !== id);
+
+                // Refresh table
+                sortData();
+
+                // Show success message
+                showToast('Partner deleted successfully');
+            }
+        }
+
+        // Function to show toast message
+        function showToast(message) {
+            toast.textContent = message;
+            toast.classList.add('show');
+
+            // Hide after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Function to handle file import
+        function importPartners() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.csv';
+
+            fileInput.addEventListener('change', event => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const content = e.target.result;
+                    const lines = content.split('\n');
+
+                    // Skip header, process data rows
+                    const newPartners = [];
+                    let maxId = partners.length > 0 ? Math.max(...partners.map(p => p.id)) : 0;
+
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+
+                        const values = line.split(',');
+                        if (values.length < 1) continue;
+
+                        const name = values[0].trim();
+                        if (!name) continue;
+
+                        maxId++;
+                        newPartners.push({
+                            id: maxId,
+                            name: name
+                        });
+                    }
+
+                    if (newPartners.length > 0) {
+                        partners = [...partners, ...newPartners];
+                        sortData();
+                        showToast(`${newPartners.length} partners imported successfully`);
+                    } else {
+                        showToast('No valid partners found in import file');
+                    }
+                };
+
+                reader.readAsText(file);
+            });
+
+            fileInput.click();
+        }
+
+        // Function to export partners to CSV
+        function exportPartners() {
+            const header = 'Partner Name\n';
+            const rows = partners.map(partner => `${partner.name}`).join('\n');
+            const csv = header + rows;
+
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'partners.csv';
+            a.click();
+
+            URL.revokeObjectURL(url);
+            showToast('Partners exported successfully');
+        }
+
+        // Event Listeners
+        addPartnerBtn.addEventListener('click', showAddPartnerRow);
+        importBtn.addEventListener('click', importPartners);
+        exportBtn.addEventListener('click', exportPartners);
+
+        searchInput.addEventListener('input', () => {
+            sortData();
+        });
+
+        // Initialize
+        initializeSortableHeaders();
+        sortData();
+    </script>
+</body>
+</html>

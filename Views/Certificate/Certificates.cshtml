@@ -1,0 +1,434 @@
+﻿@{
+    ViewData["Title"] = "Certificates";
+    ViewData["BodyClass"] = "role-admin";
+    ViewData["UserName"] = "Jane Smith";
+}
+
+@section Styles {
+    <link href="~/css/certificates.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Certificates</span>
+    </span>
+}
+
+@section PageActions {
+    <!-- Public & External role buttons -->
+    <button class="btn btn-outline role-element role-public-show role-external-show">
+        <i class="fas fa-filter"></i> Filter
+    </button>
+
+    <!-- Analyst & Admin role buttons -->
+    <button class="btn btn-outline role-element role-analyst-show role-admin-show" id="import-btn">
+        <i class="fas fa-download"></i> Import
+    </button>
+    <button class="btn btn-outline role-element role-analyst-show role-admin-show" id="export-btn">
+        <i class="fas fa-upload"></i> Export
+    </button>
+    <button class="btn btn-add role-element role-analyst-show role-admin-show" id="add-certificate-btn">
+        <i class="fas fa-plus"></i> Add New Certificate
+    </button>
+}
+
+<!-- Certificate Badge -->
+<div class="certificate-badge">Certificate 1.0</div>
+
+<!-- Search Section -->
+<div class="certificate-search-section">
+    <div class="certificate-search-container">
+        <div class="certificate-search-bar">
+            <input type="text" class="certificate-search-input" placeholder="Search certificates..." id="certificate-search">
+            <button class="certificate-search-button" type="button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                </svg>
+            </button>
+        </div>
+
+        <div class="certificate-sort-by">
+            <div class="certificate-sort-by-label">Sort By</div>
+            <div class="certificate-sort-dropdown">
+                <button class="certificate-sort-dropdown-button" type="button">
+                    <span>Default</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                        <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
+                    </svg>
+                </button>
+                <div class="certificate-sort-dropdown-content">
+                    <a href="#" class="certificate-sort-option" data-sort="newest">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
+                        </svg>
+                        Newest Effective Date
+                    </a>
+                    <a href="#" class="certificate-sort-option" data-sort="expiring">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
+                        </svg>
+                        Expiring Soon
+                    </a>
+                    <a href="#" class="certificate-sort-option" data-sort="product-az">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
+                        </svg>
+                        Product Name A-Z
+                    </a>
+                    <a href="#" class="certificate-sort-option" data-sort="company-az">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                            <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
+                        </svg>
+                        Company A-Z
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Container -->
+<div class="certificate-main-container">
+    <!-- Sidebar (Filters) -->
+    <div class="certificate-sidebar">
+        <div class="certificate-filters-header">
+            <div class="certificate-filters-label">Filters</div>
+            <a href="#" class="certificate-clear-filters">Clear Filters</a>
+        </div>
+
+        <!-- Certification Type Filter -->
+        <div class="certificate-filter-panel">
+            <div class="certificate-filter-header">
+                <h3>Certification Type</h3>
+                <span class="filter-icon"><i class="fas fa-chevron-down"></i></span>
+            </div>
+            <div class="certificate-filter-content">
+                <ul class="certificate-filter-tree">
+                    <li class="certificate-filter-item certificate-filter-level-1">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="sustainability-facts">
+                            Certified Sustainability Facts
+                        </label>
+                    </li>
+                    <li class="certificate-filter-item certificate-filter-level-1">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="environmental-facts">
+                            Certified Environmental Facts
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Product Categories Filter -->
+        <div class="certificate-filter-panel">
+            <div class="certificate-filter-header">
+                <h3>Product Categories</h3>
+                <span class="filter-icon"><i class="fas fa-chevron-down"></i></span>
+            </div>
+            <div class="certificate-filter-content">
+                <ul class="certificate-filter-tree">
+                    <li class="certificate-filter-item certificate-filter-level-1">
+                        <label>
+                            <input type="checkbox" name="category" value="construction" checked>
+                            Construction / Building Products
+                        </label>
+                    </li>
+                    <li class="certificate-filter-item certificate-filter-level-2">
+                        <label>
+                            <input type="checkbox" name="subcategory" value="hardware" checked>
+                            Hardware
+                        </label>
+                    </li>
+                    <li class="certificate-filter-item certificate-filter-level-1">
+                        <label>
+                            <input type="checkbox" name="category" value="containers">
+                            Reusable Containers
+                        </label>
+                    </li>
+                    <li class="certificate-filter-item certificate-filter-level-2">
+                        <label>
+                            <input type="checkbox" name="subcategory" value="drinkware">
+                            Drinkware
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Company Filter -->
+        <div class="certificate-filter-panel">
+            <div class="certificate-filter-header">
+                <h3>Company</h3>
+                <span class="filter-icon"><i class="fas fa-chevron-down"></i></span>
+            </div>
+            <div class="certificate-filter-content">
+                <input type="text" placeholder="Search companies..." class="certificate-search-input" style="margin-bottom: 10px;">
+                <ul class="certificate-filter-tree">
+                    <li class="certificate-filter-item certificate-filter-level-1">
+                        <label>
+                            <input type="checkbox" name="company" value="assa-abloy">
+                            ASSA ABLOY
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Countries Filter -->
+        <div class="certificate-filter-panel">
+            <div class="certificate-filter-header">
+                <h3>Countries</h3>
+                <span class="filter-icon"><i class="fas fa-chevron-down"></i></span>
+            </div>
+            <div class="certificate-filter-content">
+                <ul class="certificate-filter-tree">
+                    <li class="certificate-filter-item certificate-filter-level-1">
+                        <label>
+                            <input type="checkbox" name="country" value="us">
+                            United States
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="certificate-main-content">
+        <div class="certificates-results-count">201 Results</div>
+
+        <div class="certificates-grid" id="certificates-grid">
+            <!-- Certificate cards will be populated here -->
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Initialize certificate management functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeCertificateManagement();
+        });
+
+        function initializeCertificateManagement() {
+            // Load certificates
+            loadCertificates();
+
+            // Initialize search
+            const searchInput = document.getElementById('certificate-search');
+            if (searchInput) {
+                searchInput.addEventListener('input', window.GreenCircle.debounce(handleSearch, 300));
+            }
+
+            // Initialize sort dropdown
+            initializeSortDropdown();
+
+            // Initialize filters
+            initializeFilters();
+
+            // Initialize page actions
+            initializePageActions();
+        }
+
+        function loadCertificates() {
+            const grid = document.getElementById('certificates-grid');
+            if (!grid) return;
+
+            // Sample certificate data - in real app, this would come from the server
+            const certificates = [
+                {
+                    id: 1,
+                    number: "24-1605",
+                    type: "CERTIFIED SUSTAINABILITY FACTS",
+                    company: "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division",
+                    product: "900ET Exit Device Trim with EcoFlex®",
+                    category: "Construction / Building Products",
+                    effectiveDate: "7/1/2024",
+                    expirationDate: "6/31/2027",
+                    location: "Berlin, CT",
+                    country: "United States"
+                }
+            ];
+
+            grid.innerHTML = certificates.map(cert => createCertificateCard(cert)).join('');
+        }
+
+        function createCertificateCard(cert) {
+            return `
+                <div class="certificate-card" data-id="${cert.id}">
+                    <div class="certificate-card-header">
+                        <h3>${cert.type}</h3>
+                    </div>
+                    <div class="certificate-card-info">
+                        <div class="certificate-card-number">Certificate #: ${cert.number}</div>
+                        <div class="certificate-card-company-name">${cert.company}</div>
+                        <div class="certificate-card-product-name">${cert.product}</div>
+                        <div class="certificate-card-product-category">${cert.category}</div>
+                        <div class="certificate-card-certification-period">
+                            <strong>Certification Period:</strong><br>
+                            ${cert.effectiveDate} - ${cert.expirationDate}
+                        </div>
+                        <div class="certificate-card-location">
+                            ${cert.location}<br>
+                            ${cert.country}
+                        </div>
+                    </div>
+                    <div class="certificate-card-actions">
+                        <button class="certificate-action-button" title="Download Certificate" onclick="downloadCertificate(${cert.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                            </svg>
+                        </button>
+                        <button class="certificate-action-button" title="View Certificate" onclick="viewCertificate(${cert.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                                <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                            </svg>
+                        </button>
+                        <button class="certificate-action-button role-element role-admin-show" title="Edit Certificate" onclick="editCertificate(${cert.id})">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l2-2L10.5 4.293l-2 2L11.207 9zm1.586-3l-.793-.793-1.586 1.586.793.793 1.586-1.586zM10.5 11.207l-3-3L2.146 13.56a.5.5 0 0 1-.353.146H1.5a.5.5 0 0 1-.5-.5v-.293c0-.132.053-.26.146-.353L6.5 7.207l3 3-1 1z"/>
+                                <path d="M13 2.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleSearch(event) {
+            const query = event.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.certificate-card');
+
+            cards.forEach(card => {
+                const text = card.textContent.toLowerCase();
+                card.style.display = text.includes(query) ? '' : 'none';
+            });
+
+            updateResultsCount();
+        }
+
+        function initializeSortDropdown() {
+            const dropdown = document.querySelector('.certificate-sort-dropdown');
+            const button = dropdown.querySelector('.certificate-sort-dropdown-button');
+            const content = dropdown.querySelector('.certificate-sort-dropdown-content');
+            const options = content.querySelectorAll('.certificate-sort-option');
+
+            button.addEventListener('click', function() {
+                content.style.display = content.style.display === 'block' ? 'none' : 'block';
+            });
+
+            options.forEach(option => {
+                option.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const sortType = this.getAttribute('data-sort');
+                    const sortText = this.textContent.trim();
+
+                    button.querySelector('span').textContent = sortText;
+                    content.style.display = 'none';
+
+                    applySorting(sortType);
+                });
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!dropdown.contains(e.target)) {
+                    content.style.display = 'none';
+                }
+            });
+        }
+
+        function applySorting(sortType) {
+            const grid = document.getElementById('certificates-grid');
+            const cards = Array.from(grid.children);
+
+            cards.sort((a, b) => {
+                // Simplified sorting logic - in real app would be more sophisticated
+                const aText = a.querySelector('.certificate-card-company-name').textContent;
+                const bText = b.querySelector('.certificate-card-company-name').textContent;
+                return aText.localeCompare(bText);
+            });
+
+            cards.forEach(card => grid.appendChild(card));
+        }
+
+        function initializeFilters() {
+            const filterCheckboxes = document.querySelectorAll('.certificate-filter-content input[type="checkbox"]');
+
+            filterCheckboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', applyFilters);
+            });
+
+            const clearFilters = document.querySelector('.certificate-clear-filters');
+            if (clearFilters) {
+                clearFilters.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    filterCheckboxes.forEach(cb => cb.checked = false);
+                    applyFilters();
+                });
+            }
+        }
+
+        function applyFilters() {
+            // In a real application, this would make an AJAX call to filter results
+            // For now, just update the results count
+            updateResultsCount();
+            window.GreenCircle.showToast('Filters applied', 'success');
+        }
+
+        function updateResultsCount() {
+            const visibleCards = document.querySelectorAll('.certificate-card:not([style*="display: none"])');
+            const countElement = document.querySelector('.certificates-results-count');
+            if (countElement) {
+                countElement.textContent = `${visibleCards.length} Results`;
+            }
+        }
+
+        function initializePageActions() {
+            const importBtn = document.getElementById('import-btn');
+            const exportBtn = document.getElementById('export-btn');
+            const addBtn = document.getElementById('add-certificate-btn');
+
+            if (importBtn) {
+                importBtn.addEventListener('click', function() {
+                    // In real app, would open import dialog
+                    window.GreenCircle.showToast('Import functionality would open here', 'info');
+                });
+            }
+
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function() {
+                    // In real app, would trigger export
+                    window.GreenCircle.showToast('Export started', 'success');
+                });
+            }
+
+            if (addBtn) {
+                addBtn.addEventListener('click', function() {
+                    // In real app, would navigate to add certificate page
+                    window.location.href = '/Certificate/Create';
+                });
+            }
+        }
+
+        // Certificate actions
+        function downloadCertificate(id) {
+            // In real app, would download the certificate PDF
+            window.GreenCircle.showToast('Certificate download started', 'success');
+        }
+
+        function viewCertificate(id) {
+            // Navigate to certificate detail view
+            window.location.href = `/Certificate/Details/${id}`;
+        }
+
+        function editCertificate(id) {
+            // Navigate to certificate edit view
+            window.location.href = `/Certificate/Edit/${id}`;
+        }
+    </script>
+}

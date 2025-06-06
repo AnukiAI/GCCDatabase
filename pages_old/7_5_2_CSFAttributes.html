@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attribute Management System</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Color variables */
+        :root {
+            --green-primary: #447638;
+            --green-secondary: #92C83E;
+            --blue-primary: #00AEEF;
+            --blue-dark: #002B76;
+            --light-gray: #f5f5f5;
+            --border-color: #ddd;
+            --text-color: #333;
+            --warning: #ff5252;
+            --success: #92C83E;
+        }
+
+        body {
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 20px auto;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .title-area {
+            flex-grow: 1;
+        }
+
+        h1 {
+            color: var(--blue-dark);
+            margin: 0;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .buttons-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: #fff;
+            color: var(--blue-dark);
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+            .btn:hover {
+                background-color: #f5f5f5;
+            }
+
+        .btn-primary {
+            background-color: var(--blue-primary);
+            color: white;
+            border: none;
+        }
+
+            .btn-primary:hover {
+                background-color: #0089BC;
+            }
+
+        .btn-add {
+            background-color: var(--green-secondary);
+            color: white;
+            border: none;
+        }
+
+            .btn-add:hover {
+                background-color: var(--green-primary);
+            }
+
+        .btn-delete, .btn-edit {
+            color: #e74c3c;
+            background: none;
+            border: none;
+            padding: 4px;
+            font-size: 16px;
+        }
+
+        .btn-edit {
+            color: var(--blue-primary);
+        }
+
+        .btn-delete:hover {
+            background-color: #fee;
+        }
+
+        .btn-edit:hover {
+            background-color: #eef;
+        }
+
+        .search-filter-bar {
+            display: flex;
+            align-items: center;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            flex-grow: 1;
+            min-width: 200px;
+        }
+
+            .search-box input {
+                width: 100%;
+                padding: 8px 10px 8px 35px;
+                border-radius: 4px;
+                border: 1px solid #ddd;
+                background-color: white;
+                font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+                box-sizing: border-box;
+            }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #777;
+        }
+
+        .table-container {
+            border: 1px solid #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #attribute-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            #attribute-table th, #attribute-table td {
+                padding: 10px;
+                text-align: left;
+                border-bottom: 1px solid #eee;
+            }
+
+            #attribute-table th {
+                background-color: #f9f9f9;
+                color: var(--blue-dark);
+                font-weight: 500;
+                position: sticky;
+                top: 0;
+                cursor: pointer;
+            }
+
+                #attribute-table th .sort-icon {
+                    display: inline-block;
+                    margin-left: 6px;
+                    font-size: 10px;
+                    opacity: 0.6;
+                }
+
+                #attribute-table th.active-sort .sort-icon {
+                    opacity: 1;
+                }
+
+            #attribute-table tbody tr:hover {
+                background-color: #f5f5f5;
+            }
+
+        /* Inline editing */
+        .edit-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--blue-primary);
+            border-radius: 4px;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            box-sizing: border-box;
+        }
+
+            .edit-input:focus {
+                outline: none;
+                border-color: var(--blue-primary);
+            }
+
+        .edit-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-save, .btn-cancel {
+            padding: 4px 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .btn-save {
+            background-color: var(--green-secondary);
+            color: white;
+            border: none;
+        }
+
+            .btn-save:hover {
+                background-color: var(--green-primary);
+            }
+
+        .btn-cancel {
+            background-color: #f8f9fa;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+            .btn-cancel:hover {
+                background-color: #e2e6ea;
+            }
+
+        /* Toast notification */
+        .toast-notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--success);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.5s;
+        }
+
+            .toast-notification.hide {
+                opacity: 0;
+            }
+
+            .toast-notification.error {
+                background-color: var(--warning);
+            }
+
+        .footer-info {
+            text-align: right;
+            color: #777;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        /* Edit row styling */
+        .edit-row {
+            background-color: rgba(0, 174, 239, 0.05);
+        }
+
+        /* Add row styling */
+        .add-row {
+            background-color: rgba(146, 200, 62, 0.05);
+        }
+
+        .add-row-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .buttons-area {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .search-filter-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="title-area">
+                <h1>CSF Attribute Management</h1>
+            </div>
+            <div class="buttons-area">
+                <button id="import-btn" class="btn">
+                    <i class="fas fa-upload"></i> Import
+                </button>
+                <button id="export-btn" class="btn">
+                    <i class="fas fa-download"></i> Export
+                </button>
+                <button id="add-attribute-btn" class="btn btn-add">
+                    <i class="fas fa-plus"></i> Add New Attribute
+                </button>
+            </div>
+        </header>
+
+        <div class="search-filter-bar">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search attributes...">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="attribute-table">
+                <thead>
+                    <tr>
+                        <th width="50%" data-sort="name">Attribute Name <span class="sort-icon">▼</span></th>
+                        <th width="50%" class="actions-col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data will be populated by JavaScript -->
+                    <tr id="add-row" class="add-row" style="display: none;">
+                        <td>
+                            <input type="text" id="new-attribute-name" class="edit-input" placeholder="Enter attribute name">
+                        </td>
+                        <td class="edit-actions">
+                            <button class="btn-save" id="save-new-btn">Save</button>
+                            <button class="btn-cancel" id="cancel-new-btn">Cancel</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="footer-info">
+            <span id="attribute-count">Showing 0 of 0 attributes</span>
+        </div>
+    </div>
+
+    <script>
+        // Sample data for initial display
+        let attributes = [
+            { id: "Attr 01", name: "Biobased" },
+            { id: "Attr 02", name: "Biodegradable" },
+            { id: "Attr 03", name: "Carbon Footprint Reduction" },
+            { id: "Attr 04", name: "Certified Energy Savings" },
+            { id: "Attr 05", name: "Certified Environmental Facts" },
+            { id: "Attr 06", name: "Certified Sustainability Facts" },
+            { id: "Attr 07", name: "Certified Water Savings" },
+            { id: "Attr 08", name: "Closed Loop Product" },
+            { id: "Attr 09", name: "Dematerialization" },
+            { id: "Attr 10", name: "Greenhouse Gas (GHG) Verification" }
+        ];
+
+        // DOM Elements
+        const attributeTable = document.getElementById('attribute-table');
+        const attributeTableBody = attributeTable.querySelector('tbody');
+        const attributeCountElement = document.getElementById('attribute-count');
+        const searchInput = document.getElementById('search-input');
+        const addAttributeBtn = document.getElementById('add-attribute-btn');
+        const importBtn = document.getElementById('import-btn');
+        const exportBtn = document.getElementById('export-btn');
+        const addRow = document.getElementById('add-row');
+        const newAttributeNameInput = document.getElementById('new-attribute-name');
+        const saveNewBtn = document.getElementById('save-new-btn');
+        const cancelNewBtn = document.getElementById('cancel-new-btn');
+
+        // Sorting variables
+        let sortColumn = 'name';
+        let sortDirection = 'asc';
+        let currentEditingId = null;
+
+        // Function to populate the table
+        function populateTable(data) {
+            // Clear existing rows except add-row
+            const rows = attributeTableBody.querySelectorAll('tr:not(#add-row)');
+            rows.forEach(row => row.remove());
+
+            let visibleCount = 0;
+
+            data.forEach(attribute => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-id', attribute.id);
+
+                // Attribute Name
+                const nameCell = document.createElement('td');
+                nameCell.textContent = attribute.name;
+                row.appendChild(nameCell);
+
+                // Actions
+                const actionsCell = document.createElement('td');
+
+                // Edit button
+                const editButton = document.createElement('button');
+                editButton.className = 'btn-edit';
+                editButton.innerHTML = '<i class="fas fa-edit"></i>';
+                editButton.title = 'Edit';
+                editButton.addEventListener('click', () => startEdit(attribute.id));
+                actionsCell.appendChild(editButton);
+
+                // Delete button
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'btn-delete';
+                deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                deleteButton.title = 'Delete';
+                deleteButton.addEventListener('click', () => deleteAttribute(attribute.id));
+                actionsCell.appendChild(deleteButton);
+
+                row.appendChild(actionsCell);
+
+                // Insert before add-row
+                attributeTableBody.insertBefore(row, addRow);
+                visibleCount++;
+            });
+
+            // Update the attribute count
+            attributeCountElement.textContent = `Showing ${visibleCount} of ${attributes.length} attributes`;
+        }
+
+        // Function to initialize the table sortable headers
+        function initializeSortableHeaders() {
+            const headers = attributeTable.querySelectorAll('th[data-sort]');
+
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const column = header.getAttribute('data-sort');
+
+                    // Toggle sort direction if clicking the same column
+                    if (sortColumn === column) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = column;
+                        sortDirection = 'asc';
+                    }
+
+                    // Update header styling
+                    headers.forEach(h => {
+                        h.classList.remove('active-sort');
+                        const icon = h.querySelector('.sort-icon');
+                        if (icon) {
+                            icon.textContent = '▼';
+                            icon.style.opacity = '0.6';
+                        }
+                    });
+
+                    header.classList.add('active-sort');
+                    const sortIcon = header.querySelector('.sort-icon');
+                    if (sortIcon) {
+                        sortIcon.textContent = sortDirection === 'asc' ? '▼' : '▲';
+                        sortIcon.style.opacity = '1';
+                    }
+
+                    // Sort the data
+                    sortData();
+                });
+            });
+        }
+
+        // Function to sort the data
+        function sortData() {
+            const filteredData = getFilteredData();
+
+            filteredData.sort((a, b) => {
+                let valueA = a[sortColumn] ? a[sortColumn].toString().toLowerCase() : '';
+                let valueB = b[sortColumn] ? b[sortColumn].toString().toLowerCase() : '';
+
+                if (sortDirection === 'asc') {
+                    return valueA.localeCompare(valueB);
+                } else {
+                    return valueB.localeCompare(valueA);
+                }
+            });
+
+            populateTable(filteredData);
+        }
+
+        // Function to filter the data based on search input
+        function getFilteredData() {
+            const searchTerm = searchInput.value.toLowerCase();
+
+            if (!searchTerm) {
+                return [...attributes];
+            }
+
+            return attributes.filter(attribute => {
+                return attribute.name.toLowerCase().includes(searchTerm);
+            });
+        }
+
+        // Function to start adding a new attribute
+        function startAddNew() {
+            // Ensure we're not editing first
+            if (currentEditingId) {
+                cancelEdit();
+            }
+
+            // Show add row
+            addRow.style.display = 'table-row';
+
+            // Focus on input
+            newAttributeNameInput.value = '';
+            newAttributeNameInput.focus();
+        }
+
+        // Function to save a new attribute
+        function saveNewAttribute() {
+            const name = newAttributeNameInput.value.trim();
+
+            // Validate
+            if (!name) {
+                showToast('Attribute name cannot be empty', 'error');
+                newAttributeNameInput.focus();
+                return;
+            }
+
+            // Add new attribute
+            const newId = `Attr ${(attributes.length + 1).toString().padStart(2, '0')}`;
+            attributes.push({
+                id: newId,
+                name: name
+            });
+
+            // Hide add row
+            addRow.style.display = 'none';
+
+            // Resort data
+            sortData();
+
+            // Show notification
+            showToast('Attribute added successfully');
+        }
+
+        // Function to cancel adding a new attribute
+        function cancelAddNew() {
+            addRow.style.display = 'none';
+            newAttributeNameInput.value = '';
+        }
+
+        // Function to start editing an attribute
+        function startEdit(id) {
+            // Cancel any current edit first
+            if (currentEditingId && currentEditingId !== id) {
+                cancelEdit();
+            }
+
+            currentEditingId = id;
+
+            // Find the attribute
+            const attribute = attributes.find(a => a.id === id);
+            if (!attribute) return;
+
+            // Find the row
+            const row = attributeTableBody.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            // Add edit class
+            row.classList.add('edit-row');
+
+            // Store original value
+            row.setAttribute('data-original-value', attribute.name);
+
+            // Get cells
+            const nameCell = row.cells[0];
+            const actionsCell = row.cells[1];
+
+            // Save original content to restore if canceled
+            nameCell.setAttribute('data-original-content', nameCell.innerHTML);
+            actionsCell.setAttribute('data-original-content', actionsCell.innerHTML);
+
+            // Replace with input
+            nameCell.innerHTML = `<input type="text" class="edit-input" value="${attribute.name}">`;
+
+            // Replace actions with save/cancel
+            actionsCell.innerHTML = `
+                    <div class="edit-actions">
+                        <button class="btn-save">Save</button>
+                        <button class="btn-cancel">Cancel</button>
+                    </div>
+                `;
+
+            // Add event listeners
+            actionsCell.querySelector('.btn-save').addEventListener('click', () => saveEdit(id));
+            actionsCell.querySelector('.btn-cancel').addEventListener('click', () => cancelEdit());
+
+            // Focus on input
+            const input = nameCell.querySelector('input');
+            input.focus();
+            input.select();
+        }
+
+        // Function to save an edited attribute
+        function saveEdit(id) {
+            // Find the row
+            const row = attributeTableBody.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            // Get the new value
+            const input = row.cells[0].querySelector('input');
+            const newValue = input.value.trim();
+
+            // Validate
+            if (!newValue) {
+                showToast('Attribute name cannot be empty', 'error');
+                input.focus();
+                return;
+            }
+
+            // Update the attribute
+            const index = attributes.findIndex(a => a.id === id);
+            if (index !== -1) {
+                attributes[index].name = newValue;
+            }
+
+            // Reset editing state
+            currentEditingId = null;
+            row.classList.remove('edit-row');
+
+            // Repopulate the table to reflect changes
+            sortData();
+
+            // Show notification
+            showToast('Attribute updated successfully');
+        }
+
+        // Function to cancel editing
+        function cancelEdit() {
+            if (!currentEditingId) return;
+
+            // Find the row
+            const row = attributeTableBody.querySelector(`tr[data-id="${currentEditingId}"]`);
+            if (!row) return;
+
+            // Reset to original content
+            const nameCell = row.cells[0];
+            const actionsCell = row.cells[1];
+
+            if (nameCell.hasAttribute('data-original-content')) {
+                nameCell.innerHTML = nameCell.getAttribute('data-original-content');
+            } else {
+                // Fallback - get attribute and set text
+                const attribute = attributes.find(a => a.id === currentEditingId);
+                if (attribute) {
+                    nameCell.textContent = attribute.name;
+                }
+            }
+
+            if (actionsCell.hasAttribute('data-original-content')) {
+                actionsCell.innerHTML = actionsCell.getAttribute('data-original-content');
+
+                // Re-attach event listeners
+                const editBtn = actionsCell.querySelector('.btn-edit');
+                const deleteBtn = actionsCell.querySelector('.btn-delete');
+
+                if (editBtn) {
+                    editBtn.addEventListener('click', () => startEdit(currentEditingId));
+                }
+
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', () => deleteAttribute(currentEditingId));
+                }
+            }
+
+            // Remove edit class
+            row.classList.remove('edit-row');
+
+            // Reset editing state
+            currentEditingId = null;
+        }
+
+        // Function to delete an attribute
+        function deleteAttribute(id) {
+            if (confirm('Are you sure you want to delete this attribute?')) {
+                attributes = attributes.filter(attribute => attribute.id !== id);
+                sortData();
+                showToast('Attribute deleted successfully');
+            }
+        }
+
+        // Function to handle CSV import
+        function importCSV() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.csv';
+
+            fileInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const contents = e.target.result;
+                    const lines = contents.split('\n');
+
+                    // Skip header row and process data
+                    const newAttributes = [];
+                    let maxId = attributes.length > 0 ? parseInt(attributes[attributes.length - 1].id.split(' ')[1]) : 0;
+
+                    for (let i = 1; i < lines.length; i++) {
+                        const line = lines[i].trim();
+                        if (!line) continue;
+
+                        const fields = line.split(',');
+                        if (fields.length < 1) continue;
+
+                        maxId++;
+                        newAttributes.push({
+                            id: `Attr ${maxId.toString().padStart(2, '0')}`,
+                            name: fields[0].trim()
+                        });
+                    }
+
+                    attributes = [...attributes, ...newAttributes];
+                    sortData();
+                    showToast(`Imported ${newAttributes.length} attributes successfully`);
+                };
+
+                reader.readAsText(file);
+            });
+
+            fileInput.click();
+        }
+
+        // Function to export to CSV
+        function exportCSV() {
+            const headers = ['Attribute Name'];
+            const rows = attributes.map(attribute => [
+                attribute.name
+            ]);
+
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'attributes_data.csv');
+            link.style.visibility = 'hidden';
+
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            showToast('Attributes exported successfully');
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            // Remove existing toasts
+            const existingToasts = document.querySelectorAll('.toast-notification');
+            existingToasts.forEach(toast => {
+                document.body.removeChild(toast);
+            });
+
+            // Create toast
+            const toast = document.createElement('div');
+            toast.className = 'toast-notification';
+            if (type === 'error') {
+                toast.classList.add('error');
+            }
+            toast.textContent = message;
+
+            document.body.appendChild(toast);
+
+            // Auto hide after 3 seconds
+            setTimeout(() => {
+                toast.classList.add('hide');
+                setTimeout(() => {
+                    document.body.removeChild(toast);
+                }, 500);
+            }, 3000);
+        }
+
+        // Event Listeners
+        addAttributeBtn.addEventListener('click', startAddNew);
+        saveNewBtn.addEventListener('click', saveNewAttribute);
+        cancelNewBtn.addEventListener('click', cancelAddNew);
+        importBtn.addEventListener('click', importCSV);
+        exportBtn.addEventListener('click', exportCSV);
+
+        searchInput.addEventListener('input', () => {
+            sortData();
+        });
+
+        // Initialize
+        initializeSortableHeaders();
+        sortData();
+    </script>
+</body>
+</html>

@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="docs\**" />
+    <Compile Remove="pages\**" />
+    <Compile Remove="pages_old\**" />
+    <Compile Remove="Services\**" />
+    <Content Remove="docs\**" />
+    <Content Remove="pages\**" />
+    <Content Remove="pages_old\**" />
+    <Content Remove="Services\**" />
+    <EmbeddedResource Remove="docs\**" />
+    <EmbeddedResource Remove="pages\**" />
+    <EmbeddedResource Remove="pages_old\**" />
+    <EmbeddedResource Remove="Services\**" />
+    <None Remove="docs\**" />
+    <None Remove="pages\**" />
+    <None Remove="pages_old\**" />
+    <None Remove="Services\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Configuration\Startup.cs" />
+    <Compile Remove="Controllers\CertificateController - Copy.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="wwwroot\css\certificatesexternal.css" />
+    <Content Remove="wwwroot\css\certificatetileview.css" />
+    <Content Remove="wwwroot\js\certificatesexternal.js" />
+    <Content Remove="wwwroot\js\certificateslist.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="wwwroot\css\certificatetileview.css" />
+    <None Include="wwwroot\css\certificatesexternal.css" />
+    <None Include="wwwroot\css\certificates.css" />
+    <None Include="wwwroot\css\main.css" />
+    <None Include="wwwroot\css\partners.css" />
+    <None Include="wwwroot\img\ecoHeader2.png" />
+    <None Include="wwwroot\img\gcclogo-transparent.webp" />
+    <None Include="wwwroot\js\certificateslist.js" />
+    <None Include="wwwroot\js\certificatesexternal.js" />
+    <None Include="wwwroot\js\certificates.js" />
+    <None Include="wwwroot\js\main.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Configuration\" />
+    <Folder Include="Views\Company\" />
+    <Folder Include="Views\Product\" />
+  </ItemGroup>
+
+</Project>

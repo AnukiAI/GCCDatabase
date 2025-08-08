@@ -1,0 +1,474 @@
+@* _MockupScreens.cshtml - Place this file in Views/Shared/ *@
+
+<!-- Login Screen -->
+<div id="login" class="screen active">
+    <div class="auth-card">
+        <h2>Sign In</h2>
+        <form>
+            <div class="form-group mb-3">
+                <label for="login-email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="login-email" required>
+                <div class="invalid-feedback">Please enter a valid email address.</div>
+            </div>
+            <div class="form-group mb-3">
+                <label for="login-password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="login-password" required>
+                <div class="invalid-feedback">Please enter your password.</div>
+            </div>
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="remember-me">
+                <label class="form-check-label" for="remember-me">
+                    Remember me
+                </label>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Sign In</button>
+        </form>
+        <div class="text-center mt-3">
+            <a href="#" onclick="showScreen(event, 'forgot-password')">Forgot your password?</a>
+        </div>
+    </div>
+</div>
+
+<!-- Forgot Password Screen -->
+<div id="forgot-password" class="screen">
+    <div class="auth-card">
+        <h2>Reset Password</h2>
+        <p class="text-muted">Enter your email address and we'll send you a link to reset your password.</p>
+        <form>
+            <div class="form-group mb-3">
+                <label for="forgot-email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="forgot-email" required>
+                <div class="invalid-feedback">Please enter a valid email address.</div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Send Reset Link</button>
+        </form>
+        <div class="text-center mt-3">
+            <a href="#" onclick="showScreen(event, 'login')">Back to Sign In</a>
+        </div>
+    </div>
+</div>
+
+<!-- Reset Password Screen -->
+<div id="reset-password" class="screen">
+    <div class="auth-card">
+        <h2>Set New Password</h2>
+        <form>
+            <div class="form-group mb-3">
+                <label for="new-password" class="form-label">New Password</label>
+                <input type="password" class="form-control" id="new-password" required>
+                <div class="invalid-feedback">Please enter a new password.</div>
+            </div>
+            <div class="form-group mb-3">
+                <label for="confirm-password" class="form-label">Confirm Password</label>
+                <input type="password" class="form-control" id="confirm-password" required>
+                <div class="invalid-feedback">Passwords must match.</div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Update Password</button>
+        </form>
+    </div>
+</div>
+
+<!-- Two-Factor Authentication Screen -->
+<div id="2fa" class="screen">
+    <div class="auth-card">
+        <h2>Two-Factor Authentication</h2>
+        <p class="text-muted">Enter the 6-digit code from your authenticator app.</p>
+        <form>
+            <div class="form-group mb-3">
+                <label for="otp-code" class="form-label">Authentication Code</label>
+                <input type="text" class="form-control text-center" id="otp-code" maxlength="6"
+                       placeholder="000000" style="letter-spacing: 0.5em; font-size: 1.2em;" required>
+                <div class="invalid-feedback">Please enter the 6-digit code.</div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100">Verify</button>
+        </form>
+        <div class="text-center mt-3">
+            <a href="#" class="text-muted">Didn't receive a code? Resend</a>
+        </div>
+    </div>
+</div>
+
+<!-- User Management Screen -->
+<div id="user-management" class="screen">
+    <div class="management-card">
+        <h2>User Management</h2>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="search-box">
+                <input type="text" class="form-control" placeholder="Search users..." style="width: 300px;">
+            </div>
+            <button class="btn btn-success" onclick="showScreen(event, 'add-user')">
+                <i class="fas fa-plus"></i> Add User
+            </button>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Status</th>
+                        <th>Last Login</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>John Smith</td>
+                        <td>john.smith@company.com</td>
+                        <td><span class="badge bg-primary">Admin</span></td>
+                        <td><span class="badge bg-success">Active</span></td>
+                        <td>2 hours ago</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary">Edit</button>
+                            <button class="btn btn-sm btn-outline-danger">Disable</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Sarah Johnson</td>
+                        <td>sarah.johnson@company.com</td>
+                        <td><span class="badge bg-info">User</span></td>
+                        <td><span class="badge bg-success">Active</span></td>
+                        <td>1 day ago</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary">Edit</button>
+                            <button class="btn btn-sm btn-outline-danger">Disable</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>Mike Davis</td>
+                        <td>mike.davis@external.com</td>
+                        <td><span class="badge bg-warning">External</span></td>
+                        <td><span class="badge bg-secondary">Inactive</span></td>
+                        <td>1 week ago</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-primary">Edit</button>
+                            <button class="btn btn-sm btn-outline-success">Enable</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Screen -->
+<div id="add-user" class="screen">
+    <div class="management-card">
+        <h2>Add New User</h2>
+        <form>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="first-name" class="form-label">First Name</label>
+                        <input type="text" class="form-control" id="first-name" required>
+                        <div class="invalid-feedback">First name is required.</div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="last-name" class="form-label">Last Name</label>
+                        <input type="text" class="form-control" id="last-name" required>
+                        <div class="invalid-feedback">Last name is required.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="user-email" class="form-label">Email Address</label>
+                <input type="email" class="form-control" id="user-email" required>
+                <div class="invalid-feedback">Please enter a valid email address.</div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="user-role" class="form-label">User Role</label>
+                <select class="form-select" id="user-role" required>
+                    <option value="">Select a role...</option>
+                    <option value="admin">Administrator</option>
+                    <option value="user">User</option>
+                    <option value="external">External User</option>
+                </select>
+                <div class="invalid-feedback">Please select a user role.</div>
+            </div>
+
+            <div id="company-access" class="form-group mb-3" style="display: none;">
+                <label for="company-list" class="form-label">Company Access</label>
+                <select class="form-select" id="company-list" multiple>
+                    <option value="company1">Acme Corporation</option>
+                    <option value="company2">Beta Industries</option>
+                    <option value="company3">Gamma Solutions</option>
+                </select>
+                <div class="form-text">Hold Ctrl/Cmd to select multiple companies.</div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="temp-password" class="form-label">Temporary Password</label>
+                <input type="text" class="form-control" id="temp-password" required>
+                <div class="form-text">User will be required to change this on first login.</div>
+            </div>
+
+            <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="send-email" checked>
+                <label class="form-check-label" for="send-email">
+                    Send welcome email with login instructions
+                </label>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Create User</button>
+                <button type="button" class="btn btn-secondary" onclick="showScreen(event, 'user-management')">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Security Settings Screen -->
+<div id="security-settings" class="screen">
+    <div class="management-card">
+        <h2>Security Settings</h2>
+
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Password Policy</h5>
+                    </div>
+                    <div class="card-body">
+                        <form>
+                            <div class="form-group mb-3">
+                                <label for="min-length" class="form-label">Minimum Password Length</label>
+                                <input type="number" class="form-control" id="min-length" value="8" min="6" max="20">
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="require-uppercase" checked>
+                                <label class="form-check-label" for="require-uppercase">
+                                    Require uppercase letters
+                                </label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input class="form-check-input" type="checkbox" id="require-numbers" checked>
+                                <label class="form-check-label" for="require-numbers">
+                                    Require numbers
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="require-special" checked>
+                                <label class="form-check-label" for="require-special">
+                                    Require special characters
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Password Policy</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5>Two-Factor Authentication</h5>
+                    </div>
+                    <div class="card-body">
+                        <form>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="require-2fa">
+                                <label class="form-check-label" for="require-2fa">
+                                    Require 2FA for all users
+                                </label>
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="require-2fa-admin" checked>
+                                <label class="form-check-label" for="require-2fa-admin">
+                                    Require 2FA for administrators
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save 2FA Settings</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Session Management</h5>
+                    </div>
+                    <div class="card-body">
+                        <form>
+                            <div class="form-group mb-3">
+                                <label for="session-timeout" class="form-label">Session Timeout (minutes)</label>
+                                <input type="number" class="form-control" id="session-timeout" value="30" min="5" max="480">
+                            </div>
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="concurrent-sessions">
+                                <label class="form-check-label" for="concurrent-sessions">
+                                    Allow concurrent sessions
+                                </label>
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Session Settings</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .auth-ui-mockup {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+
+    .screen-selector {
+        text-align: center;
+        margin-bottom: 30px;
+    }
+
+    .tab-buttons {
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .tab-btn {
+        padding: 10px 20px;
+        border: 2px solid #007bff;
+        background: white;
+        color: #007bff;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-weight: 500;
+    }
+
+        .tab-btn:hover {
+            background: #f8f9fa;
+            transform: translateY(-2px);
+        }
+
+        .tab-btn.active {
+            background: #007bff;
+            color: white;
+            box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+        }
+
+    .screen {
+        display: none;
+        animation: fadeIn 0.5s ease-in;
+    }
+
+        .screen.active {
+            display: block;
+        }
+
+    .auth-card {
+        max-width: 400px;
+        margin: 0 auto;
+        padding: 40px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        background: white;
+    }
+
+    .management-card {
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        background: white;
+    }
+
+    .search-box {
+        position: relative;
+    }
+
+    .password-strength {
+        margin-top: 5px;
+    }
+
+    .progress {
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .progress-bar {
+        transition: all 0.3s ease;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .badge {
+        font-size: 0.75em;
+        padding: 0.35em 0.65em;
+    }
+
+    .table th {
+        border-top: none;
+        font-weight: 600;
+        color: #495057;
+        background-color: #f8f9fa;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        border-radius: 0.2rem;
+    }
+
+    .card {
+        border: 1px solid #e9ecef;
+        border-radius: 0.5rem;
+    }
+
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+        font-weight: 600;
+    }
+
+    .form-check-input:checked {
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+
+    .is-invalid {
+        border-color: #dc3545;
+    }
+
+    .is-valid {
+        border-color: #28a745;
+    }
+
+    .invalid-feedback {
+        display: block;
+        width: 100%;
+        margin-top: 0.25rem;
+        font-size: 0.875em;
+        color: #dc3545;
+    }
+
+    .message {
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 5px;
+        border: 1px solid transparent;
+    }
+
+        .message.success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+        }
+</style>

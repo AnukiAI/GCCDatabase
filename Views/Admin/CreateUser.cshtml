@@ -1,0 +1,38 @@
+@{
+    ViewData["Title"] = "Create New User";
+    ViewData["ActivePage"] = "CreateUser";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">User Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Create User</a>
+    </span>
+}
+
+<div class="container auth-ui-mockup">
+    <div class="screen-selector">
+        <div class="tab-buttons">
+            <button class="tab-btn active" onclick="showScreen(event, 'login')">Login</button>
+            <button class="tab-btn" onclick="showScreen(event, 'forgot-password')">Forgot Password</button>
+            <button class="tab-btn" onclick="showScreen(event, 'reset-password')">Reset Password</button>
+            <button class="tab-btn" onclick="showScreen(event, '2fa')">Two-Factor Auth</button>
+            <button class="tab-btn" onclick="showScreen(event, 'user-management')">User Management</button>
+            <button class="tab-btn" onclick="showScreen(event, 'add-user')">Add User</button>
+            <button class="tab-btn" onclick="showScreen(event, 'security-settings')">Security Settings</button>
+        </div>
+    </div>
+
+    <!-- Embedded screen content -->
+    <partial name="_MockupScreens" />
+</div>
+
+@section Scripts {
+    <script src="~/js/auth-ui-mockup.js"></script>
+}
+

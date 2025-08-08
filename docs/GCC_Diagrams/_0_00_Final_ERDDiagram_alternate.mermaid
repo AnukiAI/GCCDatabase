@@ -1,0 +1,185 @@
+erDiagram
+    CERTIFICATES ||--o{ CERTIFICATE_CSF_ATTRIBUTES : has
+    CERTIFICATES ||--o{ CERTIFICATE_EXTERNAL_TAGS : has
+    CERTIFICATES ||--o{ CERTIFICATE_INTERNAL_TAGS : has
+    CERTIFICATES ||--o{ CUSTOM_FIELD_VALUES : has
+    CERTIFICATES }|--|| COMPANIES : belongs_to
+    CERTIFICATES }|--|| PRODUCTS : certifies
+    CERTIFICATES }|--|| CERTIFICATION_TYPES : has_type
+    
+    CSF_ATTRIBUTES ||--o{ CERTIFICATE_CSF_ATTRIBUTES : assigned_to
+    EXTERNAL_TAGS ||--o{ CERTIFICATE_EXTERNAL_TAGS : assigned_to
+    INTERNAL_TAGS ||--o{ CERTIFICATE_INTERNAL_TAGS : assigned_to
+    CUSTOM_FIELDS ||--o{ CUSTOM_FIELD_VALUES : has_value
+    
+    PRODUCTS }|--|| PRODUCT_CATEGORIES : belongs_to
+    PRODUCTS }o--o| PRODUCT_TYPES : has_type
+    PRODUCTS }o--o| PRODUCT_SUBCATEGORIES : has_subcategory
+    
+    PRODUCT_TYPES }|--|| PRODUCT_CATEGORIES : belongs_to
+    PRODUCT_SUBCATEGORIES }|--|| PRODUCT_TYPES : belongs_to
+    
+    USERS }o--o{ GROUPS : belongs_to
+    USER_GROUPS }|--|| USERS : assigns
+    USER_GROUPS }|--|| GROUPS : contains
+    
+    API_CLIENTS ||--o{ API_ACCESS_TOKENS : generates
+    
+    CERTIFICATES {
+        int id PK
+        varchar certificate_number UK
+        int certification_type_id FK
+        varchar status
+        date effective_date
+        date expiration_date
+        int company_id FK
+        int product_id FK
+        varchar location
+        varchar country
+        text asin
+        text upc
+        text gtin
+        text ean
+        varchar certificate_file
+        timestamp created_at
+        timestamp updated_at
+    }
+    
+    CERTIFICATION_TYPES {
+        int id PK
+        varchar name UK
+        varchar amazon_code
+        boolean is_active
+    }
+    
+    CSF_ATTRIBUTES {
+        int id PK
+        varchar name UK
+    }
+    
+    EXTERNAL_TAGS {
+        int id PK
+        varchar name UK
+    }
+    
+    INTERNAL_TAGS {
+        int id PK
+        varchar name UK
+    }
+    
+    CERTIFICATE_CSF_ATTRIBUTES {
+        int certificate_id PK,FK
+        int csf_attribute_id PK,FK
+    }
+    
+    CERTIFICATE_EXTERNAL_TAGS {
+        int certificate_id PK,FK
+        int external_tag_id PK,FK
+    }
+    
+    CERTIFICATE_INTERNAL_TAGS {
+        int certificate_id PK,FK
+        int internal_tag_id PK,FK
+    }
+    
+    COMPANIES {
+        int id PK
+        varchar name UK
+        varchar contact_info
+    }
+    
+    PRODUCTS {
+        int id PK
+        varchar name
+        int category_id FK
+        int product_type_id FK
+        int subcategory_id FK
+    }
+    
+    PRODUCT_CATEGORIES {
+        int id PK
+        varchar name UK
+    }
+    
+    PRODUCT_TYPES {
+        int id PK
+        varchar name
+        int category_id FK
+    }
+    
+    PRODUCT_SUBCATEGORIES {
+        int id PK
+        varchar name
+        int product_type_id FK
+    }
+    
+    CUSTOM_FIELDS {
+        int id PK
+        varchar name
+        varchar field_type
+        boolean is_public
+    }
+    
+    CUSTOM_FIELD_VALUES {
+        int id PK
+        int certificate_id FK
+        int field_id FK
+        text text_value
+        decimal number_value
+        date date_value
+        boolean boolean_value
+    }
+    
+    USERS {
+        int id PK
+        varchar username UK
+        varchar password
+        varchar email
+        varchar first_name
+        varchar last_name
+        boolean is_active
+        boolean is_staff
+        boolean is_superuser
+        timestamp date_joined
+        timestamp last_login
+    }
+    
+    GROUPS {
+        int id PK
+        varchar name UK
+    }
+    
+    USER_GROUPS {
+        int id PK
+        int user_id FK
+        int group_id FK
+    }
+    
+    API_CLIENTS {
+        int id PK
+        varchar name
+        uuid client_id UK
+        varchar client_secret
+        boolean active
+        timestamp created_at
+    }
+    
+    API_ACCESS_TOKENS {
+        int id PK
+        uuid client_id FK
+        varchar access_token UK
+        varchar refresh_token UK
+        timestamp expires_at
+        timestamp created_at
+    }
+    
+    AUDIT_LOGS {
+        int id PK
+        int user_id FK
+        varchar action
+        varchar table_name
+        int record_id
+        jsonb changes
+        varchar ip_address
+        timestamp timestamp
+    }

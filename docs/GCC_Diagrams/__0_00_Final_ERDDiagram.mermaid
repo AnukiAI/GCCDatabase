@@ -1,0 +1,159 @@
+erDiagram
+    %% Core business entities and relationships
+    Certificate ||--|| Company : "belongs to"
+    Certificate ||--|| Product : describes
+    Certificate ||--|| CertificationType : "has type"
+    Certificate }o--o{ CSFAttribute : "has"
+    Certificate }o--o{ ExternalTag : "has"
+    Certificate }o--o{ InternalTag : "has"
+    Certificate ||--o{ CustomFieldValue : has
+    
+    Product ||--|| ProductCategory : "belongs to"
+    Product ||--o{ ProductType : "has type"
+    Product ||--o{ ProductSubcategory : "has subcategory"
+    
+    ProductCategory ||--o{ ProductType : contains
+    ProductType ||--o{ ProductSubcategory : contains
+    
+    CustomFieldValue ||--|| CustomField : "references"
+    
+    APIClient ||--o{ APIToken : "has"
+    APIClient ||--o{ APIRequestLog : "generates"
+    
+    User ||--o{ Certificate : "creates"
+    User }o--o{ Group : "belongs to"
+    Group }o--o{ Permission : has
+    
+    %% Entity definitions with key attributes
+    Certificate {
+        id int PK
+        certificate_number varchar(7) UK
+        status varchar(30)
+        effective_date date
+        expiration_date date
+        location varchar(175)
+        country varchar(100)
+        asin text
+        upc text
+        gtin text
+        ean text
+        certificate_file varchar(255)
+        created_at timestamp
+        updated_at timestamp
+    }
+
+    Company {
+        id int PK
+        name varchar(255) UK
+        contact_info varchar(255)
+    }
+
+    Product {
+        id int PK
+        name varchar(255)
+        created_at timestamp
+        updated_at timestamp
+    }
+
+    ProductCategory {
+        id int PK
+        name varchar(255) UK
+    }
+
+    ProductType {
+        id int PK
+        name varchar(255)
+        category_id int FK
+    }
+
+    ProductSubcategory {
+        id int PK
+        name varchar(255)
+        product_type_id int FK
+    }
+
+    CertificationType {
+        id int PK
+        name varchar(255) UK
+        amazon_code varchar(255)
+        is_active boolean
+    }
+
+    CSFAttribute {
+        id int PK
+        name varchar(255) UK
+    }
+
+    ExternalTag {
+        id int PK
+        name varchar(100) UK
+    }
+
+    InternalTag {
+        id int PK
+        name varchar(100) UK
+    }
+
+    CustomField {
+        id int PK
+        name varchar(100)
+        field_type varchar(10)
+        is_public boolean
+    }
+
+    CustomFieldValue {
+        id int PK
+        certificate_id int FK
+        field_id int FK
+        text_value text
+        number_value decimal
+        date_value date
+        boolean_value boolean
+    }
+
+    User {
+        id int PK
+        username varchar(255) UK
+        email varchar(255) UK
+        password_hash varchar(255)
+        is_active boolean
+        is_staff boolean
+        is_superuser boolean
+    }
+
+    Group {
+        id int PK
+        name varchar(150) UK
+    }
+
+    Permission {
+        id int PK
+        name varchar(255)
+        codename varchar(100) UK
+    }
+
+    APIClient {
+        id int PK
+        name varchar(255)
+        client_id varchar(100) UK
+        client_secret varchar(255)
+        is_active boolean
+    }
+
+    APIToken {
+        id int PK
+        api_client_id int FK
+        access_token varchar(255) UK
+        refresh_token varchar(255) UK
+        expires_at timestamp
+    }
+
+    APIRequestLog {
+        id int PK
+        api_client_id int FK
+        endpoint varchar(255)
+        method varchar(10)
+        response_code int
+        response_time int
+        timestamp timestamp
+    }

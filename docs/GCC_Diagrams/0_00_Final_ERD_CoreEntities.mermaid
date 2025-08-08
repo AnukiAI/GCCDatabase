@@ -1,0 +1,15 @@
+erDiagram
+    Certificate ||--|| Company : "belongs to"
+    Certificate ||--|| Product : describes
+    Certificate ||--|| CertificationType : "has type"
+    Certificate }o--o{ CSFAttribute : "has"
+    Certificate }o--o{ ExternalTag : "has"
+    Certificate }o--o{ InternalTag : "has"
+    Certificate ||--|| User : "created by"
+    Certificate ||--o{ ProductIdentifier : "has"
+    Certificate ||--o{ CustomFieldValue : "has"
+    CustomFieldValue ||--|| CustomField : "for"
+
+    Product ||--|| ProductCategory : "in"
+    ProductCategory ||--o{ ProductType : has
+    ProductType ||--o{ ProductSubcategory : has

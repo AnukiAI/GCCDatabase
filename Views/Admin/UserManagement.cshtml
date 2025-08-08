@@ -1,5 +1,199 @@
 @{
-    ViewData["Title"] = "UserManagement";
+    ViewData["Title"] = "User Management";
+    ViewData["BodyClass"] = "admin-user-management";
 }
 
-<h1>UserManagement</h1>
+@section Styles {
+    <link href="~/css/user-management.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">User Management</a>
+    </span>
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="buttons-area">
+            <button id="import-btn" class="btn">
+                <i class="fas fa-upload"></i> Import
+            </button>
+            <button id="export-btn" class="btn">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button id="add-user-btn" class="btn btn-add">
+                <i class="fas fa-plus"></i> Add New User
+            </button>
+        </div>
+    </header>
+
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search users...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+        <div class="filters">
+            <select id="status-filter" class="filter-select">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+            </select>
+            <select id="role-filter" class="filter-select">
+                <option value="all">All Roles</option>
+                <option value="admin">Admin</option>
+                <option value="gcc-user">GCC User</option>
+                <option value="external-user">External User</option>
+            </select>
+            <select id="company-filter" class="filter-select">
+                <option value="all">All Companies</option>
+                <option value="acme-corp">ACME Corp</option>
+                <option value="tech-solutions">Tech Solutions</option>
+                <option value="global-industries">Global Industries</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="user-table">
+            <thead>
+                <tr>
+                    <th width="18%" data-sort="name">Name <span class="sort-icon">▼</span></th>
+                    <th width="20%" data-sort="company">Company <span class="sort-icon">▼</span></th>
+                    <th width="22%" data-sort="email">Email <span class="sort-icon">▼</span></th>
+                    <th width="12%" data-sort="role">Role <span class="sort-icon">▼</span></th>
+                    <th width="10%" data-sort="status">Status <span class="sort-icon">▼</span></th>
+                    <th width="12%" data-sort="lastLogin">Last Login <span class="sort-icon">▼</span></th>
+                    <th width="6%" class="actions-col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-info">
+        <span id="user-count">Showing 0 of 0 users</span>
+    </div>
+</div>
+
+<!-- Add/Edit User Modal -->
+<div id="user-modal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Add New User</h3>
+            <span class="modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="user-form">
+                <input type="hidden" id="user-id">
+
+                <div class="form-group">
+                    <label for="user-name">Name</label>
+                    <input type="text" id="user-name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-company">Company</label>
+                    <div class="multi-select-container">
+                        <div class="multi-select-display" id="company-display">
+                            <span style="color: #999;">Select companies...</span>
+                        </div>
+                        <div class="multi-select-dropdown" id="company-dropdown">
+                            <div class="multi-select-option">
+                                <input type="checkbox" value="acme-corp" id="company-acme">
+                                <label for="company-acme">ACME Corp</label>
+                            </div>
+                            <div class="multi-select-option">
+                                <input type="checkbox" value="tech-solutions" id="company-tech">
+                                <label for="company-tech">Tech Solutions</label>
+                            </div>
+                            <div class="multi-select-option">
+                                <input type="checkbox" value="global-industries" id="company-global">
+                                <label for="company-global">Global Industries</label>
+                            </div>
+                            <div class="multi-select-option">
+                                <input type="checkbox" value="assa-abloy" id="company-assa">
+                                <label for="company-assa">ASSA ABLOY</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-partners">Partners</label>
+                    <div class="multi-select-container">
+                        <div class="multi-select-display" id="partners-display">
+                            <span style="color: #999;">Select partners...</span>
+                        </div>
+                        <div class="multi-select-dropdown" id="partners-dropdown">
+                            <div class="multi-select-option">
+                                <input type="checkbox" value="amazon" id="partner-amazon">
+                                <label for="partner-amazon">Amazon</label>
+                            </div>
+                            <div class="multi-select-option">
+                                <input type="checkbox" value="wayfair" id="partner-wayfair">
+                                <label for="partner-wayfair">Wayfair</label>
+                            </div>
+                            <div class="multi-select-option">
+                                <input type="checkbox" value="home-depot" id="partner-depot">
+                                <label for="partner-depot">Home Depot</label>
+                            </div>
+                            <div class="multi-select-option">
+                                <input type="checkbox" value="lowes" id="partner-lowes">
+                                <label for="partner-lowes">Lowe's</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-email">Email</label>
+                    <input type="email" id="user-email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-role">Role</label>
+                    <select id="user-role" required>
+                        <option value="admin">Admin</option>
+                        <option value="gcc-user">GCC User</option>
+                        <option value="external-user">External User</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-status">Status</label>
+                    <select id="user-status" required>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="user-password">Password</label>
+                    <input type="password" id="user-password">
+                    <div class="password-help">Leave blank to keep current password</div>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="require-password-reset"> Require password reset on next login
+                    </label>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-cancel" id="cancel-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="save-btn" form="user-form">Save</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin/userManagement.js"></script>
+}

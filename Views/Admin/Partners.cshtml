@@ -19,44 +19,59 @@
     </span>
 }
 
-@section PageActions {
-    <button id="partners-import-btn" class="btn btn-outline">
-        <i class="fas fa-upload"></i> Import
-    </button>
-    <button id="partners-export-btn" class="btn btn-outline">
-        <i class="fas fa-download"></i> Export
-    </button>
-    <button id="partners-add-btn" class="btn btn-add">
-        <i class="fas fa-plus"></i> Add New Partner
-    </button>
-}
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="buttons-area">
+            <button id="partners-export-btn" class="btn">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button id="partners-add-btn" class="btn btn-add">
+                <i class="fas fa-plus"></i> Add New Partner
+            </button>
+        </div>
+    </header>
 
-<div class="partners-search-filter-bar">
-    <div class="partners-search-box">
-        <input type="text" id="partners-search-input" placeholder="Search partners...">
-        <i class="fas fa-search partners-search-icon"></i>
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <input type="text" id="partners-search-input" placeholder="Search partners...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
     </div>
-</div>
 
-<div class="partners-table-container" id="partners-table-container">
-    <table id="partners-table" class="partners-table">
+    <div class="table-container">
+        <table id="partners-table">
         <thead>
             <tr>
-                <th width="60%" data-sort="name">
+                <th width="90%" data-sort="name">
                     Partner Name
                     <span class="partners-sort-icon"><i class="fas fa-sort"></i></span>
                 </th>
-                <th width="40%" class="actions-col">Actions</th>
+                <th width="10%" class="actions-col">Actions</th>
             </tr>
         </thead>
         <tbody id="partners-table-body">
+            <!-- Add partner row (initially hidden) -->
+            <tr id="partners-add-row" class="partners-add-row">
+                <td>
+                    <input type="text" id="new-partner-name" class="partners-edit-input" placeholder="Enter partner name">
+                </td>
+                <td class="partners-edit-actions">
+                    <button class="partners-btn-save" onclick="saveNewPartner()">
+                        <i class="fas fa-check"></i> Save
+                    </button>
+                    <button class="partners-btn-cancel" onclick="cancelAddPartner()">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                </td>
+            </tr>
             <!-- Table rows will be populated by JavaScript -->
         </tbody>
     </table>
-</div>
+    </div>
 
-<div class="partners-footer-info">
-    <span id="partners-count">Loading partners...</span>
+    <div class="footer-info">
+        <span id="partners-count">Showing 0 of 0 partners</span>
+    </div>
 </div>
 
 <!-- Toast for notifications -->
@@ -80,7 +95,7 @@
             // Initialize search
             const searchInput = document.getElementById('partners-search-input');
             if (searchInput) {
-                searchInput.addEventListener('input', window.GreenCircle.debounce(handlePartnersSearch, 300));
+                searchInput.addEventListener('input', handlePartnersSearch);
             }
 
             // Initialize sorting
@@ -92,15 +107,11 @@
 
         function loadPartners() {
             // In a real MVC app, this would be an AJAX call to your controller
-            // For demo purposes, using sample data
+            // For demo purposes, using sample data per requirements
             partnersData = [
                 { id: 1, name: "Amazon" },
-                { id: 2, name: "Walmart" },
-                { id: 3, name: "Target" },
-                { id: 4, name: "Microsoft" },
-                { id: 5, name: "Google" },
-                { id: 6, name: "Apple" },
-                { id: 7, name: "Other" }
+                { id: 2, name: "Wayfair" },
+                { id: 3, name: "Other" }
             ];
 
             populatePartnersTable(partnersData);
@@ -110,25 +121,12 @@
             const tableBody = document.getElementById('partners-table-body');
             if (!tableBody) return;
 
+            // Clear existing data rows but keep the add row
+            const addRow = document.getElementById('partners-add-row');
             tableBody.innerHTML = '';
-
-            // Add new partner row (initially hidden)
-            const addRow = document.createElement('tr');
-            addRow.className = 'partners-add-row';
-            addRow.id = 'partners-add-row';
-
-            const nameCell = document.createElement('td');
-            nameCell.innerHTML = `<input type="text" class="partners-edit-input" id="new-partner-name" placeholder="Enter partner name">`;
-
-            const actionsCell = document.createElement('td');
-            actionsCell.innerHTML = `
-                <button class="partners-btn-save" onclick="saveNewPartner()">Save</button>
-                <button class="partners-btn-cancel" onclick="cancelAddPartner()">Cancel</button>
-            `;
-
-            addRow.appendChild(nameCell);
-            addRow.appendChild(actionsCell);
-            tableBody.appendChild(addRow);
+            if (addRow) {
+                tableBody.appendChild(addRow);
+            }
 
             // Add existing partners
             data.forEach(partner => {
@@ -263,15 +261,10 @@
 
         function initializePartnersPageActions() {
             const addBtn = document.getElementById('partners-add-btn');
-            const importBtn = document.getElementById('partners-import-btn');
             const exportBtn = document.getElementById('partners-export-btn');
 
             if (addBtn) {
                 addBtn.addEventListener('click', showAddPartnerRow);
-            }
-
-            if (importBtn) {
-                importBtn.addEventListener('click', importPartners);
             }
 
             if (exportBtn) {
@@ -297,6 +290,14 @@
 
             if (!name) {
                 showPartnersToast('Partner name cannot be empty', 'error');
+                if (nameInput) nameInput.focus();
+                return;
+            }
+
+            // Check for duplicate names
+            const existingPartner = partnersData.find(p => p.name.toLowerCase() === name.toLowerCase());
+            if (existingPartner) {
+                showPartnersToast('Partner name already exists', 'error');
                 if (nameInput) nameInput.focus();
                 return;
             }
@@ -351,6 +352,14 @@
                 return;
             }
 
+            // Check for duplicate names (excluding current partner)
+            const existingPartner = partnersData.find(p => p.id !== id && p.name.toLowerCase() === newName.toLowerCase());
+            if (existingPartner) {
+                showPartnersToast('Partner name already exists', 'error');
+                if (input) input.focus();
+                return;
+            }
+
             // In real MVC app, make AJAX call to controller
             // For demo, update local data
             const partnerIndex = partnersData.findIndex(p => p.id === id);
@@ -384,7 +393,10 @@
         }
 
         function deletePartner(id) {
-            if (confirm('Are you sure you want to delete this partner?')) {
+            const partner = partnersData.find(p => p.id === id);
+            if (!partner) return;
+
+            if (confirm(`Are you sure you want to delete "${partner.name}"?`)) {
                 // In real MVC app, make AJAX call to controller
                 // For demo, remove from local data
                 partnersData = partnersData.filter(partner => partner.id !== id);
@@ -393,64 +405,25 @@
             }
         }
 
-        function importPartners() {
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = '.csv';
-
-            fileInput.addEventListener('change', event => {
-                const file = event.target.files[0];
-                if (!file) return;
-
-                const reader = new FileReader();
-                reader.onload = e => {
-                    const content = e.target.result;
-                    const lines = content.split('\n');
-
-                    const newPartners = [];
-                    let maxId = partnersData.length > 0 ? Math.max(...partnersData.map(p => p.id)) : 0;
-
-                    for (let i = 1; i < lines.length; i++) {
-                        const line = lines[i].trim();
-                        if (!line) continue;
-
-                        const values = line.split(',');
-                        if (values.length < 1) continue;
-
-                        const name = values[0].trim();
-                        if (!name) continue;
-
-                        maxId++;
-                        newPartners.push({ id: maxId, name: name });
-                    }
-
-                    if (newPartners.length > 0) {
-                        partnersData = [...partnersData, ...newPartners];
-                        sortPartnersData();
-                        showPartnersToast(`${newPartners.length} partners imported successfully`, 'success');
-                    } else {
-                        showPartnersToast('No valid partners found in import file', 'error');
-                    }
-                };
-
-                reader.readAsText(file);
-            });
-
-            fileInput.click();
-        }
-
         function exportPartners() {
+            if (partnersData.length === 0) {
+                showPartnersToast('No partners to export', 'warning');
+                return;
+            }
+
             const header = 'Partner Name\n';
-            const rows = partnersData.map(partner => `${partner.name}`).join('\n');
+            const rows = partnersData.map(partner => `"${partner.name}"`).join('\n');
             const csv = header + rows;
 
-            const blob = new Blob([csv], { type: 'text/csv' });
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
             const url = URL.createObjectURL(blob);
 
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'partners.csv';
+            a.download = `partners_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
             a.click();
+            document.body.removeChild(a);
 
             URL.revokeObjectURL(url);
             showPartnersToast('Partners exported successfully', 'success');

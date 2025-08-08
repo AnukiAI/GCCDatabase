@@ -1,7 +1,7 @@
 /* certificates.css - Certificate-specific styles */
 /* These styles are loaded only on certificate-related pages */
 
-/* Search Section for Certificate Pages */
+/* ===== SEARCH SECTION ===== */
 .certificate-search-section {
     padding: 20px;
     background-color: var(--white);
@@ -25,7 +25,7 @@
     border: 1px solid var(--medium-gray);
     border-right: none;
     border-radius: 4px 0 0 4px;
-    font-size: 14px;
+    font-size: 16px;
     font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
 }
 
@@ -38,7 +38,7 @@
     cursor: pointer;
 }
 
-/* Sort Controls for Certificates */
+/* ===== SORT CONTROLS ===== */
 .certificate-sort-by {
     display: flex;
     align-items: center;
@@ -62,12 +62,12 @@
     cursor: pointer;
     display: flex;
     align-items: center;
-    font-size: 14px;
+    font-size: 16px;
 }
 
-    .certificate-sort-dropdown-button svg {
-        margin-left: 5px;
-    }
+.certificate-sort-dropdown-button svg {
+    margin-left: 5px;
+}
 
 .certificate-sort-dropdown-content {
     display: none;
@@ -91,19 +91,19 @@
     border-bottom: 1px solid var(--light-gray);
 }
 
-    .certificate-sort-option svg {
-        margin-right: 10px;
-    }
+.certificate-sort-option svg {
+    margin-right: 10px;
+}
 
-    .certificate-sort-option:hover {
-        background-color: var(--light-gray);
-    }
+.certificate-sort-option:hover {
+    background-color: var(--light-gray);
+}
 
 .certificate-sort-dropdown:hover .certificate-sort-dropdown-content {
     display: block;
 }
 
-/* Filter Sidebar for Certificates */
+/* ===== FILTER SIDEBAR ===== */
 .certificate-main-container {
     display: flex;
     position: relative;
@@ -113,7 +113,7 @@
     width: 300px;
     background-color: var(--white);
     border-right: 1px solid var(--medium-gray);
-    padding: 20px;
+    padding: 10px;
     padding-top: 0;
 }
 
@@ -126,8 +126,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 15px;
-    padding-top: 20px;
+    margin-bottom: 12px;
+    padding-top: 15px;
     border-top: 1px solid var(--medium-gray);
 }
 
@@ -139,36 +139,36 @@
     color: var(--blue-dark);
     text-decoration: none;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
 }
 
-    .certificate-clear-filters:hover {
-        text-decoration: underline;
-    }
+.certificate-clear-filters:hover {
+    text-decoration: underline;
+}
 
-/* Filter Panels */
+/* ===== FILTER PANELS ===== */
 .certificate-filter-panel {
     margin-bottom: 15px;
     border: 1px solid var(--medium-gray);
 }
 
 .certificate-filter-header {
-    padding: 10px 15px;
+    padding: 8px 12px;
     background-color: var(--light-gray);
     cursor: pointer;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-size: 14px;
+    font-size: 16px;
 }
 
-    .certificate-filter-header h3 {
-        font-size: 14px;
-        font-weight: bold;
-    }
+.certificate-filter-header h3 {
+    font-size: 16px;
+    font-weight: bold;
+}
 
 .certificate-filter-content {
-    padding: 10px 15px;
+    padding: 8px 12px;
     border-top: 1px solid var(--medium-gray);
     max-height: 250px;
     overflow-y: auto;
@@ -180,17 +180,17 @@
 
 .certificate-filter-item {
     margin-bottom: 8px;
-    font-size: 14px;
+    font-size: 16px;
 }
 
-    .certificate-filter-item label {
-        display: flex;
-        align-items: center;
-    }
+.certificate-filter-item label {
+    display: flex;
+    align-items: center;
+}
 
-    .certificate-filter-item input[type="checkbox"] {
-        margin-right: 10px;
-    }
+.certificate-filter-item input[type="checkbox"] {
+    margin-right: 10px;
+}
 
 .certificate-filter-level-1 {
     margin-left: 0;
@@ -235,14 +235,14 @@
     background-color: var(--header-blue);
     color: var(--white);
     padding: 10px 15px;
-    font-size: 14px;
+    font-size: 16px;
     text-transform: uppercase;
     font-weight: bold;
 }
 
     .certificate-card-header h3 {
         margin: 0;
-        font-size: 14px;
+        font-size: 16px;
     }
 
 .certificate-card-info {
@@ -250,7 +250,7 @@
 }
 
 .certificate-card-number {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--dark-gray);
     margin-bottom: 10px;
 }
@@ -262,27 +262,27 @@
 }
 
 .certificate-card-product-name {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: bold;
     margin-top: 15px;
     margin-bottom: 5px;
 }
 
 .certificate-card-product-category {
-    font-size: 12px;
+    font-size: 16px;
     color: var(--dark-gray);
     margin-bottom: 15px;
 }
 
 .certificate-card-certification-period {
     margin-top: 15px;
-    font-size: 12px;
+    font-size: 16px;
     color: var(--dark-gray);
 }
 
 .certificate-card-location {
     margin-top: 10px;
-    font-size: 12px;
+    font-size: 16px;
 }
 
 .certificate-card-actions {
@@ -330,7 +330,7 @@
     background-color: var(--header-blue);
     color: var(--white);
     padding: 10px 20px;
-    font-size: 14px;
+    font-size: 16px;
     text-transform: uppercase;
     font-weight: bold;
 }
@@ -411,14 +411,14 @@
     color: var(--white);
     padding: 3px 12px;
     border-radius: 15px;
-    font-size: 12px;
+    font-size: 16px;
     margin-right: 5px;
     margin-bottom: 5px;
 }
 
     .certificate-tag.external {
-        background-color: #C5E0A5;
-        color: var(--dark-gray);
+        background-color: var(--green-primary);
+        color: var(--white);
     }
 
     .certificate-tag.internal {
@@ -604,7 +604,7 @@
 .certificate-status {
     padding: 3px 8px;
     border-radius: 12px;
-    font-size: 11px;
+    font-size: 16px;
     font-weight: bold;
     text-transform: uppercase;
 }
@@ -661,7 +661,7 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 5px;
-        font-size: 12px;
+        font-size: 16px;
     }
 
     .certificate-internal-note .note-author {
@@ -674,7 +674,7 @@
     }
 
     .certificate-internal-note .note-content {
-        font-size: 14px;
+        font-size: 16px;
         line-height: 1.4;
     }
 
@@ -692,7 +692,7 @@
     }
 
     .certificate-document-link i {
-        font-size: 12px;
+        font-size: 16px;
     }
 
 /* Image Container Enhancements */
@@ -714,7 +714,7 @@
     }
 
 .certificate-image-caption {
-    font-size: 12px;
+    font-size: 16px;
     color: #666;
     margin-top: 5px;
     font-style: italic;
@@ -818,7 +818,7 @@
     color: white;
     padding: 5px 10px;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 16px;
     z-index: 1000;
     pointer-events: none;
     white-space: nowrap;
@@ -1126,13 +1126,13 @@
     .certificate-detail-label {
         min-width: auto;
         margin-right: 0;
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .certificate-status-alert {
         margin: 10px;
         padding: 10px 15px;
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .certificate-quick-actions {
@@ -1142,7 +1142,7 @@
 
     .certificate-quick-action-btn {
         padding: 10px;
-        font-size: 14px;
+        font-size: 16px;
     }
 }
 
@@ -1155,12 +1155,12 @@
     }
 
     .certificate-detail-label {
-        font-size: 13px;
+        font-size: 16px;
         font-weight: 500;
     }
 
     .certificate-detail-value {
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .certificate-image-modal-close {

@@ -1,0 +1,2813 @@
+@{
+    // ViewData["Title"] = "Certificate Tile View";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+    /* Fix for the Actions column white block */
+    .certificates-table th.actions-column {
+        min-width: 100px !important;
+        width: 100px !important;
+        background: #f8f9fa !important;
+        text-align: center;
+        padding: 12px 8px;
+    }
+
+    /* Ensure consistent header styling */
+    .certificates-table thead th {
+        background: #f8f9fa !important;
+        border-right: 1px solid #eee;
+        white-space: nowrap;
+    }
+
+    /* Remove any potential white blocks */
+    .certificates-table th {
+        background: #f8f9fa !important;
+    }
+</style>
+<!-- Main Container -->
+<div class="main-container">
+    <!-- Sidebar (Filters) -->
+    <div class="sidebar">
+        <button class="mobile-filter-toggle" onclick="toggleMobileFilters()" style="display: none;">
+            <span>Show Filters & Search</span>
+            <i class="fas fa-chevron-down"></i>
+        </button>
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="Search...">
+        </div>
+
+        <div class="filters-header">
+            <h3 class="filters-title">Filters</h3>
+            <a href="#" class="clear-filters" onclick="clearAllFilters()">Clear Filters</a>
+        </div>
+
+        <!-- Certification Type Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" onclick="toggleFilter('cert-type')">
+                <span>Certification Type</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="cert-type-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="biobased">
+                            Biobased
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-energy-savings">
+                            Certified Energy Savings
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-environmental-facts">
+                            Certified Environmental Facts
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-sustainability-facts">
+                            Certified Sustainability Facts
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-water-savings">
+                            Certified Water Savings
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="closed-loop-product">
+                            Closed Loop Product
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="dematerialization">
+                            Dematerialization
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="ghg-verification">
+                            Greenhouse Gas (GHG) Verification
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="greencircle-audited">
+                            GreenCircle Audited
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="lca-optimized">
+                            Life Cycle Assessment (LCA) Optimized
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="manufacturer-inventory-verification">
+                            Manufacturer Inventory Verification
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="recyclable-material">
+                            Recyclable Material
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="recycled-content">
+                            Recycled Content
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="renewable-resource-content">
+                            Renewable Resource Content
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="sustainable-energy-practices">
+                            Sustainable Energy Practices
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="sustainable-manufacturing-practices">
+                            Sustainable Manufacturing Practices
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="waste-diversion-landfill">
+                            Waste Diversion from Landfill
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="waste-system-audit">
+                            Waste System Audit
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="vantage-vinyl-verified">
+                            +Vantage Vinyl™ Verified
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="preloved">
+                            Preloved
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Product Categories Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" onclick="toggleFilter('product-cat')">
+                <span>Product Categories</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="product-cat-content">
+                <ul class="filter-tree">
+                    <!-- Chemicals and Raw Materials -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="chemicals-raw-materials">
+                            Chemicals and Raw Materials
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="additives">
+                            Additives
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="metal-alloys">
+                            Metal Alloys
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="minerals">
+                            Minerals
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="plastics">
+                            Plastics
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="hdpe">
+                            HDPE
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="ldpe">
+                            LDPE
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="lldpe">
+                            LLDPE
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pet">
+                            PET
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pp">
+                            PP
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pvc">
+                            PVC
+                        </label>
+                    </li>
+
+                    <!-- Clothing, Apparel, and Fabrics -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="clothing-apparel-fabrics">
+                            Clothing, Apparel, and Fabrics
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="apparel">
+                            Apparel
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="bags-accessories">
+                            Bags and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="jewelry">
+                            Jewelry
+                        </label>
+                    </li>
+
+                    <!-- Construction / Building Products -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="construction-building" checked>
+                            Construction / Building Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="adhesives-sealants">
+                            Adhesives and Sealants
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="ceramics-tile">
+                            Ceramics and Tile
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="coatings">
+                            Coatings
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="concrete-materials">
+                            Concrete and Concrete Materials
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="doors-hardware" checked>
+                            Doors, Door Hardware, and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="fiberglass-mats">
+                            Fiberglass Mats
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="flooring">
+                            Flooring
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="grout-mortar">
+                            Grout and Mortar
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="hvac">
+                            HVAC
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="insulation">
+                            Insulation
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="moisture-control">
+                            Moisture Control
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="plumbing-accessories">
+                            Plumbing and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="roofing">
+                            Roofing
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="wallcoverings">
+                            Wallcoverings and Interior Wall Finishes
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="windows-accessories">
+                            Windows, Parts, and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="wiring-cable">
+                            Wiring and Cable
+                        </label>
+                    </li>
+
+                    <!-- Consumer Products -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="consumer-products">
+                            Consumer Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="appliances">
+                            Appliances
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="baby-products">
+                            Baby Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="cleaning-supplies">
+                            Cleaning Supplies
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="furniture">
+                            Furniture
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="health-beauty">
+                            Health and Beauty
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="home-goods">
+                            Home Goods
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="office-supplies">
+                            Office Supplies (non-electronic)
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="ppe">
+                            Personal Protective Equipment
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pet-products">
+                            Pet Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="security">
+                            Security
+                        </label>
+                    </li>
+
+                    <!-- Electronics, Computers, and Accessories -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="electronics">
+                            Electronics, Computers, and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="card-reader">
+                            Card Reader
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="electronic-accessories">
+                            Electronic Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="microelectronics">
+                            Microelectronics
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="printers-cartridges">
+                            Printers and Printer Cartridges
+                        </label>
+                    </li>
+
+                    <!-- Food and Beverage -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="food-beverage">
+                            Food and Beverage
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="animal-products">
+                            Animal Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="beverages">
+                            Beverages
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="food">
+                            Food
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="fragrance-flavor">
+                            Fragrance and Flavor
+                        </label>
+                    </li>
+
+                    <!-- Healthcare and Pharmaceutical -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="healthcare-pharmaceutical">
+                            Healthcare and Pharmaceutical
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="medical-devices">
+                            Medical Devices
+                        </label>
+                    </li>
+
+                    <!-- Packaging -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="packaging">
+                            Packaging
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="paper">
+                            Paper
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="plastic-packaging">
+                            Plastic
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="other-packaging">
+                            Other
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Company Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" onclick="toggleFilter('company')">
+                <span>Company</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="company-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="alcamare">
+                            Alcamare International Recycling Group
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="assa-abloy">
+                            ASSA ABLOY
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="assa-abloy-corbin">
+                            ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="assa-abloy-sargent">
+                            ASSA ABLOY Access & Egress Hardware Group, Inc. - SARGENT Manufacturing Co. Division
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="certainteed">
+                            CertainTeed Insulation Group
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="charter">
+                            Charter Next Generation
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="domtar">
+                            Domtar Corporation
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="gaf">
+                            GAF
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="mapei">
+                            MAPEI
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="superior-essex">
+                            Superior Essex®
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Countries Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" onclick="toggleFilter('countries')">
+                <span>Countries</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="countries-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="united-states">
+                            United States
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="belgium">
+                            Belgium
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="canada">
+                            Canada
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="china">
+                            China
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="colombia">
+                            Colombia
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="dominican-republic">
+                            Dominican Republic
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="el-salvador">
+                            El Salvador
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="france">
+                            France
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="germany">
+                            Germany
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="hungary">
+                            Hungary
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="indonesia">
+                            Indonesia
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="mexico">
+                            Mexico
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="netherlands">
+                            Netherlands
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="pakistan">
+                            Pakistan
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="poland">
+                            Poland
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="saudi-arabia">
+                            Saudi Arabia
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="singapore">
+                            Singapore
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="south-korea">
+                            South Korea
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="spain">
+                            Spain
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="switzerland">
+                            Switzerland
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="united-kingdom">
+                            United Kingdom
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Certificate Tags Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" onclick="toggleFilter('cert-tags')">
+                <span>Certificate Tags</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="cert-tags-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="energy-savings">
+                            Energy Savings
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="environmental-facts">
+                            Environmental Facts
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="greencircle-audited">
+                            GreenCircle Audited
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="lca-optimized">
+                            LCA Optimized
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="material-ingredient">
+                            Material Ingredient
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="recycled-content">
+                            Recycled Content
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Additional Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" onclick="toggleFilter('additional')">
+                <span>Additional</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="additional-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="additional" value="apr">
+                            APR
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="additional" value="leed">
+                            LEED
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <div class="results-header">
+            <div class="results-count" id="resultsCount">15 Results</div>
+
+
+            <div class="sort-controls">
+                <span class="sort-label">Sort By</span>
+                <div class="sort-dropdown" id="sortDropdown">
+                    <button class="sort-dropdown-button" onclick="toggleSort()">
+                        <span id="sortLabel">Default</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="sort-dropdown-content" id="sortContent">
+                        <!-- Date-based sorting -->
+                        <div class="sort-group-header">By Date</div>
+                        <div class="sort-option" onclick="selectSort('newest', 'Newest Effective Date')">
+                            <i class="fas fa-calendar-plus"></i>
+                            Newest Effective Date
+                        </div>
+                        <div class="sort-option" onclick="selectSort('oldest-effective', 'Oldest Effective Date')">
+                            <i class="fas fa-calendar-minus"></i>
+                            Oldest Effective Date
+                        </div>
+                        <div class="sort-option" onclick="selectSort('expiring', 'Expiring Soon')">
+                            <i class="fas fa-clock"></i>
+                            Expiring Soon
+                        </div>
+                        <div class="sort-option" onclick="selectSort('longest-validity', 'Longest Validity Period')">
+                            <i class="fas fa-hourglass-end"></i>
+                            Longest Validity Period
+                        </div>
+                        <div class="sort-option" onclick="selectSort('recently-issued', 'Recently Issued (Last 30 Days)')">
+                            <i class="fas fa-calendar-check"></i>
+                            Recently Issued (Last 30 Days)
+                        </div>
+
+                        <!-- Certificate Information -->
+                        <div class="sort-group-header">By Certificate</div>
+                        <div class="sort-option" onclick="selectSort('cert-number-newest', 'Certificate Number (Newest)')">
+                            <i class="fas fa-certificate"></i>
+                            Certificate Number (Newest)
+                        </div>
+                        <div class="sort-option" onclick="selectSort('cert-number-oldest', 'Certificate Number (Oldest)')">
+                            <i class="fas fa-certificate"></i>
+                            Certificate Number (Oldest)
+                        </div>
+                        <div class="sort-option" onclick="selectSort('cert-type', 'Certification Type A-Z')">
+                            <i class="fas fa-award"></i>
+                            Certification Type A-Z
+                        </div>
+                        <div class="sort-option" onclick="selectSort('cert-type-za', 'Certification Type Z-A')">
+                            <i class="fas fa-award"></i>
+                            Certification Type Z-A
+                        </div>
+
+                        <!-- Alphabetical sorting -->
+                        <div class="sort-group-header">Alphabetical</div>
+                        <div class="sort-option" onclick="selectSort('company-az', 'Company A-Z')">
+                            <i class="fas fa-building"></i>
+                            Company A-Z
+                        </div>
+                        <div class="sort-option" onclick="selectSort('company-za', 'Company Z-A')">
+                            <i class="fas fa-building"></i>
+                            Company Z-A
+                        </div>
+                        <div class="sort-option" onclick="selectSort('product-az', 'Product Name A-Z')">
+                            <i class="fas fa-tag"></i>
+                            Product Name A-Z
+                        </div>
+                        <div class="sort-option" onclick="selectSort('product-za', 'Product Name Z-A')">
+                            <i class="fas fa-tag"></i>
+                            Product Name Z-A
+                        </div>
+
+                        <!-- Location sorting -->
+                        <div class="sort-group-header">By Location</div>
+                        <div class="sort-option" onclick="selectSort('location-az', 'Location A-Z')">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Location A-Z
+                        </div>
+                        <div class="sort-option" onclick="selectSort('location-za', 'Location Z-A')">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Location Z-A
+                        </div>
+                        <div class="sort-option" onclick="selectSort('country', 'Country A-Z')">
+                            <i class="fas fa-globe"></i>
+                            Country A-Z
+                        </div>
+                        <div class="sort-option" onclick="selectSort('country-za', 'Country Z-A')">
+                            <i class="fas fa-globe"></i>
+                            Country Z-A
+                        </div>
+
+                        <!-- Advanced sorting -->
+                        <div class="sort-group-header">Advanced</div>
+                        <div class="sort-option" onclick="selectSort('popularity', 'Most Popular Companies')">
+                            <i class="fas fa-star"></i>
+                            Most Popular Companies
+                        </div>
+                        <div class="sort-option" onclick="selectSort('product-type', 'Product Type A-Z')">
+                            <i class="fas fa-boxes"></i>
+                            Product Type A-Z
+                        </div>
+                        <div class="sort-option" onclick="selectSort('relevance', 'Relevance Score')">
+                            <i class="fas fa-search"></i>
+                            Relevance Score
+                        </div>
+                        <div class="sort-option" onclick="selectSort('status', 'Status')">
+                            <i class="fas fa-check-circle"></i>
+                            Status
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- After results-header div -->
+        <div class="results-controls">
+            <div class="left-controls">
+                <div class="export-options">
+                    <button class="btn btn-primary">
+                        Export (selected) to Excel
+                    </button>
+                    <button class="btn btn-primary">
+                        Export All to Excel
+                    </button>
+                    <button class="btn btn-primary">
+                        Download Selected
+                    </button>
+                </div>
+            </div>
+
+            <div class="right-controls">
+                <div class="view-toggle-container">
+                    <div class="view-toggle">
+                        <button class="toggle-btn active" data-view="tile" onclick="toggleView('tile')">
+                            <i class="fas fa-th"></i> Tile
+                        </button>
+                        <button class="toggle-btn" data-view="list" onclick="toggleView('list')">
+                            <i class="fas fa-list"></i> List
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="certificates-grid" id="certificatesGrid">
+            <!-- Certificate Card 1 -->
+            <div class="certificate-card" data-type="greencircle-audited" data-company="assa-abloy" data-country="us" data-category="construction" data-date="2021-05-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">21-0476</div>
+                    </div>
+                    <div class="company-name">ASSA ABLOY</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">Mercury Thermal Break Frame, Fleming Adjustable Thermal Resistant Frame, and Mercury2 Adjustable Thermal Break Frame / AADG TrioE / 777E</div>
+                        <div class="product-type">Door Hardware</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            5/1/2021 - 4/30/2025
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            New Haven, CT, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('21-0476')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('21-0476')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 2 -->
+            <div class="certificate-card" data-type="environmental-facts" data-company="assa-abloy-corbin" data-country="us" data-category="construction" data-date="2024-09-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-1605</div>
+                    </div>
+                    <div class="company-name">ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">900ET Exit Device Trim with EcoFlex®</div>
+                        <div class="product-type">Exit Device</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            9/1/2024 - 8/31/2027
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Berlin, CT, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-1605')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-1605')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 3 -->
+            <div class="certificate-card" data-type="energy-savings" data-company="assa-abloy-corbin" data-country="us" data-category="construction" data-date="2024-05-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-0366</div>
+                    </div>
+                    <div class="company-name">ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">800ET Exit Device Trim with EcoFlex®</div>
+                        <div class="product-type">Exit Device</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            5/1/2024 - 4/30/2025
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Berlin, CT, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-0366')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-0366')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 4 -->
+            <div class="certificate-card" data-type="environmental-facts" data-company="assa-abloy-sargent" data-country="us" data-category="construction" data-date="2024-09-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-1623</div>
+                    </div>
+                    <div class="company-name">ASSA ABLOY Access & Egress Hardware Group, Inc. - SARGENT Manufacturing Co. Division</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">Sargent EcoFlex® Electrified Mortise Lock (Fail Safe & Fail Secure)</div>
+                        <div class="product-type">Lock</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            9/1/2024 - 8/31/2027
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            New Haven, CT, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-1623')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-1623')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 5 -->
+            <div class="certificate-card" data-type="environmental-facts" data-company="superior-essex" data-country="us" data-category="electronics" data-date="2024-10-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-5633</div>
+                    </div>
+                    <div class="company-name">Superior Essex®</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">10Gain® XP Category 6A and DataGain® Category 6+ Cable Products</div>
+                        <div class="product-type">Copper Cable</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            10/1/2024 - 9/30/2027
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Hoisington, KS, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-5633')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-5633')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 6 -->
+            <div class="certificate-card" data-type="environmental-facts" data-company="superior-essex" data-country="us" data-category="electronics" data-date="2024-10-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-5634</div>
+                    </div>
+                    <div class="company-name">Superior Essex®</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">10Gain® XP Category 6A and PowerWise™ Cable Products</div>
+                        <div class="product-type">Copper Cable</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            10/1/2024 - 9/30/2027
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Hoisington, KS, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-5634')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-5634')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 7 -->
+            <div class="certificate-card" data-type="recycled-content" data-company="gaf" data-country="us" data-category="construction" data-date="2024-11-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-5637</div>
+                    </div>
+                    <div class="company-name">GAF</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">EnergyGuard™ Polyiso Roof Insulation - 1 to 1.9</div>
+                        <div class="product-type">Roof Insulation</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            11/1/2024 - 10/31/2025
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Cedar City, UT; Statesboro, GA; Gainesville, TX; New Columbia, PA; & Peru, IL, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-5637')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-5637')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 8 -->
+            <div class="certificate-card" data-type="environmental-facts" data-company="domtar" data-country="us" data-category="paper" data-date="2024-11-25">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-5712</div>
+                    </div>
+                    <div class="company-name">Domtar Corporation</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">Amazon Basics Multipurpose Copy Printer Paper (92 GE Bright White)</div>
+                        <div class="product-type">Paper</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            11/25/2024 - 11/24/2027
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Ashdown, AR; Bennettsville, SC; Hawesville, KY; Johnsonburg, PA, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-5712')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-5712')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 9 -->
+            <div class="certificate-card" data-type="recycled-content" data-company="alcamare" data-country="mx" data-category="recycling" data-date="2024-12-06">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-5770</div>
+                    </div>
+                    <div class="company-name">Alcamare International Recycling Group</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">HDPE 99 MC -Post-Consumer HDPE Mixed Color Pellets</div>
+                        <div class="product-type">Plastic Pellets</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            12/6/2024 - 12/5/2025
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Libramiento Empalme Escobedo 110-C, Comonfort, Guanajuato, Mexico
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-5770')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-5770')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 10 -->
+            <div class="certificate-card" data-type="csf" data-company="gaf" data-country="us" data-category="construction" data-date="2025-01-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-5782</div>
+                    </div>
+                    <div class="company-name">GAF</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">EverGuard® TPO Membrane Products</div>
+                        <div class="product-type">Roofing Product</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            1/1/2025 - 12/31/2027
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Mount Vernon, IN, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-5782')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-5782')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 11 -->
+            <div class="certificate-card" data-type="lca-optimized" data-company="assa-abloy-sargent" data-country="us" data-category="construction" data-date="2024-12-23">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-5788</div>
+                    </div>
+                    <div class="company-name">ASSA ABLOY Access & Egress Hardware Group, Inc. - SARGENT Manufacturing Co. Division</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">SARGENT PE80 Mechanical Exit Device</div>
+                        <div class="product-type">Exit Device</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            12/23/2024 - 12/22/2027
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            New Haven, CT, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-5788')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-5788')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 12 -->
+            <div class="certificate-card" data-type="recycled-content" data-company="certainteed" data-country="us" data-category="construction" data-date="2025-01-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-5801</div>
+                    </div>
+                    <div class="company-name">CertainTeed Insulation Group</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">Batt and Roll</div>
+                        <div class="product-type">Insulation</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            1/1/2025 - 12/31/2025
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Athens, GA; Chowchilla, CA; Kansas City, KS, United States; Ottawa, Ontario, Canada; Redcliff, Alberta, Canada
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-5801')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-5801')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 13 -->
+            <div class="certificate-card" data-type="recycled-content" data-company="charter" data-country="us" data-category="packaging" data-date="2025-01-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-5814</div>
+                    </div>
+                    <div class="company-name">Charter Next Generation</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">GAR-19002PCR(W)-40; GAR-201.30(W)-40; XCF-19002PCR(W)-40</div>
+                        <div class="product-type">Plastic Film</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            1/1/2025 - 12/31/2025
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Milton, WI, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-5814')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-5814')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 14 -->
+            <div class="certificate-card" data-type="recycled-content" data-company="charter" data-country="us" data-category="packaging" data-date="2025-01-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">24-5819</div>
+                    </div>
+                    <div class="company-name">Charter Next Generation</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">Towel Tissue Overwrap - 20% PCR</div>
+                        <div class="product-type">Plastic Film</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            1/1/2025 - 12/31/2025
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Blythewood, SC; Milton, WI, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('24-5819')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('24-5819')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 15 -->
+            <div class="certificate-card" data-type="material-ingredient" data-company="mapei" data-country="us" data-category="construction" data-date="2023-08-01">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">23-0525</div>
+                    </div>
+                    <div class="company-name">MAPEI</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">Ultralite Mortar</div>
+                        <div class="product-type">Lightweight Polymer Modified Mortars</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            8/1/2023 - 7/31/2025
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Deerfield Beach, FL, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('23-0525')">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" onclick="viewCertificate('23-0525')">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- TABLE VIEW CONTAINER -->
+        <div id="tableView" class="view-container" style="display: none;">
+            <!-- Bulk Actions Bar -->
+            <div class="bulk-actions-bar" style="display: none;" id="bulkActionsBar">
+                <div class="bulk-actions-left">
+                    <span class="selected-count" id="selectedCount">0 certificates selected</span>
+                    <button class="clear-selection-btn" onclick="clearSelection()">Clear Selection</button>
+                </div>
+                <div class="bulk-actions-right">
+                    <button class="bulk-action-btn" onclick="bulkDownload()">
+                        <i class="fas fa-download"></i>Download Selected
+                    </button>
+                    <button class="bulk-action-btn" onclick="bulkExport()">
+                        <i class="fas fa-file-excel"></i>Export to Excel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Grid Container -->
+            <div class="table-scroll-wrapper">
+                <div class="table-grid-container">
+                    <div class="table-grid" id="certificateGrid">
+
+                        <!-- HEADER ROW -->
+                        <div class="grid-header">
+                            <div class="grid-header-cell select-cell">
+                                <input type="checkbox" id="selectAll" onchange="toggleSelectAll()" title="Select all visible rows">
+                            </div>
+                            <div class="grid-header-cell actions-column" onclick="sortTable('actions')" style="min-width: 100px;">
+                                Actions
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('certificate')">
+                                Certificate #
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('certificationType')">
+                                Certification Type
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('csfAttributes')">
+                                CSF Attributes
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('status')">
+                                Status
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('effectiveDate')">
+                                Effective Date
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('expirationDate')">
+                                Expiration Date
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('company')">
+                                Company
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('companyContact')">
+                                Company Contact Email/URL
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('productName')">
+                                Product Name
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('productCategory')">
+                                Product Category
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('productType')">
+                                Product Type
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('productSubcategory')">
+                                Product Type Subcategory
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('location')">
+                                Location
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('country')">
+                                Country
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('externalTag')">
+                                External Tag
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('internalTag')">
+                                Internal Tag
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('asin')">
+                                ASIN
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('upc')">
+                                UPC
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('gtin')">
+                                GTIN
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" onclick="sortTable('ean')">
+                                EAN
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                        </div>
+
+                        <!-- BODY CONTAINER -->
+                        <div class="grid-body" id="gridBody">
+                            <!-- Grid rows will be populated here - equivalent to tableBody -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <script src="~/js/certificateslist.js"></script>
+        <script>
+            // Toast notification function
+            function showToast(message, type = 'success') {
+                const toast = document.createElement('div');
+                toast.className = `toast ${type}`;
+
+                const iconMap = {
+                    success: 'check-circle',
+                    error: 'exclamation-circle',
+                    warning: 'exclamation-triangle',
+                    info: 'info-circle'
+                };
+
+                toast.innerHTML = `
+                    <i class="fas fa-${iconMap[type]}"></i>
+                    <span>${message}</span>
+                `;
+
+                document.body.appendChild(toast);
+
+                // Show with animation
+                setTimeout(() => {
+                    toast.classList.add('show');
+                }, 100);
+
+                // Auto remove after 3 seconds
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                    setTimeout(() => {
+                        if (document.body.contains(toast)) {
+                            document.body.removeChild(toast);
+                        }
+                    }, 300);
+                }, 3000);
+            }
+
+                         // Enhanced certificate data array with all required fields
+                        // Real certificate data from your system - CORRECTED STRUCTURE
+            const certificateData = [
+                {
+                    id: '21-0476',
+                    certificateNumber: '21-0476',
+                    certificationType: 'GreenCircle Audited',
+                    csfAttributes: ['GreenCircle Audited'],
+                    status: 'Active',
+                    effectiveDate: '5/1/2021',
+                    expirationDate: '4/30/2025',
+                    company: 'ASSA ABLOY',
+                    companyContact: 'info@assaabloy.com',
+                    productName: 'Mercury Thermal Break Frame, Fleming Adjustable Thermal Resistant Frame, and Mercury2 Adjustable Thermal Break Frame / AADG TrioE / 777E',
+                    productCategory: 'Construction / Building Products',
+                    productType: 'Doors, Door Hardware, and Accessories',
+                    productSubcategory: 'Door Hardware',
+                    location: 'New Haven, CT',
+                    country: 'United States',
+                    externalTags: ['Energy Efficient', 'LEED Eligible'],
+                    internalTags: ['Q2-2021'],
+                    asin: 'B08X4R5M2K',
+                    upc: '123456789012',
+                    gtin: '00123456789012',
+                    ean: '1234567890123'
+                },
+                {
+                    id: '24-1605',
+                    certificateNumber: '24-1605',
+                    certificationType: 'Certified Environmental Facts',
+                    csfAttributes: ['Environmental Facts'],
+                    status: 'Active',
+                    effectiveDate: '9/1/2024',
+                    expirationDate: '8/31/2027',
+                    company: 'ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division',
+                    companyContact: 'support@corbinrusswin.com',
+                    productName: '900ET Exit Device Trim with EcoFlex®',
+                    productCategory: 'Construction / Building Products',
+                    productType: 'Doors, Door Hardware, and Accessories',
+                    productSubcategory: 'Exit Device',
+                    location: 'Berlin, CT',
+                    country: 'United States',
+                    externalTags: ['EcoFlex Technology', 'Fire Safety'],
+                    internalTags: ['Q3-2024'],
+                    asin: 'B09K7R3N4L',
+                    upc: '234567890123',
+                    gtin: '00234567890123',
+                    ean: '2345678901234'
+                },
+                {
+                    id: '24-0366',
+                    certificateNumber: '24-0366',
+                    certificationType: 'Certified Energy Savings',
+                    csfAttributes: ['Energy Savings'],
+                    status: 'Active',
+                    effectiveDate: '5/1/2024',
+                    expirationDate: '4/30/2025',
+                    company: 'ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division',
+                    companyContact: 'support@corbinrusswin.com',
+                    productName: '800ET Exit Device Trim with EcoFlex®',
+                    productCategory: 'Construction / Building Products',
+                    productType: 'Doors, Door Hardware, and Accessories',
+                    productSubcategory: 'Exit Device',
+                    location: 'Berlin, CT',
+                    country: 'United States',
+                    externalTags: ['Energy Star', 'Commercial Grade'],
+                    internalTags: ['Q2-2024'],
+                    asin: 'B09L8M2P7K',
+                    upc: '345678901234',
+                    gtin: '00345678901234',
+                    ean: '3456789012345'
+                },
+                {
+                    id: '24-1623',
+                    certificateNumber: '24-1623',
+                    certificationType: 'Certified Environmental Facts',
+                    csfAttributes: ['Environmental Facts'],
+                    status: 'Active',
+                    effectiveDate: '9/1/2024',
+                    expirationDate: '8/31/2027',
+                    company: 'ASSA ABLOY Access & Egress Hardware Group, Inc. - SARGENT Manufacturing Co. Division',
+                    companyContact: 'info@sargentlock.com',
+                    productName: 'Sargent EcoFlex® Electrified Mortise Lock (Fail Safe & Fail Secure)',
+                    productCategory: 'Construction / Building Products',
+                    productType: 'Doors, Door Hardware, and Accessories',
+                    productSubcategory: 'Lock',
+                    location: 'New Haven, CT',
+                    country: 'United States',
+                    externalTags: ['Smart Lock', 'Security'],
+                    internalTags: ['Q3-2024'],
+                    asin: 'B09M5K8R3L',
+                    upc: '456789012345',
+                    gtin: '00456789012345',
+                    ean: '4567890123456'
+                },
+                {
+                    id: '24-5633',
+                    certificateNumber: '24-5633',
+                    certificationType: 'Certified Environmental Facts',
+                    csfAttributes: ['Environmental Facts'],
+                    status: 'Active',
+                    effectiveDate: '10/1/2024',
+                    expirationDate: '9/30/2027',
+                    company: 'Superior Essex®',
+                    companyContact: 'www.superioressex.com',
+                    productName: '10Gain® XP Category 6A and DataGain® Category 6+ Cable Products',
+                    productCategory: 'Electronics, Computers, and Accessories',
+                    productType: 'Wiring and Cable',
+                    productSubcategory: 'Copper Cable',
+                    location: 'Hoisington, KS',
+                    country: 'United States',
+                    externalTags: ['High Performance', 'Data Center'],
+                    internalTags: ['Q4-2024'],
+                    asin: 'B09N7P2M4K',
+                    upc: '567890123456',
+                    gtin: '00567890123456',
+                    ean: '5678901234567'
+                },
+                {
+                    id: '24-5634',
+                    certificateNumber: '24-5634',
+                    certificationType: 'Certified Environmental Facts',
+                    csfAttributes: ['Environmental Facts'],
+                    status: 'Active',
+                    effectiveDate: '10/1/2024',
+                    expirationDate: '9/30/2027',
+                    company: 'Superior Essex®',
+                    companyContact: 'www.superioressex.com',
+                    productName: '10Gain® XP Category 6A and PowerWise™ Cable Products',
+                    productCategory: 'Electronics, Computers, and Accessories',
+                    productType: 'Wiring and Cable',
+                    productSubcategory: 'Copper Cable',
+                    location: 'Hoisington, KS',
+                    country: 'United States',
+                    externalTags: ['PowerWise', 'Networking'],
+                    internalTags: ['Q4-2024'],
+                    asin: 'B09O8P3K2L',
+                    upc: '678901234567',
+                    gtin: '00678901234567',
+                    ean: '6789012345678'
+                },
+                {
+                    id: '24-5637',
+                    certificateNumber: '24-5637',
+                    certificationType: 'Recycled Content',
+                    csfAttributes: ['Recycled Content'],
+                    status: 'Active',
+                    effectiveDate: '11/1/2024',
+                    expirationDate: '10/31/2025',
+                    company: 'GAF',
+                    companyContact: 'info@gaf.com',
+                    productName: 'EnergyGuard™ Polyiso Roof Insulation - 1 to 1.9',
+                    productCategory: 'Construction / Building Products',
+                    productType: 'Insulation',
+                    productSubcategory: 'Roof Insulation',
+                    location: 'Cedar City, UT; Statesboro, GA; Gainesville, TX; New Columbia, PA; & Peru, IL',
+                    country: 'United States',
+                    externalTags: ['LEED Eligible', 'Energy Efficient'],
+                    internalTags: ['Q4-2024'],
+                    asin: 'B09P8K3M5L',
+                    upc: '789012345678',
+                    gtin: '00789012345678',
+                    ean: '7890123456789'
+                },
+                {
+                    id: '24-5712',
+                    certificateNumber: '24-5712',
+                    certificationType: 'Certified Environmental Facts',
+                    csfAttributes: ['Environmental Facts'],
+                    status: 'Active',
+                    effectiveDate: '11/25/2024',
+                    expirationDate: '11/24/2027',
+                    company: 'Domtar Corporation',
+                    companyContact: 'customerservice@domtar.com',
+                    productName: 'Amazon Basics Multipurpose Copy Printer Paper (92 GE Bright White)',
+                    productCategory: 'Packaging',
+                    productType: 'Paper',
+                    productSubcategory: 'Copy Paper',
+                    location: 'Ashdown, AR; Bennettsville, SC; Hawesville, KY; Johnsonburg, PA',
+                    country: 'United States',
+                    externalTags: ['Amazon CPF', 'Office Supply'],
+                    internalTags: ['Q4-2024'],
+                    asin: 'B01FV0F8H8',
+                    upc: '890123456789',
+                    gtin: '00890123456789',
+                    ean: '8901234567890'
+                },
+                {
+                    id: '24-5770',
+                    certificateNumber: '24-5770',
+                    certificationType: 'Recycled Content',
+                    csfAttributes: ['Recycled Content'],
+                    status: 'Active',
+                    effectiveDate: '12/6/2024',
+                    expirationDate: '12/5/2025',
+                    company: 'Alcamare International Recycling Group',
+                    companyContact: 'info@alcamare.com',
+                    productName: 'HDPE 99 MC -Post-Consumer HDPE Mixed Color Pellets',
+                    productCategory: 'Chemicals and Raw Materials',
+                    productType: 'Plastics',
+                    productSubcategory: 'Plastic Pellets',
+                    location: 'Libramiento Empalme Escobedo 110-C, Comonfort, Guanajuato',
+                    country: 'Mexico',
+                    externalTags: ['Post-Consumer', 'Recycled'],
+                    internalTags: ['Q4-2024'],
+                    asin: 'B09R7M3K2L',
+                    upc: '901234567890',
+                    gtin: '00901234567890',
+                    ean: '9012345678901'
+                },
+                {
+                    id: '24-5782',
+                    certificateNumber: '24-5782',
+                    certificationType: 'Certified Sustainability Facts',
+                    csfAttributes: ['CSF'],
+                    status: 'Active',
+                    effectiveDate: '1/1/2025',
+                    expirationDate: '12/31/2027',
+                    company: 'GAF',
+                    companyContact: 'info@gaf.com',
+                    productName: 'EverGuard® TPO Membrane Products',
+                    productCategory: 'Construction / Building Products',
+                    productType: 'Roofing',
+                    productSubcategory: 'Roofing Product',
+                    location: 'Mount Vernon, IN',
+                    country: 'United States',
+                    externalTags: ['Weather Resistant', 'Commercial'],
+                    internalTags: ['Q1-2025'],
+                    asin: 'B09S8K4M2L',
+                    upc: '012345678901',
+                    gtin: '00012345678901',
+                    ean: '0123456789012'
+                },
+                {
+                    id: '24-5788',
+                    certificateNumber: '24-5788',
+                    certificationType: 'LCA Optimized',
+                    csfAttributes: ['LCA Optimized'],
+                    status: 'Active',
+                    effectiveDate: '12/23/2024',
+                    expirationDate: '12/22/2027',
+                    company: 'ASSA ABLOY Access & Egress Hardware Group, Inc. - SARGENT Manufacturing Co. Division',
+                    companyContact: 'info@sargentlock.com',
+                    productName: 'SARGENT PE80 Mechanical Exit Device',
+                    productCategory: 'Construction / Building Products',
+                    productType: 'Doors, Door Hardware, and Accessories',
+                    productSubcategory: 'Exit Device',
+                    location: 'New Haven, CT',
+                    country: 'United States',
+                    externalTags: ['Life Cycle Assessed', 'Mechanical'],
+                    internalTags: ['Q4-2024'],
+                    asin: 'B09T7K3M4L',
+                    upc: '112233445566',
+                    gtin: '00112233445566',
+                    ean: '1122334455667'
+                },
+                {
+                    id: '24-5801',
+                    certificateNumber: '24-5801',
+                    certificationType: 'Recycled Content',
+                    csfAttributes: ['Recycled Content'],
+                    status: 'Active',
+                    effectiveDate: '1/1/2025',
+                    expirationDate: '12/31/2025',
+                    company: 'CertainTeed Insulation Group',
+                    companyContact: 'www.certainteed.com',
+                    productName: 'Batt and Roll',
+                    productCategory: 'Construction / Building Products',
+                    productType: 'Insulation',
+                    productSubcategory: 'Fiberglass Insulation',
+                    location: 'Athens, GA; Chowchilla, CA; Kansas City, KS; Ottawa, Ontario, Canada; Redcliff, Alberta, Canada',
+                    country: 'United States, Canada',
+                    externalTags: ['Energy Efficient', 'Residential'],
+                    internalTags: ['Q1-2025'],
+                    asin: 'B09U8M2K3L',
+                    upc: '223344556677',
+                    gtin: '00223344556677',
+                    ean: '2233445566778'
+                },
+                {
+                    id: '24-5814',
+                    certificateNumber: '24-5814',
+                    certificationType: 'Recycled Content',
+                    csfAttributes: ['Recycled Content'],
+                    status: 'Active',
+                    effectiveDate: '1/1/2025',
+                    expirationDate: '12/31/2025',
+                    company: 'Charter Next Generation',
+                    companyContact: 'info@charternext.com',
+                    productName: 'GAR-19002PCR(W)-40; GAR-201.30(W)-40; XCF-19002PCR(W)-40',
+                    productCategory: 'Packaging',
+                    productType: 'Plastic',
+                    productSubcategory: 'Plastic Film',
+                    location: 'Milton, WI',
+                    country: 'United States',
+                    externalTags: ['PCR Content', 'Industrial'],
+                    internalTags: ['Q1-2025'],
+                    asin: 'B09V7K4M3L',
+                    upc: '334455667788',
+                    gtin: '00334455667788',
+                    ean: '3344556677889'
+                },
+                {
+                    id: '24-5819',
+                    certificateNumber: '24-5819',
+                    certificationType: 'Recycled Content',
+                    csfAttributes: ['Recycled Content'],
+                    status: 'Active',
+                    effectiveDate: '1/1/2025',
+                    expirationDate: '12/31/2025',
+                    company: 'Charter Next Generation',
+                    companyContact: 'info@charternext.com',
+                    productName: 'Towel Tissue Overwrap - 20% PCR',
+                    productCategory: 'Packaging',
+                    productType: 'Plastic',
+                    productSubcategory: 'Plastic Film',
+                    location: 'Blythewood, SC; Milton, WI',
+                    country: 'United States',
+                    externalTags: ['20% PCR', 'Consumer Goods'],
+                    internalTags: ['Q1-2025'],
+                    asin: 'B09W8M3K2L',
+                    upc: '445566778899',
+                    gtin: '00445566778899',
+                    ean: '4455667788990'
+                },
+                {
+                    id: '23-0525',
+                    certificateNumber: '23-0525',
+                    certificationType: 'Material Ingredient Reporting',
+                    csfAttributes: ['Material Ingredient'],
+                    status: 'Active',
+                    effectiveDate: '8/1/2023',
+                    expirationDate: '7/31/2025',
+                    company: 'MAPEI',
+                    companyContact: 'www.mapei.com',
+                    productName: 'Ultralite Mortar',
+                    productCategory: 'Construction / Building Products',
+                    productType: 'Adhesives and Sealants',
+                    productSubcategory: 'Lightweight Polymer Modified Mortars',
+                    location: 'Deerfield Beach, FL',
+                    country: 'United States',
+                    externalTags: ['LEED v4', 'Construction'],
+                    internalTags: ['Q3-2023'],
+                    asin: 'B09X7K2M4L',
+                    upc: '556677889900',
+                    gtin: '00556677889900',
+                    ean: '5566778899001'
+                }
+            ];
+
+             function populateGridView() {
+                console.log('Populating grid view with real data');
+
+                const gridBody = document.getElementById('gridBody');
+
+                if (!gridBody) {
+                    console.error('Grid body not found');
+                    return;
+                }
+
+                // Clear existing rows
+                gridBody.innerHTML = '';
+
+                // Use the real certificateData instead of extracting from cards
+                certificateData.forEach(cert => {
+                    const row = createGridRowFromData(cert);
+                    if (row) {
+                        gridBody.appendChild(row);
+                    }
+                });
+
+                console.log('Added', gridBody.children.length, 'rows to grid');
+            }
+
+                        function createGridRowFromData(cert) {
+                try {
+                    const row = document.createElement('div');
+                    row.className = 'grid-row';
+                    row.dataset.certId = cert.id;
+
+                    // Create all grid cells with real data
+                    row.innerHTML = `
+                        <div class="grid-cell select-cell">
+                            <input type="checkbox" class="row-select" value="${cert.id}" onchange="updateBulkActions()">
+                        </div>
+                        <div class="grid-cell actions-cell">
+                            <button class="action-btn download" onclick="downloadCertificate('${cert.id}')" title="Download">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="action-btn view" onclick="viewCertificate('${cert.id}')" title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="grid-cell cert-number">${cert.certificateNumber || ''}</div>
+                        <div class="grid-cell">${cert.certificationType || ''}</div>
+                        <div class="grid-cell">
+                            <div class="tags-container">
+                                ${(cert.csfAttributes || []).map(attr => `<span class="tag">${attr}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="grid-cell status-cell">
+                            <span class="status-badge ${cert.status?.toLowerCase() || 'inactive'}">${cert.status || 'Inactive'}</span>
+                        </div>
+                        <div class="grid-cell">${cert.effectiveDate || ''}</div>
+                        <div class="grid-cell">${cert.expirationDate || ''}</div>
+                        <div class="grid-cell text-truncate" title="${cert.company || ''}">${cert.company || ''}</div>
+                        <div class="grid-cell text-truncate" title="${cert.companyContact || ''}">${cert.companyContact || ''}</div>
+                        <div class="grid-cell text-truncate" title="${cert.productName || ''}">${cert.productName || ''}</div>
+                        <div class="grid-cell">${cert.productCategory || ''}</div>
+                        <div class="grid-cell">${cert.productType || ''}</div>
+                        <div class="grid-cell">${cert.productSubcategory || ''}</div>
+                        <div class="grid-cell text-truncate" title="${cert.location || ''}">${cert.location || ''}</div>
+                        <div class="grid-cell">${cert.country || ''}</div>
+                        <div class="grid-cell">
+                            <div class="tags-container">
+                                ${(cert.externalTags || []).map(tag => `<span class="tag external">${tag}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="grid-cell">
+                            <div class="tags-container">
+                                ${(cert.internalTags || []).map(tag => `<span class="tag internal">${tag}</span>`).join('')}
+                            </div>
+                        </div>
+                        <div class="grid-cell">${cert.asin || ''}</div>
+                        <div class="grid-cell">${cert.upc || ''}</div>
+                        <div class="grid-cell">${cert.gtin || ''}</div>
+                        <div class="grid-cell">${cert.ean || ''}</div>
+                    `;
+
+                    return row;
+                } catch (error) {
+                    console.error('Error creating grid row from data:', error);
+                    return null;
+                }
+            }
+
+
+
+            // Enhanced function to create rows with all data fields
+               function createGridRowFromCard(card) {
+                try {
+                    // Extract basic data from card elements
+                    const certId = card.querySelector('.certificate-id')?.textContent || '';
+                    const certificationType = card.querySelector('.certificate-category')?.textContent || '';
+                    const company = card.querySelector('.company-name')?.textContent || '';
+                    const product = card.querySelector('.product-name')?.textContent || '';
+                    const productType = card.querySelector('.product-type')?.textContent || '';
+
+                    // Extract location
+                    const locationElement = card.querySelector('.certificate-location');
+                    const locationText = locationElement?.textContent || '';
+                    const location = locationText.replace(/^\s*[^\s]+\s*/, '').trim();
+
+                    // Extract dates from period
+                    const periodElement = card.querySelector('.certificate-period');
+                    const periodText = periodElement?.textContent || '';
+                    const dates = periodText.replace('Certification Period:', '').trim().split(' - ');
+                    const effective = dates[0] || '';
+                    const expiration = dates[1] || '';
+
+                    // Get additional data
+                    const csfAttributes = getCsfAttributesFromType(card.dataset.type || '');
+                    const status = 'Active';
+                    const productCategory = getCategoryFromType(card.dataset.category);
+                    const country = card.dataset.country === 'us' ? 'United States' :
+                                   card.dataset.country === 'mx' ? 'Mexico' : 'United States';
+
+                    const companyContact = getCompanyContact(company);
+                    const productSubcategory = getSubcategory(productType);
+                    const externalTag = getExternalTag(certificationType);
+                    const internalTag = getInternalTag(effective);
+                    const asin = generateASIN(certId);
+                    const upc = generateUPC(certId);
+                    const gtin = generateGTIN(certId);
+                    const ean = generateEAN(certId);
+
+                    // Create grid row container
+                    const row = document.createElement('div');
+                    row.className = 'grid-row';
+                    row.dataset.certId = certId;
+
+                    // Create grid cells
+                    row.innerHTML = `
+                        <div class="grid-cell select-cell">
+                            <input type="checkbox" class="row-select" value="${certId}" onchange="updateBulkActions()">
+                        </div>
+                        <div class="grid-cell actions-cell">
+                            <button class="action-btn download" onclick="downloadCertificate('${certId}')" title="Download">
+                                <i class="fas fa-download"></i>
+                            </button>
+                            <button class="action-btn view" onclick="viewCertificate('${certId}')" title="View">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                        <div class="grid-cell cert-number">${certId}</div>
+                        <div class="grid-cell">${certificationType}</div>
+                        <div class="grid-cell">
+                            <div class="tags-container">
+                                <span class="tag">${csfAttributes}</span>
+                            </div>
+                        </div>
+                        <div class="grid-cell status-cell">
+                            <span class="status-badge active">${status}</span>
+                        </div>
+                        <div class="grid-cell">${effective}</div>
+                        <div class="grid-cell">${expiration}</div>
+                        <div class="grid-cell text-truncate" title="${company}">${company}</div>
+                        <div class="grid-cell text-truncate" title="${companyContact}">${companyContact}</div>
+                        <div class="grid-cell text-truncate" title="${product}">${product}</div>
+                        <div class="grid-cell">${productCategory}</div>
+                        <div class="grid-cell">${productType}</div>
+                        <div class="grid-cell">${productSubcategory}</div>
+                        <div class="grid-cell text-truncate" title="${location}">${location}</div>
+                        <div class="grid-cell">${country}</div>
+                        <div class="grid-cell">
+                            <div class="tags-container">
+                                <span class="tag external">${externalTag}</span>
+                            </div>
+                        </div>
+                        <div class="grid-cell">
+                            <div class="tags-container">
+                                <span class="tag internal">${internalTag}</span>
+                            </div>
+                        </div>
+                        <div class="grid-cell">${asin}</div>
+                        <div class="grid-cell">${upc}</div>
+                        <div class="grid-cell">${gtin}</div>
+                        <div class="grid-cell">${ean}</div>
+                    `;
+
+                    return row;
+                } catch (error) {
+                    console.error('Error creating grid row:', error);
+                    return null;
+                }
+            }
+
+                        // Helper functions to map data
+            function getCsfAttributesFromType(type) {
+                const mappings = {
+                    'greencircle-audited': 'GreenCircle Audited',
+                    'environmental-facts': 'Environmental Facts',
+                    'energy-savings': 'Energy Savings',
+                    'recycled-content': 'Recycled Content',
+                    'csf': 'CSF',
+                    'lca-optimized': 'LCA Optimized',
+                    'material-ingredient': 'Material Ingredient'
+                };
+                return mappings[type] || type;
+            }
+
+            function getCategoryFromType(category) {
+                const mappings = {
+                    'construction': 'Construction / Building Products',
+                    'electronics': 'Electronics, Computers, and Accessories',
+                    'paper': 'Packaging',
+                    'recycling': 'Chemicals and Raw Materials',
+                    'packaging': 'Packaging'
+                };
+                return mappings[category] || category;
+            }
+
+            function getCompanyContact(company) {
+                const contacts = {
+                    'ASSA ABLOY': 'info@assaabloy.com',
+                    'Superior Essex®': 'www.superioressex.com',
+                    'GAF': 'info@gaf.com',
+                    'Domtar Corporation': 'customerservice@domtar.com',
+                    'Alcamare International Recycling Group': 'info@alcamare.com',
+                    'CertainTeed Insulation Group': 'www.certainteed.com',
+                    'Charter Next Generation': 'info@charternext.com',
+                    'MAPEI': 'www.mapei.com'
+                };
+
+                // Check if company contains key phrases
+                for (const [key, contact] of Object.entries(contacts)) {
+                    if (company.includes(key)) {
+                        return contact;
+                    }
+                }
+                return 'info@company.com';
+            }
+
+            function getSubcategory(productType) {
+                const subcategories = {
+                    'Door Hardware': 'Door Hardware',
+                    'Exit Device': 'Exit Device',
+                    'Lock': 'Lock',
+                    'Copper Cable': 'Copper Cable',
+                    'Roof Insulation': 'Roof Insulation',
+                    'Paper': 'Copy Paper',
+                    'Plastic Pellets': 'HDPE',
+                    'Roofing Product': 'Roofing Product',
+                    'Insulation': 'Fiberglass Insulation',
+                    'Plastic Film': 'Plastic Film',
+                    'Lightweight Polymer Modified Mortars': 'Mortars'
+                };
+                return subcategories[productType] || productType;
+            }
+
+            function getExternalTag(certificationType) {
+                const tags = {
+                    'CERTIFIED SUSTAINABILITY FACTS': 'Energy Efficient',
+                    'CERTIFIED ENVIRONMENTAL FACTS': 'Environmental',
+                    'CERTIFIED ENERGY SAVINGS': 'Energy Star',
+                    'RECYCLED CONTENT': 'Post-Consumer'
+                };
+                return tags[certificationType] || 'Sustainable';
+            }
+
+            function getInternalTag(effectiveDate) {
+                if (!effectiveDate) return '';
+                const date = new Date(effectiveDate);
+                const quarter = Math.floor(date.getMonth() / 3) + 1;
+                const year = date.getFullYear();
+                return `Q${quarter}-${year}`;
+            }
+
+            // Generate example IDs (in production, these would come from your database)
+            function generateASIN(certId) {
+                return 'B0' + certId.replace('-', '') + 'XYZ';
+            }
+
+            function generateUPC(certId) {
+                const num = certId.replace('-', '');
+                return num.padEnd(12, '0');
+            }
+
+            function generateGTIN(certId) {
+                return '00' + generateUPC(certId);
+            }
+
+            function generateEAN(certId) {
+                return generateUPC(certId) + '0';
+            }
+
+            function toggleView(viewType) {
+                console.log('Toggling view to:', viewType);
+
+                const tableView = document.getElementById('tableView');
+                const tileView = document.getElementById('certificatesGrid');
+                const toggleBtns = document.querySelectorAll('.toggle-btn');
+                const sortControls = document.querySelector('.sort-controls');
+
+                if (!tableView || !tileView) {
+                    console.error('View containers not found');
+                    return;
+                }
+
+                // Update active button
+                toggleBtns.forEach(btn => {
+                    btn.classList.remove('active');
+                    if (btn.dataset.view === viewType) {
+                        btn.classList.add('active');
+                    }
+                });
+
+                // Show/hide views and sort controls
+                if (viewType === 'tile') {
+                    tableView.style.display = 'none';
+                    tileView.style.display = 'grid';
+                    // Show sort controls for tile view
+                    if (sortControls) {
+                        sortControls.style.display = 'flex';
+                    }
+                } else {
+                    tableView.style.display = 'block';
+                    tileView.style.display = 'none';
+                    populateGridView();
+                    // Hide sort controls for table view
+                    if (sortControls) {
+                        sortControls.style.display = 'none';
+                    }
+                }
+
+                // Save preference
+                sessionStorage.setItem('preferredView', viewType);
+                showToast(`Switched to ${viewType} view`, 'info');
+            }
+
+            // Create table row from card data
+            function createTableRow(card) {
+                try {
+                    const certId = card.querySelector('.certificate-id')?.textContent || '';
+                    const company = card.querySelector('.company-name')?.textContent || '';
+                    const product = card.querySelector('.product-name')?.textContent || '';
+                    const type = card.querySelector('.product-type')?.textContent || '';
+                    const certification = card.querySelector('.certificate-category')?.textContent || '';
+                    const periodElement = card.querySelector('.certificate-period');
+                    const period = periodElement?.textContent || '';
+
+                    // Extract dates from period
+                    const dates = period.replace('Certification Period:', '').trim().split(' - ');
+                    const effective = dates[0] || '';
+                    const expiration = dates[1] || '';
+
+                    const row = document.createElement('tr');
+                    row.className = 'table-row';
+                    row.dataset.certId = certId;
+
+                    row.innerHTML = `
+                        <td class="select-cell">
+                            <input type="checkbox" class="row-select" data-cert-id="${certId}">
+                        </td>
+                        <td>${company}</td>
+                        <td>${product}</td>
+                        <td>${type}</td>
+                        <td>${certification}</td>
+                        <td>${effective}</td>
+                        <td>${expiration}</td>
+                        <td>XXXXXXXXXX</td>
+                        <td>
+                            <div class="table-actions">
+                                <div class="table-action-icon download" title="Download PDF" onclick="downloadCertificate('${certId}')">
+                                    <i class="fas fa-download"></i>
+                                </div>
+                                <div class="table-action-icon external" title="View Details" onclick="viewCertificate('${certId}')">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </div>
+                            </div>
+                        </td>
+                    `;
+
+                    return row;
+                } catch (error) {
+                    console.error('Error creating table row:', error);
+                    return null;
+                }
+            }
+
+            // Grid table functionality - Updated for your specific structure
+            let selectedRows = new Set();
+            let sortOrder = {};
+
+            function toggleSelectAll() {
+                const selectAll = document.getElementById('selectAll');
+                const checkboxes = document.querySelectorAll('.row-select');
+
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = selectAll.checked;
+                    const row = checkbox.closest('.grid-row');
+                    if (selectAll.checked) {
+                        selectedRows.add(checkbox.value);
+                        row.classList.add('selected');
+                    } else {
+                        selectedRows.delete(checkbox.value);
+                        row.classList.remove('selected');
+                    }
+                });
+
+                updateBulkActions();
+            }
+
+                        function updateBulkActions() {
+                const checkboxes = document.querySelectorAll('.row-select:checked');
+                const bulkBar = document.getElementById('bulkActionsBar');
+                const countElement = document.getElementById('selectedCount');
+
+                selectedRows.clear();
+                checkboxes.forEach(cb => selectedRows.add(cb.value));
+
+                if (selectedRows.size > 0) {
+                    bulkBar.style.display = 'flex';
+                    countElement.textContent = `${selectedRows.size} certificate${selectedRows.size !== 1 ? 's' : ''} selected`;
+                } else {
+                    bulkBar.style.display = 'none';
+                }
+            }
+
+            function clearSelection() {
+                selectedRows.clear();
+                document.querySelectorAll('.row-select').forEach(cb => {
+                    cb.checked = false;
+                    const row = cb.closest('.grid-row');
+                    row.classList.remove('selected');
+                });
+                document.getElementById('selectAll').checked = false;
+                updateBulkActions();
+            }
+
+            function sortTable(column) {
+                // Toggle sort order
+                sortOrder[column] = sortOrder[column] === 'asc' ? 'desc' : 'asc';
+
+                // Update sort indicators
+                document.querySelectorAll('.grid-header-cell').forEach(cell => {
+                    cell.classList.remove('sorted', 'asc', 'desc');
+                });
+
+                const headerCell = event.target.closest('.grid-header-cell');
+                headerCell.classList.add('sorted', sortOrder[column]);
+
+                console.log(`Sorting by ${column} in ${sortOrder[column]} order`);
+
+                // Here you would implement your actual sorting logic
+                // This could call your existing sorting functions or make AJAX calls
+            }
+
+            function bulkDownload() {
+                console.log('Bulk download:', Array.from(selectedRows));
+                // Implement your bulk download logic here
+            }
+
+            function bulkExport() {
+                console.log('Bulk export:', Array.from(selectedRows));
+                // Implement your bulk export logic here
+            }
+
+            // Row click navigation - preserves existing behavior
+            document.addEventListener('click', function(e) {
+                if (e.target.closest('.grid-row') && !e.target.closest('.select-cell') && !e.target.closest('.actions-cell')) {
+                    const row = e.target.closest('.grid-row');
+                    const certId = row.dataset.certId;
+                    console.log('Navigate to certificate:', certId);
+                    // Add your existing navigation logic here
+                }
+            });
+
+            // Handle individual row selection
+            document.addEventListener('change', function(e) {
+                if (e.target.classList.contains('row-select')) {
+                    const row = e.target.closest('.grid-row');
+                    if (e.target.checked) {
+                        selectedRows.add(e.target.value);
+                        row.classList.add('selected');
+                    } else {
+                        selectedRows.delete(e.target.value);
+                        row.classList.remove('selected');
+                    }
+                    updateBulkActions();
+                }
+            });
+
+            // Update selection count
+            function updateSelectionCount() {
+                const selected = document.querySelectorAll('.row-select:checked').length;
+                if (selected > 0) {
+                    showToast(`${selected} items selected`, 'info');
+                }
+            }
+
+            // Sort functionality
+            function toggleSort() {
+                const dropdown = document.getElementById('sortDropdown');
+                dropdown.classList.toggle('open');
+            }
+
+            function selectSort(value, label) {
+                document.getElementById('sortLabel').textContent = label;
+                document.getElementById('sortDropdown').classList.remove('open');
+
+                console.log('Sorting by:', value);
+                applySorting(value);
+                showToast(`Sorted by ${label}`, 'info');
+            }
+
+            function applySorting(sortType) {
+                const grid = document.getElementById('certificatesGrid');
+                const cards = Array.from(grid.children);
+
+                cards.sort((a, b) => {
+                    switch (sortType) {
+                        case 'newest':
+                            return new Date(b.dataset.date) - new Date(a.dataset.date);
+                        case 'expiring':
+                            return 0;
+                        case 'product-az':
+                            return a.querySelector('.product-name').textContent.localeCompare(
+                                b.querySelector('.product-name').textContent
+                            );
+                        case 'company-az':
+                            return a.querySelector('.company-name').textContent.localeCompare(
+                                b.querySelector('.company-name').textContent
+                            );
+                        default:
+                            return 0;
+                    }
+                });
+
+                cards.forEach(card => grid.appendChild(card));
+
+                // Update table view if active
+                const tableView = document.getElementById('tableView');
+                if (tableView && tableView.style.display !== 'none') {
+                    populateGridView();
+                }
+            }
+
+            // Filter functionality
+            function toggleFilter(filterId) {
+                const content = document.getElementById(filterId + '-content');
+                const header = content.previousElementSibling;
+                const icon = header.querySelector('i');
+
+                if (content.style.display === 'none') {
+                    content.style.display = 'block';
+                    icon.className = 'fas fa-chevron-up';
+                } else {
+                    content.style.display = 'none';
+                    icon.className = 'fas fa-chevron-down';
+                }
+            }
+
+            function clearAllFilters() {
+                const checkboxes = document.querySelectorAll('input[type="checkbox"]');
+                checkboxes.forEach(checkbox => checkbox.checked = false);
+                applyFilters();
+                showToast('All filters cleared', 'info');
+            }
+
+            function applyFilters() {
+                const cards = document.querySelectorAll('.certificate-card');
+                let visibleCount = 0;
+
+                cards.forEach(card => {
+                    let shouldShow = true;
+
+                    // Check certification type filters
+                    const certTypeChecked = document.querySelectorAll('input[name="cert-type"]:checked');
+                    if (certTypeChecked.length > 0) {
+                        const cardType = card.dataset.type;
+                        const typeMatch = Array.from(certTypeChecked).some(cb => cb.value === cardType);
+                        if (!typeMatch) shouldShow = false;
+                    }
+
+                    // Check product category filters
+                    const productCatChecked = document.querySelectorAll('input[name="product-cat"]:checked');
+                    if (productCatChecked.length > 0) {
+                        const cardCategory = card.dataset.category;
+                        const categoryMatch = Array.from(productCatChecked).some(cb => cb.value === cardCategory);
+                        if (!categoryMatch) shouldShow = false;
+                    }
+
+                    // Check company filters
+                    const companyChecked = document.querySelectorAll('input[name="company"]:checked');
+                    if (companyChecked.length > 0) {
+                        const cardCompany = card.dataset.company;
+                        const companyMatch = Array.from(companyChecked).some(cb => cb.value === cardCompany);
+                        if (!companyMatch) shouldShow = false;
+                    }
+
+                    // Check country filters
+                    const countryChecked = document.querySelectorAll('input[name="countries"]:checked');
+                    if (countryChecked.length > 0) {
+                        const cardCountry = card.dataset.country;
+                        const countryMatch = Array.from(countryChecked).some(cb => cb.value === cardCountry);
+                        if (!countryMatch) shouldShow = false;
+                    }
+
+                    if (shouldShow) {
+                        card.style.display = 'block';
+                        visibleCount++;
+                    } else {
+                        card.style.display = 'none';
+                    }
+                });
+
+                document.getElementById('resultsCount').textContent = `${visibleCount} Results`;
+
+                // Update table view if active
+                const tableView = document.getElementById('tableView');
+                if (tableView && tableView.style.display !== 'none') {
+                    populateGridView();
+                }
+            }
+
+            // Certificate actions
+            function downloadCertificate(certId) {
+                console.log('Downloading certificate:', certId);
+                showToast(`Certificate ${certId} download started`, 'success');
+            }
+
+            function viewCertificate(certId) {
+                console.log('Viewing certificate:', certId);
+                showToast(`Opening certificate ${certId} details`, 'info');
+            }
+
+            // Mobile filter functionality
+            function toggleMobileFilters() {
+                const sidebar = document.querySelector('.sidebar');
+                const toggleBtn = document.querySelector('.mobile-filter-toggle');
+
+                if (sidebar && toggleBtn) {
+                    const isExpanded = sidebar.classList.contains('expanded');
+
+                    if (isExpanded) {
+                        sidebar.classList.remove('expanded');
+                        hideAllFilters(sidebar);
+                    } else {
+                        sidebar.classList.add('expanded');
+                        showAllFilters(sidebar);
+                    }
+
+                    // Update toggle button appearance
+                    const icon = toggleBtn.querySelector('i');
+                    const span = toggleBtn.querySelector('span');
+
+                    if (span && icon) {
+                        span.textContent = isExpanded ? 'Show Filters & Search' : 'Hide Filters';
+                        icon.className = isExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+                    }
+                }
+            }
+
+                        function showAllFilters(sidebar) {
+                const elements = sidebar.querySelectorAll('.search-bar, .filters-header, .filter-panel, .filter-content');
+                elements.forEach(el => {
+                    el.classList.remove('sidebar-element-hidden');
+                    el.classList.add('sidebar-element-visible');
+                });
+            }
+
+            function hideAllFilters(sidebar) {
+                const elements = sidebar.querySelectorAll('.search-bar, .filters-header, .filter-panel, .filter-content');
+                elements.forEach(el => {
+                    el.classList.add('sidebar-element-hidden');
+                    el.classList.remove('sidebar-element-visible');
+                });
+            }
+
+            function clearAllFilters() {
+                const checkboxes = document.querySelectorAll('input[type="checkbox"]:not(#selectAll)');
+                checkboxes.forEach(checkbox => checkbox.checked = false);
+                applyFilters();
+                showToast('All filters cleared', 'info');
+            }
+            function updateMobileFilterToggle() {
+                const mobileToggle = document.querySelector('.mobile-filter-toggle');
+                const sidebar = document.querySelector('.sidebar');
+
+                if (mobileToggle && sidebar) {
+                    if (window.innerWidth <= 768) {
+                        // MOBILE/TABLET MODE
+                        mobileToggle.style.display = 'flex';
+                        mobileToggle.style.position = 'relative';
+                        mobileToggle.style.zIndex = '10';
+
+                        // Force hide filters unless expanded
+                        if (!sidebar.classList.contains('expanded')) {
+                            hideAllFilters(sidebar);
+                        }
+                    } else {
+                        // DESKTOP MODE
+                        mobileToggle.style.display = 'none';
+                        sidebar.classList.remove('expanded');
+
+                        // Show all filters on desktop
+                        showAllFilters(sidebar);
+                    }
+                }
+            }
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function (event) {
+                const dropdown = document.getElementById('sortDropdown');
+                if (!dropdown.contains(event.target)) {
+                    dropdown.classList.remove('open');
+                }
+            });
+
+                          document.addEventListener('DOMContentLoaded', function() {
+                // Initialize checkboxes
+                const checkboxes = document.querySelectorAll('input[type="checkbox"]:not(#selectAll)');
+                checkboxes.forEach(checkbox => {
+                    checkbox.addEventListener('change', applyFilters);
+                });
+
+                // Add event listener for Clear Filters
+                const clearFiltersLink = document.querySelector('.clear-filters');
+                if (clearFiltersLink) {
+                    clearFiltersLink.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        clearAllFilters();
+                    });
+                }
+
+                // Handle table scroll indicator
+                const tableWrapper = document.querySelector('.table-wrapper');
+                if (tableWrapper) {
+                    tableWrapper.addEventListener('scroll', function() {
+                        if (this.scrollLeft > 0) {
+                            this.classList.add('scrollable');
+                        } else {
+                            this.classList.remove('scrollable');
+                        }
+                    });
+
+                    // Check initial scroll state
+                    if (tableWrapper.scrollWidth > tableWrapper.clientWidth) {
+                        tableWrapper.classList.add('scrollable');
+                    }
+                }
+
+                // Initialize with current filter state
+                applyFilters();
+
+                // Enhanced mobile filter initialization
+                updateMobileFilterToggle();
+                window.addEventListener('resize', function() {
+                    updateMobileFilterToggle();
+                    setTimeout(updateMobileFilterToggle, 100);
+                });
+
+                // Listen for orientation change
+                window.addEventListener('orientationchange', function() {
+                    setTimeout(updateMobileFilterToggle, 300);
+                });
+
+                // Add change event to row checkboxes
+                document.addEventListener('change', function(e) {
+                    if (e.target.classList.contains('row-select')) {
+                        updateSelectionCount();
+                    }
+                });
+
+                // Check for saved view preference and set initial visibility ONCE
+                const savedView = sessionStorage.getItem('preferredView') || 'tile';
+                const sortControls = document.querySelector('.sort-controls');
+
+                if (savedView === 'list') {
+                    // Set initial state for list view
+                    if (sortControls) {
+                        sortControls.style.display = 'none';
+                    }
+                    toggleView('list');
+                } else {
+                    // Set initial state for tile view
+                    if (sortControls) {
+                        sortControls.style.display = 'flex';
+                    }
+                }
+            });
+
+
+        </script>

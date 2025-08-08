@@ -1,0 +1,211 @@
+flowchart TD
+    %% Top-level diagram showing main components and data flows between subsystems
+    
+    %% External entities
+    Users([External Users])
+    Admins([System Administrators])
+    ApiClients([API Clients])
+    Amazon([Amazon Marketplace])
+    
+    %% Main subsystems
+    AuthSystem[Authentication Subsystem]
+    CertSystem[Certification Management Subsystem]
+    SearchSystem[Search & Retrieval Subsystem]
+    ApiSystem[API Integration Subsystem]
+    ReportSystem[Reporting Subsystem]
+    
+    %% High-level datastore representation 
+    MainDB[(Central Database)]
+    
+    %% Main flows between subsystems and external entities
+    Users --> AuthSystem
+    Users --> SearchSystem
+    
+    Admins --> AuthSystem
+    Admins --> CertSystem
+    Admins --> ReportSystem
+    
+    ApiClients --> AuthSystem
+    ApiClients --> ApiSystem
+    
+    Amazon --> ApiSystem
+    
+    AuthSystem --> MainDB
+    CertSystem --> MainDB
+    SearchSystem --> MainDB
+    ApiSystem --> MainDB
+    ReportSystem --> MainDB
+    
+    %% Authentication Subsystem Breakdown
+    subgraph AuthSystem
+        direction TB
+        Login[1.1 User Login]
+        TokenGen[1.2 Token Generation]
+        PermCheck[1.3 Permission Verification]
+        SessionMgmt[1.4 Session Management]
+        
+        Login --> TokenGen
+        TokenGen --> PermCheck
+        PermCheck --> SessionMgmt
+        
+        %% Local datastores
+        UserStore[(User Database)]
+        SessionStore[(Session Store)]
+        AuthLogs[(Auth Logs)]
+        
+        %% Local flows
+        Login --> UserStore
+        Login --> AuthLogs
+        TokenGen --> UserStore
+        PermCheck --> UserStore
+        SessionMgmt --> SessionStore
+    end
+    
+    %% Certificate Management Subsystem Breakdown
+    subgraph CertSystem
+        direction TB
+        CertCreate[2.1 Certificate Creation]
+        CertUpdate[2.2 Certificate Update]
+        StatusMgmt[2.3 Status Management]
+        DocMgmt[2.4 Document Management]
+        ProdMgmt[2.5 Product Management]
+        CompanyMgmt[2.6 Company Management]
+        
+        CertCreate --> StatusMgmt
+        CertUpdate --> StatusMgmt
+        CertCreate --> DocMgmt
+        CertUpdate --> DocMgmt
+        CertCreate --> ProdMgmt
+        CertCreate --> CompanyMgmt
+        
+        %% Local datastores
+        CertStore[(Certificate Store)]
+        ProdStore[(Product Catalog)]
+        CompanyStore[(Company Directory)]
+        DocStore[(Document Repository)]
+        ActivityLog[(Activity Log)]
+        
+        %% Local flows
+        CertCreate --> CertStore
+        CertCreate --> ActivityLog
+        CertUpdate --> CertStore
+        CertUpdate --> ActivityLog
+        StatusMgmt --> CertStore
+        DocMgmt --> DocStore
+        ProdMgmt --> ProdStore
+        CompanyMgmt --> CompanyStore
+    end
+    
+    %% Search Subsystem Breakdown
+    subgraph SearchSystem
+        direction TB
+        QueryParser[3.1 Query Parsing]
+        FilterEngine[3.2 Filter Processing]
+        ResultsCompiler[3.3 Results Compilation]
+        Pagination[3.4 Pagination]
+        
+        QueryParser --> FilterEngine
+        FilterEngine --> ResultsCompiler
+        ResultsCompiler --> Pagination
+        
+        %% Local datastores
+        SearchIndex[(Search Index)]
+        SearchLogs[(Search Logs)]
+        
+        %% Local flows
+        FilterEngine --> SearchIndex
+        QueryParser --> SearchLogs
+    end
+    
+    %% API Subsystem Breakdown
+    subgraph ApiSystem
+        direction TB
+        ApiAuth[4.1 API Authentication]
+        RequestParser[4.2 Request Parsing]
+        DataRetrieval[4.3 Data Retrieval]
+        ResponseFormat[4.4 Response Formatting]
+        RateLimit[4.5 Rate Limiting]
+        
+        ApiAuth --> RequestParser
+        RequestParser --> DataRetrieval
+        DataRetrieval --> ResponseFormat
+        ApiAuth --> RateLimit
+        
+        %% Local datastores
+        ApiKeys[(API Keys)]
+        ApiLogs[(API Usage Logs)]
+        RateLimits[(Rate Limit Config)]
+        
+        %% Local flows
+        ApiAuth --> ApiKeys
+        ApiAuth --> ApiLogs
+        RequestParser --> ApiLogs
+        RateLimit --> RateLimits
+    end
+    
+    %% Reporting Subsystem Breakdown
+    subgraph ReportSystem
+        direction TB
+        ReportGen[5.1 Report Generation]
+        DataAggregation[5.2 Data Aggregation]
+        Analytics[5.3 Analytics Processing]
+        Visualization[5.4 Data Visualization]
+        
+        DataAggregation --> Analytics
+        Analytics --> ReportGen
+        ReportGen --> Visualization
+        
+        %% Local datastores
+        ReportTemplates[(Report Templates)]
+        AnalyticsStore[(Analytics Data)]
+        
+        %% Local flows
+        ReportGen --> ReportTemplates
+        Analytics --> AnalyticsStore
+    end
+    
+    %% Database Structure Breakdown
+    subgraph MainDB[Central Database Structure]
+        direction TB
+        Certificates[(Certificates)]
+        Products[(Products)]
+        Companies[(Companies)]
+        Users[(Users)]
+        Roles[(Roles & Permissions)]
+        ProductHierarchy[(Product Hierarchy)]
+        DocumentMetadata[(Document Metadata)]
+        Tags[(Tags & Attributes)]
+        
+        Certificates --- Products
+        Certificates --- Companies
+        Certificates --- Tags
+        Certificates --- DocumentMetadata
+        Products --- ProductHierarchy
+        Products --- Companies
+        Users --- Roles
+    end
+    
+    %% Connect subsystem datastores to main database
+    UserStore -.-> Users
+    SessionStore -.-> Users
+    CertStore -.-> Certificates
+    ProdStore -.-> Products
+    CompanyStore -.-> Companies
+    DocStore -.-> DocumentMetadata
+    SearchIndex -.-> Certificates
+    SearchIndex -.-> Products
+    ApiKeys -.-> Users
+    AnalyticsStore -.-> Certificates
+    
+    %% Style definitions for better readability
+    classDef external fill:#4a90e2,stroke:#2b78e4,color:white
+    classDef subsystem fill:#67b7dc,stroke:#4a8aa9,color:white
+    classDef process fill:#a5d6a7,stroke:#75a478,color:black
+    classDef datastore fill:#ffe082,stroke:#ffa000,color:black
+    classDef maindb fill:#ce93d8,stroke:#9c64a6,color:white
+    
+    class Users,Admins,ApiClients,Amazon external
+    class AuthSystem,CertSystem,SearchSystem,ApiSystem,ReportSystem subsystem
+    class Login,TokenGen,PermCheck,SessionMgmt,CertCreate,CertUpdate,StatusMgmt,DocMgmt,ProdMgmt,CompanyMgmt,QueryParser,FilterEngine,ResultsCompiler,Pagination,ApiAuth,RequestParser,DataRetrieval,ResponseFormat,RateLimit,ReportGen,DataAggregation,Analytics,Visualization process
+    class UserStore,SessionStore,AuthLogs,CertStore,ProdStore,CompanyStore,DocStore,ActivityLog,SearchIndex,SearchLogs,ApiKeys,ApiLogs,RateLimits,ReportTemplates,AnalyticsStore datastore
+    class MainDB,Certificates,Products,Companies,Users,Roles,ProductHierarchy,DocumentMetadata,Tags maindb

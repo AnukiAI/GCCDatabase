@@ -1,5 +1,129 @@
 @{
-    ViewData["Title"] = "CSFAttributes";
+    ViewData["Title"] = "CSF Attributes Management";
+    ViewData["BodyClass"] = "admin-csf-attributes";
 }
 
-<h1>CSFAttributes</h1>
+@section Styles {
+    <link href="~/css/csf-attributes.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Data Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">CSF Attributes</a>
+    </span>
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="buttons-area">
+            <button id="export-btn" class="btn">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button id="add-csf-btn" class="btn btn-add">
+                <i class="fas fa-plus"></i> Add New CSF Attribute
+            </button>
+        </div>
+    </header>
+
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search CSF attributes...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+        <div class="filters">
+            <select id="certification-filter" class="filter-select">
+                <option value="all">All Certifications</option>
+                <option value="greenguard">GREENGUARD</option>
+                <option value="greenguard-gold">GREENGUARD Gold</option>
+                <option value="cradle-to-cradle">Cradle to Cradle</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="csf-table">
+            <thead>
+                <tr>
+                    <th width="25%" data-sort="name">Attribute Name <span class="sort-icon">▼</span></th>
+                    <th width="20%" data-sort="certification">Certification Type <span class="sort-icon">▼</span></th>
+                    <th width="15%" data-sort="type">Data Type <span class="sort-icon">▼</span></th>
+                    <th width="30%" data-sort="description">Description <span class="sort-icon">▼</span></th>
+                    <th width="10%" class="actions-col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-info">
+        <span id="csf-count">Showing 0 of 0 CSF attributes</span>
+    </div>
+</div>
+
+<!-- Add/Edit CSF Attribute Modal -->
+<div id="csf-modal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Add New CSF Attribute</h3>
+            <span class="modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="csf-form">
+                <input type="hidden" id="csf-id">
+
+                <div class="form-group">
+                    <label for="csf-name">Attribute Name</label>
+                    <input type="text" id="csf-name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="csf-certification">Certification Type</label>
+                    <select id="csf-certification" required>
+                        <option value="greenguard">GREENGUARD</option>
+                        <option value="greenguard-gold">GREENGUARD Gold</option>
+                        <option value="cradle-to-cradle">Cradle to Cradle</option>
+                        <option value="energy-star">ENERGY STAR</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="csf-type">Data Type</label>
+                    <select id="csf-type" required>
+                        <option value="text">Text</option>
+                        <option value="number">Number</option>
+                        <option value="boolean">Boolean</option>
+                        <option value="date">Date</option>
+                        <option value="dropdown">Dropdown</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="csf-description">Description</label>
+                    <textarea id="csf-description" placeholder="Optional description..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="csf-required"> Required field
+                    </label>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-cancel" id="cancel-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="save-btn" form="csf-form">Save</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin/csfAttributes.js"></script>
+}

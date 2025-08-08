@@ -1,0 +1,537 @@
+-- GreenCircle Certification System Database Schema
+-- This SQL script creates the complete database schema for the certification management system
+
+-- Enable UUID extension (for PostgreSQL)
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- Core Reference Tables
+CREATE TABLE product_categories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE product_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    category_id INTEGER NOT NULL REFERENCES product_categories(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(name, category_id)
+);
+
+CREATE TABLE product_subcategories (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    product_type_id INTEGER NOT NULL REFERENCES product_types(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(name, product_type_id)
+);
+
+CREATE TABLE certification_types (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    amazon_code VARCHAR(255) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE csf_attributes (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE external_tags (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE internal_tags (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Core Business Entities
+CREATE TABLE companies (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    contact_info VARCHAR(255),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE products (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    category_id INTEGER NOT NULL REFERENCES product_categories(id) ON DELETE RESTRICT,
+    product_type_id INTEGER REFERENCES product_types(id) ON DELETE SET NULL,
+    subcategory_id INTEGER REFERENCES product_subcategories(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(name, category_id)
+);
+
+CREATE TABLE certificates (
+    id SERIAL PRIMARY KEY,
+    certificate_number VARCHAR(7) UNIQUE,
+    certification_type_id INTEGER NOT NULL REFERENCES certification_types(id) ON DELETE RESTRICT,
+    status VARCHAR(30) NOT NULL CHECK (status IN (
+        'DRAFT', 
+        'CLIENT_APPROVED_NOT_PAID', 
+        'CLIENT_APPROVED_CONFIDENTIAL', 
+        'CLIENT_APPROVED_PAID', 
+        'HOLD', 
+        'EXPIRED', 
+        'REPUBLISHED'
+    )),
+    effective_date DATE NOT NULL,
+    expiration_date DATE,
+    company_id INTEGER NOT NULL REFERENCES companies(id) ON DELETE RESTRICT,
+    product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+    location VARCHAR(175),
+    country VARCHAR(100) NOT NULL,
+    asin TEXT,
+    upc TEXT,
+    gtin TEXT,
+    ean TEXT,
+    certificate_file VARCHAR(255),
+    created_by_id INTEGER,  -- To be linked to users table via foreign key
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT valid_certificate_number CHECK (certificate_number ~ '^\d{2}-\d{4}$'),
+    CONSTRAINT valid_dates CHECK (expiration_date IS NULL OR expiration_date > effective_date)
+);
+
+-- Certificate to CSF Attributes (Many-to-Many)
+CREATE TABLE certificate_csf_attributes (
+    id SERIAL PRIMARY KEY,
+    certificate_id INTEGER NOT NULL REFERENCES certificates(id) ON DELETE CASCADE,
+    csf_attribute_id INTEGER NOT NULL REFERENCES csf_attributes(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(certificate_id, csf_attribute_id)
+);
+
+-- Certificate to External Tags (Many-to-Many)
+CREATE TABLE certificate_external_tags (
+    id SERIAL PRIMARY KEY,
+    certificate_id INTEGER NOT NULL REFERENCES certificates(id) ON DELETE CASCADE,
+    external_tag_id INTEGER NOT NULL REFERENCES external_tags(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(certificate_id, external_tag_id)
+);
+
+-- Certificate to Internal Tags (Many-to-Many)
+CREATE TABLE certificate_internal_tags (
+    id SERIAL PRIMARY KEY,
+    certificate_id INTEGER NOT NULL REFERENCES certificates(id) ON DELETE CASCADE,
+    internal_tag_id INTEGER NOT NULL REFERENCES internal_tags(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(certificate_id, internal_tag_id)
+);
+
+-- Custom Fields
+CREATE TABLE custom_fields (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    field_type VARCHAR(10) NOT NULL CHECK (field_type IN ('TEXT', 'NUMBER', 'DATE', 'BOOLEAN')),
+    is_public BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE custom_field_values (
+    id SERIAL PRIMARY KEY,
+    certificate_id INTEGER NOT NULL REFERENCES certificates(id) ON DELETE CASCADE,
+    field_id INTEGER NOT NULL REFERENCES custom_fields(id) ON DELETE CASCADE,
+    text_value TEXT,
+    number_value DECIMAL(15,2),
+    date_value DATE,
+    boolean_value BOOLEAN,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(certificate_id, field_id),
+    CONSTRAINT value_matches_type CHECK (
+        (field_id IN (SELECT id FROM custom_fields WHERE field_type = 'TEXT') AND text_value IS NOT NULL) OR
+        (field_id IN (SELECT id FROM custom_fields WHERE field_type = 'NUMBER') AND number_value IS NOT NULL) OR
+        (field_id IN (SELECT id FROM custom_fields WHERE field_type = 'DATE') AND date_value IS NOT NULL) OR
+        (field_id IN (SELECT id FROM custom_fields WHERE field_type = 'BOOLEAN') AND boolean_value IS NOT NULL) OR
+        (text_value IS NULL AND number_value IS NULL AND date_value IS NULL AND boolean_value IS NULL)
+    )
+);
+
+-- Authentication Tables
+CREATE TABLE users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password_hash VARCHAR(255) NOT NULL,
+    first_name VARCHAR(255),
+    last_name VARCHAR(255),
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    is_staff BOOLEAN NOT NULL DEFAULT FALSE,
+    is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
+    last_login TIMESTAMP WITH TIME ZONE,
+    date_joined TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Groups (Roles)
+CREATE TABLE groups (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(150) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Permissions
+CREATE TABLE permissions (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    codename VARCHAR(100) NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(codename)
+);
+
+-- User-Group (Many-to-Many)
+CREATE TABLE user_groups (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, group_id)
+);
+
+-- Group-Permission (Many-to-Many)
+CREATE TABLE group_permissions (
+    id SERIAL PRIMARY KEY,
+    group_id INTEGER NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
+    permission_id INTEGER NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(group_id, permission_id)
+);
+
+-- User-Permission (Many-to-Many)
+CREATE TABLE user_permissions (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    permission_id INTEGER NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(user_id, permission_id)
+);
+
+-- Audit Logging
+CREATE TABLE audit_logs (
+    id SERIAL PRIMARY KEY,
+    action VARCHAR(255) NOT NULL,
+    table_name VARCHAR(100) NOT NULL,
+    record_id INTEGER NOT NULL,
+    data JSONB,
+    user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- API Integration Tables
+CREATE TABLE api_clients (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    client_id VARCHAR(100) NOT NULL UNIQUE,
+    client_secret VARCHAR(255) NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE api_tokens (
+    id SERIAL PRIMARY KEY,
+    api_client_id INTEGER NOT NULL REFERENCES api_clients(id) ON DELETE CASCADE,
+    access_token VARCHAR(255) NOT NULL UNIQUE,
+    refresh_token VARCHAR(255) UNIQUE,
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE api_request_logs (
+    id SERIAL PRIMARY KEY,
+    api_client_id INTEGER REFERENCES api_clients(id) ON DELETE SET NULL,
+    endpoint VARCHAR(255) NOT NULL,
+    method VARCHAR(10) NOT NULL,
+    response_code INTEGER NOT NULL,
+    response_time INTEGER NOT NULL, -- in milliseconds
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    request_data JSONB,
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Indexes for performance optimization
+CREATE INDEX idx_certificates_status ON certificates(status);
+CREATE INDEX idx_certificates_effective_date ON certificates(effective_date);
+CREATE INDEX idx_certificates_expiration_date ON certificates(expiration_date);
+CREATE INDEX idx_certificates_company_id ON certificates(company_id);
+CREATE INDEX idx_certificates_product_id ON certificates(product_id);
+CREATE INDEX idx_certificates_certification_type_id ON certificates(certification_type_id);
+
+CREATE INDEX idx_products_category_id ON products(category_id);
+CREATE INDEX idx_products_product_type_id ON products(product_type_id);
+CREATE INDEX idx_products_subcategory_id ON products(subcategory_id);
+
+CREATE INDEX idx_product_types_category_id ON product_types(category_id);
+CREATE INDEX idx_product_subcategories_product_type_id ON product_subcategories(product_type_id);
+
+CREATE INDEX idx_certificate_csf_attributes_certificate_id ON certificate_csf_attributes(certificate_id);
+CREATE INDEX idx_certificate_csf_attributes_attribute_id ON certificate_csf_attributes(csf_attribute_id);
+
+CREATE INDEX idx_certificate_external_tags_certificate_id ON certificate_external_tags(certificate_id);
+CREATE INDEX idx_certificate_external_tags_tag_id ON certificate_external_tags(external_tag_id);
+
+CREATE INDEX idx_certificate_internal_tags_certificate_id ON certificate_internal_tags(certificate_id);
+CREATE INDEX idx_certificate_internal_tags_tag_id ON certificate_internal_tags(internal_tag_id);
+
+CREATE INDEX idx_custom_field_values_certificate_id ON custom_field_values(certificate_id);
+CREATE INDEX idx_custom_field_values_field_id ON custom_field_values(field_id);
+
+CREATE INDEX idx_audit_logs_table_name ON audit_logs(table_name);
+CREATE INDEX idx_audit_logs_record_id ON audit_logs(record_id);
+CREATE INDEX idx_audit_logs_user_id ON audit_logs(user_id);
+CREATE INDEX idx_audit_logs_timestamp ON audit_logs(timestamp);
+
+CREATE INDEX idx_api_request_logs_api_client_id ON api_request_logs(api_client_id);
+CREATE INDEX idx_api_request_logs_timestamp ON api_request_logs(timestamp);
+
+-- Full-text search indexes for certificate identifiers
+CREATE INDEX idx_certificates_asin_gin ON certificates USING gin(to_tsvector('english', asin));
+CREATE INDEX idx_certificates_upc_gin ON certificates USING gin(to_tsvector('english', upc));
+CREATE INDEX idx_certificates_gtin_gin ON certificates USING gin(to_tsvector('english', gtin));
+CREATE INDEX idx_certificates_ean_gin ON certificates USING gin(to_tsvector('english', ean));
+
+-- Trigger function to update updated_at timestamp
+CREATE OR REPLACE FUNCTION update_modified_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add updated_at triggers to relevant tables
+CREATE TRIGGER update_product_categories_modtime
+BEFORE UPDATE ON product_categories
+FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+CREATE TRIGGER update_product_types_modtime
+BEFORE UPDATE ON product_types
+FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+CREATE TRIGGER update_product_subcategories_modtime
+BEFORE UPDATE ON product_subcategories
+FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+CREATE TRIGGER update_certification_types_modtime
+BEFORE UPDATE ON certification_types
+FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+CREATE TRIGGER update_companies_modtime
+BEFORE UPDATE ON companies
+FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+CREATE TRIGGER update_products_modtime
+BEFORE UPDATE ON products
+FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+CREATE TRIGGER update_certificates_modtime
+BEFORE UPDATE ON certificates
+FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+CREATE TRIGGER update_custom_fields_modtime
+BEFORE UPDATE ON custom_fields
+FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+CREATE TRIGGER update_custom_field_values_modtime
+BEFORE UPDATE ON custom_field_values
+FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+CREATE TRIGGER update_users_modtime
+BEFORE UPDATE ON users
+FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+CREATE TRIGGER update_api_clients_modtime
+BEFORE UPDATE ON api_clients
+FOR EACH ROW EXECUTE PROCEDURE update_modified_column();
+
+-- Certificate status check trigger function
+CREATE OR REPLACE FUNCTION check_certificate_expiration()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.expiration_date IS NOT NULL AND NEW.expiration_date < CURRENT_DATE AND NEW.status != 'EXPIRED' THEN
+        NEW.status := 'EXPIRED';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add trigger to automatically update certificate status to EXPIRED when expiration date passes
+CREATE TRIGGER check_certificate_expiration_trigger
+BEFORE INSERT OR UPDATE ON certificates
+FOR EACH ROW EXECUTE PROCEDURE check_certificate_expiration();
+
+-- Certificate number generation trigger function
+CREATE OR REPLACE FUNCTION generate_certificate_number()
+RETURNS TRIGGER AS $$
+DECLARE
+    year_prefix TEXT;
+    highest_num INTEGER;
+    highest_cert_num TEXT;
+BEGIN
+    -- Only generate if not provided
+    IF NEW.certificate_number IS NULL OR NEW.certificate_number = '' THEN
+        -- Get current year's last two digits
+        year_prefix := to_char(CURRENT_DATE, 'YY');
+        
+        -- Find highest certificate number for this year
+        SELECT certificate_number INTO highest_cert_num
+        FROM certificates
+        WHERE certificate_number LIKE year_prefix || '-%'
+        ORDER BY certificate_number DESC
+        LIMIT 1;
+        
+        -- Extract number part and increment, or start at 0001
+        IF highest_cert_num IS NOT NULL THEN
+            highest_num := CAST(substring(highest_cert_num FROM 4 FOR 4) AS INTEGER) + 1;
+        ELSE
+            highest_num := 1;
+        END IF;
+        
+        -- Format new certificate number
+        NEW.certificate_number := year_prefix || '-' || lpad(highest_num::text, 4, '0');
+    END IF;
+    
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add trigger to automatically generate certificate numbers
+CREATE TRIGGER generate_certificate_number_trigger
+BEFORE INSERT ON certificates
+FOR EACH ROW EXECUTE PROCEDURE generate_certificate_number();
+
+-- Audit Logging trigger function
+CREATE OR REPLACE FUNCTION audit_log_changes()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        INSERT INTO audit_logs (action, table_name, record_id, data, user_id)
+        VALUES ('INSERT', TG_TABLE_NAME, NEW.id, row_to_json(NEW), current_setting('app.current_user_id', true)::integer);
+    ELSIF TG_OP = 'UPDATE' THEN
+        INSERT INTO audit_logs (action, table_name, record_id, data, user_id)
+        VALUES ('UPDATE', TG_TABLE_NAME, NEW.id, 
+                jsonb_build_object('old', row_to_json(OLD), 'new', row_to_json(NEW)), 
+                current_setting('app.current_user_id', true)::integer);
+    ELSIF TG_OP = 'DELETE' THEN
+        INSERT INTO audit_logs (action, table_name, record_id, data, user_id)
+        VALUES ('DELETE', TG_TABLE_NAME, OLD.id, row_to_json(OLD), current_setting('app.current_user_id', true)::integer);
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Add audit logging triggers to main tables
+CREATE TRIGGER audit_certificates_changes
+AFTER INSERT OR UPDATE OR DELETE ON certificates
+FOR EACH ROW EXECUTE PROCEDURE audit_log_changes();
+
+CREATE TRIGGER audit_companies_changes
+AFTER INSERT OR UPDATE OR DELETE ON companies
+FOR EACH ROW EXECUTE PROCEDURE audit_log_changes();
+
+CREATE TRIGGER audit_products_changes
+AFTER INSERT OR UPDATE OR DELETE ON products
+FOR EACH ROW EXECUTE PROCEDURE audit_log_changes();
+
+-- Add initial admin user (password should be properly hashed in production)
+INSERT INTO users (username, email, password_hash, is_active, is_staff, is_superuser, date_joined)
+VALUES ('admin', 'admin@greencircle.com', 'pbkdf2_sha256$...[actual hashed password here]', true, true, true, CURRENT_TIMESTAMP);
+
+-- Insert default certification types
+INSERT INTO certification_types (name, amazon_code) VALUES
+('Recycled Content', 'greencircle_recycled_content'),
+('Carbon Footprint Reduction', 'greencircle_carbon_footprint'),
+('Certified Energy Savings', 'greencircle_energy_savings'),
+('Certified Environmental Facts', 'greencircle_cef'),
+('Certified Sustainability Facts', 'greencircle_csf'),
+('Certified Water Savings', 'greencircle_water_savings'),
+('Waste Diversion from Landfill', 'greencircle_waste_diversion'),
+('Life Cycle Assessment (LCA) Optimized', 'greencircle_lca_optimized');
+
+-- Insert default CSF attributes
+INSERT INTO csf_attributes (name) VALUES
+('Biobased'),
+('Biodegradable'),
+('Carbon Footprint Reduction'),
+('Certified Energy Savings'),
+('Certified Environmental Facts'),
+('Certified Sustainability Facts'),
+('Certified Water Savings'),
+('Closed Loop Product'),
+('Dematerialization'),
+('Greenhouse Gas (GHG) Verification'),
+('GreenCircle Audited'),
+('Life Cycle Assessment (LCA) Optimized'),
+('Manufacturer Inventory Verification'),
+('Recyclable Material'),
+('Recycled Content'),
+('Renewable Resource Content'),
+('Sustainable Energy Practices'),
+('Sustainable Manufacturing Practices'),
+('Waste Diversion from Landfill'),
+('Waste System Audit');
+
+-- View for public certificates
+CREATE VIEW public_certificates AS
+SELECT c.id, c.certificate_number, c.effective_date, c.expiration_date, 
+       c.location, c.country, c.asin, c.upc, c.gtin, c.ean,
+       co.name AS company_name, co.contact_info AS company_contact,
+       p.name AS product_name, 
+       pc.name AS product_category,
+       pt.name AS product_type,
+       ps.name AS product_subcategory,
+       ct.name AS certification_type
+FROM certificates c
+JOIN companies co ON c.company_id = co.id
+JOIN products p ON c.product_id = p.id
+JOIN product_categories pc ON p.category_id = pc.id
+LEFT JOIN product_types pt ON p.product_type_id = pt.id
+LEFT JOIN product_subcategories ps ON p.subcategory_id = ps.id
+JOIN certification_types ct ON c.certification_type_id = ct.id
+WHERE c.status = 'CLIENT_APPROVED_PAID'
+  AND c.effective_date <= CURRENT_DATE
+  AND (c.expiration_date IS NULL OR c.expiration_date >= CURRENT_DATE);
+
+-- View for Amazon API integration
+CREATE VIEW amazon_certificates AS
+SELECT c.certificate_number,
+       'greencircle' AS certification_agency,
+       ct.amazon_code AS certification_type,
+       'ACTIVE' AS certification_status,
+       c.country AS certification_country,
+       c.effective_date,
+       c.expiration_date,
+       c.asin, c.upc, c.gtin, c.ean
+FROM certificates c
+JOIN certification_types ct ON c.certification_type_id = ct.id
+WHERE (c.status = 'CLIENT_APPROVED_PAID' OR c.status = 'CLIENT_APPROVED_CONFIDENTIAL')
+  AND c.effective_date <= CURRENT_DATE
+  AND (c.expiration_date IS NULL OR c.expiration_date >= CURRENT_DATE);

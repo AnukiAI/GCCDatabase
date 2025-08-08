@@ -1,0 +1,1173 @@
+@{
+    ViewData["Title"] = "Certificate Field Management";
+    ViewData["BodyClass"] = "admin-certificate-fields";
+}
+
+@section Styles {
+    <link href="~/css/certificate-fields.css" rel="stylesheet" />
+}
+<div class="certificate-fields-container">
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .page-title {
+        font-size: 28px;
+        font-weight: 600;
+        color: #333;
+        margin: 0;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 12px;
+    }
+
+    /* Button Styles */
+    .btn {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background-color: #28a745;
+        color: white;
+    }
+
+        .btn-primary:hover {
+            background-color: #218838;
+            transform: translateY(-1px);
+        }
+
+    .btn-outline {
+        background-color: white;
+        color: #6c757d;
+        border: 1px solid #dee2e6;
+    }
+
+        .btn-outline:hover {
+            background-color: #f8f9fa;
+            border-color: #adb5bd;
+        }
+
+    /* Search and Filter Section */
+    .controls-section {
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+    }
+
+    .search-container {
+        position: relative;
+        max-width: 400px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 12px 40px 12px 16px;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        font-size: 14px;
+        background-color: #f8f9fa;
+    }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #28a745;
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+        }
+
+    .search-icon {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #6c757d;
+        pointer-events: none;
+    }
+
+    /* Add Field Form */
+    .add-field-form {
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-bottom: 20px;
+        overflow: hidden;
+        display: none;
+    }
+
+        .add-field-form.show {
+            display: block;
+            animation: slideDown 0.3s ease-out;
+        }
+
+    @@keyframes slideDown {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .form-header {
+        background-color: #28a745;
+        color: white;
+        padding: 16px 20px;
+        font-size: 18px;
+        font-weight: 600;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .form-close {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 20px;
+        cursor: pointer;
+        padding: 0;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .form-body {
+        padding: 20px;
+    }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+    .form-label {
+        font-weight: 500;
+        margin-bottom: 6px;
+        color: #495057;
+        font-size: 14px;
+    }
+
+        .form-label.required::after {
+            content: ' *';
+            color: #dc3545;
+        }
+
+    .form-input, .form-select, .form-textarea {
+        padding: 10px 12px;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        font-size: 14px;
+        transition: border-color 0.2s ease;
+    }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: #28a745;
+            box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
+        }
+
+    .form-textarea {
+        resize: vertical;
+        min-height: 80px;
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        padding-top: 16px;
+        border-top: 1px solid #dee2e6;
+    }
+
+    /* Table Styles */
+    .fields-table-container {
+        background-color: #ffffff;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+    .fields-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0;
+    }
+
+        .fields-table th {
+            background-color: #f8f9fa;
+            padding: 16px 20px;
+            text-align: left;
+            font-weight: 600;
+            color: #495057;
+            border-bottom: 2px solid #dee2e6;
+            position: relative;
+            font-size: 14px;
+        }
+
+        .fields-table td {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f1f3f4;
+            vertical-align: middle;
+            font-size: 14px;
+        }
+
+        .fields-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .fields-table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+    /* Info Icons */
+    .info-icon {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        background-color: #6c757d;
+        color: white;
+        text-align: center;
+        border-radius: 50%;
+        font-size: 10px;
+        line-height: 16px;
+        margin-left: 6px;
+        cursor: help;
+        font-weight: bold;
+    }
+
+        .info-icon:hover {
+            background-color: #495057;
+        }
+
+    /* Field Type Labels */
+    .field-type {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+        text-transform: capitalize;
+    }
+
+    .type-text {
+        background-color: #e3f2fd;
+        color: #1976d2;
+    }
+
+    .type-dropdown {
+        background-color: #e8f5e9;
+        color: #388e3c;
+    }
+
+    .type-multi-select {
+        background-color: #ede7f6;
+        color: #7b1fa2;
+    }
+
+    .type-date {
+        background-color: #fff8e1;
+        color: #f57c00;
+    }
+
+    .type-file {
+        background-color: #ffebee;
+        color: #d32f2f;
+    }
+
+    .type-number {
+        background-color: #e0f7fa;
+        color: #00796b;
+    }
+
+    .type-checkbox {
+        background-color: #f3e5f5;
+        color: #8e24aa;
+    }
+
+    /* Required Labels */
+    .required-label {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+
+    .required-yes {
+        background-color: #ffebee;
+        color: #d32f2f;
+    }
+
+    .required-optional {
+        background-color: #f5f5f5;
+        color: #757575;
+    }
+
+    /* Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        font-size: 12px;
+    }
+
+    .edit-btn {
+        background-color: #e3f2fd;
+        color: #1976d2;
+    }
+
+        .edit-btn:hover {
+            background-color: #bbdefb;
+            transform: scale(1.05);
+        }
+
+    .delete-btn {
+        background-color: #ffebee;
+        color: #d32f2f;
+    }
+
+        .delete-btn:hover {
+            background-color: #ffcdd2;
+            transform: scale(1.05);
+        }
+
+    /* Footer */
+    .table-footer {
+        padding: 16px 20px;
+        background-color: #f8f9fa;
+        border-top: 1px solid #dee2e6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 14px;
+        color: #6c757d;
+    }
+
+    /* Inline Edit Styles */
+    .edit-row {
+        background-color: #fff3cd !important;
+    }
+
+    .edit-input, .edit-select {
+        padding: 6px 8px;
+        border: 1px solid #ffc107;
+        border-radius: 4px;
+        font-size: 13px;
+        width: 100%;
+    }
+
+    .edit-actions {
+        display: flex;
+        gap: 4px;
+    }
+
+    .save-btn {
+        background-color: #28a745;
+        color: white;
+    }
+
+        .save-btn:hover {
+            background-color: #218838;
+        }
+
+    .cancel-btn {
+        background-color: #6c757d;
+        color: white;
+    }
+
+        .cancel-btn:hover {
+            background-color: #5a6268;
+        }
+
+    /* Toast Notifications */
+    .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        border-radius: 6px;
+        color: white;
+        z-index: 1000;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+    }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background-color: #28a745;
+        }
+
+        .toast.error {
+            background-color: #dc3545;
+        }
+
+    /* Mobile Responsiveness */
+    @@media (max-width: 768px) {
+        .certificate-fields-container
+
+    {
+        padding: 10px;
+    }
+
+    .page-header {
+        flex-direction: column;
+        gap: 16px;
+        text-align: center;
+    }
+
+    .form-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .fields-table th:nth-child(3),
+    .fields-table td:nth-child(3) {
+        display: none;
+    }
+
+    .fields-table th:nth-child(4),
+    .fields-table td:nth-child(4) {
+        display: none;
+    }
+
+    .table-footer {
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+    }
+
+    }
+    </style>
+}
+
+<div class="certificate-fields-container">
+    <!-- Page Header -->
+    <div class="page-header">
+        <h1 class="page-title">Certificate Field Management</h1>
+        <div class="header-actions">
+            <button class="btn btn-outline">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button class="btn btn-primary" id="add-field-btn">
+                <i class="fas fa-plus"></i> Add New Field
+            </button>
+        </div>
+    </div>
+
+    <!-- Search Controls -->
+    <div class="controls-section">
+        <div class="search-container">
+            <input type="text" id="search-input" class="search-input" placeholder="Search fields...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+    </div>
+
+    <!-- Add Field Form -->
+    <div class="add-field-form" id="add-field-form">
+        <div class="form-header">
+            <span>Add New Certificate Field</span>
+            <button class="form-close" id="close-form-btn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="form-body">
+            <form id="field-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Field Name</label>
+                        <input type="text" id="field-name" class="form-input" placeholder="Enter field name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label required">Control Type</label>
+                        <select id="field-type" class="form-select" required>
+                            <option value="">Select control type</option>
+                            <option value="text">Text</option>
+                            <option value="dropdown">Dropdown</option>
+                            <option value="multi-select">Multi-Select</option>
+                            <option value="date">Date</option>
+                            <option value="file">File</option>
+                            <option value="number">Number</option>
+                            <option value="checkbox">Checkbox</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label required">Required</label>
+                        <select id="field-required" class="form-select" required>
+                            <option value="">Select requirement</option>
+                            <option value="Yes">Yes</option>
+                            <option value="Optional">Optional</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Display Order</label>
+                        <input type="number" id="field-order" class="form-input" placeholder="Auto-assigned" min="1">
+                    </div>
+                </div>
+                <div class="form-group full-width">
+                    <label class="form-label">Notes</label>
+                    <textarea id="field-notes" class="form-textarea" placeholder="Optional description or notes about this field"></textarea>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline" id="cancel-form-btn">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Field
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Fields Table -->
+    <div class="fields-table-container">
+        <table class="fields-table">
+            <thead>
+                <tr>
+                    <th width="20%">Field Name <span class="info-icon">i</span></th>
+                    <th width="15%">Control Type <span class="info-icon">i</span></th>
+                    <th width="12%">Required <span class="info-icon">i</span></th>
+                    <th width="35%">Notes <span class="info-icon">i</span></th>
+                    <th width="18%">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="fields-table-body">
+                <!-- Fields will be populated by JavaScript -->
+            </tbody>
+        </table>
+        <div class="table-footer">
+            <span id="field-count">Showing 0 of 0 fields</span>
+            <div>
+                <button class="btn btn-outline" id="show-more-btn" style="display: none;">
+                    <i class="fas fa-chevron-down"></i> Show More
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+@section Scripts {
+    <script>
+        // Certificate Fields Management System
+        document.addEventListener('DOMContentLoaded', function() {
+        // Sample data based on wireframe requirements
+        let fields = [
+            { id: 1, name: "Certificate #", type: "text", required: "Optional", notes: "Auto-generated if left blank", order: 1 },
+            { id: 2, name: "Certification Type", type: "dropdown", required: "Yes", notes: "Type of certification issued", order: 2 },
+            { id: 3, name: "CSF Attributes", type: "multi-select", required: "Optional", notes: "Certification specific framework attributes", order: 3 },
+            { id: 4, name: "Status", type: "dropdown", required: "Yes", notes: "Required for public visibility", order: 4 },
+            { id: 5, name: "Effective Date", type: "date", required: "Yes", notes: "When the certification becomes effective", order: 5 },
+            { id: 6, name: "Expiration Date", type: "date", required: "Yes", notes: "When the certification expires", order: 6 },
+            { id: 7, name: "Company", type: "text", required: "Yes", notes: "Company receiving certification", order: 7 },
+            { id: 8, name: "Company Contact", type: "text", required: "Optional", notes: "Company contact information", order: 8 },
+            { id: 9, name: "Product Name", type: "text", required: "Yes", notes: "Name of the certified product", order: 9 },
+            { id: 10, name: "Product Category", type: "dropdown", required: "Yes", notes: "Main category of the product", order: 10 },
+            { id: 11, name: "Product Type", type: "dropdown", required: "Yes", notes: "Specific type within category", order: 11 },
+            { id: 12, name: "Location", type: "text", required: "Optional", notes: "Manufacturing or certification location", order: 12 },
+            { id: 13, name: "Country", type: "dropdown", required: "Yes", notes: "Country of origin", order: 13 },
+            { id: 14, name: "Partner", type: "dropdown", required: "Yes", notes: "Amazon/Wayfair - required field", order: 14 },
+            { id: 15, name: "Certificate Upload", type: "file", required: "Optional", notes: "Upload certificate document", order: 15 },
+            { id: 16, name: "Record Created Date", type: "date", required: "Yes", notes: "Auto-generated on creation", order: 16 },
+            { id: 17, name: "Testing Lab", type: "text", required: "Optional", notes: "Laboratory that performed certification testing", order: 17 },
+            { id: 18, name: "Standards Met", type: "multi-select", required: "Yes", notes: "Industry standards the product meets", order: 18 },
+            { id: 19, name: "External Tag", type: "text", required: "Optional", notes: "External reference tags", order: 19 },
+            { id: 20, name: "Internal Tag", type: "text", required: "Optional", notes: "Internal reference tags", order: 20 },
+            { id: 21, name: "ASIN", type: "text", required: "Optional", notes: "Amazon Standard Identification Number", order: 21 },
+            { id: 22, name: "UPC", type: "text", required: "Optional", notes: "Universal Product Code", order: 22 },
+            { id: 23, name: "GTIN", type: "text", required: "Optional", notes: "Global Trade Item Number", order: 23 }
+        ];
+
+        // DOM Elements
+        const fieldsTableBody = document.getElementById('fields-table-body');
+        const fieldCountElement = document.getElementById('field-count');
+        const searchInput = document.getElementById('search-input');
+        const addFieldBtn = document.getElementById('add-field-btn');
+        const addFieldForm = document.getElementById('add-field-form');
+        const closeFormBtn = document.getElementById('close-form-btn');
+        const cancelFormBtn = document.getElementById('cancel-form-btn');
+        const fieldForm = document.getElementById('field-form');
+        const showMoreBtn = document.getElementById('show-more-btn');
+
+        // State variables
+        let currentEditingId = null;
+        let filteredFields = [...fields];
+        let displayedFields = [];
+        const initialDisplayCount = 7;
+        let isShowingAll = false;
+
+        // Initialize the application
+        function init() {
+            renderFields();
+            bindEvents();
+        }
+
+        // Bind event listeners
+        function bindEvents() {
+            addFieldBtn.addEventListener('click', showAddForm);
+            closeFormBtn.addEventListener('click', hideAddForm);
+            cancelFormBtn.addEventListener('click', hideAddForm);
+            fieldForm.addEventListener('submit', handleFormSubmit);
+            searchInput.addEventListener('input', debounce(handleSearch, 300));
+            showMoreBtn.addEventListener('click', showAllFields);
+
+            // Add event delegation for edit/delete buttons
+            fieldsTableBody.addEventListener('click', handleTableClick);
+        }
+
+        // Show add field form
+        function showAddForm() {
+            resetForm();
+            addFieldForm.classList.add('show');
+            document.getElementById('field-name').focus();
+        }
+
+        // Hide add field form
+        function hideAddForm() {
+            addFieldForm.classList.remove('show');
+            resetForm();
+        }
+
+        // Reset form
+        function resetForm() {
+            fieldForm.reset();
+            currentEditingId = null;
+            document.querySelector('.form-header span').textContent = 'Add New Certificate Field';
+            document.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Save Field';
+        }
+
+        // Handle form submission
+        function handleFormSubmit(e) {
+            e.preventDefault();
+
+            const formData = {
+                name: document.getElementById('field-name').value.trim(),
+                type: document.getElementById('field-type').value,
+                required: document.getElementById('field-required').value,
+                notes: document.getElementById('field-notes').value.trim(),
+                order: parseInt(document.getElementById('field-order').value) || getNextOrder()
+            };
+
+            if (!formData.name || !formData.type || !formData.required) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            // Check for duplicate names (excluding current editing field)
+            if (fields.some(field => field.name.toLowerCase() === formData.name.toLowerCase() && field.id !== currentEditingId)) {
+                showToast('A field with this name already exists', 'error');
+                return;
+            }
+
+            if (currentEditingId) {
+                updateField(currentEditingId, formData);
+            } else {
+                addField(formData);
+            }
+        }
+
+        // Add new field
+        function addField(formData) {
+            const newField = {
+                id: Math.max(...fields.map(f => f.id)) + 1,
+                ...formData
+            };
+
+            fields.push(newField);
+            fields.sort((a, b) => a.order - b.order);
+            filteredFields = [...fields];
+            renderFields();
+            hideAddForm();
+            showToast('Certificate field added successfully', 'success');
+        }
+
+        // Update existing field
+        function updateField(id, formData) {
+            const fieldIndex = fields.findIndex(f => f.id === id);
+            if (fieldIndex !== -1) {
+                fields[fieldIndex] = { ...fields[fieldIndex], ...formData };
+                fields.sort((a, b) => a.order - b.order);
+                filteredFields = [...fields];
+                renderFields();
+                hideAddForm();
+                showToast('Certificate field updated successfully', 'success');
+            }
+        }
+
+        // Get next order number
+        function getNextOrder() {
+            return Math.max(...fields.map(f => f.order), 0) + 1;
+        }
+
+        // Handle table click events
+        function handleTableClick(e) {
+            const target = e.target.closest('button');
+            if (!target) return;
+
+            const row = target.closest('tr');
+            const fieldId = parseInt(row.dataset.id);
+
+            if (target.classList.contains('edit-btn')) {
+                editField(fieldId);
+            } else if (target.classList.contains('delete-btn')) {
+                deleteField(fieldId);
+            } else if (target.classList.contains('save-btn')) {
+                saveInlineEdit(fieldId);
+            } else if (target.classList.contains('cancel-btn')) {
+                cancelInlineEdit(fieldId);
+            }
+        }
+
+        // Edit field inline
+        function editField(id) {
+            if (currentEditingId && currentEditingId !== id) {
+                cancelInlineEdit(currentEditingId);
+            }
+
+            const field = fields.find(f => f.id === id);
+            if (!field) return;
+
+            currentEditingId = id;
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            renderEditRow(row, field);
+        }
+
+        // Delete field
+        function deleteField(id) {
+            const field = fields.find(f => f.id === id);
+            if (!field) return;
+
+            if (confirm(`Are you sure you want to delete the field "${field.name}"?`)) {
+                fields = fields.filter(f => f.id !== id);
+                filteredFields = filteredFields.filter(f => f.id !== id);
+                renderFields();
+                showToast('Certificate field deleted successfully', 'success');
+            }
+        }
+
+        // Save inline edit
+        function saveInlineEdit(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            const inputs = row.querySelectorAll('.edit-input, .edit-select');
+
+            const updatedData = {
+                name: inputs[0].value.trim(),
+                type: inputs[1].value,
+                required: inputs[2].value,
+                notes: inputs[3].value.trim()
+            };
+
+            if (!updatedData.name || !updatedData.type || !updatedData.required) {
+                showToast('Please fill in all required fields', 'error');
+                return;
+            }
+
+            // Check for duplicate names
+            if (fields.some(field => field.name.toLowerCase() === updatedData.name.toLowerCase() && field.id !== id)) {
+                showToast('A field with this name already exists', 'error');
+                return;
+            }
+
+            updateField(id, updatedData);
+            currentEditingId = null;
+        }
+
+        // Cancel inline edit
+        function cancelInlineEdit(id) {
+            currentEditingId = null;
+            renderFields();
+        }
+
+        // Render fields table
+        function renderFields() {
+            fieldsTableBody.innerHTML = '';
+
+            displayedFields = isShowingAll ? filteredFields : filteredFields.slice(0, initialDisplayCount);
+
+            displayedFields.forEach(field => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-id', field.id);
+
+                if (currentEditingId === field.id) {
+                    renderEditRow(row, field);
+                } else {
+                    renderNormalRow(row, field);
+                }
+
+                fieldsTableBody.appendChild(row);
+            });
+
+            updateFieldCount();
+            updateShowMoreButton();
+        }
+
+        // Render normal row
+        function renderNormalRow(row, field) {
+            row.innerHTML = `
+                <td>${field.name}</td>
+                <td><span class="field-type type-${field.type}">${formatFieldType(field.type)}</span></td>
+                <td><span class="required-label required-${field.required.toLowerCase()}">${field.required}</span></td>
+                <td>${field.notes || ''}</td>
+                <td>
+                    <div class="action-buttons">
+                        <button class="action-btn edit-btn" title="Edit Field">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn delete-btn" title="Delete Field">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+        }
+
+        // Render edit row
+        function renderEditRow(row, field) {
+            row.classList.add('edit-row');
+
+            const controlTypes = ['text', 'dropdown', 'multi-select', 'date', 'file', 'number', 'checkbox'];
+            const requiredOptions = ['Yes', 'Optional'];
+
+            row.innerHTML = `
+                <td>
+                    <input type="text" class="edit-input" value="${field.name}" required>
+                </td>
+                <td>
+                    <select class="edit-select" required>
+                        ${controlTypes.map(type =>
+                            `<option value="${type}" ${type === field.type ? 'selected' : ''}>${formatFieldType(type)}</option>`
+                        ).join('')}
+                    </select>
+                </td>
+                <td>
+                    <select class="edit-select" required>
+                        ${requiredOptions.map(option =>
+                            `<option value="${option}" ${option === field.required ? 'selected' : ''}>${option}</option>`
+                        ).join('')}
+                    </select>
+                </td>
+                <td>
+                    <input type="text" class="edit-input" value="${field.notes || ''}" placeholder="Optional notes">
+                </td>
+                <td>
+                    <div class="action-buttons edit-actions">
+                        <button class="action-btn save-btn" title="Save Changes">
+                            <i class="fas fa-check"></i>
+                        </button>
+                        <button class="action-btn cancel-btn" title="Cancel Edit">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+        }
+
+        // Format field type for display
+        function formatFieldType(type) {
+            const typeMap = {
+                'text': 'Text',
+                'dropdown': 'Dropdown',
+                'multi-select': 'Multi-Select',
+                'date': 'Date',
+                'file': 'File',
+                'number': 'Number',
+                'checkbox': 'Checkbox'
+            };
+            return typeMap[type] || type;
+        }
+
+        // Handle search
+        function handleSearch(e) {
+            const searchTerm = e.target.value.toLowerCase().trim();
+
+            if (searchTerm === '') {
+                filteredFields = [...fields];
+            } else {
+                filteredFields = fields.filter(field =>
+                    field.name.toLowerCase().includes(searchTerm) ||
+                    field.type.toLowerCase().includes(searchTerm) ||
+                    field.required.toLowerCase().includes(searchTerm) ||
+                    (field.notes && field.notes.toLowerCase().includes(searchTerm))
+                );
+            }
+
+            isShowingAll = false;
+            renderFields();
+        }
+
+        // Show all fields
+        function showAllFields() {
+            isShowingAll = true;
+            renderFields();
+        }
+
+        // Update field count
+        function updateFieldCount() {
+            const totalFields = filteredFields.length;
+            const displayedCount = displayedFields.length;
+
+            if (filteredFields.length !== fields.length) {
+                fieldCountElement.textContent = `Showing ${displayedCount} of ${totalFields} filtered fields (${fields.length} total)`;
+            } else {
+                fieldCountElement.textContent = `Showing ${displayedCount} of ${totalFields} fields`;
+            }
+        }
+
+        // Update show more button
+        function updateShowMoreButton() {
+            if (filteredFields.length > initialDisplayCount && !isShowingAll) {
+                showMoreBtn.style.display = 'inline-flex';
+                showMoreBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Show ${filteredFields.length - initialDisplayCount} More`;
+            } else {
+                showMoreBtn.style.display = 'none';
+            }
+        }
+
+        // Show toast notification
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+                <span>${message}</span>
+            `;
+
+            document.getElementById('toast-container').appendChild(toast);
+
+            // Trigger animation
+            setTimeout(() => toast.classList.add('show'), 100);
+
+            // Remove toast after 3 seconds
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        // Debounce function for search
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Add tooltip functionality for info icons
+        function addTooltips() {
+            const tooltips = {
+                'Field Name': 'The display name for this certificate field',
+                'Control Type': 'The type of input control users will see',
+                'Required': 'Whether this field must be filled out',
+                'Notes': 'Additional information about this field'
+            };
+
+            document.querySelectorAll('.info-icon').forEach(icon => {
+                const th = icon.closest('th');
+                const columnName = th.textContent.trim().replace(' i', '');
+
+                if (tooltips[columnName]) {
+                    icon.title = tooltips[columnName];
+                }
+            });
+        }
+
+        // Initialize tooltips after DOM is ready
+        setTimeout(addTooltips, 100);
+
+        // Handle form auto-order
+        document.getElementById('field-order').addEventListener('focus', function() {
+            if (!this.value) {
+                this.value = getNextOrder();
+            }
+        });
+
+        // Populate edit form when editing
+        function populateEditForm(field) {
+            document.getElementById('field-name').value = field.name;
+            document.getElementById('field-type').value = field.type;
+            document.getElementById('field-required').value = field.required;
+            document.getElementById('field-notes').value = field.notes || '';
+            document.getElementById('field-order').value = field.order;
+
+            document.querySelector('.form-header span').textContent = 'Edit Certificate Field';
+            document.querySelector('button[type="submit"]').innerHTML = '<i class="fas fa-save"></i> Update Field';
+
+            currentEditingId = field.id;
+            showAddForm();
+        }
+
+        // Add double-click to edit functionality
+        fieldsTableBody.addEventListener('dblclick', function(e) {
+            const row = e.target.closest('tr');
+            if (row && row.dataset.id) {
+                const fieldId = parseInt(row.dataset.id);
+                const field = fields.find(f => f.id === fieldId);
+                if (field) {
+                    populateEditForm(field);
+                }
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Escape key to close forms/cancel edits
+            if (e.key === 'Escape') {
+                if (addFieldForm.classList.contains('show')) {
+                    hideAddForm();
+                } else if (currentEditingId) {
+                    cancelInlineEdit(currentEditingId);
+                }
+            }
+
+            // Ctrl/Cmd + N to add new field
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                showAddForm();
+            }
+        });
+
+        // Auto-save draft functionality (stores in sessionStorage)
+        function saveDraft() {
+            const formData = {
+                name: document.getElementById('field-name').value,
+                type: document.getElementById('field-type').value,
+                required: document.getElementById('field-required').value,
+                notes: document.getElementById('field-notes').value,
+                order: document.getElementById('field-order').value
+            };
+
+            // Only save if there's actual content
+            if (formData.name || formData.type || formData.notes) {
+                sessionStorage.setItem('gcc_field_draft', JSON.stringify(formData));
+            }
+        }
+
+        function loadDraft() {
+            const draft = sessionStorage.getItem('gcc_field_draft');
+            if (draft && !currentEditingId) {
+                const formData = JSON.parse(draft);
+                if (formData.name || formData.type || formData.notes) {
+                    if (confirm('You have a saved draft. Would you like to restore it?')) {
+                        document.getElementById('field-name').value = formData.name || '';
+                        document.getElementById('field-type').value = formData.type || '';
+                        document.getElementById('field-required').value = formData.required || '';
+                        document.getElementById('field-notes').value = formData.notes || '';
+                        document.getElementById('field-order').value = formData.order || '';
+                        showAddForm();
+                    }
+                    sessionStorage.removeItem('gcc_field_draft');
+                }
+            }
+        }
+
+        // Auto-save draft while typing
+        ['field-name', 'field-type', 'field-required', 'field-notes', 'field-order'].forEach(fieldId => {
+            const element = document.getElementById(fieldId);
+            if (element) {
+                element.addEventListener('input', debounce(saveDraft, 1000));
+            }
+        });
+
+        // Clear draft on successful save
+        const originalAddField = addField;
+        addField = function(formData) {
+            originalAddField(formData);
+            sessionStorage.removeItem('gcc_field_draft');
+        };
+
+        // Initialize the application
+        init();
+        loadDraft();
+
+        // Export functionality for future implementation
+        window.CertificateFieldsManager = {
+            getFields: () => [...fields],
+            exportFields: () => {
+                const dataStr = JSON.stringify(fields, null, 2);
+                const dataBlob = new Blob([dataStr], {type: 'application/json'});
+                const url = URL.createObjectURL(dataBlob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'certificate_fields.json';
+                link.click();
+                URL.revokeObjectURL(url);
+            },
+            importFields: (importedFields) => {
+                if (Array.isArray(importedFields)) {
+                    fields = importedFields.map((field, index) => ({
+                        ...field,
+                        id: field.id || index + 1,
+                        order: field.order || index + 1
+                    }));
+                    filteredFields = [...fields];
+                    renderFields();
+                    showToast('Fields imported successfully', 'success');
+                }
+            }
+        };
+        });
+    </script>
+}

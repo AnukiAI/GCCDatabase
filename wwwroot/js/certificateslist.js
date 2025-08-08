@@ -491,11 +491,11 @@ class CertificateList {
         card.className = 'certificate-card';
 
         card.innerHTML = `
-            <header class="certificate-header">
+            <header class="card-header">
                 <h3>${certificate.certificationType}</h3>
                 <span class="badge badge-primary">${certificate.badgeText}</span>
             </header>
-            <div class="certificate-content">
+            <div class="certificate-single-container">
                 <div class="certificate-number">
                     <span class="label">Certificate #:</span>
                     <span class="value">${certificate.number}</span>

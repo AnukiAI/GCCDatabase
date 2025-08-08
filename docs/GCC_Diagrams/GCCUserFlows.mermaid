@@ -1,0 +1,131 @@
+flowchart TD
+    %% Main User Flow Diagram
+    
+    subgraph "User Entry Points"
+        PublicEntry(["Public User"])
+        AdminEntry(["Administrative User"])
+        ClientEntry(["Client/External User"])
+    end
+    
+    %% Login States
+    Login["Login Screen<br>[Wireframe Authentication]"]
+    
+    %% Public User Flow
+    subgraph "Public User Flow"
+        PublicHome["Public Database Home<br>[Wireframe 1.0]"]
+        SearchResults["Search Results"]
+        CertDetail["Certificate Detail<br>[Wireframe 1.1]"]
+        CertDownload["Certificate PDF<br>Download"]
+    end
+    
+    %% Client/External User Flow
+    subgraph "External User Flow"
+        CertificatesList["Certificates List<br>[Wireframe 3.3]"]
+        ExportCerts["Certificate Export<br>Multiple Selection"]
+    end
+    
+    %% Administrative User Flow
+    subgraph "Administrative User Flow"
+        AdminDashboard["Admin Dashboard<br>[Wireframe 2.0]"]
+        Reports["Dashboard Reports<br>Analytics & Metrics"]
+        
+        %% Certificate Management Subgraph
+        subgraph "Certificate Management"
+            AddCert["Add Certificate<br>[Wireframe 3.1]"]
+            EditCert["Edit Certificate<br>[Wireframe 3.2]"]
+        end
+        
+        %% Administration Subgraph
+        subgraph "Administration"
+            AdminSettings["Administration Settings<br>[Wireframe 7.0]"]
+            
+            subgraph "User Management"
+                UserManagement["User Management<br>[Wireframe 7.1]"]
+                AddUser["Add User<br>[Wireframe 7.1.1]"]
+                EditUser["Edit User<br>[Wireframe 7.1.2]"]
+                RoleMgmt["Role Management<br>[Wireframe 7.1.3]"]
+            end
+            
+            subgraph "Reference Data Management"
+                RefDataManagement["Reference Data"]
+                
+                CertTypesMgmt["Certificate Types<br>[Wireframe 7.4]"]
+                ProductHierarchy["Product Hierarchy<br>[Wireframe 7.5]"]
+                TagManagement["Tag Management<br>[Wireframe 7.6]"]
+                
+                %% Product Hierarchy Details
+                Categories["Categories"]
+                Types["Product Types"]
+                Subcategories["Subcategories"]
+                
+                %% Tag Management Details
+                ExtTags["External Tags"]
+                IntTags["Internal Tags"]
+            end
+        end
+    end
+    
+    %% User Flows - Public
+    PublicEntry ==> PublicHome
+    PublicHome ==> SearchResults
+    SearchResults ==> CertDetail
+    CertDetail ==> |"Download"| CertDownload
+    
+    %% User Flows - Client/External
+    ClientEntry ==> Login
+    Login ==> |"External User"| CertificatesList
+    CertificatesList ==> |"View"| CertDetail
+    CertificatesList ==> |"Export"| ExportCerts
+    
+    %% User Flows - Internal Users
+    AdminEntry ==> Login
+    Login ==> |"Analyst/Admin"| AdminDashboard
+    
+    %% Admin Dashboard Flows
+    AdminDashboard ==> CertificatesList
+    AdminDashboard ==> AdminSettings
+    AdminDashboard ==> |"View"| Reports
+    
+    %% Certificate Management
+    CertificatesList ==> |"Add New"| AddCert
+    CertificatesList ==> |"Select"| EditCert
+    AddCert ==> |"Submit"| CertificatesList
+    EditCert ==> |"Save/Delete"| CertificatesList
+    
+    %% Admin Settings Flows
+    AdminSettings ==> |"Admin only"| UserManagement
+    AdminSettings ==> RefDataManagement
+    
+    %% User Management
+    UserManagement ==> AddUser
+    UserManagement ==> EditUser
+    UserManagement ==> RoleMgmt
+    
+    %% Reference Data Management
+    RefDataManagement ==> CertTypesMgmt
+    RefDataManagement ==> ProductHierarchy
+    RefDataManagement ==> TagManagement
+    
+    %% Product Hierarchy Details
+    ProductHierarchy ==> Categories
+    ProductHierarchy ==> Types
+    ProductHierarchy ==> Subcategories
+    
+    %% Tag Management Details
+    TagManagement ==> ExtTags
+    TagManagement ==> IntTags
+    
+    %% Styling with better colors and more contrast
+    classDef entryPoint fill:#f8f9fa,stroke:#495057,stroke-width:2px,color:#212529,font-weight:bold
+    classDef publicFlow fill:#d4edda,stroke:#28a745,color:#155724
+    classDef adminFlow fill:#cce5ff,stroke:#0d6efd,color:#084298
+    classDef clientFlow fill:#fff3cd,stroke:#ffc107,color:#664d03
+    classDef actionNode fill:#e2e3e5,stroke:#495057,color:#212529
+    classDef authNode fill:#f8d7da,stroke:#dc3545,color:#842029,font-weight:bold
+    
+    class PublicEntry,AdminEntry,ClientEntry entryPoint
+    class PublicHome,SearchResults,CertDetail,CertDownload publicFlow
+    class AdminDashboard,Reports,AdminSettings,UserManagement,RefDataManagement,CertTypesMgmt,ProductHierarchy,TagManagement adminFlow
+    class CertificatesList,ExportCerts clientFlow
+    class AddCert,EditCert,AddUser,EditUser,RoleMgmt,Categories,Types,Subcategories,ExtTags,IntTags actionNode
+    class Login authNode

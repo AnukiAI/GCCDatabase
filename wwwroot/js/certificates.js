@@ -183,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function () {
         card.setAttribute('data-id', certificate.id);
 
         card.innerHTML = `
-            <div class="certificate-header">
+            <div class="card-header">
                 <h3>${certificate.certType}</h3>
             </div>
             <div class="certificate-info">

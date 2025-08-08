@@ -1,0 +1,58 @@
+flowchart TD
+    %% External Users & Systems
+    subgraph "External Users & Systems"
+        APIUser["API User (OAuth2)"]
+        ExternalSystem["External System (API Key/OAuth2)"]
+    end
+
+    %% Authentication Layer
+    APIGateway["?? API Gateway"]
+    Auth["?? Authentication Service (OAuth2 & API Keys)"]
+
+    %% Certificate API
+    subgraph "Certificate API"
+        CertGet["GET /certifications/:id"]
+        CertPush["POST /certifications"]
+    end
+
+    %% Database
+    DB[(Database)]
+
+    %% Admin Interface
+    AdminUI["Admin Interface (JWT)"]
+
+    %% Authentication Flow
+    APIUser -->|Request API Token| Auth
+    ExternalSystem -->|Authenticate via API Key/OAuth2| Auth
+    Auth -->|Issue Access Token| APIGateway
+    APIGateway -->|Validate & Route Request| CertGet
+    APIGateway -->|Validate & Route Request| CertPush
+
+    %% Authorization Flow
+    APIUser -->|Limited Access| CertGet
+    ExternalSystem -->|Full Access| CertPush
+    AdminUI -->|Admin Access| CertPush
+
+    %% Data Flow
+    CertGet -->|Retrieve Data| DB
+    CertPush -->|Store Data| DB
+
+    %% Security Controls
+    APIGateway -.->|Rate Limiting| RateLimit["? Rate Limiting & Throttling"]
+    APIGateway -.->|Audit Logging| Logs["?? API Logging & Monitoring"]
+    APIGateway -.->|Permission Checks| RBAC["?? Role-Based Access Control"]
+    
+    %% Styling
+    classDef security fill:#f5b942,stroke:#d69e31
+    classDef apiGateway fill:#67b7dc,stroke:#4a8aa9
+    classDef endpoints fill:#a5d6a7,stroke:#75a478
+    classDef database fill:#ce93d8,stroke:#9c64a6
+    classDef ui fill:#90caf9,stroke:#5d8eb3
+    classDef restricted stroke:#ff0000,stroke-width:2px
+
+    class APIUser,ExternalSystem security
+    class APIGateway,Auth apiGateway
+    class CertGet,CertPush endpoints
+    class DB database
+    class AdminUI ui
+    class RateLimit,Logs,RBAC restricted

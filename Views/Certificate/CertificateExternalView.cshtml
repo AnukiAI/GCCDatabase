@@ -1,147 +1,143 @@
 @{
-   // ViewData["Title"] = "Certificate External View";
+    // ViewData["Title"] = "Certificate Details - External";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<!-- Main Content -->
-<link href="~/css/certificatesexternal.css" rel="stylesheet" />
-<div class="certificate-external">
-    <!-- Everything inside remains unchanged structurally -->
-    <div class="main-content">
-        <!-- Sidebar -->
-        <div class="sidebar">
-            <!-- Search -->
-            <div class="search-container">
-                <input type="text" class="search-input" placeholder="Search...">
-                <button class="search-button">
-                    <i class="fas fa-search"></i>
-                </button>
-            </div>
 
-            <!-- Filters -->
-            <div class="filters-header">
-                <div>Filters</div>
-                <div class="clear-filters">Clear Filters</div>
+<!-- Certificate Details -->
+<div class="certificate-single-container" data-id="@Model.CertificateNumber">
+    <!-- Certificate Card styled like tile view -->
+    <div class="certificate-card certificate-single-card">
+        <div class="card-header">
+            <div class="header-row">
+                <div class="certificate-category">@Model.CertificationType.ToUpper()</div>
+                <div class="certificate-id">@Model.CertificateNumber</div>
             </div>
-
-            <!-- Certification Type Filter -->
-            <div class="filter-section">
-                <div class="filter-header">
-                    <div>Certification Type</div>
-                    <div><i class="fas fa-chevron-down"></i></div>
-                </div>
+            <div class="company-name">@Model.CompanyName</div>
+        </div>
+        <div class="card-body">
+            <div class="product-info">
+                <div class="product-name">@Model.ProductName</div>
+                <div class="product-type">@Model.ProductType</div>
             </div>
+            <!-- Main Detail Grid -->
+            <div class="certificate-details-grid">
+                <!-- Left Column: Certificate Info -->
+                <div class="details-column">
+                    <!-- Certification Details -->
+                    <div class="detail-section">
+                        <h3 class="certificate-section-title">Certification Details</h3>
+                        @if (!string.IsNullOrEmpty(Model.CSFAttributes))
+                        {
+                            <div class="certificate-field"><strong>CSF Attributes:</strong> <span>@Model.CSFAttributes</span></div>
+                        }
+                        <div class="certificate-field"><strong>Status:</strong> <span class="status-@Model.Status.ToLower()">@Model.Status</span></div>
+                        <div class="certificate-field">
+                            <strong>Category:</strong>
+                            <span class="tag-type External">@Model.ProductCategory</span>
+                        </div>
+                        <div class="certificate-field"><strong>Product Type:</strong> <span>@Model.ProductType</span></div>
+                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@Model.ProductTypeSubcategory</span></div>
+                        @if (!string.IsNullOrEmpty(Model.Partner))
+                        {
+                            <div class="certificate-field"><strong>Partner:</strong> <span>@Model.Partner</span></div>
+                        }
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            @Model.Location, @Model.Country
+                        </div>
+                    </div>
 
-            <!-- Product Categories Filter -->
-            <div class="filter-section">
-                <div class="filter-header">
-                    <div>Product Categories</div>
-                    <div><i class="fas fa-chevron-down"></i></div>
-                </div>
-                <div class="filter-content">
-                    <!-- Categories and subcategories -->
-                    <div class="category-item">
-                        <label class="checkbox-container"><input type="checkbox"> Level 1 - Category</label>
-                        <div class="subcategory">
-                            <label class="checkbox-container"><input type="checkbox"> Level 2 - Type</label>
-                            <div class="sub-subcategory">
-                                <label class="checkbox-container"><input type="checkbox"> Level 3 - Subcategory</label>
+                    <!-- Certification Period -->
+                    <div class="detail-section">
+                        <h3 class="certificate-section-title">Certification Period</h3>
+                        <div class="certificate-period">
+                            <strong>Effective Date:</strong> @Model.EffectiveDate.ToString("M/d/yyyy")<br>
+                            <strong>Expiration Date:</strong> @Model.ExpirationDate.ToString("M/d/yyyy")
+                        </div>
+                    </div>
+
+                    <!-- Contact Info -->
+                    <div class="detail-section">
+                        <h3 class="certificate-section-title">Contact Information</h3>
+                        <div class="certificate-field">
+                            <strong>Company Email:</strong>
+                            <span>
+                                @if (!string.IsNullOrEmpty(Model.CompanyContactEmail))
+                                {
+                                    <a href="mailto:@Model.CompanyContactEmail">@Model.CompanyContactEmail</a>
+                                }
+                                else
+                                {
+                                    <text>Available upon request</text>
+                                }
+                            </span>
+                        </div>
+                        <div class="certificate-field">
+                            <strong>Company URL:</strong>
+                            <span>
+                                @if (!string.IsNullOrEmpty(Model.CompanyContactURL))
+                                {
+                                    <a href="@Model.CompanyContactURL" target="_blank" rel="noopener">@Model.CompanyContactURL</a>
+                                }
+                                else
+                                {
+                                    <text>Not provided</text>
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                   
+                    <!-- Tags (Both Internal and External for Internal users) -->
+                    <div class="certificate-tags">
+                        @if (!string.IsNullOrEmpty(Model.ExternalTag))
+                        {
+                            <div class="tag external">@Model.ExternalTag</div>
+                        } 
+                    </div>
+                    <!-- Verification URL -->
+                    @if (!string.IsNullOrEmpty(Model.VerificationURL))
+                    {
+                        <div class="verification-section">
+                            <div class="verification-url">
+                                <strong>Verification URL:</strong>
+                                <a href="@Model.VerificationURL" target="_blank" rel="noopener">@Model.VerificationURL</a>
                             </div>
                         </div>
-                    </div>
-                    <div class="category-item">
-                        <label class="checkbox-container"><input type="checkbox"> Level 1 - Category</label>
-                        <div class="subcategory">
-                            <label class="checkbox-container"><input type="checkbox"> Level 2 - Type</label>
-                        </div>
-                    </div>
-                    <div class="category-item">
-                        <label class="checkbox-container"><input type="checkbox"> Level 1 - Category</label>
-                    </div>
-                    <div class="category-item">
-                        <label class="checkbox-container"><input type="checkbox"> Level 1 - Category</label>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Company Filter -->
-            <div class="filter-section">
-                <div class="filter-header">
-                    <div>Company</div>
-                    <div><i class="fas fa-chevron-down"></i></div>
-                </div>
-            </div>
-
-            <!-- Countries Filter -->
-            <div class="filter-section">
-                <div class="filter-header">
-                    <div>Countries</div>
-                    <div><i class="fas fa-chevron-down"></i></div>
-                </div>
-            </div>
-
-            <!-- Additional Filter -->
-            <div class="filter-section">
-                <div class="filter-header">
-                    <div>Additional</div>
-                    <div><i class="fas fa-chevron-down"></i></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Results -->
-        <div class="results-container">
-            <div class="results-header">
-                <div class="results-count">201 Results</div>
-                <div class="view-options">
-                    <div class="view-option">Tile</div>
-                    <div class="view-option active">List</div>
-                </div>
-            </div>
-
-            <div class="export-options">
-                <button class="export-button">Export (selected) to Excel</button>
-                <button class="export-button">Export All to Excel</button>
-                <button class="export-button">Download Selected</button>
-            </div>
-
-            <!-- Results Table -->
-            <table class="results-table">
-                <thead>
-                    <tr>
-                        <th><input type="checkbox"></th>
-                        <th>Company <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                        <th>Product <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                        <th>Type <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                        <th>Certification <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                        <th>Effective <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                        <th>Expiration <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                        <th>ASN <span class="sort-icon"><i class="fas fa-sort"></i></span></th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @for (int i = 1; i <= 9; i++)
-                    {
-                        <tr>
-                            <td><input type="checkbox"></td>
-                            <td>Company @i</td>
-                            <td>Product @i</td>
-                            <td>Type @(i % 3 + 1)</td>
-                            <td>Cert Name</td>
-                            <td>DD/MM/YYYY</td>
-                            <td>DD/MM/YYYY</td>
-                            <td>ASN0000@i</td>
-                            <td>
-                                <div class="action-icons">
-                                    <span class="action-icon"><i class="fas fa-eye"></i></span>
-                                    <span class="action-icon"><i class="fas fa-download"></i></span>
-                                </div>
-                            </td>
-                        </tr>
                     }
-                </tbody>
-            </table>
+                </div>
+                <!-- Right Column: Certificate Image -->
+                <div class="certificate-image-column">
+                    @if (!string.IsNullOrEmpty(Model.CertificateUploadPath))
+                    {
+                        <img src="@Model.CertificateUploadPath" alt="Certificate Details" class="certificate-image" />
+                    }
+                    else
+                    {
+                        <img src="~/img/certpreview.png" alt="Certificate Details" class="certificate-image" />
+                    }
+                </div>
+            </div>
+            <!-- Action Buttons -->
+            <div class="card-actions">
+                <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@Model.CertificateNumber')">
+                    <i class="fas fa-download"></i>
+                </div>
+                @if (ViewBag.CanEdit)
+                {
+                    <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@Model.CertificateNumber')">
+                        <i class="fas fa-edit"></i>
+                    </div>
+                }
+                @if (ViewBag.CanDelete)
+                {
+                    <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@Model.CertificateNumber')">
+                        <i class="fas fa-trash"></i>
+                    </div>
+                }
+            </div>
         </div>
     </div>
 </div>
-<script src="~/js/certificatesexternal.js"></script>
+
+<script src="~/js/certificates.js"></script>

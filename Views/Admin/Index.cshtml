@@ -1,0 +1,175 @@
+@model AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    ViewData["BodyClass"] = "admin-dashboard";
+}
+
+@section Styles {
+    <link href="~/css/admin-dashboard.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+    </span>
+}
+
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <p class="dashboard-subtitle">System overview and quick actions</p>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card users">
+            <div class="stat-number">@Model.TotalUsers</div>
+            <div class="stat-label">Total Users</div>
+            <div class="stat-detail">@Model.ActiveUsers active users</div>
+        </div>
+        <div class="stat-card companies">
+            <div class="stat-number">@Model.TotalCompanies</div>
+            <div class="stat-label">Companies</div>
+            <div class="stat-detail">Registered organizations</div>
+        </div>
+        <div class="stat-card certificates">
+            <div class="stat-number">@Model.TotalCertificates</div>
+            <div class="stat-label">Certificates</div>
+            <div class="stat-detail">@Model.PendingCertificates pending review</div>
+        </div>
+        <div class="stat-card products">
+            <div class="stat-number">@Model.TotalProducts</div>
+            <div class="stat-label">Products</div>
+            <div class="stat-detail">Certified products</div>
+        </div>
+    </div>
+
+    <!-- System Status -->
+    <div class="system-status">
+        <h2 class="section-title">System Status</h2>
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-indicator"></div>
+                <div class="status-text">Database Connection</div>
+            </div>
+            <div class="status-item">
+                <div class="status-indicator"></div>
+                <div class="status-text">API Services</div>
+            </div>
+            <div class="status-item">
+                <div class="status-indicator warning"></div>
+                <div class="status-text">Amazon Integration</div>
+            </div>
+            <div class="status-item">
+                <div class="status-indicator"></div>
+                <div class="status-text">Email Service</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+        <!-- Quick Actions -->
+        <div class="quick-actions">
+            <h2 class="section-title">Quick Actions</h2>
+            <div class="action-grid">
+                <a href="@Url.Action("UserManagement", "Admin")" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="action-title">Manage Users</div>
+                </a>
+                <a href="@Url.Action("RoleManagement", "Admin")" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-user-shield"></i>
+                    </div>
+                    <div class="action-title">Role Management</div>
+                </a>
+                <a href="@Url.Action("CertificateTypes", "Admin")" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                    <div class="action-title">Certificate Types</div>
+                </a>
+                <a href="@Url.Action("ProductTypes", "Admin")" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-boxes"></i>
+                    </div>
+                    <div class="action-title">Product Types</div>
+                </a>
+                <a href="@Url.Action("Partners", "Admin")" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-handshake"></i>
+                    </div>
+                    <div class="action-title">Partners</div>
+                </a>
+                <a href="@Url.Action("Tags", "Admin")" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-tags"></i>
+                    </div>
+                    <div class="action-title">Tags</div>
+                </a>
+                <a href="@Url.Action("GoogleAnalytics", "Admin")" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="action-title">Analytics</div>
+                </a>
+                <a href="@Url.Action("AmazonAPI", "Admin")" class="action-card">
+                    <div class="action-icon">
+                        <i class="fas fa-cloud"></i>
+                    </div>
+                    <div class="action-title">Amazon API</div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Recent Activity -->
+        <div class="recent-activity">
+            <h2 class="section-title">Recent Activity</h2>
+            <ul class="activity-list">
+                @foreach (var activity in Model.RecentActivity)
+                {
+                    <li class="activity-item">
+                        @activity
+                        <div class="activity-time">@DateTime.Now.AddMinutes(-Random.Shared.Next(1, 120)).ToString("h:mm tt")</div>
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+
+    <!-- Data Last Updated -->
+    <div class="system-status">
+        <div style="text-align: center; color: #666; font-size: 14px;">
+            Data last updated: @Model.LastDataUpdate.ToString("MMM dd, yyyy 'at' h:mm tt")
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Auto-refresh dashboard data every 5 minutes
+        setInterval(function() {
+            // In real app: make AJAX call to refresh dashboard data
+            console.log('Dashboard data refresh would happen here');
+        }, 300000); // 5 minutes
+
+        // Add loading states and interactions
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add hover effects to stat cards
+            const statCards = document.querySelectorAll('.stat-card');
+            statCards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-2px)';
+                    this.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                    this.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                });
+            });
+        });
+    </script>
+}

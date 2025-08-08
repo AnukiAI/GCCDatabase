@@ -1,6 +1,9 @@
-/* Font import for Century Gothic or equivalent */
+/* dashboard.css - Dashboard-specific styles */
+
+/* ===== IMPORTS ===== */
 @import url('https://fonts.googleapis.com/css2?family=Didact+Gothic&display=swap');
-/* Reset and base styles */
+
+/* ===== RESET & BASE ===== */
 * {
     margin: 0;
     padding: 0;
@@ -8,6 +11,7 @@
     font-family: 'Didact Gothic', 'Century Gothic', sans-serif;
 }
 
+/* ===== CSS CUSTOM PROPERTIES ===== */
 :root {
     --dark-green: #447638;
     --light-green: #92C83E;
@@ -32,7 +36,7 @@ body {
     padding: 0;
 }
 
-/* Header */
+/* ===== HEADER ===== */
 header {
     background-color: var(--white);
     border-bottom: 1px solid var(--light-green);
@@ -62,26 +66,26 @@ header {
     font-weight: normal;
 }
 
-/* Navigation */
+/* ===== NAVIGATION ===== */
 .nav-links {
     display: flex;
     align-items: center;
 }
 
-    .nav-links a {
-        text-decoration: none;
-        color: var(--dark-gray);
-        padding: 10px 15px;
-        margin-left: 10px;
-        position: relative;
-    }
+.nav-links a {
+    text-decoration: none;
+    color: var(--dark-gray);
+    padding: 10px 15px;
+    margin-left: 10px;
+    position: relative;
+}
 
-        .nav-links a.active {
-            font-weight: bold;
-            color: var(--dark-green);
-        }
+.nav-links a.active {
+    font-weight: bold;
+    color: var(--dark-green);
+}
 
-/* Sign Out Button */
+/* ===== SIGN OUT BUTTON ===== */
 .sign-out {
     padding: 6px 15px;
     background-color: var(--light-gray);
@@ -89,16 +93,16 @@ header {
     border-radius: 4px;
     color: var(--dark-gray);
     text-decoration: none;
-    font-size: 12px;
+    font-size: 16px;
     transition: all 0.3s ease;
     margin-left: 20px;
 }
 
-    .sign-out:hover {
-        background-color: var(--medium-gray);
-    }
+.sign-out:hover {
+    background-color: var(--medium-gray);
+}
 
-/* Dashboard Title */
+/* ===== DASHBOARD TITLE ===== */
 .dashboard-title {
     text-align: center;
     padding: 15px 0;
@@ -108,7 +112,7 @@ header {
     margin-bottom: 20px;
 }
 
-/* Dashboard Badge */
+/* ===== DASHBOARD BADGE ===== */
 .dashboard-badge {
     background-color: var(--badge-pink);
     color: var(--white);
@@ -119,13 +123,13 @@ header {
     right: 0;
 }
 
-/* Dashboard Content */
+/* ===== DASHBOARD CONTENT ===== */
 .dashboard-container {
     padding: 0 20px 20px;
     position: relative;
 }
 
-/* Stats Grid */
+/* ===== STATS GRID ===== */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -141,7 +145,7 @@ header {
 }
 
 .stat-title {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--dark-gray);
     margin-bottom: 10px;
 }
@@ -152,7 +156,7 @@ header {
     color: var(--dark-green);
 }
 
-/* Tables Section */
+/* ===== TABLES SECTION ===== */
 .tables-container {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -168,7 +172,7 @@ header {
 .table-title {
     background-color: var(--light-gray);
     padding: 10px 15px;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: bold;
     border-bottom: 1px solid var(--medium-gray);
 }
@@ -178,11 +182,12 @@ table {
     border-collapse: collapse;
 }
 
-th, td {
+th,
+td {
     padding: 8px 10px;
     text-align: left;
     border-bottom: 1px solid var(--light-gray);
-    font-size: 13px;
+    font-size: 16px;
 }
 
 th {
@@ -194,7 +199,7 @@ tr:last-child td {
     border-bottom: none;
 }
 
-/* Action Buttons */
+/* ===== ACTION BUTTONS ===== */
 .action-buttons {
     display: flex;
     justify-content: flex-end;
@@ -209,7 +214,7 @@ tr:last-child td {
     border-radius: 4px;
     color: var(--dark-gray);
     cursor: pointer;
-    font-size: 12px;
+    font-size: 16px;
     transition: all 0.3s ease;
 }
 

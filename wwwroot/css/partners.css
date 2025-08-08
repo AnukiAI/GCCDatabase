@@ -25,6 +25,13 @@
 .partners-buttons-area {
     display: flex;
     gap: 10px;
+    justify-content: flex-end;
+}
+
+.buttons-area {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
 }
 
 /* Partners specific buttons */
@@ -35,7 +42,7 @@
     padding: 8px 12px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     transition: var(--transition);
     display: flex;
     align-items: center;
@@ -167,7 +174,7 @@
         .partners-table th .partners-sort-icon {
             display: inline-block;
             margin-left: 6px;
-            font-size: 10px;
+            font-size: 16px;
             opacity: 0.6;
             transition: var(--transition);
         }
@@ -179,6 +186,13 @@
 
     .partners-table tbody tr {
         transition: var(--transition);
+        background-color: white;
+    }
+
+    /* Ensure table cells have white background */
+    #partners-table tbody td {
+        background-color: white;
+        color: var(--text-color);
     }
 
         .partners-table tbody tr:hover {
@@ -242,7 +256,7 @@
     padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 500;
     border: none;
     transition: var(--transition);
@@ -271,7 +285,7 @@
 .partners-footer-info {
     text-align: right;
     color: #777;
-    font-size: 0.9rem;
+    font-size: 16px;
     margin-top: 10px;
     padding: 0 5px;
 }
@@ -393,7 +407,7 @@
     .partners-btn-save,
     .partners-btn-cancel {
         padding: 4px 8px;
-        font-size: 12px;
+        font-size: 16px;
     }
 }
 
@@ -410,11 +424,11 @@
     .partners-table th,
     .partners-table td {
         padding: 6px 8px;
-        font-size: 14px;
+        font-size: 16px;
     }
 
     .partners-footer-info {
         text-align: center;
-        font-size: 0.8rem;
+        font-size: 16px;
     }
 }

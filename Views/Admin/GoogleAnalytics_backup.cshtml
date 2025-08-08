@@ -1,0 +1,412 @@
+@{
+    ViewData["Title"] = "Google Analytics Settings";
+    ViewData["BodyClass"] = "admin-google-analytics";
+}
+
+@section Styles {
+    <link href="~/css/google-analytics.css" rel="stylesheet" />
+}
+
+<div class="analytics-container">
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .analytics-container h1 {
+            font-size: 24px;
+            color: var(--green-primary);
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: var(--gray-dark);
+        }
+
+        .form-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+
+        .form-group input[type="text"]:disabled {
+            background-color: #f9f9f9;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        .description {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .description a {
+            color: var(--blue-primary);
+            text-decoration: none;
+        }
+
+        .description a:hover {
+            text-decoration: underline;
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+        .toggle input[type="checkbox"] {
+            margin-right: 10px;
+            transform: scale(1.3);
+        }
+
+        .toggle label {
+            margin-bottom: 0;
+            font-weight: normal;
+        }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .status.enabled {
+            background: #e6f4ea;
+            border-left: 5px solid var(--green-secondary);
+            color: var(--green-primary);
+        }
+
+        .status.disabled {
+            background: #f5f5f5;
+            border-left: 5px solid #ccc;
+            color: #666;
+        }
+
+        .script-preview {
+            background-color: #f4f4f4;
+            padding: 10px;
+            overflow-x: auto;
+            border-left: 3px solid var(--blue-primary);
+            margin-top: 10px;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+            white-space: pre;
+            border-radius: 4px;
+        }
+
+        .save-button {
+            margin-top: 25px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: var(--green-secondary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .save-button:hover {
+            background-color: var(--green-primary);
+        }
+
+        .save-button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .privacy-note {
+            font-size: 13px;
+            color: #888;
+            margin-top: 20px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            border-radius: 4px;
+            border-left: 3px solid var(--blue-primary);
+        }
+
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success {
+            background-color: var(--green-secondary);
+        }
+
+        .toast.error {
+            background-color: #ff5252;
+        }
+    </style>
+}
+
+<div class="analytics-container">
+    <h1>Google Analytics Integration</h1>
+
+    <form id="analytics-form">
+        <div class="form-group">
+            <label for="ga-id">Tracking ID (G-XXXXXXX)</label>
+            <input type="text" id="ga-id" name="trackingId" placeholder="e.g., G-XXXXXXXXXX" disabled />
+            <div class="description">
+                Enter your Google Analytics 4 Measurement ID to start tracking your website traffic.
+                <a href="https://support.google.com/analytics/answer/9304153" target="_blank">Learn more</a>
+            </div>
+        </div>
+
+        <div class="toggle">
+            <input type="checkbox" id="enable-tracking" onchange="toggleTracking()" />
+            <label for="enable-tracking">Enable Google Analytics Tracking</label>
+        </div>
+
+        <div class="status disabled" id="status-display">
+            Tracking is currently <strong>disabled</strong>.
+        </div>
+
+        <div class="form-group">
+            <label>Script Preview</label>
+            <div class="script-preview" id="script-preview">
+<!-- Google Analytics will be disabled until you enable tracking and provide a valid Tracking ID -->
+            </div>
+        </div>
+
+        <button type="submit" class="save-button" id="save-button" disabled>
+            Save Settings
+        </button>
+    </form>
+
+    <div class="privacy-note">
+        <strong>Privacy Notice:</strong> When Google Analytics is enabled, this website will collect anonymous usage data 
+        to help improve user experience. No personally identifiable information is collected. Users can opt-out using 
+        browser settings or ad blockers.
+    </div>
+</div>
+
+<!-- Toast for notifications -->
+<div id="toast" class="toast"></div>
+
+@section Scripts {
+    <script>
+        // Current analytics settings
+        let analyticsSettings = {
+            enabled: false,
+            trackingId: ''
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            loadAnalyticsSettings();
+            initializeForm();
+        });
+
+        function loadAnalyticsSettings() {
+            // In a real MVC app, this would load from the server
+            // For demo purposes, using localStorage
+            const saved = localStorage.getItem('analyticsSettings');
+            if (saved) {
+                analyticsSettings = JSON.parse(saved);
+                applySettings();
+            }
+        }
+
+        function applySettings() {
+            const enableCheckbox = document.getElementById('enable-tracking');
+            const trackingIdInput = document.getElementById('ga-id');
+            
+            if (enableCheckbox) {
+                enableCheckbox.checked = analyticsSettings.enabled;
+            }
+            
+            if (trackingIdInput) {
+                trackingIdInput.value = analyticsSettings.trackingId;
+                trackingIdInput.disabled = !analyticsSettings.enabled;
+            }
+            
+            updateStatus();
+            updateScriptPreview();
+            updateSaveButton();
+        }
+
+        function initializeForm() {
+            const form = document.getElementById('analytics-form');
+            const trackingIdInput = document.getElementById('ga-id');
+            
+            if (form) {
+                form.addEventListener('submit', saveSettings);
+            }
+            
+            if (trackingIdInput) {
+                trackingIdInput.addEventListener('input', function() {
+                    analyticsSettings.trackingId = this.value;
+                    updateScriptPreview();
+                    updateSaveButton();
+                });
+            }
+        }
+
+        function toggleTracking() {
+            const enableCheckbox = document.getElementById('enable-tracking');
+            const trackingIdInput = document.getElementById('ga-id');
+            
+            analyticsSettings.enabled = enableCheckbox.checked;
+            
+            if (trackingIdInput) {
+                trackingIdInput.disabled = !analyticsSettings.enabled;
+                if (analyticsSettings.enabled) {
+                    trackingIdInput.focus();
+                }
+            }
+            
+            updateStatus();
+            updateScriptPreview();
+            updateSaveButton();
+        }
+
+        function updateStatus() {
+            const statusDisplay = document.getElementById('status-display');
+            if (!statusDisplay) return;
+            
+            if (analyticsSettings.enabled && isValidTrackingId(analyticsSettings.trackingId)) {
+                statusDisplay.className = 'status enabled';
+                statusDisplay.innerHTML = 'Tracking is currently <strong>enabled</strong> and configured.';
+            } else if (analyticsSettings.enabled) {
+                statusDisplay.className = 'status disabled';
+                statusDisplay.innerHTML = 'Tracking is <strong>enabled</strong> but requires a valid Tracking ID.';
+            } else {
+                statusDisplay.className = 'status disabled';
+                statusDisplay.innerHTML = 'Tracking is currently <strong>disabled</strong>.';
+            }
+        }
+
+        function updateScriptPreview() {
+            const preview = document.getElementById('script-preview');
+            if (!preview) return;
+            
+            if (!analyticsSettings.enabled) {
+                preview.textContent = '<!-- Google Analytics will be disabled until you enable tracking and provide a valid Tracking ID -->';
+                return;
+            }
+            
+            if (!isValidTrackingId(analyticsSettings.trackingId)) {
+                preview.textContent = '<!-- Please enter a valid Google Analytics Tracking ID (G-XXXXXXXXXX) -->';
+                return;
+            }
+            
+            preview.textContent = `<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=${analyticsSettings.trackingId}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '${analyticsSettings.trackingId}');
+</script>`;
+        }
+
+        function updateSaveButton() {
+            const saveButton = document.getElementById('save-button');
+            if (!saveButton) return;
+            
+            const hasChanges = hasUnsavedChanges();
+            const isValid = !analyticsSettings.enabled || isValidTrackingId(analyticsSettings.trackingId);
+            
+            saveButton.disabled = !hasChanges || !isValid;
+            
+            if (!isValid && analyticsSettings.enabled) {
+                saveButton.textContent = 'Invalid Tracking ID';
+            } else if (!hasChanges) {
+                saveButton.textContent = 'No Changes';
+            } else {
+                saveButton.textContent = 'Save Settings';
+            }
+        }
+
+        function hasUnsavedChanges() {
+            const saved = localStorage.getItem('analyticsSettings');
+            const currentSettings = JSON.stringify(analyticsSettings);
+            return !saved || saved !== currentSettings;
+        }
+
+        function isValidTrackingId(trackingId) {
+            // Google Analytics 4 tracking IDs start with 'G-'
+            const ga4Pattern = /^G-[A-Z0-9]{10}$/;
+            return ga4Pattern.test(trackingId);
+        }
+
+        function saveSettings(event) {
+            event.preventDefault();
+            
+            if (!analyticsSettings.enabled || isValidTrackingId(analyticsSettings.trackingId)) {
+                // In a real MVC app, this would be an AJAX call to your controller
+                localStorage.setItem('analyticsSettings', JSON.stringify(analyticsSettings));
+                
+                showToast('Analytics settings saved successfully!', 'success');
+                updateSaveButton();
+                
+                // If tracking is enabled and configured, you could dynamically inject the script
+                if (analyticsSettings.enabled && isValidTrackingId(analyticsSettings.trackingId)) {
+                    injectGoogleAnalytics();
+                }
+            } else {
+                showToast('Please enter a valid Google Analytics Tracking ID', 'error');
+            }
+        }
+
+        function injectGoogleAnalytics() {
+            // Remove existing GA scripts
+            const existingScripts = document.querySelectorAll('script[src*="googletagmanager.com"]');
+            existingScripts.forEach(script => script.remove());
+            
+            // Inject new GA script
+            const script1 = document.createElement('script');
+            script1.async = true;
+            script1.src = `https://www.googletagmanager.com/gtag/js?id=${analyticsSettings.trackingId}`;
+            document.head.appendChild(script1);
+            
+            const script2 = document.createElement('script');
+            script2.innerHTML = `
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${analyticsSettings.trackingId}');
+            `;
+            document.head.appendChild(script2);
+        }
+
+        function showToast(message, type) {
+            const toast = document.getElementById('toast');
+            if (!toast) return;
+            
+            toast.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+    </script>
+}

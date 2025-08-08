@@ -1,0 +1,3 @@
+﻿⦁	Role Management + Add new role should beprimary green and right aligned. 
+⦁	Certificate filters should have less padding in the left had bar.
+⦁	Edit Role page formatting needs upda/ted to match the master design guide and layout screenshots from the wireframe 7_28+25 document. 

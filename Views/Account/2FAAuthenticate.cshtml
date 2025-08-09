@@ -1,7 +1,7 @@
 @{
-    ViewData["Title"] = "Sign In";
+    ViewData["Title"] = "Two-Factor Authentication";
     ViewData["BodyClass"] = "login-page";
-    Layout = null; // Use minimal layout for login
+    Layout = null;
 }
 
 <!DOCTYPE html>
@@ -13,7 +13,6 @@
     <link href="~/css/main.css" rel="stylesheet" />
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
     <style>
-        /* Login-specific styles */
         .login-page {
             background: linear-gradient(135deg, #002B76 0%, #00AEEF 100%);
             min-height: 100vh;
@@ -25,119 +24,80 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
-        .login-container {
+        .auth-container {
             background: white;
             border-radius: 16px;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             overflow: hidden;
-            max-width: 900px;
+            max-width: 500px;
             width: 100%;
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            min-height: 600px;
-        }
-
-        .login-left {
-            background: linear-gradient(135deg, #92C83E 0%, #447638 100%);
             padding: 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            text-align: center;
-            color: white;
-            position: relative;
-            overflow: hidden;
         }
 
-            .login-left::before {
-                content: '';
-                position: absolute;
-                top: -50%;
-                left: -50%;
-                width: 200%;
-                height: 200%;
-                background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
-                animation: float 20s infinite linear;
-            }
-
-        @@keyframes float {
-            0%
-
-        {
-            transform: translateY(0px);
-        }
-
-        100% {
-            transform: translateY(-100px);
-        }
-
-        }
-
-        .login-logo {
-            height: 280px;
-            margin-bottom: 30px;
-            z-index: 1;
-            position: relative;
-        }
-
-        .login-brand {
-            z-index: 1;
-            position: relative;
-        }
-
-            .login-brand h1 {
-                font-size: 28px;
-                font-weight: 700;
-                margin-bottom: 15px;
-                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-            }
-
-            .login-brand p {
-                font-size: 16px;
-                opacity: 0.9;
-                line-height: 1.5;
-            }
-
-        .login-right {
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .login-header {
+        .auth-header {
             text-align: center;
             margin-bottom: 40px;
         }
 
-            .login-header h2 {
-                font-size: 32px;
-                font-weight: 700;
-                color: #002B76;
-                margin-bottom: 10px;
-            }
+        .auth-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #92C83E 0%, #447638 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 10px 30px rgba(146, 200, 62, 0.3);
+        }
 
-            .login-header p {
-                color: #6b7280;
-                font-size: 16px;
-            }
+        .auth-icon i {
+            font-size: 36px;
+            color: white;
+        }
 
-        .login-form-section {
+        .auth-header h2 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #002B76;
+            margin-bottom: 10px;
+        }
+
+        .auth-header p {
+            color: #6b7280;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        .code-input-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
             margin-bottom: 30px;
+        }
+
+        .code-input {
+            width: 50px;
+            height: 60px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            border: 2px solid #d1d5db;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            background-color: #f9fafb;
+        }
+
+        .code-input:focus {
+            outline: none;
+            border-color: #92C83E;
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.1);
         }
 
         .form-group {
             margin-bottom: 20px;
         }
-
-            .form-group label {
-                display: block;
-                margin-bottom: 6px;
-                font-weight: 600;
-                color: #374151;
-                font-size: 14px;
-            }
 
         .form-control {
             width: 100%;
@@ -149,40 +109,12 @@
             background-color: #f9fafb;
         }
 
-            .form-control:focus {
-                outline: none;
-                border-color: #0078d4;
-                background-color: white;
-                box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.1);
-            }
-
-            .form-control::placeholder {
-                color: #9ca3af;
-            }
-
-
-        /* login Styles*/
-
-        .link {
-            color: #5F5F5F !important;
-            text-align: right;
-            font-size: 0.9rem;
-            display: block;
-            cursor: pointer;
-            margin-top: 0.5rem;
+        .form-control:focus {
+            outline: none;
+            border-color: #92C83E;
+            background-color: white;
+            box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.1);
         }
-
-        .link a {
-            color: #5F5F5F !important;
-        }
-
-        .btn-lime {
-            background-color: #92c83e;
-        }
-
-            .btn-lime:hover {
-                background-color: #7bb82e;
-            }
 
         .btn-lime {
             display: flex;
@@ -190,7 +122,7 @@
             justify-content: center;
             gap: 12px;
             width: 100%;
-            background: #92C83E;
+            background: linear-gradient(135deg, #92C83E 0%, #7bb82e 100%);
             color: white;
             border: none;
             padding: 15px 30px;
@@ -199,147 +131,68 @@
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            margin-bottom: 15px;
-        }
-
-            .btn-lime:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(146, 200, 62, 0.3);
-            }
-
-            .btn-lime:active {
-                transform: translateY(0);
-            }
-
-        /* .forgot-password {
-            text-align: center;
             margin-bottom: 20px;
         }
 
-            .forgot-password a {
-                color: #0078d4;
-                text-decoration: none;
-                font-size: 14px;
-                font-weight: 500;
-            }
+        .btn-lime:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(146, 200, 62, 0.3);
+        }
 
-                .forgot-password a:hover {
-                    text-decoration: underline;
-                } */
+        .btn-lime:active {
+            transform: translateY(0);
+        }
 
-
-      /*   .azure-login-section {
+        .resend-section {
             text-align: center;
-            margin-bottom: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
         }
 
-        .microsoft-login-button {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            width: 100%;
-            background: linear-gradient(135deg, #0078d4 0%, #106ebe 100%);
-            color: white;
-            text-decoration: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            border: none;
-            cursor: pointer;
-            margin-bottom: 20px;
-        }
-
-            .microsoft-login-button:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(0, 120, 212, 0.3);
-                text-decoration: none;
-                color: white;
-            }
-
-            .microsoft-login-button i {
-                font-size: 20px;
-            }
- */
-        .security-notice {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 15px;
-            background-color: #f0f9ff;
-            border: 1px solid #bae6fd;
-            border-radius: 8px;
-            text-align: left;
-        }
-
-            .security-notice i {
-                color: #0284c7;
-                font-size: 20px;
-                flex-shrink: 0;
-            }
-
-            .security-notice strong {
-                display: block;
-                color: #0284c7;
-                font-size: 14px;
-                margin-bottom: 2px;
-            }
-
-            .security-notice p {
-                font-size: 12px;
-                color: #0369a1;
-                margin: 0;
-                line-height: 1.3;
-            }
-
-        .divider {
-            text-align: center;
-            margin: 30px 0;
-            position: relative;
+        .resend-section p {
             color: #6b7280;
             font-size: 14px;
+            margin-bottom: 10px;
         }
 
-            .divider::before {
-                content: '';
-                position: absolute;
-                top: 50%;
-                left: 0;
-                right: 0;
-                height: 1px;
-                background-color: #d1d5db;
-                z-index: 1;
-            }
-
-            .divider span {
-                background-color: white;
-                padding: 0 20px;
-                position: relative;
-                z-index: 2;
-            }
-
-        .guest-access {
-            text-align: center;
-        }
-
-        .guest-button {
+        .resend-link {
             color: #92C83E;
             text-decoration: none;
             font-weight: 600;
-            border: 2px solid #92C83E;
-            padding: 12px 25px;
-            border-radius: 8px;
+            font-size: 14px;
             transition: all 0.3s ease;
-            display: inline-block;
         }
 
-            .guest-button:hover {
-                background-color: #92C83E;
-                color: white;
-                text-decoration: none;
-            }
+        .resend-link:hover {
+            color: #7bb82e;
+            text-decoration: underline;
+        }
+
+        .resend-link:disabled {
+            color: #9ca3af;
+            cursor: not-allowed;
+            text-decoration: none;
+        }
+
+        .timer {
+            color: #002B76;
+            font-weight: 600;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #6b7280;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #002B76;
+        }
 
         .alert-error {
             display: flex;
@@ -353,67 +206,61 @@
             color: #dc2626;
         }
 
-        /* Mobile responsive */
-        @@media (max-width: 768px) {
-            .login-container
-
-        {
-            grid-template-columns: 1fr;
-            max-width: 400px;
-            margin: 20px;
-        }
-
-        .login-left {
-            padding: 30px 20px;
-            min-height: 200px;
-        }
-
-        .login-logo {
-            width: 80px;
-            height: 80px;
+        .alert-success {
+            display: flex;
+            align-items: center;
+            gap: 10px;
             margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f0fdf4;
+            border: 1px solid #86efac;
+            border-radius: 8px;
+            color: #16a34a;
         }
 
-        .login-brand h1 {
-            font-size: 24px;
+        .trust-device {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 15px;
+            background-color: #f0f9ff;
+            border: 1px solid #bae6fd;
+            border-radius: 8px;
         }
 
-        .login-right {
-            padding: 30px 20px;
+        .trust-device input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
         }
 
-        .login-header h2 {
-            font-size: 28px;
-        }
-
+        .trust-device label {
+            cursor: pointer;
+            color: #0369a1;
+            font-size: 14px;
         }
 
         @@media (max-width: 480px) {
-            .login-page
+            .auth-container {
+                padding: 30px 20px;
+            }
 
-        {
-            padding: 10px;
+            .code-input-group {
+                gap: 6px;
+            }
+
+            .code-input {
+                width: 42px;
+                height: 50px;
+                font-size: 20px;
+            }
+
+            .auth-header h2 {
+                font-size: 24px;
+            }
         }
 
-        .login-container {
-            margin: 10px;
-        }
-
-        .login-left {
-            padding: 20px 15px;
-        }
-
-        .login-right {
-            padding: 20px 15px;
-        }
-
-        .login-header h2 {
-            font-size: 24px;
-        }
-
-        }
-
-        /* Reset default styles */
         * {
             box-sizing: border-box;
         }
@@ -423,99 +270,148 @@
             padding: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-
-
     </style>
 </head>
 <body class="login-page">
-    <div class="login-container">
-        <div class="login-left">
-            <img src="~/img/gcclogo.png" alt="GreenCircle Logo" class="login-logo" />
-            <div class="login-brand">
-                <h1>GreenCircle Certified Database</h1>
-                <p>Access your sustainability certification database.</p>
+    <div class="auth-container">
+        <a href="@Url.Action("Login", "Account")" class="back-link">
+            <i class="fas fa-arrow-left"></i>
+            Back to login
+        </a>
+
+        <div class="auth-header">
+            <div class="auth-icon">
+                <i class="fas fa-shield-alt"></i>
             </div>
+            <h2>Two-Factor Authentication</h2>
+            <p>Enter the 6-digit code from your authenticator app</p>
         </div>
 
-        <div class="login-right">
-            <div class="login-header">
-                <h2>Welcome Back</h2>
-                <p>Sign in to your account</p>
+        @if (!string.IsNullOrEmpty(ViewBag.Error))
+        {
+            <div class="alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                @ViewBag.Error
             </div>
+        }
 
-            @if (!string.IsNullOrEmpty(ViewBag.Error))
-            {
-                <div class="alert-error">
-                    <i class="fas fa-exclamation-circle"></i>
-                    @ViewBag.Error
+        @if (!string.IsNullOrEmpty(ViewBag.Success))
+        {
+            <div class="alert-success">
+                <i class="fas fa-check-circle"></i>
+                @ViewBag.Success
+            </div>
+        }
+
+        <form asp-controller="Account" asp-action="Verify2FA" method="post">
+            <div class="form-group">
+                <div class="code-input-group">
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
                 </div>
-            }
-
-            @if (TempData["Message"] != null)
-            {
-                <div class="alert-error">
-                    <i class="fas fa-info-circle"></i>
-                    @TempData["Message"]
-                </div>
-            }
-
-            <div class="login-form-section">
-                <form asp-controller="Account" asp-action="Login" asp-route-returnUrl="@ViewData["ReturnUrl"]" method="post">
-                    <div class="form-group">
-                       <input type="email" id="Email" name="Email" class="form-control" placeholder="Enter your email" required />
-                    </div>
-
-                    <div class="form-group">
-                        <input type="password" id="Password" name="Password" class="form-control" placeholder="Enter your password" required />
-                    </div>
-
-                    <button type="submit" class="btn-lime">Login</button>
-
-                    <div class="link">
-                        <a asp-controller="Account" asp-action="ForgotPassword">Forgot Password</a>
-                    </div>
-                </form>
-
-                
+                <input type="hidden" id="AuthCode" name="AuthCode" />
             </div>
 
-            <div class="divider">
-                @* <span>or</span> *@
+            <div class="trust-device">
+                <input type="checkbox" id="TrustDevice" name="TrustDevice" />
+                <label for="TrustDevice">Trust this device for 30 days</label>
             </div>
 
-            <div class="guest-access">
-               @*  <a asp-controller="Certificate" asp-action="CertificateExternalView" class="guest-button">
-                    Continue as Guest
-                </a> *@
-            </div>
-            <div class="security-notice">
-                <i class="fas fa-shield-alt"></i>
-                <div>
-                    <strong>Secure Authentication</strong>
-                    <p>Your credentials are protected with industry-standard encryption</p>
-                </div>
-            </div>
+            <button type="submit" class="btn-lime">
+                <i class="fas fa-lock"></i>
+                Verify Code
+            </button>
+        </form>
+
+        <div class="resend-section">
+            <p>Didn't receive a code?</p>
+            <a href="#" class="resend-link" id="resendLink">
+                Resend code <span class="timer" id="timer"></span>
+            </a>
         </div>
     </div>
 
-    <!-- Optional: Add some loading functionality -->
     <script>
-              document.addEventListener('DOMContentLoaded', function() {
-            // Add loading state to login button
-            const loginButton = document.querySelector('.login-button');
-            const loginForm = document.querySelector('form');
-
-            if (loginForm) {
-                loginForm.addEventListener('submit', function() {
-                    if (loginButton) {
-                        loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Signing in...</span>';
-                        loginButton.style.pointerEvents = 'none';
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auto-focus and auto-advance for code inputs
+            const codeInputs = document.querySelectorAll('.code-input');
+            const authCodeField = document.getElementById('AuthCode');
+            
+            codeInputs[0].focus();
+            
+            codeInputs.forEach((input, index) => {
+                input.addEventListener('input', function() {
+                    if (this.value.length === 1) {
+                        if (index < codeInputs.length - 1) {
+                            codeInputs[index + 1].focus();
+                        }
+                    }
+                    updateAuthCode();
+                });
+                
+                input.addEventListener('keydown', function(e) {
+                    if (e.key === 'Backspace' && this.value === '') {
+                        if (index > 0) {
+                            codeInputs[index - 1].focus();
+                        }
                     }
                 });
+                
+                input.addEventListener('paste', function(e) {
+                    e.preventDefault();
+                    const pastedData = e.clipboardData.getData('text').slice(0, 6);
+                    const digits = pastedData.split('');
+                    digits.forEach((digit, i) => {
+                        if (i < codeInputs.length && /[0-9]/.test(digit)) {
+                            codeInputs[i].value = digit;
+                        }
+                    });
+                    updateAuthCode();
+                });
+            });
+            
+            function updateAuthCode() {
+                let code = '';
+                codeInputs.forEach(input => {
+                    code += input.value;
+                });
+                authCodeField.value = code;
             }
-
-            // Rest of your existing JavaScript code...
+            
+            // Resend timer
+            let countdown = 60;
+            const resendLink = document.getElementById('resendLink');
+            const timer = document.getElementById('timer');
+            
+            function updateTimer() {
+                if (countdown > 0) {
+                    timer.textContent = `(${countdown}s)`;
+                    resendLink.style.pointerEvents = 'none';
+                    resendLink.style.opacity = '0.5';
+                    countdown--;
+                    setTimeout(updateTimer, 1000);
+                } else {
+                    timer.textContent = '';
+                    resendLink.style.pointerEvents = 'auto';
+                    resendLink.style.opacity = '1';
+                }
+            }
+            
+            updateTimer();
+            
+            resendLink.addEventListener('click', function(e) {
+                if (countdown > 0) {
+                    e.preventDefault();
+                    return;
+                }
+                countdown = 60;
+                updateTimer();
+                // Add actual resend logic here
+            });
         });
     </script>
 </body>

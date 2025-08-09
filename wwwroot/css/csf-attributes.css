@@ -301,6 +301,66 @@
     background: rgba(146, 200, 62, 0.05);
 }
 
+/* CSF Add Row Styles */
+.csf-add-row {
+    display: none;
+    background-color: #f8f9fa;
+}
+
+.csf-add-row.active {
+    display: table-row;
+}
+
+.csf-edit-input, .csf-edit-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--blue-primary);
+    border-radius: 4px;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.csf-edit-input:focus, .csf-edit-select:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+}
+
+.csf-add-actions {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.csf-btn-save, .csf-btn-cancel {
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    border: none;
+    transition: var(--transition);
+}
+
+.csf-btn-save {
+    background-color: var(--green-secondary);
+    color: white;
+}
+
+.csf-btn-save:hover {
+    background-color: var(--green-primary);
+}
+
+.csf-btn-cancel {
+    background-color: #f8f9fa;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.csf-btn-cancel:hover {
+    background-color: #e2e6ea;
+}
+
 /* ===== FOOTER INFO ===== */
 .footer-info {
     text-align: right;

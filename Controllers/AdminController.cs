@@ -1,32 +1,25 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using GCCWebApp.Models;
+using GCCWebApp.Services;
 using System.Text.Json;
 
 namespace GCCWebApp.Controllers
 {
+    [Authorize(Policy = "AdminOnly")]
     public class AdminController : Controller
     {
-        // GET: Admin Dashboard
-        public IActionResult Index()
+        private readonly IAdminService _adminService;
+
+        public AdminController(IAdminService adminService)
         {
-            var dashboardModel = new AdminDashboardViewModel
-            {
-                TotalUsers = 45,
-                TotalCompanies = 12,
-                TotalCertificates = 156,
-                TotalProducts = 89,
-                ActiveUsers = 38,
-                PendingCertificates = 7,
-                LastDataUpdate = DateTime.Now,
-                RecentActivity = new List<string>
-                {
-                    "New user Sarah Johnson added",
-                    "Certificate updated for Product ABC",
-                    "New company ASSA ABLOY registered",
-                    "Tag 'Sustainable Materials' updated"
-                }
-            };
-            
+            _adminService = adminService;
+        }
+
+        // GET: Admin Dashboard
+        public async Task<IActionResult> Index()
+        {
+            var dashboardModel = await _adminService.GetDashboardDataAsync();
             return View(dashboardModel);
         }
 
@@ -37,40 +30,25 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetUsers()
+        public async Task<IActionResult> GetUsers()
         {
-            // Sample data - in real app, fetch from database
-            var users = new List<UserViewModel>
+            try
             {
-                new UserViewModel 
+                var users = await _adminService.GetUsersAsync();
+                return Json(new ApiResponse<List<UserViewModel>> { Success = true, Data = users });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<UserViewModel>> 
                 { 
-                    Id = 1, 
-                    Name = "Sarah Johnson", 
-                    Email = "sarah.johnson@assaabloy.com", 
-                    Role = "admin", 
-                    Status = "active",
-                    CompanyNames = new List<string> { "ASSA ABLOY" },
-                    PartnerNames = new List<string> { "Amazon" },
-                    LastLogin = DateTime.Now.AddHours(-2)
-                },
-                new UserViewModel 
-                { 
-                    Id = 2, 
-                    Name = "Mike Chen", 
-                    Email = "mike.chen@greencircle.com", 
-                    Role = "user", 
-                    Status = "active",
-                    CompanyNames = new List<string> { "GreenCircle" },
-                    PartnerNames = new List<string> { "Amazon", "Wayfair" },
-                    LastLogin = DateTime.Now.AddDays(-1)
-                }
-            };
-
-            return Json(new ApiResponse<List<UserViewModel>> { Success = true, Data = users });
+                    Success = false, 
+                    Message = "Error retrieving users: " + ex.Message 
+                });
+            }
         }
 
         [HttpPost]
-        public IActionResult CreateUser([FromBody] CreateUserViewModel model)
+        public async Task<IActionResult> CreateUser([FromBody] CreateUserViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -82,13 +60,26 @@ namespace GCCWebApp.Controllers
                 });
             }
 
-            // In real app: save to database
-            // For demo: return success
-            return Json(new ApiResponse<object> { Success = true, Message = "User created successfully" });
+            try
+            {
+                var success = await _adminService.CreateUserAsync(model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "User created successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Failed to create user" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error creating user: " + ex.Message });
+            }
         }
 
         [HttpPut]
-        public IActionResult UpdateUser(int id, [FromBody] UserViewModel model)
+        public async Task<IActionResult> UpdateUser(int id, [FromBody] UserViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -100,15 +91,43 @@ namespace GCCWebApp.Controllers
                 });
             }
 
-            // In real app: update in database
-            return Json(new ApiResponse<object> { Success = true, Message = "User updated successfully" });
+            try
+            {
+                var success = await _adminService.UpdateUserAsync(id, model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "User updated successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "User not found or update failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error updating user: " + ex.Message });
+            }
         }
 
         [HttpDelete]
-        public IActionResult DeleteUser(int id)
+        public async Task<IActionResult> DeleteUser(int id)
         {
-            // In real app: delete from database
-            return Json(new ApiResponse<object> { Success = true, Message = "User deleted successfully" });
+            try
+            {
+                var success = await _adminService.DeleteUserAsync(id);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "User deleted successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "User not found or delete failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error deleting user: " + ex.Message });
+            }
         }
 
         // Role Management
@@ -118,47 +137,39 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetRoles()
+        public async Task<IActionResult> GetRoles()
         {
-            var roles = new List<RoleViewModel>
+            try
             {
-                new RoleViewModel 
+                var roles = await _adminService.GetRolesAsync();
+                return Json(new ApiResponse<List<RoleViewModel>> { Success = true, Data = roles });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<RoleViewModel>> 
                 { 
-                    Id = 1, 
-                    Name = "Admin", 
-                    Description = "Full system access",
-                    Permissions = new List<string> { "view-certificates", "edit-certificates", "delete-certificates", "manage-users", "admin-access" },
-                    UserCount = 2
-                },
-                new RoleViewModel 
-                { 
-                    Id = 2, 
-                    Name = "User", 
-                    Description = "Standard user access",
-                    Permissions = new List<string> { "view-certificates", "edit-certificates" },
-                    UserCount = 15
-                }
-            };
-
-            return Json(new ApiResponse<List<RoleViewModel>> { Success = true, Data = roles });
+                    Success = false, 
+                    Message = "Error retrieving roles: " + ex.Message 
+                });
+            }
         }
 
         [HttpGet]
-        public IActionResult GetPermissions()
+        public async Task<IActionResult> GetPermissions()
         {
-            var permissions = new List<PermissionViewModel>
+            try
             {
-                new PermissionViewModel { Name = "view-certificates", DisplayName = "View Certificates", Category = "Certificates" },
-                new PermissionViewModel { Name = "edit-certificates", DisplayName = "Edit Certificates", Category = "Certificates" },
-                new PermissionViewModel { Name = "delete-certificates", DisplayName = "Delete Certificates", Category = "Certificates" },
-                new PermissionViewModel { Name = "export-certificates", DisplayName = "Export Certificates", Category = "Certificates" },
-                new PermissionViewModel { Name = "manage-users", DisplayName = "Manage Users", Category = "User Management" },
-                new PermissionViewModel { Name = "manage-companies", DisplayName = "Manage Companies", Category = "Company Management" },
-                new PermissionViewModel { Name = "view-analytics", DisplayName = "View Analytics", Category = "Analytics" },
-                new PermissionViewModel { Name = "admin-access", DisplayName = "Admin Access", Category = "System" }
-            };
-
-            return Json(new ApiResponse<List<PermissionViewModel>> { Success = true, Data = permissions });
+                var permissions = await _adminService.GetPermissionsAsync();
+                return Json(new ApiResponse<List<PermissionViewModel>> { Success = true, Data = permissions });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<PermissionViewModel>> 
+                { 
+                    Success = false, 
+                    Message = "Error retrieving permissions: " + ex.Message 
+                });
+            }
         }
 
         // Google Analytics
@@ -202,18 +213,21 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetProductTypes()
+        public async Task<IActionResult> GetProductTypes()
         {
-            var productTypes = new List<ProductTypeViewModel>
+            try
             {
-                new ProductTypeViewModel { Id = 1, Name = "Construction & Building Materials", Level = 1, SortOrder = 1 },
-                new ProductTypeViewModel { Id = 2, Name = "Adhesives & Sealants", ParentId = 1, Level = 2, SortOrder = 1, ParentName = "Construction & Building Materials" },
-                new ProductTypeViewModel { Id = 3, Name = "Building Materials", ParentId = 1, Level = 2, SortOrder = 2, ParentName = "Construction & Building Materials" },
-                new ProductTypeViewModel { Id = 4, Name = "Paper & Packaging", Level = 1, SortOrder = 2 },
-                new ProductTypeViewModel { Id = 5, Name = "Corrugated Products", ParentId = 4, Level = 2, SortOrder = 1, ParentName = "Paper & Packaging" }
-            };
-
-            return Json(new ApiResponse<List<ProductTypeViewModel>> { Success = true, Data = productTypes });
+                var productTypes = await _adminService.GetProductTypesAsync();
+                return Json(new ApiResponse<List<ProductTypeViewModel>> { Success = true, Data = productTypes });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<ProductTypeViewModel>>
+                {
+                    Success = false,
+                    Message = "Error retrieving product types: " + ex.Message
+                });
+            }
         }
 
         // Certificate Types
@@ -223,16 +237,21 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetCertificateTypes()
+        public async Task<IActionResult> GetCertificateTypes()
         {
-            var certificateTypes = new List<CertificateTypeViewModel>
+            try
             {
-                new CertificateTypeViewModel { Id = 1, Name = "Environmental Product Declaration", Description = "EPD certification", IsActive = true, CertificateCount = 25 },
-                new CertificateTypeViewModel { Id = 2, Name = "GREENGUARD Certified", Description = "Low chemical emissions", IsActive = true, CertificateCount = 18 },
-                new CertificateTypeViewModel { Id = 3, Name = "Cradle to Cradle", Description = "Circular economy certification", IsActive = true, CertificateCount = 12 }
-            };
-
-            return Json(new ApiResponse<List<CertificateTypeViewModel>> { Success = true, Data = certificateTypes });
+                var certificateTypes = await _adminService.GetCertificateTypesAsync();
+                return Json(new ApiResponse<List<CertificateTypeViewModel>> { Success = true, Data = certificateTypes });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<CertificateTypeViewModel>>
+                {
+                    Success = false,
+                    Message = "Error retrieving certificate types: " + ex.Message
+                });
+            }
         }
 
         // Certificate Fields
@@ -370,29 +389,39 @@ namespace GCCWebApp.Controllers
 
         // Lookup data for dropdowns
         [HttpGet]
-        public IActionResult GetCompanies()
+        public async Task<IActionResult> GetCompanies()
         {
-            var companies = new List<LookupItem>
+            try
             {
-                new LookupItem { Id = 1, Name = "ASSA ABLOY", IsActive = true },
-                new LookupItem { Id = 2, Name = "GreenCircle", IsActive = true },
-                new LookupItem { Id = 3, Name = "Test Company", IsActive = true }
-            };
-
-            return Json(new ApiResponse<List<LookupItem>> { Success = true, Data = companies });
+                var companies = await _adminService.GetCompaniesAsync();
+                return Json(new ApiResponse<List<LookupItem>> { Success = true, Data = companies });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<LookupItem>>
+                {
+                    Success = false,
+                    Message = "Error retrieving companies: " + ex.Message
+                });
+            }
         }
 
         [HttpGet]
-        public IActionResult GetRolesList()
+        public async Task<IActionResult> GetRolesList()
         {
-            var roles = new List<LookupItem>
+            try
             {
-                new LookupItem { Id = 1, Name = "admin", Description = "Administrator" },
-                new LookupItem { Id = 2, Name = "user", Description = "Standard User" },
-                new LookupItem { Id = 3, Name = "viewer", Description = "Read-only User" }
-            };
-
-            return Json(new ApiResponse<List<LookupItem>> { Success = true, Data = roles });
+                var roles = await _adminService.GetRolesListAsync();
+                return Json(new ApiResponse<List<LookupItem>> { Success = true, Data = roles });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<LookupItem>>
+                {
+                    Success = false,
+                    Message = "Error retrieving roles: " + ex.Message
+                });
+            }
         }
 
         // Generic CRUD operations for simple entities
@@ -419,16 +448,29 @@ namespace GCCWebApp.Controllers
 
         // Export functionality
         [HttpGet]
-        public IActionResult ExportData(string entityType, string format = "csv")
+        public async Task<IActionResult> ExportData(string entityType, string format = "csv")
         {
-            // In real app: generate actual export file
-            var fileName = $"{entityType}_{DateTime.Now:yyyyMMdd}.{format}";
-            
-            // Return sample CSV content
-            var content = "Name,Type,Status\nSample Data,Test,Active";
-            var bytes = System.Text.Encoding.UTF8.GetBytes(content);
-            
-            return File(bytes, "text/csv", fileName);
+            try
+            {
+                var bytes = await _adminService.ExportDataAsync(entityType, format);
+                var fileName = $"{entityType}_{DateTime.Now:yyyyMMdd}.{format}";
+                
+                var contentType = format.ToLower() switch
+                {
+                    "csv" => "text/csv",
+                    "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    _ => "text/plain"
+                };
+                
+                return File(bytes, contentType, fileName);
+            }
+            catch (Exception ex)
+            {
+                // Return error as plain text file
+                var errorContent = $"Error exporting {entityType}: {ex.Message}";
+                var errorBytes = System.Text.Encoding.UTF8.GetBytes(errorContent);
+                return File(errorBytes, "text/plain", $"error_{DateTime.Now:yyyyMMdd}.txt");
+            }
         }
 
         // Legacy action for existing view

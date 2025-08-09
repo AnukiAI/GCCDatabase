@@ -1,283 +1,242 @@
-﻿using GCCWebApp.Controllers;
-using GreenCircleCertified.Models;
-using Microsoft.AspNetCore.Mvc;
-using System;
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using GCCWebApp.Models;
+using GCCWebApp.Data;
 
-namespace GreenCircleCertified.Services
+namespace GCCWebApp.Services
 {
-    public class Interfaces
+    public class FilterService : IFilterService
     {
-   
+        private readonly ILogger<FilterService> _logger;
+        private readonly ApplicationDbContext _context;
 
-    /// <summary>
-    /// Service interface for certificate operations
-    /// </summary>
-    public interface ICertificateService
-    {
-        /// <summary>
-        /// Get paginated list of certificates with filtering and sorting
-        /// </summary>
-        Task<CertificateListResponse> GetCertificatesAsync(CertificateListRequest request);
-
-        /// <summary>
-        /// Get detailed certificate information by ID
-        /// </summary>
-        Task<CertificateDetailModel> GetCertificateDetailsAsync(int id, UserRole userRole);
-
-        /// <summary>
-        /// Get certificate download information
-        /// </summary>
-        Task<CertificateDownloadModel> GetCertificateDownloadAsync(int id, UserRole userRole);
-
-        /// <summary>
-        /// Log certificate download activity
-        /// </summary>
-        Task LogDownloadActivityAsync(CertificateDownloadModel downloadModel);
-
-        /// <summary>
-        /// Export certificates to various formats
-        /// </summary>
-        Task<byte[]> ExportCertificatesAsync(CertificateListRequest request, string format);
-
-        /// <summary>
-        /// Get certificate statistics for dashboard
-        /// </summary>
-        Task<CertificateStatistics> GetCertificateStatisticsAsync(UserRole userRole);
-
-        /// <summary>
-        /// Perform bulk operations on certificates
-        /// </summary>
-        Task<BulkActionResult> PerformBulkActionAsync(BulkActionRequest request);
-
-        /// <summary>
-        /// Get search suggestions for autocomplete
-        /// </summary>
-        Task<List<string>> GetSearchSuggestionsAsync(string term, string type, UserRole userRole);
-
-        /// <summary>
-        /// Validate certificate by certificate number
-        /// </summary>
-        Task<CertificateValidationResult> ValidateCertificateAsync(string certificateNumber);
-
-        /// <summary>
-        /// Create a new certificate
-        /// </summary>
-        Task<int> CreateCertificateAsync(CertificateDetailModel certificate, UserRole userRole);
-
-        /// <summary>
-        /// Update an existing certificate
-        /// </summary>
-        Task<bool> UpdateCertificateAsync(CertificateDetailModel certificate, UserRole userRole);
-
-        /// <summary>
-        /// Delete a certificate by ID
-        /// </summary>
-        Task<bool> DeleteCertificateAsync(int id, UserRole userRole);
-
-        /// <summary>
-        /// Get certificate by certificate number
-        /// </summary>
-        Task<CertificateDetailModel> GetCertificateByCertificateNumberAsync(string certificateNumber, UserRole userRole);
-    }
-
-    /// <summary>
-    /// Service interface for filter operations
-    /// </summary>
-    public interface IFilterService
-    {
-        /// <summary>
-        /// Get available filters for the specified user role
-        /// </summary>
-        Task<List<FilterOption>> GetAvailableFiltersAsync(UserRole userRole);
-
-        /// <summary>
-        /// Get filter options for a specific filter type
-        /// </summary>
-        Task<List<FilterOption>> GetFilterOptionsAsync(string filterType, string searchTerm, UserRole userRole);
-
-        /// <summary>
-        /// Get hierarchical product categories for filtering
-        /// </summary>
-        Task<List<FilterOption>> GetProductCategoriesAsync(UserRole userRole);
-
-        /// <summary>
-        /// Get list of companies for filtering
-        /// </summary>
-        Task<List<FilterOption>> GetCompaniesAsync(string searchTerm, UserRole userRole);
-
-        /// <summary>
-        /// Get list of countries for filtering
-        /// </summary>
-        Task<List<FilterOption>> GetCountriesAsync(UserRole userRole);
-
-        /// <summary>
-        /// Get list of certification types for filtering
-        /// </summary>
-        Task<List<FilterOption>> GetCertificationTypesAsync(UserRole userRole);
-
-        /// <summary>
-        /// Build filter query based on applied filters
-        /// </summary>
-        string BuildFilterQuery(CertificateSearchFilters filters);
-
-        /// <summary>
-        /// Get filter counts for current search
-        /// </summary>
-        Task<Dictionary<string, int>> GetFilterCountsAsync(CertificateSearchFilters filters, UserRole userRole);
-    }
-
-    /// <summary>
-    /// Service interface for user management
-    /// </summary>
-    public interface IUserService
-    {
-        /// <summary>
-        /// Get current user information
-        /// </summary>
-        Task<UserInfo> GetCurrentUserAsync();
-
-        /// <summary>
-        /// Check if user has permission for specific action
-        /// </summary>
-        bool HasPermission(UserRole userRole, string action);
-
-        /// <summary>
-        /// Log user activity
-        /// </summary>
-        Task LogUserActivityAsync(string action, string details, UserRole userRole);
-    }
-
-    /// <summary>
-    /// Service interface for audit logging
-    /// </summary>
-    public interface IAuditService
-    {
-        /// <summary>
-        /// Log certificate access
-        /// </summary>
-        Task LogCertificateAccessAsync(int certificateId, UserRole userRole, string action);
-
-        /// <summary>
-        /// Log search activity
-        /// </summary>
-        Task LogSearchActivityAsync(string searchTerm, CertificateSearchFilters filters, UserRole userRole, int resultCount);
-
-        /// <summary>
-        /// Log download activity
-        /// </summary>
-        Task LogDownloadActivityAsync(int certificateId, UserRole userRole, string fileName);
-
-        /// <summary>
-        /// Get audit trail for certificate
-        /// </summary>
-        Task<List<CertificateAuditEntry>> GetCertificateAuditTrailAsync(int certificateId);
-    }
-
-    /// <summary>
-    /// Service interface for caching
-    /// </summary>
-    public interface ICacheService
-    {
-        /// <summary>
-        /// Get cached data
-        /// </summary>
-        Task<T> GetAsync<T>(string key) where T : class;
-
-        /// <summary>
-        /// Set cached data
-        /// </summary>
-        Task SetAsync<T>(string key, T data, TimeSpan? expiration = null) where T : class;
-
-        /// <summary>
-        /// Remove cached data
-        /// </summary>
-        Task RemoveAsync(string key);
-
-        /// <summary>
-        /// Clear cache by pattern
-        /// </summary>
-        Task ClearByPatternAsync(string pattern);
-    }
-
-    /// <summary>
-    /// Service interface for email notifications
-    /// </summary>
-    public interface IEmailService
-    {
-        /// <summary>
-        /// Send certificate expiration notification
-        /// </summary>
-        Task SendExpirationNotificationAsync(CertificateDetailModel certificate, List<string> recipients);
-
-        /// <summary>
-        /// Send download notification
-        /// </summary>
-        Task SendDownloadNotificationAsync(CertificateDownloadModel download, string recipientEmail);
-
-        /// <summary>
-        /// Send bulk operation notification
-        /// </summary>
-        Task SendBulkOperationNotificationAsync(BulkActionResult result, string recipientEmail);
-    }
-
-    #region Supporting Models for Services
-
-    /// <summary>
-    /// Certificate statistics model
-    /// </summary>
-    public class CertificateStatistics
-    {
-        public int TotalCertificates { get; set; }
-        public int ActiveCertificates { get; set; }
-        public int ExpiredCertificates { get; set; }
-        public int ExpiringSoonCertificates { get; set; }
-        public int PendingCertificates { get; set; }
-        public Dictionary<string, int> CertificatesByType { get; set; } = new Dictionary<string, int>();
-        public Dictionary<string, int> CertificatesByCountry { get; set; } = new Dictionary<string, int>();
-        public Dictionary<string, int> CertificatesByMonth { get; set; } = new Dictionary<string, int>();
-        public DateTime LastUpdated { get; set; } = DateTime.UtcNow;
-    }
-
-    /// <summary>
-    /// User information model
-    /// </summary>
-    public class UserInfo
-    {
-        public int Id { get; set; }
-        public string Email { get; set; }
-        public string Name { get; set; }
-        public UserRole Role { get; set; }
-        public bool IsAuthenticated { get; set; }
-        public DateTime LastLoginDate { get; set; }
-        public List<string> Permissions { get; set; } = new List<string>();
-    }
-
-    /// <summary>
-    /// Search suggestion model
-    /// </summary>
-    public class SearchSuggestion
-    {
-        public string Text { get; set; }
-        public string Type { get; set; } // "company", "product", "certification_type", etc.
-        public int Count { get; set; }
-        public string Category { get; set; }
-    }
-
-    /// <summary>
-    /// Extension method for rendering views to string (for AJAX responses)
-    /// </summary>
-    public static class ControllerExtensions
-    {
-        public static async Task<string> RenderViewAsync<TModel>(this Controller controller, string viewName, TModel model)
+        public FilterService(ILogger<FilterService> logger, ApplicationDbContext context)
         {
-            // Implementation would use ICompositeViewEngine to render view to string
-            // This is a placeholder for the actual implementation
-            return await Task.FromResult($"<!-- Rendered view: {viewName} -->");
+            _logger = logger;
+            _context = context;
         }
-    }
 
-        #endregion
+        public async Task<List<FilterOption>> GetAvailableFiltersAsync(string userRole)
+        {
+            var filters = new List<FilterOption>
+            {
+                new FilterOption { FilterType = "CertificationType", Text = "Certification Types", Count = await _context.CertificationTypes.CountAsync() },
+                new FilterOption { FilterType = "ProductCategories", Text = "Product Categories", Count = await _context.ProductCategories.CountAsync() },
+                new FilterOption { FilterType = "Companies", Text = "Companies", Count = await _context.Companies.CountAsync() },
+                new FilterOption { FilterType = "Countries", Text = "Countries", Count = await _context.Certificates.Where(c => !string.IsNullOrEmpty(c.Country)).Select(c => c.Country).Distinct().CountAsync() },
+                new FilterOption { FilterType = "Status", Text = "Status", Count = await _context.Certificates.Select(c => c.Status).Distinct().CountAsync() }
+            };
+
+            return filters;
+        }
+
+        public async Task<List<FilterOption>> GetFilterOptionsAsync(string filterType, string searchTerm, string userRole)
+        {
+            var options = new List<FilterOption>();
+
+            try
+            {
+                switch (filterType.ToLower())
+                {
+                    case "certificationtype":
+                        var query = _context.CertificationTypes.AsQueryable();
+                        if (!string.IsNullOrWhiteSpace(searchTerm))
+                            query = query.Where(ct => ct.Name.Contains(searchTerm));
+
+                        options = await query
+                            .Select(ct => new FilterOption
+                            {
+                                Value = ct.Id.ToString(),
+                                Text = ct.Name,
+                                Count = ct.Certificates.Count()
+                            })
+                            .ToListAsync();
+                        break;
+
+                    case "companies":
+                        var companyQuery = _context.Companies.AsQueryable();
+                        if (!string.IsNullOrWhiteSpace(searchTerm))
+                            companyQuery = companyQuery.Where(c => c.Name.Contains(searchTerm));
+
+                        options = await companyQuery
+                            .Select(c => new FilterOption
+                            {
+                                Value = c.Id.ToString(),
+                                Text = c.Name,
+                                Count = c.Certificates.Count()
+                            })
+                            .ToListAsync();
+                        break;
+
+                    case "countries":
+                        var countryQuery = _context.Certificates
+                            .Where(c => !string.IsNullOrEmpty(c.Country))
+                            .GroupBy(c => c.Country)
+                            .AsQueryable();
+
+                        if (!string.IsNullOrWhiteSpace(searchTerm))
+                            countryQuery = countryQuery.Where(g => g.Key.Contains(searchTerm));
+
+                        options = await countryQuery
+                            .Select(g => new FilterOption
+                            {
+                                Value = g.Key,
+                                Text = g.Key!,
+                                Count = g.Count()
+                            })
+                            .ToListAsync();
+                        break;
+
+                    case "status":
+                        options = await _context.Certificates
+                            .GroupBy(c => c.Status)
+                            .Select(g => new FilterOption
+                            {
+                                Value = g.Key,
+                                Text = g.Key,
+                                Count = g.Count()
+                            })
+                            .ToListAsync();
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting filter options for type: {FilterType}", filterType);
+            }
+
+            return options;
+        }
+
+        public async Task<List<FilterOption>> GetProductCategoriesAsync(string userRole)
+        {
+            try
+            {
+                return await _context.ProductCategories
+                    .Select(pc => new FilterOption
+                    {
+                        Value = pc.Id.ToString(),
+                        Text = pc.Name,
+                        Count = pc.Products.Sum(p => p.Certificates.Count()),
+                        Children = pc.ProductTypes.Select(pt => new FilterOption
+                        {
+                            Value = pt.Id.ToString(),
+                            Text = pt.Name,
+                            Count = pt.Products.Sum(p => p.Certificates.Count()),
+                            Level = 2
+                        }).ToList()
+                    })
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting product categories");
+                return new List<FilterOption>();
+            }
+        }
+
+        public async Task<List<FilterOption>> GetCompaniesAsync(string searchTerm, string userRole)
+        {
+            try
+            {
+                var query = _context.Companies.AsQueryable();
+
+                if (!string.IsNullOrWhiteSpace(searchTerm))
+                    query = query.Where(c => c.Name.Contains(searchTerm));
+
+                return await query
+                    .Select(c => new FilterOption
+                    {
+                        Value = c.Id.ToString(),
+                        Text = c.Name,
+                        Count = c.Certificates.Count()
+                    })
+                    .OrderBy(c => c.Text)
+                    .Take(50) // Limit results for performance
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting companies");
+                return new List<FilterOption>();
+            }
+        }
+
+        public async Task<List<FilterOption>> GetCountriesAsync(string userRole)
+        {
+            try
+            {
+                return await _context.Certificates
+                    .Where(c => !string.IsNullOrEmpty(c.Country))
+                    .GroupBy(c => c.Country)
+                    .Select(g => new FilterOption
+                    {
+                        Value = g.Key,
+                        Text = g.Key!,
+                        Count = g.Count()
+                    })
+                    .OrderBy(f => f.Text)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting countries");
+                return new List<FilterOption>();
+            }
+        }
+
+        public async Task<List<FilterOption>> GetCertificationTypesAsync(string userRole)
+        {
+            try
+            {
+                return await _context.CertificationTypes
+                    .Select(ct => new FilterOption
+                    {
+                        Value = ct.Id.ToString(),
+                        Text = ct.Name,
+                        Count = ct.Certificates.Count()
+                    })
+                    .OrderBy(f => f.Text)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting certification types");
+                return new List<FilterOption>();
+            }
+        }
+
+        public async Task<Dictionary<string, int>> GetFilterCountsAsync(CertificateSearchFilters filters, string userRole)
+        {
+            try
+            {
+                var query = _context.Certificates.AsQueryable();
+
+                // Apply current filters to get accurate counts
+                if (!string.IsNullOrWhiteSpace(filters.SearchTerm))
+                {
+                    var searchTerm = filters.SearchTerm.ToLower();
+                    query = query.Where(c =>
+                        c.Company.Name.ToLower().Contains(searchTerm) ||
+                        c.Product.Name.ToLower().Contains(searchTerm) ||
+                        c.Number.ToLower().Contains(searchTerm));
+                }
+
+                var counts = new Dictionary<string, int>
+                {
+                    { "Total", await query.CountAsync() },
+                    { "Active", await query.CountAsync(c => c.Status == "active") },
+                    { "Expired", await query.CountAsync(c => c.Status == "expired") },
+                    { "Pending", await query.CountAsync(c => c.Status == "pending") }
+                };
+
+                return counts;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting filter counts");
+                return new Dictionary<string, int>();
+            }
+        }
     }
 }

@@ -57,6 +57,44 @@
                 </tr>
             </thead>
             <tbody>
+                <!-- Add CSF Attribute row (initially hidden) -->
+                <tr id="csf-add-row" class="csf-add-row">
+                    <td>
+                        <input type="text" id="new-csf-name" class="csf-edit-input" placeholder="Enter attribute name" required>
+                    </td>
+                    <td>
+                        <select id="new-csf-certification" class="csf-edit-select" required>
+                            <option value="">Select certification</option>
+                            <option value="greenguard">GREENGUARD</option>
+                            <option value="greenguard-gold">GREENGUARD Gold</option>
+                            <option value="cradle-to-cradle">Cradle to Cradle</option>
+                            <option value="energy-star">ENERGY STAR</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select id="new-csf-type" class="csf-edit-select" required>
+                            <option value="">Select type</option>
+                            <option value="text">Text</option>
+                            <option value="number">Number</option>
+                            <option value="boolean">Boolean</option>
+                            <option value="date">Date</option>
+                            <option value="dropdown">Dropdown</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" id="new-csf-description" class="csf-edit-input" placeholder="Optional description">
+                    </td>
+                    <td>
+                        <div class="csf-add-actions" style="display: flex; gap: 5px;">
+                            <button class="csf-btn-save" onclick="saveNewCsfAttribute()">
+                                <i class="fas fa-check"></i> Save
+                            </button>
+                            <button class="csf-btn-cancel" onclick="cancelAddCsfAttribute()">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </td>
+                </tr>
                 <!-- Data will be populated by JavaScript -->
             </tbody>
         </table>
@@ -67,63 +105,8 @@
     </div>
 </div>
 
-<!-- Add/Edit CSF Attribute Modal -->
-<div id="csf-modal" class="modal">
-    <div class="modal-overlay"></div>
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title" id="modal-title">Add New CSF Attribute</h3>
-            <span class="modal-close">&times;</span>
-        </div>
-        <div class="modal-body">
-            <form id="csf-form">
-                <input type="hidden" id="csf-id">
-
-                <div class="form-group">
-                    <label for="csf-name">Attribute Name</label>
-                    <input type="text" id="csf-name" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="csf-certification">Certification Type</label>
-                    <select id="csf-certification" required>
-                        <option value="greenguard">GREENGUARD</option>
-                        <option value="greenguard-gold">GREENGUARD Gold</option>
-                        <option value="cradle-to-cradle">Cradle to Cradle</option>
-                        <option value="energy-star">ENERGY STAR</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="csf-type">Data Type</label>
-                    <select id="csf-type" required>
-                        <option value="text">Text</option>
-                        <option value="number">Number</option>
-                        <option value="boolean">Boolean</option>
-                        <option value="date">Date</option>
-                        <option value="dropdown">Dropdown</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="csf-description">Description</label>
-                    <textarea id="csf-description" placeholder="Optional description..."></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label>
-                        <input type="checkbox" id="csf-required"> Required field
-                    </label>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-cancel" id="cancel-btn">Cancel</button>
-            <button type="submit" class="btn btn-primary" id="save-btn" form="csf-form">Save</button>
-        </div>
-    </div>
-</div>
 
 @section Scripts {
+    <script src="~/js/validation.js"></script>
     <script src="~/js/admin/csfAttributes.js"></script>
 }

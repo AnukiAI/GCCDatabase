@@ -55,13 +55,15 @@
                 <td>
                     <input type="text" id="new-partner-name" class="partners-edit-input" placeholder="Enter partner name">
                 </td>
-                <td class="partners-edit-actions">
-                    <button class="partners-btn-save" onclick="saveNewPartner()">
-                        <i class="fas fa-check"></i> Save
-                    </button>
-                    <button class="partners-btn-cancel" onclick="cancelAddPartner()">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
+                <td>
+                    <div class="partners-add-actions" style="display: flex; gap: 5px;">
+                        <button class="partners-btn-save" onclick="saveNewPartner()">
+                            <i class="fas fa-check"></i> Save
+                        </button>
+                        <button class="partners-btn-cancel" onclick="cancelAddPartner()">
+                            <i class="fas fa-times"></i> Cancel
+                        </button>
+                    </div>
                 </td>
             </tr>
             <!-- Table rows will be populated by JavaScript -->

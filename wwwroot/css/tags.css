@@ -122,10 +122,10 @@
 
 .search-box input {
     width: 100%;
-    padding: 10px 40px 10px 16px;
+    padding: 10px 16px 10px 40px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 16px;
     background-color: white;
     box-sizing: border-box;
 }
@@ -138,11 +138,12 @@
 
 .search-icon {
     position: absolute;
-    right: 12px;
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
     color: #6c757d;
     pointer-events: none;
+    font-size: 16px;
 }
 
 .filters {
@@ -156,7 +157,7 @@
     border: 1px solid var(--border-color);
     border-radius: 4px;
     background-color: white;
-    font-size: 14px;
+    font-size: 16px;
     min-width: 120px;
 }
 
@@ -192,7 +193,7 @@
     background-color: #f8f9fa;
     color: var(--blue-dark);
     font-weight: 500;
-    font-size: 14px;
+    font-size: 16px;
     position: sticky;
     top: 0;
     cursor: pointer;
@@ -213,7 +214,7 @@
 }
 
 #tag-table td {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-color);
     vertical-align: middle;
 }
@@ -221,7 +222,7 @@
 .sort-icon {
     display: inline-block;
     margin-left: 6px;
-    font-size: 10px;
+    font-size: 16px;
     opacity: 0.6;
     transition: opacity 0.2s ease;
 }
@@ -262,13 +263,13 @@
 }
 
 .action-btn i {
-    font-size: 14px;
+    font-size: 16px;
 }
 
 /* ===== FOOTER INFO ===== */
 .footer-info {
     color: #6c757d;
-    font-size: 14px;
+    font-size: 16px;
     text-align: right;
     margin-top: 16px;
 }
@@ -359,7 +360,7 @@
     margin-bottom: 6px;
     color: var(--text-color);
     font-weight: 500;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .form-group input,
@@ -369,7 +370,7 @@
     padding: 10px 12px;
     border: 1px solid var(--border-color);
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 16px;
     font-family: inherit;
     background-color: white;
     box-sizing: border-box;
@@ -393,7 +394,7 @@
     display: inline-block;
     padding: 4px 8px;
     border-radius: 12px;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;

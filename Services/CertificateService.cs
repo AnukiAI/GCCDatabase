@@ -1,70 +1,112 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using GreenCircleCertified.Models;
-using GreenCircleCertified.Data;
-using GCCWebApp.Controllers;
+using GCCWebApp.Models;
+using GCCWebApp.Data;
+using GCCWebApp.Repositories;
+using GreenCircleCertified.ViewModels;
 
-namespace GreenCircleCertified.Services
+namespace GCCWebApp.Services
 {
-    /// <summary>
-    /// Implementation of certificate service
-    /// This is a basic implementation that would be connected to your actual data layer
-    /// </summary>
     public class CertificateService : ICertificateService
     {
         private readonly ILogger<CertificateService> _logger;
-        private readonly ICacheService _cacheService;
-        private readonly IAuditService _auditService;
-        // Add your data context or repository here
-        // private readonly ApplicationDbContext _context;
+        private readonly ApplicationDbContext _context;
 
         public CertificateService(
             ILogger<CertificateService> logger,
-            ICacheService cacheService,
-            IAuditService auditService)
+            ApplicationDbContext context)
         {
             _logger = logger;
-            _cacheService = cacheService;
-            _auditService = auditService;
+            _context = context;
         }
 
         public async Task<CertificateListResponse> GetCertificatesAsync(CertificateListRequest request)
         {
             try
             {
-                // Cache key for this request
-                var cacheKey = $"certificates_{request.GetHashCode()}";
+                var query = _context.Certificates
+                    .Include(c => c.Company)
+                    .Include(c => c.Product)
+                    .Include(c => c.CertificationType)
+                    .AsQueryable();
 
-                // Try to get from cache first
-                var cachedResponse = await _cacheService.GetAsync<CertificateListResponse>(cacheKey);
-                if (cachedResponse != null)
+                // Apply search filters
+                if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
                 {
-                    return cachedResponse;
+                    var searchTerm = request.Filters.SearchTerm.ToLower();
+                    query = query.Where(c =>
+                        c.Company.Name.ToLower().Contains(searchTerm) ||
+                        c.Product.Name.ToLower().Contains(searchTerm) ||
+                        c.Number.ToLower().Contains(searchTerm));
                 }
 
-                // Generate sample data for demonstration
-                // In real implementation, this would query your database
-                var sampleCertificates = GenerateSampleCertificates(request);
+                if (request.Filters.CertificationTypes.Any())
+                {
+                    query = query.Where(c => request.Filters.CertificationTypes.Contains(c.CertificationType.Name));
+                }
 
-                // Apply filters
-                var filteredCertificates = ApplyFilters(sampleCertificates, request.Filters);
+                if (request.Filters.Countries.Any())
+                {
+                    query = query.Where(c => request.Filters.Countries.Contains(c.Country ?? ""));
+                }
+
+                if (request.Filters.Statuses.Any())
+                {
+                    query = query.Where(c => request.Filters.Statuses.Contains(c.Status));
+                }
+
+                // Apply date filters
+                if (request.Filters.EffectiveDateStart.HasValue)
+                {
+                    query = query.Where(c => c.EffectiveDate >= request.Filters.EffectiveDateStart.Value);
+                }
+
+                if (request.Filters.EffectiveDateEnd.HasValue)
+                {
+                    query = query.Where(c => c.EffectiveDate <= request.Filters.EffectiveDateEnd.Value);
+                }
 
                 // Apply sorting
-                var sortedCertificates = ApplySorting(filteredCertificates, request.Sort);
+                query = request.Sort?.ToLower() switch
+                {
+                    "newest" => query.OrderByDescending(c => c.EffectiveDate),
+                    "expiring" => query.OrderBy(c => c.ExpirationDate),
+                    "product-az" => query.OrderBy(c => c.Product.Name),
+                    "company-az" => query.OrderBy(c => c.Company.Name),
+                    "status" => query.OrderBy(c => c.Status),
+                    "type" => query.OrderBy(c => c.CertificationType.Name),
+                    "country" => query.OrderBy(c => c.Country),
+                    _ => query.OrderBy(c => c.Id)
+                };
+
+                // Get total count
+                var totalCount = await query.CountAsync();
 
                 // Apply pagination
-                var totalCount = sortedCertificates.Count();
-                var paginatedCertificates = sortedCertificates
+                var certificates = await query
                     .Skip((request.Page - 1) * request.PageSize)
                     .Take(request.PageSize)
-                    .ToList();
+                    .Select(c => new CertificateCardModel
+                    {
+                        Id = c.Id,
+                        CertificateNumber = c.Number,
+                        CertificationType = c.CertificationType.Name,
+                        CompanyName = c.Company.Name,
+                        ProductName = c.Product.Name,
+                        ProductCategory = c.Product.Category != null ? c.Product.Category.Name : "",
+                        EffectiveDate = c.EffectiveDate,
+                        ExpirationDate = c.ExpirationDate,
+                        Location = c.Location ?? "",
+                        Country = c.Country ?? "",
+                        Status = c.Status,
+                        BadgeText = GetBadgeText(c.CertificationType.Name),
+                        TagType = DetermineTagType(request.UserRole)
+                    })
+                    .ToListAsync();
 
-                var response = new CertificateListResponse
+                return new CertificateListResponse
                 {
-                    Certificates = paginatedCertificates,
+                    Certificates = certificates,
                     TotalCount = totalCount,
                     PageSize = request.PageSize,
                     CurrentPage = request.Page,
@@ -72,18 +114,6 @@ namespace GreenCircleCertified.Services
                     AppliedFilters = request.Filters,
                     Success = true
                 };
-
-                // Cache the response
-                await _cacheService.SetAsync(cacheKey, response, TimeSpan.FromMinutes(15));
-
-                // Log search activity
-                await _auditService.LogSearchActivityAsync(
-                    request.Filters.SearchTerm,
-                    request.Filters,
-                    request.UserRole,
-                    totalCount);
-
-                return response;
             }
             catch (Exception ex)
             {
@@ -97,25 +127,36 @@ namespace GreenCircleCertified.Services
             }
         }
 
-        public async Task<CertificateDetailModel> GetCertificateDetailsAsync(int id, UserRole userRole)
+        public async Task<CertificateDetailsViewModel> GetCertificateDetailsAsync(int id, string userRole)
         {
             try
             {
-                // Log certificate access
-                await _auditService.LogCertificateAccessAsync(id, userRole, "view_details");
+                var certificate = await _context.Certificates
+                    .Include(c => c.Company)
+                    .Include(c => c.Product)
+                    .ThenInclude(p => p.Category)
+                    .Include(c => c.CertificationType)
+                    .FirstOrDefaultAsync(c => c.Id == id);
 
-                // In real implementation, query your database
-                var certificate = GenerateSampleCertificateDetail(id);
+                if (certificate == null)
+                    return null;
 
-                // Apply role-based filtering
-                if (userRole == UserRole.Public)
+                var viewModel = new CertificateDetailsViewModel
                 {
-                    // Limit data for public users
-                    certificate.Description = "Limited information available for public users.";
-                    certificate.AdditionalAttributes.Clear();
-                }
+                    Id = certificate.Id,
+                    CertificateNumber = certificate.Number,
+                    CompanyName = certificate.Company.Name,
+                    ProductName = certificate.Product.Name,
+                    CertificationType = certificate.CertificationType.Name,
+                    ProductCategory = certificate.Product.Category?.Name ?? "",
+                    EffectiveDate = certificate.EffectiveDate,
+                    ExpirationDate = certificate.ExpirationDate,
+                    Location = certificate.Location ?? "",
+                    Country = certificate.Country ?? "",
+                    CertificateImageUrl = certificate.CertificateFile ?? ""
+                };
 
-                return certificate;
+                return viewModel;
             }
             catch (Exception ex)
             {
@@ -124,25 +165,17 @@ namespace GreenCircleCertified.Services
             }
         }
 
-        public async Task<CertificateDownloadModel> GetCertificateDownloadAsync(int id, UserRole userRole)
+        public async Task<CertificateDownloadModel> GetCertificateDownloadAsync(int id, string userRole)
         {
             try
             {
-                // Check permissions
-                if (userRole == UserRole.Public)
-                {
-                    // Public users might have limited download access
-                    return null;
-                }
-
-                // In real implementation, generate or retrieve the PDF
                 var certificate = await GetCertificateDetailsAsync(id, userRole);
                 if (certificate == null) return null;
 
-                // Generate PDF content (placeholder)
+                // For now, return a placeholder PDF
                 var pdfContent = GenerateCertificatePdf(certificate);
 
-                var downloadModel = new CertificateDownloadModel
+                return new CertificateDownloadModel
                 {
                     CertificateId = id,
                     CertificateNumber = certificate.CertificateNumber,
@@ -151,8 +184,6 @@ namespace GreenCircleCertified.Services
                     ContentType = "application/pdf",
                     UserRole = userRole
                 };
-
-                return downloadModel;
             }
             catch (Exception ex)
             {
@@ -161,23 +192,13 @@ namespace GreenCircleCertified.Services
             }
         }
 
-        public async Task LogDownloadActivityAsync(CertificateDownloadModel downloadModel)
-        {
-            await _auditService.LogDownloadActivityAsync(
-                downloadModel.CertificateId,
-                downloadModel.UserRole,
-                downloadModel.FileName);
-        }
-
         public async Task<byte[]> ExportCertificatesAsync(CertificateListRequest request, string format)
         {
             try
             {
                 var response = await GetCertificatesAsync(request);
                 if (!response.Success || !response.Certificates.Any())
-                {
                     return null;
-                }
 
                 return format.ToLower() switch
                 {
@@ -194,36 +215,40 @@ namespace GreenCircleCertified.Services
             }
         }
 
-        public async Task<CertificateStatistics> GetCertificateStatisticsAsync(UserRole userRole)
+        public async Task<CertificateStatistics> GetCertificateStatisticsAsync(string userRole)
         {
             try
             {
-                // In real implementation, query your database for statistics
-                var stats = new CertificateStatistics
-                {
-                    TotalCertificates = 1247,
-                    ActiveCertificates = 1089,
-                    ExpiredCertificates = 23,
-                    ExpiringSoonCertificates = 158,
-                    PendingCertificates = 135,
-                    CertificatesByType = new Dictionary<string, int>
-                    {
-                        { "Certified Sustainability Facts", 456 },
-                        { "Recycled Content", 278 },
-                        { "Renewable Energy", 189 },
-                        { "Carbon Footprint", 167 },
-                        { "Chain of Custody", 157 }
-                    },
-                    CertificatesByCountry = new Dictionary<string, int>
-                    {
-                        { "United States", 867 },
-                        { "Canada", 234 },
-                        { "Mexico", 89 },
-                        { "Other", 57 }
-                    }
-                };
+                var totalCertificates = await _context.Certificates.CountAsync();
+                var activeCertificates = await _context.Certificates.CountAsync(c => c.Status == "active");
+                var expiredCertificates = await _context.Certificates.CountAsync(c => c.Status == "expired");
+                var pendingCertificates = await _context.Certificates.CountAsync(c => c.Status == "pending");
+                
+                var expiringSoonDate = DateTime.Now.AddDays(30);
+                var expiringSoonCertificates = await _context.Certificates
+                    .CountAsync(c => c.ExpirationDate <= expiringSoonDate && c.Status == "active");
 
-                return await Task.FromResult(stats);
+                var certificatesByType = await _context.Certificates
+                    .GroupBy(c => c.CertificationType.Name)
+                    .Select(g => new { Type = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.Type, x => x.Count);
+
+                var certificatesByCountry = await _context.Certificates
+                    .Where(c => !string.IsNullOrEmpty(c.Country))
+                    .GroupBy(c => c.Country)
+                    .Select(g => new { Country = g.Key, Count = g.Count() })
+                    .ToDictionaryAsync(x => x.Country!, x => x.Count);
+
+                return new CertificateStatistics
+                {
+                    TotalCertificates = totalCertificates,
+                    ActiveCertificates = activeCertificates,
+                    ExpiredCertificates = expiredCertificates,
+                    ExpiringSoonCertificates = expiringSoonCertificates,
+                    PendingCertificates = pendingCertificates,
+                    CertificatesByType = certificatesByType,
+                    CertificatesByCountry = certificatesByCountry
+                };
             }
             catch (Exception ex)
             {
@@ -241,18 +266,40 @@ namespace GreenCircleCertified.Services
                 switch (request.Action.ToLower())
                 {
                     case "delete":
-                        result.AffectedCount = request.CertificateIds.Count;
+                        var certificatesToDelete = await _context.Certificates
+                            .Where(c => request.CertificateIds.Contains(c.Id))
+                            .ToListAsync();
+                        
+                        _context.Certificates.RemoveRange(certificatesToDelete);
+                        await _context.SaveChangesAsync();
+                        
+                        result.AffectedCount = certificatesToDelete.Count;
                         result.Message = $"Successfully deleted {result.AffectedCount} certificates";
                         break;
 
-                    case "export":
-                        result.AffectedCount = request.CertificateIds.Count;
-                        result.Message = $"Successfully exported {result.AffectedCount} certificates";
-                        break;
-
                     case "update_status":
-                        result.AffectedCount = request.CertificateIds.Count;
-                        result.Message = $"Successfully updated status for {result.AffectedCount} certificates";
+                        if (request.Parameters.TryGetValue("status", out var newStatus))
+                        {
+                            var certificatesToUpdate = await _context.Certificates
+                                .Where(c => request.CertificateIds.Contains(c.Id))
+                                .ToListAsync();
+
+                            foreach (var cert in certificatesToUpdate)
+                            {
+                                cert.Status = newStatus;
+                                cert.UpdatedAt = DateTime.UtcNow;
+                            }
+
+                            await _context.SaveChangesAsync();
+                            
+                            result.AffectedCount = certificatesToUpdate.Count;
+                            result.Message = $"Successfully updated status for {result.AffectedCount} certificates";
+                        }
+                        else
+                        {
+                            result.Success = false;
+                            result.Message = "Status parameter is required for update_status action";
+                        }
                         break;
 
                     default:
@@ -261,7 +308,7 @@ namespace GreenCircleCertified.Services
                         break;
                 }
 
-                return await Task.FromResult(result);
+                return result;
             }
             catch (Exception ex)
             {
@@ -275,50 +322,42 @@ namespace GreenCircleCertified.Services
             }
         }
 
-        public async Task<List<string>> GetSearchSuggestionsAsync(string term, string type, UserRole userRole)
+        public async Task<List<string>> GetSearchSuggestionsAsync(string term, string type, string userRole)
         {
             try
             {
-                // In real implementation, query your database for suggestions
+                if (string.IsNullOrWhiteSpace(term)) return new List<string>();
+
                 var suggestions = new List<string>();
 
-                if (string.IsNullOrWhiteSpace(term)) return suggestions;
-
-                // Sample suggestions based on type
                 switch (type.ToLower())
                 {
                     case "company":
-                        suggestions.AddRange(new[]
-                        {
-                            "ASSA ABLOY Access & Egress Hardware Group",
-                            "3M Company",
-                            "Johnson Controls",
-                            "Honeywell International"
-                        }.Where(s => s.Contains(term, StringComparison.OrdinalIgnoreCase)));
+                        suggestions = await _context.Companies
+                            .Where(c => c.Name.Contains(term))
+                            .Select(c => c.Name)
+                            .Take(10)
+                            .ToListAsync();
                         break;
 
                     case "product":
-                        suggestions.AddRange(new[]
-                        {
-                            "900ET Exit Device Trim with EcoFlex",
-                            "Sustainable Building Materials",
-                            "Energy Efficient Systems",
-                            "Recycled Content Products"
-                        }.Where(s => s.Contains(term, StringComparison.OrdinalIgnoreCase)));
+                        suggestions = await _context.Products
+                            .Where(p => p.Name.Contains(term))
+                            .Select(p => p.Name)
+                            .Take(10)
+                            .ToListAsync();
                         break;
 
                     default:
-                        suggestions.AddRange(new[]
-                        {
-                            "Certified Sustainability Facts",
-                            "Recycled Content",
-                            "Renewable Energy",
-                            "Carbon Footprint"
-                        }.Where(s => s.Contains(term, StringComparison.OrdinalIgnoreCase)));
+                        suggestions = await _context.CertificationTypes
+                            .Where(ct => ct.Name.Contains(term))
+                            .Select(ct => ct.Name)
+                            .Take(10)
+                            .ToListAsync();
                         break;
                 }
 
-                return await Task.FromResult(suggestions.Take(10).ToList());
+                return suggestions;
             }
             catch (Exception ex)
             {
@@ -331,20 +370,30 @@ namespace GreenCircleCertified.Services
         {
             try
             {
-                // In real implementation, query your database
-                var isValid = !string.IsNullOrWhiteSpace(certificateNumber) && certificateNumber.Length >= 5;
+                var certificate = await _context.Certificates
+                    .FirstOrDefaultAsync(c => c.Number == certificateNumber);
 
-                var result = new CertificateValidationResult
+                if (certificate == null)
                 {
-                    IsValid = isValid,
-                    Status = isValid ? CertificateStatus.Active : CertificateStatus.Expired,
-                    Message = isValid ? "Certificate is valid and active" : "Certificate not found or invalid",
-                    ExpirationDate = isValid ? DateTime.Now.AddMonths(12) : null,
-                    IsExpired = !isValid,
-                    IsExpiringSoon = isValid && DateTime.Now.AddMonths(12) <= DateTime.Now.AddDays(30)
-                };
+                    return new CertificateValidationResult
+                    {
+                        IsValid = false,
+                        Message = "Certificate not found"
+                    };
+                }
 
-                return await Task.FromResult(result);
+                var isExpired = certificate.ExpirationDate < DateTime.Now;
+                var isExpiringSoon = certificate.ExpirationDate <= DateTime.Now.AddDays(30);
+
+                return new CertificateValidationResult
+                {
+                    IsValid = true,
+                    Status = certificate.Status,
+                    Message = isExpired ? "Certificate has expired" : isExpiringSoon ? "Certificate is expiring soon" : "Certificate is valid",
+                    ExpirationDate = certificate.ExpirationDate,
+                    IsExpired = isExpired,
+                    IsExpiringSoon = isExpiringSoon && !isExpired
+                };
             }
             catch (Exception ex)
             {
@@ -357,151 +406,149 @@ namespace GreenCircleCertified.Services
             }
         }
 
-        public async Task<int> CreateCertificateAsync(CertificateDetailModel certificate, UserRole userRole)
+        public async Task<int> CreateCertificateAsync(CertificateEditViewModel certificate, string userRole)
         {
-            // Implementation for creating certificates
-            await Task.CompletedTask;
-            return new Random().Next(1000, 9999);
+            try
+            {
+                var newCertificate = new Certificate
+                {
+                    Number = certificate.Number,
+                    Status = certificate.Status,
+                    EffectiveDate = certificate.EffectiveDate,
+                    ExpirationDate = certificate.ExpirationDate,
+                    Location = certificate.Location,
+                    Country = certificate.Country,
+                    Asin = certificate.Asin,
+                    Upc = certificate.Upc,
+                    Gtin = certificate.Gtin,
+                    Ean = certificate.Ean,
+                    CompanyId = certificate.CompanyId,
+                    ProductId = certificate.ProductId,
+                    CertificationTypeId = certificate.CertificationTypeId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Certificates.Add(newCertificate);
+                await _context.SaveChangesAsync();
+
+                return newCertificate.Id;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating certificate");
+                return 0;
+            }
         }
 
-        public async Task<bool> UpdateCertificateAsync(CertificateDetailModel certificate, UserRole userRole)
+        public async Task<bool> UpdateCertificateAsync(int id, CertificateEditViewModel certificate, string userRole)
         {
-            // Implementation for updating certificates
-            await Task.CompletedTask;
-            return true;
+            try
+            {
+                var existingCertificate = await _context.Certificates.FindAsync(id);
+                if (existingCertificate == null) return false;
+
+                existingCertificate.Number = certificate.Number;
+                existingCertificate.Status = certificate.Status;
+                existingCertificate.EffectiveDate = certificate.EffectiveDate;
+                existingCertificate.ExpirationDate = certificate.ExpirationDate;
+                existingCertificate.Location = certificate.Location;
+                existingCertificate.Country = certificate.Country;
+                existingCertificate.Asin = certificate.Asin;
+                existingCertificate.Upc = certificate.Upc;
+                existingCertificate.Gtin = certificate.Gtin;
+                existingCertificate.Ean = certificate.Ean;
+                existingCertificate.CompanyId = certificate.CompanyId;
+                existingCertificate.ProductId = certificate.ProductId;
+                existingCertificate.CertificationTypeId = certificate.CertificationTypeId;
+                existingCertificate.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating certificate with ID: {CertificateId}", id);
+                return false;
+            }
         }
 
-        public async Task<bool> DeleteCertificateAsync(int id, UserRole userRole)
+        public async Task<bool> DeleteCertificateAsync(int id, string userRole)
         {
-            // Implementation for deleting certificates
-            await Task.CompletedTask;
-            return true;
+            try
+            {
+                var certificate = await _context.Certificates.FindAsync(id);
+                if (certificate == null) return false;
+
+                _context.Certificates.Remove(certificate);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting certificate with ID: {CertificateId}", id);
+                return false;
+            }
         }
 
-        public async Task<CertificateDetailModel> GetCertificateByCertificateNumberAsync(string certificateNumber, UserRole userRole)
+        public async Task<CertificateDetailsViewModel> GetCertificateByCertificateNumberAsync(string certificateNumber, string userRole)
         {
-            // Implementation for getting certificate by number
-            await Task.CompletedTask;
-            return GenerateSampleCertificateDetail(1);
+            try
+            {
+                var certificate = await _context.Certificates
+                    .Include(c => c.Company)
+                    .Include(c => c.Product)
+                    .ThenInclude(p => p.Category)
+                    .Include(c => c.CertificationType)
+                    .Include(c => c.Tags)
+                    .Include(c => c.CustomFieldValues)
+                    .ThenInclude(cfv => cfv.Field)
+                    .FirstOrDefaultAsync(c => c.Number == certificateNumber);
+
+                if (certificate == null) return null;
+
+                return await GetCertificateDetailsAsync(certificate.Id, userRole);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving certificate by number: {CertificateNumber}", certificateNumber);
+                return null;
+            }
         }
 
         #region Private Helper Methods
 
-        private List<CertificateCardModel> GenerateSampleCertificates(CertificateListRequest request)
+        private string GetBadgeText(string certificationType)
         {
-            // Generate sample data - replace with actual database query
-            var certificates = new List<CertificateCardModel>();
-
-            for (int i = 1; i <= 50; i++)
+            return certificationType switch
             {
-                certificates.Add(new CertificateCardModel
-                {
-                    Id = i,
-                    CertificateNumber = $"24-{1600 + i:D4}",
-                    CertificationType = "Certified Sustainability Facts",
-                    CompanyName = $"Sample Company {i}",
-                    ProductName = $"Sample Product {i}",
-                    ProductCategory = "Construction / Building Products",
-                    EffectiveDate = DateTime.Now.AddDays(-i * 30),
-                    ExpirationDate = DateTime.Now.AddYears(3).AddDays(-i * 30),
-                    Location = "Sample City, ST",
-                    Country = "United States",
-                    Status = CertificateStatus.Active,
-                    BadgeText = "CSF",
-                    TagType = "External"
-                });
-            }
-
-            return certificates;
-        }
-
-        private CertificateDetailModel GenerateSampleCertificateDetail(int id)
-        {
-            return new CertificateDetailModel
-            {
-                Id = id,
-                CertificateNumber = $"24-{1600 + id:D4}",
-                CertificationType = "Certified Sustainability Facts",
-                CompanyName = $"Sample Company {id}",
-                ProductName = $"Sample Product {id}",
-                ProductCategory = "Construction / Building Products",
-                EffectiveDate = DateTime.Now.AddDays(-id * 30),
-                ExpirationDate = DateTime.Now.AddYears(3).AddDays(-id * 30),
-                Location = "Sample City, ST",
-                Country = "United States",
-                Status = CertificateStatus.Active,
-                BadgeText = "CSF",
-                TagType = "External",
-                Description = "This is a sample certificate description with detailed information about the certified product.",
-                AdditionalAttributes = new List<string> { "Sustainable", "Eco-Friendly", "Recycled Content" },
-                Tags = new List<string> { "Construction", "Hardware", "Sustainable" },
-                CertificationBody = "GreenCircle Certified",
-                Standard = "GC Standard 2024",
-                Scope = "Manufacturing and Distribution",
-                CreatedDate = DateTime.Now.AddDays(-id * 30),
-                LastModifiedDate = DateTime.Now.AddDays(-5),
-                CreatedBy = "System",
-                LastModifiedBy = "Admin User"
+                "Certified Sustainability Facts" => "CSF",
+                "Recycled Content" => "RC",
+                "Renewable Energy" => "RE",
+                "Carbon Footprint" => "CF",
+                "Chain of Custody" => "CoC",
+                _ => "CERT"
             };
         }
 
-        private IQueryable<CertificateCardModel> ApplyFilters(List<CertificateCardModel> certificates, CertificateSearchFilters filters)
+        private string DetermineTagType(string userRole)
         {
-            var query = certificates.AsQueryable();
-
-            if (!string.IsNullOrWhiteSpace(filters.SearchTerm))
+            return userRole switch
             {
-                var searchTerm = filters.SearchTerm.ToLower();
-                query = query.Where(c =>
-                    c.CompanyName.ToLower().Contains(searchTerm) ||
-                    c.ProductName.ToLower().Contains(searchTerm) ||
-                    c.CertificateNumber.ToLower().Contains(searchTerm));
-            }
-
-            if (filters.CertificationTypes.Any())
-            {
-                query = query.Where(c => filters.CertificationTypes.Contains(c.CertificationType));
-            }
-
-            if (filters.Countries.Any())
-            {
-                query = query.Where(c => filters.Countries.Contains(c.Country));
-            }
-
-            if (filters.Statuses.Any())
-            {
-                query = query.Where(c => filters.Statuses.Contains(c.Status));
-            }
-
-            return query;
-        }
-
-        private IQueryable<CertificateCardModel> ApplySorting(IQueryable<CertificateCardModel> query, string sort)
-        {
-            return sort?.ToLower() switch
-            {
-                "newest" => query.OrderByDescending(c => c.EffectiveDate),
-                "expiring" => query.OrderBy(c => c.ExpirationDate),
-                "product-az" => query.OrderBy(c => c.ProductName),
-                "company-az" => query.OrderBy(c => c.CompanyName),
-                "status" => query.OrderBy(c => c.Status),
-                "type" => query.OrderBy(c => c.CertificationType),
-                "country" => query.OrderBy(c => c.Country),
-                _ => query.OrderBy(c => c.Id)
+                "Admin" => "Internal",
+                "Analyst" => "Internal",
+                _ => "External"
             };
         }
 
-        private byte[] GenerateCertificatePdf(CertificateDetailModel certificate)
+        private byte[] GenerateCertificatePdf(CertificateDetailsViewModel certificate)
         {
-            // Placeholder for PDF generation
-            // In real implementation, use a library like iTextSharp or similar
             var content = $"Certificate {certificate.CertificateNumber} - {certificate.CompanyName}";
             return System.Text.Encoding.UTF8.GetBytes(content);
         }
 
         private byte[] GenerateCsvExport(List<CertificateCardModel> certificates)
         {
-            // Placeholder for CSV generation
             var csv = "Certificate Number,Company Name,Product Name,Status,Effective Date,Expiration Date\n";
             foreach (var cert in certificates)
             {
@@ -512,168 +559,14 @@ namespace GreenCircleCertified.Services
 
         private byte[] GenerateExcelExport(List<CertificateCardModel> certificates)
         {
-            // Placeholder for Excel generation
-            // In real implementation, use EPPlus or similar library
             return GenerateCsvExport(certificates);
         }
 
         private byte[] GeneratePdfExport(List<CertificateCardModel> certificates)
         {
-            // Placeholder for PDF export
             return System.Text.Encoding.UTF8.GetBytes("PDF Export of Certificates");
         }
 
         #endregion
-    }
-
-    /// <summary>
-    /// Basic implementation of filter service
-    /// </summary>
-    public class FilterService : IFilterService
-    {
-        private readonly ILogger<FilterService> _logger;
-
-        public FilterService(ILogger<FilterService> logger)
-        {
-            _logger = logger;
-        }
-
-        public async Task<List<FilterOption>> GetAvailableFiltersAsync(UserRole userRole)
-        {
-            var filters = new List<FilterOption>
-            {
-                new FilterOption { FilterType = "CertificationType", Text = "Certification Types", Count = 5 },
-                new FilterOption { FilterType = "ProductCategories", Text = "Product Categories", Count = 15 },
-                new FilterOption { FilterType = "Companies", Text = "Companies", Count = 250 },
-                new FilterOption { FilterType = "Countries", Text = "Countries", Count = 25 },
-                new FilterOption { FilterType = "Status", Text = "Status", Count = 4 }
-            };
-
-            return await Task.FromResult(filters);
-        }
-
-        public async Task<List<FilterOption>> GetFilterOptionsAsync(string filterType, string searchTerm, UserRole userRole)
-        {
-            // Sample implementation - replace with actual database queries
-            var options = new List<FilterOption>();
-
-            switch (filterType.ToLower())
-            {
-                case "certificationtype":
-                    options.AddRange(new[]
-                    {
-                        new FilterOption { Value = "csf", Text = "Certified Sustainability Facts", Count = 456 },
-                        new FilterOption { Value = "recycled-content", Text = "Recycled Content", Count = 278 },
-                        new FilterOption { Value = "renewable-energy", Text = "Renewable Energy", Count = 189 }
-                    });
-                    break;
-
-                case "countries":
-                    options.AddRange(new[]
-                    {
-                        new FilterOption { Value = "us", Text = "United States", Count = 867 },
-                        new FilterOption { Value = "ca", Text = "Canada", Count = 234 },
-                        new FilterOption { Value = "mx", Text = "Mexico", Count = 89 }
-                    });
-                    break;
-            }
-
-            if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                options = options.Where(o => o.Text.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
-            }
-
-            return await Task.FromResult(options);
-        }
-
-        public async Task<List<FilterOption>> GetProductCategoriesAsync(UserRole userRole)
-        {
-            var categories = new List<FilterOption>
-            {
-                new FilterOption
-                {
-                    Value = "construction",
-                    Text = "Construction / Building Products",
-                    Count = 567,
-                    Children = new List<FilterOption>
-                    {
-                        new FilterOption { Value = "hardware", Text = "Hardware", Count = 234, Level = 2 },
-                        new FilterOption { Value = "doors-windows", Text = "Doors & Windows", Count = 123, Level = 2 }
-                    }
-                },
-                new FilterOption
-                {
-                    Value = "office-supplies",
-                    Text = "Office Supplies",
-                    Count = 234,
-                    Children = new List<FilterOption>
-                    {
-                        new FilterOption { Value = "paper", Text = "Paper Products", Count = 156, Level = 2 }
-                    }
-                }
-            };
-
-            return await Task.FromResult(categories);
-        }
-
-        public async Task<List<FilterOption>> GetCompaniesAsync(string searchTerm, UserRole userRole)
-        {
-            var companies = new List<FilterOption>
-            {
-                new FilterOption { Value = "assa-abloy", Text = "ASSA ABLOY Access & Egress Hardware Group", Count = 45 },
-                new FilterOption { Value = "3m", Text = "3M Company", Count = 67 },
-                new FilterOption { Value = "johnson-controls", Text = "Johnson Controls", Count = 23 }
-            };
-
-            if (!string.IsNullOrWhiteSpace(searchTerm))
-            {
-                companies = companies.Where(c => c.Text.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)).ToList();
-            }
-
-            return await Task.FromResult(companies);
-        }
-
-        public async Task<List<FilterOption>> GetCountriesAsync(UserRole userRole)
-        {
-            var countries = new List<FilterOption>
-            {
-                new FilterOption { Value = "us", Text = "United States", Count = 867 },
-                new FilterOption { Value = "ca", Text = "Canada", Count = 234 },
-                new FilterOption { Value = "mx", Text = "Mexico", Count = 89 }
-            };
-
-            return await Task.FromResult(countries);
-        }
-
-        public async Task<List<FilterOption>> GetCertificationTypesAsync(UserRole userRole)
-        {
-            var types = new List<FilterOption>
-            {
-                new FilterOption { Value = "csf", Text = "Certified Sustainability Facts", Count = 456 },
-                new FilterOption { Value = "recycled-content", Text = "Recycled Content", Count = 278 },
-                new FilterOption { Value = "renewable-energy", Text = "Renewable Energy", Count = 189 }
-            };
-
-            return await Task.FromResult(types);
-        }
-
-        public string BuildFilterQuery(CertificateSearchFilters filters)
-        {
-            // Implementation for building SQL or other query strings
-            return "SELECT * FROM Certificates WHERE 1=1";
-        }
-
-        public async Task<Dictionary<string, int>> GetFilterCountsAsync(CertificateSearchFilters filters, UserRole userRole)
-        {
-            var counts = new Dictionary<string, int>
-            {
-                { "Total", 1247 },
-                { "Active", 1089 },
-                { "Expired", 23 },
-                { "Pending", 135 }
-            };
-
-            return await Task.FromResult(counts);
-        }
     }
 }

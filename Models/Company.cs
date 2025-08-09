@@ -7,9 +7,27 @@ namespace GCCWebApp.Models
         public int Id { get; set; }
 
         [Required]
-        public string Name { get; set; }
+        [MaxLength(255)]
+        public string Name { get; set; } = string.Empty;
 
-        public string Location { get; set; }
-        public string Country { get; set; }
+        [MaxLength(255)]
+        public string? ContactInfo { get; set; }
+
+        [MaxLength(175)]
+        public string? Location { get; set; }
+
+        [MaxLength(100)]
+        public string? Country { get; set; }
+
+        public bool IsActive { get; set; } = true;
+
+        // Audit fields
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        // Navigation properties
+        public ICollection<Certificate> Certificates { get; set; } = new List<Certificate>();
+        public ICollection<Product> Products { get; set; } = new List<Product>();
+        public ICollection<User> Users { get; set; } = new List<User>();
     }
 }

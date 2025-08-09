@@ -252,6 +252,12 @@
         display: table-row;
     }
 
+.partners-add-actions {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
 .partners-btn-save, .partners-btn-cancel {
     padding: 6px 12px;
     border-radius: 4px;

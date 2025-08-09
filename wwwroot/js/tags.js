@@ -343,30 +343,42 @@ function importCSV() {
 
 // Function to export to CSV
 function exportCSV() {
-    const headers = ['Tag ID', 'Tag Name', 'Tag Type', 'Description'];
-    const rows = tags.map(tag => [
-        tag.id,
-        `"${tag.name}"`,
-        tag.type,
-        `"${tag.description || ''}"`
-    ]);
+    if (tags.length === 0) {
+        alert('No tags to export');
+        return;
+    }
 
-    const csvContent = [
-        headers.join(','),
-        ...rows.map(row => row.join(','))
-    ].join('\n');
+    // Create CSV header
+    const header = 'Tag ID,Tag Name,Tag Type,Description\n';
+    
+    // Create CSV rows - properly escape fields that contain commas or quotes
+    const rows = tags.map(tag => {
+        const id = tag.id;
+        const name = tag.name.includes(',') || tag.name.includes('"') 
+            ? `"${tag.name.replace(/"/g, '""')}"` 
+            : tag.name;
+        const type = tag.type;
+        const description = (tag.description || '').includes(',') || (tag.description || '').includes('"')
+            ? `"${(tag.description || '').replace(/"/g, '""')}"`
+            : (tag.description || '');
+        
+        return `${id},${name},${type},${description}`;
+    }).join('\n');
 
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const csv = header + rows;
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
 
     link.setAttribute('href', url);
-    link.setAttribute('download', 'tags_export.csv');
+    link.setAttribute('download', `tags_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
 
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
 }
 
 // Event Listeners

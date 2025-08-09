@@ -10,25 +10,21 @@
     <Compile Remove="docs\**" />
     <Compile Remove="pages\**" />
     <Compile Remove="pages_old\**" />
-    <Compile Remove="Services\**" />
     <Compile Remove="Views\Certificate\archive\**" />
     <Compile Remove="wwwroot\css\archive\**" />
     <Content Remove="docs\**" />
     <Content Remove="pages\**" />
     <Content Remove="pages_old\**" />
-    <Content Remove="Services\**" />
     <Content Remove="Views\Certificate\archive\**" />
     <Content Remove="wwwroot\css\archive\**" />
     <EmbeddedResource Remove="docs\**" />
     <EmbeddedResource Remove="pages\**" />
     <EmbeddedResource Remove="pages_old\**" />
-    <EmbeddedResource Remove="Services\**" />
     <EmbeddedResource Remove="Views\Certificate\archive\**" />
     <EmbeddedResource Remove="wwwroot\css\archive\**" />
     <None Remove="docs\**" />
     <None Remove="pages\**" />
     <None Remove="pages_old\**" />
-    <None Remove="Services\**" />
     <None Remove="Views\Certificate\archive\**" />
     <None Remove="wwwroot\css\archive\**" />
   </ItemGroup>
@@ -89,12 +85,18 @@
 
   <ItemGroup>
     <Folder Include="Configuration\" />
-    <Folder Include="Documentation\" />
     <Folder Include="Views\Product\" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.6" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.8">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.8" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.8" />
     <PackageReference Include="Microsoft.Identity.Web" Version="3.10.0" />
     <PackageReference Include="Microsoft.Identity.Web.MicrosoftGraph" Version="3.10.0" />
     <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.10.0" />

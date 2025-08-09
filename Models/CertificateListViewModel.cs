@@ -42,19 +42,19 @@ namespace GreenCircleCertified.Models
         public int Id { get; set; }
 
         [Display(Name = "Certificate Number")]
-        public string CertificateNumber { get; set; }
+        public required string CertificateNumber { get; set; }
 
         [Display(Name = "Certificate Type")]
-        public string CertificationType { get; set; }
+        public required string CertificationType { get; set; }
 
         [Display(Name = "Company Name")]
-        public string CompanyName { get; set; }
+        public required string CompanyName { get; set; }
 
         [Display(Name = "Product Name")]
-        public string ProductName { get; set; }
+        public required string ProductName { get; set; }
 
         [Display(Name = "Product Category")]
-        public string ProductCategory { get; set; }
+        public string? ProductCategory { get; set; }
 
         [Display(Name = "Effective Date")]
         [DataType(DataType.Date)]
@@ -65,26 +65,26 @@ namespace GreenCircleCertified.Models
         public DateTime ExpirationDate { get; set; }
 
         [Display(Name = "Location")]
-        public string Location { get; set; }
+        public string? Location { get; set; }
 
         [Display(Name = "Country")]
-        public string Country { get; set; }
+        public string? Country { get; set; }
 
         [Display(Name = "Status")]
         public CertificateStatus Status { get; set; }
 
         [Display(Name = "Badge Text")]
-        public string BadgeText { get; set; }
+        public required string BadgeText { get; set; }
 
         [Display(Name = "Tag Type")]
         public string TagType { get; set; } = "External";
 
-        public string CertificateUrl { get; set; }
-        public string DetailsUrl { get; set; }
+        public required string CertificateUrl { get; set; }
+        public required string DetailsUrl { get; set; }
 
         // Computed properties
         public string FormattedCertificationPeriod => $"{EffectiveDate:M/d/yyyy} - {ExpirationDate:M/d/yyyy}";
-        public string FormattedLocation => $"{Location}, {Country}";
+        public string FormattedLocation => $"{Location ?? ""}, {Country ?? ""}";
         public bool IsExpiringSoon => ExpirationDate <= DateTime.Now.AddDays(30);
         public bool IsExpired => ExpirationDate < DateTime.Now;
 
@@ -185,9 +185,9 @@ namespace GreenCircleCertified.Models
     /// </summary>
     public class SortOption
     {
-        public string Value { get; set; }
-        public string Text { get; set; }
-        public string Icon { get; set; }
+        public required string Value { get; set; }
+        public required string Text { get; set; }
+        public required string Icon { get; set; }
         public bool IsSelected { get; set; }
     }
 
@@ -196,9 +196,9 @@ namespace GreenCircleCertified.Models
     /// </summary>
     public class FilterOption
     {
-        public string FilterType { get; set; }
-        public string Value { get; set; }
-        public string Text { get; set; }
+        public required string FilterType { get; set; }
+        public required string Value { get; set; }
+        public required string Text { get; set; }
         public int Count { get; set; }
         public bool IsSelected { get; set; }
         public int Level { get; set; } = 1; // For hierarchical filters
@@ -278,8 +278,8 @@ namespace GreenCircleCertified.Models
         public int TotalCount { get; set; }
         public int PageSize { get; set; }
         public int CurrentPage { get; set; }
-        public string CurrentSort { get; set; }
-        public CertificateSearchFilters AppliedFilters { get; set; }
+        public required string CurrentSort { get; set; }
+        public required CertificateSearchFilters AppliedFilters { get; set; }
         public bool Success { get; set; } = true;
         public string Message { get; set; } = string.Empty;
         public List<string> Errors { get; set; } = new List<string>();
@@ -303,12 +303,12 @@ namespace GreenCircleCertified.Models
     public class CertificateDownloadModel
     {
         public int CertificateId { get; set; }
-        public string CertificateNumber { get; set; }
-        public string FileName { get; set; }
-        public byte[] FileContent { get; set; }
+        public required string CertificateNumber { get; set; }
+        public required string FileName { get; set; }
+        public required byte[] FileContent { get; set; }
         public string ContentType { get; set; } = "application/pdf";
         public DateTime DownloadDate { get; set; } = DateTime.UtcNow;
-        public string UserEmail { get; set; }
+        public required string UserEmail { get; set; }
         public UserRole UserRole { get; set; }
     }
 
@@ -317,17 +317,17 @@ namespace GreenCircleCertified.Models
     /// </summary>
     public class CertificateDetailModel : CertificateCardModel
     {
-        public string Description { get; set; }
+        public required string Description { get; set; }
         public List<string> AdditionalAttributes { get; set; } = new List<string>();
         public List<string> Tags { get; set; } = new List<string>();
-        public string CertificationBody { get; set; }
-        public string Standard { get; set; }
-        public string Scope { get; set; }
+        public required string CertificationBody { get; set; }
+        public required string Standard { get; set; }
+        public required string Scope { get; set; }
         public List<string> RelatedDocuments { get; set; } = new List<string>();
         public DateTime CreatedDate { get; set; }
         public DateTime LastModifiedDate { get; set; }
-        public string CreatedBy { get; set; }
-        public string LastModifiedBy { get; set; }
+        public required string CreatedBy { get; set; }
+        public required string LastModifiedBy { get; set; }
 
         // Audit trail
         public List<CertificateAuditEntry> AuditTrail { get; set; } = new List<CertificateAuditEntry>();
@@ -340,11 +340,11 @@ namespace GreenCircleCertified.Models
     {
         public int Id { get; set; }
         public DateTime Timestamp { get; set; }
-        public string Action { get; set; }
-        public string UserName { get; set; }
-        public string Details { get; set; }
-        public string OldValue { get; set; }
-        public string NewValue { get; set; }
+        public required string Action { get; set; }
+        public required string UserName { get; set; }
+        public required string Details { get; set; }
+        public required string OldValue { get; set; }
+        public required string NewValue { get; set; }
     }
 
     /// <summary>

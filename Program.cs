@@ -1,6 +1,13 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
+using GCCWebApp.Configuration;
+using GCCWebApp.Data;
+using GCCWebApp.Repositories;
+using GCCWebApp.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,21 +27,77 @@ builder.Services.AddSession(options =>
 // ===== DISTRIBUTED CACHE =====
 builder.Services.AddDistributedMemoryCache();
 
-// ===== COOKIE AUTHENTICATION FOR TESTING =====
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
-    {
-        options.LoginPath = "/Account/Login";
-        options.LogoutPath = "/Account/Logout";
-        options.AccessDeniedPath = "/Account/AccessDenied";
-        options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
-        options.SlidingExpiration = true;
-        options.Cookie.Name = "GCC.Auth";
-        options.Cookie.HttpOnly = true;
-        options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-            ? CookieSecurePolicy.SameAsRequest
-            : CookieSecurePolicy.Always;
-    });
+// ===== DATABASE CONFIGURATION =====
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlite(builder.Configuration.GetConnectionString("SqliteConnection")));
+
+// ===== AZURE AD B2C AUTHENTICATION =====
+var azureAdB2CSection = builder.Configuration.GetSection("AzureAdB2C");
+builder.Services.Configure<AzureAdB2COptions>(azureAdB2CSection);
+
+// Check if Azure AD B2C is properly configured
+var azureAdB2CConfig = azureAdB2CSection.Get<AzureAdB2COptions>();
+var isAzureAdB2CConfigured = azureAdB2CConfig != null && 
+    !string.IsNullOrEmpty(azureAdB2CConfig.ClientId) && 
+    !azureAdB2CConfig.ClientId.Contains("{") &&
+    !string.IsNullOrEmpty(azureAdB2CConfig.TenantId) &&
+    !azureAdB2CConfig.TenantId.Contains("{");
+
+if (isAzureAdB2CConfigured)
+{
+    // Configure Azure AD B2C authentication
+    builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+        .AddMicrosoftIdentityWebApp(options =>
+        {
+            builder.Configuration.Bind("AzureAdB2C", options);
+            options.Authority = azureAdB2CConfig!.SignUpSignInAuthority;
+            options.SignedOutCallbackPath = azureAdB2CConfig.SignedOutCallbackPath;
+            
+            // Configure events for B2C specific scenarios
+            options.Events = new OpenIdConnectEvents
+            {
+                OnRedirectToIdentityProvider = context =>
+                {
+                    // Handle password reset policy
+                    if (context.Properties.Items.ContainsKey("policy") && 
+                        context.Properties.Items["policy"] == azureAdB2CConfig.ResetPasswordPolicyId)
+                    {
+                        context.ProtocolMessage.IssuerAddress = azureAdB2CConfig.ResetPasswordAuthority + "/oauth2/v2.0/authorize";
+                    }
+                    return Task.CompletedTask;
+                },
+                OnAuthenticationFailed = context =>
+                {
+                    // Handle password reset flow
+                    if (context.Exception.Message.Contains("AADB2C90118"))
+                    {
+                        // Redirect to password reset policy
+                        context.Response.Redirect($"/Account/ResetPassword");
+                        context.HandleResponse();
+                    }
+                    return Task.CompletedTask;
+                }
+            };
+        });
+}
+else
+{
+    // Fallback to cookie authentication for development
+    builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+        .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+        {
+            options.LoginPath = "/Account/Login";
+            options.LogoutPath = "/Account/Logout";
+            options.AccessDeniedPath = "/Account/AccessDenied";
+            options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+            options.SlidingExpiration = true;
+            options.Cookie.Name = "GCC.Auth";
+            options.Cookie.HttpOnly = true;
+            options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+                ? CookieSecurePolicy.SameAsRequest
+                : CookieSecurePolicy.Always;
+        });
+}
 
 // ===== AUTHORIZATION POLICIES =====
 builder.Services.AddAuthorization(options =>
@@ -78,6 +141,19 @@ builder.Services.AddControllersWithViews(options =>
 });
 
 builder.Services.AddRazorPages();
+
+// ===== REPOSITORY PATTERN =====
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+builder.Services.AddScoped<ICertificateRepository, CertificateRepository>();
+builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+// ===== APPLICATION SERVICES =====
+builder.Services.AddScoped<ICertificateService, CertificateService>();
+builder.Services.AddScoped<IFilterService, FilterService>();
+builder.Services.AddScoped<ICacheService, CacheService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<IValidationService, ValidationService>();
+builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 
 // ===== BASIC SERVICES =====
 builder.Services.AddMemoryCache();
@@ -194,6 +270,21 @@ app.MapControllerRoute(
 app.MapRazorPages();
 
 logger.LogInformation("Application started successfully");
+
+// ===== SEED DATABASE =====
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        await SeedData.InitializeAsync(context);
+        logger.LogInformation("Database seeded successfully");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error occurred seeding the database");
+    }
+}
 
 // ===== RUN APPLICATION =====
 app.Run();

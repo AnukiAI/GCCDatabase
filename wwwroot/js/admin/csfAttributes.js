@@ -59,16 +59,10 @@ function initializeElements() {
 
 // Initialize event listeners
 function initializeEventListeners() {
-    addCsfBtn.addEventListener('click', () => openModal());
+    addCsfBtn.addEventListener('click', showAddCsfRow);
     exportBtn.addEventListener('click', exportCSV);
-    modalClose.addEventListener('click', closeModal);
-    cancelBtn.addEventListener('click', closeModal);
-    csfForm.addEventListener('submit', saveCSF);
     searchInput.addEventListener('input', () => filterAndSort());
     certificationFilter.addEventListener('change', () => filterAndSort());
-    
-    // Close modal on overlay click
-    modal.querySelector('.modal-overlay').addEventListener('click', closeModal);
 }
 
 // Function to populate the table
@@ -347,4 +341,110 @@ function showToast(message, type = 'success') {
             toast.remove();
         }, 500);
     }, 3000);
+}
+
+// Inline editing functions for CSF Attributes
+function showAddCsfRow() {
+    const addRow = document.getElementById('csf-add-row');
+    if (addRow) {
+        addRow.classList.add('active');
+        const nameInput = document.getElementById('new-csf-name');
+        if (nameInput) {
+            nameInput.focus();
+        }
+    }
+}
+
+function saveNewCsfAttribute() {
+    const nameInput = document.getElementById('new-csf-name');
+    const certificationSelect = document.getElementById('new-csf-certification');
+    const typeSelect = document.getElementById('new-csf-type');
+    const descriptionInput = document.getElementById('new-csf-description');
+    
+    const formData = {
+        'new-csf-name': nameInput ? nameInput.value.trim() : '',
+        'new-csf-certification': certificationSelect ? certificationSelect.value : '',
+        'new-csf-type': typeSelect ? typeSelect.value : '',
+        'new-csf-description': descriptionInput ? descriptionInput.value.trim() : ''
+    };
+    
+    // Define validation rules
+    const validationRules = {
+        'new-csf-name': [
+            'required',
+            { type: 'length', params: FieldLimits.attributeName },
+            'alphanumeric',
+            { type: 'unique', params: csfAttributes.map(attr => attr.name) }
+        ],
+        'new-csf-certification': ['required'],
+        'new-csf-type': ['required'],
+        'new-csf-description': [
+            { type: 'length', params: FieldLimits.description }
+        ]
+    };
+    
+    // Clear previous validation errors
+    clearValidationErrors();
+    
+    // Validate the form
+    const validation = validateForm(formData, validationRules);
+    
+    if (!validation.valid) {
+        showValidationErrors(validation.errors);
+        // Focus on first error field
+        const firstErrorField = document.getElementById(validation.errors[0].field);
+        if (firstErrorField) firstErrorField.focus();
+        return;
+    }
+    
+    // Generate new ID
+    const newId = generateNewCsfId();
+    const newAttribute = {
+        id: newId,
+        name: formData['new-csf-name'],
+        certification: formData['new-csf-certification'],
+        type: formData['new-csf-type'],
+        description: formData['new-csf-description'],
+        required: false // Default to not required
+    };
+    
+    // Add to data
+    csfAttributes.push(newAttribute);
+    
+    // Clear form and hide row
+    clearAddCsfForm();
+    const addRow = document.getElementById('csf-add-row');
+    if (addRow) addRow.classList.remove('active');
+    
+    // Refresh table
+    filterAndSort();
+    showToast('CSF attribute added successfully');
+}
+
+function cancelAddCsfAttribute() {
+    clearAddCsfForm();
+    const addRow = document.getElementById('csf-add-row');
+    if (addRow) addRow.classList.remove('active');
+}
+
+function clearAddCsfForm() {
+    const nameInput = document.getElementById('new-csf-name');
+    const certificationSelect = document.getElementById('new-csf-certification');
+    const typeSelect = document.getElementById('new-csf-type');
+    const descriptionInput = document.getElementById('new-csf-description');
+    
+    if (nameInput) nameInput.value = '';
+    if (certificationSelect) certificationSelect.value = '';
+    if (typeSelect) typeSelect.value = '';
+    if (descriptionInput) descriptionInput.value = '';
+}
+
+function generateNewCsfId() {
+    // Find the highest numeric ID and increment
+    const numericIds = csfAttributes.map(attr => parseInt(attr.id.replace('CSF', '')));
+    const maxId = Math.max(...numericIds);
+    
+    // Format with leading zeros
+    const newId = (maxId + 1).toString().padStart(3, '0');
+    return 'CSF' + newId;
 }

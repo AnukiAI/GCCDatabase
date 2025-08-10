@@ -32,6 +32,13 @@ namespace GCCWebApp.Data
         public DbSet<Role> Roles { get; set; }
         public DbSet<Permission> Permissions { get; set; }
 
+        // ETL entities
+        public DbSet<ETLConfiguration> ETLConfigurations { get; set; }
+        public DbSet<ETLLogEntry> ETLLogEntries { get; set; }
+        public DbSet<ETLAlert> ETLAlerts { get; set; }
+        public DbSet<ETLDataQualityIssue> ETLDataQualityIssues { get; set; }
+        public DbSet<CertificateAggregateData> CertificateAggregates { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -206,6 +213,62 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Companies)
                 .WithMany(c => c.Users);
+
+            // ETL Configuration
+            modelBuilder.Entity<ETLConfiguration>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Name);
+                entity.Property(e => e.DataSources).HasConversion(
+                    v => string.Join(',', v),
+                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+                entity.Property(e => e.Transformations).HasConversion(
+                    v => string.Join(',', v),
+                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+                entity.Property(e => e.Destinations).HasConversion(
+                    v => string.Join(',', v),
+                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+            });
+
+            // ETL Log Entry
+            modelBuilder.Entity<ETLLogEntry>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.JobId);
+                entity.HasIndex(e => e.Timestamp);
+            });
+
+            // ETL Alert
+            modelBuilder.Entity<ETLAlert>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.IsResolved);
+            });
+
+            // ETL Data Quality Issue
+            modelBuilder.Entity<ETLDataQualityIssue>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.DetectedAt);
+                entity.HasIndex(e => e.IssueType);
+            });
+
+            // Certificate Aggregate Data
+            modelBuilder.Entity<CertificateAggregateData>(entity =>
+            {
+                entity.HasKey(e => new { e.Period, e.PeriodDate });
+                entity.HasIndex(e => e.PeriodDate);
+                entity.Property(e => e.CertificatesByType).HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
+                entity.Property(e => e.CertificatesByCountry).HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
+                entity.Property(e => e.CertificatesByCompany).HasConversion(
+                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
+            });
         }
     }
 }

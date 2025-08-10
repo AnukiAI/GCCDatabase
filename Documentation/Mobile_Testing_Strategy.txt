@@ -1,0 +1,1224 @@
+================================================================================
+                 GCC WEB APPLICATION - MOBILE TESTING STRATEGY
+================================================================================
+
+Document Version: 1.0
+Created: 2025-08-09
+Strategy ID: MTS-001
+Coverage Target: 100% mobile functionality
+
+================================================================================
+                        MOBILE TESTING OVERVIEW
+================================================================================
+
+Mobile Testing Objectives:
+□ Ensure responsive design works across all device sizes
+□ Validate mobile browser compatibility and performance
+□ Test touch interactions and mobile-specific gestures
+□ Verify mobile user experience and usability
+□ Test mobile performance and loading times
+□ Validate mobile security and data protection
+□ Ensure accessibility on mobile devices
+□ Test offline functionality and connectivity issues
+□ Validate mobile-specific features and integrations
+
+Mobile Testing Scope:
+✅ Responsive web design testing
+✅ Mobile browser compatibility
+✅ Touch interface testing
+✅ Mobile performance testing
+✅ Mobile security testing
+✅ Mobile accessibility testing
+✅ Cross-device testing
+✅ Mobile network testing
+✅ Mobile usability testing
+✅ Progressive Web App (PWA) features
+
+Success Criteria:
+□ 100% functionality available on mobile
+□ Page load time < 3 seconds on 3G networks
+□ Touch targets meet accessibility guidelines (44px minimum)
+□ Cross-device compatibility validated
+□ Mobile security requirements met
+□ Accessibility standards compliance (WCAG 2.1 AA)
+□ Offline functionality working as designed
+□ Mobile user satisfaction > 4.0/5.0
+
+================================================================================
+                        MOBILE DEVICE MATRIX
+================================================================================
+
+TARGET DEVICE CATEGORIES:
+
+Smartphones (Primary Focus):
+- iPhone 12/13/14/15 (iOS 15+)
+- Samsung Galaxy S21/S22/S23/S24 (Android 11+)
+- Google Pixel 6/7/8 (Android 12+)
+- OnePlus 9/10/11 (Android 11+)
+- iPhone SE (iOS 15+) - Small screen testing
+
+Tablets (Secondary Focus):
+- iPad (10th generation) - iOS 16+
+- iPad Pro 11-inch/12.9-inch - iOS 16+
+- Samsung Galaxy Tab S8/S9 - Android 12+
+- Microsoft Surface Go - Windows 11
+
+Screen Size Categories:
+- Small (320-480px): iPhone SE, older Android phones
+- Medium (481-768px): Standard smartphones
+- Large (769-1024px): Large phones, small tablets
+- Extra Large (1025px+): Tablets, foldable devices
+
+BROWSER SUPPORT MATRIX:
+
+iOS Browsers:
+✅ Safari (latest 2 versions) - Primary
+✅ Chrome iOS (latest version)
+✅ Firefox iOS (latest version)
+✅ Edge iOS (latest version)
+
+Android Browsers:
+✅ Chrome Android (latest 2 versions) - Primary
+✅ Samsung Internet (latest 2 versions)
+✅ Firefox Android (latest version)
+✅ Edge Android (latest version)
+✅ Opera Mobile (latest version)
+
+OPERATING SYSTEM COVERAGE:
+
+iOS Coverage:
+- iOS 15.0+ (minimum supported)
+- iOS 16.0+ (primary target)
+- iOS 17.0+ (latest features)
+
+Android Coverage:
+- Android 8.0 (API 26) - minimum supported
+- Android 10.0 (API 29) - primary target  
+- Android 12.0+ (API 31+) - latest features
+
+================================================================================
+                        RESPONSIVE DESIGN TESTING
+================================================================================
+
+VIEWPORT TESTING STRATEGY:
+
+Breakpoint Testing:
+```css
+/* Mobile First Breakpoints */
+320px   - Small mobile (iPhone SE)
+375px   - Medium mobile (iPhone 12)
+414px   - Large mobile (iPhone 12 Pro Max)
+768px   - Tablet portrait
+1024px  - Tablet landscape
+1200px  - Desktop small
+1440px  - Desktop medium
+1920px  - Desktop large
+```
+
+Responsive Test Scenarios:
+
+RD-001: Layout Adaptation
+Objective: Verify layout adapts correctly across breakpoints
+Test Steps:
+1. Load application at 320px width
+2. Verify all content is visible without horizontal scrolling
+3. Increase width to 375px, verify layout adjusts
+4. Continue testing through all breakpoints
+5. Verify no content overlap or cutoff
+6. Test orientation changes (portrait/landscape)
+Expected Result: Layout adapts smoothly at each breakpoint
+
+RD-002: Navigation Menu Responsiveness
+Objective: Test mobile navigation patterns
+Test Steps:
+1. Verify desktop menu collapses to hamburger on mobile
+2. Test hamburger menu open/close functionality
+3. Verify menu items are accessible and properly sized
+4. Test nested menu navigation on mobile
+5. Verify menu closes when clicking outside
+6. Test keyboard navigation in mobile menu
+Expected Result: Navigation fully functional on mobile
+
+RD-003: Form Responsiveness
+Objective: Validate form usability on mobile
+Test Steps:
+1. Test certificate creation form on mobile
+2. Verify input fields are appropriately sized
+3. Test form validation on mobile
+4. Verify error messages display correctly
+5. Test file upload on mobile devices
+6. Verify form submission works on mobile
+Expected Result: Forms fully functional and user-friendly on mobile
+
+RD-004: Table Responsiveness
+Objective: Test data table display on mobile
+Test Steps:
+1. Load certificate list on mobile device
+2. Verify table scrolls horizontally if needed
+3. Test responsive table transformations
+4. Verify important columns remain visible
+5. Test table sorting and filtering on mobile
+6. Verify pagination works on mobile
+Expected Result: Tables usable on mobile with good UX
+
+AUTOMATED RESPONSIVE TESTING:
+
+```csharp
+[TestFixture]
+[Category("Responsive")]
+public class ResponsiveDesignTests : BaseMobileTest
+{
+    private readonly int[] _testViewports = { 320, 375, 414, 768, 1024, 1200 };
+    
+    [Test]
+    public async Task HomePage_ResponsiveLayout_AdaptsCorrectly()
+    {
+        foreach (var viewport in _testViewports)
+        {
+            // Set viewport size
+            await SetViewportSize(viewport, 800);
+            
+            // Navigate to home page
+            await NavigateToPage("/");
+            
+            // Verify no horizontal scrolling
+            var hasHorizontalScroll = await HasHorizontalScrollbar();
+            hasHorizontalScroll.Should().BeFalse($"Page should not have horizontal scroll at {viewport}px");
+            
+            // Verify critical elements are visible
+            await VerifyElementVisible(".header");
+            await VerifyElementVisible(".main-content");
+            await VerifyElementVisible(".footer");
+            
+            // Take screenshot for visual verification
+            await TakeScreenshot($"homepage_{viewport}px");
+        }
+    }
+    
+    [Test]
+    public async Task CertificateList_ResponsiveTable_WorksOnMobile()
+    {
+        // Set mobile viewport
+        await SetViewportSize(375, 667); // iPhone dimensions
+        
+        // Navigate to certificate list
+        await NavigateToPage("/certificates");
+        
+        // Verify table is responsive
+        var table = await GetElement(".certificates-table");
+        table.Should().NotBeNull();
+        
+        // Check if table scrolls or transforms for mobile
+        var tableWidth = await GetElementWidth(table);
+        var viewportWidth = await GetViewportWidth();
+        
+        if (tableWidth > viewportWidth)
+        {
+            // Verify horizontal scroll is available
+            var hasHorizontalScroll = await HasHorizontalScrollbar();
+            hasHorizontalScroll.Should().BeTrue("Wide table should be horizontally scrollable");
+        }
+        
+        // Verify table functionality on mobile
+        await VerifyTableSortingWorks();
+        await VerifyTableFilteringWorks();
+        await VerifyTablePaginationWorks();
+    }
+    
+    [Test, TestCaseSource(nameof(_testViewports))]
+    public async Task Navigation_ResponsiveMenu_WorksAtAllBreakpoints(int viewport)
+    {
+        await SetViewportSize(viewport, 800);
+        await NavigateToPage("/");
+        
+        if (viewport < 768) // Mobile breakpoint
+        {
+            // Verify hamburger menu exists
+            var hamburger = await GetElement(".hamburger-menu");
+            hamburger.Should().NotBeNull("Hamburger menu should exist on mobile");
+            
+            // Test hamburger menu functionality
+            await hamburger.ClickAsync();
+            
+            var mobileMenu = await GetElement(".mobile-menu");
+            var isVisible = await mobileMenu.IsVisibleAsync();
+            isVisible.Should().BeTrue("Mobile menu should be visible after clicking hamburger");
+            
+            // Test menu items
+            var menuItems = await GetElements(".mobile-menu a");
+            menuItems.Should().NotBeEmpty("Mobile menu should contain navigation items");
+            
+            // Verify menu items are properly sized for touch
+            foreach (var item in menuItems)
+            {
+                var height = await GetElementHeight(item);
+                height.Should().BeGreaterOrEqualTo(44, "Touch targets should be at least 44px");
+            }
+        }
+        else // Desktop/tablet
+        {
+            // Verify regular menu exists
+            var desktopMenu = await GetElement(".desktop-menu");
+            desktopMenu.Should().NotBeNull("Desktop menu should exist on larger screens");
+            
+            var isVisible = await desktopMenu.IsVisibleAsync();
+            isVisible.Should().BeTrue("Desktop menu should be visible on larger screens");
+        }
+    }
+}
+```
+
+================================================================================
+                        MOBILE BROWSER TESTING
+================================================================================
+
+CROSS-BROWSER TESTING APPROACH:
+
+Browser Test Matrix:
+```
+Device Type    | Browser           | Versions | Priority | Coverage
+---------------|-------------------|----------|----------|----------
+iPhone         | Safari            | 15, 16   | Critical | 100%
+iPhone         | Chrome iOS        | Latest   | High     | 95%
+iPhone         | Firefox iOS       | Latest   | Medium   | 80%
+Android Phone  | Chrome Android    | Latest-1 | Critical | 100%
+Android Phone  | Samsung Internet  | Latest   | High     | 95%
+Android Tablet | Chrome Android    | Latest   | High     | 90%
+iPad           | Safari            | Latest   | High     | 90%
+```
+
+Mobile Browser Compatibility Tests:
+
+MBC-001: Core Functionality Cross-Browser
+Objective: Verify core features work across all mobile browsers
+Test Scenarios:
+- User authentication
+- Certificate search and filtering
+- Form submissions
+- File uploads/downloads
+- Navigation and routing
+- Session management
+
+MBC-002: JavaScript API Compatibility
+Objective: Test browser-specific JavaScript features
+Test Areas:
+- ES6+ feature support
+- Web APIs (Fetch, LocalStorage, etc.)
+- Touch event handling
+- Device orientation APIs
+- Camera/file access APIs
+- Geolocation APIs (if used)
+
+MBC-003: CSS Feature Support
+Objective: Validate CSS features across browsers
+Test Areas:
+- CSS Grid and Flexbox
+- CSS Custom Properties
+- CSS Animations and Transitions
+- Media queries
+- Viewport units (vh, vw, vmin, vmax)
+- Touch-specific CSS features
+
+AUTOMATED BROWSER TESTING:
+
+```csharp
+[TestFixture]
+[Category("CrossBrowser")]
+public class MobileBrowserCompatibilityTests
+{
+    private readonly MobileBrowserConfiguration[] _browsers = 
+    {
+        new("iPhone 12", "Safari", "15.0"),
+        new("iPhone 13", "Chrome", "latest"),
+        new("Samsung Galaxy S22", "Chrome", "latest"),
+        new("Samsung Galaxy S22", "Samsung Internet", "latest"),
+        new("iPad Pro", "Safari", "16.0")
+    };
+    
+    [Test]
+    public async Task CoreFunctionality_AllMobileBrowsers_WorksCorrectly()
+    {
+        foreach (var browser in _browsers)
+        {
+            using var driver = await CreateMobileDriver(browser);
+            var testRunner = new CoreFunctionalityTestRunner(driver);
+            
+            // Run core functionality tests
+            var results = await testRunner.RunCoreTests();
+            
+            // Assert all tests passed
+            results.Should().AllSatisfy(result => 
+                result.Passed.Should().BeTrue($"Test {result.Name} failed on {browser.Device} {browser.Browser}"));
+            
+            // Log browser-specific results
+            LogBrowserTestResults(browser, results);
+        }
+    }
+    
+    [Test]
+    public async Task TouchInteraction_AllDevices_RespondsCorrectly()
+    {
+        foreach (var browser in _browsers)
+        {
+            using var driver = await CreateMobileDriver(browser);
+            
+            // Navigate to interactive page
+            await driver.NavigateAsync("/certificates");
+            
+            // Test tap interactions
+            await TestTapInteraction(driver);
+            
+            // Test long press (if supported)
+            await TestLongPress(driver);
+            
+            // Test swipe gestures
+            await TestSwipeGestures(driver);
+            
+            // Test pinch zoom (if applicable)
+            await TestPinchZoom(driver);
+        }
+    }
+    
+    private async Task TestTapInteraction(IWebDriver driver)
+    {
+        // Find tappable element
+        var searchButton = await driver.FindElementAsync(By.Id("search-button"));
+        
+        // Perform tap
+        var touchActions = new TouchActions(driver);
+        touchActions.SingleTap(searchButton);
+        await touchActions.PerformAsync();
+        
+        // Verify response
+        var searchResults = await driver.FindElementAsync(By.Class("search-results"));
+        await searchResults.WaitUntilVisibleAsync();
+    }
+}
+```
+
+================================================================================
+                        MOBILE PERFORMANCE TESTING
+================================================================================
+
+MOBILE PERFORMANCE REQUIREMENTS:
+
+Performance Targets:
+- Page load time: < 3 seconds on 3G networks
+- Time to First Contentful Paint (FCP): < 2 seconds
+- Largest Contentful Paint (LCP): < 2.5 seconds
+- First Input Delay (FID): < 100ms
+- Cumulative Layout Shift (CLS): < 0.1
+- Time to Interactive (TTI): < 5 seconds on 3G
+
+Network Conditions Testing:
+```
+Connection Type | Download | Upload | Latency | Packet Loss
+----------------|----------|--------|---------|-------------
+4G              | 4 Mbps   | 3 Mbps | 100ms   | 0%
+3G              | 1.6 Mbps | 750 Kbps| 300ms   | 0%  
+Slow 3G         | 500 Kbps | 500 Kbps| 400ms   | 0%
+2G              | 250 Kbps | 50 Kbps | 800ms   | 0%
+Offline         | 0        | 0      | 0       | 100%
+```
+
+MOBILE PERFORMANCE TEST IMPLEMENTATION:
+
+```csharp
+[TestFixture]
+[Category("MobilePerformance")]
+public class MobilePerformanceTests : BaseMobileTest
+{
+    [Test]
+    public async Task PageLoad_3GNetwork_MeetsPerformanceTargets()
+    {
+        // Simulate 3G network conditions
+        await SetNetworkConditions(NetworkSpeed.ThreeG);
+        
+        var performanceMetrics = new List<PagePerformanceMetric>();
+        var testPages = new[] { "/", "/certificates", "/login", "/search" };
+        
+        foreach (var page in testPages)
+        {
+            var metrics = await MeasurePagePerformance(page);
+            performanceMetrics.Add(metrics);
+            
+            // Assert performance targets
+            metrics.PageLoadTime.Should().BeLessThan(TimeSpan.FromSeconds(3), 
+                $"Page {page} should load within 3 seconds on 3G");
+            
+            metrics.FirstContentfulPaint.Should().BeLessThan(TimeSpan.FromSeconds(2),
+                $"FCP for {page} should be under 2 seconds");
+            
+            metrics.LargestContentfulPaint.Should().BeLessThan(TimeSpan.FromSeconds(2.5),
+                $"LCP for {page} should be under 2.5 seconds");
+            
+            metrics.TimeToInteractive.Should().BeLessThan(TimeSpan.FromSeconds(5),
+                $"TTI for {page} should be under 5 seconds");
+        }
+        
+        // Generate performance report
+        await GeneratePerformanceReport(performanceMetrics);
+    }
+    
+    [Test]
+    public async Task ResourceLoading_MobileOptimization_EfficientlyLoaded()
+    {
+        await SetNetworkConditions(NetworkSpeed.ThreeG);
+        await NavigateToPage("/certificates");
+        
+        // Measure resource loading
+        var resourceMetrics = await GetResourceLoadingMetrics();
+        
+        // Verify image optimization
+        var images = resourceMetrics.Where(r => r.ResourceType == "image");
+        images.Should().AllSatisfy(img => 
+        {
+            img.FileSize.Should().BeLessThan(500 * 1024, "Images should be under 500KB");
+            img.Format.Should().BeOneOf("webp", "jpeg", "png", "svg");
+        });
+        
+        // Verify JavaScript bundling
+        var scripts = resourceMetrics.Where(r => r.ResourceType == "script");
+        scripts.Count().Should().BeLessThan(10, "Should have reasonable number of script files");
+        
+        // Verify CSS optimization
+        var stylesheets = resourceMetrics.Where(r => r.ResourceType == "stylesheet");
+        stylesheets.Should().AllSatisfy(css => 
+            css.IsMinified.Should().BeTrue("CSS should be minified"));
+        
+        // Verify gzip compression
+        resourceMetrics.Should().AllSatisfy(resource =>
+            resource.IsCompressed.Should().BeTrue("Resources should be compressed"));
+    }
+    
+    [Test]
+    public async Task OfflineMode_ServiceWorker_CachesKeyResources()
+    {
+        // First, load page online to populate cache
+        await NavigateToPage("/");
+        await WaitForServiceWorkerRegistration();
+        
+        // Go offline
+        await SetNetworkConditions(NetworkSpeed.Offline);
+        
+        // Attempt to reload page
+        await RefreshPage();
+        
+        // Verify page loads from cache
+        var pageTitle = await GetPageTitle();
+        pageTitle.Should().NotBeNullOrEmpty("Page should load from cache when offline");
+        
+        // Verify critical functionality available offline
+        var searchForm = await GetElement("#search-form");
+        searchForm.Should().NotBeNull("Search form should be available offline");
+        
+        // Test cached certificate data access
+        await TestOfflineCertificateAccess();
+    }
+    
+    private async Task<PagePerformanceMetric> MeasurePagePerformance(string url)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        
+        // Navigate to page
+        await Driver.NavigateAsync(url);
+        
+        // Wait for page to load
+        await WaitForPageLoadComplete();
+        stopwatch.Stop();
+        
+        // Collect performance metrics using Performance API
+        var performanceScript = @"
+            return {
+                pageLoadTime: performance.timing.loadEventEnd - performance.timing.navigationStart,
+                domContentLoaded: performance.timing.domContentLoadedEventEnd - performance.timing.navigationStart,
+                firstPaint: performance.getEntriesByName('first-paint')[0]?.startTime || 0,
+                firstContentfulPaint: performance.getEntriesByName('first-contentful-paint')[0]?.startTime || 0,
+                resourceCount: performance.getEntriesByType('resource').length
+            };
+        ";
+        
+        var metrics = await Driver.ExecuteScriptAsync<dynamic>(performanceScript);
+        
+        return new PagePerformanceMetric
+        {
+            Url = url,
+            PageLoadTime = TimeSpan.FromMilliseconds(stopwatch.ElapsedMilliseconds),
+            DomContentLoaded = TimeSpan.FromMilliseconds(metrics.domContentLoaded),
+            FirstPaint = TimeSpan.FromMilliseconds(metrics.firstPaint),
+            FirstContentfulPaint = TimeSpan.FromMilliseconds(metrics.firstContentfulPaint),
+            ResourceCount = metrics.resourceCount
+        };
+    }
+}
+```
+
+================================================================================
+                        MOBILE USABILITY TESTING
+================================================================================
+
+MOBILE UX TESTING APPROACH:
+
+Touch Target Guidelines:
+- Minimum size: 44px × 44px (iOS) / 48dp (Android)
+- Recommended size: 48px × 48px minimum
+- Spacing between targets: 8px minimum
+- Thumb-friendly zones: Lower portion of screen
+- Avoid targets in hard-to-reach areas
+
+Mobile Usability Test Scenarios:
+
+MU-001: Touch Target Accessibility
+Objective: Verify all interactive elements meet touch guidelines
+Test Steps:
+1. Identify all clickable elements (buttons, links, form fields)
+2. Measure element dimensions using browser dev tools
+3. Verify minimum 44px height and width
+4. Check spacing between adjacent touch targets
+5. Test element activation with various touch sizes
+Expected Result: All touch targets meet accessibility guidelines
+
+MU-002: One-Handed Usage
+Objective: Ensure app is usable with one hand
+Test Steps:
+1. Test primary navigation with thumb reach
+2. Verify important actions are in easy-to-reach areas
+3. Test form completion with one hand
+4. Verify scroll and swipe interactions work smoothly
+5. Test with different device sizes and orientations
+Expected Result: App fully usable with one-handed operation
+
+MU-003: Input Method Optimization
+Objective: Test mobile-specific input methods
+Test Steps:
+1. Verify appropriate virtual keyboard types appear
+2. Test numeric inputs show number pad
+3. Test email fields show email keyboard
+4. Verify date pickers use mobile-friendly controls
+5. Test file upload from camera and gallery
+6. Test autocomplete and predictive text
+Expected Result: Input methods optimized for mobile
+
+AUTOMATED USABILITY TESTING:
+
+```csharp
+[TestFixture]
+[Category("MobileUsability")]
+public class MobileUsabilityTests : BaseMobileTest
+{
+    [Test]
+    public async Task TouchTargets_Accessibility_MeetGuidelines()
+    {
+        await NavigateToPage("/certificates");
+        
+        // Find all interactive elements
+        var interactiveElements = await GetElements("button, a, input, select, [onclick], [role='button']");
+        
+        var undersizedElements = new List<(IWebElement element, Size size)>();
+        
+        foreach (var element in interactiveElements)
+        {
+            var size = await element.GetSizeAsync();
+            
+            if (size.Height < 44 || size.Width < 44)
+            {
+                undersizedElements.Add((element, size));
+                
+                // Log details about undersized element
+                var tagName = await element.GetTagNameAsync();
+                var className = await element.GetAttributeAsync("class");
+                var id = await element.GetAttributeAsync("id");
+                
+                TestContext.WriteLine($"Undersized touch target found: {tagName} " +
+                    $"(id: {id}, class: {className}) - Size: {size.Width}x{size.Height}px");
+            }
+        }
+        
+        undersizedElements.Should().BeEmpty(
+            "All touch targets should meet minimum 44px x 44px guideline");
+    }
+    
+    [Test]
+    public async Task VirtualKeyboard_InputTypes_AppearCorrectly()
+    {
+        await NavigateToPage("/certificates/create");
+        
+        var inputTests = new[]
+        {
+            new { Selector = "#email-input", ExpectedType = "email", Description = "Email field" },
+            new { Selector = "#phone-input", ExpectedType = "tel", Description = "Phone field" },
+            new { Selector = "#certificate-number", ExpectedType = "text", Description = "Text field" },
+            new { Selector = "#expiry-date", ExpectedType = "date", Description = "Date field" }
+        };
+        
+        foreach (var test in inputTests)
+        {
+            var element = await GetElement(test.Selector);
+            element.Should().NotBeNull($"{test.Description} should exist");
+            
+            var inputType = await element.GetAttributeAsync("type");
+            inputType.Should().Be(test.ExpectedType, 
+                $"{test.Description} should have correct input type");
+            
+            // Focus element and verify keyboard appears (platform-specific)
+            await element.ClickAsync();
+            await Task.Delay(500); // Allow keyboard animation
+            
+            // Verify appropriate keyboard is shown (this would require platform-specific checking)
+            await VerifyVirtualKeyboardType(test.ExpectedType);
+        }
+    }
+    
+    [Test]
+    public async Task ScrollableContent_InfiniteScroll_WorksSmoothly()
+    {
+        await NavigateToPage("/certificates");
+        
+        // Get initial item count
+        var initialItems = await GetElements(".certificate-item");
+        var initialCount = initialItems.Count;
+        
+        // Scroll to bottom to trigger loading more
+        await ScrollToBottom();
+        
+        // Wait for new items to load
+        await WaitForElementCountToIncrease(".certificate-item", initialCount);
+        
+        var newItems = await GetElements(".certificate-item");
+        newItems.Count.Should().BeGreaterThan(initialCount, 
+            "More items should load when scrolling to bottom");
+        
+        // Test scroll performance
+        var scrollStart = DateTime.UtcNow;
+        await PerformSmoothScroll(0, 1000); // Scroll 1000px
+        var scrollDuration = DateTime.UtcNow - scrollStart;
+        
+        scrollDuration.Should().BeLessThan(TimeSpan.FromSeconds(2), 
+            "Scrolling should be smooth and responsive");
+    }
+    
+    [Test]
+    public async Task SwipeGestures_Navigation_WorksIntuitively()
+    {
+        await NavigateToPage("/certificates/123");
+        
+        // Test swipe to go back (iOS-style)
+        if (await IsIOSDevice())
+        {
+            await PerformSwipeRight();
+            
+            // Verify navigation went back
+            var currentUrl = await GetCurrentUrl();
+            currentUrl.Should().NotContain("/123", 
+                "Swipe right should navigate back on iOS");
+        }
+        
+        // Test swipe to refresh (if implemented)
+        await NavigateToPage("/certificates");
+        var initialLoadTime = await GetPageLoadTimestamp();
+        
+        await PerformSwipeDown(); // Pull to refresh
+        await Task.Delay(2000); // Wait for refresh
+        
+        var newLoadTime = await GetPageLoadTimestamp();
+        newLoadTime.Should().BeAfter(initialLoadTime, 
+            "Pull to refresh should reload content");
+    }
+}
+```
+
+================================================================================
+                        MOBILE SECURITY TESTING
+================================================================================
+
+MOBILE-SPECIFIC SECURITY CONSIDERATIONS:
+
+Security Test Areas:
+- Client-side data storage security
+- Certificate pinning (if using mobile apps)
+- Secure communication over untrusted networks
+- Mobile device permissions
+- Biometric authentication (if supported)
+- App backgrounding/foregrounding security
+- Mobile-specific attack vectors
+
+Mobile Security Tests:
+
+MS-001: Local Storage Security
+Objective: Verify sensitive data is not stored insecurely
+Test Steps:
+1. Login to application on mobile
+2. Inspect local storage, session storage, and cookies
+3. Verify no authentication tokens in plain text
+4. Check for sensitive data in browser cache
+5. Test data persistence across app restarts
+6. Verify secure flag on cookies
+Expected Result: No sensitive data stored insecurely
+
+MS-002: Network Security on Mobile Networks
+Objective: Test security over various network conditions
+Test Steps:
+1. Test HTTPS enforcement on mobile
+2. Verify certificate validation works correctly
+3. Test app behavior on public WiFi
+4. Verify no sensitive data sent over HTTP
+5. Test with man-in-the-middle proxy
+6. Verify proper certificate pinning (if implemented)
+Expected Result: All communications secure
+
+MS-003: Mobile Input Validation
+Objective: Test mobile-specific input attack vectors
+Test Steps:
+1. Test virtual keyboard input validation
+2. Verify copy/paste from clipboard is validated
+3. Test voice-to-text input validation
+4. Verify predictive text doesn't expose data
+5. Test autocomplete security
+Expected Result: All input properly validated
+
+AUTOMATED MOBILE SECURITY TESTING:
+
+```csharp
+[TestFixture]
+[Category("MobileSecurity")]
+public class MobileSecurityTests : BaseMobileTest
+{
+    [Test]
+    public async Task LocalStorage_SensitiveData_NotStoredInPlainText()
+    {
+        // Login to create session
+        await LoginAsTestUser();
+        
+        // Check localStorage
+        var localStorageScript = @"
+            var storage = {};
+            for (let i = 0; i < localStorage.length; i++) {
+                let key = localStorage.key(i);
+                storage[key] = localStorage.getItem(key);
+            }
+            return storage;
+        ";
+        
+        var localStorage = await Driver.ExecuteScriptAsync<Dictionary<string, object>>(localStorageScript);
+        
+        // Check for common sensitive data patterns
+        var sensitivePatterns = new[]
+        {
+            @"password", @"token", @"secret", @"key", @"auth",
+            @"\d{4}-\d{4}-\d{4}-\d{4}", // Credit card pattern
+            @"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}", // Email pattern
+            @"\d{3}-\d{2}-\d{4}" // SSN pattern
+        };
+        
+        foreach (var item in localStorage)
+        {
+            var value = item.Value?.ToString() ?? "";
+            
+            foreach (var pattern in sensitivePatterns)
+            {
+                var regex = new Regex(pattern, RegexOptions.IgnoreCase);
+                regex.IsMatch(value).Should().BeFalse(
+                    $"LocalStorage item '{item.Key}' should not contain sensitive data pattern '{pattern}'");
+            }
+        }
+        
+        // Check sessionStorage similarly
+        await CheckSessionStorageSecurity();
+        
+        // Check cookies
+        await CheckCookieSecurity();
+    }
+    
+    [Test]
+    public async Task HTTPS_Enforcement_WorksOnMobileNetworks()
+    {
+        // Try to access HTTP version of site
+        var httpUrl = TestConfiguration.BaseUrl.Replace("https://", "http://");
+        
+        await Driver.NavigateAsync(httpUrl);
+        
+        // Verify redirect to HTTPS
+        var currentUrl = await GetCurrentUrl();
+        currentUrl.Should().StartWith("https://", 
+            "HTTP requests should be redirected to HTTPS");
+        
+        // Verify HSTS headers are present
+        var hstsHeader = await GetResponseHeader("Strict-Transport-Security");
+        hstsHeader.Should().NotBeNullOrEmpty(
+            "HSTS header should be present for security");
+        
+        // Verify secure cookies
+        var cookies = await Driver.GetAllCookiesAsync();
+        var sessionCookies = cookies.Where(c => c.Name.Contains("session") || c.Name.Contains("auth"));
+        
+        sessionCookies.Should().AllSatisfy(cookie =>
+        {
+            cookie.Secure.Should().BeTrue("Session cookies should have Secure flag");
+            cookie.HttpOnly.Should().BeTrue("Session cookies should have HttpOnly flag");
+        });
+    }
+    
+    [Test]
+    public async Task InputValidation_MobileSpecific_HandledCorrectly()
+    {
+        await NavigateToPage("/certificates/search");
+        
+        // Test clipboard injection
+        var maliciousClipboardContent = "<script>alert('xss')</script>";
+        await SetClipboardContent(maliciousClipboardContent);
+        
+        var searchInput = await GetElement("#search-input");
+        await searchInput.ClickAsync();
+        
+        // Simulate paste operation
+        await PerformKeyboardShortcut("Ctrl+V");
+        
+        var inputValue = await searchInput.GetAttributeAsync("value");
+        inputValue.Should().NotContain("<script>", 
+            "Pasted malicious content should be sanitized");
+        
+        // Test voice input simulation (if supported)
+        await TestVoiceInputValidation();
+        
+        // Test autocomplete security
+        await TestAutocompleteSecurity();
+    }
+    
+    [Test]
+    public async Task BiometricAuthentication_Security_ProperlyImplemented()
+    {
+        // This test would be specific to mobile apps with biometric support
+        // For web apps, we might test WebAuthn API
+        
+        if (await SupportsBiometricAuth())
+        {
+            await NavigateToPage("/login");
+            
+            // Look for biometric login option
+            var biometricButton = await GetElement("#biometric-login");
+            if (biometricButton != null)
+            {
+                await biometricButton.ClickAsync();
+                
+                // Verify secure biometric flow
+                await VerifyBiometricSecurityFlow();
+            }
+        }
+    }
+}
+```
+
+================================================================================
+                        MOBILE ACCESSIBILITY TESTING
+================================================================================
+
+MOBILE ACCESSIBILITY REQUIREMENTS:
+
+WCAG 2.1 AA Mobile Considerations:
+- Touch target size: Minimum 44×44 CSS pixels
+- Touch target spacing: 8px minimum between targets
+- Orientation support: Both portrait and landscape
+- Zoom support: Up to 200% without horizontal scrolling
+- Color contrast: 4.5:1 minimum for normal text
+- Focus indication: Visible focus indicators
+- Screen reader support: Proper semantic markup
+- Voice control: Voice navigation support
+
+Mobile Accessibility Test Scenarios:
+
+MA-001: Screen Reader Navigation
+Objective: Test screen reader compatibility on mobile
+Test Steps:
+1. Enable VoiceOver (iOS) or TalkBack (Android)
+2. Navigate through app using touch gestures
+3. Verify all content is announced correctly
+4. Test form completion with screen reader
+5. Verify proper reading order
+6. Test landmark navigation
+Expected Result: Full functionality with screen reader
+
+MA-002: Touch Target Accessibility
+Objective: Verify touch targets meet accessibility standards
+Test Steps:
+1. Identify all interactive elements
+2. Measure touch target dimensions
+3. Verify 44×44px minimum size
+4. Check spacing between targets
+5. Test activation with various touch sizes
+6. Verify no accidental activation of adjacent targets
+Expected Result: All touch targets accessible
+
+MA-003: Voice Control Accessibility
+Objective: Test voice navigation capabilities
+Test Steps:
+1. Enable voice control (iOS) or Voice Access (Android)
+2. Navigate using voice commands
+3. Test form filling with voice
+4. Verify custom controls are voice accessible
+5. Test voice activation of buttons and links
+Expected Result: Core functionality accessible via voice
+
+AUTOMATED ACCESSIBILITY TESTING:
+
+```csharp
+[TestFixture]
+[Category("MobileAccessibility")]
+public class MobileAccessibilityTests : BaseMobileTest
+{
+    [Test]
+    public async Task TouchTargets_Accessibility_MeetWCAGStandards()
+    {
+        await NavigateToPage("/certificates");
+        
+        // Get all interactive elements
+        var interactiveElements = await GetElements(
+            "button, a, input, select, [tabindex], [role='button'], [onclick]");
+        
+        var accessibilityIssues = new List<string>();
+        
+        foreach (var element in interactiveElements)
+        {
+            var size = await element.GetSizeAsync();
+            var location = await element.GetLocationAsync();
+            
+            // Check minimum size (44x44px)
+            if (size.Height < 44 || size.Width < 44)
+            {
+                var elementInfo = await GetElementIdentifier(element);
+                accessibilityIssues.Add($"Touch target too small: {elementInfo} ({size.Width}x{size.Height}px)");
+            }
+            
+            // Check spacing between adjacent targets
+            var adjacentElements = await GetAdjacentElements(element);
+            foreach (var adjacent in adjacentElements)
+            {
+                var adjacentLocation = await adjacent.GetLocationAsync();
+                var distance = CalculateDistance(location, adjacentLocation);
+                
+                if (distance < 8) // 8px minimum spacing
+                {
+                    var elementInfo = await GetElementIdentifier(element);
+                    var adjacentInfo = await GetElementIdentifier(adjacent);
+                    accessibilityIssues.Add($"Insufficient spacing between touch targets: {elementInfo} and {adjacentInfo} ({distance}px)");
+                }
+            }
+        }
+        
+        accessibilityIssues.Should().BeEmpty("All touch targets should meet WCAG accessibility standards");
+    }
+    
+    [Test]
+    public async Task SemanticMarkup_ScreenReader_ProperlyStructured()
+    {
+        await NavigateToPage("/certificates");
+        
+        // Check for proper heading structure
+        var headings = await GetElements("h1, h2, h3, h4, h5, h6");
+        
+        var headingLevels = new List<int>();
+        foreach (var heading in headings)
+        {
+            var tagName = await heading.GetTagNameAsync();
+            var level = int.Parse(tagName.Substring(1));
+            headingLevels.Add(level);
+        }
+        
+        // Verify logical heading hierarchy (no skipping levels)
+        for (int i = 1; i < headingLevels.Count; i++)
+        {
+            var currentLevel = headingLevels[i];
+            var previousLevel = headingLevels[i - 1];
+            
+            if (currentLevel > previousLevel + 1)
+            {
+                Assert.Fail($"Heading hierarchy skips levels: h{previousLevel} followed by h{currentLevel}");
+            }
+        }
+        
+        // Check for proper ARIA labels
+        var ariaElements = await GetElements("[aria-label], [aria-labelledby], [aria-describedby]");
+        
+        foreach (var element in ariaElements)
+        {
+            var ariaLabel = await element.GetAttributeAsync("aria-label");
+            var ariaLabelledBy = await element.GetAttributeAsync("aria-labelledby");
+            
+            if (!string.IsNullOrEmpty(ariaLabel))
+            {
+                ariaLabel.Should().NotBeNullOrWhiteSpace("ARIA labels should not be empty");
+                ariaLabel.Length.Should().BeLessThan(100, "ARIA labels should be concise");
+            }
+            
+            if (!string.IsNullOrEmpty(ariaLabelledBy))
+            {
+                var referencedElement = await GetElement($"#{ariaLabelledBy}");
+                referencedElement.Should().NotBeNull($"Element referenced by aria-labelledby should exist: {ariaLabelledBy}");
+            }
+        }
+    }
+    
+    [Test]
+    public async Task ColorContrast_Mobile_MeetsStandards()
+    {
+        await NavigateToPage("/");
+        
+        // This would typically use a specialized tool like axe-core
+        var axeScript = @"
+            return new Promise((resolve) => {
+                axe.run({
+                    rules: {
+                        'color-contrast': { enabled: true }
+                    }
+                }, (err, results) => {
+                    if (err) reject(err);
+                    resolve(results.violations.filter(v => v.id === 'color-contrast'));
+                });
+            });
+        ";
+        
+        var colorContrastViolations = await Driver.ExecuteAsyncScriptAsync<dynamic>(axeScript);
+        
+        var violations = JsonSerializer.Deserialize<AxeViolation[]>(colorContrastViolations.ToString());
+        
+        violations.Should().BeEmpty("No color contrast violations should exist");
+        
+        // Manual verification of key elements
+        await VerifyElementContrast(".primary-button", 4.5);
+        await VerifyElementContrast(".secondary-text", 4.5);
+        await VerifyElementContrast(".error-message", 4.5);
+    }
+    
+    [Test]
+    public async Task ZoomSupport_200Percent_NoHorizontalScrolling()
+    {
+        await NavigateToPage("/certificates");
+        
+        // Set zoom to 200%
+        await SetZoomLevel(200);
+        
+        // Verify no horizontal scrolling needed
+        var hasHorizontalScrollbar = await HasHorizontalScrollbar();
+        hasHorizontalScrollbar.Should().BeFalse("Page should not have horizontal scroll at 200% zoom");
+        
+        // Verify all content is still accessible
+        var primaryContent = await GetElement(".main-content");
+        var isVisible = await primaryContent.IsVisibleAsync();
+        isVisible.Should().BeTrue("Primary content should remain visible at 200% zoom");
+        
+        // Test interaction at 200% zoom
+        var searchButton = await GetElement("#search-button");
+        await searchButton.ClickAsync();
+        
+        // Verify interaction worked
+        var searchResults = await GetElement(".search-results");
+        await searchResults.WaitUntilVisibleAsync();
+        
+        // Reset zoom
+        await SetZoomLevel(100);
+    }
+}
+```
+
+================================================================================
+                        MOBILE TEST EXECUTION STRATEGY
+================================================================================
+
+TESTING PHASES:
+
+Phase 1: Responsive Design Validation (Week 1)
+- Viewport testing across all breakpoints
+- Layout adaptation verification
+- Navigation responsiveness
+- Form and table responsiveness
+- Cross-browser responsive testing
+
+Phase 2: Mobile Browser Compatibility (Week 2)
+- Core functionality across browsers
+- JavaScript API compatibility
+- CSS feature support
+- Touch interaction testing
+- Performance across browsers
+
+Phase 3: Mobile Performance Testing (Week 3)
+- Network condition testing
+- Resource optimization validation
+- Offline functionality testing
+- Performance metrics collection
+- Battery usage analysis (if applicable)
+
+Phase 4: Mobile Usability Testing (Week 4)
+- Touch target accessibility
+- One-handed usage testing
+- Input method optimization
+- Swipe gesture testing
+- User experience validation
+
+Phase 5: Mobile Security Testing (Week 5)
+- Local storage security
+- Network security testing
+- Input validation testing
+- Mobile-specific vulnerabilities
+- Biometric authentication (if applicable)
+
+Phase 6: Mobile Accessibility Testing (Week 6)
+- Screen reader compatibility
+- Touch accessibility
+- Voice control testing
+- Color contrast validation
+- Zoom support testing
+
+DEVICE TESTING STRATEGY:
+
+Physical Device Testing:
+- Primary devices: Latest iPhone and Android flagship
+- Secondary devices: Mid-range Android, older iPhone
+- Tablet testing: iPad and Android tablet
+- Budget device testing: Entry-level smartphones
+
+Emulator/Simulator Testing:
+- iOS Simulator for iOS devices
+- Android Emulator for various Android versions
+- Browser DevTools device emulation
+- Cloud-based device testing (BrowserStack, Sauce Labs)
+
+Testing Prioritization:
+1. iPhone (latest) + Safari - 25%
+2. Samsung Galaxy (latest) + Chrome - 25%
+3. iPhone SE + Safari - 15%
+4. Mid-range Android + Chrome - 15%
+5. iPad + Safari - 10%
+6. Other devices/browsers - 10%
+
+AUTOMATION FRAMEWORK:
+
+Mobile Test Automation Stack:
+- Appium for mobile app testing (if applicable)
+- Selenium WebDriver for mobile web testing
+- WebDriverIO for cross-browser mobile testing
+- Jest/Playwright for modern mobile testing
+- Lighthouse CI for performance testing
+- axe-core for accessibility testing
+
+Continuous Integration:
+- Automated mobile tests in CI/CD pipeline
+- Cross-browser testing on multiple mobile devices
+- Performance regression testing
+- Accessibility compliance checking
+- Visual regression testing for responsive design
+
+SUCCESS METRICS:
+
+□ 100% responsive functionality across target devices
+□ Cross-browser compatibility > 95% feature parity
+□ Mobile performance targets met (< 3s page load)
+□ Touch accessibility compliance (44px minimum targets)
+□ Screen reader compatibility validated
+□ Zero critical mobile security vulnerabilities
+□ Mobile user experience score > 4.0/5.0
+□ Automated mobile test coverage > 80%
+
+The Mobile Testing Strategy ensures the GCC Web Application provides an excellent user experience across all mobile devices and browsers while maintaining security, performance, and accessibility standards.
+
+================================================================================
+                                 END OF DOCUMENT
+================================================================================

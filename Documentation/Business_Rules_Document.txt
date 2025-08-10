@@ -1,0 +1,517 @@
+================================================================================
+                  GCC WEB APPLICATION - BUSINESS RULES DOCUMENT
+================================================================================
+
+Document Purpose: Define all business rules, validation logic, and constraints
+Created: 2025-08-09
+Related Documents: Requirements.txt, ValidationService.cs
+
+================================================================================
+                        CERTIFICATE BUSINESS RULES
+================================================================================
+
+RULE BR-CERT-001: Certificate Number Uniqueness
+Description: Certificate numbers must be unique across the entire system
+Implementation:
+- Check for duplicates before creation
+- Case-insensitive comparison
+- No special characters allowed except dash and underscore
+- Maximum length: 50 characters
+- Minimum length: 5 characters
+Exception Handling: Display error "Certificate number already exists"
+
+--------------------------------------------------------------------------------
+
+RULE BR-CERT-002: Certificate Validity Period
+Description: Certificates have specific validity period constraints
+Implementation:
+- Maximum validity period: 5 years
+- Minimum validity period: 1 day
+- Expiration date must be after effective date
+- Effective date cannot be more than 30 days in future
+- Warning if validity period exceeds 3 years
+Exception Handling: Display appropriate validation message
+
+--------------------------------------------------------------------------------
+
+RULE BR-CERT-003: Certificate Status Transitions
+Description: Certificate status changes must follow allowed transitions
+Allowed Transitions:
+- Draft → Pending → Active
+- Active → Expired (automatic on expiration date)
+- Active → Suspended → Active
+- Active → Revoked (final state)
+- Suspended → Revoked (final state)
+- Pending → Rejected → Draft
+Restrictions:
+- Cannot transition from Revoked to any state
+- Cannot transition from Expired to Active without renewal
+- Only admins can transition to Revoked
+
+--------------------------------------------------------------------------------
+
+RULE BR-CERT-004: Certificate Auto-Numbering Format
+Description: System generates certificate numbers automatically
+Format Options:
+- Pattern 1: {PREFIX}-{YEAR}-{SEQUENCE} (e.g., CERT-2025-00001)
+- Pattern 2: {CATEGORY}-{YEAR}{MONTH}-{SEQUENCE} (e.g., FOOD-202501-001)
+- Pattern 3: {COMPANY}-{TYPE}-{SEQUENCE} (e.g., ACME-GMP-1234)
+Rules:
+- Sequence resets yearly if year is in pattern
+- Sequence continues if no year in pattern
+- Manual override allowed for admins only
+- Reserved ranges can be configured
+
+--------------------------------------------------------------------------------
+
+RULE BR-CERT-005: Public Visibility Rules
+Description: Determines when certificates are publicly visible
+Conditions for Public Visibility:
+- Status = Active AND
+- Visibility = Public AND
+- Effective Date <= Today AND
+- Expiration Date > Today AND
+- Company.IsPublic = true
+Exceptions:
+- Admin can override visibility
+- Confidential certificates never public
+- Draft/Pending never public
+
+--------------------------------------------------------------------------------
+
+RULE BR-CERT-006: Mandatory Fields by Certificate Type
+Description: Different certificate types require different fields
+GMP Certificates:
+- Manufacturing location (required)
+- Batch/Lot numbers (optional)
+- Production date (required)
+
+ISO Certificates:
+- Standard version (required)
+- Scope statement (required)
+- Certification body (required)
+
+Organic Certificates:
+- Certifying agency (required)
+- Organic percentage (required)
+- Ingredient list (required)
+
+--------------------------------------------------------------------------------
+
+RULE BR-CERT-007: Expiry Notification Schedule
+Description: Automated notifications sent before certificate expiry
+Schedule:
+- 90 days before: First notification
+- 60 days before: Second notification
+- 30 days before: Third notification (marked urgent)
+- 14 days before: Weekly notifications start
+- 7 days before: Daily notifications start
+- Day of expiry: Final warning
+- 1 day after: Expiry confirmation
+Recipients:
+- Certificate owner (always)
+- Company admin (always)
+- Designated contacts (if configured)
+
+================================================================================
+                         PRODUCT BUSINESS RULES
+================================================================================
+
+RULE BR-PROD-001: Product Code Validation
+Description: Product identification codes must meet format requirements
+
+ASIN (Amazon Standard Identification Number):
+- Format: 10 alphanumeric characters
+- Example: B08N5WRWNW
+- Validation: Check with Amazon API if enabled
+
+UPC (Universal Product Code):
+- Format: 12 digits
+- Check digit validation required
+- Example: 012345678905
+
+GTIN (Global Trade Item Number):
+- Format: 8, 12, 13, or 14 digits
+- Check digit validation required
+- Must be unique per product
+
+EAN (European Article Number):
+- Format: 8 or 13 digits
+- Check digit validation required
+- EAN-13 preferred for new products
+
+--------------------------------------------------------------------------------
+
+RULE BR-PROD-002: Product Category Hierarchy
+Description: Products must follow category hierarchy rules
+Structure:
+- Level 1: Category (e.g., Food & Beverage)
+- Level 2: Subcategory (e.g., Dairy Products)
+- Level 3: Type (e.g., Cheese)
+Rules:
+- Product must have at least Category
+- Cannot skip hierarchy levels
+- Maximum 4 levels deep
+- Category changes require approval
+
+--------------------------------------------------------------------------------
+
+RULE BR-PROD-003: Product Name Constraints
+Description: Product naming conventions and restrictions
+Rules:
+- Maximum length: 200 characters
+- Minimum length: 3 characters
+- No special characters: < > & " '
+- No profanity (filtered list)
+- No trademark violations
+- Must be unique within company
+- Case-insensitive uniqueness check
+
+================================================================================
+                          USER BUSINESS RULES
+================================================================================
+
+RULE BR-USER-001: Password Complexity Requirements
+Description: Passwords must meet security standards
+Requirements:
+- Minimum 8 characters
+- Maximum 128 characters
+- At least 1 uppercase letter
+- At least 1 lowercase letter
+- At least 1 number
+- At least 1 special character (!@#$%^&*)
+- Cannot contain username
+- Cannot contain common words (top 1000)
+- Cannot reuse last 5 passwords
+
+--------------------------------------------------------------------------------
+
+RULE BR-USER-002: Account Lockout Policy
+Description: Prevent brute force attacks through account lockout
+Rules:
+- Lock after 5 failed attempts within 15 minutes
+- Lockout duration: 30 minutes
+- Admin notification after 3 lockouts in 24 hours
+- IP blocking after 10 failed attempts
+- CAPTCHA required after 3 failed attempts
+
+--------------------------------------------------------------------------------
+
+RULE BR-USER-003: Session Management Rules
+Description: Control user session behavior
+Rules:
+- Session timeout: 30 minutes idle
+- Absolute timeout: 8 hours
+- Single session per user (configurable)
+- Session extends on activity
+- Warning at 5 minutes before timeout
+- Secure session cookies only
+- Session invalidation on password change
+
+--------------------------------------------------------------------------------
+
+RULE BR-USER-004: User Role Hierarchy
+Description: Define role permissions and inheritance
+Hierarchy (highest to lowest):
+1. System Admin (all permissions)
+2. Company Admin (company-wide permissions)
+3. Analyst (read/write certificates)
+4. External User - Client (own company read)
+5. External User - Partner (program read)
+6. Public User (public certificates only)
+
+Inheritance Rules:
+- Higher roles inherit lower role permissions
+- Custom roles inherit from base roles
+- Permission denial overrides inheritance
+
+--------------------------------------------------------------------------------
+
+RULE BR-USER-005: Email Verification Requirements
+Description: Email verification process and rules
+Rules:
+- Verification required for new accounts
+- Verification link expires in 24 hours
+- Maximum 3 resend requests per day
+- Email change requires re-verification
+- Unverified accounts deleted after 30 days
+- Notification on successful verification
+
+================================================================================
+                         COMPANY BUSINESS RULES
+================================================================================
+
+RULE BR-COMP-001: Company Name Uniqueness
+Description: Company names must be unique with variations considered
+Rules:
+- Exact match check (case-insensitive)
+- Similar name warning (Levenshtein distance < 3)
+- Abbreviation check (Inc, LLC, Ltd, Corp)
+- Special character normalization
+- DBA (Doing Business As) names tracked
+- Historical names preserved
+
+--------------------------------------------------------------------------------
+
+RULE BR-COMP-002: Company Verification Levels
+Description: Companies have different verification levels
+Levels:
+1. Unverified (self-registered)
+2. Email Verified (email domain confirmed)
+3. Document Verified (business docs provided)
+4. Fully Verified (physical verification done)
+
+Privileges by Level:
+- Unverified: View only, no certificates
+- Email Verified: Can request certificates
+- Document Verified: Can manage certificates
+- Fully Verified: API access, bulk operations
+
+--------------------------------------------------------------------------------
+
+RULE BR-COMP-003: Company Suspension Rules
+Description: Conditions for automatic company suspension
+Triggers:
+- No active certificates for 2 years
+- Payment overdue > 90 days
+- Compliance violations (3 strikes)
+- Security breach from company user
+- Legal/regulatory action
+
+Effects:
+- All certificates marked "Company Suspended"
+- User access restricted to read-only
+- API access revoked
+- Notifications sent to all users
+
+================================================================================
+                         DATA BUSINESS RULES
+================================================================================
+
+RULE BR-DATA-001: Data Retention Policy
+Description: How long different data types are retained
+Retention Periods:
+- Active certificates: Indefinite
+- Expired certificates: 7 years
+- Deleted certificates: 90 days (soft delete)
+- Audit logs: 2 years minimum
+- User activity logs: 1 year
+- System logs: 90 days
+- Temporary files: 24 hours
+- Export files: 7 days
+- Email archives: 1 year
+
+--------------------------------------------------------------------------------
+
+RULE BR-DATA-002: Export Limitations
+Description: Constraints on data export operations
+Rules:
+- Maximum 10,000 records per export
+- Maximum 5 exports per hour per user
+- Maximum file size: 50MB
+- Formats: Excel, CSV, PDF, JSON
+- Watermark on PDF exports
+- Export logs retained 90 days
+- Sensitive fields excluded by default
+
+--------------------------------------------------------------------------------
+
+RULE BR-DATA-003: Bulk Operation Limits
+Description: Constraints on bulk operations
+Limits:
+- Bulk create: 100 records maximum
+- Bulk update: 500 records maximum
+- Bulk delete: 50 records maximum
+- Bulk import: 1000 rows per file
+- Processing timeout: 5 minutes
+- Queue limit: 3 operations per user
+- Rollback on >10% failure rate
+
+================================================================================
+                        INTEGRATION BUSINESS RULES
+================================================================================
+
+RULE BR-INT-001: API Rate Limiting
+Description: API usage limits per tier
+Tiers:
+- Public: 10 requests/minute
+- Basic: 100 requests/minute
+- Premium: 1000 requests/minute
+- Enterprise: Custom limits
+
+Rules:
+- Burst allowance: 20% above limit
+- Rate limit headers in response
+- 429 status on limit exceeded
+- Exponential backoff required
+- Daily request cap: tier × 1440
+
+--------------------------------------------------------------------------------
+
+RULE BR-INT-002: Webhook Retry Policy
+Description: How failed webhooks are retried
+Schedule:
+- 1st retry: 1 minute
+- 2nd retry: 5 minutes
+- 3rd retry: 15 minutes
+- 4th retry: 1 hour
+- 5th retry: 6 hours
+- Final retry: 24 hours
+
+Rules:
+- Stop on 2xx response
+- Stop on 410 Gone
+- Alert admin after 3 failures
+- Disable endpoint after 7 days failing
+
+--------------------------------------------------------------------------------
+
+RULE BR-INT-003: Data Synchronization Rules
+Description: Rules for syncing with external systems
+Rules:
+- Full sync: Once daily at 2 AM
+- Incremental sync: Every 15 minutes
+- Conflict resolution: Latest timestamp wins
+- Sync validation: Checksum comparison
+- Failed sync notification: After 3 attempts
+- Manual sync: Limited to 1 per hour
+- Sync log retention: 30 days
+
+================================================================================
+                        NOTIFICATION BUSINESS RULES
+================================================================================
+
+RULE BR-NOTIF-001: Notification Priorities
+Description: How notifications are prioritized and delivered
+Priority Levels:
+1. Critical: Immediate delivery, all channels
+2. High: Within 5 minutes, email + in-app
+3. Medium: Within 1 hour, email
+4. Low: Daily digest, email
+
+Escalation:
+- Critical unread for 1 hour → SMS
+- High unread for 4 hours → Escalate to manager
+- Undeliverable email → In-app only
+
+--------------------------------------------------------------------------------
+
+RULE BR-NOTIF-002: Notification Frequency Limits
+Description: Prevent notification spam
+Limits:
+- Maximum 10 emails per day per user
+- Maximum 50 emails per day per company
+- Digest mode after 5 notifications/hour
+- Quiet hours: 10 PM - 6 AM (configurable)
+- Vacation mode: Hold non-critical
+- Unsubscribe honor period: 90 days
+
+================================================================================
+                        COMPLIANCE BUSINESS RULES
+================================================================================
+
+RULE BR-COMP-001: GDPR Compliance Rules
+Description: Rules to ensure GDPR compliance
+Requirements:
+- Explicit consent for data processing
+- Data portability within 30 days
+- Right to erasure within 30 days
+- Privacy policy version acceptance
+- Cookie consent management
+- Data breach notification within 72 hours
+- Privacy by design implementation
+
+--------------------------------------------------------------------------------
+
+RULE BR-COMP-002: Audit Trail Requirements
+Description: What must be included in audit trails
+Required Fields:
+- Timestamp (UTC)
+- User ID and name
+- IP address
+- Action performed
+- Entity type and ID
+- Old value (for updates)
+- New value (for updates)
+- Result (success/failure)
+- Session ID
+- Correlation ID
+
+Retention:
+- Financial records: 7 years
+- Security events: 2 years
+- General audit: 1 year
+
+================================================================================
+                         FINANCIAL BUSINESS RULES
+================================================================================
+
+RULE BR-FIN-001: Subscription Tiers
+Description: Feature access by subscription level
+Free Tier:
+- 10 active certificates
+- 1 user
+- Public search only
+- Monthly exports
+
+Professional:
+- 100 active certificates
+- 5 users
+- API access (basic)
+- Daily exports
+
+Enterprise:
+- Unlimited certificates
+- Unlimited users
+- API access (premium)
+- Real-time exports
+- Custom fields
+- White labeling
+
+--------------------------------------------------------------------------------
+
+RULE BR-FIN-002: Usage Billing Rules
+Description: How usage-based billing is calculated
+Billing Metrics:
+- Active certificates: $1/certificate/month
+- API calls: $0.01 per 1000 calls
+- Storage: $0.10/GB/month
+- Users: $10/user/month
+
+Rules:
+- Billing cycle: Monthly
+- Proration for partial months
+- Overage charges at 1.5x rate
+- Payment terms: Net 30
+- Auto-suspend at 90 days overdue
+
+================================================================================
+                        VALIDATION PRIORITY MATRIX
+================================================================================
+
+Critical (Block Operation):
+- Certificate number uniqueness
+- Required field validation
+- Password complexity
+- Data type validation
+- Security rules
+
+High (Warning + Confirmation):
+- Business logic violations
+- Unusual patterns detected
+- Limit approaching warnings
+- Duplicate detection
+
+Medium (Warning Only):
+- Best practice violations
+- Performance impact warnings
+- Deprecation notices
+
+Low (Information):
+- Suggestions for improvement
+- Tips and hints
+- Usage analytics
+
+================================================================================
+                                 END OF DOCUMENT
+================================================================================

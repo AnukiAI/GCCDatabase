@@ -1,0 +1,1409 @@
+================================================================================
+                 GCC WEB APPLICATION - TEST DATA MANAGEMENT PLAN
+================================================================================
+
+Document Version: 1.0
+Created: 2025-08-09
+Plan ID: TDMP-001
+Data Coverage: 100% test scenarios
+
+================================================================================
+                        TEST DATA MANAGEMENT OVERVIEW
+================================================================================
+
+Test Data Management Objectives:
+□ Provide consistent, reliable test data across all testing phases
+□ Ensure data privacy and security compliance
+□ Support automated test execution and CI/CD pipelines
+□ Enable data-driven testing scenarios
+□ Maintain data integrity across test environments
+□ Support performance testing with realistic data volumes
+□ Enable test isolation and parallel execution
+□ Provide data refresh and cleanup mechanisms
+
+Data Management Scope:
+✅ Master data (Users, Companies, Products, Categories)
+✅ Transaction data (Certificates, Audit logs, Notifications)
+✅ Reference data (Countries, Currencies, Status codes)
+✅ Configuration data (Settings, Permissions, Roles)
+✅ File attachments (PDFs, Images, Documents)
+✅ Historical data (Archives, Expired records)
+✅ Test-specific data (Mock data, Edge cases)
+✅ Performance test data (High volume datasets)
+
+Success Criteria:
+□ 100% test scenario data coverage
+□ Data refresh capability within 15 minutes
+□ Zero data privacy violations
+□ 99% data consistency across environments
+□ Automated data provisioning
+□ Test isolation maintained
+□ Performance data supports load testing
+
+================================================================================
+                        TEST DATA ARCHITECTURE
+================================================================================
+
+DATA CLASSIFICATION:
+
+Static Reference Data:
+- System configuration
+- Lookup tables (Status codes, Categories)
+- User roles and permissions
+- Country/region codes
+- Product categories and types
+
+Master Data:
+- User accounts
+- Company profiles  
+- Product catalog
+- Certificate types
+- Partner programs
+
+Transactional Data:
+- Certificates
+- Audit logs
+- User activities
+- Notifications
+- File uploads
+- Reports
+
+Temporal Data:
+- Historical records
+- Archived certificates
+- Expired data
+- Date-sensitive test cases
+
+Synthetic Data:
+- Generated test records
+- Performance test datasets
+- Edge case scenarios
+- Negative test data
+
+DATA ENVIRONMENTS:
+
+Development Environment:
+- Fresh synthetic data
+- Developer-specific datasets
+- Rapid data refresh
+- Full CRUD permissions
+- Minimal data volume
+
+Test Environment:
+- Production-like data structure
+- Anonymized data content
+- Automated data refresh
+- Controlled data modifications
+- Medium data volume
+
+UAT Environment:
+- Business-realistic scenarios
+- End-user representative data
+- Stakeholder-approved datasets
+- Limited data modifications
+- Production-scale volume
+
+Performance Environment:
+- High-volume datasets
+- Load testing scenarios
+- Stress testing data
+- Scalability test data
+- Production-equivalent volume
+
+================================================================================
+                        TEST DATA GENERATION STRATEGY
+================================================================================
+
+DATA GENERATION APPROACH:
+
+1. Synthetic Data Generation (Primary)
+- Programmatically generated using Faker libraries
+- Consistent patterns and relationships
+- Configurable data volumes
+- Repeatable data sets
+- Privacy-compliant by design
+
+2. Data Masking (Secondary)
+- Production data anonymization
+- PII obfuscation techniques
+- Referential integrity preservation
+- Realistic data patterns
+- Compliance with privacy regulations
+
+3. Data Subsetting (Supporting)
+- Representative production samples
+- Reduced data volumes
+- Maintained data relationships
+- Specific scenario focus
+
+SYNTHETIC DATA GENERATION FRAMEWORK:
+
+```csharp
+public class TestDataFactory
+{
+    private readonly Faker _faker;
+    private readonly Random _random;
+    
+    public TestDataFactory(int seed = 12345)
+    {
+        _random = new Random(seed);
+        _faker = new Faker();
+        Randomizer.Seed = new Random(seed);
+    }
+    
+    // Company Data Generation
+    public Company GenerateCompany(int? id = null)
+    {
+        return new Company
+        {
+            Id = id ?? _random.Next(1, 10000),
+            Name = _faker.Company.CompanyName(),
+            ContactInfo = _faker.Internet.Email(),
+            Address = _faker.Address.FullAddress(),
+            Country = _faker.Address.CountryCode(),
+            Phone = _faker.Phone.PhoneNumber(),
+            Website = _faker.Internet.Url(),
+            IsActive = _faker.Random.Bool(0.9f), // 90% active
+            CreatedDate = _faker.Date.Between(DateTime.Now.AddYears(-5), DateTime.Now.AddMonths(-1))
+        };
+    }
+    
+    // Certificate Data Generation
+    public Certificate GenerateCertificate(int? companyId = null, string status = null)
+    {
+        var effectiveDate = _faker.Date.Between(DateTime.Now.AddYears(-2), DateTime.Now.AddMonths(1));
+        var expirationDate = effectiveDate.AddMonths(_faker.Random.Int(6, 36));
+        
+        return new Certificate
+        {
+            Id = _random.Next(1, 100000),
+            Number = GenerateCertificateNumber(),
+            CompanyId = companyId ?? _random.Next(1, 100),
+            CertificationTypeId = _faker.Random.Int(1, 10),
+            ProductId = _faker.Random.Int(1, 1000),
+            Status = status ?? _faker.Random.WeightedRandom(
+                new[] { "Active", "Expired", "Pending", "Suspended" },
+                new[] { 0.6f, 0.2f, 0.15f, 0.05f }),
+            EffectiveDate = effectiveDate,
+            ExpirationDate = expirationDate,
+            IssueDate = effectiveDate.AddDays(-_faker.Random.Int(1, 30)),
+            Notes = _faker.Random.Bool(0.3f) ? _faker.Lorem.Sentence() : null,
+            Asin = _faker.Random.Bool(0.4f) ? _faker.Random.AlphaNumeric(10).ToUpper() : null,
+            Upc = _faker.Random.Bool(0.3f) ? _faker.Random.Digits(12) : null,
+            CreatedDate = effectiveDate.AddDays(-_faker.Random.Int(1, 60))
+        };
+    }
+    
+    // User Data Generation
+    public User GenerateUser(UserRole role = UserRole.Client, int? companyId = null)
+    {
+        var firstName = _faker.Name.FirstName();
+        var lastName = _faker.Name.LastName();
+        
+        return new User
+        {
+            Id = _random.Next(1, 10000),
+            Email = _faker.Internet.Email(firstName, lastName),
+            FirstName = firstName,
+            LastName = lastName,
+            Role = role.ToString(),
+            CompanyId = companyId ?? (role == UserRole.Client ? _random.Next(1, 100) : null),
+            IsActive = _faker.Random.Bool(0.95f),
+            EmailVerified = _faker.Random.Bool(0.9f),
+            LastLogin = _faker.Date.Between(DateTime.Now.AddMonths(-3), DateTime.Now),
+            CreatedDate = _faker.Date.Between(DateTime.Now.AddYears(-2), DateTime.Now.AddMonths(-1))
+        };
+    }
+    
+    // Product Data Generation
+    public Product GenerateProduct(int? categoryId = null)
+    {
+        return new Product
+        {
+            Id = _random.Next(1, 10000),
+            Name = _faker.Commerce.ProductName(),
+            Description = _faker.Commerce.ProductDescription(),
+            CategoryId = categoryId ?? _faker.Random.Int(1, 50),
+            Sku = _faker.Commerce.Ean13(),
+            Upc = _faker.Random.Bool(0.6f) ? _faker.Random.Digits(12) : null,
+            Gtin = _faker.Random.Bool(0.4f) ? _faker.Random.Digits(14) : null,
+            IsActive = _faker.Random.Bool(0.9f),
+            CreatedDate = _faker.Date.Between(DateTime.Now.AddYears(-3), DateTime.Now)
+        };
+    }
+    
+    private string GenerateCertificateNumber()
+    {
+        var prefix = _faker.Random.WeightedRandom(
+            new[] { "CERT", "ISO", "GMP", "HACCP", "FDA", "CE" },
+            new[] { 0.3f, 0.2f, 0.2f, 0.1f, 0.1f, 0.1f });
+        var year = DateTime.Now.Year;
+        var sequence = _faker.Random.Int(1, 9999).ToString("D4");
+        
+        return $"{prefix}-{year}-{sequence}";
+    }
+    
+    // Bulk Data Generation
+    public List<T> GenerateList<T>(Func<T> generator, int count)
+    {
+        return Enumerable.Range(0, count).Select(_ => generator()).ToList();
+    }
+    
+    // Scenario-Specific Data Sets
+    public TestDataSet GenerateScenarioData(TestScenario scenario)
+    {
+        return scenario switch
+        {
+            TestScenario.NormalLoad => GenerateNormalLoadData(),
+            TestScenario.HighVolume => GenerateHighVolumeData(),
+            TestScenario.ExpiryNotifications => GenerateExpiryData(),
+            TestScenario.MultiTenant => GenerateMultiTenantData(),
+            TestScenario.EdgeCases => GenerateEdgeCaseData(),
+            _ => throw new ArgumentException($"Unknown scenario: {scenario}")
+        };
+    }
+}
+```
+
+SPECIALIZED DATA GENERATORS:
+
+```csharp
+public class PerformanceTestDataGenerator
+{
+    public async Task GeneratePerformanceDataSet(int certificateCount = 100000, 
+        int companyCount = 1000, int userCount = 5000)
+    {
+        var companies = GenerateCompanies(companyCount);
+        await BulkInsertCompanies(companies);
+        
+        var users = GenerateUsers(userCount, companies);
+        await BulkInsertUsers(users);
+        
+        var certificates = GenerateCertificates(certificateCount, companies);
+        await BulkInsertCertificates(certificates);
+        
+        var auditLogs = GenerateAuditLogs(certificates);
+        await BulkInsertAuditLogs(auditLogs);
+    }
+    
+    private async Task BulkInsertCertificates(IEnumerable<Certificate> certificates)
+    {
+        const int batchSize = 1000;
+        var batches = certificates.Batch(batchSize);
+        
+        foreach (var batch in batches)
+        {
+            using var context = new TestDbContext();
+            context.Certificates.AddRange(batch);
+            await context.SaveChangesAsync();
+        }
+    }
+}
+
+public class SecurityTestDataGenerator
+{
+    public IEnumerable<string> GenerateMaliciousPayloads()
+    {
+        // SQL Injection payloads
+        yield return "'; DROP TABLE Certificates; --";
+        yield return "' UNION SELECT * FROM Users --";
+        yield return "' OR '1'='1";
+        
+        // XSS payloads
+        yield return "<script>alert('xss')</script>";
+        yield return "<img src=x onerror=alert(1)>";
+        yield return "javascript:alert('xss')";
+        
+        // Path traversal
+        yield return "../../../etc/passwd";
+        yield return "..\\..\\..\\windows\\system32\\config\\sam";
+        
+        // Command injection
+        yield return "; ls -la";
+        yield return "| whoami";
+        yield return "&& cat /etc/passwd";
+        
+        // LDAP injection
+        yield return "*)(&";
+        yield return "*)(objectClass=user)(&";
+        
+        // Template injection
+        yield return "{{7*7}}";
+        yield return "${7*7}";
+        yield return "#{7*7}";
+    }
+    
+    public Certificate GenerateVulnerableCertificate()
+    {
+        var maliciousPayloads = GenerateMaliciousPayloads().ToArray();
+        var random = new Random();
+        
+        return new Certificate
+        {
+            Number = maliciousPayloads[random.Next(maliciousPayloads.Length)],
+            Notes = "<script>alert('stored xss')</script>Test notes",
+            // Other fields with potential vulnerabilities
+        };
+    }
+}
+```
+
+================================================================================
+                        DATA PROVISIONING AND REFRESH
+================================================================================
+
+AUTOMATED DATA PROVISIONING:
+
+```csharp
+public class TestDataProvisioner
+{
+    private readonly IDbContextFactory<TestDbContext> _contextFactory;
+    private readonly TestDataFactory _dataFactory;
+    private readonly ILogger<TestDataProvisioner> _logger;
+    
+    public async Task ProvisionEnvironmentData(TestEnvironment environment)
+    {
+        _logger.LogInformation("Starting data provisioning for {Environment}", environment);
+        
+        try
+        {
+            await CleanExistingData();
+            await ProvisionReferenceData();
+            await ProvisionMasterData(environment);
+            await ProvisionTransactionalData(environment);
+            await VerifyDataIntegrity();
+            
+            _logger.LogInformation("Data provisioning completed successfully");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Data provisioning failed");
+            throw;
+        }
+    }
+    
+    private async Task ProvisionReferenceData()
+    {
+        using var context = _contextFactory.CreateDbContext();
+        
+        // Certificate types
+        var certTypes = new[]
+        {
+            new CertificationType { Id = 1, Name = "ISO 9001", Description = "Quality Management" },
+            new CertificationType { Id = 2, Name = "GMP", Description = "Good Manufacturing Practice" },
+            new CertificationType { Id = 3, Name = "HACCP", Description = "Hazard Analysis Critical Control Points" },
+            new CertificationType { Id = 4, Name = "FDA", Description = "Food and Drug Administration" },
+            new CertificationType { Id = 5, Name = "CE Marking", Description = "European Conformity" }
+        };
+        
+        context.CertificationTypes.AddRange(certTypes);
+        
+        // Product categories
+        var categories = GenerateProductCategories();
+        context.ProductCategories.AddRange(categories);
+        
+        // Countries
+        var countries = GenerateCountries();
+        context.Countries.AddRange(countries);
+        
+        await context.SaveChangesAsync();
+    }
+    
+    private async Task ProvisionMasterData(TestEnvironment environment)
+    {
+        var dataVolume = GetDataVolumeForEnvironment(environment);
+        
+        // Generate companies
+        var companies = _dataFactory.GenerateList(
+            () => _dataFactory.GenerateCompany(), dataVolume.CompanyCount);
+        await BulkInsert(companies);
+        
+        // Generate users
+        var users = GenerateUsersForCompanies(companies, dataVolume.UsersPerCompany);
+        await BulkInsert(users);
+        
+        // Generate products
+        var products = _dataFactory.GenerateList(
+            () => _dataFactory.GenerateProduct(), dataVolume.ProductCount);
+        await BulkInsert(products);
+    }
+    
+    private async Task ProvisionTransactionalData(TestEnvironment environment)
+    {
+        using var context = _contextFactory.CreateDbContext();
+        var companies = await context.Companies.ToListAsync();
+        var products = await context.Products.ToListAsync();
+        
+        var dataVolume = GetDataVolumeForEnvironment(environment);
+        
+        // Generate certificates
+        var certificates = new List<Certificate>();
+        foreach (var company in companies)
+        {
+            var companyProducts = products.Take(Random.Next(1, 10)).ToList();
+            var companyCertificates = GenerateCertificatesForCompany(
+                company, companyProducts, dataVolume.CertificatesPerCompany);
+            certificates.AddRange(companyCertificates);
+        }
+        
+        await BulkInsert(certificates);
+        
+        // Generate audit logs
+        var auditLogs = GenerateAuditLogsForCertificates(certificates);
+        await BulkInsert(auditLogs);
+    }
+    
+    private DataVolumeConfiguration GetDataVolumeForEnvironment(TestEnvironment environment)
+    {
+        return environment switch
+        {
+            TestEnvironment.Development => new DataVolumeConfiguration
+            {
+                CompanyCount = 50,
+                UsersPerCompany = 5,
+                ProductCount = 500,
+                CertificatesPerCompany = 10
+            },
+            TestEnvironment.Test => new DataVolumeConfiguration
+            {
+                CompanyCount = 200,
+                UsersPerCompany = 10,
+                ProductCount = 2000,
+                CertificatesPerCompany = 25
+            },
+            TestEnvironment.UAT => new DataVolumeConfiguration
+            {
+                CompanyCount = 500,
+                UsersPerCompany = 15,
+                ProductCount = 5000,
+                CertificatesPerCompany = 50
+            },
+            TestEnvironment.Performance => new DataVolumeConfiguration
+            {
+                CompanyCount = 1000,
+                UsersPerCompany = 20,
+                ProductCount = 10000,
+                CertificatesPerCompany = 100
+            },
+            _ => throw new ArgumentException($"Unknown environment: {environment}")
+        };
+    }
+}
+```
+
+DATA REFRESH AUTOMATION:
+
+```csharp
+public class DataRefreshService
+{
+    public async Task<DataRefreshResult> RefreshEnvironmentData(
+        TestEnvironment environment, RefreshOptions options = null)
+    {
+        var result = new DataRefreshResult();
+        var stopwatch = Stopwatch.StartNew();
+        
+        try
+        {
+            // 1. Backup current data (if requested)
+            if (options?.CreateBackup == true)
+            {
+                await CreateDataBackup(environment);
+                result.BackupCreated = true;
+            }
+            
+            // 2. Clean existing data
+            await CleanEnvironmentData(environment);
+            result.DataCleaned = true;
+            
+            // 3. Provision fresh data
+            var provisioner = new TestDataProvisioner();
+            await provisioner.ProvisionEnvironmentData(environment);
+            result.DataProvisioned = true;
+            
+            // 4. Verify data integrity
+            var verificationResult = await VerifyDataIntegrity(environment);
+            result.DataVerified = verificationResult.IsValid;
+            result.VerificationErrors = verificationResult.Errors;
+            
+            // 5. Update refresh metadata
+            await UpdateRefreshMetadata(environment, DateTime.UtcNow);
+            
+            result.Success = true;
+            result.Duration = stopwatch.Elapsed;
+            
+            return result;
+        }
+        catch (Exception ex)
+        {
+            result.Success = false;
+            result.Error = ex.Message;
+            result.Duration = stopwatch.Elapsed;
+            
+            // Attempt to restore from backup if available
+            if (options?.CreateBackup == true)
+            {
+                await RestoreFromBackup(environment);
+            }
+            
+            throw;
+        }
+    }
+    
+    public async Task SchedulePeriodicRefresh(TestEnvironment environment, TimeSpan interval)
+    {
+        // Implementation for scheduled data refresh
+        var timer = new Timer(async _ => 
+        {
+            try
+            {
+                await RefreshEnvironmentData(environment);
+                _logger.LogInformation("Scheduled data refresh completed for {Environment}", environment);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Scheduled data refresh failed for {Environment}", environment);
+            }
+        }, null, TimeSpan.Zero, interval);
+    }
+}
+```
+
+================================================================================
+                        DATA PRIVACY AND SECURITY
+================================================================================
+
+DATA ANONYMIZATION:
+
+```csharp
+public class DataAnonymizer
+{
+    private readonly Faker _faker = new Faker();
+    
+    public Company AnonymizeCompany(Company company)
+    {
+        return new Company
+        {
+            Id = company.Id,
+            Name = GenerateAnonymousCompanyName(company.Name),
+            ContactInfo = _faker.Internet.Email(),
+            Address = _faker.Address.FullAddress(),
+            Country = company.Country, // Keep geographic data
+            Phone = _faker.Phone.PhoneNumber(),
+            Website = _faker.Internet.Url(),
+            IsActive = company.IsActive,
+            CreatedDate = company.CreatedDate
+        };
+    }
+    
+    public User AnonymizeUser(User user)
+    {
+        return new User
+        {
+            Id = user.Id,
+            Email = GenerateAnonymousEmail(),
+            FirstName = _faker.Name.FirstName(),
+            LastName = _faker.Name.LastName(),
+            Role = user.Role,
+            CompanyId = user.CompanyId,
+            IsActive = user.IsActive,
+            EmailVerified = user.EmailVerified,
+            LastLogin = user.LastLogin,
+            CreatedDate = user.CreatedDate
+        };
+    }
+    
+    private string GenerateAnonymousCompanyName(string originalName)
+    {
+        // Preserve company type but anonymize name
+        var companyTypes = new[] { "Inc", "LLC", "Corp", "Ltd", "Co" };
+        var hasCompanyType = companyTypes.Any(type => originalName.EndsWith(type));
+        
+        var anonymousName = _faker.Company.CompanyName();
+        
+        if (hasCompanyType)
+        {
+            var originalType = companyTypes.First(type => originalName.EndsWith(type));
+            anonymousName = $"{anonymousName.Split(' ')[0]} {originalType}";
+        }
+        
+        return anonymousName;
+    }
+    
+    private string GenerateAnonymousEmail()
+    {
+        return _faker.Internet.Email(domain: "testdata.local");
+    }
+}
+```
+
+GDPR COMPLIANCE:
+
+```csharp
+public class GdprCompliantDataManager
+{
+    public async Task<DataExportResult> ExportPersonalData(int userId)
+    {
+        // Implement right to data portability
+        using var context = new TestDbContext();
+        
+        var user = await context.Users.FindAsync(userId);
+        var certificates = await context.Certificates
+            .Where(c => c.CreatedBy == userId)
+            .ToListAsync();
+        var auditLogs = await context.AuditLogs
+            .Where(a => a.UserId == userId)
+            .ToListAsync();
+        
+        return new DataExportResult
+        {
+            PersonalData = new
+            {
+                User = user,
+                Certificates = certificates,
+                AuditLogs = auditLogs
+            },
+            ExportDate = DateTime.UtcNow,
+            Format = "JSON"
+        };
+    }
+    
+    public async Task<DataDeletionResult> DeletePersonalData(int userId)
+    {
+        // Implement right to erasure
+        using var context = new TestDbContext();
+        using var transaction = await context.Database.BeginTransactionAsync();
+        
+        try
+        {
+            // Anonymize instead of delete to preserve referential integrity
+            var user = await context.Users.FindAsync(userId);
+            if (user != null)
+            {
+                user.Email = $"deleted-user-{userId}@anonymous.local";
+                user.FirstName = "Deleted";
+                user.LastName = "User";
+                user.IsActive = false;
+                user.EmailVerified = false;
+            }
+            
+            // Update audit logs to remove personal identifiers
+            var auditLogs = await context.AuditLogs
+                .Where(a => a.UserId == userId)
+                .ToListAsync();
+                
+            foreach (var log in auditLogs)
+            {
+                log.UserEmail = null;
+                log.UserName = "Deleted User";
+            }
+            
+            await context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            
+            return new DataDeletionResult { Success = true };
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync();
+            return new DataDeletionResult { Success = false, Error = ex.Message };
+        }
+    }
+}
+```
+
+================================================================================
+                        DATA ISOLATION AND CLEANUP
+================================================================================
+
+TEST ISOLATION STRATEGY:
+
+```csharp
+public class TestDataIsolationManager
+{
+    private readonly ConcurrentDictionary<string, TestDataScope> _activeScopes = new();
+    
+    public async Task<TestDataScope> CreateIsolatedScope(string testName)
+    {
+        var scopeId = Guid.NewGuid().ToString();
+        var scope = new TestDataScope
+        {
+            Id = scopeId,
+            TestName = testName,
+            CreatedAt = DateTime.UtcNow,
+            IsolatedData = new Dictionary<Type, List<object>>()
+        };
+        
+        _activeScopes[scopeId] = scope;
+        
+        // Create isolated test database or use table prefixing
+        await CreateIsolatedDatabase(scopeId);
+        
+        return scope;
+    }
+    
+    public async Task CleanupScope(TestDataScope scope)
+    {
+        try
+        {
+            // Clean up isolated data
+            await CleanupIsolatedData(scope);
+            
+            // Remove from active scopes
+            _activeScopes.TryRemove(scope.Id, out _);
+            
+            _logger.LogInformation("Test data scope {ScopeId} cleaned up successfully", scope.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to cleanup test data scope {ScopeId}", scope.Id);
+        }
+    }
+    
+    private async Task CreateIsolatedDatabase(string scopeId)
+    {
+        var connectionString = GetTestConnectionString(scopeId);
+        
+        using var context = new TestDbContext(connectionString);
+        await context.Database.EnsureCreatedAsync();
+        
+        // Apply any pending migrations
+        await context.Database.MigrateAsync();
+    }
+    
+    private async Task CleanupIsolatedData(TestDataScope scope)
+    {
+        var connectionString = GetTestConnectionString(scope.Id);
+        
+        using var context = new TestDbContext(connectionString);
+        await context.Database.EnsureDeletedAsync();
+    }
+}
+
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Class)]
+public class IsolatedTestDataAttribute : Attribute, ITestAction
+{
+    private TestDataScope _scope;
+    
+    public void BeforeTest(ITest test)
+    {
+        var isolationManager = TestServiceProvider.GetService<TestDataIsolationManager>();
+        _scope = isolationManager.CreateIsolatedScope(test.FullName).Result;
+        
+        // Set scope context for test
+        TestContext.Properties["DataScope"] = _scope;
+    }
+    
+    public void AfterTest(ITest test)
+    {
+        if (_scope != null)
+        {
+            var isolationManager = TestServiceProvider.GetService<TestDataIsolationManager>();
+            isolationManager.CleanupScope(_scope).Wait();
+        }
+    }
+    
+    public ActionTargets Targets => ActionTargets.Test;
+}
+```
+
+PARALLEL TEST DATA MANAGEMENT:
+
+```csharp
+public class ParallelTestDataManager
+{
+    private readonly SemaphoreSlim _dataLock = new(1, 1);
+    private readonly ConcurrentDictionary<int, TestDataPartition> _partitions = new();
+    
+    public async Task<TestDataPartition> AcquireDataPartition(string testCategory)
+    {
+        await _dataLock.WaitAsync();
+        try
+        {
+            // Find available partition or create new one
+            var partition = _partitions.Values.FirstOrDefault(p => 
+                p.Category == testCategory && !p.IsInUse) 
+                ?? await CreateNewPartition(testCategory);
+            
+            partition.IsInUse = true;
+            partition.AssignedTest = Thread.CurrentThread.Name;
+            
+            return partition;
+        }
+        finally
+        {
+            _dataLock.Release();
+        }
+    }
+    
+    public async Task ReleaseDataPartition(TestDataPartition partition)
+    {
+        await _dataLock.WaitAsync();
+        try
+        {
+            partition.IsInUse = false;
+            partition.AssignedTest = null;
+            
+            // Clean up partition data if needed
+            if (partition.RequiresCleanup)
+            {
+                await CleanupPartitionData(partition);
+                partition.RequiresCleanup = false;
+            }
+        }
+        finally
+        {
+            _dataLock.Release();
+        }
+    }
+    
+    private async Task<TestDataPartition> CreateNewPartition(string category)
+    {
+        var partitionId = _partitions.Count + 1;
+        var partition = new TestDataPartition
+        {
+            Id = partitionId,
+            Category = category,
+            DatabaseName = $"TestDB_{category}_{partitionId}",
+            DataRange = new DataRange
+            {
+                CompanyIdStart = partitionId * 1000,
+                CompanyIdEnd = (partitionId + 1) * 1000 - 1,
+                UserIdStart = partitionId * 10000,
+                UserIdEnd = (partitionId + 1) * 10000 - 1
+            }
+        };
+        
+        await InitializePartitionData(partition);
+        _partitions[partitionId] = partition;
+        
+        return partition;
+    }
+}
+```
+
+================================================================================
+                        DATA VALIDATION AND QUALITY
+================================================================================
+
+DATA QUALITY VALIDATION:
+
+```csharp
+public class TestDataValidator
+{
+    public async Task<DataValidationResult> ValidateTestData(TestEnvironment environment)
+    {
+        var result = new DataValidationResult();
+        
+        try
+        {
+            // Validate data volume
+            await ValidateDataVolume(environment, result);
+            
+            // Validate data integrity
+            await ValidateDataIntegrity(result);
+            
+            // Validate business rules
+            await ValidateBusinessRules(result);
+            
+            // Validate data relationships
+            await ValidateDataRelationships(result);
+            
+            // Validate data privacy compliance
+            await ValidatePrivacyCompliance(result);
+            
+            result.IsValid = !result.Errors.Any();
+            result.ValidationDate = DateTime.UtcNow;
+        }
+        catch (Exception ex)
+        {
+            result.Errors.Add($"Validation failed with exception: {ex.Message}");
+            result.IsValid = false;
+        }
+        
+        return result;
+    }
+    
+    private async Task ValidateDataVolume(TestEnvironment environment, DataValidationResult result)
+    {
+        using var context = new TestDbContext();
+        
+        var expectedVolumes = GetExpectedDataVolumes(environment);
+        
+        var actualCounts = new
+        {
+            Companies = await context.Companies.CountAsync(),
+            Users = await context.Users.CountAsync(),
+            Certificates = await context.Certificates.CountAsync(),
+            Products = await context.Products.CountAsync()
+        };
+        
+        ValidateCount("Companies", actualCounts.Companies, expectedVolumes.Companies, result);
+        ValidateCount("Users", actualCounts.Users, expectedVolumes.Users, result);
+        ValidateCount("Certificates", actualCounts.Certificates, expectedVolumes.Certificates, result);
+        ValidateCount("Products", actualCounts.Products, expectedVolumes.Products, result);
+    }
+    
+    private async Task ValidateDataIntegrity(DataValidationResult result)
+    {
+        using var context = new TestDbContext();
+        
+        // Check for orphaned records
+        var orphanedCertificates = await context.Certificates
+            .Where(c => !context.Companies.Any(comp => comp.Id == c.CompanyId))
+            .CountAsync();
+            
+        if (orphanedCertificates > 0)
+        {
+            result.Errors.Add($"Found {orphanedCertificates} certificates with invalid company references");
+        }
+        
+        var orphanedUsers = await context.Users
+            .Where(u => u.CompanyId.HasValue && !context.Companies.Any(c => c.Id == u.CompanyId))
+            .CountAsync();
+            
+        if (orphanedUsers > 0)
+        {
+            result.Errors.Add($"Found {orphanedUsers} users with invalid company references");
+        }
+        
+        // Check for duplicate certificate numbers
+        var duplicateCertNumbers = await context.Certificates
+            .GroupBy(c => c.Number)
+            .Where(g => g.Count() > 1)
+            .CountAsync();
+            
+        if (duplicateCertNumbers > 0)
+        {
+            result.Errors.Add($"Found {duplicateCertNumbers} duplicate certificate numbers");
+        }
+    }
+    
+    private async Task ValidateBusinessRules(DataValidationResult result)
+    {
+        using var context = new TestDbContext();
+        
+        // Validate certificate date ranges
+        var invalidDateRanges = await context.Certificates
+            .Where(c => c.ExpirationDate <= c.EffectiveDate)
+            .CountAsync();
+            
+        if (invalidDateRanges > 0)
+        {
+            result.Errors.Add($"Found {invalidDateRanges} certificates with invalid date ranges");
+        }
+        
+        // Validate certificate validity periods (max 5 years)
+        var excessiveValidityPeriods = await context.Certificates
+            .Where(c => c.ExpirationDate > c.EffectiveDate.AddYears(5))
+            .CountAsync();
+            
+        if (excessiveValidityPeriods > 0)
+        {
+            result.Errors.Add($"Found {excessiveValidityPeriods} certificates with validity periods exceeding 5 years");
+        }
+        
+        // Validate email formats
+        var invalidEmails = await context.Users
+            .Where(u => !string.IsNullOrEmpty(u.Email) && !u.Email.Contains("@"))
+            .CountAsync();
+            
+        if (invalidEmails > 0)
+        {
+            result.Errors.Add($"Found {invalidEmails} users with invalid email formats");
+        }
+    }
+    
+    private void ValidateCount(string entityName, int actual, int expected, DataValidationResult result)
+    {
+        var tolerance = expected * 0.1; // 10% tolerance
+        if (Math.Abs(actual - expected) > tolerance)
+        {
+            result.Warnings.Add($"{entityName} count ({actual}) differs from expected ({expected}) by more than 10%");
+        }
+    }
+}
+```
+
+AUTOMATED DATA QUALITY MONITORING:
+
+```csharp
+public class DataQualityMonitor
+{
+    private readonly ILogger<DataQualityMonitor> _logger;
+    private readonly TestDataValidator _validator;
+    
+    public async Task StartContinuousMonitoring(TestEnvironment environment, TimeSpan interval)
+    {
+        var timer = new Timer(async _ =>
+        {
+            try
+            {
+                var validationResult = await _validator.ValidateTestData(environment);
+                
+                if (!validationResult.IsValid)
+                {
+                    _logger.LogWarning("Data quality issues detected in {Environment}: {Errors}",
+                        environment, string.Join(", ", validationResult.Errors));
+                    
+                    // Trigger data refresh if critical issues found
+                    if (validationResult.Errors.Any(e => e.Contains("orphaned") || e.Contains("duplicate")))
+                    {
+                        await TriggerDataRefresh(environment);
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation("Data quality validation passed for {Environment}", environment);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Data quality monitoring failed for {Environment}", environment);
+            }
+        }, null, TimeSpan.Zero, interval);
+    }
+    
+    private async Task TriggerDataRefresh(TestEnvironment environment)
+    {
+        _logger.LogInformation("Triggering automatic data refresh for {Environment} due to quality issues", environment);
+        
+        var refreshService = new DataRefreshService();
+        var result = await refreshService.RefreshEnvironmentData(environment, new RefreshOptions
+        {
+            CreateBackup = true,
+            Reason = "Automatic refresh due to data quality issues"
+        });
+        
+        if (result.Success)
+        {
+            _logger.LogInformation("Automatic data refresh completed successfully for {Environment}", environment);
+        }
+        else
+        {
+            _logger.LogError("Automatic data refresh failed for {Environment}: {Error}", environment, result.Error);
+        }
+    }
+}
+```
+
+================================================================================
+                        DATA BACKUP AND RECOVERY
+================================================================================
+
+AUTOMATED BACKUP SYSTEM:
+
+```csharp
+public class TestDataBackupService
+{
+    public async Task<BackupResult> CreateBackup(TestEnvironment environment, string reason = null)
+    {
+        var backupId = Guid.NewGuid().ToString();
+        var timestamp = DateTime.UtcNow;
+        var backupPath = GetBackupPath(environment, timestamp);
+        
+        var result = new BackupResult
+        {
+            BackupId = backupId,
+            Environment = environment,
+            BackupPath = backupPath,
+            CreatedAt = timestamp,
+            Reason = reason
+        };
+        
+        try
+        {
+            // Create database backup
+            await CreateDatabaseBackup(environment, backupPath);
+            result.DatabaseBackupSize = GetFileSize(Path.Combine(backupPath, "database.bak"));
+            
+            // Backup file attachments
+            await BackupFileAttachments(environment, backupPath);
+            result.FileBackupSize = GetDirectorySize(Path.Combine(backupPath, "files"));
+            
+            // Create metadata file
+            await CreateBackupMetadata(result);
+            
+            result.Success = true;
+            result.TotalSize = result.DatabaseBackupSize + result.FileBackupSize;
+            
+            // Register backup for cleanup scheduling
+            await RegisterBackupForCleanup(result);
+            
+            _logger.LogInformation("Backup created successfully: {BackupId} for {Environment}", 
+                backupId, environment);
+        }
+        catch (Exception ex)
+        {
+            result.Success = false;
+            result.Error = ex.Message;
+            
+            // Cleanup partial backup
+            await CleanupPartialBackup(backupPath);
+            
+            _logger.LogError(ex, "Backup failed for {Environment}: {BackupId}", environment, backupId);
+        }
+        
+        return result;
+    }
+    
+    public async Task<RestoreResult> RestoreFromBackup(string backupId)
+    {
+        var result = new RestoreResult { BackupId = backupId };
+        
+        try
+        {
+            var backup = await GetBackupMetadata(backupId);
+            if (backup == null)
+            {
+                throw new InvalidOperationException($"Backup {backupId} not found");
+            }
+            
+            // Restore database
+            await RestoreDatabase(backup.Environment, backup.BackupPath);
+            
+            // Restore file attachments
+            await RestoreFileAttachments(backup.Environment, backup.BackupPath);
+            
+            // Validate restored data
+            var validation = await _validator.ValidateTestData(backup.Environment);
+            if (!validation.IsValid)
+            {
+                throw new InvalidOperationException($"Restored data failed validation: {string.Join(", ", validation.Errors)}");
+            }
+            
+            result.Success = true;
+            result.RestoredAt = DateTime.UtcNow;
+            
+            _logger.LogInformation("Data restored successfully from backup {BackupId}", backupId);
+        }
+        catch (Exception ex)
+        {
+            result.Success = false;
+            result.Error = ex.Message;
+            
+            _logger.LogError(ex, "Restore failed for backup {BackupId}", backupId);
+        }
+        
+        return result;
+    }
+    
+    public async Task ScheduleBackupCleanup(TimeSpan retentionPeriod)
+    {
+        var cutoffDate = DateTime.UtcNow - retentionPeriod;
+        var oldBackups = await GetBackupsOlderThan(cutoffDate);
+        
+        foreach (var backup in oldBackups)
+        {
+            try
+            {
+                await DeleteBackup(backup.BackupId);
+                _logger.LogInformation("Deleted old backup: {BackupId}", backup.BackupId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to delete old backup: {BackupId}", backup.BackupId);
+            }
+        }
+    }
+}
+```
+
+================================================================================
+                        PERFORMANCE TEST DATA MANAGEMENT
+================================================================================
+
+HIGH-VOLUME DATA GENERATION:
+
+```csharp
+public class PerformanceTestDataManager
+{
+    public async Task GenerateHighVolumeDataset(PerformanceTestConfiguration config)
+    {
+        var stopwatch = Stopwatch.StartNew();
+        
+        _logger.LogInformation("Starting high-volume data generation for performance testing");
+        
+        try
+        {
+            // Generate companies in batches
+            await GenerateCompaniesInBatches(config.CompanyCount, config.BatchSize);
+            
+            // Generate users in batches
+            await GenerateUsersInBatches(config.UserCount, config.BatchSize);
+            
+            // Generate products in batches  
+            await GenerateProductsInBatches(config.ProductCount, config.BatchSize);
+            
+            // Generate certificates in batches
+            await GenerateCertificatesInBatches(config.CertificateCount, config.BatchSize);
+            
+            // Generate historical audit data
+            await GenerateAuditHistory(config.HistoryMonths);
+            
+            // Create performance test indexes
+            await CreatePerformanceIndexes();
+            
+            // Update statistics
+            await UpdateDatabaseStatistics();
+            
+            stopwatch.Stop();
+            
+            _logger.LogInformation("High-volume data generation completed in {Duration}. " +
+                "Generated {Companies} companies, {Users} users, {Products} products, {Certificates} certificates",
+                stopwatch.Elapsed, config.CompanyCount, config.UserCount, 
+                config.ProductCount, config.CertificateCount);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "High-volume data generation failed after {Duration}", stopwatch.Elapsed);
+            throw;
+        }
+    }
+    
+    private async Task GenerateCompaniesInBatches(int totalCount, int batchSize)
+    {
+        var batches = (int)Math.Ceiling((double)totalCount / batchSize);
+        
+        for (int i = 0; i < batches; i++)
+        {
+            var currentBatchSize = Math.Min(batchSize, totalCount - (i * batchSize));
+            var companies = _dataFactory.GenerateList(() => _dataFactory.GenerateCompany(), currentBatchSize);
+            
+            using var context = new TestDbContext();
+            context.Companies.AddRange(companies);
+            await context.SaveChangesAsync();
+            
+            if (i % 10 == 0) // Log progress every 10 batches
+            {
+                _logger.LogInformation("Generated {Count}/{Total} companies", (i + 1) * batchSize, totalCount);
+            }
+        }
+    }
+    
+    private async Task CreatePerformanceIndexes()
+    {
+        using var context = new TestDbContext();
+        var sql = @"
+            -- Create covering index for certificate search
+            CREATE INDEX IF NOT EXISTS IX_Certificates_Performance_Search 
+            ON Certificates (CompanyId, Status, EffectiveDate, ExpirationDate) 
+            INCLUDE (Number, CertificationTypeId, ProductId);
+            
+            -- Create index for user lookups
+            CREATE INDEX IF NOT EXISTS IX_Users_Performance_Lookup 
+            ON Users (CompanyId, Role, IsActive) 
+            INCLUDE (Email, FirstName, LastName);
+            
+            -- Create index for audit queries
+            CREATE INDEX IF NOT EXISTS IX_AuditLogs_Performance 
+            ON AuditLogs (EntityId, EntityType, CreatedDate) 
+            INCLUDE (Action, UserId);
+        ";
+        
+        await context.Database.ExecuteSqlRawAsync(sql);
+    }
+}
+
+public class PerformanceTestConfiguration
+{
+    public int CompanyCount { get; set; } = 1000;
+    public int UserCount { get; set; } = 5000;
+    public int ProductCount { get; set; } = 10000;
+    public int CertificateCount { get; set; } = 100000;
+    public int BatchSize { get; set; } = 1000;
+    public int HistoryMonths { get; set; } = 24;
+}
+```
+
+================================================================================
+                        TEST DATA CONFIGURATION
+================================================================================
+
+ENVIRONMENT-SPECIFIC CONFIGURATION:
+
+```json
+{
+  "TestDataConfiguration": {
+    "Development": {
+      "DataVolume": "Small",
+      "RefreshInterval": "Daily",
+      "RetentionDays": 7,
+      "BackupEnabled": false,
+      "DataSources": ["Synthetic"],
+      "Privacy": {
+        "AnonymizationLevel": "None",
+        "GdprCompliance": false
+      }
+    },
+    "Test": {
+      "DataVolume": "Medium", 
+      "RefreshInterval": "Daily",
+      "RetentionDays": 30,
+      "BackupEnabled": true,
+      "DataSources": ["Synthetic", "Masked"],
+      "Privacy": {
+        "AnonymizationLevel": "Partial",
+        "GdprCompliance": true
+      }
+    },
+    "UAT": {
+      "DataVolume": "Large",
+      "RefreshInterval": "Weekly", 
+      "RetentionDays": 90,
+      "BackupEnabled": true,
+      "DataSources": ["Masked", "Subset"],
+      "Privacy": {
+        "AnonymizationLevel": "Full",
+        "GdprCompliance": true
+      }
+    },
+    "Performance": {
+      "DataVolume": "ExtraLarge",
+      "RefreshInterval": "Monthly",
+      "RetentionDays": 180,
+      "BackupEnabled": true,
+      "DataSources": ["Synthetic", "Generated"],
+      "Privacy": {
+        "AnonymizationLevel": "Full",
+        "GdprCompliance": true
+      }
+    }
+  },
+  "DataGeneration": {
+    "Seed": 12345,
+    "Localization": "en-US",
+    "Companies": {
+      "Types": ["Corporation", "LLC", "Partnership", "Sole Proprietorship"],
+      "Industries": ["Manufacturing", "Technology", "Healthcare", "Food", "Automotive"],
+      "Sizes": ["Small", "Medium", "Large", "Enterprise"]
+    },
+    "Certificates": {
+      "Types": ["ISO 9001", "GMP", "HACCP", "FDA", "CE"],
+      "StatusDistribution": {
+        "Active": 0.6,
+        "Expired": 0.2, 
+        "Pending": 0.15,
+        "Suspended": 0.05
+      },
+      "ValidityPeriods": [6, 12, 24, 36]
+    }
+  }
+}
+```
+
+SUCCESS METRICS:
+
+□ Data provisioning time < 15 minutes per environment
+□ Data consistency validation > 99%
+□ Zero data privacy violations
+□ Test isolation effectiveness = 100%
+□ Data refresh automation reliability > 95%
+□ Performance test data supports target load
+□ GDPR compliance maintained across all environments
+□ Automated backup/recovery tested monthly
+
+The Test Data Management Plan provides a comprehensive framework for managing all aspects of test data across the entire testing lifecycle, ensuring data quality, privacy compliance, and efficient test execution.
+
+================================================================================
+                                 END OF DOCUMENT
+================================================================================

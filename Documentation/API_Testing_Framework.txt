@@ -1,0 +1,1407 @@
+================================================================================
+                 GCC WEB APPLICATION - API TESTING FRAMEWORK
+================================================================================
+
+Document Version: 1.0
+Created: 2025-08-09
+Framework ID: ATF-001
+Coverage Target: 100% API endpoints
+
+================================================================================
+                        API TESTING FRAMEWORK OVERVIEW
+================================================================================
+
+Framework Objectives:
+□ Validate all API endpoints functionality
+□ Ensure API contract compliance
+□ Test API security and authentication
+□ Validate request/response formats
+□ Test error handling and edge cases
+□ Verify API performance requirements
+□ Automate API regression testing
+□ Support continuous integration
+□ Enable API documentation validation
+□ Test API versioning and compatibility
+
+API Testing Scope:
+✅ RESTful API endpoints
+✅ Authentication and authorization
+✅ Request/response validation
+✅ HTTP status codes
+✅ Content-type validation
+✅ Rate limiting
+✅ Error handling
+✅ API versioning
+✅ Security testing
+✅ Performance testing
+
+Success Criteria:
+□ 100% API endpoint coverage
+□ All API contracts validated
+□ Security vulnerabilities identified
+□ Performance SLAs met
+□ Error scenarios handled
+□ Documentation synchronized
+□ Automated test execution
+□ CI/CD pipeline integration
+
+================================================================================
+                        GCC WEB APPLICATION API INVENTORY
+================================================================================
+
+API ARCHITECTURE:
+
+Base URL: https://api.gcc.app/v1
+Authentication: OAuth 2.0 Bearer Token
+Content-Type: application/json
+Rate Limit: 100 requests/minute (varies by tier)
+
+API ENDPOINTS CATALOG:
+
+AUTHENTICATION APIs:
+POST   /api/auth/login              - User authentication
+POST   /api/auth/logout             - User logout
+POST   /api/auth/refresh            - Token refresh
+POST   /api/auth/register           - User registration
+POST   /api/auth/forgot-password    - Password reset request
+POST   /api/auth/reset-password     - Password reset
+GET    /api/auth/verify-email/{token} - Email verification
+
+CERTIFICATE APIs:
+GET    /api/certificates            - List certificates (paginated)
+GET    /api/certificates/{id}       - Get certificate details
+POST   /api/certificates            - Create new certificate
+PUT    /api/certificates/{id}       - Update certificate
+DELETE /api/certificates/{id}       - Delete certificate
+GET    /api/certificates/{id}/history - Certificate modification history
+POST   /api/certificates/search     - Advanced certificate search
+GET    /api/certificates/{id}/pdf   - Download certificate PDF
+POST   /api/certificates/bulk       - Bulk certificate operations
+GET    /api/certificates/expiring   - Get expiring certificates
+
+COMPANY APIs:
+GET    /api/companies               - List companies
+GET    /api/companies/{id}          - Get company details
+POST   /api/companies               - Create company
+PUT    /api/companies/{id}          - Update company
+DELETE /api/companies/{id}          - Delete company
+GET    /api/companies/{id}/certificates - Get company certificates
+GET    /api/companies/{id}/users    - Get company users
+POST   /api/companies/{id}/verify   - Verify company
+
+PRODUCT APIs:
+GET    /api/products                - List products
+GET    /api/products/{id}           - Get product details
+POST   /api/products                - Create product
+PUT    /api/products/{id}           - Update product
+DELETE /api/products/{id}           - Delete product
+GET    /api/products/{id}/certificates - Get product certificates
+GET    /api/products/categories     - Get product categories
+GET    /api/products/search         - Search products
+
+USER MANAGEMENT APIs:
+GET    /api/users                   - List users (admin only)
+GET    /api/users/{id}              - Get user details
+POST   /api/users                   - Create user (admin only)
+PUT    /api/users/{id}              - Update user
+DELETE /api/users/{id}              - Delete user (admin only)
+GET    /api/users/profile           - Get current user profile
+PUT    /api/users/profile           - Update user profile
+GET    /api/users/{id}/permissions  - Get user permissions
+
+REPORTING APIs:
+GET    /api/reports/dashboard       - Dashboard data
+GET    /api/reports/compliance      - Compliance reports
+GET    /api/reports/expiry          - Expiry reports
+GET    /api/reports/audit           - Audit reports
+POST   /api/reports/custom          - Generate custom report
+GET    /api/reports/{id}/download   - Download generated report
+
+ADMIN APIs:
+GET    /api/admin/settings          - Get system settings
+PUT    /api/admin/settings          - Update system settings
+GET    /api/admin/logs              - Get system logs
+GET    /api/admin/metrics           - Get system metrics
+POST   /api/admin/backup            - Trigger system backup
+GET    /api/admin/health            - System health check
+
+FILE MANAGEMENT APIs:
+POST   /api/files/upload            - Upload file
+GET    /api/files/{id}              - Download file
+DELETE /api/files/{id}              - Delete file
+GET    /api/files/{id}/metadata     - Get file metadata
+
+NOTIFICATION APIs:
+GET    /api/notifications           - Get user notifications
+PUT    /api/notifications/{id}/read - Mark notification as read
+POST   /api/notifications/send      - Send notification (admin)
+GET    /api/notifications/settings  - Get notification preferences
+PUT    /api/notifications/settings  - Update notification preferences
+
+PUBLIC APIs:
+GET    /api/public/certificates     - Public certificate search
+GET    /api/public/certificates/{id} - Public certificate details  
+GET    /api/public/verify/{number}  - Verify certificate by number
+GET    /api/public/companies        - Public company list
+
+================================================================================
+                        API TESTING FRAMEWORK ARCHITECTURE
+================================================================================
+
+FRAMEWORK LAYERS:
+
+Layer 1: Test Infrastructure
+- HTTP client management
+- Authentication handling
+- Request/response logging
+- Test data management
+- Environment configuration
+- Reporting integration
+
+Layer 2: API Client Abstraction
+- Endpoint-specific clients
+- Request builders
+- Response parsers
+- Error handling
+- Retry mechanisms
+- Rate limit handling
+
+Layer 3: Test Utilities
+- Assertion helpers
+- Data validation
+- Response verification
+- Performance measurement
+- Security testing tools
+- Mock service integration
+
+Layer 4: Test Suites
+- Functional tests
+- Security tests
+- Performance tests
+- Contract tests
+- Integration tests
+- Regression tests
+
+TECHNOLOGY STACK:
+
+Programming Language: C# (.NET 8)
+- Strong typing for API contracts
+- Extensive HTTP client support
+- JSON serialization/deserialization
+- Parallel test execution
+- Rich assertion libraries
+
+HTTP Client Library: RestSharp + HttpClient
+- RESTful API support
+- Authentication handling
+- Request/response interception
+- Timeout and retry support
+- Multipart form data
+- File upload/download
+
+Testing Framework: NUnit
+- Test discovery and execution
+- Parallel test execution
+- Test categorization
+- Data-driven testing
+- Setup/teardown methods
+
+Assertion Library: FluentAssertions
+- Readable assertions
+- Object comparison
+- Collection assertions
+- Exception assertions
+- Performance assertions
+
+Data Generation: Bogus (Faker.NET)
+- Realistic test data
+- Randomized data generation
+- Localized data
+- Custom data rules
+- Deterministic data
+
+JSON Handling: System.Text.Json
+- Fast serialization
+- Custom converters
+- Property naming policies
+- Null handling
+- Schema validation
+
+================================================================================
+                        API CLIENT IMPLEMENTATION
+================================================================================
+
+BASE API CLIENT:
+
+```csharp
+public class BaseApiClient
+{
+    protected readonly HttpClient _httpClient;
+    protected readonly string _baseUrl;
+    protected readonly ILogger _logger;
+    
+    public BaseApiClient(HttpClient httpClient, string baseUrl, ILogger logger)
+    {
+        _httpClient = httpClient;
+        _baseUrl = baseUrl;
+        _logger = logger;
+    }
+    
+    protected async Task<ApiResponse<T>> ExecuteAsync<T>(ApiRequest request)
+    {
+        try
+        {
+            var httpRequest = BuildHttpRequestMessage(request);
+            LogRequest(httpRequest);
+            
+            var stopwatch = Stopwatch.StartNew();
+            var response = await _httpClient.SendAsync(httpRequest);
+            stopwatch.Stop();
+            
+            var apiResponse = await ParseResponseAsync<T>(response);
+            apiResponse.ResponseTime = stopwatch.Elapsed;
+            
+            LogResponse(apiResponse);
+            return apiResponse;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "API request failed: {Method} {Url}", 
+                request.Method, request.Endpoint);
+            throw;
+        }
+    }
+    
+    private HttpRequestMessage BuildHttpRequestMessage(ApiRequest request)
+    {
+        var httpRequest = new HttpRequestMessage(request.Method, $"{_baseUrl}{request.Endpoint}");
+        
+        // Add headers
+        foreach (var header in request.Headers)
+        {
+            httpRequest.Headers.Add(header.Key, header.Value);
+        }
+        
+        // Add authentication
+        if (!string.IsNullOrEmpty(request.AuthToken))
+        {
+            httpRequest.Headers.Authorization = 
+                new AuthenticationHeaderValue("Bearer", request.AuthToken);
+        }
+        
+        // Add content
+        if (request.Content != null)
+        {
+            httpRequest.Content = new StringContent(
+                JsonSerializer.Serialize(request.Content),
+                Encoding.UTF8,
+                "application/json");
+        }
+        
+        return httpRequest;
+    }
+}
+```
+
+CERTIFICATE API CLIENT:
+
+```csharp
+public class CertificateApiClient : BaseApiClient
+{
+    public CertificateApiClient(HttpClient httpClient, string baseUrl, ILogger logger)
+        : base(httpClient, baseUrl, logger) { }
+    
+    public async Task<ApiResponse<IEnumerable<Certificate>>> GetCertificatesAsync(
+        int page = 1, int pageSize = 25, string authToken = null)
+    {
+        var request = new ApiRequest
+        {
+            Method = HttpMethod.Get,
+            Endpoint = $"/api/certificates?page={page}&pageSize={pageSize}",
+            AuthToken = authToken
+        };
+        
+        return await ExecuteAsync<IEnumerable<Certificate>>(request);
+    }
+    
+    public async Task<ApiResponse<Certificate>> GetCertificateAsync(int id, string authToken = null)
+    {
+        var request = new ApiRequest
+        {
+            Method = HttpMethod.Get,
+            Endpoint = $"/api/certificates/{id}",
+            AuthToken = authToken
+        };
+        
+        return await ExecuteAsync<Certificate>(request);
+    }
+    
+    public async Task<ApiResponse<Certificate>> CreateCertificateAsync(
+        CreateCertificateRequest certificate, string authToken = null)
+    {
+        var request = new ApiRequest
+        {
+            Method = HttpMethod.Post,
+            Endpoint = "/api/certificates",
+            Content = certificate,
+            AuthToken = authToken
+        };
+        
+        return await ExecuteAsync<Certificate>(request);
+    }
+    
+    public async Task<ApiResponse<Certificate>> UpdateCertificateAsync(
+        int id, UpdateCertificateRequest certificate, string authToken = null)
+    {
+        var request = new ApiRequest
+        {
+            Method = HttpMethod.Put,
+            Endpoint = $"/api/certificates/{id}",
+            Content = certificate,
+            AuthToken = authToken
+        };
+        
+        return await ExecuteAsync<Certificate>(request);
+    }
+    
+    public async Task<ApiResponse<object>> DeleteCertificateAsync(int id, string authToken = null)
+    {
+        var request = new ApiRequest
+        {
+            Method = HttpMethod.Delete,
+            Endpoint = $"/api/certificates/{id}",
+            AuthToken = authToken
+        };
+        
+        return await ExecuteAsync<object>(request);
+    }
+    
+    public async Task<ApiResponse<SearchResult<Certificate>>> SearchCertificatesAsync(
+        CertificateSearchRequest searchRequest, string authToken = null)
+    {
+        var request = new ApiRequest
+        {
+            Method = HttpMethod.Post,
+            Endpoint = "/api/certificates/search",
+            Content = searchRequest,
+            AuthToken = authToken
+        };
+        
+        return await ExecuteAsync<SearchResult<Certificate>>(request);
+    }
+}
+```
+
+AUTHENTICATION HELPER:
+
+```csharp
+public class AuthenticationHelper
+{
+    private readonly BaseApiClient _authClient;
+    private static readonly Dictionary<string, AuthToken> _tokenCache = new();
+    
+    public async Task<string> GetAuthTokenAsync(UserRole role = UserRole.Admin)
+    {
+        var cacheKey = role.ToString();
+        
+        if (_tokenCache.TryGetValue(cacheKey, out var cachedToken) && 
+            cachedToken.ExpiresAt > DateTime.UtcNow.AddMinutes(5))
+        {
+            return cachedToken.AccessToken;
+        }
+        
+        var credentials = GetCredentialsForRole(role);
+        var loginRequest = new LoginRequest
+        {
+            Email = credentials.Email,
+            Password = credentials.Password
+        };
+        
+        var response = await _authClient.ExecuteAsync<LoginResponse>(new ApiRequest
+        {
+            Method = HttpMethod.Post,
+            Endpoint = "/api/auth/login",
+            Content = loginRequest
+        });
+        
+        if (response.IsSuccess)
+        {
+            var authToken = new AuthToken
+            {
+                AccessToken = response.Data.AccessToken,
+                ExpiresAt = DateTime.UtcNow.AddSeconds(response.Data.ExpiresIn)
+            };
+            
+            _tokenCache[cacheKey] = authToken;
+            return authToken.AccessToken;
+        }
+        
+        throw new Exception($"Failed to authenticate as {role}: {response.Error}");
+    }
+    
+    private static UserCredentials GetCredentialsForRole(UserRole role)
+    {
+        return role switch
+        {
+            UserRole.Admin => new("admin@gcc.com", "AdminPass123!"),
+            UserRole.Analyst => new("analyst@gcc.com", "AnalystPass123!"),
+            UserRole.Client => new("client@company.com", "ClientPass123!"),
+            UserRole.Partner => new("partner@program.com", "PartnerPass123!"),
+            UserRole.Public => new(null, null), // No auth needed
+            _ => throw new ArgumentException($"Unknown role: {role}")
+        };
+    }
+}
+```
+
+================================================================================
+                        API TEST IMPLEMENTATION
+================================================================================
+
+BASE TEST CLASS:
+
+```csharp
+[TestFixture]
+public abstract class BaseApiTest
+{
+    protected CertificateApiClient CertificateClient { get; private set; }
+    protected CompanyApiClient CompanyClient { get; private set; }
+    protected UserApiClient UserClient { get; private set; }
+    protected AuthenticationHelper AuthHelper { get; private set; }
+    
+    protected string AdminToken { get; private set; }
+    protected string ClientToken { get; private set; }
+    
+    [OneTimeSetUp]
+    public async Task OneTimeSetUp()
+    {
+        var httpClient = new HttpClient();
+        var logger = new ConsoleLogger();
+        var baseUrl = TestConfiguration.ApiBaseUrl;
+        
+        CertificateClient = new CertificateApiClient(httpClient, baseUrl, logger);
+        CompanyClient = new CompanyApiClient(httpClient, baseUrl, logger);
+        UserClient = new UserApiClient(httpClient, baseUrl, logger);
+        AuthHelper = new AuthenticationHelper(httpClient, baseUrl, logger);
+        
+        // Pre-authenticate common roles
+        AdminToken = await AuthHelper.GetAuthTokenAsync(UserRole.Admin);
+        ClientToken = await AuthHelper.GetAuthTokenAsync(UserRole.Client);
+    }
+    
+    [SetUp]
+    public void SetUp()
+    {
+        // Reset rate limits, clear cache, etc.
+    }
+    
+    [TearDown]
+    public void TearDown()
+    {
+        // Cleanup test data if needed
+    }
+    
+    protected async Task<Certificate> CreateTestCertificateAsync()
+    {
+        var certificate = TestDataFactory.CreateValidCertificate();
+        var response = await CertificateClient.CreateCertificateAsync(certificate, AdminToken);
+        
+        response.IsSuccess.Should().BeTrue();
+        return response.Data;
+    }
+    
+    protected void AssertValidCertificate(Certificate certificate)
+    {
+        certificate.Should().NotBeNull();
+        certificate.Id.Should().BeGreaterThan(0);
+        certificate.Number.Should().NotBeNullOrEmpty();
+        certificate.Status.Should().BeOneOf("Active", "Pending", "Expired", "Suspended");
+        certificate.EffectiveDate.Should().BeBefore(certificate.ExpirationDate);
+    }
+}
+```
+
+FUNCTIONAL API TESTS:
+
+```csharp
+[TestFixture]
+[Category("Functional")]
+public class CertificateFunctionalApiTests : BaseApiTest
+{
+    [Test]
+    public async Task GetCertificates_WithValidAuth_ReturnsSuccess()
+    {
+        // Act
+        var response = await CertificateClient.GetCertificatesAsync(authToken: AdminToken);
+        
+        // Assert
+        response.IsSuccess.Should().BeTrue();
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Data.Should().NotBeNull();
+        response.ResponseTime.Should().BeLessThan(TimeSpan.FromSeconds(2));
+    }
+    
+    [Test]
+    public async Task GetCertificates_WithoutAuth_ReturnsUnauthorized()
+    {
+        // Act
+        var response = await CertificateClient.GetCertificatesAsync();
+        
+        // Assert
+        response.IsSuccess.Should().BeFalse();
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.Error.Should().NotBeNullOrEmpty();
+    }
+    
+    [Test]
+    public async Task CreateCertificate_WithValidData_ReturnsCreated()
+    {
+        // Arrange
+        var certificateRequest = TestDataFactory.CreateValidCertificate();
+        
+        // Act
+        var response = await CertificateClient.CreateCertificateAsync(certificateRequest, AdminToken);
+        
+        // Assert
+        response.IsSuccess.Should().BeTrue();
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        AssertValidCertificate(response.Data);
+        
+        // Verify created certificate can be retrieved
+        var getResponse = await CertificateClient.GetCertificateAsync(response.Data.Id, AdminToken);
+        getResponse.IsSuccess.Should().BeTrue();
+        getResponse.Data.Number.Should().Be(certificateRequest.Number);
+    }
+    
+    [Test]
+    public async Task CreateCertificate_WithInvalidData_ReturnsBadRequest()
+    {
+        // Arrange
+        var invalidCertificate = new CreateCertificateRequest
+        {
+            Number = "", // Invalid: empty number
+            CompanyId = 999999, // Invalid: non-existent company
+            EffectiveDate = DateTime.Now.AddYears(1),
+            ExpirationDate = DateTime.Now // Invalid: expiry before effective
+        };
+        
+        // Act
+        var response = await CertificateClient.CreateCertificateAsync(invalidCertificate, AdminToken);
+        
+        // Assert
+        response.IsSuccess.Should().BeFalse();
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.ValidationErrors.Should().NotBeEmpty();
+        response.ValidationErrors.Should().ContainKey("Number");
+        response.ValidationErrors.Should().ContainKey("ExpirationDate");
+    }
+    
+    [Test]
+    public async Task UpdateCertificate_WithValidData_ReturnsSuccess()
+    {
+        // Arrange
+        var certificate = await CreateTestCertificateAsync();
+        var updateRequest = new UpdateCertificateRequest
+        {
+            Status = "Suspended",
+            Notes = "Updated via API test"
+        };
+        
+        // Act
+        var response = await CertificateClient.UpdateCertificateAsync(
+            certificate.Id, updateRequest, AdminToken);
+        
+        // Assert
+        response.IsSuccess.Should().BeTrue();
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Data.Status.Should().Be("Suspended");
+        response.Data.Notes.Should().Be("Updated via API test");
+    }
+    
+    [Test]
+    public async Task DeleteCertificate_WithValidId_ReturnsNoContent()
+    {
+        // Arrange
+        var certificate = await CreateTestCertificateAsync();
+        
+        // Act
+        var response = await CertificateClient.DeleteCertificateAsync(certificate.Id, AdminToken);
+        
+        // Assert
+        response.IsSuccess.Should().BeTrue();
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        
+        // Verify certificate is deleted
+        var getResponse = await CertificateClient.GetCertificateAsync(certificate.Id, AdminToken);
+        getResponse.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+    
+    [Test]
+    public async Task SearchCertificates_WithFilters_ReturnsFilteredResults()
+    {
+        // Arrange
+        var searchRequest = new CertificateSearchRequest
+        {
+            Status = "Active",
+            CompanyName = "Test Company",
+            DateFrom = DateTime.Today.AddMonths(-6),
+            DateTo = DateTime.Today,
+            PageSize = 10
+        };
+        
+        // Act
+        var response = await CertificateClient.SearchCertificatesAsync(searchRequest, AdminToken);
+        
+        // Assert
+        response.IsSuccess.Should().BeTrue();
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.Data.Should().NotBeNull();
+        response.Data.Items.Should().AllSatisfy(cert => 
+        {
+            cert.Status.Should().Be("Active");
+            cert.Company.Name.Should().Contain("Test Company");
+            cert.EffectiveDate.Should().BeOnOrAfter(searchRequest.DateFrom.Value);
+            cert.EffectiveDate.Should().BeOnOrBefore(searchRequest.DateTo.Value);
+        });
+    }
+}
+```
+
+SECURITY API TESTS:
+
+```csharp
+[TestFixture]
+[Category("Security")]
+public class CertificateSecurityApiTests : BaseApiTest
+{
+    [Test]
+    public async Task GetCertificates_WithExpiredToken_ReturnsUnauthorized()
+    {
+        // Arrange
+        var expiredToken = "expired.jwt.token";
+        
+        // Act
+        var response = await CertificateClient.GetCertificatesAsync(authToken: expiredToken);
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.Error.Should().Contain("token");
+    }
+    
+    [Test]
+    public async Task GetCertificate_CrossTenant_ReturnsForbidden()
+    {
+        // Arrange - Create certificate as Admin
+        var certificate = await CreateTestCertificateAsync();
+        
+        // Act - Try to access as different company user
+        var differentCompanyToken = await AuthHelper.GetAuthTokenAsync(UserRole.Client);
+        var response = await CertificateClient.GetCertificateAsync(certificate.Id, differentCompanyToken);
+        
+        // Assert
+        response.StatusCode.Should().BeOneOf(HttpStatusCode.Forbidden, HttpStatusCode.NotFound);
+    }
+    
+    [Test]
+    public async Task CreateCertificate_WithClientRole_ReturnsForbidden()
+    {
+        // Arrange
+        var certificateRequest = TestDataFactory.CreateValidCertificate();
+        
+        // Act
+        var response = await CertificateClient.CreateCertificateAsync(certificateRequest, ClientToken);
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        response.Error.Should().Contain("permission");
+    }
+    
+    [Test]
+    public async Task SqlInjection_InSearchEndpoint_IsBlocked()
+    {
+        // Arrange
+        var maliciousSearch = new CertificateSearchRequest
+        {
+            CompanyName = "'; DROP TABLE Certificates; --",
+            Status = "Active"
+        };
+        
+        // Act
+        var response = await CertificateClient.SearchCertificatesAsync(maliciousSearch, AdminToken);
+        
+        // Assert
+        // Should either return safe results or validation error, not 500
+        response.StatusCode.Should().NotBe(HttpStatusCode.InternalServerError);
+        
+        // Verify certificates table still exists by making a valid call
+        var validResponse = await CertificateClient.GetCertificatesAsync(authToken: AdminToken);
+        validResponse.IsSuccess.Should().BeTrue();
+    }
+    
+    [Test]
+    public async Task XssPayload_InCertificateData_IsSanitized()
+    {
+        // Arrange
+        var certificateWithXss = TestDataFactory.CreateValidCertificate();
+        certificateWithXss.Notes = "<script>alert('XSS')</script>Malicious notes";
+        
+        // Act
+        var createResponse = await CertificateClient.CreateCertificateAsync(certificateWithXss, AdminToken);
+        
+        // Assert
+        createResponse.IsSuccess.Should().BeTrue();
+        createResponse.Data.Notes.Should().NotContain("<script>");
+        createResponse.Data.Notes.Should().Contain("Malicious notes");
+        
+        // Verify XSS is also blocked when retrieving
+        var getResponse = await CertificateClient.GetCertificateAsync(createResponse.Data.Id, AdminToken);
+        getResponse.Data.Notes.Should().NotContain("<script>");
+    }
+}
+```
+
+PERFORMANCE API TESTS:
+
+```csharp
+[TestFixture]
+[Category("Performance")]
+public class CertificatePerformanceApiTests : BaseApiTest
+{
+    [Test]
+    public async Task GetCertificates_ResponseTime_WithinSLA()
+    {
+        // Act
+        var response = await CertificateClient.GetCertificatesAsync(pageSize: 25, authToken: AdminToken);
+        
+        // Assert
+        response.ResponseTime.Should().BeLessThan(TimeSpan.FromMilliseconds(500));
+        response.IsSuccess.Should().BeTrue();
+    }
+    
+    [Test]
+    public async Task SearchCertificates_ComplexQuery_WithinSLA()
+    {
+        // Arrange
+        var complexSearch = new CertificateSearchRequest
+        {
+            CompanyName = "Test",
+            Status = "Active",
+            ProductCategory = "Electronics",
+            DateFrom = DateTime.Today.AddYears(-1),
+            DateTo = DateTime.Today,
+            Tags = new[] { "ISO", "CE" },
+            PageSize = 50
+        };
+        
+        // Act
+        var response = await CertificateClient.SearchCertificatesAsync(complexSearch, AdminToken);
+        
+        // Assert
+        response.ResponseTime.Should().BeLessThan(TimeSpan.FromSeconds(2));
+        response.IsSuccess.Should().BeTrue();
+    }
+    
+    [Test]
+    public async Task ConcurrentRequests_Performance_MaintainsThroughput()
+    {
+        // Arrange
+        const int concurrentRequests = 10;
+        var tasks = new Task<ApiResponse<IEnumerable<Certificate>>>[concurrentRequests];
+        
+        // Act
+        var stopwatch = Stopwatch.StartNew();
+        for (int i = 0; i < concurrentRequests; i++)
+        {
+            tasks[i] = CertificateClient.GetCertificatesAsync(page: i + 1, authToken: AdminToken);
+        }
+        
+        var responses = await Task.WhenAll(tasks);
+        stopwatch.Stop();
+        
+        // Assert
+        responses.Should().AllSatisfy(response => response.IsSuccess.Should().BeTrue());
+        var avgResponseTime = stopwatch.ElapsedMilliseconds / (double)concurrentRequests;
+        avgResponseTime.Should().BeLessThan(1000); // 1 second average
+    }
+    
+    [Test]
+    public async Task RateLimit_Enforcement_ReturnsCorrectHeaders()
+    {
+        // Arrange
+        var requests = new List<Task<ApiResponse<IEnumerable<Certificate>>>>();
+        
+        // Act - Send requests rapidly to trigger rate limiting
+        for (int i = 0; i < 50; i++) // Assuming limit is lower
+        {
+            requests.Add(CertificateClient.GetCertificatesAsync(authToken: AdminToken));
+        }
+        
+        var responses = await Task.WhenAll(requests);
+        
+        // Assert
+        var rateLimitedResponse = responses.FirstOrDefault(r => 
+            r.StatusCode == HttpStatusCode.TooManyRequests);
+            
+        if (rateLimitedResponse != null)
+        {
+            rateLimitedResponse.Headers.Should().ContainKey("X-RateLimit-Limit");
+            rateLimitedResponse.Headers.Should().ContainKey("X-RateLimit-Remaining");
+            rateLimitedResponse.Headers.Should().ContainKey("X-RateLimit-Reset");
+        }
+    }
+}
+```
+
+================================================================================
+                        CONTRACT TESTING
+================================================================================
+
+API CONTRACT VALIDATION:
+
+```csharp
+[TestFixture]
+[Category("Contract")]
+public class CertificateContractTests : BaseApiTest
+{
+    [Test]
+    public async Task GetCertificate_ResponseSchema_MatchesContract()
+    {
+        // Arrange
+        var certificate = await CreateTestCertificateAsync();
+        
+        // Act
+        var response = await CertificateClient.GetCertificateAsync(certificate.Id, AdminToken);
+        
+        // Assert
+        response.IsSuccess.Should().BeTrue();
+        
+        var cert = response.Data;
+        cert.Should().NotBeNull();
+        
+        // Required fields
+        cert.Id.Should().BeGreaterThan(0);
+        cert.Number.Should().NotBeNullOrEmpty();
+        cert.Status.Should().NotBeNullOrEmpty();
+        cert.EffectiveDate.Should().BeBefore(cert.ExpirationDate);
+        
+        // Optional fields should be properly typed when present
+        if (cert.Notes != null) cert.Notes.Should().BeOfType<string>();
+        if (cert.Tags != null) cert.Tags.Should().BeAssignableTo<IEnumerable<string>>();
+        
+        // Nested objects
+        cert.Company.Should().NotBeNull();
+        cert.Company.Id.Should().BeGreaterThan(0);
+        cert.Company.Name.Should().NotBeNullOrEmpty();
+        
+        if (cert.Products != null)
+        {
+            cert.Products.Should().AllSatisfy(product =>
+            {
+                product.Id.Should().BeGreaterThan(0);
+                product.Name.Should().NotBeNullOrEmpty();
+            });
+        }
+    }
+    
+    [Test]
+    public async Task CreateCertificate_RequestValidation_EnforcesContract()
+    {
+        // Test required field validation
+        var requests = new[]
+        {
+            new CreateCertificateRequest { /* Missing Number */ CompanyId = 1 },
+            new CreateCertificateRequest { Number = "TEST", /* Missing CompanyId */ },
+            new CreateCertificateRequest { Number = "TEST", CompanyId = 1, /* Invalid dates */ 
+                EffectiveDate = DateTime.Now.AddDays(1), ExpirationDate = DateTime.Now }
+        };
+        
+        foreach (var request in requests)
+        {
+            // Act
+            var response = await CertificateClient.CreateCertificateAsync(request, AdminToken);
+            
+            // Assert
+            response.IsSuccess.Should().BeFalse();
+            response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+            response.ValidationErrors.Should().NotBeEmpty();
+        }
+    }
+    
+    [Test]
+    public async Task ApiVersioning_HeaderSupport_BackwardCompatible()
+    {
+        // Test different API version headers
+        var versions = new[] { "1.0", "1.1", "2.0" };
+        
+        foreach (var version in versions)
+        {
+            var customClient = new CertificateApiClient(_httpClient, _baseUrl, _logger);
+            customClient.AddHeader("API-Version", version);
+            
+            var response = await customClient.GetCertificatesAsync(authToken: AdminToken);
+            
+            // Should either work or return not supported (but not 500 error)
+            response.StatusCode.Should().NotBe(HttpStatusCode.InternalServerError);
+        }
+    }
+}
+```
+
+OPENAPI SPECIFICATION VALIDATION:
+
+```csharp
+[TestFixture]
+[Category("Documentation")]
+public class OpenApiSpecificationTests : BaseApiTest
+{
+    [Test]
+    public async Task OpenApiSpec_IsAccessible_AndValid()
+    {
+        // Act
+        var response = await _httpClient.GetAsync($"{TestConfiguration.ApiBaseUrl}/swagger/v1/swagger.json");
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var specContent = await response.Content.ReadAsStringAsync();
+        var spec = JsonSerializer.Deserialize<OpenApiDocument>(specContent);
+        
+        spec.Should().NotBeNull();
+        spec.Info.Should().NotBeNull();
+        spec.Info.Title.Should().NotBeNullOrEmpty();
+        spec.Info.Version.Should().NotBeNullOrEmpty();
+        spec.Paths.Should().NotBeEmpty();
+    }
+    
+    [Test]
+    public async Task AllEndpoints_DocumentedInOpenApi()
+    {
+        // Arrange
+        var spec = await GetOpenApiSpecAsync();
+        var documentedPaths = spec.Paths.Keys.ToList();
+        
+        // Expected API endpoints
+        var expectedEndpoints = new[]
+        {
+            "/api/certificates",
+            "/api/certificates/{id}",
+            "/api/companies",
+            "/api/companies/{id}",
+            "/api/users",
+            "/api/users/{id}",
+            // ... add all expected endpoints
+        };
+        
+        // Assert
+        foreach (var endpoint in expectedEndpoints)
+        {
+            documentedPaths.Should().Contain(endpoint, 
+                $"Endpoint {endpoint} should be documented in OpenAPI spec");
+        }
+    }
+    
+    [Test]
+    public async Task ResponseSchemas_MatchActualResponses()
+    {
+        // Test that actual API responses match OpenAPI schema definitions
+        var spec = await GetOpenApiSpecAsync();
+        var certificateSchema = spec.Components.Schemas["Certificate"];
+        
+        // Get actual response
+        var certificate = await CreateTestCertificateAsync();
+        var response = await CertificateClient.GetCertificateAsync(certificate.Id, AdminToken);
+        
+        // Validate response matches schema
+        var actualJson = JsonSerializer.Serialize(response.Data);
+        var validationResult = ValidateJsonAgainstSchema(actualJson, certificateSchema);
+        
+        validationResult.IsValid.Should().BeTrue(
+            "API response should match OpenAPI schema. Errors: {0}", 
+            string.Join(", ", validationResult.Errors));
+    }
+}
+```
+
+================================================================================
+                        DATA-DRIVEN TESTING
+================================================================================
+
+TEST DATA MANAGEMENT:
+
+```csharp
+public class ApiTestDataProvider
+{
+    // Valid certificate test cases
+    public static IEnumerable<CreateCertificateRequest> ValidCertificateRequests()
+    {
+        yield return new CreateCertificateRequest
+        {
+            Number = "VALID-001",
+            CompanyId = 1,
+            CertificationTypeId = 1,
+            Status = "Active",
+            EffectiveDate = DateTime.Today,
+            ExpirationDate = DateTime.Today.AddYears(1)
+        };
+        
+        yield return new CreateCertificateRequest
+        {
+            Number = "VALID-002",
+            CompanyId = 2,
+            CertificationTypeId = 2,
+            Status = "Pending",
+            EffectiveDate = DateTime.Today.AddDays(7),
+            ExpirationDate = DateTime.Today.AddMonths(6),
+            Notes = "Test certificate with notes"
+        };
+    }
+    
+    // Invalid certificate test cases
+    public static IEnumerable<TestCaseData> InvalidCertificateRequests()
+    {
+        yield return new TestCaseData(
+            new CreateCertificateRequest { /* Missing Number */ CompanyId = 1 },
+            "Number"
+        ).SetName("Missing Certificate Number");
+        
+        yield return new TestCaseData(
+            new CreateCertificateRequest 
+            { 
+                Number = "INVALID-DATE",
+                CompanyId = 1,
+                EffectiveDate = DateTime.Today.AddDays(1),
+                ExpirationDate = DateTime.Today  // Expiry before effective
+            },
+            "ExpirationDate"
+        ).SetName("Invalid Date Range");
+        
+        yield return new TestCaseData(
+            new CreateCertificateRequest 
+            { 
+                Number = "X", // Too short
+                CompanyId = 1 
+            },
+            "Number"
+        ).SetName("Certificate Number Too Short");
+    }
+    
+    // Security test payloads
+    public static IEnumerable<string> MaliciousPayloads()
+    {
+        yield return "<script>alert('xss')</script>";
+        yield return "'; DROP TABLE Certificates; --";
+        yield return "%3Cscript%3Ealert%28%27xss%27%29%3C%2Fscript%3E";
+        yield return "{{7*7}}"; // Template injection
+        yield return "../../../etc/passwd"; // Path traversal
+    }
+}
+
+[TestFixture]
+public class DataDrivenApiTests : BaseApiTest
+{
+    [Test, TestCaseSource(typeof(ApiTestDataProvider), nameof(ApiTestDataProvider.ValidCertificateRequests))]
+    public async Task CreateCertificate_ValidDataVariations_ReturnsCreated(CreateCertificateRequest request)
+    {
+        // Act
+        var response = await CertificateClient.CreateCertificateAsync(request, AdminToken);
+        
+        // Assert
+        response.IsSuccess.Should().BeTrue();
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+        AssertValidCertificate(response.Data);
+    }
+    
+    [Test, TestCaseSource(typeof(ApiTestDataProvider), nameof(ApiTestDataProvider.InvalidCertificateRequests))]
+    public async Task CreateCertificate_InvalidData_ReturnsBadRequest(
+        CreateCertificateRequest request, string expectedErrorField)
+    {
+        // Act
+        var response = await CertificateClient.CreateCertificateAsync(request, AdminToken);
+        
+        // Assert
+        response.IsSuccess.Should().BeFalse();
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.ValidationErrors.Should().ContainKey(expectedErrorField);
+    }
+    
+    [Test, TestCaseSource(typeof(ApiTestDataProvider), nameof(ApiTestDataProvider.MaliciousPayloads))]
+    public async Task SearchCertificates_MaliciousPayloads_HandledSafely(string maliciousPayload)
+    {
+        // Arrange
+        var searchRequest = new CertificateSearchRequest
+        {
+            CompanyName = maliciousPayload,
+            Status = "Active"
+        };
+        
+        // Act
+        var response = await CertificateClient.SearchCertificatesAsync(searchRequest, AdminToken);
+        
+        // Assert
+        // Should not cause server errors
+        response.StatusCode.Should().NotBe(HttpStatusCode.InternalServerError);
+        
+        // If successful, results should be safe
+        if (response.IsSuccess && response.Data?.Items != null)
+        {
+            response.Data.Items.Should().AllSatisfy(cert =>
+                cert.Company.Name.Should().NotContain("<script>"));
+        }
+    }
+}
+```
+
+================================================================================
+                        TEST AUTOMATION AND CI/CD
+================================================================================
+
+AUTOMATED TEST EXECUTION:
+
+```csharp
+[SetUpFixture]
+public class ApiTestSetup
+{
+    [OneTimeSetUp]
+    public async Task GlobalSetup()
+    {
+        // Environment validation
+        ValidateTestEnvironment();
+        
+        // Database preparation
+        await PrepareTestDatabase();
+        
+        // Test data seeding
+        await SeedTestData();
+        
+        // External service mocking (if needed)
+        ConfigureMockServices();
+    }
+    
+    [OneTimeTearDown]
+    public async Task GlobalTearDown()
+    {
+        // Cleanup test data
+        await CleanupTestData();
+        
+        // Generate consolidated report
+        GenerateTestReport();
+    }
+    
+    private void ValidateTestEnvironment()
+    {
+        var apiUrl = TestConfiguration.ApiBaseUrl;
+        if (string.IsNullOrEmpty(apiUrl))
+            throw new Exception("API base URL not configured");
+            
+        // Test API connectivity
+        using var client = new HttpClient();
+        var healthCheck = client.GetAsync($"{apiUrl}/health").Result;
+        if (!healthCheck.IsSuccessStatusCode)
+            throw new Exception($"API health check failed: {healthCheck.StatusCode}");
+    }
+}
+```
+
+AZURE DEVOPS PIPELINE:
+
+```yaml
+# api-tests.yml
+trigger:
+  branches:
+    include:
+    - main
+    - develop
+  paths:
+    include:
+    - src/GCCWebApp/Controllers/Api/*
+    - test/GCCWebApp.ApiTests/*
+
+pool:
+  vmImage: 'windows-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  testApiUrl: 'https://gcc-test-api.azurewebsites.net'
+
+stages:
+- stage: APITests
+  displayName: 'API Testing'
+  jobs:
+  - job: FunctionalTests
+    displayName: 'Functional API Tests'
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: 'Restore packages'
+      inputs:
+        command: 'restore'
+        projects: 'test/GCCWebApp.ApiTests/*.csproj'
+    
+    - task: DotNetCoreCLI@2
+      displayName: 'Run Functional Tests'
+      inputs:
+        command: 'test'
+        projects: 'test/GCCWebApp.ApiTests/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --logger trx --category Functional'
+        publishTestResults: true
+      env:
+        API_BASE_URL: $(testApiUrl)
+        ADMIN_EMAIL: $(adminTestEmail)
+        ADMIN_PASSWORD: $(adminTestPassword)
+    
+  - job: SecurityTests
+    displayName: 'Security API Tests'
+    dependsOn: FunctionalTests
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: 'Run Security Tests'
+      inputs:
+        command: 'test'
+        projects: 'test/GCCWebApp.ApiTests/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --logger trx --category Security'
+        publishTestResults: true
+      env:
+        API_BASE_URL: $(testApiUrl)
+    
+  - job: PerformanceTests
+    displayName: 'Performance API Tests'
+    dependsOn: [FunctionalTests, SecurityTests]
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: 'Run Performance Tests'
+      inputs:
+        command: 'test'
+        projects: 'test/GCCWebApp.ApiTests/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --logger trx --category Performance'
+        publishTestResults: true
+      env:
+        API_BASE_URL: $(testApiUrl)
+    
+  - job: ContractTests
+    displayName: 'Contract API Tests'
+    steps:
+    - task: DotNetCoreCLI@2
+      displayName: 'Run Contract Tests'
+      inputs:
+        command: 'test'
+        projects: 'test/GCCWebApp.ApiTests/*.csproj'
+        arguments: '--configuration $(buildConfiguration) --logger trx --category Contract'
+        publishTestResults: true
+      env:
+        API_BASE_URL: $(testApiUrl)
+
+- stage: TestReporting
+  displayName: 'Test Reporting'
+  dependsOn: APITests
+  jobs:
+  - job: GenerateReports
+    steps:
+    - task: PublishTestResults@2
+      displayName: 'Publish Test Results'
+      inputs:
+        testResultsFormat: 'VSTest'
+        testResultsFiles: '**/*.trx'
+        mergeTestResults: true
+        testRunTitle: 'API Tests'
+    
+    - task: PublishCodeCoverageResults@1
+      displayName: 'Publish Code Coverage'
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: '**/coverage.cobertura.xml'
+```
+
+CONTINUOUS MONITORING:
+
+```csharp
+[TestFixture]
+[Category("Monitoring")]
+public class ApiHealthMonitoringTests : BaseApiTest
+{
+    [Test, Repeat(5)] // Run multiple times to catch intermittent issues
+    public async Task ApiHealth_ContinuousMonitoring_RemainsHealthy()
+    {
+        // Act
+        var response = await _httpClient.GetAsync($"{TestConfiguration.ApiBaseUrl}/health");
+        
+        // Assert
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        
+        var healthData = await response.Content.ReadFromJsonAsync<HealthCheckResult>();
+        healthData.Status.Should().Be("Healthy");
+        
+        // Check individual components
+        healthData.Checks.Should().ContainKey("database");
+        healthData.Checks.Should().ContainKey("authentication");
+        healthData.Checks["database"].Status.Should().Be("Healthy");
+    }
+    
+    [Test]
+    public async Task ApiPerformance_ContinuousMonitoring_MaintainsSLA()
+    {
+        var tasks = new List<Task<TimeSpan>>();
+        
+        // Test multiple endpoints concurrently
+        tasks.Add(MeasureResponseTime(() => CertificateClient.GetCertificatesAsync(authToken: AdminToken)));
+        tasks.Add(MeasureResponseTime(() => CompanyClient.GetCompaniesAsync(authToken: AdminToken)));
+        tasks.Add(MeasureResponseTime(() => UserClient.GetProfileAsync(authToken: AdminToken)));
+        
+        var responseTimes = await Task.WhenAll(tasks);
+        
+        // Assert all response times within SLA
+        responseTimes.Should().AllSatisfy(time => 
+            time.Should().BeLessThan(TimeSpan.FromMilliseconds(500)));
+        
+        var avgResponseTime = responseTimes.Average(t => t.TotalMilliseconds);
+        avgResponseTime.Should().BeLessThan(300, "Average API response time should be under 300ms");
+    }
+}
+```
+
+================================================================================
+                        SUCCESS METRICS AND REPORTING
+================================================================================
+
+TEST METRICS:
+
+Key Performance Indicators:
+□ API Test Coverage: Target 100% endpoints
+□ Test Execution Time: Target < 30 minutes full suite
+□ Test Pass Rate: Target > 95%
+□ Defect Detection Rate: Measured weekly
+□ API Response Time: Target < 500ms average
+□ Security Test Pass Rate: Target 100%
+
+AUTOMATED REPORTING:
+
+```csharp
+public class ApiTestReporter
+{
+    public static void GenerateReport(List<TestResult> results)
+    {
+        var report = new ApiTestReport
+        {
+            ExecutionDate = DateTime.UtcNow,
+            TotalTests = results.Count,
+            PassedTests = results.Count(r => r.Passed),
+            FailedTests = results.Count(r => !r.Passed),
+            AverageResponseTime = results.Average(r => r.ResponseTime.TotalMilliseconds),
+            EndpointsCovered = results.Select(r => r.Endpoint).Distinct().Count()
+        };
+        
+        // Generate HTML report
+        GenerateHtmlReport(report, results);
+        
+        // Generate JSON for dashboard
+        GenerateJsonReport(report);
+        
+        // Send email summary
+        SendReportEmail(report);
+    }
+}
+```
+
+The API Testing Framework provides comprehensive test coverage for all API endpoints with automated execution, security testing, performance validation, and continuous monitoring integration.
+
+================================================================================
+                                 END OF DOCUMENT
+================================================================================

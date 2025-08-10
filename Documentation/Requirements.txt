@@ -1,0 +1,381 @@
+================================================================================
+                    GCC WEB APPLICATION - FUNCTIONAL REQUIREMENTS
+================================================================================
+
+ID: FR-001
+Title: User Authentication via Email/Password
+Description: The system SHALL allow registered users to authenticate using valid email and password credentials within 3 seconds under normal load conditions.
+
+Acceptance Criteria:
+- User enters valid email format (name@domain.com)
+- User enters password (8-128 characters)
+- System validates credentials against user database
+- System redirects authenticated users to dashboard
+- System displays error message for invalid credentials
+- System locks account after 5 failed attempts within 15 minutes
+- System logs all authentication attempts
+
+Preconditions: User account exists and is active
+Postconditions: User session established or error displayed
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-002
+Title: Two-Factor Authentication (2FA)
+Description: The system SHALL support optional two-factor authentication using email-based verification codes for enhanced security.
+
+Acceptance Criteria:
+- System generates 6-digit verification code
+- Code sent to user's registered email address
+- Code expires after 10 minutes
+- User enters code to complete authentication
+- System allows code resending after 60 seconds
+- Failed verification attempts are logged
+
+Preconditions: User has enabled 2FA in account settings
+Postconditions: User authenticated with 2FA or access denied
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-003
+Title: User Registration
+Description: The system SHALL allow new users to create accounts with company affiliation and await administrator approval.
+
+Acceptance Criteria:
+- User provides first name, last name, email, password
+- User selects or creates company affiliation
+- Password meets complexity requirements (8+ chars, 1 upper, 1 lower, 1 number, 1 special)
+- System sends email verification link
+- Account remains inactive until admin approval
+- System prevents duplicate email registrations
+
+Preconditions: User has valid email address
+Postconditions: User account created in pending status
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-004
+Title: Certificate Search and Filtering
+Description: The system SHALL provide comprehensive search and filtering capabilities for certificates with response times under 2 seconds.
+
+Acceptance Criteria:
+- Search by certificate number (partial or full match)
+- Filter by company name
+- Filter by product category/subcategory
+- Filter by certificate type
+- Filter by date range (issue/expiry)
+- Filter by status (active/expired/suspended)
+- Results paginated (25/50/100 per page)
+- Export search results to Excel/CSV
+
+Preconditions: User is authenticated
+Postconditions: Filtered certificate list displayed
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-005
+Title: Certificate Details View
+Description: The system SHALL display comprehensive certificate information including all associated products and custom fields.
+
+Acceptance Criteria:
+- Display certificate number, issue/expiry dates
+- Show company information
+- List all associated products with details
+- Display custom field values
+- Show certificate status and type
+- Include document attachments/links
+- Track view history for audit
+
+Preconditions: User has view permissions for certificate
+Postconditions: Certificate details displayed
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-006
+Title: Certificate Creation
+Description: The system SHALL allow authorized users to create new certificates with all required information and validations.
+
+Acceptance Criteria:
+- Enter unique certificate number
+- Select issuing company
+- Add multiple products with categories
+- Set issue and expiry dates
+- Add custom field values
+- Upload supporting documents (PDF, max 10MB)
+- System validates all required fields
+- System prevents duplicate certificate numbers
+
+Preconditions: User has certificate creation permissions
+Postconditions: New certificate created and indexed
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-007
+Title: Certificate Editing
+Description: The system SHALL allow authorized users to modify existing certificate information with full audit trail.
+
+Acceptance Criteria:
+- Edit all certificate fields except certificate number
+- Add/remove products
+- Update custom field values
+- Replace document attachments
+- System logs all changes with timestamp and user
+- System sends notifications for critical changes
+- Concurrent edit protection
+
+Preconditions: User has edit permissions for certificate
+Postconditions: Certificate updated with audit log entry
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-008
+Title: Dashboard Analytics
+Description: The system SHALL provide a dashboard with real-time analytics and key performance indicators.
+
+Acceptance Criteria:
+- Display total active certificates count
+- Show certificates expiring within 30/60/90 days
+- Display certificates by type (pie chart)
+- Show certificates by company (bar chart)
+- List recent certificate activities
+- Provide quick search widget
+- Load within 3 seconds
+
+Preconditions: User is authenticated
+Postconditions: Dashboard metrics displayed
+Priority: Medium
+
+--------------------------------------------------------------------------------
+
+ID: FR-009
+Title: User Management (Admin)
+Description: The system SHALL allow administrators to manage user accounts, roles, and permissions.
+
+Acceptance Criteria:
+- View all users with filtering/sorting
+- Approve/reject pending registrations
+- Activate/deactivate user accounts
+- Assign user roles (Admin, Editor, Viewer)
+- Reset user passwords
+- View user activity logs
+- Bulk user operations
+
+Preconditions: User has administrator role
+Postconditions: User accounts/permissions updated
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-010
+Title: Company Management
+Description: The system SHALL allow management of company profiles and their associations with certificates and users.
+
+Acceptance Criteria:
+- Create new company profiles
+- Edit company information (name, address, contact)
+- View all certificates for a company
+- View all users associated with company
+- Merge duplicate companies
+- Deactivate companies (soft delete)
+
+Preconditions: User has company management permissions
+Postconditions: Company information updated
+Priority: Medium
+
+--------------------------------------------------------------------------------
+
+ID: FR-011
+Title: Product Category Management
+Description: The system SHALL maintain a hierarchical product categorization system for certificate products.
+
+Acceptance Criteria:
+- Create product categories
+- Create subcategories under categories
+- Create product types under subcategories
+- Edit category/subcategory/type names
+- View usage statistics per category
+- Prevent deletion of categories in use
+
+Preconditions: User has product management permissions
+Postconditions: Product taxonomy updated
+Priority: Medium
+
+--------------------------------------------------------------------------------
+
+ID: FR-012
+Title: Bulk Certificate Import
+Description: The system SHALL support bulk import of certificates from Excel/CSV files with validation and error reporting.
+
+Acceptance Criteria:
+- Accept Excel (.xlsx) and CSV formats
+- Validate all required fields
+- Check for duplicate certificate numbers
+- Process up to 1000 records per import
+- Generate error report for failed records
+- Preview import before confirmation
+- Rollback capability on failure
+
+Preconditions: User has bulk import permissions
+Postconditions: Certificates imported or error report generated
+Priority: Medium
+
+--------------------------------------------------------------------------------
+
+ID: FR-013
+Title: Certificate Expiry Notifications
+Description: The system SHALL automatically send email notifications for certificates approaching expiry.
+
+Acceptance Criteria:
+- Send notifications 90, 60, 30, 7 days before expiry
+- Include certificate details in notification
+- Send to certificate owners and designated contacts
+- Allow users to configure notification preferences
+- Log all sent notifications
+- Provide notification failure alerts to admins
+
+Preconditions: Email service configured, notifications enabled
+Postconditions: Expiry notifications sent and logged
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-014
+Title: Audit Trail
+Description: The system SHALL maintain a comprehensive audit trail of all data modifications and user activities.
+
+Acceptance Criteria:
+- Log all create, update, delete operations
+- Record user, timestamp, IP address
+- Store before/after values for changes
+- Log authentication attempts
+- Log data exports
+- Retain logs for minimum 2 years
+- Provide audit log search interface
+
+Preconditions: Audit logging enabled
+Postconditions: All activities logged and searchable
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-015
+Title: Report Generation
+Description: The system SHALL generate various reports in multiple formats for analysis and compliance.
+
+Acceptance Criteria:
+- Generate certificate status reports
+- Generate expiry reports by date range
+- Generate company certificate summaries
+- Generate user activity reports
+- Export to PDF, Excel, CSV formats
+- Schedule automated report generation
+- Email reports to designated recipients
+
+Preconditions: User has reporting permissions
+Postconditions: Report generated and delivered
+Priority: Medium
+
+--------------------------------------------------------------------------------
+
+ID: FR-016
+Title: API Access
+Description: The system SHALL provide RESTful API endpoints for external system integration.
+
+Acceptance Criteria:
+- Authenticate via API keys or OAuth 2.0
+- Provide certificate search endpoint
+- Provide certificate details endpoint
+- Support JSON response format
+- Rate limiting (100 requests/minute)
+- API usage logging and analytics
+- Comprehensive API documentation
+
+Preconditions: API access enabled for user
+Postconditions: API request processed and logged
+Priority: Low
+
+--------------------------------------------------------------------------------
+
+ID: FR-017
+Title: Password Management
+Description: The system SHALL provide self-service password reset and password policy enforcement.
+
+Acceptance Criteria:
+- Send password reset link via email
+- Reset link expires after 24 hours
+- Enforce password complexity rules
+- Prevent password reuse (last 5 passwords)
+- Force password change on first login
+- Password expiry after 90 days (configurable)
+
+Preconditions: User has valid email address
+Postconditions: Password updated or reset completed
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-018
+Title: Data Export
+Description: The system SHALL allow users to export certificate data in various formats for external use.
+
+Acceptance Criteria:
+- Export search results to Excel/CSV
+- Export individual certificate details
+- Include/exclude specific fields
+- Maintain data formatting
+- Add export watermark/timestamp
+- Log all export activities
+- Limit export size (10,000 records)
+
+Preconditions: User has export permissions
+Postconditions: Data exported and logged
+Priority: Medium
+
+--------------------------------------------------------------------------------
+
+ID: FR-019
+Title: Custom Fields Configuration
+Description: The system SHALL allow administrators to define custom fields for certificates.
+
+Acceptance Criteria:
+- Create custom field definitions
+- Set field types (text, number, date, dropdown)
+- Mark fields as required/optional
+- Set field validation rules
+- Configure field display order
+- Apply fields to certificate types
+- Migrate existing data to new fields
+
+Preconditions: User has system configuration permissions
+Postconditions: Custom fields configured and available
+Priority: Low
+
+--------------------------------------------------------------------------------
+
+ID: FR-020
+Title: System Settings Management
+Description: The system SHALL provide centralized configuration management for system-wide settings.
+
+Acceptance Criteria:
+- Configure email server settings
+- Set session timeout values
+- Configure file upload limits
+- Set password policies
+- Configure notification templates
+- Enable/disable features
+- Export/import configuration
+
+Preconditions: User has system administrator role
+Postconditions: System settings updated
+Priority: Medium
+
+================================================================================
+                                 END OF DOCUMENT
+================================================================================

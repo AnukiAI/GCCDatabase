@@ -1,0 +1,389 @@
+================================================================================
+              GCC WEB APPLICATION - ADDITIONAL FUNCTIONAL REQUIREMENTS
+================================================================================
+
+Document Purpose: Additional functional requirements identified through gap analysis
+Created: 2025-08-09
+Related Documents: Requirements.txt, Requirements_Gap_Analysis.txt
+
+================================================================================
+
+ID: FR-021
+Title: Multi-Select Certificate Operations
+Description: The system SHALL provide multi-select functionality for bulk certificate operations to improve user efficiency.
+
+Acceptance Criteria:
+- Select multiple certificates using checkboxes
+- Select all/deselect all functionality
+- Bulk download selected certificates as ZIP file
+- Bulk export selected certificates to Excel/CSV
+- Bulk status update for selected certificates (admin only)
+- Bulk delete for selected certificates (admin only)
+- Maximum 100 certificates per bulk operation
+- Progress indicator for bulk operations
+- Operation log for bulk actions
+- Confirmation dialog for destructive operations
+
+Preconditions: User has appropriate permissions for bulk operations
+Postconditions: Selected operations completed with audit log entries
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-022
+Title: Geographic Data Management
+Description: The system SHALL manage geographic information for certificates including country, region, and location data.
+
+Acceptance Criteria:
+- Maintain country master list (ISO 3166 compliant)
+- Support region/state/province per country
+- City/location field with validation
+- Geographic coordinates (optional)
+- Search certificates by country
+- Filter certificates by region/location
+- Geographic data in certificate details
+- Bulk update geographic information
+- Geographic distribution reports
+- Map visualization (future enhancement)
+
+Preconditions: Geographic master data loaded
+Postconditions: Certificates associated with geographic data
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-023
+Title: Partner Program Management
+Description: The system SHALL support partner program creation and management with program-specific access control.
+
+Acceptance Criteria:
+- Create/edit/delete partner programs
+- Assign partners to programs
+- Program-specific certificate access
+- Program administrator designation
+- Program-level reporting
+- Program compliance tracking
+- Program expiry dates
+- Program-specific tags/categories
+- Bulk partner assignment
+- Program activity audit trail
+- Program dashboard for partners
+- API access per program
+
+Preconditions: Admin has partner management permissions
+Postconditions: Partner programs configured with appropriate access
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-024
+Title: CSF (Certificate Security Framework) Attribute Management
+Description: The system SHALL manage Certificate Security Framework attributes for enhanced certificate classification and compliance tracking.
+
+Acceptance Criteria:
+- Define CSF attribute types
+- Create/edit/delete CSF attributes
+- Assign multiple CSF attributes to certificates
+- CSF attribute validation rules
+- Search by CSF attributes
+- Filter by CSF combinations
+- CSF compliance reporting
+- CSF attribute inheritance rules
+- Bulk CSF assignment
+- CSF version management
+- CSF audit trail
+
+Preconditions: Admin has CSF management permissions
+Postconditions: CSF attributes configured and assigned
+Priority: Medium
+
+--------------------------------------------------------------------------------
+
+ID: FR-025
+Title: Public/Private Certificate Visibility Management
+Description: The system SHALL control certificate visibility between public and private access with granular permission settings.
+
+Acceptance Criteria:
+- Set certificate visibility (public/private/restricted)
+- Confidentiality level assignment (1-5)
+- Public portal configuration
+- Automatic public visibility based on status
+- Override visibility settings (admin only)
+- Visibility change notifications
+- Public access analytics
+- Scheduled visibility changes
+- Bulk visibility updates
+- Visibility inheritance rules
+- Public URL generation for certificates
+
+Preconditions: Certificate exists with defined status
+Postconditions: Certificate visibility configured appropriately
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-026
+Title: Product Code Management
+Description: The system SHALL manage various product identification codes including ASIN, UPC, GTIN, and EAN with validation.
+
+Acceptance Criteria:
+- Store ASIN (10 alphanumeric characters)
+- Store UPC (12 digits with check digit validation)
+- Store GTIN (8/12/13/14 digits)
+- Store EAN (8/13 digits)
+- Validate code formats on entry
+- Search by any product code
+- Bulk import product codes
+- Barcode generation for codes
+- Code duplicate detection
+- Cross-reference code mapping
+- Product code history tracking
+
+Preconditions: Product/Certificate record exists
+Postconditions: Product codes stored and validated
+Priority: Medium
+
+--------------------------------------------------------------------------------
+
+ID: FR-027
+Title: Third-Party Integration Management
+Description: The system SHALL integrate with third-party services including Amazon API, Google Analytics, and other marketplace platforms.
+
+Acceptance Criteria:
+- Configure Amazon API credentials
+- Enable/disable Amazon integration
+- Sync certificates with Amazon catalog
+- Configure Google Analytics tracking
+- View Analytics dashboard within system
+- Generic webhook configuration
+- OAuth 2.0 support for integrations
+- Integration health monitoring
+- Error handling and retry logic
+- Integration activity logs
+- API rate limit management
+- Credential encryption and storage
+
+Preconditions: Third-party service accounts configured
+Postconditions: Integrations active and synchronized
+Priority: Medium
+
+--------------------------------------------------------------------------------
+
+ID: FR-028
+Title: Media and Image Management
+Description: The system SHALL provide comprehensive media management for certificates including images, logos, and document attachments.
+
+Acceptance Criteria:
+- Upload multiple images per certificate
+- Support JPG, PNG, GIF, WebP formats
+- Image size optimization (automatic resize)
+- Image gallery view
+- Thumbnail generation
+- Logo management for companies
+- Media library with search
+- Drag-and-drop upload
+- Image metadata storage
+- CDN integration for media delivery
+- Maximum 10 images per certificate
+- Total storage quota per company
+
+Preconditions: Storage infrastructure configured
+Postconditions: Media files uploaded and accessible
+Priority: Low
+
+--------------------------------------------------------------------------------
+
+ID: FR-029
+Title: Webhook Event Management
+Description: The system SHALL provide webhook functionality for real-time event notifications to external systems.
+
+Acceptance Criteria:
+- Configure webhook endpoints
+- Select event types to subscribe
+- Webhook authentication (HMAC signatures)
+- Event payload customization
+- Retry logic with exponential backoff
+- Failed webhook queue
+- Webhook testing interface
+- Event history viewing
+- Webhook enable/disable
+- Rate limiting per endpoint
+- Webhook health monitoring
+- Bulk webhook configuration
+
+Preconditions: External endpoints configured
+Postconditions: Events delivered to configured endpoints
+Priority: Low
+
+--------------------------------------------------------------------------------
+
+ID: FR-030
+Title: Advanced Business Rules Engine
+Description: The system SHALL provide a configurable business rules engine for custom validation and workflow automation.
+
+Acceptance Criteria:
+- Create custom validation rules
+- Rule condition builder (if-then-else)
+- Apply rules to certificate types
+- Rule priority/execution order
+- Rule testing interface
+- Rule activation/deactivation
+- Rule violation reporting
+- Email alerts for rule violations
+- Rule templates library
+- Rule import/export
+- Rule version control
+- Performance impact monitoring
+
+Preconditions: Admin has rule configuration permissions
+Postconditions: Business rules active and enforced
+Priority: Low
+
+--------------------------------------------------------------------------------
+
+ID: FR-031
+Title: Certificate Modification History Viewing
+Description: The system SHALL provide detailed viewing of all modifications made to certificates with comparison capabilities.
+
+Acceptance Criteria:
+- View complete modification history
+- Show before/after values for each change
+- Display user who made changes
+- Show timestamp of modifications
+- Filter history by date range
+- Filter history by user
+- Filter history by field changed
+- Compare any two versions
+- Restore previous version (admin only)
+- Export modification history
+- Highlight changes visually
+- Include related entity changes
+
+Preconditions: Certificate has modification history
+Postconditions: History displayed with all details
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-032
+Title: Automatic Certificate Numbering
+Description: The system SHALL automatically generate certificate numbers with configurable formats and manual override capability.
+
+Acceptance Criteria:
+- Configure numbering format (prefix-year-sequence)
+- Auto-increment sequence numbers
+- Year-based reset option
+- Category-specific numbering
+- Manual override capability (admin)
+- Duplicate prevention
+- Reserve number ranges
+- Preview next number
+- Numbering audit trail
+- Bulk number assignment
+- Number recycling rules
+- Custom number validation
+
+Preconditions: Numbering format configured
+Postconditions: Certificate number generated or manually assigned
+Priority: High
+
+--------------------------------------------------------------------------------
+
+ID: FR-033
+Title: Advanced Search Capabilities
+Description: The system SHALL provide advanced search features including saved searches, search history, and intelligent suggestions.
+
+Acceptance Criteria:
+- Save search criteria with names
+- Search history for users
+- Share saved searches
+- Search suggestions (autocomplete)
+- Recent searches quick access
+- Popular searches display
+- Search within results
+- Boolean search operators (AND/OR/NOT)
+- Wildcard search support
+- Fuzzy search for typos
+- Search relevance scoring
+- Search analytics dashboard
+
+Preconditions: User authenticated with search permissions
+Postconditions: Search results displayed based on criteria
+Priority: Medium
+
+--------------------------------------------------------------------------------
+
+ID: FR-034
+Title: Certificate Template Management
+Description: The system SHALL provide certificate templates for quick creation of similar certificates.
+
+Acceptance Criteria:
+- Create certificate templates
+- Save certificates as templates
+- Template categories/organization
+- Template field mapping
+- Template sharing between users
+- Template versioning
+- Default templates per type
+- Template usage analytics
+- Bulk create from template
+- Template approval workflow
+- Template archive/restore
+- Template import/export
+
+Preconditions: User has template creation permissions
+Postconditions: Templates available for certificate creation
+Priority: Low
+
+--------------------------------------------------------------------------------
+
+ID: FR-035
+Title: Advanced Notification Management
+Description: The system SHALL provide comprehensive notification management beyond expiry alerts including custom triggers and channels.
+
+Acceptance Criteria:
+- Custom notification triggers
+- Multiple notification channels (email, SMS, in-app)
+- Notification templates
+- Recipient group management
+- Notification scheduling
+- Digest notifications (daily/weekly)
+- Notification preferences per user
+- Do not disturb settings
+- Notification history viewing
+- Failed notification retry
+- Notification analytics
+- Bulk notification sending
+
+Preconditions: Notification service configured
+Postconditions: Notifications delivered per configuration
+Priority: Medium
+
+================================================================================
+                           CROSS-REFERENCE UPDATES
+================================================================================
+
+Updates Required to Existing Requirements:
+
+FR-006 (Certificate Creation):
+- Add reference to FR-032 for automatic numbering
+- Add reference to FR-026 for product codes
+- Add reference to FR-034 for templates
+
+FR-007 (Certificate Editing):
+- Add reference to FR-031 for history viewing
+- Add reference to FR-026 for product code editing
+
+FR-004 (Certificate Search):
+- Add reference to FR-033 for advanced search
+- Add reference to FR-022 for geographic search
+
+FR-013 (Expiry Notifications):
+- Add reference to FR-035 for advanced notifications
+
+FR-018 (Data Export):
+- Add reference to FR-021 for multi-select export
+
+================================================================================
+                                 END OF DOCUMENT
+================================================================================

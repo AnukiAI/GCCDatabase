@@ -155,6 +155,14 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IValidationService, ValidationService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 
+// ===== ETL SERVICES =====
+builder.Services.AddScoped<GCCWebApp.Services.ETL.IETLService, GCCWebApp.Services.ETL.ETLService>();
+builder.Services.AddScoped<GCCWebApp.Services.ETL.IDataExtractor, GCCWebApp.Services.ETL.DataExtractor>();
+builder.Services.AddScoped<GCCWebApp.Services.ETL.IDataTransformer, GCCWebApp.Services.ETL.DataTransformer>();
+builder.Services.AddScoped<GCCWebApp.Services.ETL.IDataLoader, GCCWebApp.Services.ETL.DataLoader>();
+builder.Services.AddScoped<GCCWebApp.Services.ETL.IETLMonitor, GCCWebApp.Services.ETL.ETLMonitor>();
+builder.Services.AddHostedService<GCCWebApp.Services.ETL.ETLSchedulerService>();
+
 // ===== BASIC SERVICES =====
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();

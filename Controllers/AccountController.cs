@@ -348,10 +348,16 @@ namespace GCCWebApp.Controllers
             {
                 return Redirect(returnUrl);
             }
-            else
+
+            // Role-based landing pages for authenticated users
+            var userRole = HttpContext.Session.GetString("UserRole");
+            return userRole switch
             {
-                return RedirectToAction("Index", "Dashboard");
-            }
+                "Public" => RedirectToAction("CertificateTileView", "Certificate"),
+                "External" => RedirectToAction("Index", "Dashboard"),
+                "Analyst" or "Admin" => RedirectToAction("Index", "Dashboard"),
+                _ => RedirectToAction("CertificateTileView", "Certificate")
+            };
         }
 
         #endregion

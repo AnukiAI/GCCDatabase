@@ -131,6 +131,51 @@ namespace GCCWebApp.Migrations
                     b.ToTable("Certificates");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.CertificateAggregateData", b =>
+                {
+                    b.Property<string>("Period")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("PeriodDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ActiveCertificates")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<double>("AverageValidityPeriod")
+                        .HasColumnType("REAL");
+
+                    b.Property<string>("CertificatesByCompany")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CertificatesByCountry")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CertificatesByType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ExpiredCertificates")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ExpiringThisMonth")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TotalCertificates")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Period", "PeriodDate");
+
+                    b.HasIndex("PeriodDate");
+
+                    b.ToTable("CertificateAggregates");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.CertificationType", b =>
                 {
                     b.Property<int>("Id")
@@ -283,6 +328,177 @@ namespace GCCWebApp.Migrations
                     b.ToTable("CustomFieldValues");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.ETLAlert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AlertType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Context")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsResolved");
+
+                    b.ToTable("ETLAlerts");
+                });
+
+            modelBuilder.Entity("GCCWebApp.Models.ETLConfiguration", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CronSchedule")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DataSources")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Destinations")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsIncremental")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("JobType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("LastRunTime")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Settings")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Transformations")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("ETLConfigurations");
+                });
+
+            modelBuilder.Entity("GCCWebApp.Models.ETLDataQualityIssue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ActualValue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("DetectedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ExpectedValue")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FieldName")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IssueType")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RecordId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DetectedAt");
+
+                    b.HasIndex("IssueType");
+
+                    b.ToTable("ETLDataQualityIssues");
+                });
+
+            modelBuilder.Entity("GCCWebApp.Models.ETLLogEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Category")
+                        .HasColumnType("TEXT");
+
+                    b.Property<Guid>("JobId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LogLevel")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Properties")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("JobId");
+
+                    b.HasIndex("Timestamp");
+
+                    b.ToTable("ETLLogEntries");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.Permission", b =>
                 {
                     b.Property<int>("Id")
@@ -326,6 +542,10 @@ namespace GCCWebApp.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Asin")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("CategoryId")
                         .HasColumnType("INTEGER");
 
@@ -341,6 +561,10 @@ namespace GCCWebApp.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("Model")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -351,6 +575,14 @@ namespace GCCWebApp.Migrations
 
                     b.Property<int?>("ProductTypeId")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Sku")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Upc")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");

@@ -217,7 +217,7 @@ namespace GCCWebApp.Services
                     Name = r.Name,
                     Description = r.Description,
                     Permissions = r.Permissions.Select(p => p.Codename).ToList(),
-                    UserCount = r.Users.Count
+                    UserCount = r.Users.Count()
                 })
                 .ToListAsync();
         }
@@ -237,7 +237,7 @@ namespace GCCWebApp.Services
                 Name = role.Name,
                 Description = role.Description,
                 Permissions = role.Permissions.Select(p => p.Codename).ToList(),
-                UserCount = role.Users.Count
+                UserCount = role.Users.Count()
             };
         }
 
@@ -454,7 +454,7 @@ namespace GCCWebApp.Services
                     Name = ct.Name,
                     Description = ct.Description,
                     IsActive = ct.IsActive,
-                    CertificateCount = ct.Certificates.Count
+                    CertificateCount = ct.Certificates.Count()
                 })
                 .ToListAsync();
         }
@@ -473,7 +473,7 @@ namespace GCCWebApp.Services
                 Name = certType.Name,
                 Description = certType.Description,
                 IsActive = certType.IsActive,
-                CertificateCount = certType.Certificates.Count
+                CertificateCount = certType.Certificates.Count()
             };
         }
 
@@ -650,7 +650,7 @@ namespace GCCWebApp.Services
                     Id = t.Id,
                     Name = t.Name,
                     TagType = t.TagType,
-                    ProductCount = t.Products.Count,
+                    ProductCount = t.Products.Count(),
                     Description = t.Description ?? ""
                 })
                 .ToListAsync();
@@ -669,7 +669,7 @@ namespace GCCWebApp.Services
                 Id = tag.Id,
                 Name = tag.Name,
                 TagType = tag.TagType,
-                ProductCount = tag.Products.Count,
+                ProductCount = tag.Products.Count(),
                 Description = tag.Description ?? ""
             };
         }
@@ -754,7 +754,7 @@ namespace GCCWebApp.Services
                     ProductTypeName = p.ProductType != null ? p.ProductType.Name : "",
                     CompanyName = p.Company != null ? p.Company.Name : "",
                     IsActive = p.IsActive,
-                    CertificateCount = p.Certificates.Count,
+                    CertificateCount = p.Certificates.Count(),
                     CreatedDate = p.CreatedAt
                 })
                 .ToListAsync();

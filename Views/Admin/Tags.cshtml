@@ -1,10 +1,6 @@
 @{
-    ViewData["Title"] = "Tag Management";
+    ViewData["Title"] = "Tags Management";
     ViewData["BodyClass"] = "admin-tags";
-}
-
-@section Styles {
-    <link href="~/css/tags.css" rel="stylesheet" />
 }
 
 @section Breadcrumbs {
@@ -45,64 +41,415 @@
     </div>
 
     <div class="table-container">
-        <table id="tag-table">
+        <table class="tags-table" id="tags-table">
             <thead>
                 <tr>
-                    <th width="25%" data-sort="name">Tag Name <span class="sort-icon">▼</span></th>
-                    <th width="20%" data-sort="type">Tag Type <span class="sort-icon">▼</span></th>
-                    <th width="45%" data-sort="description">Description <span class="sort-icon">▼</span></th>
+                    <th width="25%" data-sort="name">Tag Name</th>
+                    <th width="20%" data-sort="type">Tag Type</th>
+                    <th width="45%" data-sort="description">Description</th>
                     <th width="10%" class="actions-col">Actions</th>
                 </tr>
             </thead>
             <tbody>
-                <!-- Data will be populated by JavaScript -->
+                <!-- Tag data will be populated here -->
             </tbody>
         </table>
     </div>
 
-    <div class="footer-info">
-        <span id="tag-count">Showing 0 of 0 tags</span>
-    </div>
-</div>
-
-<!-- Add/Edit Tag Modal -->
-<div id="tag-modal" class="modal">
-    <div class="modal-overlay"></div>
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title" id="modal-title">Add New Tag</h3>
-            <span class="modal-close">&times;</span>
-        </div>
-        <div class="modal-body">
-            <form id="tag-form">
-                <input type="hidden" id="tag-id">
-
-                <div class="form-group">
-                    <label for="tag-name">Tag Name</label>
-                    <input type="text" id="tag-name" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="tag-type">Tag Type</label>
-                    <select id="tag-type" required>
-                        <option value="external">External</option>
-                        <option value="internal">Internal</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="tag-description">Description</label>
-                    <textarea id="tag-description" placeholder="Optional description..."></textarea>
-                </div>
-            </form>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-cancel" id="cancel-btn">Cancel</button>
-            <button type="submit" class="btn btn-primary" id="save-btn" form="tag-form">Save</button>
-        </div>
+    <div class="footer-info" id="tags-count">
+        Showing 0 of 0 tags
     </div>
 </div>
 
 @section Scripts {
-    <script src="~/js/tags.js"></script>
+    <script>
+        // Sample data with expanded set for better testing
+        let tags = [
+            { id: 1, name: 'Biodegradable', type: 'Internal', description: 'Made from renewable biological resources' },
+            { id: 2, name: 'Carbon Neutral', type: 'External', description: 'Reduces carbon emissions' },
+            { id: 3, name: 'Energy Efficient', type: 'External', description: 'Verified energy efficiency improvements' },
+            { id: 4, name: 'Post-Consumer Recycled', type: 'External', description: 'Contains recycled materials' },
+            { id: 5, name: 'Sustainable Materials', type: 'External', description: 'Made from sustainable resources' }
+        ];
+
+        // DOM Elements
+        const tagsTableBody = document.querySelector('#tags-table tbody');
+        const tagsCountElement = document.getElementById('tags-count');
+        const searchInput = document.getElementById('search-input');
+        const typeFilter = document.getElementById('type-filter');
+        const addTagBtn = document.getElementById('add-tag-btn');
+
+        // Track editing states
+        let editingId = null;
+        let addingNew = false;
+
+        // Function to populate the table
+        function populateTable(data) {
+            tagsTableBody.innerHTML = '';
+
+            // Add rows for existing tags first
+            data.forEach(tag => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-id', tag.id);
+
+                // Tag Name cell
+                const nameCell = document.createElement('td');
+                nameCell.setAttribute('data-label', 'Tag Name');
+                
+                if (editingId === tag.id) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'edit-input';
+                    input.value = tag.name;
+                    input.id = `edit-tag-name-${tag.id}`;
+                    nameCell.appendChild(input);
+                } else {
+                    nameCell.textContent = tag.name;
+                }
+                row.appendChild(nameCell);
+
+                // Tag Type cell
+                const typeCell = document.createElement('td');
+                typeCell.setAttribute('data-label', 'Tag Type');
+                
+                if (editingId === tag.id) {
+                    const select = document.createElement('select');
+                    select.className = 'edit-select';
+                    select.id = `edit-tag-type-${tag.id}`;
+                    
+                    const externalOption = document.createElement('option');
+                    externalOption.value = 'External';
+                    externalOption.textContent = 'External';
+                    if (tag.type === 'External') externalOption.selected = true;
+                    
+                    const internalOption = document.createElement('option');
+                    internalOption.value = 'Internal';
+                    internalOption.textContent = 'Internal';
+                    if (tag.type === 'Internal') internalOption.selected = true;
+                    
+                    select.appendChild(externalOption);
+                    select.appendChild(internalOption);
+                    typeCell.appendChild(select);
+                } else {
+                    typeCell.textContent = tag.type;
+                }
+                row.appendChild(typeCell);
+
+                // Description cell
+                const descCell = document.createElement('td');
+                descCell.setAttribute('data-label', 'Description');
+                
+                if (editingId === tag.id) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'edit-input';
+                    input.value = tag.description || '';
+                    input.id = `edit-tag-desc-${tag.id}`;
+                    input.placeholder = 'Optional description...';
+                    descCell.appendChild(input);
+                } else {
+                    descCell.textContent = tag.description || '';
+                }
+                row.appendChild(descCell);
+
+                // Actions cell
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'actions-cell';
+                actionsCell.setAttribute('data-label', 'Actions');
+
+                if (editingId === tag.id) {
+                    // If editing, show save and cancel buttons
+                    const saveBtn = document.createElement('button');
+                    saveBtn.className = 'btn-save';
+                    saveBtn.textContent = 'Save';
+                    saveBtn.addEventListener('click', () => saveTagEdit(tag.id));
+
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'btn-cancel';
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.addEventListener('click', cancelTagEdit);
+
+                    actionsCell.appendChild(saveBtn);
+                    actionsCell.appendChild(cancelBtn);
+                } else {
+                    // If not editing, show edit and delete buttons
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'action-btn edit-btn';
+                    editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                    editBtn.title = 'Edit';
+                    editBtn.addEventListener('click', () => editTag(tag.id));
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'action-btn delete-btn';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                    deleteBtn.title = 'Delete';
+                    deleteBtn.addEventListener('click', () => deleteTag(tag.id));
+
+                    actionsCell.appendChild(editBtn);
+                    actionsCell.appendChild(deleteBtn);
+                }
+
+                row.appendChild(actionsCell);
+                tagsTableBody.appendChild(row);
+            });
+
+            // Check if we need to add a new row for adding a tag (at bottom)
+            if (addingNew) {
+                const addRow = document.createElement('tr');
+                addRow.className = 'add-row';
+
+                const nameCell = document.createElement('td');
+                nameCell.setAttribute('data-label', 'Tag Name');
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.placeholder = 'Enter tag name';
+                nameInput.id = 'new-tag-name';
+                nameCell.appendChild(nameInput);
+
+                const typeCell = document.createElement('td');
+                typeCell.setAttribute('data-label', 'Tag Type');
+                const typeSelect = document.createElement('select');
+                typeSelect.id = 'new-tag-type';
+                
+                const externalOption = document.createElement('option');
+                externalOption.value = 'External';
+                externalOption.textContent = 'External';
+                
+                const internalOption = document.createElement('option');
+                internalOption.value = 'Internal';
+                internalOption.textContent = 'Internal';
+                
+                typeSelect.appendChild(externalOption);
+                typeSelect.appendChild(internalOption);
+                typeCell.appendChild(typeSelect);
+
+                const descCell = document.createElement('td');
+                descCell.setAttribute('data-label', 'Description');
+                const descInput = document.createElement('input');
+                descInput.type = 'text';
+                descInput.placeholder = 'Optional description...';
+                descInput.id = 'new-tag-desc';
+                descCell.appendChild(descInput);
+
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'actions-cell';
+                actionsCell.setAttribute('data-label', 'Actions');
+
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'btn-save';
+                saveBtn.textContent = 'Save';
+                saveBtn.addEventListener('click', saveNewTag);
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'btn-cancel';
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.addEventListener('click', cancelAddTag);
+
+                actionsCell.appendChild(saveBtn);
+                actionsCell.appendChild(cancelBtn);
+
+                addRow.appendChild(nameCell);
+                addRow.appendChild(typeCell);
+                addRow.appendChild(descCell);
+                addRow.appendChild(actionsCell);
+
+                tagsTableBody.appendChild(addRow);
+            }
+
+            // Update the tags count
+            updateTagsCount();
+        }
+
+        // Function to filter tags based on search input and type
+        function filterTags() {
+            const searchTerm = searchInput.value.toLowerCase();
+            const selectedType = typeFilter.value;
+
+            if (!searchTerm && selectedType === 'all') {
+                return [...tags];
+            }
+
+            return tags.filter(tag => {
+                const matchesSearch = !searchTerm || 
+                    tag.name.toLowerCase().includes(searchTerm) ||
+                    (tag.description && tag.description.toLowerCase().includes(searchTerm));
+                
+                const matchesType = selectedType === 'all' || 
+                    tag.type.toLowerCase() === selectedType.toLowerCase();
+                
+                return matchesSearch && matchesType;
+            });
+        }
+
+        // Function to update the tags count display
+        function updateTagsCount() {
+            const filteredCount = filterTags().length;
+            const totalCount = tags.length;
+            tagsCountElement.textContent = `Showing ${filteredCount} of ${totalCount} tags`;
+        }
+
+        // Function to add a new tag
+        function addTag() {
+            // Prevent multiple add rows
+            if (addingNew || editingId !== null) return;
+
+            addingNew = true;
+            populateTable(filterTags());
+
+            // Focus on the new input
+            setTimeout(() => {
+                const newInput = document.getElementById('new-tag-name');
+                if (newInput) newInput.focus();
+            }, 0);
+        }
+
+        // Function to save a new tag
+        function saveNewTag() {
+            const nameInput = document.getElementById('new-tag-name');
+            const typeSelect = document.getElementById('new-tag-type');
+            const descInput = document.getElementById('new-tag-desc');
+            
+            const tagName = nameInput.value.trim();
+            const tagType = typeSelect.value;
+            const tagDesc = descInput.value.trim();
+
+            if (tagName) {
+                const newId = tags.length > 0 ? Math.max(...tags.map(t => t.id)) + 1 : 1;
+                tags.push({ 
+                    id: newId, 
+                    name: tagName, 
+                    type: tagType, 
+                    description: tagDesc || null
+                });
+
+                addingNew = false;
+                populateTable(filterTags());
+            } else {
+                alert('Please enter a tag name.');
+            }
+        }
+
+        // Function to cancel adding a new tag
+        function cancelAddTag() {
+            addingNew = false;
+            populateTable(filterTags());
+        }
+
+        // Function to edit a tag
+        function editTag(id) {
+            // Prevent multiple edits
+            if (editingId !== null || addingNew) return;
+
+            editingId = id;
+            populateTable(filterTags());
+
+            // Focus on the edit input
+            setTimeout(() => {
+                const editInput = document.getElementById(`edit-tag-name-${id}`);
+                if (editInput) {
+                    editInput.focus();
+                    editInput.select();
+                }
+            }, 0);
+        }
+
+        // Function to save tag edit
+        function saveTagEdit(id) {
+            const nameInput = document.getElementById(`edit-tag-name-${id}`);
+            const typeSelect = document.getElementById(`edit-tag-type-${id}`);
+            const descInput = document.getElementById(`edit-tag-desc-${id}`);
+            
+            const newName = nameInput.value.trim();
+            const newType = typeSelect.value;
+            const newDesc = descInput.value.trim();
+
+            if (newName) {
+                const tagIndex = tags.findIndex(t => t.id === id);
+                if (tagIndex !== -1) {
+                    tags[tagIndex].name = newName;
+                    tags[tagIndex].type = newType;
+                    tags[tagIndex].description = newDesc || null;
+                }
+
+                editingId = null;
+                populateTable(filterTags());
+            } else {
+                alert('Please enter a tag name.');
+            }
+        }
+
+        // Function to cancel tag edit
+        function cancelTagEdit() {
+            editingId = null;
+            populateTable(filterTags());
+        }
+
+        // Function to delete a tag
+        function deleteTag(id) {
+            if (confirm('Are you sure you want to delete this tag?')) {
+                tags = tags.filter(tag => tag.id !== id);
+                populateTable(filterTags());
+            }
+        }
+
+        // Event listeners
+        addTagBtn.addEventListener('click', addTag);
+
+        searchInput.addEventListener('input', () => {
+            populateTable(filterTags());
+        });
+
+        typeFilter.addEventListener('change', () => {
+            populateTable(filterTags());
+        });
+
+        // Add event listener for "enter" key on search input
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                populateTable(filterTags());
+            }
+        });
+
+        // Initialize sortable headers
+        const nameHeader = document.querySelector('th[data-sort="name"]');
+        const typeHeader = document.querySelector('th[data-sort="type"]');
+        let sortColumn = 'name';
+        let sortDirection = 'asc';
+
+        function sortTags(column) {
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+
+            tags.sort((a, b) => {
+                let valueA = a[column] || '';
+                let valueB = b[column] || '';
+                
+                if (typeof valueA === 'string') {
+                    valueA = valueA.toLowerCase();
+                }
+                if (typeof valueB === 'string') {
+                    valueB = valueB.toLowerCase();
+                }
+
+                if (sortDirection === 'asc') {
+                    return valueA < valueB ? -1 : valueA > valueB ? 1 : 0;
+                } else {
+                    return valueA > valueB ? -1 : valueA < valueB ? 1 : 0;
+                }
+            });
+
+            populateTable(filterTags());
+        }
+
+        nameHeader.addEventListener('click', () => sortTags('name'));
+        typeHeader.addEventListener('click', () => sortTags('type'));
+
+        // Initialize table
+        populateTable(tags);
+    </script>
 }

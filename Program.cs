@@ -296,3 +296,6 @@ using (var scope = app.Services.CreateScope())
 
 // ===== RUN APPLICATION =====
 app.Run();
+
+// Make the implicit Program class accessible to test projects
+public partial class Program { }

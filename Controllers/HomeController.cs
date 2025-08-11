@@ -15,7 +15,21 @@ namespace GCCWebApp.Controllers
 
         public IActionResult Index()
         {
-            return View();
+            // For public users (not authenticated), redirect to certificates page
+            // This ensures the initial load always shows certificates for public access
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                return RedirectToAction("CertificateTileView", "Certificate");
+            }
+
+            // For authenticated users, redirect based on their role
+            var userRole = HttpContext.Session.GetString("UserRole");
+            return userRole switch
+            {
+                "External" => RedirectToAction("Index", "Dashboard"),
+                "Analyst" or "Admin" => RedirectToAction("Index", "Dashboard"),
+                _ => RedirectToAction("CertificateTileView", "Certificate")
+            };
         }
 
         public IActionResult Privacy()

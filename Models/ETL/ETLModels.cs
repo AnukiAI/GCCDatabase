@@ -23,7 +23,7 @@ namespace GCCWebApp.Models
     {
         public Guid JobId { get; set; }
         public string JobName { get; set; } = string.Empty;
-        public ETLJobStatus Status { get; set; }
+        public ETLStatus Status { get; set; }
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public TimeSpan? Duration => EndTime?.Subtract(StartTime);
@@ -192,14 +192,15 @@ namespace GCCWebApp.Models
         Scheduled
     }
 
+    [Flags]
     public enum ETLStatus
     {
-        Pending,
-        Running,
-        Completed,
-        Failed,
-        Cancelled,
-        Paused
+        Pending = 1,
+        Running = 2,
+        Completed = 4,
+        Failed = 8,
+        Cancelled = 16,
+        Paused = 32
     }
 
     public enum ETLSeverity

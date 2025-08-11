@@ -92,7 +92,10 @@ namespace GCCWebApp.Services.ETL
                     CustomFields = c.CustomFieldValues.Select(cfv => new
                     {
                         FieldName = cfv.Field.Name,
-                        cfv.Value
+                        TextValue = cfv.TextValue,
+                        NumberValue = cfv.NumberValue,
+                        DateValue = cfv.DateValue,
+                        BooleanValue = cfv.BooleanValue
                     }).ToList(),
                     // Calculated fields
                     IsExpired = c.ExpirationDate < DateTime.UtcNow,
@@ -101,15 +104,15 @@ namespace GCCWebApp.Services.ETL
                 }).Cast<object>().ToList();
 
                 extractedData.Data.Add("Certificates", certificateData);
-                extractedData.TotalRecords = certificateData.Count;
+                extractedData.TotalRecords = certificateData.Count();
 
                 // Add metadata
                 extractedData.Metadata.Add("ExtractionType", lastExtractTime.HasValue ? "Incremental" : "Full");
-                extractedData.Metadata.Add("TotalCertificates", certificateData.Count);
+                extractedData.Metadata.Add("TotalCertificates", certificateData.Count());
                 extractedData.Metadata.Add("ActiveCertificates", certificates.Count(c => c.Status == "active"));
                 extractedData.Metadata.Add("ExpiredCertificates", certificates.Count(c => c.ExpirationDate < DateTime.UtcNow));
 
-                _logger.LogInformation("Certificate extraction completed. Extracted {Count} records", certificateData.Count);
+                _logger.LogInformation("Certificate extraction completed. Extracted {Count} records", certificateData.Count());
                 return extractedData;
             }
             catch (Exception ex)
@@ -239,13 +242,13 @@ namespace GCCWebApp.Services.ETL
                 }).Cast<object>().ToList();
 
                 extractedData.Data.Add("Products", productData);
-                extractedData.TotalRecords = productData.Count;
+                extractedData.TotalRecords = productData.Count();
 
                 extractedData.Metadata.Add("ExtractionType", lastExtractTime.HasValue ? "Incremental" : "Full");
-                extractedData.Metadata.Add("TotalProducts", productData.Count);
+                extractedData.Metadata.Add("TotalProducts", productData.Count());
                 extractedData.Metadata.Add("ActiveProducts", products.Count(p => p.IsActive));
 
-                _logger.LogInformation("Product extraction completed. Extracted {Count} records", productData.Count);
+                _logger.LogInformation("Product extraction completed. Extracted {Count} records", productData.Count());
                 return extractedData;
             }
             catch (Exception ex)

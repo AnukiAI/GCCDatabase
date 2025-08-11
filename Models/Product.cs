@@ -12,6 +12,19 @@ namespace GCCWebApp.Models
 
         public string? Description { get; set; }
 
+        // Product identification fields
+        [MaxLength(100)]
+        public string? Model { get; set; }
+
+        [MaxLength(50)]
+        public string? Sku { get; set; }
+
+        [MaxLength(50)]
+        public string? Upc { get; set; }
+
+        [MaxLength(50)]
+        public string? Asin { get; set; }
+
         // Foreign Keys
         public int CategoryId { get; set; }
         public int? ProductTypeId { get; set; }

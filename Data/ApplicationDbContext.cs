@@ -228,6 +228,11 @@ namespace GCCWebApp.Data
                 entity.Property(e => e.Destinations).HasConversion(
                     v => string.Join(',', v),
                     v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+                entity.Property(e => e.Settings)
+                    .HasColumnType("TEXT")
+                    .HasConversion(
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, object>());
             });
 
             // ETL Log Entry
@@ -236,6 +241,11 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.JobId);
                 entity.HasIndex(e => e.Timestamp);
+                entity.Property(e => e.Properties)
+                    .HasColumnType("TEXT")
+                    .HasConversion(
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, object>());
             });
 
             // ETL Alert
@@ -244,6 +254,11 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.CreatedAt);
                 entity.HasIndex(e => e.IsResolved);
+                entity.Property(e => e.Context)
+                    .HasColumnType("TEXT")
+                    .HasConversion(
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, object>());
             });
 
             // ETL Data Quality Issue
@@ -252,6 +267,16 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.DetectedAt);
                 entity.HasIndex(e => e.IssueType);
+                entity.Property(e => e.ExpectedValue)
+                    .HasColumnType("TEXT")
+                    .HasConversion(
+                        v => v != null ? System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null) : null,
+                        v => v != null ? System.Text.Json.JsonSerializer.Deserialize<object>(v, (System.Text.Json.JsonSerializerOptions?)null) : null);
+                entity.Property(e => e.ActualValue)
+                    .HasColumnType("TEXT")
+                    .HasConversion(
+                        v => v != null ? System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null) : null,
+                        v => v != null ? System.Text.Json.JsonSerializer.Deserialize<object>(v, (System.Text.Json.JsonSerializerOptions?)null) : null);
             });
 
             // Certificate Aggregate Data
@@ -259,15 +284,21 @@ namespace GCCWebApp.Data
             {
                 entity.HasKey(e => new { e.Period, e.PeriodDate });
                 entity.HasIndex(e => e.PeriodDate);
-                entity.Property(e => e.CertificatesByType).HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
-                entity.Property(e => e.CertificatesByCountry).HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
-                entity.Property(e => e.CertificatesByCompany).HasConversion(
-                    v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                    v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
+                entity.Property(e => e.CertificatesByType)
+                    .HasColumnType("TEXT")
+                    .HasConversion(
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
+                entity.Property(e => e.CertificatesByCountry)
+                    .HasColumnType("TEXT")
+                    .HasConversion(
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
+                entity.Property(e => e.CertificatesByCompany)
+                    .HasColumnType("TEXT")
+                    .HasConversion(
+                        v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
             });
         }
     }

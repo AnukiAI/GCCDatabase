@@ -12,21 +12,33 @@
     <Compile Remove="pages_old\**" />
     <Compile Remove="Views\Certificate\archive\**" />
     <Compile Remove="wwwroot\css\archive\**" />
+    <Compile Remove="GCCWebApp.Tests\**" />
+    <Compile Remove="GCCWebApp.E2E.Tests\**" />
+    <Compile Remove="GCCWebApp.UAT.Tests\**" />
     <Content Remove="docs\**" />
     <Content Remove="pages\**" />
     <Content Remove="pages_old\**" />
     <Content Remove="Views\Certificate\archive\**" />
     <Content Remove="wwwroot\css\archive\**" />
+    <Content Remove="GCCWebApp.Tests\**" />
+    <Content Remove="GCCWebApp.E2E.Tests\**" />
+    <Content Remove="GCCWebApp.UAT.Tests\**" />
     <EmbeddedResource Remove="docs\**" />
     <EmbeddedResource Remove="pages\**" />
     <EmbeddedResource Remove="pages_old\**" />
     <EmbeddedResource Remove="Views\Certificate\archive\**" />
     <EmbeddedResource Remove="wwwroot\css\archive\**" />
+    <EmbeddedResource Remove="GCCWebApp.Tests\**" />
+    <EmbeddedResource Remove="GCCWebApp.E2E.Tests\**" />
+    <EmbeddedResource Remove="GCCWebApp.UAT.Tests\**" />
     <None Remove="docs\**" />
     <None Remove="pages\**" />
     <None Remove="pages_old\**" />
     <None Remove="Views\Certificate\archive\**" />
     <None Remove="wwwroot\css\archive\**" />
+    <None Remove="GCCWebApp.Tests\**" />
+    <None Remove="GCCWebApp.E2E.Tests\**" />
+    <None Remove="GCCWebApp.UAT.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>

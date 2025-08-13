@@ -24,6 +24,7 @@ namespace GCCWebApp.Data
         public DbSet<ProductCategory> ProductCategories { get; set; }
         public DbSet<ProductType> ProductTypes { get; set; }
         public DbSet<ProductSubcategory> ProductSubcategories { get; set; }
+        public DbSet<ProductIdentifier> ProductIdentifiers { get; set; }
 
         // Tags and attributes
         public DbSet<Tag> Tags { get; set; }
@@ -100,6 +101,18 @@ namespace GCCWebApp.Data
                 entity.HasOne(e => e.Company)
                     .WithMany(c => c.Products)
                     .HasForeignKey(e => e.CompanyId);
+            });
+
+            // Product identifier configuration
+            modelBuilder.Entity<ProductIdentifier>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => new { e.ProductId, e.IdentifierType, e.IdentifierValue }).IsUnique();
+                
+                entity.HasOne(e => e.Product)
+                    .WithMany(p => p.ProductIdentifiers)
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
 
             // Product category configuration

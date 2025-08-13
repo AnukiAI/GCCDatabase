@@ -628,6 +628,39 @@ namespace GCCWebApp.Migrations
                     b.ToTable("ProductCategories");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.ProductIdentifier", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IdentifierType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("IdentifierValue")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("ProductId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId", "IdentifierType", "IdentifierValue")
+                        .IsUnique();
+
+                    b.ToTable("ProductIdentifiers");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.ProductSubcategory", b =>
                 {
                     b.Property<int>("Id")
@@ -1016,6 +1049,17 @@ namespace GCCWebApp.Migrations
                     b.Navigation("ProductType");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.ProductIdentifier", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.Product", "Product")
+                        .WithMany("ProductIdentifiers")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.ProductSubcategory", b =>
                 {
                     b.HasOne("GCCWebApp.Models.ProductType", "ProductType")
@@ -1116,6 +1160,8 @@ namespace GCCWebApp.Migrations
             modelBuilder.Entity("GCCWebApp.Models.Product", b =>
                 {
                     b.Navigation("Certificates");
+
+                    b.Navigation("ProductIdentifiers");
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.ProductCategory", b =>

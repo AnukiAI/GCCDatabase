@@ -133,14 +133,14 @@
         cursor: pointer;
     }
 
-    .certificate-external .filter-content {
+    /*.certificate-external .filter-content {
         padding: 10px;
     }
-
+       
     .certificate-external .category-item {
         margin-bottom: 8px;
     }
-
+ */
     .certificate-external .subcategory {
         margin-left: 20px;
     }

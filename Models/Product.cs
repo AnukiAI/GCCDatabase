@@ -46,5 +46,6 @@ namespace GCCWebApp.Models
         // Collections
         public ICollection<Certificate> Certificates { get; set; } = new List<Certificate>();
         public ICollection<Tag> Tags { get; set; } = new List<Tag>();
+        public ICollection<ProductIdentifier> ProductIdentifiers { get; set; } = new List<ProductIdentifier>();
     }
 }

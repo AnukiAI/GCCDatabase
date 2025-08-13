@@ -1,0 +1,754 @@
+# GCC Database Solution - System Architecture Diagrams
+
+## 1. High-Level System Architecture
+
+```mermaid
+graph TB
+    subgraph "Client Layer"
+        WebBrowser[Web Browser]
+        MobileApp[Mobile Browser]
+        APIClient[API Clients]
+    end
+    
+    subgraph "Application Gateway"
+        LoadBalancer[Load Balancer]
+        ReverseProxy[Reverse Proxy]
+    end
+    
+    subgraph "Presentation Layer"
+        WebApp[ASP.NET Core Web Application]
+        AuthModule[Authentication Module]
+        AuthzModule[Authorization Module]
+    end
+    
+    subgraph "Application Services"
+        CertificateService[Certificate Service]
+        AdminService[Admin Service]
+        ETLService[ETL Service]
+        ValidationService[Validation Service]
+        CacheService[Cache Service]
+        FileService[File Upload Service]
+    end
+    
+    subgraph "Data Access Layer"
+        Repository[Repository Pattern]
+        UnitOfWork[Unit of Work]
+        DbContext[EF Core DbContext]
+    end
+    
+    subgraph "Data Storage"
+        PrimaryDB[(SQLite/SQL Server)]
+        FileStorage[File Storage]
+        Cache[(Memory Cache)]
+    end
+    
+    subgraph "External Integrations"
+        AzureADB2C[Azure AD B2C]
+        AmazonAPI[Amazon Product API]
+        GoogleAnalytics[Google Analytics]
+    end
+    
+    WebBrowser --> LoadBalancer
+    MobileApp --> LoadBalancer
+    APIClient --> LoadBalancer
+    LoadBalancer --> ReverseProxy
+    ReverseProxy --> WebApp
+    
+    WebApp --> AuthModule
+    WebApp --> AuthzModule
+    WebApp --> CertificateService
+    WebApp --> AdminService
+    WebApp --> ETLService
+    
+    CertificateService --> Repository
+    AdminService --> Repository
+    ETLService --> Repository
+    ValidationService --> Repository
+    CacheService --> Cache
+    FileService --> FileStorage
+    
+    Repository --> UnitOfWork
+    UnitOfWork --> DbContext
+    DbContext --> PrimaryDB
+    
+    AuthModule --> AzureADB2C
+    ETLService --> AmazonAPI
+    WebApp --> GoogleAnalytics
+```
+
+## 2. Detailed Application Architecture
+
+```mermaid
+graph TB
+    subgraph "Web Layer"
+        Controllers[Controllers]
+        Views[Razor Views]
+        WebAPI[Web API]
+        Middleware[Custom Middleware]
+    end
+    
+    subgraph "Business Logic Layer"
+        CertSvc[Certificate Service]
+        AdminSvc[Admin Service]
+        FilterSvc[Filter Service]
+        ValidationSvc[Validation Service]
+        FileSvc[File Upload Service]
+        CacheSvc[Cache Service]
+    end
+    
+    subgraph "ETL Subsystem"
+        ETLSvc[ETL Service]
+        DataExtractor[Data Extractor]
+        DataTransformer[Data Transformer]
+        DataLoader[Data Loader]
+        ETLMonitor[ETL Monitor]
+        SchedulerSvc[ETL Scheduler Service]
+    end
+    
+    subgraph "Data Access"
+        IRepo[IRepository T]
+        CertRepo[Certificate Repository]
+        UOW[Unit of Work]
+        AppDbContext[Application DbContext]
+    end
+    
+    subgraph "Cross-Cutting Concerns"
+        Logging[Logging]
+        Security[Security Headers]
+        ErrorHandling[Error Handling]
+        Caching[Memory Caching]
+    end
+    
+    Controllers --> CertSvc
+    Controllers --> AdminSvc
+    WebAPI --> CertSvc
+    Views --> Controllers
+    
+    CertSvc --> CertRepo
+    AdminSvc --> IRepo
+    FilterSvc --> IRepo
+    ValidationSvc --> IRepo
+    
+    ETLSvc --> DataExtractor
+    ETLSvc --> DataTransformer
+    ETLSvc --> DataLoader
+    ETLSvc --> ETLMonitor
+    SchedulerSvc --> ETLSvc
+    
+    CertRepo --> UOW
+    IRepo --> UOW
+    UOW --> AppDbContext
+    
+    Middleware --> Security
+    Middleware --> ErrorHandling
+    CacheSvc --> Caching
+```
+
+## 3. Database Entity Relationships
+
+```mermaid
+erDiagram
+    Certificate {
+        int Id PK
+        string Number UK
+        string Status
+        date EffectiveDate
+        date ExpirationDate
+        string Location
+        string Country
+        int CompanyId FK
+        int ProductId FK
+        int CertificationTypeId FK
+        int CreatedBy FK
+        int UpdatedBy FK
+    }
+    
+    Company {
+        int Id PK
+        string Name UK
+        string ContactInfo
+        string Location
+        string Country
+        boolean IsActive
+    }
+    
+    Product {
+        int Id PK
+        string Name
+        string Description
+        int CategoryId FK
+        int ProductTypeId FK
+        int ProductSubcategoryId FK
+        int CompanyId FK
+        boolean IsActive
+    }
+    
+    ProductCategory {
+        int Id PK
+        string Name UK
+        string Description
+        int SortOrder
+        boolean IsActive
+    }
+    
+    ProductType {
+        int Id PK
+        string Name
+        int CategoryId FK
+        int ParentId FK
+        int Level
+        int SortOrder
+        boolean IsActive
+    }
+    
+    ProductSubcategory {
+        int Id PK
+        string Name
+        int ProductTypeId FK
+        string Description
+        int SortOrder
+        boolean IsActive
+    }
+    
+    ProductIdentifier {
+        int Id PK
+        int ProductId FK
+        string IdentifierType
+        string IdentifierValue
+    }
+    
+    CertificationType {
+        int Id PK
+        string Name UK
+        string AmazonCode
+        string Description
+        boolean IsActive
+        int SortOrder
+    }
+    
+    CustomField {
+        int Id PK
+        string Name
+        string FieldType
+        boolean IsRequired
+        boolean IsVisible
+        boolean IsPublic
+        int CertificateTypeId FK
+    }
+    
+    CustomFieldValue {
+        int Id PK
+        int CertificateId FK
+        int FieldId FK
+        string TextValue
+        decimal NumberValue
+        date DateValue
+        boolean BooleanValue
+    }
+    
+    User {
+        int Id PK
+        string Username UK
+        string Email UK
+        string Name
+        string PasswordHash
+        string Status
+        boolean IsActive
+        boolean IsStaff
+        boolean IsSuperuser
+    }
+    
+    Role {
+        int Id PK
+        string Name UK
+        string Description
+        boolean IsSystem
+    }
+    
+    Permission {
+        int Id PK
+        string Name
+        string Codename UK
+        string Category
+        string Description
+    }
+    
+    Tag {
+        int Id PK
+        string Name UK
+        string TagType
+        string Description
+        boolean IsActive
+    }
+    
+    Certificate ||--|| Company : "belongs to"
+    Certificate ||--|| Product : "describes"
+    Certificate ||--|| CertificationType : "has type"
+    Certificate ||--o{ CustomFieldValue : "has values"
+    Certificate ||--o| User : "created by"
+    Certificate ||--o| User : "updated by"
+    Certificate }o--o{ Tag : "tagged with"
+    
+    Product ||--|| ProductCategory : "belongs to"
+    Product ||--o{ ProductType : "has type"
+    Product ||--o{ ProductSubcategory : "has subcategory"
+    Product ||--o| Company : "owned by"
+    Product ||--o{ ProductIdentifier : "has identifiers"
+    Product }o--o{ Tag : "tagged with"
+    
+    ProductCategory ||--o{ ProductType : "contains"
+    ProductType ||--o{ ProductSubcategory : "contains"
+    ProductType ||--o| ProductType : "parent of"
+    
+    CustomFieldValue ||--|| CustomField : "references"
+    CustomField ||--|| CertificationType : "belongs to"
+    
+    User }o--o{ Role : "has roles"
+    User }o--o{ Company : "belongs to"
+    Role }o--o{ Permission : "has permissions"
+```
+
+## 4. Authentication & Authorization Flow
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Browser
+    participant WebApp
+    participant AuthMiddleware
+    participant AzureB2C
+    participant SessionStore
+    participant AuthzService
+    participant Controller
+    
+    User->>Browser: Access Protected Resource
+    Browser->>WebApp: HTTP Request
+    WebApp->>AuthMiddleware: Process Request
+    
+    alt Not Authenticated
+        AuthMiddleware->>AzureB2C: Redirect to Login
+        AzureB2C->>User: Login Form
+        User->>AzureB2C: Credentials
+        AzureB2C->>AuthMiddleware: Token Response
+        AuthMiddleware->>SessionStore: Store User Claims
+    else Already Authenticated
+        AuthMiddleware->>SessionStore: Get User Claims
+    end
+    
+    AuthMiddleware->>AuthzService: Check Authorization
+    AuthzService->>AuthzService: Evaluate Policies
+    
+    alt Authorized
+        AuthzService->>Controller: Allow Access
+        Controller->>Browser: Requested Resource
+    else Unauthorized
+        AuthzService->>Browser: Access Denied (403)
+    end
+```
+
+## 5. ETL Data Processing Flow
+
+```mermaid
+graph LR
+    subgraph "Data Sources"
+        Amazon[Amazon Product API]
+        CSV[CSV Files]
+        Excel[Excel Files]
+        Database[External Databases]
+    end
+    
+    subgraph "ETL Pipeline"
+        Scheduler[ETL Scheduler]
+        Config[ETL Configuration]
+        Extractor[Data Extractor]
+        Transformer[Data Transformer]
+        Validator[Data Validator]
+        Loader[Data Loader]
+        Monitor[ETL Monitor]
+    end
+    
+    subgraph "Target Systems"
+        MainDB[(Main Database)]
+        AuditDB[(Audit Database)]
+        Cache[(Cache)]
+        Alerts[Alert System]
+    end
+    
+    subgraph "Quality Assurance"
+        QualityRules[Quality Rules Engine]
+        QualityReport[Quality Reports]
+        AlertSystem[Alert Management]
+    end
+    
+    Scheduler --> Config
+    Config --> Extractor
+    
+    Amazon --> Extractor
+    CSV --> Extractor
+    Excel --> Extractor
+    Database --> Extractor
+    
+    Extractor --> Transformer
+    Transformer --> Validator
+    Validator --> QualityRules
+    QualityRules --> QualityReport
+    QualityRules --> AlertSystem
+    
+    Validator --> Loader
+    Loader --> MainDB
+    Loader --> AuditDB
+    Loader --> Cache
+    
+    Monitor --> Alerts
+    AlertSystem --> Alerts
+```
+
+## 6. User Role & Permission Matrix
+
+```mermaid
+graph TB
+    subgraph "User Roles"
+        Public[Public User]
+        External[External User]
+        Analyst[GCC Analyst]
+        Admin[System Admin]
+        SuperAdmin[Super Admin]
+    end
+    
+    subgraph "Certificate Operations"
+        ViewCert[View Certificates]
+        SearchCert[Search Certificates]
+        CreateCert[Create Certificates]
+        EditCert[Edit Certificates]
+        DeleteCert[Delete Certificates]
+        ExportCert[Export Certificates]
+    end
+    
+    subgraph "Administrative Operations"
+        UserMgmt[User Management]
+        RoleMgmt[Role Management]
+        SystemConfig[System Configuration]
+        ETLConfig[ETL Configuration]
+        AuditView[View Audit Logs]
+    end
+    
+    subgraph "Product Operations"
+        ViewProducts[View Products]
+        ManageProducts[Manage Products]
+        ProductTypes[Manage Product Types]
+        Categories[Manage Categories]
+    end
+    
+    Public --> ViewCert
+    Public --> SearchCert
+    
+    External --> ViewCert
+    External --> SearchCert
+    External --> ViewProducts
+    
+    Analyst --> ViewCert
+    Analyst --> SearchCert
+    Analyst --> CreateCert
+    Analyst --> EditCert
+    Analyst --> ExportCert
+    Analyst --> ViewProducts
+    Analyst --> ManageProducts
+    
+    Admin --> ViewCert
+    Admin --> SearchCert
+    Admin --> CreateCert
+    Admin --> EditCert
+    Admin --> DeleteCert
+    Admin --> ExportCert
+    Admin --> UserMgmt
+    Admin --> ViewProducts
+    Admin --> ManageProducts
+    Admin --> ProductTypes
+    Admin --> Categories
+    Admin --> AuditView
+    
+    SuperAdmin --> UserMgmt
+    SuperAdmin --> RoleMgmt
+    SuperAdmin --> SystemConfig
+    SuperAdmin --> ETLConfig
+    SuperAdmin --> AuditView
+```
+
+## 7. API Integration Architecture
+
+```mermaid
+graph TB
+    subgraph "External Clients"
+        PartnerAPI[Partner Applications]
+        MobileApp[Mobile Applications]
+        ThirdParty[Third-party Integrations]
+    end
+    
+    subgraph "API Gateway Layer"
+        RateLimit[Rate Limiting]
+        AuthN[API Authentication]
+        AuthZ[API Authorization]
+        Logging[Request Logging]
+        Monitoring[API Monitoring]
+    end
+    
+    subgraph "API Controllers"
+        CertAPI[Certificates API]
+        ProductAPI[Products API]
+        CompanyAPI[Companies API]
+        ETLAPI[ETL Management API]
+    end
+    
+    subgraph "Business Services"
+        CertService[Certificate Service]
+        ProductService[Product Service]
+        CompanyService[Company Service]
+        ETLService[ETL Service]
+    end
+    
+    subgraph "Data Layer"
+        Repository[Repository Layer]
+        Database[(Database)]
+    end
+    
+    PartnerAPI --> RateLimit
+    MobileApp --> RateLimit
+    ThirdParty --> RateLimit
+    
+    RateLimit --> AuthN
+    AuthN --> AuthZ
+    AuthZ --> Logging
+    Logging --> Monitoring
+    
+    Monitoring --> CertAPI
+    Monitoring --> ProductAPI
+    Monitoring --> CompanyAPI
+    Monitoring --> ETLAPI
+    
+    CertAPI --> CertService
+    ProductAPI --> ProductService
+    CompanyAPI --> CompanyService
+    ETLAPI --> ETLService
+    
+    CertService --> Repository
+    ProductService --> Repository
+    CompanyService --> Repository
+    ETLService --> Repository
+    
+    Repository --> Database
+```
+
+## 8. Testing Architecture
+
+```mermaid
+graph TB
+    subgraph "Test Types"
+        UnitTests[Unit Tests]
+        IntegrationTests[Integration Tests]
+        E2ETests[End-to-End Tests]
+        UATTests[User Acceptance Tests]
+        PerformanceTests[Performance Tests]
+        SecurityTests[Security Tests]
+    end
+    
+    subgraph "Test Projects"
+        MainTests[GCCWebApp.Tests]
+        E2EProject[GCCWebApp.E2E.Tests]
+        UATProject[GCCWebApp.UAT.Tests]
+    end
+    
+    subgraph "Testing Tools"
+        xUnit[xUnit Framework]
+        Playwright[Playwright]
+        Moq[Moq Library]
+        TestHost[Test Host]
+        InMemoryDB[In-Memory Database]
+    end
+    
+    subgraph "Test Coverage"
+        Controllers[Controller Tests]
+        Services[Service Tests]
+        Repositories[Repository Tests]
+        Models[Model Tests]
+        Authentication[Auth Tests]
+        Authorization[Authz Tests]
+        UITests[UI Tests]
+        APITests[API Tests]
+    end
+    
+    UnitTests --> MainTests
+    IntegrationTests --> MainTests
+    E2ETests --> E2EProject
+    UATTests --> UATProject
+    
+    MainTests --> xUnit
+    E2EProject --> Playwright
+    MainTests --> Moq
+    MainTests --> TestHost
+    MainTests --> InMemoryDB
+    
+    Controllers --> UnitTests
+    Services --> UnitTests
+    Repositories --> IntegrationTests
+    Models --> UnitTests
+    Authentication --> IntegrationTests
+    Authorization --> IntegrationTests
+    UITests --> E2ETests
+    APITests --> IntegrationTests
+```
+
+## 9. Deployment Architecture
+
+```mermaid
+graph TB
+    subgraph "Development Environment"
+        DevDB[(SQLite)]
+        DevApp[Local Application]
+        DevTools[Development Tools]
+    end
+    
+    subgraph "Staging Environment"
+        StagingLB[Load Balancer]
+        StagingApp[Staging Application]
+        StagingDB[(Staging Database)]
+        StagingCache[Staging Cache]
+    end
+    
+    subgraph "Production Environment"
+        ProdLB[Production Load Balancer]
+        ProdApp1[App Instance 1]
+        ProdApp2[App Instance 2]
+        ProdDB[(Production Database)]
+        ProdCache[Production Cache]
+        ProdMonitoring[Monitoring & Logging]
+    end
+    
+    subgraph "CI/CD Pipeline"
+        SourceControl[Git Repository]
+        BuildServer[Build Server]
+        TestRunner[Automated Tests]
+        Deployment[Deployment Scripts]
+    end
+    
+    subgraph "External Services"
+        AzureB2C[Azure AD B2C]
+        CDN[Content Delivery Network]
+        Monitoring[Application Monitoring]
+        Backup[Backup Services]
+    end
+    
+    DevApp --> DevDB
+    DevTools --> DevApp
+    
+    StagingLB --> StagingApp
+    StagingApp --> StagingDB
+    StagingApp --> StagingCache
+    
+    ProdLB --> ProdApp1
+    ProdLB --> ProdApp2
+    ProdApp1 --> ProdDB
+    ProdApp2 --> ProdDB
+    ProdApp1 --> ProdCache
+    ProdApp2 --> ProdCache
+    
+    SourceControl --> BuildServer
+    BuildServer --> TestRunner
+    TestRunner --> Deployment
+    Deployment --> StagingApp
+    Deployment --> ProdApp1
+    Deployment --> ProdApp2
+    
+    ProdApp1 --> AzureB2C
+    ProdApp2 --> AzureB2C
+    CDN --> ProdLB
+    Monitoring --> ProdApp1
+    Monitoring --> ProdApp2
+    Backup --> ProdDB
+```
+
+## 10. Performance & Scaling Architecture
+
+```mermaid
+graph TB
+    subgraph "Load Balancing"
+        DNS[DNS Load Balancing]
+        LB[Application Load Balancer]
+        HealthCheck[Health Checks]
+    end
+    
+    subgraph "Application Tier"
+        App1[App Instance 1]
+        App2[App Instance 2]
+        App3[App Instance N...]
+        SessionStore[Distributed Session Store]
+    end
+    
+    subgraph "Caching Layer"
+        L1Cache[L1 Memory Cache]
+        L2Cache[L2 Distributed Cache]
+        CDN[CDN for Static Assets]
+    end
+    
+    subgraph "Database Tier"
+        Master[(Master Database)]
+        ReadReplica1[(Read Replica 1)]
+        ReadReplica2[(Read Replica 2)]
+        DBProxy[Database Connection Pool]
+    end
+    
+    subgraph "Monitoring & Analytics"
+        APM[Application Performance Monitoring]
+        Metrics[Performance Metrics]
+        Alerts[Alert Management]
+        Logs[Centralized Logging]
+    end
+    
+    DNS --> LB
+    LB --> HealthCheck
+    HealthCheck --> App1
+    HealthCheck --> App2
+    HealthCheck --> App3
+    
+    App1 --> SessionStore
+    App2 --> SessionStore
+    App3 --> SessionStore
+    
+    App1 --> L1Cache
+    App2 --> L1Cache
+    App3 --> L1Cache
+    L1Cache --> L2Cache
+    CDN --> LB
+    
+    App1 --> DBProxy
+    App2 --> DBProxy
+    App3 --> DBProxy
+    DBProxy --> Master
+    DBProxy --> ReadReplica1
+    DBProxy --> ReadReplica2
+    Master --> ReadReplica1
+    Master --> ReadReplica2
+    
+    App1 --> APM
+    App2 --> APM
+    App3 --> APM
+    APM --> Metrics
+    Metrics --> Alerts
+    APM --> Logs
+```
+
+## Summary
+
+These diagrams provide a comprehensive view of the GCC Database Solution architecture:
+
+1. **System Architecture** - Shows the overall layered architecture and component relationships
+2. **Application Architecture** - Details the internal application structure and service dependencies
+3. **Database Design** - Entity relationships and data model
+4. **Authentication Flow** - Security and authentication sequence
+5. **ETL Pipeline** - Data processing and integration flow
+6. **Authorization Matrix** - Role-based permissions and access control
+7. **API Architecture** - External integration points and API gateway
+8. **Testing Strategy** - Test pyramid and coverage areas
+9. **Deployment Model** - Environment setup and CI/CD pipeline
+10. **Scaling Architecture** - Performance optimization and horizontal scaling
+
+Each diagram can be rendered using any Mermaid-compatible viewer or documentation tool.

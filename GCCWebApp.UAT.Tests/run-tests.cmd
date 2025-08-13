@@ -4,7 +4,7 @@ echo.
 
 REM Check if application is running
 echo Checking if GCC Web App is running at https://localhost:7248...
-curl -k -s -o nul https://localhost:7248
+curl -k -s -o nul https://localhost:7130
 if %errorlevel% neq 0 (
     echo.
     echo [WARNING] GCC Web App doesn't appear to be running at https://localhost:7248

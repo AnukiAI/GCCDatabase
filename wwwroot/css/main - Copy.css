@@ -811,7 +811,7 @@ table thead {
     }
 
 .filter-content {
-    padding: 10px 15px;
+    padding: 0px 15px;
     border-top: 1px solid var(--medium-gray);
     max-height: 200px;
     overflow-y: auto;
@@ -822,7 +822,7 @@ table thead {
 }
 
 .filter-item {
-    margin-bottom: 8px;
+    margin-bottom: 0px;
     font-size: 16px;
 }
 
@@ -2512,7 +2512,7 @@ footer {
     }
 
     .filter-content {
-        padding: 8px 12px;
+        padding: 0px 12px;
         max-height: 200px;
     }
 

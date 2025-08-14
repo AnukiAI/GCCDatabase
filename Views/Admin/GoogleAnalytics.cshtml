@@ -1,0 +1,143 @@
+@{
+    ViewData["Title"] = "Google Analytics Integration";
+    ViewData["BodyClass"] = "admin-google-analytics";
+}
+
+@section Styles {
+    <link href="~/css/google-analytics.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">System Settings</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Google Analytics</a>
+    </span>
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="buttons-area">
+            <button id="save-settings-btn" class="btn btn-add">
+                <i class="fas fa-save"></i> Save Settings
+            </button>
+        </div>
+    </header>
+
+    <div class="analytics-container">
+        <div class="analytics-form">
+            <div class="form-group">
+                <label for="ga-tracking-id">Tracking ID (G-XXXXXXX)</label>
+                <input type="text" id="ga-tracking-id" placeholder="e.g., G-XXXXXXXXXX">
+                <div class="form-help">
+                    Enter your Google Analytics 4 Measurement ID to start tracking your website traffic.
+                    <a href="https://support.google.com/analytics/answer/9304153" target="_blank">Learn more</a>
+                </div>
+            </div>
+
+            <div class="toggle-group">
+                <label class="toggle-label">
+                    <input type="checkbox" id="enable-tracking" onchange="toggleTracking()">
+                    <span class="checkbox-text">Enable Google Analytics Tracking</span>
+                </label>
+            </div>
+
+            <div class="status-display disabled" id="status-display">
+                Tracking is currently <strong>disabled</strong>.
+            </div>
+
+            <div class="form-group">
+                <label>Script Preview</label>
+                <pre id="script-preview">&lt;script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"&gt;&lt;/script&gt;
+&lt;script&gt;
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+&lt;/script&gt;</pre>
+            </div>
+        </div>
+
+        <div class="history-section">
+            <h3>Change History</h3>
+            <div class="table-container">
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th width="25%">Date</th>
+                            <th width="25%">User</th>
+                            <th width="30%">Tracking ID</th>
+                            <th width="20%">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-log">
+                        <tr>
+                            <td>2025-04-29 10:15</td>
+                            <td>Admin</td>
+                            <td>G-XXXXXX1234</td>
+                            <td>Enabled</td>
+                        </tr>
+                        <!-- More entries will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="privacy-notice">
+            <i class="fas fa-info-circle"></i>
+            <strong>Privacy Notice:</strong> You may be required to display a cookie consent banner for GDPR or CCPA compliance.
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/admin/googleAnalytics.js"></script>
+    <script>
+        function toggleTracking() {
+            const checkbox = document.getElementById('enable-tracking');
+            const trackingInput = document.getElementById('ga-tracking-id');
+            const statusDisplay = document.getElementById('status-display');
+            const scriptPreview = document.getElementById('script-preview');
+
+            if (checkbox.checked) {
+                // Enabled state
+                statusDisplay.className = 'status-display enabled';
+                statusDisplay.innerHTML = 'Tracking is currently <strong>enabled</strong>.';
+                updateScriptPreview();
+            } else {
+                // Disabled state
+                statusDisplay.className = 'status-display disabled';
+                statusDisplay.innerHTML = 'Tracking is currently <strong>disabled</strong>.';
+                updateScriptPreview();
+            }
+        }
+
+        // Update script preview when tracking ID changes
+        document.getElementById('ga-tracking-id').addEventListener('input', function() {
+            updateScriptPreview();
+        });
+
+        // Function to update script preview with current tracking ID
+        function updateScriptPreview() {
+            const trackingInput = document.getElementById('ga-tracking-id');
+            const scriptPreview = document.getElementById('script-preview');
+            const trackingId = trackingInput.value || 'G-XXXXXXXXXX';
+            
+            scriptPreview.innerHTML = `&lt;script async src="https://www.googletagmanager.com/gtag/js?id=${trackingId}"&gt;&lt;/script&gt;
+&lt;script&gt;
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '${trackingId}');
+&lt;/script&gt;`;
+        }
+
+        // Initialize script preview on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            updateScriptPreview();
+        });
+    </script>
+}

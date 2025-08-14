@@ -95,49 +95,4 @@
 
 @section Scripts {
     <script src="~/js/admin/googleAnalytics.js"></script>
-    <script>
-        function toggleTracking() {
-            const checkbox = document.getElementById('enable-tracking');
-            const trackingInput = document.getElementById('ga-tracking-id');
-            const statusDisplay = document.getElementById('status-display');
-            const scriptPreview = document.getElementById('script-preview');
-
-            if (checkbox.checked) {
-                // Enabled state
-                statusDisplay.className = 'status-display enabled';
-                statusDisplay.innerHTML = 'Tracking is currently <strong>enabled</strong>.';
-                updateScriptPreview();
-            } else {
-                // Disabled state
-                statusDisplay.className = 'status-display disabled';
-                statusDisplay.innerHTML = 'Tracking is currently <strong>disabled</strong>.';
-                updateScriptPreview();
-            }
-        }
-
-        // Update script preview when tracking ID changes
-        document.getElementById('ga-tracking-id').addEventListener('input', function() {
-            updateScriptPreview();
-        });
-
-        // Function to update script preview with current tracking ID
-        function updateScriptPreview() {
-            const trackingInput = document.getElementById('ga-tracking-id');
-            const scriptPreview = document.getElementById('script-preview');
-            const trackingId = trackingInput.value || 'G-XXXXXXXXXX';
-            
-            scriptPreview.innerHTML = `&lt;script async src="https://www.googletagmanager.com/gtag/js?id=${trackingId}"&gt;&lt;/script&gt;
-&lt;script&gt;
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', '${trackingId}');
-&lt;/script&gt;`;
-        }
-
-        // Initialize script preview on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            updateScriptPreview();
-        });
-    </script>
 }

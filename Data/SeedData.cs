@@ -19,11 +19,12 @@ namespace GCCWebApp.Data
             // Seed ProductCategories
             var categories = new List<ProductCategory>
             {
-                new ProductCategory { Name = "Construction / Building Products", Description = "Building materials and construction products", SortOrder = 1, IsActive = true },
+                new ProductCategory { Name = "Building Materials", Description = "Building materials and construction products", SortOrder = 1, IsActive = true },
                 new ProductCategory { Name = "Electronics / Electrical", Description = "Electronic and electrical products", SortOrder = 2, IsActive = true },
                 new ProductCategory { Name = "Materials / Plastics", Description = "Plastic materials and products", SortOrder = 3, IsActive = true },
                 new ProductCategory { Name = "Paper Products", Description = "Paper and paper-based products", SortOrder = 4, IsActive = true },
-                new ProductCategory { Name = "Textiles / Flooring", Description = "Textile and flooring materials", SortOrder = 5, IsActive = true }
+                new ProductCategory { Name = "Textiles", Description = "Textile materials", SortOrder = 5, IsActive = true },
+                new ProductCategory { Name = "Consumer Products", Description = "Consumer goods and products", SortOrder = 6, IsActive = true }
             };
 
             await context.ProductCategories.AddRangeAsync(categories);
@@ -55,27 +56,67 @@ namespace GCCWebApp.Data
             await context.Companies.AddRangeAsync(companies);
             await context.SaveChangesAsync();
 
-            // Seed ProductTypes
+            // Seed ProductTypes with hierarchical structure to match frontend
             var productTypes = new List<ProductType>
             {
-                new ProductType { Name = "Door Hardware", CategoryId = categories[0].Id, Level = 0, SortOrder = 1, IsActive = true },
-                new ProductType { Name = "Insulation", CategoryId = categories[0].Id, Level = 0, SortOrder = 2, IsActive = true },
-                new ProductType { Name = "Network Cables", CategoryId = categories[1].Id, Level = 0, SortOrder = 1, IsActive = true },
-                new ProductType { Name = "Lighting", CategoryId = categories[1].Id, Level = 0, SortOrder = 2, IsActive = true },
-                new ProductType { Name = "Carpet & Flooring", CategoryId = categories[4].Id, Level = 0, SortOrder = 1, IsActive = true }
+                // Building Materials Category (categories[0])
+                new ProductType { Name = "Insulation", CategoryId = categories[0].Id, Level = 1, SortOrder = 1, IsActive = true },
+                new ProductType { Name = "Appliances", CategoryId = categories[0].Id, Level = 1, SortOrder = 2, IsActive = true },
+                new ProductType { Name = "Flooring", CategoryId = categories[0].Id, Level = 1, SortOrder = 3, IsActive = true },
+                
+                // Textiles Category (categories[4])
+                new ProductType { Name = "Carpeting", CategoryId = categories[4].Id, Level = 1, SortOrder = 1, IsActive = true },
+                new ProductType { Name = "Fabric", CategoryId = categories[4].Id, Level = 1, SortOrder = 2, IsActive = true },
+                
+                // Electronics Category (categories[1])  
+                new ProductType { Name = "Network Cables", CategoryId = categories[1].Id, Level = 1, SortOrder = 1, IsActive = true },
+                new ProductType { Name = "Lighting", CategoryId = categories[1].Id, Level = 1, SortOrder = 2, IsActive = true },
+                
+                // Consumer Products Category (categories[5])
+                new ProductType { Name = "Furniture", CategoryId = categories[5].Id, Level = 1, SortOrder = 1, IsActive = true }
             };
 
             await context.ProductTypes.AddRangeAsync(productTypes);
             await context.SaveChangesAsync();
 
+            // Add subcategories (children of product types)
+            var productSubTypes = new List<ProductType>
+            {
+                // Insulation subcategories
+                new ProductType { Name = "Foam Board", CategoryId = categories[0].Id, ParentId = productTypes[0].Id, Level = 2, SortOrder = 1, IsActive = true },
+                
+                // Appliances subcategories  
+                new ProductType { Name = "Kitchen Appliances", CategoryId = categories[0].Id, ParentId = productTypes[1].Id, Level = 2, SortOrder = 1, IsActive = true },
+                new ProductType { Name = "Laundry Appliances", CategoryId = categories[0].Id, ParentId = productTypes[1].Id, Level = 2, SortOrder = 2, IsActive = true },
+                
+                // Flooring subcategories
+                new ProductType { Name = "Hardwood", CategoryId = categories[0].Id, ParentId = productTypes[2].Id, Level = 2, SortOrder = 1, IsActive = true },
+                new ProductType { Name = "Laminate", CategoryId = categories[0].Id, ParentId = productTypes[2].Id, Level = 2, SortOrder = 2, IsActive = true },
+                
+                // Carpeting subcategories
+                new ProductType { Name = "Commercial Carpet", CategoryId = categories[4].Id, ParentId = productTypes[3].Id, Level = 2, SortOrder = 1, IsActive = true },
+                new ProductType { Name = "Residential Carpet", CategoryId = categories[4].Id, ParentId = productTypes[3].Id, Level = 2, SortOrder = 2, IsActive = true },
+                
+                // Fabric subcategories
+                new ProductType { Name = "Upholstery Fabric", CategoryId = categories[4].Id, ParentId = productTypes[4].Id, Level = 2, SortOrder = 1, IsActive = true },
+                new ProductType { Name = "Apparel Fabric", CategoryId = categories[4].Id, ParentId = productTypes[4].Id, Level = 2, SortOrder = 2, IsActive = true },
+                
+                // Furniture subcategories (productTypes[7] is Furniture)
+                new ProductType { Name = "Office Chairs", CategoryId = categories[5].Id, ParentId = productTypes[7].Id, Level = 2, SortOrder = 1, IsActive = true },
+                new ProductType { Name = "Tables", CategoryId = categories[5].Id, ParentId = productTypes[7].Id, Level = 2, SortOrder = 2, IsActive = true }
+            };
+
+            await context.ProductTypes.AddRangeAsync(productSubTypes);
+            await context.SaveChangesAsync();
+
             // Seed Products
             var products = new List<Product>
             {
-                new Product { Name = "900ET Exit Device Trim with EcoFlex", Description = "Eco-friendly exit device hardware", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[0].Id, IsActive = true },
-                new Product { Name = "EnergyGuard Polyiso Roof Insulation", Description = "High-performance roof insulation", CategoryId = categories[0].Id, ProductTypeId = productTypes[1].Id, CompanyId = companies[1].Id, IsActive = true },
+                new Product { Name = "EnergyGuard Polyiso Roof Insulation", Description = "High-performance roof insulation", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[1].Id, IsActive = true },
+                new Product { Name = "Kitchen Range Hood", Description = "Energy efficient kitchen appliance", CategoryId = categories[0].Id, ProductTypeId = productTypes[1].Id, CompanyId = companies[0].Id, IsActive = true },
                 new Product { Name = "Amazon Basics Multipurpose Copy Paper", Description = "Eco-friendly office paper", CategoryId = categories[3].Id, CompanyId = companies[2].Id, IsActive = true },
-                new Product { Name = "10Gain XP Category 6A Cable", Description = "High-performance network cable", CategoryId = categories[1].Id, ProductTypeId = productTypes[2].Id, CompanyId = companies[3].Id, IsActive = true },
-                new Product { Name = "Carbon Negative Carpet Tile", Description = "Sustainable carpet tiles", CategoryId = categories[4].Id, ProductTypeId = productTypes[4].Id, CompanyId = companies[4].Id, IsActive = true }
+                new Product { Name = "10Gain XP Category 6A Cable", Description = "High-performance network cable", CategoryId = categories[1].Id, ProductTypeId = productTypes[5].Id, CompanyId = companies[3].Id, IsActive = true },
+                new Product { Name = "Carbon Negative Carpet Tile", Description = "Sustainable carpet tiles", CategoryId = categories[4].Id, ProductTypeId = productTypes[3].Id, CompanyId = companies[4].Id, IsActive = true }
             };
 
             await context.Products.AddRangeAsync(products);

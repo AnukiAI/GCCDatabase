@@ -47,6 +47,67 @@ namespace GCCWebApp.Migrations
                     b.ToTable("CompanyUser");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.ApiKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AllowedIPs")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("AllowedOrigins")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("RateLimitPerHour")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("RateLimitPerMinute")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Scopes")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ApiKeys");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.Certificate", b =>
                 {
                     b.Property<int>("Id")
@@ -174,6 +235,89 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("PeriodDate");
 
                     b.ToTable("CertificateAggregates");
+                });
+
+            modelBuilder.Entity("GCCWebApp.Models.CertificateDocument", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CertificateId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("FilePath")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<long>("FileSize")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsVirusScanned")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("OriginalFileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("PassedVirusScan")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UploadedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("UploadedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("VirusScanDate")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CertificateId");
+
+                    b.HasIndex("FileHash");
+
+                    b.HasIndex("UploadedBy");
+
+                    b.ToTable("CertificateDocuments");
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.CertificationType", b =>
@@ -990,6 +1134,24 @@ namespace GCCWebApp.Migrations
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.CertificateDocument", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.Certificate", "Certificate")
+                        .WithMany("Documents")
+                        .HasForeignKey("CertificateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GCCWebApp.Models.User", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Certificate");
+
+                    b.Navigation("UploadedByUser");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.CustomField", b =>
                 {
                     b.HasOne("GCCWebApp.Models.CertificationType", "CertificationType")
@@ -1136,6 +1298,8 @@ namespace GCCWebApp.Migrations
             modelBuilder.Entity("GCCWebApp.Models.Certificate", b =>
                 {
                     b.Navigation("CustomFieldValues");
+
+                    b.Navigation("Documents");
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.CertificationType", b =>

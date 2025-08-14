@@ -55,5 +55,8 @@ namespace GCCWebApp.Models
         // Many-to-many relationships
         public ICollection<Tag> Tags { get; set; } = new List<Tag>();
         public ICollection<CustomFieldValue> CustomFieldValues { get; set; } = new List<CustomFieldValue>();
+        
+        // Document relationships
+        public ICollection<CertificateDocument> Documents { get; set; } = new List<CertificateDocument>();
     }
 }

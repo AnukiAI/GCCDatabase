@@ -292,7 +292,7 @@ public class ComprehensiveWorkflowTests : BaseTest
 
         // Generate comprehensive report
         TestContext.WriteLine("\n📊 COMPREHENSIVE PERMISSION MATRIX REPORT");
-        TestContext.WriteLine("=" * 60);
+        TestContext.WriteLine(new string('=', 60));
         
         foreach (var (role, results) in roleTestResults)
         {
@@ -412,7 +412,7 @@ public class ComprehensiveWorkflowTests : BaseTest
 
         // Generate search and filtering report
         TestContext.WriteLine("\n📊 SEARCH AND FILTERING CAPABILITIES REPORT");
-        TestContext.WriteLine("=" * 70);
+        TestContext.WriteLine(new string('=', 70));
         
         foreach (var (role, capabilities) in searchResults)
         {

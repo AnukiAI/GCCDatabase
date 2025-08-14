@@ -1,0 +1,661 @@
+================================================================================
+                      GCC WEB APPLICATION - DATABASE DOCUMENTATION
+================================================================================
+
+DATABASE CONFIGURATION
+----------------------
+Development Database: SQLite
+- Connection String Name: SqliteConnection
+- Connection String: Data Source=gcc_database.db
+- File Location: /GCCWebApp/gcc_database.db
+- Lightweight, file-based database for local development
+- No authentication required (file-based)
+
+Production Database: SQL Server (LocalDB)
+- Connection String Name: DefaultConnection  
+- Connection String: Server=(localdb)\mssqllocaldb;Database=GCCDatabase;Trusted_Connection=true;MultipleActiveResultSets=true
+- Server: (localdb)\mssqllocaldb
+- Database Name: GCCDatabase
+- Authentication: Windows Authentication (Trusted Connection)
+- Multiple Active Result Sets (MARS): Enabled
+
+Connection String Configuration:
+- Location: appsettings.json
+- Access in code: IConfiguration["ConnectionStrings:DefaultConnection"]
+- Environment-specific overrides: appsettings.{Environment}.json
+
+ORM Framework: Entity Framework Core 8.0
+- Approach: Code-First with Migrations
+- Context: ApplicationDbContext
+- Auto-migration on startup: Enabled
+- Connection configured in: Program.cs
+
+================================================================================
+DATABASE SCHEMA - ENTITIES AND TABLES
+================================================================================
+
+CORE ENTITIES
+-------------
+
+1. Certificates (Table: Certificates)
+   - Id (int) - Primary Key
+   - Number (string) - Unique certificate number
+   - CompanyId (int) - Foreign Key to Companies
+   - ProductId (int) - Foreign Key to Products
+   - CertificationTypeId (int) - Foreign Key to CertificationTypes
+   - IssueDate (DateTime)
+   - ExpiryDate (DateTime)
+   - Status (string) - Active/Expired/Suspended
+   - CreatedBy (int?) - Foreign Key to Users
+   - CreatedAt (DateTime)
+   - UpdatedBy (int?) - Foreign Key to Users
+   - UpdatedAt (DateTime)
+   - CustomFieldValues - Navigation to CustomFieldValues
+   - Documents - Navigation to CertificateDocuments
+   - Tags - Many-to-Many with Tags
+
+2. Companies (Table: Companies)
+   - Id (int) - Primary Key
+   - Name (string) - Unique
+   - Address (string)
+   - Country (string)
+   - Industry (string)
+   - ContactEmail (string)
+   - ContactPhone (string)
+   - Website (string)
+   - IsActive (bool)
+   - CreatedAt (DateTime)
+   - UpdatedAt (DateTime)
+   - Certificates - Navigation to Certificates
+   - Products - Navigation to Products
+   - Users - Many-to-Many with Users
+
+3. Products (Table: Products)
+   - Id (int) - Primary Key
+   - Name (string)
+   - Description (string)
+   - CategoryId (int) - Foreign Key to ProductCategories
+   - ProductTypeId (int) - Foreign Key to ProductTypes
+   - ProductSubcategoryId (int?) - Foreign Key to ProductSubcategories
+   - CompanyId (int) - Foreign Key to Companies
+   - IsActive (bool)
+   - CreatedAt (DateTime)
+   - UpdatedAt (DateTime)
+   - ProductIdentifiers - Navigation to ProductIdentifiers
+   - Certificates - Navigation to Certificates
+   - Tags - Many-to-Many with Tags
+
+4. Users (Table: Users)
+   - Id (int) - Primary Key
+   - Username (string) - Unique
+   - Email (string) - Unique
+   - PasswordHash (string)
+   - FirstName (string)
+   - LastName (string)
+   - IsActive (bool)
+   - EmailConfirmed (bool)
+   - TwoFactorEnabled (bool)
+   - LastLoginAt (DateTime?)
+   - CreatedAt (DateTime)
+   - UpdatedAt (DateTime)
+   - CreatedCertificates - Navigation to Certificates (CreatedBy)
+   - UpdatedCertificates - Navigation to Certificates (UpdatedBy)
+   - Roles - Many-to-Many with Roles
+   - Companies - Many-to-Many with Companies
+
+CERTIFICATE RELATED ENTITIES
+----------------------------
+
+5. CertificationTypes (Table: CertificationTypes)
+   - Id (int) - Primary Key
+   - Name (string) - Unique
+   - Description (string)
+   - Code (string)
+   - IsActive (bool)
+   - Certificates - Navigation to Certificates
+   - CustomFields - Navigation to CustomFields
+
+6. CustomFields (Table: CustomFields)
+   - Id (int) - Primary Key
+   - FieldName (string)
+   - FieldType (string) - Text/Number/Date/Dropdown
+   - IsRequired (bool)
+   - Options (string) - JSON for dropdown options
+   - DisplayOrder (int)
+   - CertificateTypeId (int?) - Foreign Key to CertificationTypes
+   - CustomFieldValues - Navigation to CustomFieldValues
+
+7. CustomFieldValues (Table: CustomFieldValues)
+   - Id (int) - Primary Key
+   - CertificateId (int) - Foreign Key to Certificates
+   - FieldId (int) - Foreign Key to CustomFields
+   - Value (string)
+   - Certificate - Navigation to Certificate
+   - Field - Navigation to CustomField
+
+8. CertificateDocuments (Table: CertificateDocuments)
+   - Id (int) - Primary Key
+   - CertificateId (int) - Foreign Key to Certificates
+   - FileName (string)
+   - FilePath (string)
+   - FileSize (long)
+   - ContentType (string)
+   - FileHash (string) - SHA256 hash for integrity
+   - UploadedBy (int?) - Foreign Key to Users
+   - UploadedAt (DateTime)
+   - IsDeleted (bool)
+   - DeletedAt (DateTime?)
+   - Certificate - Navigation to Certificate
+   - UploadedByUser - Navigation to User
+
+PRODUCT RELATED ENTITIES
+------------------------
+
+9. ProductCategories (Table: ProductCategories)
+   - Id (int) - Primary Key
+   - Name (string) - Unique
+   - Description (string)
+   - Code (string)
+   - IsActive (bool)
+   - Products - Navigation to Products
+   - ProductTypes - Navigation to ProductTypes
+
+10. ProductTypes (Table: ProductTypes)
+    - Id (int) - Primary Key
+    - Name (string)
+    - Description (string)
+    - CategoryId (int) - Foreign Key to ProductCategories
+    - ParentId (int?) - Self-referencing for hierarchy
+    - IsActive (bool)
+    - Category - Navigation to ProductCategory
+    - Parent - Navigation to parent ProductType
+    - Children - Navigation to child ProductTypes
+    - Products - Navigation to Products
+    - ProductSubcategories - Navigation to ProductSubcategories
+
+11. ProductSubcategories (Table: ProductSubcategories)
+    - Id (int) - Primary Key
+    - Name (string)
+    - Description (string)
+    - ProductTypeId (int) - Foreign Key to ProductTypes
+    - IsActive (bool)
+    - ProductType - Navigation to ProductType
+    - Products - Navigation to Products
+
+12. ProductIdentifiers (Table: ProductIdentifiers)
+    - Id (int) - Primary Key
+    - ProductId (int) - Foreign Key to Products
+    - IdentifierType (string) - SKU/UPC/EAN/GTIN
+    - IdentifierValue (string)
+    - Product - Navigation to Product
+    - Unique Index: (ProductId, IdentifierType, IdentifierValue)
+
+TAGS AND ATTRIBUTES
+-------------------
+
+13. Tags (Table: Tags)
+    - Id (int) - Primary Key
+    - Name (string) - Unique
+    - Description (string)
+    - Color (string) - Hex color code
+    - IsActive (bool)
+    - Certificates - Many-to-Many with Certificates
+    - Products - Many-to-Many with Products
+
+USER MANAGEMENT
+---------------
+
+14. Roles (Table: Roles)
+    - Id (int) - Primary Key
+    - Name (string) - Unique
+    - Description (string)
+    - IsActive (bool)
+    - Users - Many-to-Many with Users
+    - Permissions - Many-to-Many with Permissions
+
+15. Permissions (Table: Permissions)
+    - Id (int) - Primary Key
+    - Name (string)
+    - Codename (string) - Unique
+    - Description (string)
+    - Module (string)
+    - Roles - Many-to-Many with Permissions
+
+API MANAGEMENT
+--------------
+
+16. ApiKeys (Table: ApiKeys)
+    - Id (int) - Primary Key
+    - Key (string) - Unique API key
+    - Name (string)
+    - Description (string)
+    - UserId (int) - Foreign Key to Users
+    - IsActive (bool)
+    - ExpiresAt (DateTime?)
+    - LastUsedAt (DateTime?)
+    - CreatedAt (DateTime)
+    - RevokedAt (DateTime?)
+    - RevokedBy (int?)
+    - AllowedOrigins (string) - JSON array
+    - RateLimitPerMinute (int)
+    - RateLimitPerHour (int)
+
+ETL AND DATA MIGRATION
+----------------------
+
+17. ETLConfigurations (Table: ETLConfigurations)
+    - Id (int) - Primary Key
+    - Name (string)
+    - Description (string)
+    - DataSources (List<string>) - Comma-separated
+    - Transformations (List<string>) - Comma-separated
+    - Destinations (List<string>) - Comma-separated
+    - Schedule (string) - Cron expression
+    - IsActive (bool)
+    - LastRunAt (DateTime?)
+    - NextRunAt (DateTime?)
+    - Settings (Dictionary<string, object>) - JSON
+
+18. ETLLogEntries (Table: ETLLogEntries)
+    - Id (int) - Primary Key
+    - JobId (string)
+    - Level (string) - Info/Warning/Error
+    - Message (string)
+    - Timestamp (DateTime)
+    - Source (string)
+    - Properties (Dictionary<string, object>) - JSON
+
+19. ETLAlerts (Table: ETLAlerts)
+    - Id (int) - Primary Key
+    - AlertType (string)
+    - Severity (string) - Low/Medium/High/Critical
+    - Message (string)
+    - Context (Dictionary<string, object>) - JSON
+    - IsResolved (bool)
+    - ResolvedAt (DateTime?)
+    - ResolvedBy (string)
+    - CreatedAt (DateTime)
+
+20. ETLDataQualityIssues (Table: ETLDataQualityIssues)
+    - Id (int) - Primary Key
+    - IssueType (string)
+    - DataSource (string)
+    - RecordIdentifier (string)
+    - FieldName (string)
+    - ExpectedValue (object) - JSON
+    - ActualValue (object) - JSON
+    - Severity (string)
+    - Resolution (string)
+    - DetectedAt (DateTime)
+    - ResolvedAt (DateTime?)
+
+21. CertificateAggregateData (Table: CertificateAggregates)
+    - Period (string) - Part of composite key
+    - PeriodDate (DateTime) - Part of composite key
+    - TotalCertificates (int)
+    - ActiveCertificates (int)
+    - ExpiredCertificates (int)
+    - SuspendedCertificates (int)
+    - NewCertificates (int)
+    - RenewedCertificates (int)
+    - CertificatesByType (Dictionary<string, int>) - JSON
+    - CertificatesByCountry (Dictionary<string, int>) - JSON
+    - CertificatesByCompany (Dictionary<string, int>) - JSON
+    - LastUpdated (DateTime)
+
+================================================================================
+RELATIONSHIPS AND CONSTRAINTS
+================================================================================
+
+ONE-TO-MANY RELATIONSHIPS
+-------------------------
+- Company -> Certificates (One company has many certificates)
+- Company -> Products (One company has many products)
+- Product -> Certificates (One product has many certificates)
+- ProductCategory -> Products (One category has many products)
+- ProductCategory -> ProductTypes (One category has many types)
+- ProductType -> ProductSubcategories (One type has many subcategories)
+- ProductType -> Products (One type has many products)
+- ProductSubcategory -> Products (One subcategory has many products)
+- Product -> ProductIdentifiers (One product has many identifiers)
+- CertificationType -> Certificates (One type has many certificates)
+- CertificationType -> CustomFields (One type has many custom fields)
+- Certificate -> CustomFieldValues (One certificate has many field values)
+- Certificate -> CertificateDocuments (One certificate has many documents)
+- CustomField -> CustomFieldValues (One field has many values)
+- User -> Certificates (CreatedBy - One user creates many certificates)
+- User -> Certificates (UpdatedBy - One user updates many certificates)
+- User -> CertificateDocuments (UploadedBy - One user uploads many documents)
+
+MANY-TO-MANY RELATIONSHIPS
+--------------------------
+- Certificate <-> Tags (Certificates can have multiple tags)
+- Product <-> Tags (Products can have multiple tags)
+- User <-> Roles (Users can have multiple roles)
+- Role <-> Permissions (Roles can have multiple permissions)
+- User <-> Companies (Users can belong to multiple companies)
+
+SELF-REFERENCING RELATIONSHIPS
+------------------------------
+- ProductType -> ProductType (Parent-Child hierarchy)
+
+================================================================================
+INDEXES
+================================================================================
+
+UNIQUE INDEXES
+--------------
+- Certificates.Number - Unique certificate numbers
+- Companies.Name - Unique company names
+- Users.Username - Unique usernames
+- Users.Email - Unique email addresses
+- Roles.Name - Unique role names
+- Permissions.Codename - Unique permission codes
+- Tags.Name - Unique tag names
+- CertificationTypes.Name - Unique certification type names
+- ProductCategories.Name - Unique category names
+- ProductIdentifier.(ProductId, IdentifierType, IdentifierValue) - Composite unique
+
+PERFORMANCE INDEXES
+------------------
+- Certificates.CompanyId - Foreign key index
+- Certificates.ProductId - Foreign key index
+- Certificates.CertificationTypeId - Foreign key index
+- Certificates.Status - Filter by status
+- Certificates.ExpiryDate - Filter by expiry
+- Products.CategoryId - Foreign key index
+- Products.CompanyId - Foreign key index
+- CertificateDocuments.CertificateId - Foreign key index
+- CertificateDocuments.FileHash - File integrity checks
+- ETLLogEntries.JobId - Filter by job
+- ETLLogEntries.Timestamp - Time-based queries
+- ETLAlerts.CreatedAt - Time-based queries
+- ETLAlerts.IsResolved - Filter unresolved alerts
+- ETLDataQualityIssues.DetectedAt - Time-based queries
+- ETLDataQualityIssues.IssueType - Filter by issue type
+- CertificateAggregates.PeriodDate - Time-based analytics
+
+================================================================================
+DATABASE FEATURES
+================================================================================
+
+AUDIT TRAIL
+-----------
+- All entities include CreatedAt and UpdatedAt timestamps
+- User tracking via CreatedBy and UpdatedBy fields
+- Soft delete support for documents (IsDeleted, DeletedAt)
+- Comprehensive logging through ETLLogEntries
+
+DATA VALIDATION
+---------------
+- Required field constraints at database level
+- Unique constraints on critical fields
+- Foreign key constraints for referential integrity
+- Custom field validation through FieldType definitions
+
+PERFORMANCE OPTIMIZATION
+-----------------------
+- Strategic indexing on frequently queried columns
+- Denormalized aggregate data (CertificateAggregateData)
+- JSON storage for flexible metadata
+- Efficient pagination support
+
+SECURITY FEATURES
+----------------
+- Password hashing for user authentication
+- API key management with rate limiting
+- Role-based access control (RBAC)
+- File integrity verification (SHA256 hashes)
+- Audit logging for compliance
+
+DATA MIGRATION
+--------------
+- ETL configuration management
+- Data quality monitoring
+- Alert system for issues
+- Comprehensive logging
+- Scheduled job support
+
+================================================================================
+CONNECTION MANAGEMENT
+================================================================================
+
+CONNECTION STRING DETAILS
+-------------------------
+SQLite (Development):
+  ConnectionString: "Data Source=gcc_database.db"
+  - Database file created automatically on first run
+  - Located in application root directory
+  - No server required - embedded database
+  - Single-user access (file lock based)
+  - Ideal for development and testing
+
+SQL Server LocalDB (Production):
+  ConnectionString: "Server=(localdb)\mssqllocaldb;Database=GCCDatabase;Trusted_Connection=true;MultipleActiveResultSets=true"
+  Parameters:
+  - Server: (localdb)\mssqllocaldb - LocalDB instance
+  - Database: GCCDatabase - Database name
+  - Trusted_Connection: true - Windows Authentication
+  - MultipleActiveResultSets: true - Allows multiple queries on same connection
+
+Connection String Usage in Code:
+```csharp
+// In Program.cs
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// For SQLite in development
+var sqliteConnection = builder.Configuration.GetConnectionString("SqliteConnection");
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlite(sqliteConnection));
+```
+
+HOW TO CONNECT AND VIEW DATABASE
+---------------------------------
+
+SQLite Database (gcc_database.db):
+1. Using Visual Studio:
+   - View > SQL Server Object Explorer
+   - Add SQL Server > Local > Browse > Select gcc_database.db file
+   - Or use Server Explorer > Add Connection > SQLite Database
+
+2. Using DB Browser for SQLite (Recommended):
+   - Download from: https://sqlitebrowser.org/
+   - Open DB Browser for SQLite
+   - File > Open Database > Navigate to gcc_database.db
+   - Browse tables, run queries, export data
+
+3. Using Visual Studio Code:
+   - Install "SQLite" extension by alexcvzz
+   - Ctrl+Shift+P > SQLite: Open Database
+   - Select gcc_database.db from project folder
+   - View tables in SQLite Explorer panel
+
+4. Command Line:
+   ```bash
+   # Open SQLite CLI
+   sqlite3 gcc_database.db
+   
+   # Common commands
+   .tables              # List all tables
+   .schema TableName    # Show table structure
+   SELECT * FROM Users; # Query data
+   .exit               # Exit SQLite
+   ```
+
+SQL Server LocalDB:
+1. Using SQL Server Management Studio (SSMS):
+   - Download SSMS from Microsoft website
+   - Connect to Server: (localdb)\mssqllocaldb
+   - Windows Authentication
+   - Database: GCCDatabase
+
+2. Using Visual Studio:
+   - View > SQL Server Object Explorer
+   - Add SQL Server > Local > (localdb)\mssqllocaldb
+   - Expand Databases > GCCDatabase
+   - Right-click tables to view/edit data
+
+3. Using Azure Data Studio:
+   - Download from Microsoft website
+   - New Connection
+   - Server: (localdb)\mssqllocaldb
+   - Authentication: Windows
+   - Database: GCCDatabase
+
+4. Command Line (sqlcmd):
+   ```cmd
+   # Connect to LocalDB
+   sqlcmd -S (localdb)\mssqllocaldb -d GCCDatabase -E
+   
+   # Run queries
+   SELECT * FROM Certificates;
+   GO
+   
+   # Exit
+   EXIT
+   ```
+
+5. Using Visual Studio Package Manager Console:
+   ```powershell
+   # View database in Package Manager Console
+   Update-Database -Verbose
+   
+   # Generate SQL script
+   Script-Migration
+   ```
+
+CONNECTION TROUBLESHOOTING
+--------------------------
+SQLite Issues:
+- File locked: Close all connections/applications using the database
+- File not found: Ensure gcc_database.db exists in project root
+- Permission denied: Check file permissions
+
+SQL Server LocalDB Issues:
+- Instance not found: Install SQL Server LocalDB from Microsoft
+- Cannot connect: Start LocalDB instance
+  ```cmd
+  sqllocaldb start mssqllocaldb
+  sqllocaldb info mssqllocaldb
+  ```
+- Database doesn't exist: Run migrations
+  ```cmd
+  dotnet ef database update
+  ```
+
+ENTITY FRAMEWORK CONFIGURATION
+------------------------------
+- DbContext: ApplicationDbContext
+- Connection Pooling: Enabled (default 100 connections)
+- Multiple Active Result Sets: Enabled (SQL Server)
+- Lazy Loading: Disabled (explicit loading preferred)
+- Change Tracking: Enabled
+- Query Tracking: Configurable per query
+- Command Timeout: 30 seconds (default)
+
+MIGRATION COMMANDS
+-----------------
+# Add a new migration
+dotnet ef migrations add MigrationName
+
+# Update database to latest migration
+dotnet ef database update
+
+# Generate SQL script
+dotnet ef migrations script
+
+# Remove last migration
+dotnet ef migrations remove
+
+# Drop database
+dotnet ef database drop
+
+================================================================================
+SEED DATA
+================================================================================
+
+The database includes comprehensive seed data for testing:
+
+Companies (5 records):
+- GreenTech Solutions
+- EcoFriendly Products Inc
+- Sustainable Manufacturing Co
+- Nature's Best Organics
+- Clean Energy Systems
+
+Products (5 records):
+- Recycled Paper Products
+- Solar Panel System X200
+- Organic Cotton T-Shirt
+- Biodegradable Packaging
+- Wind Turbine Component A
+
+Certificates (5 records):
+- Various certificate types and statuses
+- Sample expiry dates
+- Associated with companies and products
+
+Product Categories (3 records):
+- Renewable Energy
+- Sustainable Materials
+- Organic Products
+
+Certification Types (3 records):
+- Environmental Impact
+- Carbon Neutral
+- Organic Certification
+
+Users (3 records):
+- admin (Administrator)
+- editor (Editor)
+- viewer (Viewer)
+
+Roles (3 records):
+- Administrator (full access)
+- Editor (read/write)
+- Viewer (read-only)
+
+Tags (5 records):
+- Eco-Friendly
+- Renewable
+- Certified
+- Premium
+- New
+
+================================================================================
+DATABASE MAINTENANCE
+================================================================================
+
+BACKUP STRATEGY
+--------------
+SQLite (Development):
+- Simple file copy of gcc_database.db
+- Version control for schema changes
+- Regular exports for data preservation
+
+SQL Server (Production):
+- Full backup: Weekly
+- Differential backup: Daily
+- Transaction log backup: Hourly
+- Retention period: 30 days
+
+OPTIMIZATION TASKS
+-----------------
+- Index fragmentation analysis: Monthly
+- Statistics update: Weekly
+- Query performance review: Bi-weekly
+- Storage optimization: Quarterly
+
+MONITORING
+----------
+- Connection pool metrics
+- Query execution times
+- Lock contention analysis
+- Growth trends
+- Error logging
+
+================================================================================
+END OF DATABASE DOCUMENTATION
+================================================================================

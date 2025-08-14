@@ -16,6 +16,9 @@
     <Compile Remove="GCCWebApp.Tests\**" />
     <Compile Remove="GCCWebApp.E2E.Tests\**" />
     <Compile Remove="GCCWebApp.UAT.Tests\**" />
+    <Compile Remove="GCCWebApp.Security.Tests\**" />
+    <Compile Remove="GCCWebApp.Performance.Tests\**" />
+    <Compile Remove="GCCWebApp.BDD.Tests\**" />
     <Content Remove="docs\**" />
     <Content Remove="Documentation\**" />
     <Content Remove="pages\**" />
@@ -25,6 +28,9 @@
     <Content Remove="GCCWebApp.Tests\**" />
     <Content Remove="GCCWebApp.E2E.Tests\**" />
     <Content Remove="GCCWebApp.UAT.Tests\**" />
+    <Content Remove="GCCWebApp.Security.Tests\**" />
+    <Content Remove="GCCWebApp.Performance.Tests\**" />
+    <Content Remove="GCCWebApp.BDD.Tests\**" />
     <EmbeddedResource Remove="docs\**" />
     <EmbeddedResource Remove="Documentation\**" />
     <EmbeddedResource Remove="pages\**" />
@@ -34,6 +40,9 @@
     <EmbeddedResource Remove="GCCWebApp.Tests\**" />
     <EmbeddedResource Remove="GCCWebApp.E2E.Tests\**" />
     <EmbeddedResource Remove="GCCWebApp.UAT.Tests\**" />
+    <EmbeddedResource Remove="GCCWebApp.Security.Tests\**" />
+    <EmbeddedResource Remove="GCCWebApp.Performance.Tests\**" />
+    <EmbeddedResource Remove="GCCWebApp.BDD.Tests\**" />
     <None Remove="docs\**" />
     <None Remove="Documentation\**" />
     <None Remove="pages\**" />
@@ -43,6 +52,9 @@
     <None Remove="GCCWebApp.Tests\**" />
     <None Remove="GCCWebApp.E2E.Tests\**" />
     <None Remove="GCCWebApp.UAT.Tests\**" />
+    <None Remove="GCCWebApp.Security.Tests\**" />
+    <None Remove="GCCWebApp.Performance.Tests\**" />
+    <None Remove="GCCWebApp.BDD.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -80,6 +92,10 @@
     <None Remove="Views\Shared\_Layout - Copy.cshtml.css" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="Documentation\00 Observations\TestingObservations.txt" />
+  </ItemGroup>
+
 
   <ItemGroup>
     <None Include="obj\2025-08-09-admin-partners-add-new-partner-save-and-cancel-n.txt" />
@@ -99,21 +115,36 @@
   <ItemGroup>
     <Folder Include="Configuration\" />
     <Folder Include="Documentation\0 ProjectManagement\" />
-    <Folder Include="Documentation\Design\" />
-    <Folder Include="Documentation\DataMigration\" />
-    <Folder Include="Documentation\Deployment\" />
-    <Folder Include="Documentation\Architecture\" />
+    <Folder Include="Documentation\02 Design\" />
+    <Folder Include="Documentation\04 Testing\Screenshots\" />
+    <Folder Include="Documentation\05.1 DataMigration\" />
+    <Folder Include="Documentation\05 Deployment\" />
+    <Folder Include="Documentation\03 Architecture\" />
     <Folder Include="Documentation\Database\" />
-    <Folder Include="Documentation\Guides\" />
-    <Folder Include="Documentation\Integrations\" />
-    <Folder Include="Documentation\Testing\" />
+    <Folder Include="Documentation\06 Guides\" />
+    <Folder Include="Documentation\04.1 Integrations\" />
     <Folder Include="Documentation\01 Requirements\" />
+    <Folder Include="Documentation\01.1 User Stories\" />
+    <Folder Include="Documentation\01.2 Process Flows\" />
+    <Folder Include="Documentation\04 Development\" />
+    <Folder Include="Documentation\0 Project Setup\" />
+    <Folder Include="Documentation\07 Tools\" />
+    <Folder Include="Documentation\06 Training\" />
+    <Folder Include="Documentation\0 Claude Rules\" />
     <Folder Include="Documentation\NewFolder\" />
+    <Folder Include="Documentation\04 Testing\E2E\" />
+    <Folder Include="Documentation\04 Testing\Security\" />
+    <Folder Include="Documentation\04 Testing\Regression\" />
+    <Folder Include="Documentation\04 Testing\Performance\" />
+    <Folder Include="Documentation\04 Testing\Pen Testing\" />
     <Folder Include="Views\Product\" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
+    <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.8">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -124,6 +155,7 @@
     <PackageReference Include="Microsoft.Identity.Web" Version="3.10.0" />
     <PackageReference Include="Microsoft.Identity.Web.MicrosoftGraph" Version="3.10.0" />
     <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.10.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
   </ItemGroup>
 
 </Project>

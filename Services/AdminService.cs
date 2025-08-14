@@ -349,19 +349,52 @@ namespace GCCWebApp.Services
 
         public async Task<List<ProductTypeViewModel>> GetProductTypesAsync()
         {
-            return await _context.ProductTypes
+            // Get all product types with their categories and children
+            var allProductTypes = await _context.ProductTypes
+                .Include(pt => pt.Category)
                 .Include(pt => pt.Parent)
-                .OrderBy(pt => pt.SortOrder)
-                .Select(pt => new ProductTypeViewModel
+                .Include(pt => pt.Children)
+                .Include(pt => pt.Products)
+                .OrderBy(pt => pt.Level)
+                .ThenBy(pt => pt.SortOrder)
+                .ToListAsync();
+
+            // Build hierarchical structure
+            var result = new List<ProductTypeViewModel>();
+            var lookup = new Dictionary<int, ProductTypeViewModel>();
+
+            // First pass: create all items
+            foreach (var pt in allProductTypes)
+            {
+                var viewModel = new ProductTypeViewModel
                 {
                     Id = pt.Id,
                     Name = pt.Name,
                     ParentId = pt.ParentId,
                     Level = pt.Level,
                     SortOrder = pt.SortOrder,
-                    ParentName = pt.Parent != null ? pt.Parent.Name : ""
-                })
-                .ToListAsync();
+                    ParentName = pt.Parent?.Name ?? "",
+                    Children = new List<ProductTypeViewModel>()
+                };
+                lookup[pt.Id] = viewModel;
+            }
+
+            // Second pass: build hierarchy
+            foreach (var pt in allProductTypes)
+            {
+                var viewModel = lookup[pt.Id];
+                if (pt.ParentId.HasValue && lookup.ContainsKey(pt.ParentId.Value))
+                {
+                    lookup[pt.ParentId.Value].Children.Add(viewModel);
+                }
+                else
+                {
+                    // This is a root level item (or category level)
+                    result.Add(viewModel);
+                }
+            }
+
+            return result;
         }
 
         public async Task<ProductTypeViewModel?> GetProductTypeByIdAsync(int id)

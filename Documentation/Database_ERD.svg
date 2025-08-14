@@ -1,0 +1,365 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1200">
+  <!-- Background -->
+  <rect width="1600" height="1200" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="800" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#2c3e50">
+    GCC Database - Entity Relationship Diagram
+  </text>
+  
+  <!-- Core Entities Group -->
+  <g id="core-entities">
+    <!-- Certificate (Central Entity) -->
+    <g id="certificate-entity" transform="translate(650, 100)">
+      <rect x="0" y="0" width="300" height="280" rx="5" fill="#3498db" stroke="#2980b9" stroke-width="3"/>
+      <rect x="0" y="0" width="300" height="35" rx="5" fill="#2980b9"/>
+      <text x="150" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">Certificate</text>
+      
+      <!-- Primary Key -->
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      
+      <!-- Attributes -->
+      <text x="10" y="75" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Number (string, UK) - Certificate #</text>
+      <text x="10" y="90" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Status (string) - active/expired/pending</text>
+      <text x="10" y="105" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">EffectiveDate (DateTime)</text>
+      <text x="10" y="120" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">ExpirationDate (DateTime)</text>
+      <text x="10" y="135" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Location (string, nullable)</text>
+      <text x="10" y="150" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Country (string, nullable)</text>
+      <text x="10" y="165" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Asin (string, nullable) - Amazon ID</text>
+      <text x="10" y="180" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Upc, Gtin, Ean (string, nullable)</text>
+      <text x="10" y="195" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">CertificateFile (string, nullable)</text>
+      
+      <!-- Foreign Keys -->
+      <text x="10" y="215" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#e74c3c">🔗 CompanyId (int, FK)</text>
+      <text x="10" y="230" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#e74c3c">🔗 ProductId (int, FK)</text>
+      <text x="10" y="245" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#e74c3c">🔗 CertificationTypeId (int, FK)</text>
+      <text x="10" y="260" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#e74c3c">🔗 CreatedBy, UpdatedBy (int, FK)</text>
+    </g>
+    
+    <!-- Company Entity -->
+    <g id="company-entity" transform="translate(50, 150)">
+      <rect x="0" y="0" width="250" height="180" rx="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+      <rect x="0" y="0" width="250" height="35" rx="5" fill="#c0392b"/>
+      <text x="125" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">Company</text>
+      
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="10" y="75" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Name (string, UK) - Company name</text>
+      <text x="10" y="90" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Email (string) - Contact email</text>
+      <text x="10" y="105" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Url (string) - Website URL</text>
+      <text x="10" y="120" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Address (string) - Physical address</text>
+      <text x="10" y="135" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Phone (string) - Contact phone</text>
+      <text x="10" y="150" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">CreatedAt, UpdatedAt</text>
+      <text x="10" y="165" font-family="Arial, sans-serif" font-size="10" fill="#8e44ad">↗ 1:M Certificates, Products</text>
+    </g>
+    
+    <!-- Product Entity -->
+    <g id="product-entity" transform="translate(1200, 150)">
+      <rect x="0" y="0" width="250" height="200" rx="5" fill="#27ae60" stroke="#229954" stroke-width="2"/>
+      <rect x="0" y="0" width="250" height="35" rx="5" fill="#229954"/>
+      <text x="125" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">Product</text>
+      
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="10" y="75" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Name (string) - Product name</text>
+      <text x="10" y="90" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Description (string)</text>
+      <text x="10" y="105" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Model (string) - Product model</text>
+      <text x="10" y="120" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">CreatedAt, UpdatedAt</text>
+      
+      <text x="10" y="145" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#e74c3c">🔗 CompanyId (int, FK)</text>
+      <text x="10" y="160" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#e74c3c">🔗 CategoryId (int, FK)</text>
+      <text x="10" y="175" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#e74c3c">🔗 ProductTypeId (int, FK)</text>
+      <text x="10" y="190" font-family="Arial, sans-serif" font-size="10" fill="#8e44ad">↗ 1:M Certificates</text>
+    </g>
+    
+    <!-- CertificationType Entity -->
+    <g id="cert-type-entity" transform="translate(700, 450)">
+      <rect x="0" y="0" width="200" height="120" rx="5" fill="#9b59b6" stroke="#8e44ad" stroke-width="2"/>
+      <rect x="0" y="0" width="200" height="35" rx="5" fill="#8e44ad"/>
+      <text x="100" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">CertificationType</text>
+      
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="10" y="75" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Name (string, UK)</text>
+      <text x="10" y="90" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Description (string)</text>
+      <text x="10" y="105" font-family="Arial, sans-serif" font-size="10" fill="#8e44ad">↗ 1:M Certificates</text>
+    </g>
+  </g>
+  
+  <!-- Product Hierarchy -->
+  <g id="product-hierarchy">
+    <!-- ProductCategory -->
+    <g id="product-category" transform="translate(1200, 400)">
+      <rect x="0" y="0" width="180" height="100" rx="5" fill="#34495e" stroke="#2c3e50" stroke-width="2"/>
+      <rect x="0" y="0" width="180" height="30" rx="5" fill="#2c3e50"/>
+      <text x="90" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">ProductCategory</text>
+      
+      <text x="8" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="8" y="60" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Name (string, UK)</text>
+      <text x="8" y="75" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Level (int)</text>
+      <text x="8" y="90" font-family="Arial, sans-serif" font-size="9" fill="#8e44ad">↗ 1:M Products</text>
+    </g>
+    
+    <!-- ProductType -->
+    <g id="product-type" transform="translate(1400, 400)">
+      <rect x="0" y="0" width="180" height="120" rx="5" fill="#95a5a6" stroke="#7f8c8d" stroke-width="2"/>
+      <rect x="0" y="0" width="180" height="30" rx="5" fill="#7f8c8d"/>
+      <text x="90" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">ProductType</text>
+      
+      <text x="8" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="8" y="60" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Name (string)</text>
+      <text x="8" y="75" font-family="Arial, sans-serif" font-size="9" fill="#e74c3c">🔗 CategoryId (FK)</text>
+      <text x="8" y="90" font-family="Arial, sans-serif" font-size="9" fill="#e74c3c">🔗 ParentId (FK) - Self</text>
+      <text x="8" y="105" font-family="Arial, sans-serif" font-size="9" fill="#8e44ad">↗ 1:M Products</text>
+    </g>
+  </g>
+  
+  <!-- User Management -->
+  <g id="user-management">
+    <!-- User Entity -->
+    <g id="user-entity" transform="translate(50, 600)">
+      <rect x="0" y="0" width="220" height="200" rx="5" fill="#f39c12" stroke="#e67e22" stroke-width="2"/>
+      <rect x="0" y="0" width="220" height="35" rx="5" fill="#e67e22"/>
+      <text x="110" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="white">User</text>
+      
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#2c3e50">🔑 Id (int, PK)</text>
+      <text x="10" y="75" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Username (string, UK)</text>
+      <text x="10" y="90" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Email (string, UK)</text>
+      <text x="10" y="105" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Name (string) - Display name</text>
+      <text x="10" y="120" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">PasswordHash (string)</text>
+      <text x="10" y="135" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">IsActive (bool)</text>
+      <text x="10" y="150" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">LastLogin (DateTime)</text>
+      <text x="10" y="165" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">CreatedAt, UpdatedAt</text>
+      <text x="10" y="185" font-family="Arial, sans-serif" font-size="10" fill="#8e44ad">🔗 M:M Roles, Companies</text>
+    </g>
+    
+    <!-- Role Entity -->
+    <g id="role-entity" transform="translate(300, 650)">
+      <rect x="0" y="0" width="180" height="120" rx="5" fill="#e67e22" stroke="#d35400" stroke-width="2"/>
+      <rect x="0" y="0" width="180" height="30" rx="5" fill="#d35400"/>
+      <text x="90" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Role</text>
+      
+      <text x="8" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="8" y="60" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Name (string, UK)</text>
+      <text x="8" y="75" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Description (string)</text>
+      <text x="8" y="90" font-family="Arial, sans-serif" font-size="9" fill="#8e44ad">🔗 M:M Users</text>
+      <text x="8" y="105" font-family="Arial, sans-serif" font-size="9" fill="#8e44ad">🔗 M:M Permissions</text>
+    </g>
+    
+    <!-- Permission Entity -->
+    <g id="permission-entity" transform="translate(520, 650)">
+      <rect x="0" y="0" width="180" height="120" rx="5" fill="#16a085" stroke="#138d75" stroke-width="2"/>
+      <rect x="0" y="0" width="180" height="30" rx="5" fill="#138d75"/>
+      <text x="90" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Permission</text>
+      
+      <text x="8" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="8" y="60" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Codename (string, UK)</text>
+      <text x="8" y="75" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">DisplayName (string)</text>
+      <text x="8" y="90" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Category (string)</text>
+      <text x="8" y="105" font-family="Arial, sans-serif" font-size="9" fill="#8e44ad">🔗 M:M Roles</text>
+    </g>
+  </g>
+  
+  <!-- Supporting Entities -->
+  <g id="supporting-entities">
+    <!-- Tag Entity -->
+    <g id="tag-entity" transform="translate(350, 100)">
+      <rect x="0" y="0" width="180" height="100" rx="5" fill="#1abc9c" stroke="#16a085" stroke-width="2"/>
+      <rect x="0" y="0" width="180" height="30" rx="5" fill="#16a085"/>
+      <text x="90" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Tag</text>
+      
+      <text x="8" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="8" y="60" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Name (string, UK)</text>
+      <text x="8" y="75" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Color (string)</text>
+      <text x="8" y="90" font-family="Arial, sans-serif" font-size="9" fill="#8e44ad">🔗 M:M Certificates</text>
+    </g>
+    
+    <!-- CustomField Entity -->
+    <g id="custom-field-entity" transform="translate(450, 450)">
+      <rect x="0" y="0" width="200" height="140" rx="5" fill="#8e44ad" stroke="#7d3c98" stroke-width="2"/>
+      <rect x="0" y="0" width="200" height="30" rx="5" fill="#7d3c98"/>
+      <text x="100" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">CustomField</text>
+      
+      <text x="8" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="8" y="60" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Name (string)</text>
+      <text x="8" y="75" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">DataType (string)</text>
+      <text x="8" y="90" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">IsRequired (bool)</text>
+      <text x="8" y="105" font-family="Arial, sans-serif" font-size="9" fill="#e74c3c">🔗 CertificateTypeId (FK)</text>
+      <text x="8" y="125" font-family="Arial, sans-serif" font-size="9" fill="#8e44ad">↗ 1:M CustomFieldValues</text>
+    </g>
+    
+    <!-- CustomFieldValue Entity -->
+    <g id="custom-field-value-entity" transform="translate(950, 450)">
+      <rect x="0" y="0" width="200" height="120" rx="5" fill="#d35400" stroke="#ba4a00" stroke-width="2"/>
+      <rect x="0" y="0" width="200" height="30" rx="5" fill="#ba4a00"/>
+      <text x="100" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="white">CustomFieldValue</text>
+      
+      <text x="8" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="8" y="60" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Value (string)</text>
+      <text x="8" y="75" font-family="Arial, sans-serif" font-size="9" fill="#e74c3c">🔗 CertificateId (FK)</text>
+      <text x="8" y="90" font-family="Arial, sans-serif" font-size="9" fill="#e74c3c">🔗 FieldId (FK)</text>
+      <text x="8" y="105" font-family="Arial, sans-serif" font-size="9" fill="#8e44ad">🔗 M:1 Certificate</text>
+    </g>
+    
+    <!-- CertificateDocument Entity -->
+    <g id="cert-document-entity" transform="translate(1000, 100)">
+      <rect x="0" y="0" width="180" height="160" rx="5" fill="#c0392b" stroke="#a93226" stroke-width="2"/>
+      <rect x="0" y="0" width="180" height="30" rx="5" fill="#a93226"/>
+      <text x="90" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">CertificateDocument</text>
+      
+      <text x="8" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="8" y="60" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">FileName (string)</text>
+      <text x="8" y="75" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">FileSize (long)</text>
+      <text x="8" y="90" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">FileHash (string)</text>
+      <text x="8" y="105" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">ContentType (string)</text>
+      <text x="8" y="120" font-family="Arial, sans-serif" font-size="9" fill="#e74c3c">🔗 CertificateId (FK)</text>
+      <text x="8" y="135" font-family="Arial, sans-serif" font-size="9" fill="#e74c3c">🔗 UploadedBy (FK)</text>
+      <text x="8" y="150" font-family="Arial, sans-serif" font-size="9" fill="#8e44ad">🔗 M:1 Certificate</text>
+    </g>
+  </g>
+  
+  <!-- ETL Entities -->
+  <g id="etl-entities">
+    <!-- ETL Configuration -->
+    <g id="etl-config-entity" transform="translate(50, 900)">
+      <rect x="0" y="0" width="220" height="150" rx="5" fill="#2ecc71" stroke="#27ae60" stroke-width="2"/>
+      <rect x="0" y="0" width="220" height="30" rx="5" fill="#27ae60"/>
+      <text x="110" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">ETLConfiguration</text>
+      
+      <text x="8" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="8" y="60" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Name (string)</text>
+      <text x="8" y="75" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">IsActive (bool)</text>
+      <text x="8" y="90" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">DataSources (List&lt;string&gt;)</text>
+      <text x="8" y="105" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Transformations (List&lt;string&gt;)</text>
+      <text x="8" y="120" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Schedule (string)</text>
+      <text x="8" y="135" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Settings (Dictionary)</text>
+    </g>
+    
+    <!-- ETL Log Entry -->
+    <g id="etl-log-entity" transform="translate(300, 900)">
+      <rect x="0" y="0" width="200" height="150" rx="5" fill="#f39c12" stroke="#e67e22" stroke-width="2"/>
+      <rect x="0" y="0" width="200" height="30" rx="5" fill="#e67e22"/>
+      <text x="100" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">ETLLogEntry</text>
+      
+      <text x="8" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#2c3e50">🔑 Id (int, PK)</text>
+      <text x="8" y="60" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">JobId (string)</text>
+      <text x="8" y="75" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Level (LogLevel)</text>
+      <text x="8" y="90" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Message (string)</text>
+      <text x="8" y="105" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Timestamp (DateTime)</text>
+      <text x="8" y="120" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Exception (string)</text>
+      <text x="8" y="135" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Properties (Dictionary)</text>
+    </g>
+    
+    <!-- API Key -->
+    <g id="api-key-entity" transform="translate(950, 850)">
+      <rect x="0" y="0" width="180" height="140" rx="5" fill="#e74c3c" stroke="#c0392b" stroke-width="2"/>
+      <rect x="0" y="0" width="180" height="30" rx="5" fill="#c0392b"/>
+      <text x="90" y="22" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">ApiKey</text>
+      
+      <text x="8" y="45" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#f39c12">🔑 Id (int, PK)</text>
+      <text x="8" y="60" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">Name (string)</text>
+      <text x="8" y="75" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">KeyHash (string)</text>
+      <text x="8" y="90" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">IsActive (bool)</text>
+      <text x="8" y="105" font-family="Arial, sans-serif" font-size="9" fill="#2c3e50">ExpirationDate</text>
+      <text x="8" y="120" font-family="Arial, sans-serif" font-size="9" fill="#e74c3c">🔗 UserId (FK)</text>
+    </g>
+  </g>
+  
+  <!-- Relationships -->
+  <g id="relationships">
+    <!-- Certificate to Company -->
+    <line x1="650" y1="240" x2="300" y2="240" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <text x="475" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">M:1</text>
+    
+    <!-- Certificate to Product -->
+    <line x1="950" y1="240" x2="1200" y2="240" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <text x="1075" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">M:1</text>
+    
+    <!-- Certificate to CertificationType -->
+    <line x1="800" y1="380" x2="800" y2="450" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <text x="810" y="415" font-family="Arial, sans-serif" font-size="10" fill="#333">M:1</text>
+    
+    <!-- Certificate to CustomFieldValue -->
+    <line x1="950" y1="300" x2="1050" y2="450" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <text x="1000" y="375" font-family="Arial, sans-serif" font-size="10" fill="#333">1:M</text>
+    
+    <!-- Certificate to CertificateDocument -->
+    <line x1="950" y1="180" x2="1000" y2="180" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <text x="975" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">1:M</text>
+    
+    <!-- Certificate to Tag (Many-to-Many) -->
+    <path d="M 650 180 Q 500 180 500 150" stroke="#8e44ad" stroke-width="2" fill="none" marker-end="url(#arrowhead-purple)"/>
+    <text x="575" y="165" font-family="Arial, sans-serif" font-size="10" fill="#8e44ad">M:M</text>
+    
+    <!-- User to Role (Many-to-Many) -->
+    <line x1="270" y1="700" x2="300" y2="700" stroke="#8e44ad" stroke-width="2" marker-end="url(#arrowhead-purple)"/>
+    <text x="285" y="695" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#8e44ad">M:M</text>
+    
+    <!-- Role to Permission (Many-to-Many) -->
+    <line x1="480" y1="710" x2="520" y2="710" stroke="#8e44ad" stroke-width="2" marker-end="url(#arrowhead-purple)"/>
+    <text x="500" y="705" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#8e44ad">M:M</text>
+    
+    <!-- Product to ProductCategory -->
+    <line x1="1325" y1="350" x2="1290" y2="400" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <text x="1335" y="375" font-family="Arial, sans-serif" font-size="10" fill="#333">M:1</text>
+    
+    <!-- Product to ProductType -->
+    <line x1="1450" y1="300" x2="1490" y2="400" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <text x="1470" y="350" font-family="Arial, sans-serif" font-size="10" fill="#333">M:1</text>
+    
+    <!-- CertificationType to CustomField -->
+    <line x1="700" y1="515" x2="650" y2="515" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <text x="675" y="510" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">1:M</text>
+    
+    <!-- CustomField to CustomFieldValue -->
+    <line x1="650" y1="520" x2="950" y2="520" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <text x="800" y="515" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#333">1:M</text>
+  </g>
+  
+  <!-- Arrow Markers -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#8e44ad"/>
+    </marker>
+  </defs>
+  
+  <!-- Legend -->
+  <g id="legend" transform="translate(1200, 600)">
+    <rect x="0" y="0" width="350" height="220" rx="5" fill="#ffffff" stroke="#bdc3c7" stroke-width="2"/>
+    <text x="175" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#2c3e50">Database Schema Legend</text>
+    
+    <text x="10" y="40" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2c3e50">Symbols:</text>
+    <text x="10" y="55" font-family="Arial, sans-serif" font-size="10" fill="#f39c12">🔑 Primary Key (PK)</text>
+    <text x="10" y="70" font-family="Arial, sans-serif" font-size="10" fill="#e74c3c">🔗 Foreign Key (FK)</text>
+    <text x="10" y="85" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">UK - Unique Key/Index</text>
+    
+    <text x="10" y="105" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2c3e50">Relationships:</text>
+    <line x1="10" y1="120" x2="40" y2="120" stroke="#333" stroke-width="2" marker-end="url(#arrowhead)"/>
+    <text x="45" y="125" font-family="Arial, sans-serif" font-size="10" fill="#333">One-to-Many (1:M)</text>
+    
+    <line x1="10" y1="135" x2="40" y2="135" stroke="#8e44ad" stroke-width="2" marker-end="url(#arrowhead-purple)"/>
+    <text x="45" y="140" font-family="Arial, sans-serif" font-size="10" fill="#8e44ad">Many-to-Many (M:M)</text>
+    
+    <text x="10" y="160" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2c3e50">Entity Types:</text>
+    <rect x="10" y="165" width="15" height="10" fill="#3498db"/>
+    <text x="30" y="175" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Core Business Entity</text>
+    
+    <rect x="10" y="180" width="15" height="10" fill="#27ae60"/>
+    <text x="30" y="190" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Product Management</text>
+    
+    <rect x="10" y="195" width="15" height="10" fill="#f39c12"/>
+    <text x="30" y="205" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">User & Security</text>
+  </g>
+  
+  <!-- Database Statistics -->
+  <g id="db-stats" transform="translate(750, 900)">
+    <rect x="0" y="0" width="300" height="100" rx="5" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="1"/>
+    <text x="150" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#2c3e50">Database Statistics</text>
+    
+    <text x="10" y="40" font-family="Arial, sans-serif" font-size="11" fill="#2c3e50">• Core Tables: 6 (Certificate, Company, Product, etc.)</text>
+    <text x="10" y="55" font-family="Arial, sans-serif" font-size="11" fill="#2c3e50">• Supporting Tables: 12 (Tags, CustomFields, etc.)</text>
+    <text x="10" y="70" font-family="Arial, sans-serif" font-size="11" fill="#2c3e50">• User Management: 3 (User, Role, Permission)</text>
+    <text x="10" y="85" font-family="Arial, sans-serif" font-size="11" fill="#2c3e50">• Total Relationships: 15+ (1:M and M:M)</text>
+  </g>
+</svg>

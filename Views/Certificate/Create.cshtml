@@ -1,0 +1,255 @@
+@model GCCWebApp.Models.CertificateEditViewModel
+
+@{
+    ViewData["Title"] = "Create Certificate";
+    ViewData["BodyClass"] = "role-admin";
+}
+
+@section Styles {
+    <link href="~/css/certificates.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-analyst-show role-admin-show">
+        <a href="/">Home</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a asp-controller="Certificate" asp-action="Certificates">Certificate Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Create Certificate</span>
+    </span>
+}
+
+@section PageActions {
+    <button class="btn btn-outline" onclick="window.history.back()">
+        <i class="fas fa-arrow-left"></i> Back to Management
+    </button>
+}
+
+<div class="certificate-form">
+    <div class="form-container">
+        <div class="form-header">
+            <h2><i class="fas fa-plus-circle"></i> Create New Certificate</h2>
+            <p>Add a new certificate to the GreenCircle Certified database</p>
+        </div>
+
+        <form asp-action="Create" method="post" class="needs-validation" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="form-section">
+                <h3>Certificate Information</h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Number" class="form-label"></label>
+                            <input asp-for="Number" class="form-control" placeholder="Enter certificate number" required />
+                            <span asp-validation-for="Number" class="text-danger"></span>
+                            <small class="form-text text-muted">Maximum 7 characters</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Status" class="form-label"></label>
+                            <select asp-for="Status" class="form-control">
+                                <option value="active">Active</option>
+                                <option value="expired">Expired</option>
+                                <option value="suspended">Suspended</option>
+                                <option value="draft">Draft</option>
+                            </select>
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="EffectiveDate" class="form-label"></label>
+                            <input asp-for="EffectiveDate" class="form-control" type="date" required />
+                            <span asp-validation-for="EffectiveDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="ExpirationDate" class="form-label"></label>
+                            <input asp-for="ExpirationDate" class="form-control" type="date" required />
+                            <span asp-validation-for="ExpirationDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Associated Records</h3>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label asp-for="CompanyId" class="form-label"></label>
+                            <select asp-for="CompanyId" class="form-control" required>
+                                <option value="">Select a company...</option>
+                                @if (ViewBag.Companies != null)
+                                {
+                                    @foreach (var company in ViewBag.Companies)
+                                    {
+                                        <option value="@company.Id">@company.Name</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="CompanyId" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label asp-for="ProductId" class="form-label"></label>
+                            <select asp-for="ProductId" class="form-control" required>
+                                <option value="">Select a product...</option>
+                                @if (ViewBag.Products != null)
+                                {
+                                    @foreach (var product in ViewBag.Products)
+                                    {
+                                        <option value="@product.Id">@product.Name</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="ProductId" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label asp-for="CertificationTypeId" class="form-label"></label>
+                            <select asp-for="CertificationTypeId" class="form-control" required>
+                                <option value="">Select certification type...</option>
+                                @if (ViewBag.CertificationTypes != null)
+                                {
+                                    @foreach (var certType in ViewBag.CertificationTypes)
+                                    {
+                                        <option value="@certType.Id">@certType.Name</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="CertificationTypeId" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Location Information</h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Location" class="form-label"></label>
+                            <input asp-for="Location" class="form-control" placeholder="Enter location" />
+                            <span asp-validation-for="Location" class="text-danger"></span>
+                            <small class="form-text text-muted">Maximum 175 characters</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Country" class="form-label"></label>
+                            <input asp-for="Country" class="form-control" placeholder="Enter country" />
+                            <span asp-validation-for="Country" class="text-danger"></span>
+                            <small class="form-text text-muted">Maximum 100 characters</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Product Identifiers</h3>
+                <p class="section-description">Optional product identification codes</p>
+                
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label asp-for="Asin" class="form-label"></label>
+                            <input asp-for="Asin" class="form-control" placeholder="Amazon ASIN" />
+                            <span asp-validation-for="Asin" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label asp-for="Upc" class="form-label"></label>
+                            <input asp-for="Upc" class="form-control" placeholder="UPC Code" />
+                            <span asp-validation-for="Upc" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label asp-for="Gtin" class="form-label"></label>
+                            <input asp-for="Gtin" class="form-control" placeholder="GTIN" />
+                            <span asp-validation-for="Gtin" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="form-group">
+                            <label asp-for="Ean" class="form-label"></label>
+                            <input asp-for="Ean" class="form-control" placeholder="EAN" />
+                            <span asp-validation-for="Ean" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Create Certificate
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                    <i class="fas fa-times"></i> Cancel
+                </button>
+                <button type="reset" class="btn btn-outline">
+                    <i class="fas fa-undo"></i> Reset Form
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Form validation enhancement
+        (function() {
+            'use strict';
+            window.addEventListener('load', function() {
+                var forms = document.getElementsByClassName('needs-validation');
+                var validation = Array.prototype.filter.call(forms, function(form) {
+                    form.addEventListener('submit', function(event) {
+                        if (form.checkValidity() === false) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        form.classList.add('was-validated');
+                    }, false);
+                });
+            }, false);
+        })();
+
+        // Date validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const effectiveDate = document.querySelector('input[name="EffectiveDate"]');
+            const expirationDate = document.querySelector('input[name="ExpirationDate"]');
+            
+            function validateDates() {
+                if (effectiveDate.value && expirationDate.value) {
+                    const effective = new Date(effectiveDate.value);
+                    const expiration = new Date(expirationDate.value);
+                    
+                    if (expiration <= effective) {
+                        expirationDate.setCustomValidity('Expiration date must be after effective date');
+                    } else {
+                        expirationDate.setCustomValidity('');
+                    }
+                }
+            }
+            
+            effectiveDate.addEventListener('change', validateDates);
+            expirationDate.addEventListener('change', validateDates);
+        });
+    </script>
+}

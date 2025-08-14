@@ -19,6 +19,7 @@ namespace GCCWebApp.Data
         public DbSet<CertificationType> CertificationTypes { get; set; }
         public DbSet<CustomField> CustomFields { get; set; }
         public DbSet<CustomFieldValue> CustomFieldValues { get; set; }
+        public DbSet<CertificateDocument> CertificateDocuments { get; set; }
 
         // Product related entities
         public DbSet<ProductCategory> ProductCategories { get; set; }
@@ -32,6 +33,9 @@ namespace GCCWebApp.Data
         // User management
         public DbSet<Role> Roles { get; set; }
         public DbSet<Permission> Permissions { get; set; }
+
+        // API management
+        public DbSet<ApiKey> ApiKeys { get; set; }
 
         // ETL entities
         public DbSet<ETLConfiguration> ETLConfigurations { get; set; }
@@ -175,6 +179,24 @@ namespace GCCWebApp.Data
                 entity.HasOne(e => e.Field)
                     .WithMany(cf => cf.CustomFieldValues)
                     .HasForeignKey(e => e.FieldId);
+            });
+
+            // Certificate document configuration
+            modelBuilder.Entity<CertificateDocument>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.CertificateId);
+                entity.HasIndex(e => e.FileHash);
+                
+                entity.HasOne(e => e.Certificate)
+                    .WithMany(c => c.Documents)
+                    .HasForeignKey(e => e.CertificateId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.UploadedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.UploadedBy)
+                    .OnDelete(DeleteBehavior.SetNull);
             });
 
             // User configuration

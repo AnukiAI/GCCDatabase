@@ -39,21 +39,47 @@
 
     <div class="search-filter-bar">
         <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search products...">
+            <input type="text" id="search-input" placeholder="Search products, companies, categories..." autocomplete="off">
             <i class="fas fa-search search-icon"></i>
+            <div id="search-suggestions" class="search-suggestions"></div>
         </div>
         <div class="filters">
-            <select id="category-filter" class="filter-select">
-                <option value="all">All Categories</option>
-            </select>
-            <select id="company-filter" class="filter-select">
-                <option value="all">All Companies</option>
-            </select>
-            <select id="status-filter" class="filter-select">
-                <option value="all">All Status</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-            </select>
+            <div class="filter-group">
+                <label class="filter-label">Category</label>
+                <select id="category-filter" class="filter-select">
+                    <option value="all">All Categories</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Company</label>
+                <select id="company-filter" class="filter-select">
+                    <option value="all">All Companies</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Status</label>
+                <select id="status-filter" class="filter-select">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="filter-label">Certificates</label>
+                <select id="certificate-filter" class="filter-select">
+                    <option value="all">All</option>
+                    <option value="has-certificates">With Certificates</option>
+                    <option value="no-certificates">No Certificates</option>
+                </select>
+            </div>
+            <div class="filter-actions">
+                <button id="clear-filters-btn" class="btn btn-clear" title="Clear all filters">
+                    <i class="fas fa-times"></i> Clear
+                </button>
+                <button id="advanced-filters-btn" class="btn btn-secondary" title="Advanced filters">
+                    <i class="fas fa-filter"></i> Advanced
+                </button>
+            </div>
         </div>
     </div>
 
@@ -266,9 +292,13 @@
         const productTableBody = productTable.querySelector('tbody');
         const productCountElement = document.getElementById('product-count');
         const searchInput = document.getElementById('search-input');
+        const searchSuggestions = document.getElementById('search-suggestions');
         const categoryFilter = document.getElementById('category-filter');
         const companyFilter = document.getElementById('company-filter');
         const statusFilter = document.getElementById('status-filter');
+        const certificateFilter = document.getElementById('certificate-filter');
+        const clearFiltersBtn = document.getElementById('clear-filters-btn');
+        const advancedFiltersBtn = document.getElementById('advanced-filters-btn');
         const importBtn = document.getElementById('import-btn');
         const exportBtn = document.getElementById('export-btn');
         const addProductBtn = document.getElementById('add-product-btn');
@@ -284,6 +314,15 @@
         let sortColumn = 'name';
         let sortDirection = 'asc';
         let currentEditingId = null;
+        
+        // Search suggestions
+        let searchSuggestionsData = {
+            products: [],
+            companies: [],
+            categories: [],
+            types: []
+        };
+        let selectedSuggestionIndex = -1;
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', function() {
@@ -324,6 +363,7 @@
                     const typesData = await typesResponse.json();
                     if (typesData.success) {
                         productTypes = typesData.data;
+                        buildSearchSuggestionsData();
                     }
                 }
             } catch (error) {
@@ -338,6 +378,7 @@
                     const data = await response.json();
                     if (data.success) {
                         products = data.data;
+                        buildSearchSuggestionsData();
                     } else {
                         console.error('Failed to load products:', data.message);
                     }
@@ -383,10 +424,15 @@
 
         function initializeEventListeners() {
             // Search and filter events
-            searchInput.addEventListener('input', populateTable);
-            categoryFilter.addEventListener('change', populateTable);
-            companyFilter.addEventListener('change', populateTable);
-            statusFilter.addEventListener('change', populateTable);
+            searchInput.addEventListener('input', handleSearchInput);
+            searchInput.addEventListener('keydown', handleSearchKeydown);
+            searchInput.addEventListener('blur', hideSuggestions);
+            categoryFilter.addEventListener('change', handleFilterChange);
+            companyFilter.addEventListener('change', handleFilterChange);
+            statusFilter.addEventListener('change', handleFilterChange);
+            certificateFilter.addEventListener('change', handleFilterChange);
+            clearFiltersBtn.addEventListener('click', clearAllFilters);
+            advancedFiltersBtn.addEventListener('click', showAdvancedFilters);
 
             // Button events
             addProductBtn.addEventListener('click', showAddProductModal);
@@ -408,22 +454,30 @@
 
         function populateTable() {
             const searchTerm = searchInput.value.toLowerCase();
-            const categoryFilter = document.getElementById('category-filter').value;
-            const companyFilter = document.getElementById('company-filter').value;
-            const statusFilter = document.getElementById('status-filter').value;
+            const categoryFilterValue = categoryFilter.value;
+            const companyFilterValue = companyFilter.value;
+            const statusFilterValue = statusFilter.value;
+            const certificateFilterValue = certificateFilter.value;
 
             // Filter products
             let filteredProducts = products.filter(product => {
                 const matchesSearch = product.name.toLowerCase().includes(searchTerm) ||
                                     product.company.toLowerCase().includes(searchTerm) ||
                                     product.category.toLowerCase().includes(searchTerm) ||
-                                    product.type.toLowerCase().includes(searchTerm);
-                const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter;
-                const matchesCompany = companyFilter === 'all' || product.company === companyFilter;
-                const matchesStatus = statusFilter === 'all' || product.status.toLowerCase() === statusFilter;
+                                    product.type.toLowerCase().includes(searchTerm) ||
+                                    (product.sku && product.sku.toLowerCase().includes(searchTerm)) ||
+                                    (product.model && product.model.toLowerCase().includes(searchTerm));
+                const matchesCategory = categoryFilterValue === 'all' || product.category === categoryFilterValue;
+                const matchesCompany = companyFilterValue === 'all' || product.company === companyFilterValue;
+                const matchesStatus = statusFilterValue === 'all' || product.status.toLowerCase() === statusFilterValue;
+                const matchesCertificates = certificateFilterValue === 'all' || 
+                    (certificateFilterValue === 'has-certificates' && product.certificates > 0) ||
+                    (certificateFilterValue === 'no-certificates' && product.certificates === 0);
                 
-                return matchesSearch && matchesCategory && matchesCompany && matchesStatus;
+                return matchesSearch && matchesCategory && matchesCompany && matchesStatus && matchesCertificates;
             });
+            
+            updateActiveFiltersDisplay();
 
             // Sort filtered products
             filteredProducts.sort((a, b) => {
@@ -450,37 +504,37 @@
                     Object.values(product.identifiers).reduce((sum, arr) => sum + arr.length, 0) : 0;
                 
                 row.innerHTML = `
-                    <td>
+                    <td data-label="">
                         <span class="expand-indicator" onclick="toggleRowDetails(${product.id})">▶</span>
                     </td>
-                    <td>
+                    <td data-label="Product">
                         <div class="product-info">
                             <div class="product-name">${product.name}</div>
                             <div class="product-sku">SKU: ${product.sku || 'N/A'}</div>
                         </div>
                     </td>
-                    <td>${product.company}</td>
-                    <td>
+                    <td data-label="Company">${product.company}</td>
+                    <td data-label="Category">
                         <div class="category-info">
                             <div class="category-name">${product.category}</div>
                             <div class="product-type">${product.type}</div>
                         </div>
                     </td>
-                    <td>
+                    <td data-label="Status">
                         <span class="status-badge status-${product.status.toLowerCase()}">${product.status}</span>
                     </td>
-                    <td>
+                    <td data-label="Certificates">
                         <span class="certificate-count">
                             <i class="fas fa-certificate"></i> ${product.certificates}
                         </span>
                     </td>
-                    <td>
+                    <td data-label="Identifiers">
                         <span class="product-identifiers-summary">
                             <span class="identifier-count">${totalIdentifiers}</span>
                             identifiers
                         </span>
                     </td>
-                    <td class="actions-cell">
+                    <td class="actions-cell" data-label="Actions">
                         <button class="btn-edit" onclick="editProduct(${product.id})" title="Edit Product">
                             <i class="fas fa-edit"></i>
                         </button>
@@ -578,6 +632,7 @@
                         if (result.success) {
                             await loadProducts();
                             populateTable();
+                            showNotification(result.message || 'Product deleted successfully', 'success');
                             showToast(result.message || 'Product deleted successfully');
                         } else {
                             showToast(result.message || 'Error deleting product', 'error');
@@ -622,7 +677,9 @@
                         await loadProducts();
                         closeModal();
                         populateTable();
-                        showToast(result.message || (formData.id ? 'Product updated successfully' : 'Product added successfully'));
+                        const message = result.message || (formData.id ? 'Product updated successfully' : 'Product added successfully');
+                        showNotification(message, 'success');
+                        showToast(message);
                     } else {
                         showToast(result.message || 'Error saving product', 'error');
                     }
@@ -686,6 +743,414 @@
             URL.revokeObjectURL(url);
             
             showToast('Products exported successfully');
+        }
+        
+        function buildSearchSuggestionsData() {
+            // Extract unique values for suggestions
+            searchSuggestionsData.products = [...new Set(products.map(p => p.name))].sort();
+            searchSuggestionsData.companies = [...new Set(companies.map(c => c.name))].sort();
+            searchSuggestionsData.categories = [...new Set(categories.map(c => c.name))].sort();
+            searchSuggestionsData.types = [...new Set(productTypes.map(t => t.name))].sort();
+        }
+        
+        function handleSearchInput(e) {
+            const query = e.target.value.toLowerCase().trim();
+            
+            if (query.length >= 2) {
+                showSearchSuggestions(query);
+            } else {
+                hideSuggestions();
+            }
+            
+            // Debounce the table population for better performance
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(() => {
+                populateTable();
+            }, 300);
+        }
+        
+        function showSearchSuggestions(query) {
+            const suggestions = [];
+            
+            // Add product suggestions
+            searchSuggestionsData.products
+                .filter(name => name.toLowerCase().includes(query))
+                .slice(0, 3)
+                .forEach(name => {
+                    suggestions.push({ text: name, type: 'product', icon: 'fas fa-box' });
+                });
+            
+            // Add company suggestions
+            searchSuggestionsData.companies
+                .filter(name => name.toLowerCase().includes(query))
+                .slice(0, 3)
+                .forEach(name => {
+                    suggestions.push({ text: name, type: 'company', icon: 'fas fa-building' });
+                });
+            
+            // Add category suggestions
+            searchSuggestionsData.categories
+                .filter(name => name.toLowerCase().includes(query))
+                .slice(0, 2)
+                .forEach(name => {
+                    suggestions.push({ text: name, type: 'category', icon: 'fas fa-tags' });
+                });
+            
+            // Add type suggestions
+            searchSuggestionsData.types
+                .filter(name => name.toLowerCase().includes(query))
+                .slice(0, 2)
+                .forEach(name => {
+                    suggestions.push({ text: name, type: 'type', icon: 'fas fa-sitemap' });
+                });
+            
+            if (suggestions.length > 0) {
+                displaySuggestions(suggestions);
+            } else {
+                hideSuggestions();
+            }
+        }
+        
+        function displaySuggestions(suggestions) {
+            selectedSuggestionIndex = -1;
+            
+            searchSuggestions.innerHTML = suggestions.map((suggestion, index) => `
+                <div class="suggestion-item" data-index="${index}" onclick="selectSuggestion('${suggestion.text}')">
+                    <i class="${suggestion.icon} suggestion-icon"></i>
+                    <span class="suggestion-text">${suggestion.text}</span>
+                    <span class="suggestion-type">${suggestion.type}</span>
+                </div>
+            `).join('');
+            
+            searchSuggestions.style.display = 'block';
+        }
+        
+        function handleSearchKeydown(e) {
+            const suggestionItems = searchSuggestions.querySelectorAll('.suggestion-item');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.min(selectedSuggestionIndex + 1, suggestionItems.length - 1);
+                updateSuggestionSelection(suggestionItems);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                selectedSuggestionIndex = Math.max(selectedSuggestionIndex - 1, -1);
+                updateSuggestionSelection(suggestionItems);
+            } else if (e.key === 'Enter' && selectedSuggestionIndex >= 0) {
+                e.preventDefault();
+                const selectedItem = suggestionItems[selectedSuggestionIndex];
+                if (selectedItem) {
+                    const text = selectedItem.querySelector('.suggestion-text').textContent;
+                    selectSuggestion(text);
+                }
+            } else if (e.key === 'Escape') {
+                hideSuggestions();
+            }
+        }
+        
+        function updateSuggestionSelection(items) {
+            items.forEach((item, index) => {
+                if (index === selectedSuggestionIndex) {
+                    item.classList.add('selected');
+                } else {
+                    item.classList.remove('selected');
+                }
+            });
+        }
+        
+        function selectSuggestion(text) {
+            searchInput.value = text;
+            hideSuggestions();
+            populateTable();
+        }
+        
+        function hideSuggestions() {
+            setTimeout(() => {
+                searchSuggestions.style.display = 'none';
+                selectedSuggestionIndex = -1;
+            }, 200);
+        }
+        
+        function handleFilterChange() {
+            populateTable();
+            updateActiveFiltersDisplay();
+        }
+        
+        function clearAllFilters() {
+            categoryFilter.value = 'all';
+            companyFilter.value = 'all';
+            statusFilter.value = 'all';
+            certificateFilter.value = 'all';
+            searchInput.value = '';
+            populateTable();
+            updateActiveFiltersDisplay();
+            showToast('All filters cleared', 'info');
+        }
+        
+        function updateActiveFiltersDisplay() {
+            const activeFilters = [];
+            
+            if (categoryFilter.value !== 'all') {
+                activeFilters.push({ type: 'Category', value: categoryFilter.options[categoryFilter.selectedIndex].text });
+            }
+            if (companyFilter.value !== 'all') {
+                activeFilters.push({ type: 'Company', value: companyFilter.options[companyFilter.selectedIndex].text });
+            }
+            if (statusFilter.value !== 'all') {
+                activeFilters.push({ type: 'Status', value: statusFilter.options[statusFilter.selectedIndex].text });
+            }
+            if (certificateFilter.value !== 'all') {
+                activeFilters.push({ type: 'Certificates', value: certificateFilter.options[certificateFilter.selectedIndex].text });
+            }
+            if (searchInput.value.trim()) {
+                activeFilters.push({ type: 'Search', value: searchInput.value.trim() });
+            }
+            
+            displayActiveFilters(activeFilters);
+        }
+        
+        function displayActiveFilters(filters) {
+            let activeFiltersContainer = document.getElementById('active-filters');
+            if (!activeFiltersContainer) {
+                activeFiltersContainer = document.createElement('div');
+                activeFiltersContainer.id = 'active-filters';
+                activeFiltersContainer.className = 'active-filters';
+                document.querySelector('.search-filter-bar').appendChild(activeFiltersContainer);
+            }
+            
+            if (filters.length === 0) {
+                activeFiltersContainer.style.display = 'none';
+                return;
+            }
+            
+            activeFiltersContainer.style.display = 'flex';
+            activeFiltersContainer.innerHTML = `
+                <span class="active-filters-label">Active filters:</span>
+                ${filters.map(filter => `
+                    <div class="filter-tag">
+                        <span class="filter-tag-type">${filter.type}:</span>
+                        <span class="filter-tag-value">${filter.value}</span>
+                        <button class="filter-tag-remove" onclick="removeFilter('${filter.type.toLowerCase()}')" title="Remove filter">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `).join('')}
+            `;
+        }
+        
+        function removeFilter(filterType) {
+            switch(filterType) {
+                case 'category':
+                    categoryFilter.value = 'all';
+                    break;
+                case 'company':
+                    companyFilter.value = 'all';
+                    break;
+                case 'status':
+                    statusFilter.value = 'all';
+                    break;
+                case 'certificates':
+                    certificateFilter.value = 'all';
+                    break;
+                case 'search':
+                    searchInput.value = '';
+                    break;
+            }
+            populateTable();
+        }
+        
+        function showAdvancedFilters() {
+            showToast('Advanced filters feature coming soon!', 'info');
+        }
+        
+        function initializeRealTimeUpdates() {
+            // Add real-time controls to header
+            const headerButtonsArea = document.querySelector('.buttons-area');
+            const realTimeToggle = document.createElement('button');
+            realTimeToggle.id = 'realtime-toggle';
+            realTimeToggle.className = 'btn btn-secondary';
+            realTimeToggle.innerHTML = '<i class="fas fa-sync-alt"></i> Auto Refresh: OFF';
+            realTimeToggle.title = 'Toggle auto-refresh (Ctrl+R)';
+            realTimeToggle.addEventListener('click', toggleAutoRefresh);
+            headerButtonsArea.insertBefore(realTimeToggle, headerButtonsArea.firstChild);
+            
+            // Initialize with auto-refresh disabled
+            lastUpdateTimestamp = Date.now();
+        }
+        
+        function toggleAutoRefresh() {
+            isAutoRefreshEnabled = !isAutoRefreshEnabled;
+            const toggleBtn = document.getElementById('realtime-toggle');
+            
+            if (isAutoRefreshEnabled) {
+                startAutoRefresh();
+                toggleBtn.innerHTML = '<i class="fas fa-sync-alt spinning"></i> Auto Refresh: ON';
+                toggleBtn.classList.remove('btn-secondary');
+                toggleBtn.classList.add('btn-success');
+                showNotification('Auto-refresh enabled - Updates every 30 seconds', 'success');
+            } else {
+                stopAutoRefresh();
+                toggleBtn.innerHTML = '<i class="fas fa-sync-alt"></i> Auto Refresh: OFF';
+                toggleBtn.classList.remove('btn-success');
+                toggleBtn.classList.add('btn-secondary');
+                showNotification('Auto-refresh disabled', 'info');
+            }
+        }
+        
+        function startAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+            }
+            
+            autoRefreshInterval = setInterval(async () => {
+                if (!document.hidden) { // Only refresh when page is visible
+                    try {
+                        const oldProductsLength = products.length;
+                        await loadProducts();
+                        
+                        if (products.length !== oldProductsLength) {
+                            const diff = products.length - oldProductsLength;
+                            if (diff > 0) {
+                                showNotification(`${diff} new product(s) added`, 'success');
+                            } else {
+                                showNotification(`${Math.abs(diff)} product(s) removed`, 'warning');
+                            }
+                            populateTable();
+                        }
+                        
+                        // Update timestamp indicator
+                        updateLastRefreshIndicator();
+                    } catch (error) {
+                        console.error('Auto-refresh failed:', error);
+                        showNotification('Auto-refresh failed', 'error');
+                    }
+                }
+            }, 30000); // 30 seconds
+        }
+        
+        function stopAutoRefresh() {
+            if (autoRefreshInterval) {
+                clearInterval(autoRefreshInterval);
+                autoRefreshInterval = null;
+            }
+        }
+        
+        function updateLastRefreshIndicator() {
+            lastUpdateTimestamp = Date.now();
+            const indicator = document.getElementById('last-update-indicator');
+            if (!indicator) {
+                const footerInfo = document.querySelector('.footer-info');
+                const updateIndicator = document.createElement('span');
+                updateIndicator.id = 'last-update-indicator';
+                updateIndicator.className = 'last-update';
+                footerInfo.appendChild(updateIndicator);
+            }
+            
+            const now = new Date();
+            document.getElementById('last-update-indicator').textContent = 
+                ` • Last updated: ${now.toLocaleTimeString()}`;
+        }
+        
+        function createNotificationContainer() {
+            const container = document.createElement('div');
+            container.id = 'notification-container';
+            container.className = 'notification-container';
+            document.body.appendChild(container);
+        }
+        
+        function showNotification(message, type = 'info', duration = 4000) {
+            notificationQueue.push({ message, type, duration });
+            if (!isProcessingNotification) {
+                processNotificationQueue();
+            }
+        }
+        
+        function processNotificationQueue() {
+            if (notificationQueue.length === 0) {
+                isProcessingNotification = false;
+                return;
+            }
+            
+            isProcessingNotification = true;
+            const notification = notificationQueue.shift();
+            displayNotification(notification);
+        }
+        
+        function displayNotification({ message, type, duration }) {
+            const container = document.getElementById('notification-container');
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            
+            const icon = getNotificationIcon(type);
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="${icon} notification-icon"></i>
+                    <span class="notification-message">${message}</span>
+                    <button class="notification-close" onclick="closeNotification(this)">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="notification-progress"></div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Animate in
+            setTimeout(() => {
+                notification.classList.add('show');
+            }, 10);
+            
+            // Auto-remove after duration
+            setTimeout(() => {
+                removeNotification(notification);
+            }, duration);
+        }
+        
+        function getNotificationIcon(type) {
+            switch(type) {
+                case 'success': return 'fas fa-check-circle';
+                case 'error': return 'fas fa-exclamation-circle';
+                case 'warning': return 'fas fa-exclamation-triangle';
+                default: return 'fas fa-info-circle';
+            }
+        }
+        
+        function closeNotification(button) {
+            const notification = button.closest('.notification');
+            removeNotification(notification);
+        }
+        
+        function removeNotification(notification) {
+            notification.classList.add('hide');
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+                processNotificationQueue();
+            }, 300);
+        }
+        
+        function handleKeyboardShortcuts(e) {
+            if (e.ctrlKey || e.metaKey) {
+                switch(e.key.toLowerCase()) {
+                    case 'r':
+                        if (!e.shiftKey) {
+                            e.preventDefault();
+                            toggleAutoRefresh();
+                        }
+                        break;
+                    case 'f':
+                        if (e.shiftKey) {
+                            e.preventDefault();
+                            clearAllFilters();
+                        }
+                        break;
+                    case '/':
+                        e.preventDefault();
+                        searchInput.focus();
+                        break;
+                }
+            }
         }
 
         function createIdentifierSections(identifiers) {

@@ -32,9 +32,8 @@ namespace GCCWebApp.E2E.Tests.Tests
 
             // Assert
             response.StatusCode.Should().BeOneOf(
-                HttpStatusCode.Redirect,
-                HttpStatusCode.Unauthorized,
-                HttpStatusCode.Found
+                HttpStatusCode.Found,
+                HttpStatusCode.Unauthorized
             );
         }
 
@@ -50,7 +49,7 @@ namespace GCCWebApp.E2E.Tests.Tests
             // Assert
             response.StatusCode.Should().BeOneOf(
                 HttpStatusCode.OK,
-                HttpStatusCode.Redirect // May redirect if already authenticated
+                HttpStatusCode.Found // May redirect if already authenticated
             );
         }
 
@@ -87,7 +86,7 @@ namespace GCCWebApp.E2E.Tests.Tests
                 HttpStatusCode.OK, // Stays on page with error
                 HttpStatusCode.BadRequest,
                 HttpStatusCode.Unauthorized,
-                HttpStatusCode.Redirect // May redirect to error page
+                HttpStatusCode.Found // May redirect to error page
             );
         }
 
@@ -102,7 +101,6 @@ namespace GCCWebApp.E2E.Tests.Tests
 
             // Assert
             response.StatusCode.Should().BeOneOf(
-                HttpStatusCode.Redirect,
                 HttpStatusCode.Found,
                 HttpStatusCode.OK
             );

@@ -1,35 +1,146 @@
 @{
-    ViewData["Title"] = "CSF Attributes";
+    ViewData["Title"] = "CSF Attributes Management";
+    ViewData["BodyClass"] = "admin-csf-attributes";
 }
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <h1>CSF Attributes</h1>
-            <p class="text-muted">Manage Certificate Sustainability Features (CSF) attributes</p>
-            
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                This is a placeholder view for CSF Attributes Management. The full implementation will include management of sustainability attributes for certificates.
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h5>CSF Attributes Overview</h5>
-                </div>
-                <div class="card-body">
-                    <p>Features coming soon:</p>
-                    <ul>
-                        <li>List of all CSF attributes (Biobased, Biodegradable, etc.)</li>
-                        <li>Create new sustainability attributes</li>
-                        <li>Edit attribute descriptions</li>
-                        <li>Enable/disable attributes</li>
-                        <li>Attribute usage statistics</li>
-                        <li>Category grouping for attributes</li>
-                        <li>Import/export attribute definitions</li>
-                    </ul>
-                </div>
-            </div>
+@section Styles {
+    <link href="~/css/csf-attributes.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Data Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">CSF Attributes</a>
+    </span>
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="buttons-area">
+            <button id="export-btn" class="btn">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button id="add-csf-btn" class="btn btn-add">
+                <i class="fas fa-plus"></i> Add New CSF Attribute
+            </button>
+        </div>
+    </header>
+
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search CSF attributes...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+        <div class="filters">
+            <select id="certification-filter" class="filter-select">
+                <option value="all">All Certifications</option>
+                <option value="greenguard">GREENGUARD</option>
+                <option value="greenguard-gold">GREENGUARD Gold</option>
+                <option value="cradle-to-cradle">Cradle to Cradle</option>
+            </select>
         </div>
     </div>
+
+    <div class="table-container">
+        <table id="csf-table">
+            <thead>
+                <tr>
+                    <th width="25%" data-sort="name">Attribute Name <span class="sort-icon">▼</span></th>
+                    <th width="20%" data-sort="certification">Certification Type <span class="sort-icon">▼</span></th>
+                    <th width="15%" data-sort="type">Data Type <span class="sort-icon">▼</span></th>
+                    <th width="30%" data-sort="description">Description <span class="sort-icon">▼</span></th>
+                    <th width="10%" class="actions-col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Add CSF Attribute row (initially hidden) -->
+                <tr id="csf-add-row" class="csf-add-row">
+                    <td>
+                        <input type="text" id="new-csf-name" class="csf-edit-input" placeholder="Enter attribute name" required>
+                    </td>
+                    <td>
+                        <select id="new-csf-certification" class="csf-edit-select" required>
+                            <option value="">Select certification</option>
+                            <option value="greenguard">GREENGUARD</option>
+                            <option value="greenguard-gold">GREENGUARD Gold</option>
+                            <option value="cradle-to-cradle">Cradle to Cradle</option>
+                            <option value="energy-star">ENERGY STAR</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select id="new-csf-type" class="csf-edit-select" required>
+                            <option value="">Select type</option>
+                            <option value="text">Text</option>
+                            <option value="number">Number</option>
+                            <option value="boolean">Boolean</option>
+                            <option value="date">Date</option>
+                            <option value="dropdown">Dropdown</option>
+                        </select>
+                    </td>
+                    <td>
+                        <input type="text" id="new-csf-description" class="csf-edit-input" placeholder="Optional description">
+                    </td>
+                    <td>
+                        <div class="csf-add-actions" style="display: flex; gap: 5px;">
+                            <button class="csf-btn-save" onclick="saveNewCsfAttribute()">
+                                <i class="fas fa-check"></i> Save
+                            </button>
+                            <button class="csf-btn-cancel" onclick="cancelAddCsfAttribute()">
+                                <i class="fas fa-times"></i> Cancel
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                <!-- Data will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-info">
+        <span id="csf-count">Showing 0 of 0 CSF attributes</span>
+    </div>
 </div>
+
+
+@section Scripts {
+    <script src="~/js/admin/exportUtils.js"></script>
+    <script src="~/js/validation.js"></script>
+    <script src="~/js/admin/csfAttributes.js"></script>
+    <script>
+        // Add export functionality to CSF Attributes
+        document.addEventListener('DOMContentLoaded', function() {
+            const exportBtn = document.getElementById('export-btn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function() {
+                    // Sample data structure for CSF Attributes
+                    const sampleData = [
+                        { id: 1, name: 'Biobased Content', certificationType: 'GREENGUARD', dataType: 'number', description: 'Percentage of biobased materials' },
+                        { id: 2, name: 'VOC Emissions', certificationType: 'GREENGUARD Gold', dataType: 'number', description: 'Volatile organic compound emissions level' },
+                        { id: 3, name: 'Formaldehyde Free', certificationType: 'GREENGUARD', dataType: 'boolean', description: 'Contains no formaldehyde' },
+                        { id: 4, name: 'Recycled Content', certificationType: 'Cradle to Cradle', dataType: 'number', description: 'Percentage of recycled materials' },
+                        { id: 5, name: 'Biodegradable', certificationType: 'GREENGUARD', dataType: 'boolean', description: 'Material is biodegradable' }
+                    ];
+
+                    const columns = [
+                        { key: 'id', header: 'ID' },
+                        { key: 'name', header: 'Attribute Name' },
+                        { key: 'certificationType', header: 'Certification Type' },
+                        { key: 'dataType', header: 'Data Type' },
+                        { key: 'description', header: 'Description' }
+                    ];
+                    
+                    ExportUtils.showExportModal(
+                        sampleData, 
+                        columns, 
+                        'csf_attributes',
+                        (message, type) => alert(message)
+                    );
+                });
+            }
+        });
+    </script>
+}

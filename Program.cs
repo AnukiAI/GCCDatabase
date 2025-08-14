@@ -1,13 +1,17 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
+using Microsoft.AspNetCore.Mvc;
+using AspNetCoreRateLimit;
 using GCCWebApp.Configuration;
 using GCCWebApp.Data;
 using GCCWebApp.Repositories;
 using GCCWebApp.Services;
+using GCCWebApp.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -99,6 +103,27 @@ else
         });
 }
 
+// ===== API AUTHENTICATION =====
+builder.Services.AddAuthentication()
+    .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
+        ApiKeyAuthenticationOptions.DefaultScheme, opts => { })
+    .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+    {
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(
+                    builder.Configuration["Jwt:Key"] ?? "YourSuperSecretKeyForJWTTokenGeneration123456789")),
+            ValidateIssuer = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "GCCWebApp",
+            ValidateAudience = true,
+            ValidAudience = builder.Configuration["Jwt:Audience"] ?? "GCCWebApp",
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
 // ===== AUTHORIZATION POLICIES =====
 builder.Services.AddAuthorization(options =>
 {
@@ -125,6 +150,46 @@ builder.Services.AddAuthorization(options =>
 
     // No fallback policy for testing - allow anonymous by default
 });
+
+// ===== API VERSIONING =====
+builder.Services.AddApiVersioning(opt =>
+{
+    opt.DefaultApiVersion = new Asp.Versioning.ApiVersion(1, 0);
+    opt.AssumeDefaultVersionWhenUnspecified = true;
+    opt.ApiVersionReader = Asp.Versioning.ApiVersionReader.Combine(
+        new Asp.Versioning.UrlSegmentApiVersionReader(),
+        new Asp.Versioning.QueryStringApiVersionReader("version"),
+        new Asp.Versioning.HeaderApiVersionReader("X-Version"),
+        new Asp.Versioning.MediaTypeApiVersionReader("ver"));
+}).AddApiExplorer(setup =>
+{
+    setup.GroupNameFormat = "'v'VVV";
+    setup.SubstituteApiVersionInUrl = true;
+});
+
+// ===== RATE LIMITING =====
+builder.Services.AddMemoryCache();
+builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
+builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
+builder.Services.AddInMemoryRateLimiting();
+builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+
+// ===== CORS CONFIGURATION =====
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("ApiCorsPolicy", policy =>
+    {
+        policy.WithOrigins(
+                builder.Configuration.GetSection("AllowedOrigins").Get<string[]>() 
+                ?? new[] { "http://localhost:3000", "https://localhost:3001" })
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
+    });
+});
+
+// ===== SWAGGER CONFIGURATION =====
+builder.Services.AddSwaggerConfiguration();
 
 // ===== MVC & RAZOR PAGES CONFIGURATION =====
 builder.Services.AddControllersWithViews(options =>
@@ -154,6 +219,8 @@ builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IValidationService, ValidationService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 
 // ===== ETL SERVICES =====
 builder.Services.AddScoped<GCCWebApp.Services.ETL.IETLService, GCCWebApp.Services.ETL.ETLService>();
@@ -208,6 +275,12 @@ else
 // HTTPS redirection
 app.UseHttpsRedirection();
 
+// CORS (must be before routing)
+app.UseCors("ApiCorsPolicy");
+
+// Rate limiting (before routing)
+app.UseIpRateLimiting();
+
 // Static files with caching
 app.UseStaticFiles(new StaticFileOptions
 {
@@ -261,6 +334,13 @@ app.Use(async (context, next) =>
 
     await next();
 });
+
+// ===== SWAGGER CONFIGURATION =====
+if (app.Environment.IsDevelopment())
+{
+    var apiVersionDescriptionProvider = app.Services.GetRequiredService<Asp.Versioning.ApiExplorer.IApiVersionDescriptionProvider>();
+    app.UseSwaggerConfiguration(apiVersionDescriptionProvider);
+}
 
 // ===== ROUTE MAPPING =====
 

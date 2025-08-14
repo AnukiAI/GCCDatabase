@@ -1,35 +1,143 @@
 @{
-    ViewData["Title"] = "Tags Management";
+    ViewData["Title"] = "Tag Management";
+    ViewData["BodyClass"] = "admin-tags";
 }
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <h1>Tags Management</h1>
-            <p class="text-muted">Manage internal and external tags for products and certificates</p>
-            
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                This is a placeholder view for Tags Management. The full implementation will include management of internal and external tags for categorizing products and certificates.
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h5>Tags Overview</h5>
+@section Styles {
+    <link href="~/css/tags.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Data Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Tags</a>
+    </span>
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="buttons-area">
+            <button id="export-btn" class="btn">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button id="add-tag-btn" class="btn btn-add">
+                <i class="fas fa-plus"></i> Add New Tag
+            </button>
+        </div>
+    </header>
+
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search tags...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+        <div class="filters">
+            <select id="type-filter" class="filter-select">
+                <option value="all">All Types</option>
+                <option value="external">External</option>
+                <option value="internal">Internal</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="tag-table">
+            <thead>
+                <tr>
+                    <th width="25%" data-sort="name">Tag Name <span class="sort-icon">▼</span></th>
+                    <th width="20%" data-sort="type">Tag Type <span class="sort-icon">▼</span></th>
+                    <th width="45%" data-sort="description">Description <span class="sort-icon">▼</span></th>
+                    <th width="10%" class="actions-col">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-info">
+        <span id="tag-count">Showing 0 of 0 tags</span>
+    </div>
+</div>
+
+<!-- Add/Edit Tag Modal -->
+<div id="tag-modal" class="modal">
+    <div class="modal-overlay"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" id="modal-title">Add New Tag</h3>
+            <span class="modal-close">&times;</span>
+        </div>
+        <div class="modal-body">
+            <form id="tag-form">
+                <input type="hidden" id="tag-id">
+
+                <div class="form-group">
+                    <label for="tag-name">Tag Name</label>
+                    <input type="text" id="tag-name" required>
                 </div>
-                <div class="card-body">
-                    <p>Features coming soon:</p>
-                    <ul>
-                        <li>List of all tags (Internal and External)</li>
-                        <li>Create new tags with type selection</li>
-                        <li>Edit tag names and descriptions</li>
-                        <li>Product count per tag</li>
-                        <li>Tag usage analytics</li>
-                        <li>Bulk tag operations</li>
-                        <li>Tag merging and cleanup tools</li>
-                    </ul>
+
+                <div class="form-group">
+                    <label for="tag-type">Tag Type</label>
+                    <select id="tag-type" required>
+                        <option value="external">External</option>
+                        <option value="internal">Internal</option>
+                    </select>
                 </div>
-            </div>
+
+                <div class="form-group">
+                    <label for="tag-description">Description</label>
+                    <textarea id="tag-description" placeholder="Optional description..."></textarea>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-cancel" id="cancel-btn">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="save-btn" form="tag-form">Save</button>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/admin/exportUtils.js"></script>
+    <script src="~/js/tags.js"></script>
+    <script>
+        // Add export functionality to Tags
+        document.addEventListener('DOMContentLoaded', function() {
+            const exportBtn = document.getElementById('export-btn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function() {
+                    // Sample data structure for Tags
+                    const sampleData = [
+                        { id: 1, name: 'Sustainable', type: 'external', description: 'Products with sustainability features' },
+                        { id: 2, name: 'Energy Efficient', type: 'external', description: 'Energy saving products' },
+                        { id: 3, name: 'Indoor Air Quality', type: 'internal', description: 'Products that improve indoor air quality' },
+                        { id: 4, name: 'Low VOC', type: 'external', description: 'Low volatile organic compound emissions' },
+                        { id: 5, name: 'Recycled Materials', type: 'external', description: 'Made from recycled content' },
+                        { id: 6, name: 'Priority Product', type: 'internal', description: 'High priority for marketing' },
+                        { id: 7, name: 'Eco-Friendly', type: 'external', description: 'Environmentally friendly products' }
+                    ];
+
+                    const columns = [
+                        { key: 'id', header: 'ID' },
+                        { key: 'name', header: 'Tag Name' },
+                        { key: 'type', header: 'Tag Type' },
+                        { key: 'description', header: 'Description' }
+                    ];
+                    
+                    ExportUtils.showExportModal(
+                        sampleData, 
+                        columns, 
+                        'tags',
+                        (message, type) => alert(message)
+                    );
+                });
+            }
+        });
+    </script>
+}

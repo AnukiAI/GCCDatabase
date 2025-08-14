@@ -1,0 +1,214 @@
+@{
+    var certificateId = ViewBag.CertificateId ?? 0;
+    var canUpload = ViewBag.CanUpload ?? false;
+}
+
+<div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="fas fa-file-alt"></i> Certificate Documents
+        </h5>
+        @if (canUpload)
+        {
+            <a href="@Url.Action("Upload", "Document", new { certificateId = certificateId })" class="btn btn-primary btn-sm">
+                <i class="fas fa-upload"></i> Upload Document
+            </a>
+        }
+    </div>
+    <div class="card-body">
+        <div id="documentsContainer">
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading documents...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(document).ready(function() {
+    loadDocuments();
+});
+
+function loadDocuments() {
+    const certificateId = @certificateId;
+    
+    $.get('@Url.Action("GetDocuments", "Document")/' + certificateId)
+        .done(function(documents) {
+            displayDocuments(documents);
+        })
+        .fail(function() {
+            $('#documentsContainer').html(
+                '<div class="alert alert-warning">' +
+                '<i class="fas fa-exclamation-triangle"></i> Unable to load documents.' +
+                '</div>'
+            );
+        });
+}
+
+function displayDocuments(documents) {
+    const container = $('#documentsContainer');
+    
+    if (!documents || documents.length === 0) {
+        container.html(
+            '<div class="text-muted text-center">' +
+            '<i class="fas fa-file-alt fa-3x mb-3"></i>' +
+            '<p>No documents uploaded yet.</p>' +
+            '</div>'
+        );
+        return;
+    }
+    
+    let html = '<div class="table-responsive">' +
+               '<table class="table table-hover">' +
+               '<thead>' +
+               '<tr>' +
+               '<th>Document</th>' +
+               '<th>Type</th>' +
+               '<th>Size</th>' +
+               '<th>Uploaded</th>' +
+               '<th>Actions</th>' +
+               '</tr>' +
+               '</thead>' +
+               '<tbody>';
+    
+    documents.forEach(function(doc) {
+        const fileIcon = getFileIcon(doc.fileName);
+        const fileSize = formatFileSize(doc.fileSize);
+        
+        html += '<tr>' +
+                '<td>' +
+                '<i class="' + fileIcon + ' me-2"></i>' +
+                '<span class="fw-medium">' + escapeHtml(doc.fileName) + '</span>' +
+                (doc.description ? '<br><small class="text-muted">' + escapeHtml(doc.description) + '</small>' : '') +
+                '</td>' +
+                '<td>' +
+                '<span class="badge bg-secondary">' + escapeHtml(doc.documentType) + '</span>' +
+                (doc.isPublic ? ' <span class="badge bg-success">Public</span>' : '') +
+                '</td>' +
+                '<td>' + fileSize + '</td>' +
+                '<td>' + doc.uploadedAt + '</td>' +
+                '<td>';
+        
+        if (doc.canDownload && doc.downloadUrl) {
+            html += '<a href="' + doc.downloadUrl + '" class="btn btn-sm btn-outline-primary me-1" title="Download">' +
+                    '<i class="fas fa-download"></i>' +
+                    '</a>';
+        }
+        
+        if (doc.previewUrl) {
+            html += '<a href="' + doc.previewUrl + '" class="btn btn-sm btn-outline-info me-1" title="Preview" target="_blank">' +
+                    '<i class="fas fa-eye"></i>' +
+                    '</a>';
+        }
+        
+        @if (ViewBag.CanDelete ?? false)
+        {
+            <text>
+            html += '<button class="btn btn-sm btn-outline-danger" onclick="deleteDocument(' + doc.id + ')" title="Delete">' +
+                    '<i class="fas fa-trash"></i>' +
+                    '</button>';
+            </text>
+        }
+        
+        html += '</td></tr>';
+    });
+    
+    html += '</tbody></table></div>';
+    container.html(html);
+}
+
+function getFileIcon(fileName) {
+    const ext = fileName.split('.').pop().toLowerCase();
+    switch (ext) {
+        case 'pdf':
+            return 'fas fa-file-pdf text-danger';
+        case 'doc':
+        case 'docx':
+            return 'fas fa-file-word text-primary';
+        case 'jpg':
+        case 'jpeg':
+        case 'png':
+        case 'gif':
+        case 'tiff':
+            return 'fas fa-file-image text-success';
+        default:
+            return 'fas fa-file text-secondary';
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    return text.replace(/&/g, '&amp;')
+               .replace(/</g, '&lt;')
+               .replace(/>/g, '&gt;')
+               .replace(/"/g, '&quot;')
+               .replace(/'/g, '&#39;');
+}
+
+@if (ViewBag.CanDelete ?? false)
+{
+    <text>
+    function deleteDocument(documentId) {
+        if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+            return;
+        }
+        
+        const token = $('input[name="__RequestVerificationToken"]').val();
+        
+        $.post('@Url.Action("Delete", "Document")/' + documentId, { 
+            __RequestVerificationToken: token 
+        })
+        .done(function(response) {
+            if (response.success) {
+                toastr.success(response.message || 'Document deleted successfully.');
+                loadDocuments(); // Reload the documents list
+            } else {
+                toastr.error(response.message || 'Failed to delete document.');
+            }
+        })
+        .fail(function() {
+            toastr.error('An error occurred while deleting the document.');
+        });
+    }
+    </text>
+}
+</script>
+
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #495057;
+}
+
+.table td {
+    vertical-align: middle;
+}
+
+.badge {
+    font-size: 0.75rem;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+.spinner-border {
+    width: 1.5rem;
+    height: 1.5rem;
+}
+</style>

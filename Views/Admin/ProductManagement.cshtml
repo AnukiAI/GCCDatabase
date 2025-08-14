@@ -1,36 +1,437 @@
 @{
     ViewData["Title"] = "Product Management";
+    ViewData["BodyClass"] = "admin-product-management";
 }
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <h1>Product Management</h1>
-            <p class="text-muted">Manage products and their associations</p>
-            
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                This is a placeholder view for Product Management. The full implementation will include comprehensive product management with company and certificate associations.
-            </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h5>Products Overview</h5>
-                </div>
-                <div class="card-body">
-                    <p>Features coming soon:</p>
-                    <ul>
-                        <li>Complete product listing with search and filters</li>
-                        <li>Create new products</li>
-                        <li>Edit product details and descriptions</li>
-                        <li>Associate products with companies</li>
-                        <li>Link products to product types</li>
-                        <li>Manage product status (Active/Inactive)</li>
-                        <li>Certificate count per product</li>
-                        <li>Bulk product operations</li>
-                    </ul>
-                </div>
-            </div>
+@section Styles {
+    <link href="~/css/product-management.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Data Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Product Management</a>
+    </span>
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="buttons-area">
+            <button id="export-btn" class="btn">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button class="btn btn-add" id="add-product-btn">
+                <i class="fas fa-plus"></i> Add New Product
+            </button>
+        </div>
+    </header>
+
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search products...">
+            <i class="fas fa-search search-icon"></i>
         </div>
     </div>
+
+    <div class="table-container">
+        <table id="products-table">
+    <thead>
+        <tr>
+            <th width="90%" data-sort="name">Product Name</th>
+            <th width="10%" class="actions-col">Actions</th>
+        </tr>
+    </thead>
+    <tbody id="products-table-body">
+        <!-- Add product row (initially hidden) -->
+        <tr id="add-row" class="add-row">
+            <td data-label="Product Name">
+                <input type="text" id="new-product-input" placeholder="Enter product name">
+            </td>
+            <td class="actions-cell" data-label="Actions">
+                <div class="edit-actions">
+                    <button class="save-btn" id="save-new-btn">Save</button>
+                    <button class="cancel-btn" id="cancel-new-btn">Cancel</button>
+                </div>
+            </td>
+        </tr>
+        <!-- Product data will be populated here -->
+    </tbody>
+        </table>
+    </div>
+
+    <div class="footer-info" id="products-count">
+        Showing 0 of 0 products
+    </div>
 </div>
+
+<!-- Toast for notifications -->
+<div id="toast" class="toast"></div>
+
+@section Scripts {
+    <script src="~/js/admin/exportUtils.js"></script>
+    <script>
+        // Sample product data
+        let products = [
+            { id: 1, name: 'Product 1' },
+            { id: 2, name: 'Product 2' },
+            { id: 3, name: 'Product 3' },
+            { id: 4, name: 'Product 4' },
+            { id: 5, name: 'Product 5' },
+            { id: 6, name: 'Product 6' },
+            { id: 7, name: 'Product 7' },
+            { id: 8, name: 'Product 8' },
+            { id: 9, name: 'Product 9' },
+            { id: 10, name: 'Product 10' },
+            { id: 11, name: 'Product 11' },
+            { id: 12, name: 'Product 12' },
+            { id: 13, name: 'Product 13' },
+            { id: 14, name: 'Product 14' },
+            { id: 15, name: 'Product 15' }
+        ];
+
+        // DOM Elements
+        const productsTableBody = document.getElementById('products-table-body');
+        const productsCountElement = document.getElementById('products-count');
+        const searchInput = document.getElementById('search-input');
+        const addProductBtn = document.getElementById('add-product-btn');
+        const addRow = document.getElementById('add-row');
+        const newProductInput = document.getElementById('new-product-input');
+        const saveNewBtn = document.getElementById('save-new-btn');
+        const cancelNewBtn = document.getElementById('cancel-new-btn');
+        const toast = document.getElementById('toast');
+
+        // Track editing states
+        let editingId = null;
+        let addingNew = false;
+
+        // Sorting variables
+        let sortColumn = 'name';
+        let sortDirection = 'asc';
+
+        // Function to populate the table
+        function populateTable(data) {
+            // Clear existing rows except add-row
+            const existingRows = productsTableBody.querySelectorAll('tr:not(#add-row)');
+            existingRows.forEach(row => row.remove());
+
+            // Add rows for existing products
+            data.forEach(product => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-id', product.id);
+
+                // Product Name cell
+                const nameCell = document.createElement('td');
+                nameCell.setAttribute('data-label', 'Product Name');
+
+                // Check if this product is currently being edited
+                if (editingId === product.id) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'edit-input';
+                    input.value = product.name;
+                    input.id = `edit-product-${product.id}`;
+                    nameCell.appendChild(input);
+                    row.classList.add('edit-row');
+                } else {
+                    nameCell.textContent = product.name;
+                }
+
+                row.appendChild(nameCell);
+
+                // Actions cell
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'actions-cell';
+                actionsCell.setAttribute('data-label', 'Actions');
+
+                if (editingId === product.id) {
+                    // If editing, show save and cancel buttons
+                    const editActions = document.createElement('div');
+                    editActions.className = 'edit-actions';
+                    
+                    const saveBtn = document.createElement('button');
+                    saveBtn.className = 'save-btn';
+                    saveBtn.textContent = 'Save';
+                    saveBtn.addEventListener('click', () => saveProductEdit(product.id));
+
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'cancel-btn';
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.addEventListener('click', cancelProductEdit);
+
+                    editActions.appendChild(saveBtn);
+                    editActions.appendChild(cancelBtn);
+                    actionsCell.appendChild(editActions);
+                } else {
+                    // If not editing, show edit and delete buttons
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'action-btn edit-btn';
+                    editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                    editBtn.title = 'Edit';
+                    editBtn.addEventListener('click', () => editProduct(product.id));
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'action-btn delete-btn';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                    deleteBtn.title = 'Delete';
+                    deleteBtn.addEventListener('click', () => deleteProduct(product.id));
+
+                    actionsCell.appendChild(editBtn);
+                    actionsCell.appendChild(deleteBtn);
+                }
+
+                row.appendChild(actionsCell);
+                productsTableBody.appendChild(row);
+            });
+
+            // Update the products count
+            updateProductsCount();
+        }
+
+        // Function to filter products based on search input
+        function filterProducts() {
+            const searchTerm = searchInput.value.toLowerCase();
+
+            if (!searchTerm) {
+                return [...products];
+            }
+
+            return products.filter(product =>
+                product.name.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        // Function to update the products count display
+        function updateProductsCount() {
+            const filteredCount = filterProducts().length;
+            const totalCount = products.length;
+            productsCountElement.textContent = `Showing ${filteredCount} of ${totalCount} products`;
+        }
+
+        // Function to sort the data
+        function sortData() {
+            const filteredData = filterProducts();
+
+            filteredData.sort((a, b) => {
+                const valueA = a[sortColumn].toString().toLowerCase();
+                const valueB = b[sortColumn].toString().toLowerCase();
+
+                if (sortDirection === 'asc') {
+                    return valueA.localeCompare(valueB);
+                } else {
+                    return valueB.localeCompare(valueA);
+                }
+            });
+
+            populateTable(filteredData);
+        }
+
+        // Function to add a new product
+        function addProduct() {
+            // Prevent multiple add rows
+            if (addingNew || editingId !== null) return;
+
+            addingNew = true;
+            addRow.classList.add('active');
+            newProductInput.focus();
+        }
+
+        // Function to save a new product
+        function saveNewProduct() {
+            const productName = newProductInput.value.trim();
+
+            if (!productName) {
+                showToast('Product name cannot be empty', 'error');
+                newProductInput.focus();
+                return;
+            }
+
+            // Check for duplicate names
+            const existingProduct = products.find(p => p.name.toLowerCase() === productName.toLowerCase());
+            if (existingProduct) {
+                showToast('Product name already exists', 'error');
+                newProductInput.focus();
+                return;
+            }
+
+            const newId = products.length > 0 ? Math.max(...products.map(p => p.id)) + 1 : 1;
+            products.push({ id: newId, name: productName });
+
+            addingNew = false;
+            addRow.classList.remove('active');
+            newProductInput.value = '';
+            sortData();
+            showToast('Product added successfully');
+        }
+
+        // Function to cancel adding a new product
+        function cancelAddProduct() {
+            addingNew = false;
+            addRow.classList.remove('active');
+            newProductInput.value = '';
+        }
+
+        // Function to edit a product
+        function editProduct(id) {
+            // Prevent multiple edits
+            if (editingId !== null || addingNew) return;
+
+            editingId = id;
+            populateTable(filterProducts());
+
+            // Focus on the edit input
+            setTimeout(() => {
+                const editInput = document.getElementById(`edit-product-${id}`);
+                if (editInput) {
+                    editInput.focus();
+                    editInput.select();
+                }
+            }, 0);
+        }
+
+        // Function to save product edit
+        function saveProductEdit(id) {
+            const editInput = document.getElementById(`edit-product-${id}`);
+            const newName = editInput.value.trim();
+
+            if (!newName) {
+                showToast('Product name cannot be empty', 'error');
+                editInput.focus();
+                return;
+            }
+
+            // Check for duplicate names (excluding current product)
+            const existingProduct = products.find(p => p.id !== id && p.name.toLowerCase() === newName.toLowerCase());
+            if (existingProduct) {
+                showToast('Product name already exists', 'error');
+                editInput.focus();
+                return;
+            }
+
+            const productIndex = products.findIndex(p => p.id === id);
+            if (productIndex !== -1) {
+                products[productIndex].name = newName;
+            }
+
+            editingId = null;
+            populateTable(filterProducts());
+            showToast('Product updated successfully');
+        }
+
+        // Function to cancel product edit
+        function cancelProductEdit() {
+            editingId = null;
+            populateTable(filterProducts());
+        }
+
+        // Function to delete a product
+        function deleteProduct(id) {
+            const product = products.find(p => p.id === id);
+            if (!product) return;
+
+            if (confirm(`Are you sure you want to delete "${product.name}"?`)) {
+                products = products.filter(product => product.id !== id);
+                populateTable(filterProducts());
+                showToast('Product deleted successfully');
+            }
+        }
+
+        // Function to show toast message
+        function showToast(message, type = 'success') {
+            toast.textContent = message;
+            toast.className = `toast ${type} show`;
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize sortable headers
+        function initializeSortableHeaders() {
+            const headers = document.querySelectorAll('.products-table th[data-sort]');
+
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const column = header.getAttribute('data-sort');
+
+                    // Toggle sort direction if clicking the same column
+                    if (sortColumn === column) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = column;
+                        sortDirection = 'asc';
+                    }
+
+                    // Update header styling
+                    headers.forEach(h => {
+                        h.classList.remove('active-sort');
+                        const icon = h.querySelector('.sort-icon');
+                        if (icon) {
+                            icon.textContent = '▼';
+                        }
+                    });
+
+                    header.classList.add('active-sort');
+                    const sortIcon = header.querySelector('.sort-icon');
+                    if (sortIcon) {
+                        sortIcon.textContent = sortDirection === 'asc' ? '▼' : '▲';
+                    } else {
+                        // Add sort icon if it doesn't exist
+                        const newIcon = document.createElement('span');
+                        newIcon.className = 'sort-icon';
+                        newIcon.textContent = sortDirection === 'asc' ? '▼' : '▲';
+                        header.appendChild(newIcon);
+                    }
+
+                    // Sort the data
+                    sortData();
+                });
+            });
+        }
+
+        // Export functionality
+        function exportProducts() {
+            const columns = [
+                { key: 'id', header: 'ID' },
+                { key: 'name', header: 'Product Name' }
+            ];
+            
+            ExportUtils.showExportModal(
+                filterProducts(), 
+                columns, 
+                'products',
+                showToast
+            );
+        }
+
+        // Event listeners
+        addProductBtn.addEventListener('click', addProduct);
+        saveNewBtn.addEventListener('click', saveNewProduct);
+        cancelNewBtn.addEventListener('click', cancelAddProduct);
+        
+        // Export button
+        const exportBtn = document.getElementById('export-btn');
+        if (exportBtn) {
+            exportBtn.addEventListener('click', exportProducts);
+        }
+
+        searchInput.addEventListener('input', () => {
+            sortData();
+        });
+
+        // Add event listener for "enter" key on inputs
+        newProductInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveNewProduct();
+            }
+        });
+
+        // Initialize
+        initializeSortableHeaders();
+        sortData();
+    </script>
+}

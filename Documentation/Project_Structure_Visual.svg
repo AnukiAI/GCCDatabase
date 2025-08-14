@@ -46,7 +46,7 @@
     <text x="100" y="313" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Company</text>
     
     <rect x="40" y="325" width="120" height="20" fill="#ecf0f1" stroke="#bdc3c7" stroke-width="1" rx="2"/>
-    <text x="100" y="338" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">User & Roles</text>
+    <text x="100" y="338" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">User &amp; Roles</text>
     
     <!-- Views -->
     <rect x="20" y="360" width="160" height="30" fill="#f39c12" stroke="#e67e22" stroke-width="1" rx="3"/>
@@ -112,7 +112,7 @@
     <text x="100" y="438" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">CertificateRepository</text>
   </g>
   
-  <!-- Data & Static Resources -->
+  <!-- Data &amp; Static Resources -->
   <g transform="translate(550, 60)">
     <!-- Data Layer -->
     <rect x="0" y="0" width="200" height="40" fill="#8e44ad" stroke="#7d3c98" stroke-width="2" rx="5"/>

@@ -1,35 +1,367 @@
 @{
-    ViewData["Title"] = "Product Types";
+    ViewData["Title"] = "Product Types Management";
+    ViewData["BodyClass"] = "admin-product-types";
 }
 
-<div class="container-fluid">
-    <div class="row">
-        <div class="col-12">
-            <h1>Product Types</h1>
-            <p class="text-muted">Manage product type hierarchy and categories</p>
-            
-            <div class="alert alert-info">
-                <i class="fas fa-info-circle"></i>
-                This is a placeholder view for Product Types Management. The full implementation will include hierarchical product type management with parent-child relationships.
+@section Styles {
+    <link href="~/css/product-types.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Data Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Product Types</a>
+    </span>
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="buttons-area">
+            <button id="export-btn" class="btn">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button class="btn btn-add" onclick="showAddForm('category')">
+                <i class="fas fa-plus"></i> Add Category
+            </button>
+        </div>
+    </header>
+
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <input type="text" placeholder="Search hierarchy..." onkeyup="filterTree(this.value)">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-number">3</span> Categories
             </div>
-            
-            <div class="card">
-                <div class="card-header">
-                    <h5>Product Types Overview</h5>
+            <div class="stat-item">
+                <span class="stat-number">7</span> Types
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">15</span> Subcategories
+            </div>
+            <div class="stat-item">
+                <span class="stat-number">247</span> Products
+            </div>
+        </div>
+    </div>
+
+    <div class="toolbar">
+        <div class="view-options">
+            <button class="view-btn active" onclick="switchView('tree')">
+                <i class="fas fa-sitemap"></i> Tree View
+            </button>
+            <button class="view-btn" onclick="switchView('table')">
+                <i class="fas fa-table"></i> Table View
+            </button>
+        </div>
+        <div class="bulk-actions">
+            <button class="btn btn-outline btn-sm" onclick="expandAll()">
+                <i class="fas fa-expand-alt"></i> Expand All
+            </button>
+            <button class="btn btn-outline btn-sm" onclick="collapseAll()">
+                <i class="fas fa-compress-alt"></i> Collapse All
+            </button>
+        </div>
+    </div>
+
+    <!-- Tree View -->
+    <div class="hierarchy-tree" id="treeView">
+        <div class="tree-header">
+            <div class="tree-header-content">
+                <div class="tree-header-label">
+                    Product Hierarchy
                 </div>
-                <div class="card-body">
-                    <p>Features coming soon:</p>
-                    <ul>
-                        <li>Hierarchical product type tree view</li>
-                        <li>Create new product types and categories</li>
-                        <li>Edit existing product types</li>
-                        <li>Parent-child relationship management</li>
-                        <li>Drag and drop sorting</li>
-                        <li>Product count per type</li>
-                        <li>Search and filter capabilities</li>
-                    </ul>
+                <div class="tree-header-columns">
+                    <div class="tree-column-header products-header">Products</div>
+                    <div class="tree-column-header actions-header">Actions</div>
+                </div>
+            </div>
+        </div>
+        <div class="tree-content">
+
+            <!-- Building Materials Category -->
+            <div class="tree-node">
+                <div class="node-content category-node expandable" onclick="toggleNode(this)">
+                    <div class="node-indent level-1"></div>
+                    <div class="node-icon">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                    <div class="node-label">Building Materials</div>
+                    <div class="node-meta">
+                        <span class="node-count">89</span>
+                        <div class="node-actions">
+                            <button class="action-btn edit" title="Edit Category" onclick="showEditForm(this, 'category')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn add" title="Add Type" onclick="showAddForm('type', this)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="action-btn delete" title="Delete Category">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="children" data-parent="building-materials">
+
+                    <!-- Insulation Type -->
+                    <div class="tree-node">
+                        <div class="node-content type-node expandable" onclick="toggleNode(this)">
+                            <div class="node-indent level-2"></div>
+                            <div class="node-icon">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                            <div class="node-label">Insulation</div>
+                            <div class="node-meta">
+                                <span class="node-count">35</span>
+                                <div class="node-actions">
+                                    <button class="action-btn edit" title="Edit Type" onclick="showEditForm(this, 'type')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="action-btn add" title="Add Subcategory" onclick="showAddForm('subcategory', this)">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button class="action-btn delete" title="Delete Type">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="children">
+                            <div class="tree-node">
+                                <div class="node-content subcategory-node">
+                                    <div class="node-indent level-3"></div>
+                                    <div class="node-icon"></div>
+                                    <div class="node-label">Foam Board</div>
+                                    <div class="node-meta">
+                                        <span class="node-count">15</span>
+                                        <div class="node-actions">
+                                            <button class="action-btn edit" title="Edit Subcategory" onclick="showEditForm(this, 'subcategory')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="action-btn delete" title="Delete Subcategory">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Appliances Type -->
+                    <div class="tree-node">
+                        <div class="node-content type-node expandable" onclick="toggleNode(this)">
+                            <div class="node-indent level-2"></div>
+                            <div class="node-icon">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                            <div class="node-label">Appliances</div>
+                            <div class="node-meta">
+                                <span class="node-count">41</span>
+                                <div class="node-actions">
+                                    <button class="action-btn edit" title="Edit Type" onclick="showEditForm(this, 'type')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="action-btn add" title="Add Subcategory" onclick="showAddForm('subcategory', this)">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button class="action-btn delete" title="Delete Type">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="children">
+                            <div class="tree-node">
+                                <div class="node-content subcategory-node">
+                                    <div class="node-indent level-3"></div>
+                                    <div class="node-icon"></div>
+                                    <div class="node-label">Kitchen Appliances</div>
+                                    <div class="node-meta">
+                                        <span class="node-count">25</span>
+                                        <div class="node-actions">
+                                            <button class="action-btn edit" title="Edit Subcategory" onclick="showEditForm(this, 'subcategory')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="action-btn delete" title="Delete Subcategory">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tree-node">
+                                <div class="node-content subcategory-node">
+                                    <div class="node-indent level-3"></div>
+                                    <div class="node-icon"></div>
+                                    <div class="node-label">Laundry Appliances</div>
+                                    <div class="node-meta">
+                                        <span class="node-count">16</span>
+                                        <div class="node-actions">
+                                            <button class="action-btn edit" title="Edit Subcategory" onclick="showEditForm(this, 'subcategory')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="action-btn delete" title="Delete Subcategory">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Textiles Category -->
+            <div class="tree-node">
+                <div class="node-content category-node expandable" onclick="toggleNode(this)">
+                    <div class="node-indent level-1"></div>
+                    <div class="node-icon">
+                        <i class="fas fa-chevron-right"></i>
+                    </div>
+                    <div class="node-label">Textiles</div>
+                    <div class="node-meta">
+                        <span class="node-count">85</span>
+                        <div class="node-actions">
+                            <button class="action-btn edit" title="Edit Category" onclick="showEditForm(this, 'category')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn add" title="Add Type" onclick="showAddForm('type', this)">
+                                <i class="fas fa-plus"></i>
+                            </button>
+                            <button class="action-btn delete" title="Delete Category">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="children">
+                    <!-- Carpeting Type -->
+                    <div class="tree-node">
+                        <div class="node-content type-node expandable" onclick="toggleNode(this)">
+                            <div class="node-indent level-2"></div>
+                            <div class="node-icon">
+                                <i class="fas fa-chevron-right"></i>
+                            </div>
+                            <div class="node-label">Carpeting</div>
+                            <div class="node-meta">
+                                <span class="node-count">45</span>
+                                <div class="node-actions">
+                                    <button class="action-btn edit" title="Edit Type" onclick="showEditForm(this, 'type')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="action-btn add" title="Add Subcategory" onclick="showAddForm('subcategory', this)">
+                                        <i class="fas fa-plus"></i>
+                                    </button>
+                                    <button class="action-btn delete" title="Delete Type">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="children">
+                            <div class="tree-node">
+                                <div class="node-content subcategory-node">
+                                    <div class="node-indent level-3"></div>
+                                    <div class="node-icon"></div>
+                                    <div class="node-label">Commercial Carpet</div>
+                                    <div class="node-meta">
+                                        <span class="node-count">28</span>
+                                        <div class="node-actions">
+                                            <button class="action-btn edit" title="Edit Subcategory" onclick="showEditForm(this, 'subcategory')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="action-btn delete" title="Delete Subcategory">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="tree-node">
+                                <div class="node-content subcategory-node">
+                                    <div class="node-indent level-3"></div>
+                                    <div class="node-icon"></div>
+                                    <div class="node-label">Residential Carpet</div>
+                                    <div class="node-meta">
+                                        <span class="node-count">17</span>
+                                        <div class="node-actions">
+                                            <button class="action-btn edit" title="Edit Subcategory" onclick="showEditForm(this, 'subcategory')">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="action-btn delete" title="Delete Subcategory">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/admin/exportUtils.js"></script>
+    <script src="~/js/product-types.js"></script>
+    <script>
+        // Add export functionality to Product Types
+        document.addEventListener('DOMContentLoaded', function() {
+            const exportBtn = document.getElementById('export-btn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function() {
+                    // Flatten hierarchical data for export
+                    const flattenedData = [
+                        { id: 1, name: 'Building Materials', type: 'Category', parent: '', level: 1, productCount: 89 },
+                        { id: 2, name: 'Insulation', type: 'Type', parent: 'Building Materials', level: 2, productCount: 35 },
+                        { id: 3, name: 'Foam Board', type: 'Subcategory', parent: 'Insulation', level: 3, productCount: 15 },
+                        { id: 4, name: 'Appliances', type: 'Type', parent: 'Building Materials', level: 2, productCount: 41 },
+                        { id: 5, name: 'Kitchen Appliances', type: 'Subcategory', parent: 'Appliances', level: 3, productCount: 25 },
+                        { id: 6, name: 'Laundry Appliances', type: 'Subcategory', parent: 'Appliances', level: 3, productCount: 16 },
+                        { id: 7, name: 'Flooring', type: 'Type', parent: 'Building Materials', level: 2, productCount: 23 },
+                        { id: 8, name: 'Hardwood', type: 'Subcategory', parent: 'Flooring', level: 3, productCount: 15 },
+                        { id: 9, name: 'Laminate', type: 'Subcategory', parent: 'Flooring', level: 3, productCount: 8 },
+                        { id: 10, name: 'Textiles', type: 'Category', parent: '', level: 1, productCount: 85 },
+                        { id: 11, name: 'Carpeting', type: 'Type', parent: 'Textiles', level: 2, productCount: 45 },
+                        { id: 12, name: 'Commercial Carpet', type: 'Subcategory', parent: 'Carpeting', level: 3, productCount: 28 },
+                        { id: 13, name: 'Residential Carpet', type: 'Subcategory', parent: 'Carpeting', level: 3, productCount: 17 },
+                        { id: 14, name: 'Fabric', type: 'Type', parent: 'Textiles', level: 2, productCount: 40 },
+                        { id: 15, name: 'Upholstery Fabric', type: 'Subcategory', parent: 'Fabric', level: 3, productCount: 23 },
+                        { id: 16, name: 'Apparel Fabric', type: 'Subcategory', parent: 'Fabric', level: 3, productCount: 17 },
+                        { id: 17, name: 'Consumer Products', type: 'Category', parent: '', level: 1, productCount: 73 },
+                        { id: 18, name: 'Furniture', type: 'Type', parent: 'Consumer Products', level: 2, productCount: 32 },
+                        { id: 19, name: 'Office Chairs', type: 'Subcategory', parent: 'Furniture', level: 3, productCount: 18 },
+                        { id: 20, name: 'Tables', type: 'Subcategory', parent: 'Furniture', level: 3, productCount: 14 }
+                    ];
+
+                    const columns = [
+                        { key: 'id', header: 'ID' },
+                        { key: 'name', header: 'Name' },
+                        { key: 'type', header: 'Type' },
+                        { key: 'parent', header: 'Parent' },
+                        { key: 'level', header: 'Hierarchy Level' },
+                        { key: 'productCount', header: 'Product Count' }
+                    ];
+                    
+                    ExportUtils.showExportModal(
+                        flattenedData, 
+                        columns, 
+                        'product_types_hierarchy',
+                        (message, type) => alert(message)
+                    );
+                });
+            }
+        });
+    </script>
+}

@@ -1,0 +1,384 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1100">
+  <!-- Background -->
+  <rect width="1600" height="1100" fill="#f8f9fa"/>
+  
+  <!-- Title -->
+  <text x="800" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#2c3e50">
+    GCC Database System - Deployment Architecture
+  </text>
+  
+  <!-- Azure Cloud Environment -->
+  <g id="azure-cloud" transform="translate(50, 70)">
+    <rect x="0" y="0" width="1500" height="950" rx="15" fill="#e3f2fd" stroke="#0078d4" stroke-width="3"/>
+    <text x="30" y="30" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#0078d4">☁️ Microsoft Azure Cloud Platform</text>
+    
+    <!-- Production Environment -->
+    <g id="production-env" transform="translate(50, 50)">
+      <rect x="0" y="0" width="650" height="400" rx="10" fill="#e8f5e8" stroke="#4caf50" stroke-width="2"/>
+      <text x="20" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#2e7d32">🟢 Production Environment</text>
+      
+      <!-- Load Balancer -->
+      <g id="prod-lb" transform="translate(20, 50)">
+        <rect x="0" y="0" width="280" height="60" rx="5" fill="#4caf50" stroke="#2e7d32" stroke-width="2"/>
+        <text x="140" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="white">Azure Application Gateway</text>
+        <text x="140" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="white">Load Balancer + WAF + SSL Termination</text>
+      </g>
+      
+      <!-- Web Tier -->
+      <g id="prod-web-tier" transform="translate(20, 130)">
+        <text x="0" y="15" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#2e7d32">Web Tier - Azure App Service</text>
+        
+        <!-- Web App 1 -->
+        <rect x="0" y="25" width="120" height="80" rx="5" fill="#66bb6a" stroke="#4caf50" stroke-width="1"/>
+        <text x="60" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Web App 1</text>
+        <text x="60" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">ASP.NET Core</text>
+        <text x="60" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Auto-scaling</text>
+        <text x="60" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Standard S2</text>
+        
+        <!-- Web App 2 -->
+        <rect x="140" y="25" width="120" height="80" rx="5" fill="#66bb6a" stroke="#4caf50" stroke-width="1"/>
+        <text x="200" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Web App 2</text>
+        <text x="200" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">ASP.NET Core</text>
+        <text x="200" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Auto-scaling</text>
+        <text x="200" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Standard S2</text>
+      </g>
+      
+      <!-- Data Tier -->
+      <g id="prod-data-tier" transform="translate(300, 130)">
+        <text x="0" y="15" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#2e7d32">Data Tier</text>
+        
+        <!-- Primary Database -->
+        <rect x="0" y="25" width="150" height="60" rx="5" fill="#1976d2" stroke="#0d47a1" stroke-width="2"/>
+        <text x="75" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Azure SQL Database</text>
+        <text x="75" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">General Purpose S2</text>
+        <text x="75" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">100 DTU</text>
+        
+        <!-- Redis Cache -->
+        <rect x="170" y="25" width="120" height="60" rx="5" fill="#dc382d" stroke="#b71c1c" stroke-width="2"/>
+        <text x="230" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Azure Cache</text>
+        <text x="230" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">for Redis</text>
+        <text x="230" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Standard C1</text>
+      </g>
+      
+      <!-- Storage -->
+      <g id="prod-storage" transform="translate(20, 250)">
+        <text x="0" y="15" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#2e7d32">Storage Tier</text>
+        
+        <!-- Blob Storage -->
+        <rect x="0" y="25" width="150" height="60" rx="5" fill="#ff9800" stroke="#f57c00" stroke-width="2"/>
+        <text x="75" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Azure Blob Storage</text>
+        <text x="75" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Hot Tier</text>
+        <text x="75" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Geo-Redundant</text>
+        
+        <!-- File Share -->
+        <rect x="170" y="25" width="120" height="60" rx="5" fill="#ff5722" stroke="#d84315" stroke-width="2"/>
+        <text x="230" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Azure Files</text>
+        <text x="230" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Premium</text>
+        <text x="230" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Document Store</text>
+        
+        <!-- CDN -->
+        <rect x="310" y="25" width="120" height="60" rx="5" fill="#9c27b0" stroke="#7b1fa2" stroke-width="2"/>
+        <text x="370" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Azure CDN</text>
+        <text x="370" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Global Edge</text>
+        <text x="370" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Static Assets</text>
+      </g>
+      
+      <!-- Monitoring -->
+      <g id="prod-monitoring" transform="translate(470, 250)">
+        <text x="0" y="15" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#2e7d32">Monitoring & Logging</text>
+        
+        <!-- Application Insights -->
+        <rect x="0" y="25" width="150" height="80" rx="5" fill="#00acc1" stroke="#00838f" stroke-width="2"/>
+        <text x="75" y="45" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Application Insights</text>
+        <text x="75" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Performance</text>
+        <text x="75" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Logging</text>
+        <text x="75" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Alerting</text>
+      </g>
+    </g>
+    
+    <!-- Staging Environment -->
+    <g id="staging-env" transform="translate(750, 50)">
+      <rect x="0" y="0" width="650" height="400" rx="10" fill="#fff3e0" stroke="#ff9800" stroke-width="2"/>
+      <text x="20" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#f57c00">🟡 Staging Environment</text>
+      
+      <!-- Staging Components -->
+      <g id="staging-components" transform="translate(20, 50)">
+        <!-- Load Balancer -->
+        <rect x="0" y="0" width="250" height="50" rx="5" fill="#ff9800" stroke="#f57c00" stroke-width="2"/>
+        <text x="125" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Azure App Gateway (Basic)</text>
+        
+        <!-- Web App -->
+        <rect x="0" y="70" width="120" height="70" rx="5" fill="#ffb74d" stroke="#ff9800" stroke-width="1"/>
+        <text x="60" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Staging Web App</text>
+        <text x="60" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">ASP.NET Core</text>
+        <text x="60" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Basic B2</text>
+        <text x="60" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Single Instance</text>
+        
+        <!-- Staging Database -->
+        <rect x="140" y="70" width="120" height="70" rx="5" fill="#42a5f5" stroke="#1976d2" stroke-width="1"/>
+        <text x="200" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Staging SQL DB</text>
+        <text x="200" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Basic 5 DTU</text>
+        <text x="200" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Test Data</text>
+        <text x="200" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Non-sensitive</text>
+        
+        <!-- Storage -->
+        <rect x="0" y="160" width="260" height="50" rx="5" fill="#ffcc02" stroke="#ff8f00" stroke-width="1"/>
+        <text x="130" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Staging Storage (Standard LRS)</text>
+        
+        <!-- Testing Tools -->
+        <rect x="280" y="70" width="150" height="140" rx="5" fill="#9e9e9e" stroke="#616161" stroke-width="2"/>
+        <text x="355" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Testing Tools</text>
+        <text x="355" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Playwright E2E</text>
+        <text x="355" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Load Testing</text>
+        <text x="355" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Security Scans</text>
+        <text x="355" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Performance Testing</text>
+        <text x="355" y="170" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• API Testing</text>
+        <text x="355" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Smoke Tests</text>
+        <text x="355" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Integration Tests</text>
+      </g>
+    </g>
+    
+    <!-- Development Environment -->
+    <g id="development-env" transform="translate(50, 480)">
+      <rect x="0" y="0" width="650" height="250" rx="10" fill="#fff8e1" stroke="#fbc02d" stroke-width="2"/>
+      <text x="20" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#f57f17">🟨 Development Environment</text>
+      
+      <!-- Dev Components -->
+      <g id="dev-components" transform="translate(20, 50)">
+        <!-- Dev Web App -->
+        <rect x="0" y="0" width="120" height="60" rx="5" fill="#fdd835" stroke="#f9a825" stroke-width="1"/>
+        <text x="60" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="black">Dev Web App</text>
+        <text x="60" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="black">Free Tier F1</text>
+        <text x="60" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="black">1GB RAM</text>
+        
+        <!-- Dev Database -->
+        <rect x="140" y="0" width="120" height="60" rx="5" fill="#64b5f6" stroke="#1976d2" stroke-width="1"/>
+        <text x="200" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Dev SQL DB</text>
+        <text x="200" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Basic 5 DTU</text>
+        <text x="200" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Sample Data</text>
+        
+        <!-- Local Development -->
+        <rect x="280" y="0" width="150" height="120" rx="5" fill="#e0e0e0" stroke="#9e9e9e" stroke-width="2"/>
+        <text x="355" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="black">Local Development</text>
+        <text x="355" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">• Visual Studio 2022</text>
+        <text x="355" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">• SQL Server LocalDB</text>
+        <text x="355" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">• IIS Express</text>
+        <text x="355" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">• Docker Desktop</text>
+        <text x="355" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">• Git</text>
+        <text x="355" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="black">• Debug Tools</text>
+        
+        <!-- Development Storage -->
+        <rect x="0" y="80" width="260" height="40" rx="5" fill="#ffecb3" stroke="#ffa000" stroke-width="1"/>
+        <text x="130" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="black">Dev Storage (LRS)</text>
+        
+        <!-- CI/CD Tools -->
+        <rect x="450" y="0" width="150" height="120" rx="5" fill="#7986cb" stroke="#3f51b5" stroke-width="2"/>
+        <text x="525" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">CI/CD Tools</text>
+        <text x="525" y="40" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Azure DevOps</text>
+        <text x="525" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Build Pipelines</text>
+        <text x="525" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Release Pipelines</text>
+        <text x="525" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Automated Testing</text>
+        <text x="525" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Code Quality Gates</text>
+        <text x="525" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">• Deployment Slots</text>
+      </g>
+    </g>
+    
+    <!-- Infrastructure Services -->
+    <g id="infrastructure-services" transform="translate(750, 480)">
+      <rect x="0" y="0" width="650" height="250" rx="10" fill="#fce4ec" stroke="#e91e63" stroke-width="2"/>
+      <text x="20" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#c2185b">⚙️ Infrastructure & Management Services</text>
+      
+      <!-- Shared Services -->
+      <g id="shared-services" transform="translate(20, 50)">
+        <!-- Azure AD B2C -->
+        <rect x="0" y="0" width="150" height="60" rx="5" fill="#0078d4" stroke="#005a9e" stroke-width="2"/>
+        <text x="75" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Azure AD B2C</text>
+        <text x="75" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Authentication</text>
+        <text x="75" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Identity Provider</text>
+        
+        <!-- Key Vault -->
+        <rect x="170" y="0" width="150" height="60" rx="5" fill="#7b1fa2" stroke="#4a148c" stroke-width="2"/>
+        <text x="245" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Azure Key Vault</text>
+        <text x="245" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Secrets Management</text>
+        <text x="245" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Certificate Store</text>
+        
+        <!-- Resource Groups -->
+        <rect x="340" y="0" width="150" height="60" rx="5" fill="#ff6f00" stroke="#e65100" stroke-width="2"/>
+        <text x="415" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Resource Groups</text>
+        <text x="415" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Logical Grouping</text>
+        <text x="415" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Access Control</text>
+        
+        <!-- Service Bus -->
+        <rect x="0" y="80" width="150" height="60" rx="5" fill="#4caf50" stroke="#388e3c" stroke-width="2"/>
+        <text x="75" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Azure Service Bus</text>
+        <text x="75" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Message Queue</text>
+        <text x="75" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Event Processing</text>
+        
+        <!-- Function Apps -->
+        <rect x="170" y="80" width="150" height="60" rx="5" fill="#ff5722" stroke="#d84315" stroke-width="2"/>
+        <text x="245" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Azure Functions</text>
+        <text x="245" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Serverless ETL</text>
+        <text x="245" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Background Jobs</text>
+        
+        <!-- Log Analytics -->
+        <rect x="340" y="80" width="150" height="60" rx="5" fill="#607d8b" stroke="#455a64" stroke-width="2"/>
+        <text x="415" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Log Analytics</text>
+        <text x="415" y="115" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Centralized Logging</text>
+        <text x="415" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Query & Analysis</text>
+        
+        <!-- Backup & Recovery -->
+        <rect x="0" y="160" width="240" height="60" rx="5" fill="#795548" stroke="#5d4037" stroke-width="2"/>
+        <text x="120" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Azure Backup & Recovery</text>
+        <text x="120" y="195" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Point-in-time Recovery</text>
+        <text x="120" y="210" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Geo-redundant Backups</text>
+        
+        <!-- Security Center -->
+        <rect x="260" y="160" width="230" height="60" rx="5" fill="#f44336" stroke="#d32f2f" stroke-width="2"/>
+        <text x="375" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="white">Azure Security Center</text>
+        <text x="375" y="195" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Security Monitoring</text>
+        <text x="375" y="210" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="white">Compliance Dashboard</text>
+      </g>
+    </g>
+    
+    <!-- External Integrations -->
+    <g id="external-integrations" transform="translate(50, 760)">
+      <rect x="0" y="0" width="1350" height="150" rx="10" fill="#f3e5f5" stroke="#9c27b0" stroke-width="2"/>
+      <text x="20" y="30" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#7b1fa2">🔗 External Integrations & Partners</text>
+      
+      <!-- External Services -->
+      <g id="external-services" transform="translate(50, 50)">
+        <!-- Amazon API -->
+        <rect x="0" y="0" width="150" height="70" rx="5" fill="#ff9900" stroke="#ff6f00" stroke-width="2"/>
+        <text x="75" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Amazon API</text>
+        <text x="75" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Product Data</text>
+        <text x="75" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">ASIN Lookup</text>
+        <text x="75" y="65" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">RESTful API</text>
+        
+        <!-- Google Analytics -->
+        <rect x="170" y="0" width="150" height="70" rx="5" fill="#4285f4" stroke="#1a73e8" stroke-width="2"/>
+        <text x="245" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Google Analytics</text>
+        <text x="245" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Usage Tracking</text>
+        <text x="245" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Performance</text>
+        <text x="245" y="65" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Analytics</text>
+        
+        <!-- Testing Labs -->
+        <rect x="340" y="0" width="150" height="70" rx="5" fill="#27ae60" stroke="#229954" stroke-width="2"/>
+        <text x="415" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Testing Labs</text>
+        <text x="415" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Test Results</text>
+        <text x="415" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Compliance Data</text>
+        <text x="415" y="65" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">API Integration</text>
+        
+        <!-- Partner Systems -->
+        <rect x="510" y="0" width="150" height="70" rx="5" fill="#8e44ad" stroke="#7d3c98" stroke-width="2"/>
+        <text x="585" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Partner Systems</text>
+        <text x="585" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">CRM Integration</text>
+        <text x="585" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">ERP Systems</text>
+        <text x="585" y="65" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Data Exchange</text>
+        
+        <!-- CDN Providers -->
+        <rect x="680" y="0" width="150" height="70" rx="5" fill="#e91e63" stroke="#c2185b" stroke-width="2"/>
+        <text x="755" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">CDN Providers</text>
+        <text x="755" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Global Distribution</text>
+        <text x="755" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Edge Caching</text>
+        <text x="755" y="65" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Performance</text>
+        
+        <!-- Regulatory APIs -->
+        <rect x="850" y="0" width="150" height="70" rx="5" fill="#795548" stroke="#5d4037" stroke-width="2"/>
+        <text x="925" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Regulatory APIs</text>
+        <text x="925" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Standards Updates</text>
+        <text x="925" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Compliance Check</text>
+        <text x="925" y="65" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Government APIs</text>
+        
+        <!-- Email Service -->
+        <rect x="1020" y="0" width="150" height="70" rx="5" fill="#607d8b" stroke="#455a64" stroke-width="2"/>
+        <text x="1095" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="white">Email Service</text>
+        <text x="1095" y="35" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">SendGrid/SES</text>
+        <text x="1095" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Notifications</text>
+        <text x="1095" y="65" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="white">Transactional</text>
+      </g>
+    </g>
+  </g>
+  
+  <!-- Deployment Flow Arrows -->
+  <g id="deployment-flows">
+    <!-- Production flow -->
+    <line x1="200" y1="180" x2="200" y2="200" stroke="#4caf50" stroke-width="3" marker-end="url(#arrowhead-green)"/>
+    <line x1="180" y1="260" x2="380" y2="260" stroke="#4caf50" stroke-width="2" marker-end="url(#arrowhead-green)"/>
+    
+    <!-- Staging to Production -->
+    <path d="M 800 270 Q 750 250 700 270" stroke="#ff9800" stroke-width="3" stroke-dasharray="10,5" fill="none" marker-end="url(#arrowhead-orange)"/>
+    <text x="750" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#ff9800">Deploy to Prod</text>
+    
+    <!-- Dev to Staging -->
+    <path d="M 450 600 Q 650 450 800 520" stroke="#fbc02d" stroke-width="3" stroke-dasharray="10,5" fill="none" marker-end="url(#arrowhead-yellow)"/>
+    <text x="625" y="500" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#f57f17">CI/CD Pipeline</text>
+    
+    <!-- External Integration Lines -->
+    <line x1="400" y1="450" x2="400" y2="830" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrowhead-purple)"/>
+    <line x1="1200" y1="450" x2="1200" y2="830" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrowhead-purple)"/>
+  </g>
+  
+  <!-- Legend -->
+  <g id="deployment-legend" transform="translate(1250, 100)">
+    <rect x="0" y="0" width="300" height="200" rx="5" fill="#ffffff" stroke="#bdc3c7" stroke-width="2"/>
+    <text x="150" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#2c3e50">Deployment Legend</text>
+    
+    <text x="10" y="40" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2c3e50">Environment Tiers:</text>
+    <rect x="10" y="45" width="15" height="10" fill="#4caf50"/>
+    <text x="30" y="55" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Production (High Availability)</text>
+    
+    <rect x="10" y="60" width="15" height="10" fill="#ff9800"/>
+    <text x="30" y="70" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Staging (Testing & QA)</text>
+    
+    <rect x="10" y="75" width="15" height="10" fill="#fbc02d"/>
+    <text x="30" y="85" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Development (Dev & Local)</text>
+    
+    <text x="10" y="105" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2c3e50">Deployment Flow:</text>
+    <line x1="10" y1="115" x2="40" y2="115" stroke="#4caf50" stroke-width="3" marker-end="url(#arrowhead-green)"/>
+    <text x="45" y="120" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">Direct Deployment</text>
+    
+    <line x1="10" y1="130" x2="40" y2="130" stroke="#ff9800" stroke-width="3" stroke-dasharray="10,5" marker-end="url(#arrowhead-orange)"/>
+    <text x="45" y="135" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">CI/CD Pipeline</text>
+    
+    <line x1="10" y1="145" x2="40" y2="145" stroke="#9c27b0" stroke-width="2" stroke-dasharray="5,3" marker-end="url(#arrowhead-purple)"/>
+    <text x="45" y="150" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">External Integration</text>
+    
+    <text x="10" y="170" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#2c3e50">Scaling:</text>
+    <text x="10" y="185" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">• Auto-scaling enabled in Production</text>
+    <text x="10" y="195" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">• Load balancing across multiple instances</text>
+  </g>
+  
+  <!-- Cost Summary -->
+  <g id="cost-summary" transform="translate(1250, 320)">
+    <rect x="0" y="0" width="300" height="160" rx="5" fill="#e8f5e8" stroke="#4caf50" stroke-width="2"/>
+    <text x="150" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#2c3e50">Monthly Cost Estimate</text>
+    
+    <text x="10" y="40" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#2e7d32">Production:</text>
+    <text x="10" y="55" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">• App Service: $150/month</text>
+    <text x="10" y="70" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">• SQL Database: $200/month</text>
+    <text x="10" y="85" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">• Storage & CDN: $50/month</text>
+    
+    <text x="10" y="105" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#f57c00">Staging:</text>
+    <text x="10" y="120" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">• App Service: $50/month</text>
+    <text x="10" y="135" font-family="Arial, sans-serif" font-size="10" fill="#2c3e50">• SQL Database: $30/month</text>
+    
+    <text x="150" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="#2c3e50">Total: ~$480/month</text>
+  </g>
+  
+  <!-- Arrow Markers -->
+  <defs>
+    <marker id="arrowhead-green" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#4caf50"/>
+    </marker>
+    <marker id="arrowhead-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ff9800"/>
+    </marker>
+    <marker id="arrowhead-yellow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fbc02d"/>
+    </marker>
+    <marker id="arrowhead-purple" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#9c27b0"/>
+    </marker>
+  </defs>
+</svg>

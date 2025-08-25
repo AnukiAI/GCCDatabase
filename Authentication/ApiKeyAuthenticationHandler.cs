@@ -22,15 +22,15 @@ namespace GCCWebApp.Authentication
             IOptionsMonitor<ApiKeyAuthenticationOptions> options,
             ILoggerFactory logger,
             UrlEncoder encoder,
-            ISystemClock clock,
             IApiKeyService apiKeyService)
-            : base(options, logger, encoder, clock)
+            : base(options, logger, encoder)
         {
             _apiKeyService = apiKeyService;
         }
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
+            // Check for API key in header
             if (!Request.Headers.ContainsKey(Options.HeaderName))
             {
                 return AuthenticateResult.NoResult();
@@ -40,29 +40,65 @@ namespace GCCWebApp.Authentication
 
             if (string.IsNullOrEmpty(apiKey))
             {
+                Logger.LogWarning("Empty API key provided from IP: {ClientIP}", 
+                    Request.HttpContext.Connection.RemoteIpAddress?.ToString());
                 return AuthenticateResult.Fail("Invalid API Key");
+            }
+
+            // Enhanced security validations
+            var clientIP = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
+            var userAgent = Request.Headers["User-Agent"].FirstOrDefault();
+            var origin = Request.Headers["Origin"].FirstOrDefault();
+            var referer = Request.Headers["Referer"].FirstOrDefault();
+
+            // Check if request is over HTTPS in production
+            if (!Request.IsHttps && !Request.Host.Host.Contains("localhost"))
+            {
+                Logger.LogWarning("API Key used over insecure connection from IP: {ClientIP}", clientIP);
+                return AuthenticateResult.Fail("HTTPS required");
             }
 
             var validApiKey = await _apiKeyService.ValidateApiKeyAsync(apiKey);
 
             if (validApiKey == null)
             {
+                Logger.LogWarning("Invalid API key attempt from IP: {ClientIP}, UserAgent: {UserAgent}", clientIP, userAgent);
                 return AuthenticateResult.Fail("Invalid API Key");
             }
 
-            var clientIP = Request.HttpContext.Connection.RemoteIpAddress?.ToString();
-            var origin = Request.Headers["Origin"].FirstOrDefault();
+            // Enhanced security checks
+            if (!validApiKey.CanBeUsed)
+            {
+                Logger.LogWarning("Blocked API Key {ApiKeyName} attempted use from IP: {ClientIP}", validApiKey.Name, clientIP);
+                return AuthenticateResult.Fail("API Key is blocked or expired");
+            }
+
+            if (validApiKey.RequireTLS && !Request.IsHttps)
+            {
+                Logger.LogWarning("API Key {ApiKeyName} requires TLS but used over HTTP from IP: {ClientIP}", validApiKey.Name, clientIP);
+                return AuthenticateResult.Fail("HTTPS required for this API key");
+            }
 
             if (!_apiKeyService.IsValidIP(validApiKey, clientIP))
             {
-                Logger.LogWarning($"API Key {validApiKey.Name} used from unauthorized IP: {clientIP}");
+                Logger.LogWarning("API Key {ApiKeyName} used from unauthorized IP: {ClientIP}", validApiKey.Name, clientIP);
+                await _apiKeyService.RecordSecurityViolationAsync(validApiKey.Id, "Unauthorized IP", clientIP);
                 return AuthenticateResult.Fail("Unauthorized IP address");
             }
 
             if (!_apiKeyService.IsValidOrigin(validApiKey, origin))
             {
-                Logger.LogWarning($"API Key {validApiKey.Name} used from unauthorized origin: {origin}");
+                Logger.LogWarning("API Key {ApiKeyName} used from unauthorized origin: {Origin} from IP: {ClientIP}", validApiKey.Name, origin, clientIP);
+                await _apiKeyService.RecordSecurityViolationAsync(validApiKey.Id, "Unauthorized Origin", origin);
                 return AuthenticateResult.Fail("Unauthorized origin");
+            }
+
+            // Validate User-Agent if specified
+            if (!string.IsNullOrEmpty(validApiKey.UserAgent) && userAgent != validApiKey.UserAgent)
+            {
+                Logger.LogWarning("API Key {ApiKeyName} used with unexpected User-Agent: {UserAgent}", validApiKey.Name, userAgent);
+                await _apiKeyService.RecordSecurityViolationAsync(validApiKey.Id, "Unexpected User-Agent", userAgent);
+                return AuthenticateResult.Fail("Unauthorized client");
             }
 
             var claims = new List<Claim>

@@ -14,24 +14,24 @@ namespace GCCWebApp.Services
             _logger = logger;
         }
 
-        public async Task<T?> GetAsync<T>(string key) where T : class
+        public Task<T?> GetAsync<T>(string key) where T : class
         {
             try
             {
                 if (_memoryCache.TryGetValue(key, out T? cachedValue))
                 {
-                    return cachedValue;
+                    return Task.FromResult(cachedValue);
                 }
-                return null;
+                return Task.FromResult<T?>(null);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving item from cache with key: {Key}", key);
-                return null;
+                return Task.FromResult<T?>(null);
             }
         }
 
-        public async Task SetAsync<T>(string key, T data, TimeSpan? expiration = null) where T : class
+        public Task SetAsync<T>(string key, T data, TimeSpan? expiration = null) where T : class
         {
             try
             {
@@ -47,39 +47,42 @@ namespace GCCWebApp.Services
                 }
 
                 _memoryCache.Set(key, data, cacheEntryOptions);
-                await Task.CompletedTask;
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error setting item in cache with key: {Key}", key);
+                return Task.CompletedTask;
             }
         }
 
-        public async Task RemoveAsync(string key)
+        public Task RemoveAsync(string key)
         {
             try
             {
                 _memoryCache.Remove(key);
-                await Task.CompletedTask;
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error removing item from cache with key: {Key}", key);
+                return Task.CompletedTask;
             }
         }
 
-        public async Task ClearByPatternAsync(string pattern)
+        public Task ClearByPatternAsync(string pattern)
         {
             try
             {
                 // Note: IMemoryCache doesn't natively support pattern-based clearing
                 // This is a simplified implementation
                 _logger.LogWarning("Pattern-based cache clearing is not fully implemented for MemoryCache: {Pattern}", pattern);
-                await Task.CompletedTask;
+                return Task.CompletedTask;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error clearing cache by pattern: {Pattern}", pattern);
+                return Task.CompletedTask;
             }
         }
     }

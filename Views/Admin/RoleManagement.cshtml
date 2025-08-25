@@ -22,11 +22,8 @@
             <button id="export-btn" class="btn">
                 <i class="fas fa-download"></i> Export
             </button>
-            <button id="test-csv-btn" class="btn" style="background: #28a745;">
-                <i class="fas fa-file-csv"></i> Test CSV
-            </button>
             <button id="add-role-btn" class="btn btn-add">
-                <i class="fas fa-plus"></i> Add New Role
+                <i class="fas fa-plus"></i> + Add New Role
             </button>
         </div>
     </header>
@@ -470,40 +467,6 @@
             exportBtn.addEventListener('click', exportRoles);
         }
         
-        // Test CSV button - direct CSV export bypassing modal
-        const testCsvBtn = document.getElementById('test-csv-btn');
-        if (testCsvBtn) {
-            testCsvBtn.addEventListener('click', function() {
-                console.log('Test CSV export clicked');
-                
-                const exportData = roles.map(role => ({
-                    id: role.id,
-                    name: role.name,
-                    description: role.description,
-                    permissions: role.permissions.join('; '),
-                    users: role.users
-                }));
-                
-                const columns = [
-                    { key: 'id', header: 'ID' },
-                    { key: 'name', header: 'Role Name' },
-                    { key: 'description', header: 'Description' },
-                    { key: 'permissions', header: 'Permissions' },
-                    { key: 'users', header: 'User Count' }
-                ];
-                
-                console.log('Calling direct CSV export...');
-                ExportUtils.exportToCSV(
-                    exportData, 
-                    columns, 
-                    'roles_test',
-                    (message, type) => {
-                        console.log(`Direct CSV Export: ${message} (${type})`);
-                        alert(`Direct CSV: ${message}`);
-                    }
-                );
-            });
-        }
 
         window.addEventListener('click', (event) => {
             if (event.target === modal) {

@@ -50,6 +50,32 @@
             </div>
 
             <div class="form-group">
+                <label for="custom-script">Custom Analytics Script (Optional)</label>
+                <textarea id="custom-script" placeholder="Paste your complete Google Analytics script here..." rows="8"></textarea>
+                <div class="form-help">
+                    You can paste the complete script provided by Google Analytics here, or use the Tracking ID field above for automatic script generation.
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Additional Configuration Options</label>
+                <div class="config-options">
+                    <label class="toggle-label">
+                        <input type="checkbox" id="anonymize-ip">
+                        <span class="checkbox-text">Anonymize IP addresses</span>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="enhanced-link">
+                        <span class="checkbox-text">Enhanced Link Attribution</span>
+                    </label>
+                    <label class="toggle-label">
+                        <input type="checkbox" id="debug-mode">
+                        <span class="checkbox-text">Debug Mode</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
                 <label>Script Preview</label>
                 <pre id="script-preview">&lt;script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"&gt;&lt;/script&gt;
 &lt;script&gt;

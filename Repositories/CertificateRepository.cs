@@ -293,6 +293,52 @@ namespace GCCWebApp.Repositories
                 c.ExpirationDate > now && 
                 c.ExpirationDate <= thirtyDaysFromNow);
 
+            // Products with active certificates
+            stats["ActiveProducts"] = await _dbSet
+                .Where(c => c.Status == "active")
+                .Select(c => c.Product.Id)
+                .Distinct()
+                .CountAsync();
+
+            // Time-based statistics
+            var startOfMonth = new DateTime(now.Year, now.Month, 1);
+            var startOfLastMonth = startOfMonth.AddMonths(-1);
+            var endOfLastMonth = startOfMonth.AddDays(-1);
+            var startOfNextMonth = startOfMonth.AddMonths(1);
+            var endOfNextMonth = startOfNextMonth.AddMonths(1).AddDays(-1);
+            var startOfYear = new DateTime(now.Year, 1, 1);
+            var startOfLastYear = new DateTime(now.Year - 1, 1, 1);
+            var endOfLastYear = new DateTime(now.Year - 1, 12, 31);
+
+            // Published last month
+            stats["PublishedLastMonth"] = await _dbSet.CountAsync(c => 
+                c.CreatedAt >= startOfLastMonth && c.CreatedAt <= endOfLastMonth);
+
+            // Expiring this month
+            stats["ExpiringThisMonth"] = await _dbSet.CountAsync(c => 
+                c.Status == "active" && 
+                c.ExpirationDate >= startOfMonth && 
+                c.ExpirationDate < startOfNextMonth);
+
+            // Expired last month
+            stats["ExpiredLastMonth"] = await _dbSet.CountAsync(c => 
+                c.ExpirationDate >= startOfLastMonth && 
+                c.ExpirationDate <= endOfLastMonth);
+
+            // Expiring next month
+            stats["ExpiringNextMonth"] = await _dbSet.CountAsync(c => 
+                c.Status == "active" && 
+                c.ExpirationDate >= startOfNextMonth && 
+                c.ExpirationDate <= endOfNextMonth);
+
+            // Published this year
+            stats["PublishedThisYear"] = await _dbSet.CountAsync(c => 
+                c.CreatedAt >= startOfYear);
+
+            // Published last year
+            stats["PublishedLastYear"] = await _dbSet.CountAsync(c => 
+                c.CreatedAt >= startOfLastYear && c.CreatedAt <= endOfLastYear);
+
             // By status
             var statusCounts = await _dbSet
                 .GroupBy(c => c.Status)
@@ -305,6 +351,41 @@ namespace GCCWebApp.Repositories
             }
 
             return stats;
+        }
+
+        public async Task<IEnumerable<(string Name, int Count)>> GetCertificationTypeStatisticsAsync()
+        {
+            return await _dbSet
+                .Where(c => c.Status == "active")
+                .GroupBy(c => c.CertificationType.Name)
+                .Select(g => new { Name = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Select(x => ValueTuple.Create(x.Name, x.Count))
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<(string Name, int Count)>> GetTopCompaniesByActiveCertCountAsync(int topCount = 10)
+        {
+            return await _dbSet
+                .Where(c => c.Status == "active")
+                .GroupBy(c => c.Company.Name)
+                .Select(g => new { Name = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(topCount)
+                .Select(x => ValueTuple.Create(x.Name, x.Count))
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<(string Name, int Count)>> GetProductTypeStatisticsAsync(int topCount = 10)
+        {
+            return await _dbSet
+                .Where(c => c.Status == "active")
+                .GroupBy(c => c.Product.ProductType.Name)
+                .Select(g => new { Name = g.Key, Count = g.Count() })
+                .OrderByDescending(x => x.Count)
+                .Take(topCount)
+                .Select(x => ValueTuple.Create(x.Name, x.Count))
+                .ToListAsync();
         }
     }
 }

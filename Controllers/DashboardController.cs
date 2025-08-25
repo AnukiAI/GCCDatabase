@@ -2,10 +2,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using GCCWebApp.Models;
 using GCCWebApp.Repositories;
+using System.Text;
+using System.Text.Json;
 
 namespace GCCWebApp.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "AnalystOrAdmin")]
     public class DashboardController : Controller
     {
         private readonly ILogger<DashboardController> _logger;
@@ -53,6 +55,11 @@ namespace GCCWebApp.Controllers
                     model.TotalCompanies = await _unitOfWork.Companies.CountAsync();
                     model.TotalProducts = await _unitOfWork.Products.CountAsync();
                     model.TotalCertificationTypes = await _unitOfWork.CertificationTypes.CountAsync();
+                    
+                    // Dashboard breakdown data
+                    model.CertificationTypeBreakdown = await _certificateRepository.GetCertificationTypeStatisticsAsync();
+                    model.TopCompaniesBreakdown = await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
+                    model.ProductTypeBreakdown = await _certificateRepository.GetProductTypeStatisticsAsync(10);
                 }
                 else
                 {
@@ -239,6 +246,193 @@ namespace GCCWebApp.Controllers
                     }
                 }
             };
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadStat(string type)
+        {
+            try
+            {
+                var userRole = HttpContext.Session.GetString("UserRole") ?? "Public";
+                
+                if (userRole != "Admin" && userRole != "Analyst")
+                {
+                    return Forbid();
+                }
+
+                var stats = await _certificateRepository.GetCertificateStatisticsAsync();
+                var data = await GetStatData(type, stats);
+                
+                if (data == null)
+                {
+                    return BadRequest("Invalid stat type");
+                }
+
+                var csv = GenerateStatCsv(type, data);
+                var fileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.csv";
+                
+                return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error downloading stat report for type: {StatType}", type);
+                return BadRequest("Error generating report");
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DownloadTable(string type)
+        {
+            try
+            {
+                var userRole = HttpContext.Session.GetString("UserRole") ?? "Public";
+                
+                if (userRole != "Admin" && userRole != "Analyst")
+                {
+                    return Forbid();
+                }
+
+                var data = await GetTableData(type);
+                
+                if (data == null)
+                {
+                    return BadRequest("Invalid table type");
+                }
+
+                var csv = GenerateTableCsv(type, data);
+                var fileName = $"{type}-table-{DateTime.UtcNow:yyyy-MM-dd}.csv";
+                
+                return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error downloading table report for type: {TableType}", type);
+                return BadRequest("Error generating report");
+            }
+        }
+
+        private async Task<object> GetStatData(string type, Dictionary<string, int> stats)
+        {
+            switch (type)
+            {
+                case "total-active-certs":
+                    return new { Value = stats.GetValueOrDefault("Active", 0), Description = "Total Active Certificates" };
+
+                case "companies-with-active-certs":
+                    var totalCompanies = await _unitOfWork.Companies.CountAsync();
+                    return new { Value = totalCompanies, Description = "Companies with Active Certificates" };
+
+                case "product-categories-with-active-certs":
+                    var totalCertTypes = await _unitOfWork.CertificationTypes.CountAsync();
+                    return new { Value = totalCertTypes, Description = "Product Categories with Active Certificates" };
+
+                case "product-types-with-active-certs":
+                    var totalProducts = await _unitOfWork.Products.CountAsync();
+                    return new { Value = totalProducts, Description = "Product Types with Active Certificates" };
+
+                case "product-subcategories-with-active-certs":
+                    return new { Value = stats.GetValueOrDefault("ProductSubcategories", 0), Description = "Product Subcategories with Active Certificates" };
+
+                case "products-with-active-certs":
+                    return new { Value = stats.GetValueOrDefault("ActiveProducts", 0), Description = "Products with Active Certificates" };
+
+                case "certs-published-last-month":
+                    return new { Value = stats.GetValueOrDefault("PublishedLastMonth", 0), Description = "Certificates Published Last Month" };
+
+                case "certs-expiring-this-month":
+                    return new { Value = stats.GetValueOrDefault("ExpiringThisMonth", 0), Description = "Certificates Expiring This Month" };
+
+                case "certs-expired-last-month":
+                    return new { Value = stats.GetValueOrDefault("ExpiredLastMonth", 0), Description = "Certificates Expired Last Month" };
+
+                case "certs-expiring-next-month":
+                    return new { Value = stats.GetValueOrDefault("ExpiringNextMonth", 0), Description = "Certificates Expiring Next Month" };
+
+                case "certs-published-this-year":
+                    return new { Value = stats.GetValueOrDefault("PublishedThisYear", 0), Description = "Certificates Published This Year" };
+
+                case "certs-published-last-year":
+                    return new { Value = stats.GetValueOrDefault("PublishedLastYear", 0), Description = "Certificates Published Last Year" };
+
+                default:
+                    return null;
+            }
+        }
+
+        private async Task<object> GetTableData(string type)
+        {
+            switch (type)
+            {
+                case "cert-types":
+                    return await _certificateRepository.GetCertificationTypeStatisticsAsync();
+
+                case "top-companies":
+                    return await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
+
+                case "cert-status":
+                    var stats = await _certificateRepository.GetCertificateStatisticsAsync();
+                    return new[]
+                    {
+                        new { Name = "Active", Count = stats.GetValueOrDefault("Active", 0) },
+                        new { Name = "Expired", Count = stats.GetValueOrDefault("Expired", 0) },
+                        new { Name = "Expiring Soon", Count = stats.GetValueOrDefault("ExpiringSoon", 0) }
+                    };
+
+                case "product-types":
+                    return await _certificateRepository.GetProductTypeStatisticsAsync(10);
+
+                case "product-categories":
+                    var certTypes = await _certificateRepository.GetCertificationTypeStatisticsAsync();
+                    return certTypes.Take(5);
+
+                default:
+                    return null;
+            }
+        }
+
+        private string GenerateStatCsv(string type, dynamic data)
+        {
+            var csv = new StringBuilder();
+            csv.AppendLine("Metric,Value,Generated Date");
+            csv.AppendLine($"\"{data.Description}\",{data.Value},{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            return csv.ToString();
+        }
+
+        private string GenerateTableCsv(string type, dynamic data)
+        {
+            var csv = new StringBuilder();
+            
+            switch (type)
+            {
+                case "cert-types":
+                case "top-companies":
+                case "product-types":
+                case "product-categories":
+                    csv.AppendLine("Name,Count");
+                    if (data != null)
+                    {
+                        foreach (var item in data)
+                        {
+                            csv.AppendLine($"\"{item.Name}\",{item.Count}");
+                        }
+                    }
+                    break;
+
+                case "cert-status":
+                    csv.AppendLine("Status,Count");
+                    if (data != null)
+                    {
+                        foreach (var item in data)
+                        {
+                            csv.AppendLine($"\"{item.Name}\",{item.Count}");
+                        }
+                    }
+                    break;
+            }
+
+            csv.AppendLine();
+            csv.AppendLine($"Generated on: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            return csv.ToString();
         }
     }
 }

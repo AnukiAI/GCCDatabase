@@ -569,10 +569,15 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @if (Model.Statistics.Any())
+                    @if (Model.CertificationTypeBreakdown.Any())
                     {
-                        @* TODO: Add certification type statistics to model and controller *@
-                        <tr><td colspan="2" style="text-align: center; font-style: italic;">Dynamic data loading - requires database query implementation</td></tr>
+                        @foreach (var certType in Model.CertificationTypeBreakdown)
+                        {
+                            <tr>
+                                <td>@certType.Name</td>
+                                <td>@certType.Count.ToString("N0")</td>
+                            </tr>
+                        }
                     }
                     else
                     {
@@ -600,8 +605,20 @@
                 <tbody>
                     @if (Model.IsInternal)
                     {
-                        @* TODO: Add top companies data to model and controller *@
-                        <tr><td colspan="2" style="text-align: center; font-style: italic;">Dynamic data loading - requires database query implementation</td></tr>
+                        @if (Model.TopCompaniesBreakdown.Any())
+                        {
+                            @foreach (var company in Model.TopCompaniesBreakdown)
+                            {
+                                <tr>
+                                    <td>@company.Name</td>
+                                    <td>@company.Count.ToString("N0")</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="2" style="text-align: center; font-style: italic;">No company data available</td></tr>
+                        }
                     }
                     else
                     {
@@ -660,8 +677,20 @@
                 <tbody>
                     @if (Model.IsInternal)
                     {
-                        @* TODO: Add top product types data to model and controller *@
-                        <tr><td colspan="2" style="text-align: center; font-style: italic;">Dynamic data loading - requires database query implementation</td></tr>
+                        @if (Model.ProductTypeBreakdown.Any())
+                        {
+                            @foreach (var productType in Model.ProductTypeBreakdown)
+                            {
+                                <tr>
+                                    <td>@productType.Name</td>
+                                    <td>@productType.Count.ToString("N0")</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="2" style="text-align: center; font-style: italic;">No product type data available</td></tr>
+                        }
                     }
                     else
                     {
@@ -689,8 +718,20 @@
                 <tbody>
                     @if (Model.IsInternal)
                     {
-                        @* TODO: Add top product categories data to model and controller *@
-                        <tr><td colspan="2" style="text-align: center; font-style: italic;">Dynamic data loading - requires database query implementation</td></tr>
+                        @if (Model.CertificationTypeBreakdown.Any())
+                        {
+                            @foreach (var certType in Model.CertificationTypeBreakdown.Take(5))
+                            {
+                                <tr>
+                                    <td>@certType.Name</td>
+                                    <td>@certType.Count.ToString("N0")</td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="2" style="text-align: center; font-style: italic;">No product category data available</td></tr>
+                        }
                     }
                     else
                     {
@@ -729,7 +770,8 @@
                 window.GreenCircle.showToast(`Downloading ${statType.replace(/-/g, ' ')} data...`, 'success');
             }
 
-            // In real implementation: window.location.href = `/Dashboard/DownloadStat?type=${statType}`;
+            // Trigger the actual download
+            window.location.href = `/Dashboard/DownloadStat?type=${statType}`;
         }
 
         // Table download functionality
@@ -740,7 +782,8 @@
                 window.GreenCircle.showToast(`Downloading ${tableType.replace(/-/g, ' ')} table...`, 'success');
             }
 
-            // In real implementation: window.location.href = `/Dashboard/DownloadTable?type=${tableType}`;
+            // Trigger the actual download
+            window.location.href = `/Dashboard/DownloadTable?type=${tableType}`;
         }
 
         // Dashboard functionality

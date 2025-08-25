@@ -6,30 +6,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Certificate download functionality
     function downloadCertificate(certificateId) {
-        // In a real implementation, this would trigger a server request
+        // Download the certificate PDF
         console.log(`Downloading certificate: ${certificateId}`);
 
-        // Mock download behavior
-        window.AppUtils.showToast('Certificate download started');
-
-        // Here you would typically:
-        // 1. Make an API request to get the certificate PDF
-        // 2. Create a blob URL and trigger download
-        // Example:
-        // window.AppUtils.makeRequest(`/api/certificates/${certificateId}/download`)
-        //     .then(response => {
-        //         // Handle PDF download
-        //     })
-        //     .catch(error => {
-        //         window.AppUtils.showToast('Download failed', 'error');
-        //     });
+        try {
+            window.open(`/Certificate/Download/${certificateId}`, '_blank');
+            if (window.AppUtils && window.AppUtils.showToast) {
+                window.AppUtils.showToast('Certificate download started');
+            } else {
+                console.log('Certificate download started');
+            }
+        } catch (error) {
+            console.error('Error downloading certificate:', error);
+            if (window.AppUtils && window.AppUtils.showToast) {
+                window.AppUtils.showToast('Download failed', 'error');
+            }
+        }
     }
 
     // Certificate expand/view functionality
     function expandCertificate(certificateId) {
         console.log(`Expanding certificate: ${certificateId}`);
         // Navigate to detailed view
-        window.location.href = `certificate-detail.html?id=${certificateId}`;
+        window.location.href = `/Certificate/CertificateSingleView/${certificateId}`;
     }
 
     // Initialize certificate action buttons
@@ -65,21 +64,58 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ===== CERTIFICATE SEARCH AND FILTER =====
 
-    // Sample certificate data for demo
-    let certificatesData = [
-        {
-            id: '24-1605',
-            companyName: 'ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division',
-            productName: '900ET Exit Device Trim with EcoFlex®',
-            category: 'Construction / Building Products',
-            certType: 'CERTIFIED SUSTAINABILITY FACTS',
-            effectiveDate: '7/1/2024',
-            expirationDate: '6/31/2027',
-            location: 'Berlin, CT',
-            country: 'United States'
+    // Certificate data storage
+    let certificatesData = [];
+    let allCertificatesData = [];
+
+    // Load certificates from API
+    async function loadCertificatesFromAPI() {
+        try {
+            console.log('Loading certificates from API...');
+            const response = await fetch('/api/certificates?pageSize=100&page=1');
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                // Transform API data to match expected format
+                certificatesData = result.data.map(cert => ({
+                    id: cert.number || cert.id,
+                    companyName: cert.companyName || 'Unknown Company',
+                    productName: cert.productName || 'Unknown Product',
+                    category: cert.categoryName || 'Uncategorized',
+                    certType: cert.certificationTypeName || 'Unknown Type',
+                    effectiveDate: cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A',
+                    expirationDate: cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A',
+                    location: cert.location || 'Unknown Location',
+                    country: cert.country || 'Unknown Country',
+                    status: cert.status || 'unknown',
+                    asin: cert.asin || '',
+                    upc: cert.upc || ''
+                }));
+                
+                allCertificatesData = [...certificatesData];
+                console.log(`Loaded ${certificatesData.length} certificates from API`);
+                
+                // Update the certificate grid with loaded data
+                updateCertificateGrid(certificatesData);
+                
+                return certificatesData;
+            } else {
+                console.error('API response indicates failure:', result);
+                return [];
+            }
+        } catch (error) {
+            console.error('Error loading certificates from API:', error);
+            // Fallback to empty array
+            certificatesData = [];
+            allCertificatesData = [];
+            return [];
         }
-        // More certificates would be loaded from API in real implementation
-    ];
+    }
 
     // Initialize certificate search
     function initializeCertificateSearch() {
@@ -333,17 +369,19 @@ document.addEventListener('DOMContentLoaded', function () {
     // ===== INITIALIZATION =====
 
     // Initialize all certificate functionality
-    function initializeCertificates() {
+    async function initializeCertificates() {
         console.log('Initializing certificate functionality...');
 
         // Initialize core functionality
         initializeCertificateActions();
-        initializeCertificateSearch();
         initializeCertificateSort();
         initializeFilters();
 
-        // Load initial data (in real app, this would be an API call)
-        updateCertificateGrid(certificatesData);
+        // Load data from API
+        await loadCertificatesFromAPI();
+        
+        // Initialize search after data is loaded
+        initializeCertificateSearch();
 
         console.log('Certificate functionality initialized');
     }
@@ -432,6 +470,7 @@ document.addEventListener('DOMContentLoaded', function () {
         downloadCertificate,
         expandCertificate,
         loadCertificates,
+        loadCertificatesFromAPI,
         exportCertificates,
         importCertificates,
         updateCertificateGrid,
@@ -439,5 +478,5 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // Initialize everything
-    initializeCertificates();
+    initializeCertificates().catch(console.error);
 });

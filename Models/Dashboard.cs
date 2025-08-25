@@ -19,6 +19,11 @@ namespace GCCWebApp.Models
         public IEnumerable<Certificate> RecentCertificates { get; set; } = new List<Certificate>();
         public IEnumerable<Certificate> ExpiringCertificates { get; set; } = new List<Certificate>();
 
+        // Dashboard breakdown data
+        public IEnumerable<(string Name, int Count)> CertificationTypeBreakdown { get; set; } = new List<(string, int)>();
+        public IEnumerable<(string Name, int Count)> TopCompaniesBreakdown { get; set; } = new List<(string, int)>();
+        public IEnumerable<(string Name, int Count)> ProductTypeBreakdown { get; set; } = new List<(string, int)>();
+
         // Computed Properties
         public int TotalCertificates => Statistics.GetValueOrDefault("Total", 0);
         public int ActiveCertificates => Statistics.GetValueOrDefault("Active", 0);

@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using GCCWebApp.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GCCWebApp.Controllers
 {
@@ -13,23 +14,27 @@ namespace GCCWebApp.Controllers
             _logger = logger;
         }
 
+        [AllowAnonymous]
         public IActionResult Index()
         {
-            // For public users (not authenticated), redirect to certificates page
-            // This ensures the initial load always shows certificates for public access
-            if (User.Identity?.IsAuthenticated != true)
+            // Check if user is authenticated
+            if (User.Identity?.IsAuthenticated == true)
             {
+                // Authenticated users - redirect based on their role
+                var userRole = HttpContext.Session.GetString("UserRole");
+                return userRole switch
+                {
+                    "External" => RedirectToAction("CertificateTileViewExternal", "Certificate"),
+                    "Analyst" => RedirectToAction("Index", "Dashboard"),
+                    "Admin" => RedirectToAction("Index", "Dashboard"),
+                    _ => RedirectToAction("CertificateTileViewInternal", "Certificate")
+                };
+            }
+            else
+            {
+                // Unauthenticated users - redirect to public certificates view
                 return RedirectToAction("CertificateTileView", "Certificate");
             }
-
-            // For authenticated users, redirect based on their role
-            var userRole = HttpContext.Session.GetString("UserRole");
-            return userRole switch
-            {
-                "External" => RedirectToAction("Index", "Dashboard"),
-                "Analyst" or "Admin" => RedirectToAction("Index", "Dashboard"),
-                _ => RedirectToAction("CertificateTileView", "Certificate")
-            };
         }
 
         public IActionResult Privacy()

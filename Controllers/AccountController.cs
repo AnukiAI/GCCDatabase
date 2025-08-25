@@ -7,6 +7,7 @@ using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using GCCWebApp.Configuration;
+using GCCWebApp.Services;
 
 namespace GCCWebApp.Controllers
 {
@@ -15,11 +16,22 @@ namespace GCCWebApp.Controllers
         private readonly ILogger<AccountController> _logger;
         private readonly AzureAdB2COptions? _azureAdB2COptions;
         private readonly bool _isAzureAdB2CConfigured;
+        private readonly IConfiguration _configuration;
+        private readonly IEnhancedTwoFactorService _twoFactorService;
+        private readonly IEmailService _emailService;
 
-        public AccountController(ILogger<AccountController> logger, IOptions<AzureAdB2COptions>? azureAdB2COptions)
+        public AccountController(
+            ILogger<AccountController> logger, 
+            IOptions<AzureAdB2COptions>? azureAdB2COptions, 
+            IConfiguration configuration,
+            IEnhancedTwoFactorService twoFactorService,
+            IEmailService emailService)
         {
             _logger = logger;
             _azureAdB2COptions = azureAdB2COptions?.Value;
+            _configuration = configuration;
+            _twoFactorService = twoFactorService;
+            _emailService = emailService;
             
             // Check if Azure AD B2C is properly configured
             _isAzureAdB2CConfigured = _azureAdB2COptions != null && 
@@ -147,66 +159,101 @@ namespace GCCWebApp.Controllers
                 return View(model);
             }
 
-            // Create claims for the authenticated user
-            var claims = new List<Claim>
+            // Check if 2FA is enabled
+            var is2FAEnabled = _configuration.GetValue<bool>("Authentication:Enable2FA", true);
+            
+            if (is2FAEnabled)
             {
-                new Claim(ClaimTypes.Name, model.Email),
-                new Claim(ClaimTypes.Email, model.Email),
-                new Claim("Email", model.Email),
-                new Claim("Name", model.Email), // Using email as name for simplicity
-                new Claim("Role", userRole),
-                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
-            };
+                try
+                {
+                    // Get user preferences for 2FA delivery method
+                    var preferences = await _twoFactorService.GetUserPreferencesAsync(model.Email);
+                    
+                    // Generate and send 2FA code using preferred method
+                    var code = _twoFactorService.GenerateCode();
+                    _twoFactorService.StoreCode(model.Email, code);
+                    await _twoFactorService.SendCodeAsync(model.Email, code, preferences.PreferredMethod, preferences.Email, preferences.PhoneNumber);
+                    
+                    // Store user info temporarily in TempData
+                    TempData["2FAEmail"] = model.Email;
+                    TempData["2FARole"] = userRole;
+                    TempData["ReturnUrl"] = returnUrl;
+                    TempData["RememberMe"] = model.RememberMe;
+                    TempData["2FAMethod"] = preferences.PreferredMethod.ToString();
+                    
+                    _logger.LogInformation($"2FA code sent to {model.Email} via {preferences.PreferredMethod}");
+                    return RedirectToAction("TwoFactorAuthentication");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, $"Failed to send 2FA code to {model.Email}");
+                    ModelState.AddModelError("", "Unable to send verification code. Please try again or contact support.");
+                    return View(model);
+                }
+            }
 
-            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-            var authProperties = new AuthenticationProperties
-            {
-                IsPersistent = model.RememberMe,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30)
-            };
-
-            await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(claimsIdentity),
-                authProperties);
-
-            _logger.LogInformation($"User {model.Email} signed in with role {userRole}");
-
-            // Set session variables
-            HttpContext.Session.SetString("UserEmail", model.Email);
-            HttpContext.Session.SetString("UserName", model.Email);
-            HttpContext.Session.SetString("UserRole", userRole);
-
+            // Direct login without 2FA
+            await SignInUser(model.Email, userRole, model.RememberMe);
             return RedirectToLocal(returnUrl);
         }
 
         /// <summary>
-        /// Initiate sign-out process
+        /// Initiate sign-out process (GET version for direct navigation)
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> Logout()
+        {
+            return await PerformLogout();
+        }
+
+        /// <summary>
+        /// Initiate sign-out process (POST version for form submission)
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Logout()
+        public async Task<IActionResult> LogoutPost()
+        {
+            return await PerformLogout();
+        }
+
+        private async Task<IActionResult> PerformLogout()
         {
             var userEmail = HttpContext.Session.GetString("UserEmail");
+            var userRole = HttpContext.Session.GetString("UserRole");
             
-            // Clear session data
-            HttpContext.Session.Clear();
+            try
+            {
+                _logger.LogInformation("User {Email} with role {Role} initiating logout", userEmail, userRole);
 
-            if (_isAzureAdB2CConfigured)
-            {
-                // Sign out from Azure AD B2C
-                var callbackUrl = Url.Action(nameof(SignedOut), "Account", values: null, protocol: Request.Scheme);
-                return SignOut(
-                    new AuthenticationProperties { RedirectUri = callbackUrl },
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    OpenIdConnectDefaults.AuthenticationScheme);
+                // Clear session data first
+                HttpContext.Session.Clear();
+
+                if (_isAzureAdB2CConfigured && User.Identity?.AuthenticationType == OpenIdConnectDefaults.AuthenticationScheme)
+                {
+                    // Sign out from Azure AD B2C
+                    var callbackUrl = Url.Action(nameof(SignedOut), "Account", values: null, protocol: Request.Scheme);
+                    return SignOut(
+                        new AuthenticationProperties { RedirectUri = callbackUrl },
+                        CookieAuthenticationDefaults.AuthenticationScheme,
+                        OpenIdConnectDefaults.AuthenticationScheme);
+                }
+                else
+                {
+                    // Sign out from cookie authentication (handles all user roles)
+                    await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                    _logger.LogInformation("User {Email} with role {Role} signed out successfully", userEmail, userRole);
+                    
+                    // Redirect to public certificates page after logout
+                    return RedirectToAction("CertificateTileView", "Certificate");
+                }
             }
-            else
+            catch (Exception ex)
             {
-                // Sign out from cookie authentication
-                await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-                _logger.LogInformation($"User {userEmail} signed out");
-                return RedirectToAction("Login");
+                _logger.LogError(ex, "Error during logout for user {UserEmail} with role {UserRole}", userEmail, userRole);
+                
+                // Even if there's an error, clear session and redirect to public page
+                HttpContext.Session.Clear();
+                return RedirectToAction("CertificateTileView", "Certificate");
             }
         }
 
@@ -216,7 +263,8 @@ namespace GCCWebApp.Controllers
         [AllowAnonymous]
         public IActionResult SignedOut()
         {
-            return RedirectToAction(nameof(Login));
+            // Redirect to public certificates page after sign out
+            return RedirectToAction("CertificateTileView", "Certificate");
         }
 
         /// <summary>
@@ -293,7 +341,240 @@ namespace GCCWebApp.Controllers
             
             // For demo purposes, just show a success message
             ViewBag.Message = "If an account with that email address exists, you will receive a password reset link.";
+            
+            // Add await for async completion
+            await Task.CompletedTask;
+            
             return View("ForgotPasswordConfirmation");
+        }
+
+        /// <summary>
+        /// Display the Two-Factor Authentication page
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult TwoFactorAuthentication()
+        {
+            if (TempData["2FAEmail"] == null)
+            {
+                _logger.LogWarning("2FA page accessed without proper session data");
+                return RedirectToAction("Login");
+            }
+            
+            // Keep the values for the post action
+            TempData.Keep();
+            return View("2FAAuthenticate");
+        }
+
+        /// <summary>
+        /// Handle Two-Factor Authentication verification
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Verify2FA(string authCode, bool trustDevice = false)
+        {
+            var email = TempData["2FAEmail"]?.ToString();
+            var role = TempData["2FARole"]?.ToString();
+            var returnUrl = TempData["ReturnUrl"]?.ToString();
+            var rememberMe = TempData["RememberMe"] as bool? ?? false;
+            
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(role))
+            {
+                _logger.LogWarning("2FA verification attempted without proper session data");
+                return RedirectToAction("Login");
+            }
+            
+            if (string.IsNullOrWhiteSpace(authCode) || authCode.Length != 6)
+            {
+                ViewBag.Error = "Please enter a valid 6-digit code.";
+                TempData.Keep(); // Keep for retry
+                return View("2FAAuthenticate");
+            }
+            
+            if (_twoFactorService.ValidateCode(email, authCode))
+            {
+                _logger.LogInformation($"2FA verification successful for {email}");
+                await SignInUser(email, role, rememberMe || trustDevice);
+                return RedirectToLocal(returnUrl);
+            }
+            
+            _logger.LogWarning($"2FA verification failed for {email}");
+            ViewBag.Error = "Invalid or expired code. Please try again.";
+            TempData.Keep(); // Keep for retry
+            return View("2FAAuthenticate");
+        }
+
+        /// <summary>
+        /// Resend 2FA code
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost]
+        public async Task<IActionResult> Resend2FA()
+        {
+            var email = TempData["2FAEmail"]?.ToString();
+            
+            if (string.IsNullOrEmpty(email))
+            {
+                return Json(new { success = false, message = "Session expired. Please login again." });
+            }
+            
+            try
+            {
+                var preferences = await _twoFactorService.GetUserPreferencesAsync(email);
+                var success = await _twoFactorService.ResendCodeAsync(email, preferences);
+                if (success)
+                {
+                    TempData.Keep(); // Keep session data
+                    return Json(new { success = true, message = $"Verification code sent successfully via {preferences.PreferredMethod}." });
+                }
+                else
+                {
+                    return Json(new { success = false, message = "Please wait before requesting another code." });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to resend 2FA code to {email}");
+                return Json(new { success = false, message = "Failed to send code. Please try again." });
+            }
+        }
+
+        /// <summary>
+        /// Display 2FA preferences page
+        /// </summary>
+        [Authorize]
+        [HttpGet]
+        public async Task<IActionResult> TwoFactorPreferences()
+        {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? User.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                return RedirectToAction("Login");
+            }
+
+            var preferences = await _twoFactorService.GetUserPreferencesAsync(userEmail);
+            return View(preferences);
+        }
+
+        /// <summary>
+        /// Save 2FA preferences
+        /// </summary>
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> TwoFactorPreferences(TwoFactorPreferences model)
+        {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? User.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrEmpty(userEmail))
+            {
+                return RedirectToAction("Login");
+            }
+
+            model.UserId = userEmail;
+
+            try
+            {
+                // If phone number is provided and method includes SMS, send verification
+                if (!string.IsNullOrEmpty(model.PhoneNumber) && 
+                    (model.PreferredMethod == TwoFactorDeliveryMethod.SMS || model.PreferredMethod == TwoFactorDeliveryMethod.Both))
+                {
+                    if (!model.IsPhoneVerified)
+                    {
+                        await _twoFactorService.SendVerificationCodeAsync(userEmail, model.PhoneNumber, TwoFactorDeliveryMethod.SMS);
+                        TempData["PhoneVerificationSent"] = "Verification code sent to your phone. Please check your messages.";
+                        TempData["TempPhoneNumber"] = model.PhoneNumber;
+                        TempData["TempPreferredMethod"] = model.PreferredMethod.ToString();
+                        return RedirectToAction("VerifyPhone");
+                    }
+                }
+
+                await _twoFactorService.SaveUserPreferencesAsync(model);
+                TempData["SuccessMessage"] = "Your 2FA preferences have been saved successfully.";
+                return RedirectToAction("TwoFactorPreferences");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to save 2FA preferences for {userEmail}");
+                ModelState.AddModelError("", "Failed to save preferences. Please try again.");
+                return View(model);
+            }
+        }
+
+        /// <summary>
+        /// Phone verification page
+        /// </summary>
+        [Authorize]
+        [HttpGet]
+        public IActionResult VerifyPhone()
+        {
+            if (TempData["PhoneVerificationSent"] == null)
+            {
+                return RedirectToAction("TwoFactorPreferences");
+            }
+
+            ViewBag.Message = TempData["PhoneVerificationSent"];
+            TempData.Keep();
+            return View();
+        }
+
+        /// <summary>
+        /// Verify phone number
+        /// </summary>
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> VerifyPhone(string verificationCode)
+        {
+            var userEmail = HttpContext.Session.GetString("UserEmail") ?? User.FindFirstValue(ClaimTypes.Email);
+            var phoneNumber = TempData["TempPhoneNumber"]?.ToString();
+            var preferredMethod = TempData["TempPreferredMethod"]?.ToString();
+
+            if (string.IsNullOrEmpty(userEmail) || string.IsNullOrEmpty(phoneNumber))
+            {
+                return RedirectToAction("TwoFactorPreferences");
+            }
+
+            if (string.IsNullOrWhiteSpace(verificationCode) || verificationCode.Length != 6)
+            {
+                ViewBag.Error = "Please enter a valid 6-digit verification code.";
+                TempData.Keep();
+                return View();
+            }
+
+            try
+            {
+                var isVerified = await _twoFactorService.VerifyPhoneAsync(userEmail, phoneNumber, verificationCode);
+                if (isVerified)
+                {
+                    // Now save the preferences with verified phone
+                    var preferences = await _twoFactorService.GetUserPreferencesAsync(userEmail);
+                    preferences.PhoneNumber = phoneNumber;
+                    preferences.IsPhoneVerified = true;
+                    
+                    if (Enum.TryParse<TwoFactorDeliveryMethod>(preferredMethod, out var method))
+                    {
+                        preferences.PreferredMethod = method;
+                    }
+
+                    await _twoFactorService.SaveUserPreferencesAsync(preferences);
+                    TempData["SuccessMessage"] = "Phone number verified and 2FA preferences saved successfully.";
+                    return RedirectToAction("TwoFactorPreferences");
+                }
+                else
+                {
+                    ViewBag.Error = "Invalid or expired verification code. Please try again.";
+                    TempData.Keep();
+                    return View();
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to verify phone number for {userEmail}");
+                ViewBag.Error = "Failed to verify phone number. Please try again.";
+                TempData.Keep();
+                return View();
+            }
         }
 
         #region Helper Methods
@@ -325,7 +606,28 @@ namespace GCCWebApp.Controllers
 
         private string ValidateUser(string email, string password)
         {
-            // Simple validation for testing - in production, validate against your user store
+            // Check if test mode is enabled
+            var isTestMode = _configuration.GetValue<bool>("Authentication:EnableTestMode");
+            
+            if (isTestMode)
+            {
+                // Load test users from configuration
+                var testUsersSection = _configuration.GetSection("Authentication:TestUsers");
+                foreach (var userSection in testUsersSection.GetChildren())
+                {
+                    var testEmail = userSection["Email"];
+                    var testPassword = userSection["Password"];
+                    var testRole = userSection["Role"];
+                    
+                    if (testEmail?.Equals(email, StringComparison.OrdinalIgnoreCase) == true && testPassword == password)
+                    {
+                        _logger.LogInformation("Test user {Email} authenticated with role {Role}", email, testRole);
+                        return testRole ?? "Public";
+                    }
+                }
+            }
+            
+            // Fallback to hardcoded test users for backward compatibility
             var testUsers = new Dictionary<string, (string password, string role)>
             {
                 { "admin@greencirclecertified.com", ("admin123", "Admin") },
@@ -342,6 +644,39 @@ namespace GCCWebApp.Controllers
             return string.Empty; // Invalid credentials
         }
 
+        private async Task SignInUser(string email, string role, bool rememberMe)
+        {
+            // Create claims for the authenticated user
+            var claims = new List<Claim>
+            {
+                new Claim(ClaimTypes.Name, email),
+                new Claim(ClaimTypes.Email, email),
+                new Claim("Email", email),
+                new Claim("Name", email), // Using email as name for simplicity
+                new Claim("Role", role),
+                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+            };
+
+            var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            var authProperties = new AuthenticationProperties
+            {
+                IsPersistent = rememberMe,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30)
+            };
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(claimsIdentity),
+                authProperties);
+
+            _logger.LogInformation($"User {email} signed in with role {role}");
+
+            // Set session variables
+            HttpContext.Session.SetString("UserEmail", email);
+            HttpContext.Session.SetString("UserName", email);
+            HttpContext.Session.SetString("UserRole", role);
+        }
+
         private IActionResult RedirectToLocal(string? returnUrl)
         {
             if (Url.IsLocalUrl(returnUrl))
@@ -354,8 +689,9 @@ namespace GCCWebApp.Controllers
             return userRole switch
             {
                 "Public" => RedirectToAction("CertificateTileView", "Certificate"),
-                "External" => RedirectToAction("Index", "Dashboard"),
-                "Analyst" or "Admin" => RedirectToAction("Index", "Dashboard"),
+                "External" => RedirectToAction("CertificateTileViewExternal", "Certificate"),
+                "Analyst" => RedirectToAction("Index", "Dashboard"),
+                "Admin" => RedirectToAction("Index", "Dashboard"),
                 _ => RedirectToAction("CertificateTileView", "Certificate")
             };
         }

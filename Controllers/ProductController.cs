@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using GCCWebApp.Models;
 using GCCWebApp.Data;
@@ -5,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace GCCWebApp.Controllers
 {
+    [Authorize(Policy = "ExternalAccess")]
     public class ProductController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -14,10 +16,8 @@ namespace GCCWebApp.Controllers
             _context = context;
         }
 
-        public IActionResult Index()
-        {
-            return View();
-        }
+        // Removed Index action - not part of sitemap/wireframes
+        // Use Management action instead for product-related views
 
         public IActionResult Management()
         {
@@ -44,28 +44,45 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var totalProducts = await _context.Products.CountAsync();
+                var userRole = GetCurrentUserRole();
+                var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
+                
+                var productsQuery = _context.Products.AsQueryable();
+                var companiesQuery = _context.Companies.AsQueryable();
+
+                // Apply filtering for External users
+                if (userRole == "External" && userCompanyIds.Any())
+                {
+                    productsQuery = productsQuery.Where(p => p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value));
+                    companiesQuery = companiesQuery.Where(c => userCompanyIds.Contains(c.Id));
+                }
+
+                var totalProducts = await productsQuery.CountAsync();
                 var totalCategories = await _context.ProductCategories.CountAsync();
                 var totalTypes = await _context.ProductTypes.CountAsync();
-                var totalCertifiedProducts = await _context.Products
+                var totalCertifiedProducts = await productsQuery
                     .Where(p => p.Certificates.Any())
                     .CountAsync();
 
+                // For External users, show most popular category within their companies
                 var mostPopularCategory = await _context.ProductCategories
                     .Include(pc => pc.Products)
-                    .OrderByDescending(pc => pc.Products.Count)
+                    .Where(pc => pc.Products.Any(p => userRole != "External" || 
+                                                    (p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value))))
+                    .OrderByDescending(pc => pc.Products.Count(p => userRole != "External" || 
+                                                                 (p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value))))
                     .Select(pc => pc.Name)
                     .FirstOrDefaultAsync();
 
-                var recentProducts = await _context.Products
+                var recentProducts = await productsQuery
                     .Where(p => p.CreatedAt >= DateTime.UtcNow.AddMonths(-1))
                     .CountAsync();
 
-                var activeProducts = await _context.Products
+                var activeProducts = await productsQuery
                     .Where(p => p.IsActive)
                     .CountAsync();
 
-                var companiesWithProducts = await _context.Companies
+                var companiesWithProducts = await companiesQuery
                     .Where(c => c.Products.Any())
                     .CountAsync();
 
@@ -94,12 +111,34 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var products = await _context.Products
+                var userRole = GetCurrentUserRole();
+                var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
+                
+                var query = _context.Products
                     .Include(p => p.Category)
                     .Include(p => p.ProductType)
                     .Include(p => p.Company)
                     .Include(p => p.Certificates)
                     .Include(p => p.ProductIdentifiers)
+                    .AsQueryable();
+
+                // Apply filtering based on user role
+                if (userRole == "External")
+                {
+                    // External users can only see products from their associated companies
+                    if (userCompanyIds.Any())
+                    {
+                        query = query.Where(p => p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value));
+                    }
+                    else
+                    {
+                        // If no companies associated, return empty result
+                        query = query.Where(p => false);
+                    }
+                }
+                // Admin and Analyst can see all products (no additional filtering needed)
+
+                var products = await query
                     .Select(p => new ProductListViewModel
                     {
                         Id = p.Id,
@@ -132,8 +171,18 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var companies = await _context.Companies
-                    .Where(c => c.IsActive)
+                var userRole = GetCurrentUserRole();
+                var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
+                
+                var query = _context.Companies.Where(c => c.IsActive);
+
+                // Apply filtering for External users
+                if (userRole == "External" && userCompanyIds.Any())
+                {
+                    query = query.Where(c => userCompanyIds.Contains(c.Id));
+                }
+
+                var companies = await query
                     .Select(c => new { c.Id, c.Name })
                     .ToListAsync();
 
@@ -176,6 +225,8 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = "AnalystOrAdmin")]
         public async Task<IActionResult> SaveProduct([FromBody] ProductSaveModel model)
         {
             if (!ModelState.IsValid)
@@ -247,6 +298,8 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpDelete]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = "AnalystOrAdmin")]
         public async Task<IActionResult> DeleteProduct(int id)
         {
             try
@@ -302,6 +355,8 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = "AnalystOrAdmin")]
         public IActionResult SaveCategory([FromBody] ProductCategoryViewModel model)
         {
             if (!ModelState.IsValid)
@@ -315,6 +370,8 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpDelete]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = "AnalystOrAdmin")]
         public IActionResult DeleteCategory(int id)
         {
             // Add logic to delete category
@@ -337,6 +394,31 @@ namespace GCCWebApp.Controllers
             };
 
             return Json(new ApiResponse<List<object>> { Success = true, Data = parentCategories });
+        }
+
+        private string GetCurrentUserRole()
+        {
+            return User?.FindFirst("Role")?.Value ?? "Public";
+        }
+
+        private async Task<List<int>> GetCurrentUserCompanyIdsAsync()
+        {
+            var userEmail = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+            
+            if (string.IsNullOrEmpty(userEmail))
+                return new List<int>();
+
+            // Find user and their associated companies
+            var user = await _context.Users
+                .Include(u => u.Companies)
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            if (user?.Companies != null)
+            {
+                return user.Companies.Select(c => c.Id).ToList();
+            }
+
+            return new List<int>();
         }
     }
 

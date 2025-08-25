@@ -22,7 +22,7 @@ Small Mobile (≤480px): Ultra-compact, touch-optimized
 */
 
 /* ===== 1. IMPORTS & FONTS ===== */
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+/* FontAwesome is loaded in the HTML head to prevent FOUC (Flash of Unstyled Content) */
 
 /* ===== 2. CSS CUSTOM PROPERTIES ===== */
 :root {
@@ -385,6 +385,12 @@ body {
         color: var(--blue-primary);
     }
 
+    .submenu a i {
+        margin-right: 8px;
+        width: 16px;
+        text-align: center;
+    }
+
 /* Nested submenu */
 .submenu .submenu-item {
     position: relative;
@@ -430,6 +436,18 @@ body {
     .submenu .submenu-toggle i.toggle-icon {
         font-size: 16px;
         margin-left: 8px;
+    }
+
+    .submenu .submenu-toggle > i:first-child {
+        margin-right: 8px;
+        width: 16px;
+        text-align: center;
+    }
+
+    .submenu .nested-submenu a i {
+        margin-right: 8px;
+        width: 16px;
+        text-align: center;
     }
 
 /* Mobile toggle - Hidden by default */
@@ -484,23 +502,47 @@ body {
     display: flex;
 }
 
+/* ===== 7.5. FONTAWESOME ICONS FIX ===== */
+.fas, .far, .fab, .fal, .fad {
+    font-family: "Font Awesome 6 Free" !important;
+    font-weight: 900 !important;
+    display: inline-block;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+}
+
+.far {
+    font-weight: 400 !important;
+}
+
+.fab {
+    font-family: "Font Awesome 6 Brands" !important;
+    font-weight: 400 !important;
+}
+
 /* ===== 8. SEARCH BAR ===== */
 .search-bar {
     position: relative;
     width: 350px;
 }
 
-    .search-bar input {
-        width: 95%;
+    .search-bar input,
+    .search-input {
+        width: 100%;
         padding: 10px 15px 10px 40px;
         border-radius: 6px;
         border: 1px solid var(--border-color);
         background-color: var(--white);
         font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+        font-size: 16px;
         transition: var(--transition);
+        box-sizing: border-box;
     }
 
-        .search-bar input:focus {
+        .search-bar input:focus,
+        .search-input:focus {
             outline: none;
             border-color: var(--blue-primary);
             box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
@@ -512,6 +554,9 @@ body {
         top: 50%;
         transform: translateY(-50%);
         color: #999;
+        font-family: "Font Awesome 6 Free";
+        font-weight: 900;
+        z-index: 10;
     }
 
 /* ===== 9. BREADCRUMBS ===== */
@@ -877,7 +922,7 @@ table thead {
     list-style-type: none;
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 0px;
 }
 
 .filter-tree .filter-item {
@@ -891,9 +936,8 @@ table thead {
         display: flex;
         align-items: center;
         margin: 0 !important;
-        padding: 1px 0 !important;
-        line-height: 1.2 !important;
-        font-size: 16px;
+        padding: 0px 1 !important;
+        font-size: 16px;       
     }
 
     .filter-tree .filter-item input[type="checkbox"] {
@@ -1006,21 +1050,19 @@ input, select, button, .form-input, .form-select {
     top: 50%;
     transform: translateY(-50%);
     color: #777;
+    font-family: "Font Awesome 6 Free";
+    font-weight: 900;
+    z-index: 10;
 }
 
-.search-input {
-    width: 100%;
-    padding: 10px 15px;
-    border: 1px solid var(--medium-gray);
-    border-radius: 4px;
-    font-size: 16px;
-}
+/* .search-input styles now defined with .search-bar input above */
 
 .results-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    padding-top: 20px;
 }
 
 .sort-controls {
@@ -1868,6 +1910,19 @@ input, select, button, .form-input, .form-select {
 .role-analyst .role-analyst-show.nav-item,
 .role-admin .role-admin-show.nav-item {
     display: list-item;
+}
+
+/* Maintain nav bar formatting for public users with no visible items */
+.role-public .nav-wrapper {
+    min-height: 50px;
+    background-color: var(--white);
+}
+
+.role-public .main-nav::after {
+    content: '';
+    display: block;
+    color: var(--white);
+    height: 50px;
 }
 
 /* ===== 20. THEME SYSTEM ===== */
@@ -2954,7 +3009,7 @@ footer {
         flex-direction: column;
         gap: 12px;
         align-items: center;
-        padding: 0 8px;
+        padding: 20px 8px 0 8px;
     }
 
     .results-count {
@@ -4507,6 +4562,7 @@ footer {
     .results-header {
         flex-wrap: wrap;
         gap: 10px;
+        padding-top: 20px;
     }
 
     .view-toggle-container {
@@ -4528,6 +4584,7 @@ footer {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 20px;
+    padding-top: 20px;
     flex-wrap: wrap;
     gap: 15px;
 }
@@ -5056,28 +5113,26 @@ input[type="checkbox"] {
 
 
     /* CertificateInternalView*/
-/* Results Controls Layout */
-.results-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+/* Results Controls Layout - Updated for separate rows */
+.export-controls-row {
+    margin-bottom: 15px;
+    padding: 0 8px;
+}
+
+.view-controls-row {
     margin-bottom: 20px;
     padding: 0 8px;
-    gap: 20px;
-}
-
-.left-controls {
-    flex: 1;
-}
-
-.right-controls {
-    flex-shrink: 0;
 }
 
 .export-options {
     display: flex;
     gap: 10px;
     flex-wrap: wrap;
+}
+
+.view-toggle-container {
+    display: flex;
+    justify-content: flex-start;
 }
 
     /* Update button styles to use primary green */
@@ -5126,14 +5181,9 @@ input[type="checkbox"] {
 
 /* Mobile responsiveness for controls */
 @media (max-width: 768px) {
-    .results-controls {
-        flex-direction: column;
-        gap: 15px;
-    }
-
-    .left-controls,
-    .right-controls {
-        width: 100%;
+    .export-controls-row,
+    .view-controls-row {
+        padding: 0 8px;
     }
 
     .export-options {

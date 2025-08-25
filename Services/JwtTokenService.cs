@@ -27,10 +27,18 @@ namespace GCCWebApp.Services
 
         public string GenerateToken(User user)
         {
-            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]);
-            var issuer = _configuration["Jwt:Issuer"];
-            var audience = _configuration["Jwt:Audience"];
+            var key = Encoding.UTF8.GetBytes(_configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT key not configured"));
+            var issuer = _configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT issuer not configured");
+            var audience = _configuration["Jwt:Audience"] ?? throw new InvalidOperationException("JWT audience not configured");
             var expiryMinutes = int.Parse(_configuration["Jwt:ExpiryMinutes"] ?? "60");
+            
+            // Validate key strength
+            if (key.Length < 64)
+                throw new InvalidOperationException("JWT key must be at least 64 bytes for security");
+                
+            // Validate user is active and not locked
+            if (!user.IsActive || user.LockedUntil.HasValue && user.LockedUntil.Value > DateTime.UtcNow)
+                throw new UnauthorizedAccessException("User account is inactive or locked");
 
             var claims = new List<Claim>
             {

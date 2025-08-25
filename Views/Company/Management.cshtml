@@ -3,6 +3,9 @@
     ViewData["BodyClass"] = "company-management";
 }
 
+@* Anti-forgery token for AJAX requests *@
+@Html.AntiForgeryToken()
+
 @section Styles {
     <link href="~/css/company-management.css" rel="stylesheet" />
 }

@@ -1,18 +1,34 @@
-﻿<!DOCTYPE html>
+﻿@using Microsoft.AspNetCore.Http
+@{
+    // Get the user role from session or set to "Public" for unauthenticated users
+    var userRole = Context.Session.GetString("UserRole") ?? "Public";
+    var roleCssClass = $"role-{userRole.ToLower()}";
+    
+    // Get user name for display
+    var userName = Context.Session.GetString("UserName") ?? "Sign In";
+}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    @Html.AntiForgeryToken()
     <title>@ViewData["Title"] - GreenCircle Certified Database</title>
 
+    <!-- FontAwesome Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" crossorigin="anonymous" />
+    
+    <!-- Preload critical icon fonts -->
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-solid-900.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/webfonts/fa-brands-400.woff2" as="font" type="font/woff2" crossorigin="anonymous" />
+    
     <!-- Unified CSS -->
     <link href="~/css/main.css" rel="stylesheet" />
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" />
 
     <!-- Component-specific CSS loaded per page -->
     @RenderSection("Styles", required: false)
 </head>
-<body class="theme-option4 @ViewData["BodyClass"]">
+<body class="theme-option4 @roleCssClass @ViewData["BodyClass"]">
     <!-- Header -->
     <header class="header">
         <!-- Top bar with user controls -->
@@ -20,21 +36,22 @@
             <div class="logo-text"></div>
             <div class="user-controls">
                 <div class="user-profile">
-                    <span class="user-name">@(ViewData["UserName"] ?? "Sign In")</span>
+                    <span class="user-name">@userName</span>
                     <div class="user-dropdown">
-                        <a href="#" class="dropdown-item role-element role-public-hide">
-                            <i class="fas fa-user"></i> My Profile
-                        </a>
-                        <a href="#" class="dropdown-item role-element role-public-hide">
-                            <i class="fas fa-cog"></i> Account Settings
-                        </a>
-                        <div class="divider role-element role-public-hide"></div>
-                        <a href="#" class="dropdown-item role-element role-public-hide" onclick="logout()">
-                            <i class="fas fa-sign-out-alt"></i> Logout
-                        </a>
-                        <a asp-controller="Account" asp-action="Login" class="dropdown-item role-element role-public-show">
-                            <i class="fas fa-sign-in-alt"></i> Sign In
-                        </a>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <form asp-controller="Account" asp-action="LogoutPost" method="post" id="logoutForm" style="margin: 0;">
+                                <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; cursor: pointer;">
+                                    <i class="fas fa-sign-out-alt"></i> Logout
+                                </button>
+                            </form>
+                        }
+                        else
+                        {
+                            <a asp-controller="Account" asp-action="Login" class="dropdown-item">
+                                <i class="fas fa-sign-in-alt"></i> Sign In
+                            </a>
+                        }
                     </div>
                 </div>
             </div>
@@ -57,7 +74,7 @@
             </div>
         </div>
 
-        <!-- Navigation wrapper -->
+        <!-- Navigation wrapper - Always visible for design consistency -->
         <div class="nav-wrapper">
             <nav class="main-nav">
                 <div class="mobile-toggle" id="mobile-toggle">
@@ -68,47 +85,72 @@
                         <i class="fas fa-times"></i>
                     </button>
 
-                    <!-- Public Navigation Items -->
-                    <li class="nav-item role-element role-public-show">
-                        <a asp-controller="Certificate" asp-action="CertificateTileView" class="nav-link">Certificates</a>
-                    </li>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        @if (userRole == "External")
+                        {
+                            <!-- External Navigation Items - Only Products, no Companies -->
+                            <li class="nav-item">
+                                <a asp-controller="Certificate" asp-action="CertificateTileViewExternal" class="nav-link">
+                                    Certificates
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a asp-controller="Product" asp-action="Management" class="nav-link">
+                                    Products
+                                </a>
+                            </li>
+                        }
+                        else if (userRole == "Analyst" || userRole == "Admin")
+                        {
+                            <!-- Analyst & Admin Navigation Items -->
+                            <li class="nav-item">
+                                <a asp-controller="Certificate" asp-action="CertificateTileViewInternal" class="nav-link">
+                                    Certificates
+                                </a>
+                            </li>
+                        }
+                    }
+                    @* Public users have no navigation items since they're already on the only page they can access *@
 
-                    <!-- External Navigation Items -->
-                    <li class="nav-item role-element role-external-show">
-                        <a asp-controller="Certificate" asp-action="CertificateTileViewExternal" class="nav-link">Certificates</a>
-                    </li>
-                    <li class="nav-item role-element role-external-show">
-                        <a asp-controller="Product" asp-action="Index" class="nav-link">Products</a>
-                    </li>
+                    @if (User.Identity?.IsAuthenticated == true && (userRole == "Analyst" || userRole == "Admin"))
+                    {
+                        <li class="nav-item">
+                            <a asp-controller="Dashboard" asp-action="Index" class="nav-link">
+                                Dashboard
+                            </a>
+                        </li>
 
-                    <!-- Analyst & Admin Navigation Items -->
-                    <li class="nav-item role-element role-analyst-show role-admin-show">
-                        <a asp-controller="Certificate" asp-action="CertificateTileViewInternal" class="nav-link">Certificates</a>
-                    </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link">
+                                Companies & Products
+                                <i class="fas fa-chevron-down dropdown-icon"></i>
+                            </a>
+                            <div class="submenu">
+                                <a asp-controller="Company" asp-action="Index">
+                                    Companies
+                                </a>
+                                <a asp-controller="Product" asp-action="Management">
+                                    Products
+                                </a>
+                            </div>
+                        </li>
+                    }
 
-                    <li class="nav-item role-element role-analyst-show role-admin-show">
-                        <a asp-controller="Dashboard" asp-action="Index" class="nav-link">Dashboard</a>
-                    </li>
-
-                    <li class="nav-item role-element role-analyst-show role-admin-show">
-                        <a href="#" class="nav-link">
-                            Companies & Products
-                            <i class="fas fa-chevron-down dropdown-icon"></i>
-                        </a>
-                        <div class="submenu">
-                            <a asp-controller="Company" asp-action="Index">Companies</a>
-                            <a asp-controller="Product" asp-action="Management">Products</a>
-                        </div>
-                    </li>
-
-                    <li class="nav-item role-element role-admin-show">
+                    @if (User.Identity?.IsAuthenticated == true && userRole == "Admin")
+                    {
+                        <li class="nav-item">
                         <a href="#" class="nav-link">
                             Administration
                             <i class="fas fa-chevron-down dropdown-icon"></i>
                         </a>
                         <div class="submenu">
-                            <a asp-controller="Admin" asp-action="RoleManagement">Role Management</a>
-                            <a asp-controller="Admin" asp-action="UserManagement">User Management</a>
+                            <a asp-controller="Admin" asp-action="RoleManagement">
+                                Role Management
+                            </a>
+                            <a asp-controller="Admin" asp-action="UserManagement">
+                                User Management
+                            </a>
                            @*  <a asp-controller="Admin" asp-action="CreateUser">Create User</a> *@
 
                             <!-- Configuration/Settings submenu -->
@@ -118,7 +160,9 @@
                                     <i class="fas fa-chevron-right toggle-icon"></i>
                                 </div>
                                 <div class="nested-submenu">
-                                    <a asp-controller="Admin" asp-action="GoogleAnalytics">Google Analytics Tracking</a>
+                                    <a asp-controller="Admin" asp-action="GoogleAnalytics">
+                                        Google Analytics Tracking
+                                    </a>
                                 </div>
                             </div>
 
@@ -129,7 +173,9 @@
                                     <i class="fas fa-chevron-right toggle-icon"></i>
                                 </div>
                                 <div class="nested-submenu">
-                                    <a asp-controller="Admin" asp-action="AmazonAPI">Amazon API Integration</a>
+                                    <a asp-controller="Admin" asp-action="GCCAPI">
+                                        GCC API Integration
+                                    </a>
                                 </div>
                             </div>
 
@@ -140,29 +186,45 @@
                                     <i class="fas fa-chevron-right toggle-icon"></i>
                                 </div>
                                 <div class="nested-submenu">
-                                    <a asp-controller="Admin" asp-action="CertificateTypes">Certificate Types</a>
-                                    <a asp-controller="Admin" asp-action="ProductTypes">Product Types</a>
-                                    <a asp-controller="Admin" asp-action="CertificateFields">Certificate Fields</a>
-                                    <a asp-controller="Admin" asp-action="CSFAttributes">CSF Attributes</a>
-                                    <a asp-controller="Admin" asp-action="Tags">Tags</a>
-                                    <a asp-controller="Admin" asp-action="Partners">Partners</a>
+                                    <a asp-controller="Admin" asp-action="CertificateTypes">
+                                        Certificate Types
+                                    </a>
+                                    <a asp-controller="Admin" asp-action="ProductTypes">
+                                        Product Types
+                                    </a>
+                                    <a asp-controller="Admin" asp-action="CertificateFields">
+                                        Certificate Fields
+                                    </a>
+                                    <a asp-controller="Admin" asp-action="CSFAttributes">
+                                        CSF Attributes
+                                    </a>
+                                    <a asp-controller="Admin" asp-action="Tags">
+                                        Tags
+                                    </a>
+                                    <a asp-controller="Admin" asp-action="Partners">
+                                        Partners
+                                    </a>
                                 </div>
                             </div>
                         </div>
                     </li>
+                    }
                 </ul>
 
-                <!-- Search Bar -->
-                <div class="search-bar role-element role-public-hide">
-                    <i class="fas fa-search"></i>
-                    <input type="text" placeholder="Search certificates...">
-                </div>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <!-- Search Bar -->
+                    <div class="search-bar">
+                        <i class="fas fa-search"></i>
+                        <input type="text" placeholder="Search certificates...">
+                    </div>
+                }
             </nav>
         </div>
     </header>
 
-    <!-- Breadcrumbs -->
-    <div class="breadcrumbs">
+    <!-- Breadcrumbs - Only visible for Admin role -->
+    <div class="breadcrumbs role-element role-admin-show">
         <div class="breadcrumb-wrapper">
             @RenderSection("Breadcrumbs", required: false)
         </div>
@@ -198,52 +260,16 @@
         </div>
     </footer>
 
-    <!-- Design Panel for Role Switching Only -->
-    <div id="design-config-wrapper" class="design-config-wrapper">
-        <button id="toggle-config-btn" class="config-toggle-button">
-            Design Panel
-        </button>
-        <div id="config-toggle-panel" class="config-panel-content">
-            <h4 style="margin-bottom: 12px;">Role Switcher Panel</h4>
-
-            <div>
-                <label for="role-toggle">Demo Role Switcher:</label>
-                <select id="role-toggle">
-                    <option value="public">Public</option>
-                    <option value="external">External</option>
-                    <option value="analyst">Analyst</option>
-                    <option value="admin" selected>Admin</option>
-                </select>
-            </div>
-        </div>
-    </div>
 
     <!-- JavaScript -->
     <script src="~/js/main.js"></script>
+    <script src="~/js/auth.js"></script>
 
     <script>
         document.addEventListener("DOMContentLoaded", function() {
-            const toggleBtn = document.getElementById("toggle-config-btn");
-            const panel = document.getElementById("config-toggle-panel");
-
-            if (toggleBtn && panel) {
-                // Initialize panel as hidden
-                panel.style.display = "none";
-
-                toggleBtn.addEventListener("click", function (e) {
-                    e.preventDefault();
-                    const isVisible = panel.style.display === "block";
-                    panel.style.display = isVisible ? "none" : "block";
-
-                    // Update button text to reflect state
-                    toggleBtn.textContent = isVisible ? "Design Panel" : "Close Panel";
-                });
-            }
-
             // Initialize with Option 4 theme - ensure it's always applied
             document.body.classList.add('theme-option4');
 
-            // Role switching functionality is handled in main.js
             // Mobile menu functionality is handled in main.js
         });
     </script>

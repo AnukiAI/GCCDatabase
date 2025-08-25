@@ -1,25 +1,26 @@
+@model CertificateDetailsViewModelSimple
 @{
-    // ViewData["Title"] = "Certificate Single View";
+    ViewData["Title"] = "Certificate Details";
     Layout = "~/Views/Shared/_Layout.cshtml";
 
-    // Get data from ViewBag with safe defaults
-    var certificateId = ViewBag.CertificateId?.ToString() ?? "24-1605";
-    var certificationType = ViewBag.CertificationType?.ToString() ?? "Certified Environmental Facts";
-    var company = ViewBag.Company?.ToString() ?? "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division";
-    var productName = ViewBag.ProductName?.ToString() ?? "900ET Exit Device Trim with EcoFlex®";
-    var productType = ViewBag.ProductType?.ToString() ?? "Exit device";
-    var location = ViewBag.Location?.ToString() ?? "Berlin, CT";
-    var country = ViewBag.Country?.ToString() ?? "United States";
-    var effectiveDate = ViewBag.EffectiveDate?.ToString() ?? "9/1/2024";
-    var expirationDate = ViewBag.ExpirationDate?.ToString() ?? "8/31/2027";
-    var companyContact = ViewBag.CompanyContact?.ToString() ?? "";
-    var companyUrl = ViewBag.CompanyUrl?.ToString() ?? "";
-    var companyEmail = ViewBag.CompanyEmail?.ToString() ?? "";
+    // Get data from model with safe defaults
+    var certificateId = Model.Certificate?.Id.ToString() ?? "0";
+    var certificationType = Model.Certificate?.CertificationType?.Name ?? "Certified Environmental Facts";
+    var company = Model.Certificate?.Company?.Name ?? "Unknown Company";
+    var productName = Model.Certificate?.Product?.Name ?? "Unknown Product";
+    var productType = Model.Certificate?.Product?.ProductType?.Name ?? "General Product";
+    var location = Model.Certificate?.Location ?? "Unknown Location";
+    var country = Model.Certificate?.Country ?? "Unknown Country";
+    var effectiveDate = Model.Certificate?.EffectiveDate.ToString("M/d/yyyy") ?? "Unknown";
+    var expirationDate = Model.Certificate?.ExpirationDate.ToString("M/d/yyyy") ?? "Unknown";
+    var companyContact = "";
+    var companyUrl = "";
+    var companyEmail = "";
 
     // Helper methods
     string GetProductCategoryDisplay()
     {
-        var type = productType.ToLower();
+        var type = (productType ?? "").ToLower();
         if (type.Contains("door") || type.Contains("exit") || type.Contains("lock"))
             return "Construction / Building Products";
         if (type.Contains("cable") || type.Contains("copper"))
@@ -35,7 +36,7 @@
 
     string GetProductSubcategory()
     {
-        var type = productType.ToLower();
+        var type = (productType ?? "").ToLower();
         if (type.Contains("exit")) return "Door Hardware";
         if (type.Contains("lock")) return "Door Hardware";
         if (type.Contains("cable")) return "Cables & Wiring";
@@ -48,7 +49,7 @@
 
     string GetCertificationTypeTag()
     {
-        var type = certificationType.ToLower();
+        var type = (certificationType ?? "").ToLower();
         if (type.Contains("environmental")) return "Environmental Facts";
         if (type.Contains("sustainability")) return "Sustainability Facts";
         if (type.Contains("recycled")) return "Recycled Content";

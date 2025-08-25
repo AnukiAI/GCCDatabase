@@ -23,6 +23,11 @@ namespace GCCWebApp.Repositories
         Task<IEnumerable<Certificate>> GetCertificatesByCountryAsync(string country);
         Task<IEnumerable<Certificate>> GetCertificatesByDateRangeAsync(DateTime startDate, DateTime endDate);
         Task<Dictionary<string, int>> GetCertificateStatisticsAsync();
+        
+        // Dashboard breakdown methods
+        Task<IEnumerable<(string Name, int Count)>> GetCertificationTypeStatisticsAsync();
+        Task<IEnumerable<(string Name, int Count)>> GetTopCompaniesByActiveCertCountAsync(int topCount = 10);
+        Task<IEnumerable<(string Name, int Count)>> GetProductTypeStatisticsAsync(int topCount = 10);
     }
 
     public class CertificateSearchFilter

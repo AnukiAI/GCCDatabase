@@ -793,10 +793,138 @@ namespace GCCWebApp.Services
                 .ToListAsync();
         }
 
-        public Task<ProductViewModel?> GetProductByIdAsync(int id) => Task.FromResult<ProductViewModel?>(null);
-        public Task<bool> CreateProductAsync(ProductViewModel model) => Task.FromResult(false);
-        public Task<bool> UpdateProductAsync(int id, ProductViewModel model) => Task.FromResult(false);
-        public Task<bool> DeleteProductAsync(int id) => Task.FromResult(false);
+        public async Task<ProductViewModel?> GetProductByIdAsync(int id)
+        {
+            var product = await _context.Products
+                .Include(p => p.ProductType)
+                .Include(p => p.Company)
+                .Include(p => p.Certificates)
+                .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+            if (product == null) return null;
+
+            return new ProductViewModel
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Description = product.Description ?? "",
+                ProductTypeName = product.ProductType?.Name ?? "",
+                CompanyName = product.Company?.Name ?? "",
+                IsActive = product.IsActive,
+                CertificateCount = product.Certificates.Count(),
+                CreatedDate = product.CreatedAt
+            };
+        }
+
+        public async Task<bool> CreateProductAsync(ProductViewModel model)
+        {
+            try
+            {
+                var product = new Product
+                {
+                    Name = model.Name,
+                    Description = model.Description,
+                    IsActive = model.IsActive,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
+                    IsDeleted = false
+                };
+
+                // Set ProductType if provided
+                if (!string.IsNullOrEmpty(model.ProductTypeName))
+                {
+                    var productType = await _context.ProductTypes
+                        .FirstOrDefaultAsync(pt => pt.Name == model.ProductTypeName);
+                    if (productType != null)
+                    {
+                        product.ProductTypeId = productType.Id;
+                    }
+                }
+
+                // Set Company if provided
+                if (!string.IsNullOrEmpty(model.CompanyName))
+                {
+                    var company = await _context.Companies
+                        .FirstOrDefaultAsync(c => c.Name == model.CompanyName);
+                    if (company != null)
+                    {
+                        product.CompanyId = company.Id;
+                    }
+                }
+
+                _context.Products.Add(product);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                // Log error here in production
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateProductAsync(int id, ProductViewModel model)
+        {
+            try
+            {
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+                if (product == null) return false;
+
+                product.Name = model.Name;
+                product.Description = model.Description;
+                product.IsActive = model.IsActive;
+                product.UpdatedAt = DateTime.UtcNow;
+
+                // Update ProductType if provided
+                if (!string.IsNullOrEmpty(model.ProductTypeName))
+                {
+                    var productType = await _context.ProductTypes
+                        .FirstOrDefaultAsync(pt => pt.Name == model.ProductTypeName);
+                    product.ProductTypeId = productType?.Id;
+                }
+
+                // Update Company if provided
+                if (!string.IsNullOrEmpty(model.CompanyName))
+                {
+                    var company = await _context.Companies
+                        .FirstOrDefaultAsync(c => c.Name == model.CompanyName);
+                    product.CompanyId = company?.Id;
+                }
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                // Log error here in production
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteProductAsync(int id)
+        {
+            try
+            {
+                var product = await _context.Products
+                    .FirstOrDefaultAsync(p => p.Id == id && !p.IsDeleted);
+
+                if (product == null) return false;
+
+                // Soft delete
+                product.IsDeleted = true;
+                product.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                // Log error here in production
+                return false;
+            }
+        }
 
         public async Task<List<LookupItem>> GetCompaniesAsync()
         {

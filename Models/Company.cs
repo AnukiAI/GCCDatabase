@@ -13,6 +13,14 @@ namespace GCCWebApp.Models
         [MaxLength(255)]
         public string? ContactInfo { get; set; }
 
+        [EmailAddress]
+        [MaxLength(255)]
+        public string? Email { get; set; }
+
+        [Url]
+        [MaxLength(500)]
+        public string? Website { get; set; }
+
         [MaxLength(175)]
         public string? Location { get; set; }
 
@@ -20,6 +28,7 @@ namespace GCCWebApp.Models
         public string? Country { get; set; }
 
         public bool IsActive { get; set; } = true;
+        public bool IsDeleted { get; set; } = false;
 
         // Audit fields
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

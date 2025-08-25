@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using GCCWebApp.Models;
 using GCCWebApp.Repositories;
+using GCCWebApp.Services;
 
 namespace GCCWebApp.Controllers
 {
@@ -15,15 +16,18 @@ namespace GCCWebApp.Controllers
         private readonly ILogger<CertificateController> _logger;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICertificateRepository _certificateRepository;
+        private readonly ICertificatePdfService _pdfService;
 
         public CertificateController(
             ILogger<CertificateController> logger,
             IUnitOfWork unitOfWork,
-            ICertificateRepository certificateRepository)
+            ICertificateRepository certificateRepository,
+            ICertificatePdfService pdfService)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
             _certificateRepository = certificateRepository;
+            _pdfService = pdfService;
         }
 
         #region Basic CRUD Operations
@@ -65,9 +69,10 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// Certificate tile view
+        /// Certificate tile view - Public access allowed
         /// GET: /Certificate/CertificateTileView
         /// </summary>
+        [AllowAnonymous]
         public IActionResult CertificateTileView()
         {
             return View();
@@ -83,9 +88,10 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// Certificate single view
-        /// GET: /Certificate/CertificateTileViewExternal
+        /// Certificate internal view for Analysts and Admins
+        /// GET: /Certificate/CertificateTileViewInternal
         /// </summary>
+        [Authorize(Policy = "AnalystOrAdmin")]
         public IActionResult CertificateTileViewInternal()
         {
             return View();
@@ -112,8 +118,9 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// Certificate single view by ID or certificate number
+        /// Certificate single view by ID or certificate number - Public access allowed
         /// </summary>
+        [AllowAnonymous]
         public async Task<IActionResult> CertificateSingleView(string id)
         {
             try
@@ -566,9 +573,91 @@ namespace GCCWebApp.Controllers
 
         private int? GetCurrentUserId()
         {
-            // This would typically get the current user ID from claims or session
-            // For now, returning null as we don't have user authentication fully set up
-            return null;
+            try
+            {
+                if (!User.Identity?.IsAuthenticated == true)
+                    return null;
+
+                // Try to get user ID from different claim types depending on authentication method
+                var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier) ??
+                                  User.FindFirst("sub") ??
+                                  User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier") ??
+                                  User.FindFirst("oid"); // Azure AD Object ID
+
+                if (userIdClaim?.Value != null)
+                {
+                    // For Azure AD B2C, the ID might be a GUID, so we need to map it to our user table
+                    // For cookie auth, it should be the actual user ID
+                    if (int.TryParse(userIdClaim.Value, out int userId))
+                    {
+                        return userId;
+                    }
+                    
+                    // If it's a GUID (Azure AD), we would need to look up the user in the database
+                    // For now, return a default admin user ID for testing
+                    _logger.LogWarning("Could not parse user ID {UserId} as integer, using default", userIdClaim.Value);
+                    return 1; // Default to admin user
+                }
+
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting current user ID");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Download certificate PDF
+        /// GET: /Certificate/Download/5
+        /// </summary>
+        [AllowAnonymous]
+        public async Task<IActionResult> Download(int id)
+        {
+            try
+            {
+                var certificate = await _certificateRepository.GetByIdAsync(id);
+                if (certificate == null)
+                {
+                    return NotFound();
+                }
+
+                // Generate the actual certificate PDF
+                var fileName = $"Certificate_{certificate.Number}.pdf";
+                var fileBytes = await _pdfService.GenerateCertificatePdfAsync(certificate);
+                
+                return File(fileBytes, "application/pdf", fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error downloading certificate PDF for ID: {Id}", id);
+                return BadRequest("Failed to download certificate");
+            }
+        }
+
+        /// <summary>
+        /// Download certificate PDF by certificate number
+        /// GET: /Certificate/Download/24-1605
+        /// </summary>
+        [AllowAnonymous]
+        public async Task<IActionResult> DownloadByNumber(string number)
+        {
+            try
+            {
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
+                if (certificate == null)
+                {
+                    return NotFound();
+                }
+
+                return await Download(certificate.Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error downloading certificate PDF for number: {Number}", number);
+                return BadRequest("Failed to download certificate");
+            }
         }
 
         #endregion

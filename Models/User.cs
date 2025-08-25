@@ -48,6 +48,43 @@ namespace GCCWebApp.Models
         public int FailedLoginAttempts { get; set; } = 0;
 
         public DateTime? LockedUntil { get; set; }
+        
+        // Enhanced security fields
+        public string? TwoFactorSecret { get; set; }
+        
+        public bool TwoFactorEnabled { get; set; } = false;
+        
+        public string TwoFactorMethod { get; set; } = "Email"; // Email, SMS, Both
+        
+        public string? PhoneNumber { get; set; }
+        
+        public bool IsPhoneVerified { get; set; } = false;
+        
+        public bool IsEmailVerified { get; set; } = true; // Default to true for existing users
+        
+        public string? RecoveryCodes { get; set; } // JSON array of backup codes
+        
+        public DateTime? LastSecurityAudit { get; set; }
+        
+        public string? SecurityQuestions { get; set; } // JSON array
+        
+        public bool MustChangePassword { get; set; } = false;
+        
+        public int MaxConcurrentSessions { get; set; } = 3;
+        
+        public string? AllowedIPs { get; set; } // Comma-separated list
+        
+        public bool RequirePasswordChange { get; set; } = false;
+        
+        public DateTime? PasswordExpiresAt { get; set; }
+        
+        public string? PasswordHistory { get; set; } // JSON array of previous password hashes
+        
+        public int MaxPasswordHistory { get; set; } = 5;
+        
+        public bool IsLockedOut => LockedUntil.HasValue && LockedUntil.Value > DateTime.UtcNow;
+        
+        public bool IsPasswordExpired => PasswordExpiresAt.HasValue && PasswordExpiresAt.Value < DateTime.UtcNow;
 
         // Audit fields
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

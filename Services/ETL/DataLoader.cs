@@ -77,7 +77,7 @@ namespace GCCWebApp.Services.ETL
                     _logger.LogInformation("Data warehouse load completed successfully. Records loaded: {RecordsLoaded}", 
                         loadResult.RecordsLoaded);
                 }
-                catch (Exception ex)
+                catch (Exception)
                 {
                     await transaction.RollbackAsync();
                     throw;

@@ -7,16 +7,59 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log('DOM loaded, initializing...');
 
+    // Initialize CSRF protection
+    initializeCSRFProtection();
+
     // Initialize all master functionality
     initializeUserDropdown();
     initializeMobileMenu();
     initializeMobileSubmenus();
-    initializeRoleSystem();
     initializeSearchFunctionality();
     initializeNavigationHighlighting();
 
     console.log('All initialization complete');
 });
+
+/**
+ * CSRF Protection for AJAX Requests
+ */
+function initializeCSRFProtection() {
+    const tokenInput = document.querySelector('input[name="__RequestVerificationToken"]');
+    if (tokenInput) {
+        const tokenValue = tokenInput.value;
+        
+        // Set default headers for fetch requests
+        const originalFetch = window.fetch;
+        window.fetch = function(url, options = {}) {
+            if (!options.headers) {
+                options.headers = {};
+            }
+            
+            // Add CSRF token for state-changing requests
+            const method = (options.method || 'GET').toUpperCase();
+            if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
+                options.headers['X-CSRF-TOKEN'] = tokenValue;
+                options.headers['RequestVerificationToken'] = tokenValue;
+            }
+            
+            return originalFetch.call(this, url, options);
+        };
+
+        // Set up for jQuery if available
+        if (window.$ && window.$.ajaxSetup) {
+            $.ajaxSetup({
+                beforeSend: function(xhr, settings) {
+                    if (settings.type && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(settings.type.toUpperCase())) {
+                        xhr.setRequestHeader('X-CSRF-TOKEN', tokenValue);
+                        xhr.setRequestHeader('RequestVerificationToken', tokenValue);
+                    }
+                }
+            });
+        }
+        
+        console.log('CSRF protection initialized');
+    }
+}
 
 /**
  * User Dropdown Management
@@ -249,132 +292,6 @@ function initializeMobileSubmenus() {
     }
 }
 
-/**
- * Role-Based Visibility System
- */
-function initializeRoleSystem() {
-    const roleToggle = document.getElementById('role-toggle');
-    const body = document.body;
-
-    if (roleToggle) {
-        roleToggle.addEventListener('change', function () {
-            changeUserRole(this.value);
-        });
-
-        // Initialize with current role
-        const currentRole = getCurrentRole();
-        if (currentRole) {
-            roleToggle.value = currentRole;
-            changeUserRole(currentRole);
-        }
-    }
-}
-
-/**
- * Change user role and update UI visibility
- */
-function changeUserRole(role) {
-    const body = document.body;
-    const validRoles = ['public', 'external', 'analyst', 'admin'];
-
-    if (!validRoles.includes(role)) {
-        console.error('Invalid role:', role);
-        return;
-    }
-
-    // Remove all role classes
-    validRoles.forEach(r => {
-        body.classList.remove('role-' + r);
-    });
-
-    // Add the selected role class
-    body.classList.add('role-' + role);
-
-    // Update role badge if it exists
-    const roleBadge = document.querySelector('.role-badge');
-    if (roleBadge) {
-        roleBadge.textContent = role.charAt(0).toUpperCase() + role.slice(1);
-    }
-
-    // Update visibility for all role elements
-    updateRoleElementsVisibility();
-
-    // Store role preference
-    localStorage.setItem('userRole', role);
-
-    // Reinitialize mobile submenus after role change if on mobile
-    if (window.innerWidth <= 1024) {
-        setTimeout(() => {
-            initializeMobileSubmenus();
-        }, 100);
-    }
-
-    console.log('Role changed to:', role);
-}
-
-/**
- * Get current user role
- */
-function getCurrentRole() {
-    // Check body class first
-    const body = document.body;
-    const classes = body.className.split(' ');
-
-    for (let className of classes) {
-        if (className.startsWith('role-')) {
-            return className.replace('role-', '');
-        }
-    }
-
-    // Fallback to localStorage
-    return localStorage.getItem('userRole') || 'admin';
-}
-
-/**
- * Update visibility of all role-based elements
- */
-function updateRoleElementsVisibility() {
-    const currentRole = getCurrentRole();
-
-    // Hide all role elements first
-    document.querySelectorAll('.role-element').forEach(element => {
-        element.style.display = 'none';
-    });
-
-    // Show elements for current role
-    const roleSelector = '.role-' + currentRole + '-show';
-    document.querySelectorAll(roleSelector).forEach(element => {
-        // Default display
-        element.style.display = '';
-
-        // Special handling for different element types
-        if (element.classList.contains('btn')) {
-            element.style.display = 'flex';
-        } else if (element.classList.contains('nav-item')) {
-            element.style.display = 'list-item';
-        } else if (element.tagName.toLowerCase() === 'span' || element.tagName.toLowerCase() === 'div') {
-            element.style.display = 'block';
-        }
-    });
-
-    // Hide elements that should be hidden for current role
-    const hideSelector = '.role-' + currentRole + '-hide';
-    document.querySelectorAll(hideSelector).forEach(element => {
-        element.style.display = 'none';
-    });
-
-    // Reinitialize mobile submenus after role change if on mobile
-    if (window.innerWidth <= 1024) {
-        setTimeout(() => {
-            initializeMobileSubmenus();
-        }, 50);
-    }
-
-    // Dispatch custom event for other components to listen to
-    document.dispatchEvent(new CustomEvent('roleChanged', {
-        detail: { role: currentRole }
-    }));
-}
 
 /**
  * Search Functionality
@@ -548,18 +465,6 @@ function makeRequest(url, method = 'GET', data = null) {
  * Event Listeners for Dynamic Content
  */
 
-// Listen for role changes to reinitialize components
-document.addEventListener('roleChanged', function (e) {
-    console.log('Role changed event received:', e.detail);
-
-    // Reinitialize navigation highlighting
-    initializeNavigationHighlighting();
-
-    // Reinitialize mobile submenus if needed
-    if (window.innerWidth <= 1024 && document.querySelector('.nav-links.mobile-open')) {
-        setTimeout(initializeMobileSubmenus, 100);
-    }
-});
 
 // Handle window resize events - IMPROVED
 window.addEventListener('resize', debounce(function () {
@@ -640,10 +545,8 @@ window.GreenCircle = {
     debounce,
     formatDate,
     makeRequest,
-    changeUserRole,
-    getCurrentRole,
     initializeMobileSubmenus,
-    logout // Add logout to global exports
+    logout
 };
 
 /**

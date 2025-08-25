@@ -48,6 +48,7 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateUser([FromBody] CreateUserViewModel model)
         {
             if (!ModelState.IsValid)
@@ -190,6 +191,7 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult SaveGoogleAnalytics([FromBody] GoogleAnalyticsViewModel model)
         {
             if (!ModelState.IsValid)
@@ -341,19 +343,109 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetProducts()
+        public async Task<IActionResult> GetProducts()
         {
-            var products = new List<ProductViewModel>
+            try
             {
-                new ProductViewModel { Id = 1, Name = "Product 1", Description = "Sample product", ProductTypeName = "Adhesives", CompanyName = "ASSA ABLOY", IsActive = true, CertificateCount = 3, CreatedDate = DateTime.Now.AddMonths(-2) },
-                new ProductViewModel { Id = 2, Name = "Product 2", Description = "Another product", ProductTypeName = "Building Materials", CompanyName = "GreenCircle", IsActive = true, CertificateCount = 5, CreatedDate = DateTime.Now.AddMonths(-1) }
-            };
-
-            return Json(new ApiResponse<List<ProductViewModel>> { Success = true, Data = products });
+                var products = await _adminService.GetProductsAsync();
+                return Json(new ApiResponse<List<ProductViewModel>> { Success = true, Data = products });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<ProductViewModel>>
+                {
+                    Success = false,
+                    Message = "Error retrieving products: " + ex.Message
+                });
+            }
         }
 
-        // Amazon API
-        public IActionResult AmazonAPI()
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateProduct([FromBody] ProductViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid data provided",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            try
+            {
+                var success = await _adminService.CreateProductAsync(model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Product created successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Failed to create product" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error creating product: " + ex.Message });
+            }
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateProduct(int id, [FromBody] ProductViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid data provided",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            try
+            {
+                var success = await _adminService.UpdateProductAsync(id, model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Product updated successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Product not found or update failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error updating product: " + ex.Message });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            try
+            {
+                var success = await _adminService.DeleteProductAsync(id);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Product deleted successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Product not found or delete failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error deleting product: " + ex.Message });
+            }
+        }
+
+        // GCC API
+        public IActionResult GCCAPI()
         {
             var model = new AmazonAPISettingsViewModel
             {
@@ -371,7 +463,8 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpPost]
-        public IActionResult SaveAmazonAPISettings([FromBody] AmazonAPISettingsViewModel model)
+        [ValidateAntiForgeryToken]
+        public IActionResult SaveGCCAPISettings([FromBody] AmazonAPISettingsViewModel model)
         {
             if (!ModelState.IsValid)
             {
@@ -426,6 +519,7 @@ namespace GCCWebApp.Controllers
 
         // Generic CRUD operations for simple entities
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult CreateEntity(string entityType, [FromBody] object data)
         {
             // Generic create method - in real app, route to specific service based on entityType

@@ -86,6 +86,17 @@ body {
 
 .admin-header {
     margin-top: -10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-md);
+}
+
+.admin-header .page-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--blue-dark);
+    margin: 0;
 }
 
 /* .page-title - Removed: Not used in current structure

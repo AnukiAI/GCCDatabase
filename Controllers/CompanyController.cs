@@ -1,10 +1,20 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using GCCWebApp.Models;
+using GCCWebApp.Services;
 
 namespace GCCWebApp.Controllers
 {
+    [Authorize(Policy = "AnalystOrAdmin")]
     public class CompanyController : Controller
     {
+        private readonly ICompanyService _companyService;
+
+        public CompanyController(ICompanyService companyService)
+        {
+            _companyService = companyService;
+        }
+
         public IActionResult Index()
         {
             return View();
@@ -16,71 +26,94 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetCompanies()
+        public async Task<IActionResult> GetCompanies()
         {
-            // Sample data - replace with actual data service
-            var companies = new List<CompanyViewModel>
+            try
             {
-                new CompanyViewModel 
+                var companies = await _companyService.GetCompaniesAsync();
+                return Json(new ApiResponse<List<CompanyViewModel>> { Success = true, Data = companies });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<CompanyViewModel>> 
                 { 
-                    Id = 1, 
-                    Name = "Acme Corporation", 
-                    Email = "info@acme.com", 
-                    Url = "https://www.acme.com" 
-                },
-                new CompanyViewModel 
-                { 
-                    Id = 2, 
-                    Name = "Globex Industries", 
-                    Email = "sales@globex.com", 
-                    Url = "https://www.globex.com" 
-                },
-                new CompanyViewModel 
-                { 
-                    Id = 3, 
-                    Name = "Stark Enterprises", 
-                    Email = "hello@stark.com", 
-                    Url = "https://www.stark.com" 
-                },
-                new CompanyViewModel 
-                { 
-                    Id = 4, 
-                    Name = "Wayne Technologies", 
-                    Email = "contact@waynetech.com", 
-                    Url = "https://www.waynetech.com" 
-                }
-            };
-
-            return Json(new ApiResponse<List<CompanyViewModel>> { Success = true, Data = companies });
+                    Success = false, 
+                    Message = "Error retrieving companies: " + ex.Message 
+                });
+            }
         }
 
         [HttpPost]
-        public IActionResult SaveCompany([FromBody] CompanyViewModel model)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveCompany([FromBody] CompanyViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                return Json(new ApiResponse<object> { Success = false, Message = "Invalid data provided" });
+                return Json(new ApiResponse<object> 
+                { 
+                    Success = false, 
+                    Message = "Invalid data provided",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
             }
 
-            // Add logic to save company
-            // For now, return success
-            return Json(new ApiResponse<CompanyViewModel> { Success = true, Data = model, Message = "Company saved successfully" });
+            try
+            {
+                CompanyViewModel result;
+                if (model.Id > 0)
+                {
+                    // Update existing company
+                    var success = await _companyService.UpdateCompanyAsync(model.Id, model);
+                    if (success)
+                    {
+                        result = await _companyService.GetCompanyByIdAsync(model.Id);
+                        return Json(new ApiResponse<CompanyViewModel> { Success = true, Data = result, Message = "Company updated successfully" });
+                    }
+                    else
+                    {
+                        return Json(new ApiResponse<object> { Success = false, Message = "Company not found or update failed" });
+                    }
+                }
+                else
+                {
+                    // Create new company
+                    var newId = await _companyService.CreateCompanyAsync(model);
+                    if (newId > 0)
+                    {
+                        result = await _companyService.GetCompanyByIdAsync(newId);
+                        return Json(new ApiResponse<CompanyViewModel> { Success = true, Data = result, Message = "Company created successfully" });
+                    }
+                    else
+                    {
+                        return Json(new ApiResponse<object> { Success = false, Message = "Failed to create company" });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error saving company: " + ex.Message });
+            }
         }
 
         [HttpDelete]
-        public IActionResult DeleteCompany(int id)
+        public async Task<IActionResult> DeleteCompany(int id)
         {
-            // Add logic to delete company
-            // For now, return success
-            return Json(new ApiResponse<object> { Success = true, Message = "Company deleted successfully" });
+            try
+            {
+                var success = await _companyService.DeleteCompanyAsync(id);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Company deleted successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Company not found or delete failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error deleting company: " + ex.Message });
+            }
         }
-    }
-
-    public class CompanyViewModel
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string Url { get; set; } = string.Empty;
     }
 }

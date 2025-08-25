@@ -1,4 +1,5 @@
-﻿@{
+@model CertificateListViewModelSimple
+@{
     ViewData["Title"] = "Certificates";
     ViewData["BodyClass"] = "role-admin";
     ViewData["UserName"] = "Jane Smith";
@@ -166,12 +167,18 @@
             <div class="certificate-filter-content">
                 <input type="text" placeholder="Search companies..." class="certificate-search-input">
                 <ul class="certificate-filter-tree">
-                    <li class="certificate-filter-item certificate-filter-level-1">
-                        <label>
-                            <input type="checkbox" name="company" value="assa-abloy">
-                            ASSA ABLOY
-                        </label>
-                    </li>
+                    @if (ViewBag.Companies != null)
+                    {
+                        @foreach (var company in (IEnumerable<dynamic>)ViewBag.Companies)
+                        {
+                            <li class="certificate-filter-item certificate-filter-level-1">
+                                <label>
+                                    <input type="checkbox" name="company" value="@company.Id">
+                                    @company.Name
+                                </label>
+                            </li>
+                        }
+                    }
                 </ul>
             </div>
         </div>
@@ -197,10 +204,60 @@
 
     <!-- Main Content Area -->
     <div class="certificate-main-content">
-        <div class="certificates-results-count">201 Results</div>
+        <div class="certificates-results-count">@Model.TotalCount Results</div>
 
         <div class="certificates-grid" id="certificates-grid">
-            <!-- Certificate cards will be populated here -->
+            @if (Model.Certificates?.Any() == true)
+            {
+                @foreach (var cert in Model.Certificates)
+                {
+                    <div class="certificate-card" data-id="@cert.Id">
+                        <div class="certificate-card-header">
+                            <h3>@(cert.CertificationType?.Name?.ToUpper() ?? "CERTIFIED SUSTAINABILITY FACTS")</h3>
+                        </div>
+                        <div class="certificate-card-info">
+                            <div class="certificate-card-number">Certificate #: @cert.Number</div>
+                            <div class="certificate-card-company-name">@(cert.Company?.Name ?? "Unknown Company")</div>
+                            <div class="certificate-card-product-name">@(cert.Product?.Name ?? "Unknown Product")</div>
+                            <div class="certificate-card-product-category">@(cert.Product?.Category?.Name ?? "General")</div>
+                            <div class="certificate-card-certification-period">
+                                <strong>Certification Period:</strong><br>
+                                @cert.EffectiveDate.ToString("M/d/yyyy") - @cert.ExpirationDate.ToString("M/d/yyyy")
+                            </div>
+                            <div class="certificate-card-location">
+                                @cert.Location<br>
+                                @cert.Country
+                            </div>
+                        </div>
+                        <div class="certificate-card-actions">
+                            <button class="certificate-action-button" title="Download Certificate" onclick="downloadCertificate(@cert.Id)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                    <path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708l3 3z"/>
+                                </svg>
+                            </button>
+                            <button class="certificate-action-button" title="View Certificate" onclick="viewCertificate(@cert.Id)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                                    <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
+                                </svg>
+                            </button>
+                            <button class="certificate-action-button role-element role-admin-show" title="Edit Certificate" onclick="editCertificate(@cert.Id)">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                                    <path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708L10.5 8.207l-3-3L12.146.146zM11.207 9l2-2L10.5 4.293l-2 2L11.207 9zm1.586-3l-.793-.793-1.586 1.586.793.793 1.586-1.586zM10.5 11.207l-3-3L2.146 13.56a.5.5 0 0 1-.353.146H1.5a.5.5 0 0 1-.5-.5v-.293c0-.132.053-.26.146-.353L6.5 7.207l3 3-1 1z"/>
+                                    <path d="M13 2.5a1.5 1.5 0 1 1-3 0 1.5 1.5 0 0 1 3 0z"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="no-certificates-message">
+                    <p>No certificates found.</p>
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -417,13 +474,25 @@
 
         // Certificate actions
         function downloadCertificate(id) {
-            // In real app, would download the certificate PDF
-            window.GreenCircle.showToast('Certificate download started', 'success');
+            // Download the certificate PDF
+            try {
+                window.open(`/Certificate/Download/${id}`, '_blank');
+                if (window.GreenCircle && window.GreenCircle.showToast) {
+                    window.GreenCircle.showToast('Certificate download started', 'success');
+                } else {
+                    console.log('Certificate download started');
+                }
+            } catch (error) {
+                console.error('Error downloading certificate:', error);
+                if (window.GreenCircle && window.GreenCircle.showToast) {
+                    window.GreenCircle.showToast('Download failed', 'error');
+                }
+            }
         }
 
         function viewCertificate(id) {
-            // Navigate to certificate detail view
-            window.location.href = `/Certificate/Details/${id}`;
+            // Navigate to certificate single view
+            window.location.href = `/Certificate/CertificateSingleView/${id}`;
         }
 
         function editCertificate(id) {

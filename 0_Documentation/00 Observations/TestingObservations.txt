@@ -1,0 +1,16 @@
+﻿Logging in as Analyst I should not be able to see Admin navigation.
+Each page should check that the logged in user has access to pages.
+
+Icons are missing in the application, Search icon, download icon. a defect was introduced iwht file cleanup?
+
+
+- Logout still not working smoothly. Also, the navitems should load based on the user role. I was still seeing certificates with Analyst
+- The navigation items should be dynamically loaded based on the user role. For example, an Analyst should not see Admin options like "Manage Users" or "System Settings".
+
+-------------
+
+
+-Global: Font Awesome icons are now showing in the page. 
+certificates search bar for public should be right aligned. <input type="text" placeholder="Search certificates...">
+
+/html/body/main/div/div[2]/div/div[2]/div[2]/div[3]/div[3] - download button is not working or view details

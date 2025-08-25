@@ -12,8 +12,15 @@ using GCCWebApp.Data;
 using GCCWebApp.Repositories;
 using GCCWebApp.Services;
 using GCCWebApp.Authentication;
+using GCCWebApp.Services.Security;
+using GCCWebApp.Middleware;
+using GCCWebApp.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ===== SECURE CONFIGURATION SETUP =====
+// Configure Azure Key Vault and secure configuration management
+builder.Configuration.AddAzureKeyVaultIfAvailable(builder.Environment);
 
 // ===== SESSION CONFIGURATION =====
 builder.Services.AddSession(options =>
@@ -109,18 +116,27 @@ builder.Services.AddAuthentication()
         ApiKeyAuthenticationOptions.DefaultScheme, opts => { })
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
     {
+        var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT signing key must be configured");
+        
+        // Validate JWT key strength
+        if (jwtKey.Length < 64)
+            throw new InvalidOperationException("JWT signing key must be at least 64 characters long for security");
+        
         options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
             IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
-                System.Text.Encoding.UTF8.GetBytes(
-                    builder.Configuration["Jwt:Key"] ?? "YourSuperSecretKeyForJWTTokenGeneration123456789")),
+                System.Text.Encoding.UTF8.GetBytes(jwtKey)),
             ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "GCCWebApp",
+            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? throw new InvalidOperationException("JWT issuer must be configured"),
             ValidateAudience = true,
-            ValidAudience = builder.Configuration["Jwt:Audience"] ?? "GCCWebApp",
+            ValidAudience = builder.Configuration["Jwt:Audience"] ?? throw new InvalidOperationException("JWT audience must be configured"),
             ValidateLifetime = true,
-            ClockSkew = TimeSpan.Zero
+            ClockSkew = TimeSpan.Zero,
+            // Enhanced security settings
+            RequireExpirationTime = true,
+            RequireSignedTokens = true,
+            RequireAudience = true
         };
     });
 
@@ -148,7 +164,23 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AuthenticatedUsers", policy =>
         policy.RequireAuthenticatedUser());
 
-    // No fallback policy for testing - allow anonymous by default
+    // Default policy requires authentication
+    options.DefaultPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
+// ===== CSRF PROTECTION =====
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-CSRF-TOKEN";
+    options.Cookie.Name = "__RequestVerificationToken";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment() 
+        ? CookieSecurePolicy.SameAsRequest 
+        : CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.SuppressXFrameOptionsHeader = false;
 });
 
 // ===== API VERSIONING =====
@@ -188,14 +220,25 @@ builder.Services.AddCors(options =>
     });
 });
 
+// ===== PERFORMANCE OPTIMIZATION =====
+builder.Services.AddPerformanceOptimization(builder.Configuration);
+builder.Services.AddBundlingAndMinification(builder.Environment);
+
+// ===== SECURITY SERVICES =====
+// Security services are configured via SecurityServicesExtensions
+builder.Services.ConfigureSecurityServices(builder.Configuration);
+
 // ===== SWAGGER CONFIGURATION =====
 builder.Services.AddSwaggerConfiguration();
 
 // ===== MVC & RAZOR PAGES CONFIGURATION =====
 builder.Services.AddControllersWithViews(options =>
 {
-    // Remove global authorization filter for testing
-    // Individual controllers can use [Authorize] as needed
+    // Require authentication globally for all controllers except those marked with [AllowAnonymous]
+    var policy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    options.Filters.Add(new AuthorizeFilter(policy));
 })
 .AddJsonOptions(options =>
 {
@@ -217,10 +260,67 @@ builder.Services.AddScoped<ICertificateService, CertificateService>();
 builder.Services.AddScoped<IFilterService, FilterService>();
 builder.Services.AddScoped<ICacheService, CacheService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
+builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IValidationService, ValidationService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
+builder.Services.AddScoped<ICertificatePdfService, CertificatePdfService>();
+
+// ===== TWO-FACTOR AUTHENTICATION SERVICES =====
+// Register email service based on SMTP configuration
+builder.Services.AddScoped<IEmailService>(serviceProvider =>
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var logger = serviceProvider.GetRequiredService<ILogger<EmailService>>();
+    var smtpSection = configuration.GetSection("SmtpSettings");
+    
+    // Check if SMTP is properly configured
+    var host = smtpSection["Host"];
+    var username = smtpSection["Username"];
+    var password = smtpSection["Password"];
+    
+    if (!string.IsNullOrWhiteSpace(host) && 
+        !string.IsNullOrWhiteSpace(username) && 
+        !string.IsNullOrWhiteSpace(password))
+    {
+        return new EmailService(configuration, logger);
+    }
+    else
+    {
+        var mockLogger = serviceProvider.GetRequiredService<ILogger<MockEmailService>>();
+        return new MockEmailService(mockLogger);
+    }
+});
+
+// SMS Services
+builder.Services.AddHttpClient<TwilioSmsService>();
+builder.Services.AddHttpClient<TextBeltSmsService>();
+builder.Services.AddScoped<TwilioSmsService>();
+builder.Services.AddScoped<TextBeltSmsService>();
+builder.Services.AddScoped<MockSmsService>();
+
+// SMS Service Factory
+builder.Services.AddScoped<ISmsService>(serviceProvider => 
+{
+    var configuration = serviceProvider.GetRequiredService<IConfiguration>();
+    var smsProvider = configuration.GetValue<string>("SmsSettings:Provider")?.ToLower() ?? "mock";
+
+    return smsProvider switch
+    {
+        "twilio" => serviceProvider.GetRequiredService<TwilioSmsService>(),
+        "textbelt" => serviceProvider.GetRequiredService<TextBeltSmsService>(),
+        _ => serviceProvider.GetRequiredService<MockSmsService>()
+    };
+});
+
+// 2FA Services
+builder.Services.AddScoped<ITwoFactorService, TwoFactorService>();
+builder.Services.AddScoped<IEnhancedTwoFactorService, EnhancedTwoFactorService>();
+
+// ===== SECURITY SERVICES =====
+builder.Services.AddSecureConfiguration(builder.Configuration, builder.Environment);
+builder.Services.AddHostedService<ConfigurationValidationService>();
 
 // ===== ETL SERVICES =====
 builder.Services.AddScoped<GCCWebApp.Services.ETL.IETLService, GCCWebApp.Services.ETL.ETLService>();
@@ -231,6 +331,7 @@ builder.Services.AddScoped<GCCWebApp.Services.ETL.IETLMonitor, GCCWebApp.Service
 builder.Services.AddHostedService<GCCWebApp.Services.ETL.ETLSchedulerService>();
 
 // ===== BASIC SERVICES =====
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();
 
@@ -244,22 +345,11 @@ logger.LogInformation("Environment: {Environment}", app.Environment.EnvironmentN
 
 // ===== MIDDLEWARE PIPELINE CONFIGURATION =====
 
-// Security headers (should be first)
-app.Use(async (context, next) =>
-{
-    context.Response.Headers.Add("X-Frame-Options", "DENY");
-    context.Response.Headers.Add("X-Content-Type-Options", "nosniff");
-    context.Response.Headers.Add("X-XSS-Protection", "1; mode=block");
-    context.Response.Headers.Add("Referrer-Policy", "strict-origin-when-cross-origin");
-    context.Response.Headers.Add("Permissions-Policy", "geolocation=(), microphone=(), camera=()");
+// Performance optimization middleware (early in pipeline)
+app.UsePerformanceOptimization(app.Environment);
 
-    if (!app.Environment.IsDevelopment())
-    {
-        context.Response.Headers.Add("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
-    }
-
-    await next();
-});
+// Security headers middleware (should be first after performance)
+app.UseMiddleware<SecurityHeadersMiddleware>();
 
 // Error handling
 if (!app.Environment.IsDevelopment())
@@ -278,21 +368,13 @@ app.UseHttpsRedirection();
 // CORS (must be before routing)
 app.UseCors("ApiCorsPolicy");
 
-// Rate limiting (before routing)
-app.UseIpRateLimiting();
-
-// Static files with caching
-app.UseStaticFiles(new StaticFileOptions
+// Rate limiting (before routing) - disabled in development
+if (!app.Environment.IsDevelopment())
 {
-    OnPrepareResponse = ctx =>
-    {
-        // Cache static files for 7 days in production
-        if (!app.Environment.IsDevelopment())
-        {
-            ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=604800");
-        }
-    }
-});
+    app.UseIpRateLimiting();
+}
+
+// Static files (already configured in UsePerformanceOptimization)
 
 // Routing
 app.UseRouting();
@@ -307,29 +389,33 @@ app.UseAuthorization();
 // Role middleware - set session roles based on claims
 app.Use(async (context, next) =>
 {
-    if (context.User.Identity?.IsAuthenticated == true)
+    // Only process session for pages that need it
+    if (context.Request.Path.HasValue && !context.Request.Path.Value.StartsWith("/api"))
     {
-        // Get role from claims and store in session
-        var roleClaim = context.User.FindFirst("Role")?.Value;
-        if (!string.IsNullOrEmpty(roleClaim))
+        if (context.User.Identity?.IsAuthenticated == true)
         {
-            context.Session.SetString("UserRole", roleClaim);
+            // Get role from claims and store in session
+            var roleClaim = context.User.FindFirst("Role")?.Value;
+            if (!string.IsNullOrEmpty(roleClaim))
+            {
+                context.Session.SetString("UserRole", roleClaim);
+            }
+
+            // Get other user info
+            var emailClaim = context.User.FindFirst("Email")?.Value;
+            var nameClaim = context.User.FindFirst("Name")?.Value;
+
+            if (!string.IsNullOrEmpty(emailClaim))
+                context.Session.SetString("UserEmail", emailClaim);
+
+            if (!string.IsNullOrEmpty(nameClaim))
+                context.Session.SetString("UserName", nameClaim);
         }
-
-        // Get other user info
-        var emailClaim = context.User.FindFirst("Email")?.Value;
-        var nameClaim = context.User.FindFirst("Name")?.Value;
-
-        if (!string.IsNullOrEmpty(emailClaim))
-            context.Session.SetString("UserEmail", emailClaim);
-
-        if (!string.IsNullOrEmpty(nameClaim))
-            context.Session.SetString("UserName", nameClaim);
-    }
-    else
-    {
-        // Set default role for unauthenticated users
-        context.Session.SetString("UserRole", "Public");
+        else
+        {
+            // Set default role for unauthenticated users
+            context.Session.SetString("UserRole", "Public");
+        }
     }
 
     await next();
@@ -344,10 +430,10 @@ if (app.Environment.IsDevelopment())
 
 // ===== ROUTE MAPPING =====
 
-// Default MVC route
+// Default MVC route - goes to public certificates view
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}");
+    pattern: "{controller=Certificate}/{action=CertificateTileView}/{id?}");
 
 // Area routes (if you have admin areas)
 app.MapControllerRoute(
@@ -358,6 +444,9 @@ app.MapControllerRoute(
 app.MapRazorPages();
 
 logger.LogInformation("Application started successfully");
+
+// ===== VALIDATE SECURE CONFIGURATION =====
+await app.Services.ValidateSecureConfigurationAsync();
 
 // ===== SEED DATABASE =====
 using (var scope = app.Services.CreateScope())

@@ -1,8 +1,0 @@
-╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ ✻ Welcome to Claude Code!                                                                                                │
-│                                                                                                                          │
-│   /help for help, /status for your current setup                                                                         │
-│                                                                                                                          │
-│   cwd: C:\Users\swest\OneDrive - PointSolve Technology Inc\LocalWest\Projects\GCC Database Solution\GCCWebApp\GCCWebApp  │
-╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-

@@ -361,8 +361,34 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# GCC Web App - Custom Ignores
 /.claude
 /docs/Archive
-/2025-08-08-caveat-the-messages-below-were-generated-by-the-u.txt
-/2025-08-09-caveat-the-messages-below-were-generated-by-the-u.txt
-/2025-08-09-admin-partners-add-new-partner-save-and-cancel-n.txt
+
+# Database files - exclude from source control
+*.db
+*.db-shm  
+*.db-wal
+gcc_database.*
+
+# Temporary and session files
+*-caveat-*.txt
+conversation-*.txt
+*.tmp
+*-fix-manual-testing-*.txt
+*-can-we-expand-*.txt
+
+# Archive folders - prevent accidental commits
+*/archive/
+**/Archive/
+pages_old/
+
+# Development session files
+nul
+updates_*.txt
+SecurityUpdates_*.txt
+SecurityandPenTesting_*.txt
+issuesList*.txt
+documentupdates.txt
+apiUpdates.txt

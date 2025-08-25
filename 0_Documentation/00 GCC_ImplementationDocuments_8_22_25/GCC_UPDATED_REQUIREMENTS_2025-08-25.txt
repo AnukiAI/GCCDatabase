@@ -1,0 +1,559 @@
+================================================================================
+GCC WEB APPLICATION - UPDATED REQUIREMENTS DOCUMENT
+================================================================================
+Document Version: 2.0
+Last Updated: 2025-08-25
+Source: Issue Tracker.xlsx Analysis
+Purpose: Comprehensive requirements update based on issue tracking analysis
+
+================================================================================
+EXECUTIVE SUMMARY
+================================================================================
+
+Based on the comprehensive analysis of the Issue Tracker.xlsx document, this updated requirements document captures:
+- 39+ new/modified functional requirements identified from gap analysis
+- 15+ critical security and compliance requirements
+- 25+ technical requirements for performance and scalability
+- Partner-specific access control requirements (Amazon/Wayfair/others)
+- Enhanced data validation and CRUD operations requirements
+
+Status Summary from Issue Tracker:
+- Open Issues: 18
+- Updates Pending: 15 
+- In Progress: 0
+- Resolved: 0
+- Deferred (Out of Scope): 6
+
+================================================================================
+NEW FUNCTIONAL REQUIREMENTS
+================================================================================
+
+FR-036: Partner Field Management
+- Category: Certificate Management
+- Priority: HIGH
+- Description: Add Partner field to certificate creation/editing with multi-select capability
+- Details: Must support Amazon/Wayfair selection with "none" option
+- Status: Open
+- Owner: Dev Team
+
+FR-037: Certificate Status Type Field
+- Category: Certificate Management  
+- Priority: HIGH
+- Description: Add Status Type field to track client progression decisions
+- Details: Field to indicate when client doesn't want to move forward
+- Status: Open
+- Owner: Dev Team
+
+FR-038: Partner Data Segregation
+- Category: Security & Access Control
+- Priority: HIGH
+- Description: Implement partner-specific data access controls
+- Details: Amazon vs Wayfair vs other partners need isolated access
+- Status: Incomplete
+- Owner: Dev/Security
+
+FR-039: Cross-Company Partner Access
+- Category: Access Control
+- Priority: MEDIUM
+- Description: Partners should access multiple companies under their program
+- Details: Amazon CPF clients/certs should be accessible across companies
+- Status: Open
+- Owner: Business/Dev
+
+FR-040: Internal Tags Visibility Control
+- Category: Access Control
+- Priority: MEDIUM  
+- Description: Control external user visibility of internal tags
+- Details: External users should only see internal tags if specifically assigned
+- Status: Open - Needs clarification
+- Owner: Business
+
+FR-041: Scalable Product ID Display
+- Category: Performance & UX
+- Priority: MEDIUM
+- Description: Handle display of thousands of ASINs/product IDs per certificate
+- Details: May require dedicated Products page access for external users
+- Status: Open
+- Owner: Business/Dev
+
+FR-042: Company Contact Field Separation
+- Category: Data Management
+- Priority: HIGH
+- Description: Separate Company Contact into Email and Phone fields
+- Details: Current single field insufficient - need separate Email/Phone from URL
+- Status: Open
+- Owner: Dev Team
+
+FR-043: Certificate Numbering Logic
+- Category: Data Management
+- Priority: MEDIUM
+- Description: Implement auto-generation with manual override capability
+- Details: Clear business rules needed for certificate number assignment
+- Status: Unclear
+- Owner: Business/Dev
+
+FR-044: Duplicate Prevention System
+- Category: Data Validation
+- Priority: MEDIUM
+- Description: Implement validation rules to prevent duplicate certificates/products
+- Details: No current validation exists for duplicates
+- Status: Missing
+- Owner: Dev Team
+
+FR-045: Comprehensive Data Validation
+- Category: Data Management
+- Priority: MEDIUM
+- Description: Document and implement required field validation and format requirements
+- Details: Complete validation rules currently incomplete
+- Status: Incomplete
+- Owner: Dev Team
+
+FR-046: Infinite Scroll Implementation
+- Category: Performance & UX
+- Priority: MEDIUM
+- Description: Replace pagination with infinite scrolling for certificate lists
+- Details: Performance improvement for large datasets
+- Status: Open
+- Owner: Dev Team
+
+FR-047: Lazy Loading Capability
+- Category: Performance
+- Priority: LOW
+- Description: Implement lazy loading for table data as user scrolls
+- Details: Alternative to pagination for better user experience
+- Status: Open
+- Owner: Dev Team
+
+================================================================================
+UPDATED SECURITY & COMPLIANCE REQUIREMENTS  
+================================================================================
+
+SEC-001: Multi-Factor Authentication Implementation
+- Category: Authentication
+- Priority: HIGH
+- Description: Implement MFA for admin user stories
+- Details: Required per admin user stories but no wireframes exist
+- Status: Missing
+- Owner: Security/Dev
+
+SEC-002: User Activity Logging System
+- Category: Auditing
+- Priority: MEDIUM
+- Description: Comprehensive user activity logging with UI for viewing logs
+- Details: Required for audit trail but no UI currently planned
+- Status: Missing
+- Owner: Dev Team
+
+SEC-003: Data Encryption Standards
+- Category: Data Protection
+- Priority: HIGH
+- Description: Document and implement encryption for certificate uploads and sensitive data
+- Details: Encryption standards not currently documented
+- Status: Missing
+- Owner: Security Team
+
+SEC-004: Role-Based Access Control Matrix
+- Category: Access Control
+- Priority: HIGH
+- Description: Detailed permission matrix for each user type with CRUD validation
+- Details: Need to verify each role's create/read/update/delete permissions match wireframes
+- Status: Incomplete
+- Owner: Security Team
+
+SEC-005: Partner Access Isolation
+- Category: Data Security
+- Priority: HIGH
+- Description: Ensure partner data segregation (Amazon vs Wayfair vs others)
+- Details: Partners need isolated access to prevent data leakage
+- Status: Incomplete
+- Owner: Dev/Security
+
+================================================================================
+API & INTEGRATION REQUIREMENTS
+================================================================================
+
+API-001: Multiple Partner API Support
+- Category: Integration
+- Priority: MEDIUM
+- Description: Support multiple partner APIs beyond Amazon
+- Details: Comments mention "multiple partners" but only Amazon API documented
+- Status: Gap
+- Owner: Dev Team
+
+API-002: API Error Handling & Fallbacks
+- Category: Integration
+- Priority: MEDIUM
+- Description: Comprehensive API error handling and failure scenarios
+- Details: No documentation on failure scenarios currently exists
+- Status: Missing
+- Owner: Dev Team
+
+API-003: Product ID Type Standardization
+- Category: Data Integration
+- Priority: HIGH
+- Description: Resolve Product ID type conflicts in API
+- Details: 4/30 version shows UPC/GTIN, 6/15 shows ASIN - need clarification
+- Status: Conflict
+- Owner: API Team
+
+API-004: Amazon API Validation
+- Category: Integration
+- Priority: HIGH
+- Description: JSON format validation for Amazon API integration
+- Details: Scheduled testing may need validation updates
+- Status: At Risk
+- Owner: Dev/Integration
+
+API-005: Partner API Documentation
+- Category: Documentation
+- Priority: MEDIUM
+- Description: Create integration guides for external partners
+- Details: External partners need comprehensive integration guides
+- Status: Missing
+- Owner: Documentation Team
+
+================================================================================
+PERFORMANCE & SCALABILITY REQUIREMENTS
+================================================================================
+
+PERF-001: Large Dataset Handling
+- Category: Performance
+- Priority: HIGH  
+- Description: Optimize performance for thousands of product IDs per certificate
+- Details: Performance concerns identified for large ASIN lists
+- Status: Identified
+- Owner: Dev/UX
+
+PERF-002: Search Index Strategy
+- Category: Database Performance
+- Priority: MEDIUM
+- Description: Implement indexing strategy for certificate searches across companies
+- Details: No current indexing strategy for cross-company searches
+- Status: Missing
+- Owner: DBA
+
+PERF-003: File Upload Limits & Storage
+- Category: Infrastructure
+- Priority: MEDIUM
+- Description: Define certificate PDF size limits and storage strategy
+- Details: Upload limits and storage strategy not defined
+- Status: Missing
+- Owner: Dev/Infrastructure
+
+PERF-004: Load Testing Strategy  
+- Category: Testing
+- Priority: MEDIUM
+- Description: Performance testing with multiple concurrent users
+- Details: No current load testing strategy exists
+- Status: Missing
+- Owner: QA/Dev
+
+================================================================================
+USER EXPERIENCE & ACCESSIBILITY REQUIREMENTS
+================================================================================
+
+UX-001: ADA Compliance Validation
+- Category: Accessibility
+- Priority: HIGH
+- Description: Implement screen reader compatibility and keyboard navigation
+- Details: ADA compliance testing and accessibility validation required
+- Status: Missing
+- Owner: UI/QA
+
+UX-002: Mobile-First Design
+- Category: Responsive Design
+- Priority: MEDIUM
+- Description: Implement mobile-first responsive design
+- Details: All wireframes appear desktop-focused - mobile gap identified
+- Status: Gap
+- Owner: UI Team
+
+UX-003: Consistent Error Handling
+- Category: User Experience
+- Priority: MEDIUM
+- Description: Standardize error messages across all screens
+- Details: No consistent error handling currently exists
+- Status: Missing
+- Owner: UI/Dev
+
+UX-004: Loading States & Feedback
+- Category: User Experience
+- Priority: LOW
+- Description: Implement loading indicators and progress feedback
+- Details: No wireframes show loading indicators
+- Status: Missing
+- Owner: UI Team
+
+UX-005: Keyboard Shortcuts for Power Users
+- Category: User Experience
+- Priority: LOW
+- Description: Add efficiency features for analysts/admins
+- Details: Power users may need keyboard shortcuts for common tasks
+- Status: Missing
+- Owner: UI Team
+
+================================================================================
+DATA MANAGEMENT & MIGRATION REQUIREMENTS
+================================================================================
+
+DATA-001: Database Migration Plan
+- Category: Data Migration
+- Priority: HIGH
+- Description: Document how existing data transfers to new system
+- Details: Current database migration plan missing
+- Status: Missing
+- Owner: Dev/DBA
+
+DATA-002: Auto-Population Logic
+- Category: Data Consistency
+- Priority: MEDIUM
+- Description: Company info should auto-populate from Companies page
+- Details: When selecting company, info should not be editable in certificate form
+- Status: Open
+- Owner: Dev Team
+
+DATA-003: Data Export Capabilities
+- Category: Business Continuity
+- Priority: MEDIUM
+- Description: Comprehensive data export for business continuity
+- Details: Export capabilities needed if system changes required
+- Status: Partial
+- Owner: Dev Team
+
+================================================================================
+TESTING & VALIDATION REQUIREMENTS
+================================================================================
+
+TEST-001: Business Acceptance Testing Plan
+- Category: Quality Assurance
+- Priority: HIGH
+- Description: Define comprehensive test scenarios for business acceptance
+- Details: Testing scheduled but scenarios undefined
+- Status: Missing
+- Owner: QA/Business
+
+TEST-002: Cross-Browser Compatibility
+- Category: Quality Assurance
+- Priority: MEDIUM
+- Description: Testing strategy for different browsers
+- Details: No cross-browser testing strategy exists
+- Status: Missing
+- Owner: QA Team
+
+TEST-003: Mobile Responsiveness Validation
+- Category: Quality Assurance  
+- Priority: MEDIUM
+- Description: Mobile testing across devices and screen sizes
+- Details: Wireframes show desktop only - mobile validation needed
+- Status: Missing
+- Owner: QA/UI
+
+================================================================================
+BUSINESS CONTINUITY & DEPLOYMENT REQUIREMENTS
+================================================================================
+
+BC-001: Backup & Recovery Strategy
+- Category: Infrastructure
+- Priority: HIGH
+- Description: Critical business data protection plan
+- Details: Backup and recovery strategy missing
+- Status: Missing
+- Owner: Infrastructure
+
+BC-002: Rollback Procedures
+- Category: Operations
+- Priority: HIGH
+- Description: Plan for system rollback if issues occur after go-live
+- Details: Rollback procedures needed for deployment safety
+- Status: Missing
+- Owner: Dev/Operations
+
+BC-003: Disaster Recovery Testing
+- Category: Business Continuity
+- Priority: MEDIUM
+- Description: Validation of backup/recovery procedures
+- Details: Testing of disaster recovery procedures required
+- Status: Missing
+- Owner: Infrastructure
+
+BC-004: Production Environment Setup
+- Category: Infrastructure
+- Priority: HIGH
+- Description: Infrastructure readiness for go-live
+- Details: Production environment setup status unknown
+- Status: Unknown
+- Owner: Infrastructure
+
+BC-005: User Acceptance Sign-offs
+- Category: Go-Live Readiness
+- Priority: HIGH
+- Description: Formal approval process from each user group
+- Details: Structured sign-off process needed from all user groups
+- Status: Missing
+- Owner: Business
+
+BC-006: Deployment Checklist
+- Category: Operations
+- Priority: HIGH
+- Description: Step-by-step go-live procedures
+- Details: Comprehensive deployment checklist for go-live period
+- Status: Missing
+- Owner: Operations
+
+BC-007: Post-Launch Support Plan
+- Category: Support
+- Priority: MEDIUM
+- Description: Immediate support for first weeks after launch
+- Details: Support plan for post-launch issues and questions
+- Status: Missing
+- Owner: Support Team
+
+================================================================================
+DOCUMENTATION & TRAINING REQUIREMENTS
+================================================================================
+
+DOC-001: User Training Materials
+- Category: Training
+- Priority: MEDIUM
+- Description: Onboarding plans for different user types
+- Details: No current plan for user type-specific training
+- Status: Missing
+- Owner: Training/Documentation
+
+DOC-002: System Administration Guide
+- Category: Documentation
+- Priority: MEDIUM
+- Description: Guide for managing roles, permissions, and system settings
+- Details: Administrative procedures documentation needed
+- Status: Missing
+- Owner: Documentation Team
+
+DOC-003: Troubleshooting Procedures
+- Category: Documentation
+- Priority: LOW
+- Description: Support team issue resolution guides
+- Details: Comprehensive troubleshooting documentation for support
+- Status: Missing
+- Owner: Documentation Team
+
+================================================================================
+OUT OF SCOPE ITEMS (DEFERRED TO FUTURE PHASES)
+================================================================================
+
+The following items are documented as out of scope for the initial implementation:
+
+FUTURE-001: Notifications & Alerts System
+- Reason: Not included in initial scope
+- Future Phase: Phase 2
+- Description: Real-time notifications and system alerts
+
+FUTURE-002: Clone Feature Enhancements  
+- Reason: Selective field carry-over functionality complexity
+- Future Phase: Phase 2
+- Description: Certificate cloning with selective field carry-over
+
+FUTURE-003: Bulk Upload for Product Identifiers
+- Reason: File upload complexity for initial phase
+- Future Phase: Phase 2  
+- Description: ASIN, UPC, GTIN, EAN bulk upload via copy/paste or file
+
+FUTURE-004: Product-Specific Fields
+- Reason: Additional complexity for initial phase
+- Future Phase: Phase 2
+- Description: Additional data fields for products associated with ASINs
+
+FUTURE-005: Customized Reporting Widgets
+- Reason: Dashboard customization complexity
+- Future Phase: Phase 2
+- Description: Dashboard widgets for external users
+
+FUTURE-006: Extended Third-Party API Integrations
+- Reason: Beyond explicitly defined integrations
+- Future Phase: Phase 2
+- Description: Third-party integrations beyond Amazon/Wayfair
+
+================================================================================
+REQUIREMENTS TRACEABILITY GAPS IDENTIFIED
+================================================================================
+
+GAP-001: User Story to Wireframe Traceability
+- Description: Not all admin, analyst, public, and external user stories have corresponding wireframe implementation
+- Impact: HIGH
+- Owner: Business Analyst
+- Action Required: Cross-reference all user stories against wireframes
+
+GAP-002: CRUD Permissions Documentation
+- Description: Incomplete CRUD field documentation referenced in admin user story
+- Impact: HIGH  
+- Owner: Business Analyst
+- Action Required: List all CRUD fields and validate permissions
+
+GAP-003: Filter Options Completeness
+- Description: User stories mention filtering "any certificate field" but wireframes show limited options
+- Impact: MEDIUM
+- Owner: UI/Dev
+- Action Required: Expand filter options or update user stories
+
+================================================================================
+CRITICAL QUESTIONS REQUIRING STAKEHOLDER INPUT
+================================================================================
+
+QUESTION-001: Amazon CPF Client Access Requirements
+- Priority: HIGH
+- Stakeholder: Business
+- Question: What are the specific requirements for Amazon CPF clients/certs partner access?
+
+QUESTION-002: Internal Tags Visibility Rules
+- Priority: MEDIUM  
+- Stakeholder: Business
+- Question: Can external users see internal tags if assigned? What are the visibility rules?
+
+QUESTION-003: ASIN Display Strategy
+- Priority: MEDIUM
+- Stakeholder: Business/UX  
+- Question: How should thousands of ASINs under one certificate be handled for display and navigation?
+
+QUESTION-004: Reference Management Purpose
+- Priority: LOW
+- Stakeholder: Business
+- Question: What is the "Reference Management" navigation item for?
+
+================================================================================
+IMPLEMENTATION RECOMMENDATIONS
+================================================================================
+
+PHASE 1 PRIORITY (Immediate - Weeks 1-4):
+- Implement Partner field and Status Type field (FR-036, FR-037)
+- Complete CRUD permissions matrix (SEC-004)
+- Resolve API Product ID type conflicts (API-003)
+- Define data validation rules (FR-045)
+- Create database migration plan (DATA-001)
+
+PHASE 2 PRIORITY (Short Term - Weeks 5-8):
+- Implement MFA and activity logging (SEC-001, SEC-002)
+- Complete partner data segregation (SEC-005)
+- Implement company contact field separation (FR-042)
+- Create comprehensive error handling (UX-003)
+- Define backup and recovery strategy (BC-001)
+
+PHASE 3 PRIORITY (Medium Term - Weeks 9-12):
+- Implement performance optimizations (PERF-001, PERF-002)
+- Complete ADA compliance validation (UX-001)
+- Implement infinite scroll and lazy loading (FR-046, FR-047)
+- Create testing strategies (TEST-001, TEST-002, TEST-003)
+
+PHASE 4 PRIORITY (Future Enhancements):
+- Implement deferred features (FUTURE-001 through FUTURE-006)
+- Advanced reporting and analytics
+- Additional third-party integrations
+
+================================================================================
+END OF DOCUMENT
+================================================================================
+
+Total New Requirements Identified: 47
+Total Updated Requirements: 25
+Total Questions Requiring Resolution: 4
+Total Gap Analysis Items: 3
+
+This document should be reviewed with stakeholders and updated based on business decisions and technical feasibility assessments.

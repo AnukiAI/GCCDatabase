@@ -1,0 +1,144 @@
+================================================================================
+TWO-FACTOR AUTHENTICATION SETUP GUIDE
+================================================================================
+
+Your application now has WORKING 2FA functionality! Here's how to configure it:
+
+STEP 1: UPDATE APPSETTINGS.TEST.JSON
+------------------------------------
+Replace the placeholder values in appsettings.Test.json:
+
+1. JWT Key (REQUIRED):
+   "Key": "YOUR_ACTUAL_64_CHAR_SECRET_KEY_HERE_FOR_SECURITY_COMPLIANCE_REQUIREMENTS"
+   
+2. SMTP Settings (REQUIRED for real email):
+   "SmtpSettings": {
+     "Host": "smtp.gmail.com",              // Gmail example
+     "Port": "587",
+     "EnableSsl": "true",
+     "Username": "your-email@gmail.com",
+     "Password": "your-app-password",       // Use app-specific password for Gmail
+     "FromEmail": "your-email@gmail.com",
+     "FromName": "GCC Database System"
+   }
+
+3. Your test domain:
+   "AllowedOrigins": [
+     "https://yourdomain.com",
+     "https://test.yourdomain.com"
+   ]
+
+STEP 2: SMTP PROVIDER EXAMPLES
+------------------------------
+
+Gmail (Most Common):
+- Host: smtp.gmail.com
+- Port: 587
+- EnableSsl: true
+- Note: Enable 2FA on Gmail and use App Password
+
+SendGrid (Professional):
+- Host: smtp.sendgrid.net
+- Port: 587
+- Username: apikey
+- Password: YOUR_SENDGRID_API_KEY
+
+Office 365:
+- Host: smtp.office365.com
+- Port: 587
+- EnableSsl: true
+
+STEP 3: TEST WITHOUT REAL EMAIL (OPTIONAL)
+-------------------------------------------
+If you want to test without setting up email first:
+
+1. Set "Enable2FA": false in appsettings.Test.json
+   - This will bypass 2FA temporarily
+
+2. Or leave it true and check the logs - the system will use MockEmailService
+   and log the 2FA codes to the console/logs for testing
+
+STEP 4: DEPLOY AND TEST
+-----------------------
+1. Republish the application:
+   dotnet publish GCCWebApp.csproj -c Release -o "./bin/Release/net8.0/publish"
+
+2. Upload to Plesk
+
+3. Test the login process:
+   - Use test credentials: admin@greencirclecertified.com / admin123
+   - If 2FA is enabled, you'll be redirected to enter the code
+   - Check email or logs for the 6-digit code
+
+STEP 5: LOGIN CREDENTIALS FOR TESTING
+--------------------------------------
+Default test users:
+- admin@greencirclecertified.com / admin123 (Admin role)
+- analyst@greencirclecertified.com / analyst123 (Analyst role)  
+- partner@amazon.com / partner123 (External role)
+- user@test.com / user123 (Public role)
+
+HOW 2FA WORKS:
+--------------
+1. User enters email/password
+2. System validates credentials
+3. If valid and 2FA enabled:
+   - Generates 6-digit code
+   - Sends code via email
+   - Redirects to 2FA verification page
+4. User enters 6-digit code
+5. System validates code (5-minute expiry)
+6. If valid, user is logged in
+
+FEATURES INCLUDED:
+------------------
+✅ Email-based 2FA codes
+✅ 5-minute code expiration
+✅ Rate limiting (3 attempts, 60-second resend limit)
+✅ Automatic fallback to mock email if SMTP not configured
+✅ Secure code generation and storage
+✅ Beautiful 2FA UI matching your site design
+✅ Resend code functionality
+✅ Trust device option (30-day remember)
+
+SECURITY FEATURES:
+------------------
+✅ Codes stored in memory cache (not database)
+✅ Automatic code expiration
+✅ Attempt limiting
+✅ Rate limiting on resend requests
+✅ HTML email templates
+✅ Secure random code generation
+
+TROUBLESHOOTING:
+----------------
+Problem: "Unable to send verification code"
+Solution: Check SMTP settings in appsettings.Test.json
+
+Problem: Codes not arriving
+Solution: 
+- Check spam folder
+- Verify email address is correct
+- Check application logs for email service errors
+
+Problem: Code says "invalid or expired"
+Solution:
+- Codes expire in 5 minutes
+- Maximum 3 attempts per code
+- Request new code if needed
+
+Problem: Want to disable 2FA temporarily
+Solution: Set "Enable2FA": false in appsettings.Test.json
+
+LOGS TO CHECK:
+--------------
+When testing, look for these log messages:
+- "2FA code sent to [email]"
+- "2FA verification successful for [email]"
+- "MOCK EMAIL: ..." (if using mock email service)
+
+The system is now fully functional with 2FA!
+
+================================================================================
+Last Updated: August 21, 2025
+================================================================================

@@ -1,0 +1,77 @@
+﻿8/13/25 - Testing Observations
+
+// Observations
+
++ Global
+- Clean up main.css and other stylesheets. 
+- review code and cleanup, refactor. 
+- remove Design Panel from final draft
+- Confirm no nav items show for Public User. The text needs to set to white to retain the nav bar formatting. 
+	- Probably is a better way, ....
+- Min Font-size is 16 px.
+- Confirm correct Nav by Role
+- Breadcrumbs should only be visible for Admin Role
+-<h1 class="page-title">Product Types Management</h1> - every page should have this format as the title. all of the title must me in the same formatting as the example.
+- https://localhost:7130/Admin/ProductTypes - page title and export and add new button should be on the same row to reduce white space in the header area of the page. each add new button on Admin pages must have + Add New. The word New is missing. 
+- https://localhost:7130/Admin/CertificateFields - Export and Add new field formatting should match the style of the other admin pages. Add new background color should be primary green. 
+
+- table grids on the admin pages have too much top and bottom padding on grid rows. 
+- lazy loading should be implemented on table grids and certificates. Review site for updates. 
+- User mangement and other pages should
+
++ Browser and Mobile Testing.
+
++ ADA Testing
+
+
++ https://localhost:7130/Certificate/CertificateTileView and other CertificateTileView pages.
+- On iniitial load, the titles should load with no filters or sort by.
+- Checkbox height needs reduced. There is too much whitespace. 
+- O results and Sort By needs padding so that they are top aligned with the search bar. 
+- <div class="product-name">800ET Exit Device Trim with EcoFlex�</div>
+-- each tile has to be consitent. Product Name needs to be the same height on all pages. 
+- Confirm that the Certificate Type is tied to db and not static text. 
+
++ https://localhost:7130/Dashboard
+- export buttons at the end of teh p;age are nto there. no functionality. no export occurs.
+- download buttons on tables do not export the table data.
+
++ https://localhost:7130/Certificate/CertificateTileViewInternal
+- the buttons at the top of the page (add certificate, export (selected) to Excel, Expor All to Excel, download Selected))
+- confirm buttons only visible when List is visible. For Tiles there is nothing to select. Advise on usability to modidy deisgn as potential enhancements;
+
++ https://localhost:7130/Product/Management
+- defect of titles not in proper format. 
+Product Management
+Product Management
+Add, edit, and manage products with their specifications and relationships
+
+
++ https://localhost:7130/Admin/RoleManagement
+- Remove Test CSV Button
+
+
++ https://localhost:7130/Admin/GoogleAnalytics
+- Thre is not an input for the script that google provide or a way to enter and save it.
+- Are there other properties that needs to be set for optimal setup?
+
++ https://localhost:7130/Admin/AmazonAPI
+- rename view to GCCAPI
+- is this standard, what are some option and standards to follow. provide alaternate views.  
+
++ https://localhost:7130/Admin/Partners  
+- grid sort icon should match the other pages. It is showing double, which should be single icon. 
+- Save and cancel buttons are not the correct icon/color formatting. 1
+
++ https://localhost:7130/Product - this is not part of the sitemap or wireframes, remove
+
+
+
+
+
+
+
+
+
+
+

@@ -4,10 +4,13 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="docs\**" />
+    <Compile Remove="0_Documentation\docs\Final Req Docs\**" />
+    <Compile Remove="0_Documentation\docs\**" />
     <Compile Remove="Documentation\**" />
     <Compile Remove="pages\**" />
     <Compile Remove="pages_old\**" />
@@ -19,7 +22,11 @@
     <Compile Remove="GCCWebApp.Security.Tests\**" />
     <Compile Remove="GCCWebApp.Performance.Tests\**" />
     <Compile Remove="GCCWebApp.BDD.Tests\**" />
-    <Content Remove="docs\**" />
+    <Compile Remove="GCCWebApp.RoleBasedUI.Tests\**" />
+    <Compile Remove="Scripts\MockDataGenerator.cs" />
+    <Compile Remove="Scripts\DatabaseSeeder.cs" />
+    <Content Remove="0_Documentation\docs\Final Req Docs\**" />
+    <Content Remove="0_Documentation\docs\**" />
     <Content Remove="Documentation\**" />
     <Content Remove="pages\**" />
     <Content Remove="pages_old\**" />
@@ -31,7 +38,9 @@
     <Content Remove="GCCWebApp.Security.Tests\**" />
     <Content Remove="GCCWebApp.Performance.Tests\**" />
     <Content Remove="GCCWebApp.BDD.Tests\**" />
-    <EmbeddedResource Remove="docs\**" />
+    <Content Remove="GCCWebApp.RoleBasedUI.Tests\**" />
+    <EmbeddedResource Remove="0_Documentation\docs\Final Req Docs\**" />
+    <EmbeddedResource Remove="0_Documentation\docs\**" />
     <EmbeddedResource Remove="Documentation\**" />
     <EmbeddedResource Remove="pages\**" />
     <EmbeddedResource Remove="pages_old\**" />
@@ -43,7 +52,9 @@
     <EmbeddedResource Remove="GCCWebApp.Security.Tests\**" />
     <EmbeddedResource Remove="GCCWebApp.Performance.Tests\**" />
     <EmbeddedResource Remove="GCCWebApp.BDD.Tests\**" />
-    <None Remove="docs\**" />
+    <EmbeddedResource Remove="GCCWebApp.RoleBasedUI.Tests\**" />
+    <None Remove="0_Documentation\docs\Final Req Docs\**" />
+    <None Remove="0_Documentation\docs\**" />
     <None Remove="Documentation\**" />
     <None Remove="pages\**" />
     <None Remove="pages_old\**" />
@@ -55,10 +66,11 @@
     <None Remove="GCCWebApp.Security.Tests\**" />
     <None Remove="GCCWebApp.Performance.Tests\**" />
     <None Remove="GCCWebApp.BDD.Tests\**" />
+    <None Remove="GCCWebApp.RoleBasedUI.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="Configuration\Startup.cs" />
+    <Compile Remove="0_Documentation\Configuration\Startup.cs" />
     <Compile Remove="Controllers\CertificateController - Copy %282%29.cs" />
     <Compile Remove="Controllers\CertificateController - Copy.cs" />
   </ItemGroup>
@@ -92,12 +104,9 @@
     <None Remove="Views\Shared\_Layout - Copy.cshtml.css" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="Documentation\00 Observations\TestingObservations.txt" />
-  </ItemGroup>
-
 
   <ItemGroup>
+    <None Include="0_Documentation\docs\COMPREHENSIVE_REQUIREMENTS_ANALYSIS.txt" />
     <None Include="obj\2025-08-09-admin-partners-add-new-partner-save-and-cancel-n.txt" />
     <None Include="wwwroot\css\certificatetileview.css" />
     <None Include="wwwroot\css\certificatesexternal.css" />
@@ -113,38 +122,19 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Configuration\" />
-    <Folder Include="Documentation\0 ProjectManagement\" />
-    <Folder Include="Documentation\02 Design\" />
-    <Folder Include="Documentation\04 Testing\Screenshots\" />
-    <Folder Include="Documentation\05.1 DataMigration\" />
-    <Folder Include="Documentation\05 Deployment\" />
-    <Folder Include="Documentation\03 Architecture\" />
-    <Folder Include="Documentation\Database\" />
-    <Folder Include="Documentation\06 Guides\" />
-    <Folder Include="Documentation\04.1 Integrations\" />
-    <Folder Include="Documentation\01 Requirements\" />
-    <Folder Include="Documentation\01.1 User Stories\" />
-    <Folder Include="Documentation\01.2 Process Flows\" />
-    <Folder Include="Documentation\04 Development\" />
-    <Folder Include="Documentation\0 Project Setup\" />
-    <Folder Include="Documentation\07 Tools\" />
-    <Folder Include="Documentation\06 Training\" />
-    <Folder Include="Documentation\0 Claude Rules\" />
-    <Folder Include="Documentation\NewFolder\" />
-    <Folder Include="Documentation\04 Testing\E2E\" />
-    <Folder Include="Documentation\04 Testing\Security\" />
-    <Folder Include="Documentation\04 Testing\Regression\" />
-    <Folder Include="Documentation\04 Testing\Performance\" />
-    <Folder Include="Documentation\04 Testing\Pen Testing\" />
+    <Folder Include="0_Documentation\Configuration\" />
     <Folder Include="Views\Product\" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Asp.Versioning.Mvc.ApiExplorer" Version="8.1.0" />
     <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
+    <PackageReference Include="Azure.Identity" Version="1.14.1" />
+    <PackageReference Include="Azure.Security.KeyVault.Secrets" Version="4.8.0" />
+    <PackageReference Include="Azure.Extensions.AspNetCore.DataProtection.Blobs" Version="1.3.4" />
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.DataProtection" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.8" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.8">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -155,7 +145,19 @@
     <PackageReference Include="Microsoft.Identity.Web" Version="3.10.0" />
     <PackageReference Include="Microsoft.Identity.Web.MicrosoftGraph" Version="3.10.0" />
     <PackageReference Include="Microsoft.Identity.Web.UI" Version="3.10.0" />
+    <PackageReference Include="QuestPDF" Version="2025.7.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+    <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
+    <PackageReference Include="Serilog.Sinks.ApplicationInsights" Version="4.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.9.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Services\Performance\" />
   </ItemGroup>
 
 </Project>

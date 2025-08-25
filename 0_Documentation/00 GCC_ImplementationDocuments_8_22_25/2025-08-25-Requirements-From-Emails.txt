@@ -1,0 +1,190 @@
+GCC Database Solution - Additional Requirements from Amazon & GreenCircle Email Communications
+===============================================================================================
+
+Source Documents:
+- RE: Amazon & GreenCircle - Database Requirements | Follow Up.msg
+- RE: GCC_Amazon Meeting Notes.msg
+
+Date Analyzed: August 25, 2025
+
+EXECUTIVE SUMMARY
+================
+The following requirements were extracted from two key email threads between Alexander Kochanov (Anuki Consulting), Carly Povilaitis (GreenCircle Certified), and Kyle from Amazon. These communications provide critical technical specifications for the Amazon-GCC database integration project.
+
+API INTEGRATION REQUIREMENTS
+============================
+
+1. API Architecture & Standards
+   - NO current standards exist for the integration
+   - Amazon will integrate with GCC's API on their side
+   - Amazon will need to connect to multiple API options and will accept/connect to whatever GCC builds
+   - API-to-API endpoint connection ONLY - NO direct third-party database access for security reasons
+   - Amazon will pull data from GCC's API (pull model, not push)
+   - Amazon will build custom API to connect to GCC's API endpoints
+
+2. Security Requirements
+   - Direct database connections are prohibited for security reasons
+   - All data exchange must go through API endpoints only
+   - Third-party access to the database is not allowed
+
+DATA FIELD REQUIREMENTS
+=======================
+
+1. Core Data Fields
+   - Kyle (Amazon) to provide summarized set of required data fields (key 5-6 fields)
+   - Potential key fields include:
+     * Unique ID
+     * Status (e.g., Expired)
+     * Marketplace IDs
+     * UPC/GTIN codes
+     * ASIN codes (if available)
+
+2. Data Format Requirements
+   - NO specific format required for fields
+   - Amazon can match GCC's data types OR implement conversion layer for data transformation
+   - Flexible on data types - Amazon has capability for data conversion
+   - Additional fields can be passed but Amazon may not consume all of them
+
+3. Product Identification
+   - Request to send marketplace IDs
+   - Eventually would like "all marketplace" option but not yet available
+   - NO links need to be passed
+   - UPC/GTIN codes can be passed (run by GS1)
+   - Amazon can convert UPC/GTIN to ASIN, but some products may get lost in conversion
+   - Alternative: GCC can receive from client and generate ASIN to send
+   - Amazon can generate ASINs from GCC's Unique IDs as part of data conversion
+   - Products are GLOBAL (not just domestic)
+
+DATA EXCHANGE FREQUENCY & AVAILABILITY
+=====================================
+
+1. Database Availability
+   - "Always available" database preference
+   - Real-time or near real-time updates would be ideal
+   - Database should be accessible for API calls at any time
+
+2. Data Exchange Frequency Options
+   - Frequency of data exchange can be flexible
+   - GreenCircle suggests MINIMUM of weekly updates
+   - Amazon and GCC would have ability to make API calls at any time
+   - Daily push/pull would be ideal (Carly's preference)
+   - Weekly updates work well with other Amazon clients (Kyle's input)
+   - Monthly updates might be too infrequent
+   - Consideration: Weekly pulls from Amazon + Ad hoc pushes from GCC
+
+3. Data Synchronization
+   - Amazon will handle data differentials
+   - Both scheduled pulls and real-time API access capability needed
+
+BACKEND & REPORTING REQUIREMENTS
+================================
+
+1. Certification Central Interface
+   - Certification Central is NOT being developed this year
+   - Maybe 2026 development but no guarantee
+   - Current focus for 2025 is just data flow between systems
+   - No backend interface to view information being passed (at least not in 2025)
+
+2. Reporting Capabilities
+   - Automated report could be sent to Amazon (Kyle is considering)
+   - Focus is on data flow rather than user interfaces in 2025
+
+MARKETPLACE & GLOBAL CONSIDERATIONS
+==================================
+
+1. Marketplace Management
+   - GCC can send marketplace IDs to Amazon
+   - Products are global in scope
+   - Need to account for multiple marketplace requirements
+
+2. Link Management
+   - NO links need to be sent for certificates or marketplace
+   - All navigation/access will be handled through the API data exchange
+
+AMAZON-SPECIFIC REQUIREMENTS
+============================
+
+1. Amazon Standards Progress
+   - Standards are in development at Amazon
+   - Will provide guidance on: What info to store | What info to send
+   - Key 5-6 data fields to be specified by Amazon team
+
+2. Amazon Portal Development
+   - Amazon is NOT building their own portal this year
+   - Amazon will not have separate interface to view certificates on their side in 2025
+   - Integration is purely API-based data exchange
+
+TECHNICAL IMPLEMENTATION NOTES
+==============================
+
+1. Data Conversion Layer
+   - Amazon can implement conversion layer for data transformation
+   - Flexibility in data format requirements reduces GCC development constraints
+
+2. Security Implementation
+   - API endpoint to API endpoint communication only
+   - No direct database access for security compliance
+   - All third-party access must go through defined API endpoints
+
+3. Scalability Considerations
+   - System should support "always available" architecture
+   - Must handle both scheduled and ad-hoc API calls
+   - Global product scope requires scalable infrastructure
+
+ACTION ITEMS IDENTIFIED
+=======================
+
+1. Amazon (Kyle) to provide:
+   - Detailed list of required 5-6 key data fields
+   - Amazon standards progress update
+   - Data format specifications (if any)
+
+2. GCC Development Team to implement:
+   - API endpoints for data exchange
+   - "Always available" database architecture
+   - Security controls for API access
+   - Data conversion/formatting capabilities
+   - Marketplace ID management
+
+3. Integration Testing Requirements:
+   - API connectivity testing
+   - Data format validation
+   - Security access validation
+   - Performance testing for real-time access
+
+COMPLIANCE & SECURITY NOTES
+===========================
+
+1. Data Access Controls
+   - No direct database access allowed for third parties
+   - API-only access model required
+   - Security controls must be implemented at API layer
+
+2. Data Format Flexibility
+   - Amazon's conversion layer capability provides implementation flexibility
+   - Reduces constraints on GCC's data structure requirements
+
+TIMELINE IMPLICATIONS
+====================
+
+1. 2025 Focus Areas:
+   - Data flow implementation
+   - API development and testing
+   - Core integration functionality
+
+2. Future Considerations (2026+):
+   - Potential Certification Central interface
+   - Enhanced backend reporting capabilities
+   - Additional user interface development
+
+INTEGRATION ARCHITECTURE SUMMARY
+================================
+
+The proposed architecture follows a secure, API-centric model:
+- GCC Database → GCC API Endpoints → Amazon Custom API → Amazon Systems
+- Pull-based data retrieval with real-time capability
+- No direct database access for security compliance
+- Flexible data formatting with conversion layer capability
+- Global marketplace support with scalable infrastructure
+
+This requirements analysis should be used to update the existing technical specifications and ensure all development aligns with the Amazon integration requirements discussed in these communications.

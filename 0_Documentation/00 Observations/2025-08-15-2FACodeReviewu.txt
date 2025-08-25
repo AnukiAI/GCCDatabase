@@ -1,0 +1,53 @@
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ ✻ Welcome to Claude Code!                                                                                                │
+│                                                                                                                          │
+│   /help for help, /status for your current setup                                                                         │
+│                                                                                                                          │
+│   cwd: C:\Users\swest\OneDrive - PointSolve Technology Inc\LocalWest\Projects\GCC Database Solution\GCCWebApp\GCCWebApp  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+> /clear 
+  ⎿  (no content)
+
+> Do I need Azure hosting for the code that is implemented? I don't want there to be a dependecy. I need to 2FA for login
+
+● Let me check the current authentication implementation to see if there are any Azure dependencies and what 2FA options are available.
+
+● Search(pattern: "Azure|Microsoft\.Identity|AzureAD")
+  ⎿  Found 71 files (ctrl+r to expand)
+
+● Read(GCCWebApp.csproj)
+  ⎿  Read 177 lines (ctrl+r to expand)
+
+● Read(Program.cs)
+  ⎿  Read 404 lines (ctrl+r to expand)
+
+● Search(pattern: "TwoFactor|2FA|OTP|TOTP|SMS|MFA")
+  ⎿  Found 28 files (ctrl+r to expand)
+
+● Read(Models\User.cs)
+  ⎿  Read 91 lines (ctrl+r to expand)
+
+● Based on my analysis of your codebase, I can answer both questions:
+
+  Azure Hosting Dependencies
+
+  No, you don't need Azure hosting. While the application includes Azure components, they're optional:
+
+  1. Azure Key Vault (lines 146-148 in GCCWebApp.csproj): Used for secure configuration but has fallback to local settings
+  2. Azure AD B2C (lines 45-93 in Program.cs): The authentication system automatically falls back to cookie authentication when Azure AD B2C isn't configured
+  3. Database: Uses SQLite by default (line 43 in Program.cs), not Azure SQL
+
+  The application can run entirely self-hosted without any Azure dependencies.
+
+  2FA Implementation
+
+  Yes, 2FA is already implemented in your User model (Models/User.cs:53-57):
+
+  - TwoFactorSecret - stores TOTP secret
+  - TwoFactorEnabled - enables/disables 2FA
+  - RecoveryCodes - backup recovery codes
+  - There's even a 2FA authentication view at Views/Account/2FAAuthenticate.cshtml
+
+  The 2FA system uses TOTP (Time-based One-Time Passwords) which works with apps like Google Authenticator, without requiring SMS or external services.
+

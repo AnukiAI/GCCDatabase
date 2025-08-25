@@ -1,0 +1,1 @@
+- put export notes and documentation documents created in C:\Users\swest\OneDrive - PointSolve Technology Inc\LocalWest\Projects\GCC Database Solution\GCCWebApp\GCCWebApp\0_Documentation\docs

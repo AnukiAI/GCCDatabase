@@ -116,7 +116,9 @@ builder.Services.AddAuthentication()
         ApiKeyAuthenticationOptions.DefaultScheme, opts => { })
     .AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
     {
-        var jwtKey = builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT signing key must be configured");
+        var jwtKey = Environment.GetEnvironmentVariable("GCC_JWT_SECRET") ?? 
+                     builder.Configuration["Jwt:Key"] ?? 
+                     throw new InvalidOperationException("JWT signing key must be configured via GCC_JWT_SECRET environment variable or Jwt:Key configuration");
         
         // Validate JWT key strength
         if (jwtKey.Length < 64)
@@ -267,6 +269,9 @@ builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ICertificatePdfService, CertificatePdfService>();
 
+// ===== PERFORMANCE MONITORING =====
+builder.Services.AddScoped<GCCWebApp.Services.Performance.IPerformanceMonitoringService, GCCWebApp.Services.Performance.PerformanceMonitoringService>();
+
 // ===== TWO-FACTOR AUTHENTICATION SERVICES =====
 // Register email service based on SMTP configuration
 builder.Services.AddScoped<IEmailService>(serviceProvider =>
@@ -350,6 +355,12 @@ app.UsePerformanceOptimization(app.Environment);
 
 // Security headers middleware (should be first after performance)
 app.UseMiddleware<SecurityHeadersMiddleware>();
+
+// Request/Response logging middleware (early in pipeline for comprehensive logging)
+app.UseMiddleware<RequestResponseLoggingMiddleware>();
+
+// Global exception handling middleware (handles all exceptions with structured logging)
+app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
 
 // Error handling
 if (!app.Environment.IsDevelopment())

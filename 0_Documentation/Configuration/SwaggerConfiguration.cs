@@ -101,7 +101,7 @@ namespace GCCWebApp.Configuration
         public void Apply(OpenApiOperation operation, OperationFilterContext context)
         {
             var apiVersionParameter = operation.Parameters?.SingleOrDefault(p => p.Name == "version");
-            if (apiVersionParameter != null)
+            if (apiVersionParameter != null && operation.Parameters != null)
             {
                 operation.Parameters.Remove(apiVersionParameter);
             }

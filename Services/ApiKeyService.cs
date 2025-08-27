@@ -8,10 +8,10 @@ namespace GCCWebApp.Services
     public interface IApiKeyService
     {
         Task<ApiKey> CreateApiKeyAsync(string name, string description, string createdBy, DateTime? expiresAt = null);
-        Task<ApiKey> ValidateApiKeyAsync(string key);
+        Task<ApiKey?> ValidateApiKeyAsync(string key);
         Task<bool> RevokeApiKeyAsync(int id);
         Task<IEnumerable<ApiKey>> GetAllApiKeysAsync();
-        Task<ApiKey> GetApiKeyByIdAsync(int id);
+        Task<ApiKey?> GetApiKeyByIdAsync(int id);
         Task UpdateLastUsedAsync(string key);
         bool IsValidOrigin(ApiKey apiKey, string origin);
         bool IsValidIP(ApiKey apiKey, string ipAddress);
@@ -56,7 +56,7 @@ namespace GCCWebApp.Services
             return apiKey;
         }
 
-        public async Task<ApiKey> ValidateApiKeyAsync(string key)
+        public async Task<ApiKey?> ValidateApiKeyAsync(string key)
         {
             if (string.IsNullOrEmpty(key))
                 return null;
@@ -96,7 +96,7 @@ namespace GCCWebApp.Services
                 .ToListAsync();
         }
 
-        public async Task<ApiKey> GetApiKeyByIdAsync(int id)
+        public async Task<ApiKey?> GetApiKeyByIdAsync(int id)
         {
             return await _context.ApiKeys.FindAsync(id);
         }

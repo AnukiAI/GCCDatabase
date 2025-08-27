@@ -241,11 +241,13 @@ namespace GCCWebApp.Controllers
                 if (model.Id > 0)
                 {
                     // Update existing product
-                    product = await _context.Products.FindAsync(model.Id);
-                    if (product == null)
+                    var existingProduct = await _context.Products.FindAsync(model.Id);
+                    if (existingProduct == null)
                     {
                         return Json(new ApiResponse<object> { Success = false, Message = "Product not found" });
                     }
+                    
+                    product = existingProduct;
                     
                     product.Name = model.Name;
                     product.Description = model.Description;
@@ -285,7 +287,7 @@ namespace GCCWebApp.Controllers
                 {
                     Id = product.Id,
                     Name = product.Name,
-                    Description = product.Description,
+                    Description = product.Description ?? string.Empty,
                     IsActive = product.IsActive
                 };
 

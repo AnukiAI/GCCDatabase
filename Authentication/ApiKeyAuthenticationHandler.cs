@@ -36,7 +36,7 @@ namespace GCCWebApp.Authentication
                 return AuthenticateResult.NoResult();
             }
 
-            string apiKey = Request.Headers[Options.HeaderName];
+            string? apiKey = Request.Headers[Options.HeaderName];
 
             if (string.IsNullOrEmpty(apiKey))
             {
@@ -79,17 +79,17 @@ namespace GCCWebApp.Authentication
                 return AuthenticateResult.Fail("HTTPS required for this API key");
             }
 
-            if (!_apiKeyService.IsValidIP(validApiKey, clientIP))
+            if (!_apiKeyService.IsValidIP(validApiKey, clientIP ?? "Unknown"))
             {
                 Logger.LogWarning("API Key {ApiKeyName} used from unauthorized IP: {ClientIP}", validApiKey.Name, clientIP);
-                await _apiKeyService.RecordSecurityViolationAsync(validApiKey.Id, "Unauthorized IP", clientIP);
+                await _apiKeyService.RecordSecurityViolationAsync(validApiKey.Id, "Unauthorized IP", clientIP ?? "Unknown");
                 return AuthenticateResult.Fail("Unauthorized IP address");
             }
 
-            if (!_apiKeyService.IsValidOrigin(validApiKey, origin))
+            if (!_apiKeyService.IsValidOrigin(validApiKey, origin ?? "Unknown"))
             {
                 Logger.LogWarning("API Key {ApiKeyName} used from unauthorized origin: {Origin} from IP: {ClientIP}", validApiKey.Name, origin, clientIP);
-                await _apiKeyService.RecordSecurityViolationAsync(validApiKey.Id, "Unauthorized Origin", origin);
+                await _apiKeyService.RecordSecurityViolationAsync(validApiKey.Id, "Unauthorized Origin", origin ?? "Unknown");
                 return AuthenticateResult.Fail("Unauthorized origin");
             }
 
@@ -97,7 +97,7 @@ namespace GCCWebApp.Authentication
             if (!string.IsNullOrEmpty(validApiKey.UserAgent) && userAgent != validApiKey.UserAgent)
             {
                 Logger.LogWarning("API Key {ApiKeyName} used with unexpected User-Agent: {UserAgent}", validApiKey.Name, userAgent);
-                await _apiKeyService.RecordSecurityViolationAsync(validApiKey.Id, "Unexpected User-Agent", userAgent);
+                await _apiKeyService.RecordSecurityViolationAsync(validApiKey.Id, "Unexpected User-Agent", userAgent ?? "Unknown");
                 return AuthenticateResult.Fail("Unauthorized client");
             }
 

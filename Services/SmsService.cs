@@ -239,17 +239,17 @@ namespace GCCWebApp.Services
             _logger = logger;
         }
 
-        public Task SendSmsAsync(string phoneNumber, string message)
+        public async Task SendSmsAsync(string phoneNumber, string message)
         {
             _logger.LogWarning($"MOCK SMS: To={phoneNumber}");
             _logger.LogInformation($"MOCK SMS MESSAGE: {message}");
-            return Task.CompletedTask;
+            await Task.CompletedTask;
         }
 
-        public Task<bool> TestConnectionAsync()
+        public async Task<bool> TestConnectionAsync()
         {
             _logger.LogInformation("Mock SMS service - connection test always returns true");
-            return Task.FromResult(true);
+            return await Task.FromResult(true);
         }
 
         public string GetProviderName() => "Mock";

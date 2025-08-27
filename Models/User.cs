@@ -8,12 +8,12 @@ namespace GCCWebApp.Models
 
         [Required]
         [MaxLength(255)]
-        public string Username { get; set; } = string.Empty;
+        public required string Username { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(255)]
         [EmailAddress]
-        public string Email { get; set; } = string.Empty;
+        public required string Email { get; set; } = string.Empty;
 
         [MaxLength(100)]
         public string? Name { get; set; }
@@ -28,10 +28,10 @@ namespace GCCWebApp.Models
         public DateTime? DeletedAt { get; set; }
 
         [MaxLength(255)]
-        public string PasswordHash { get; set; } = string.Empty;
+        public required string PasswordHash { get; set; } = string.Empty;
 
         [MaxLength(20)]
-        public string Status { get; set; } = "active"; // active/inactive/locked
+        public required string Status { get; set; } = "active"; // active/inactive/locked
 
         public bool IsActive { get; set; } = true;
 
@@ -54,7 +54,7 @@ namespace GCCWebApp.Models
         
         public bool TwoFactorEnabled { get; set; } = false;
         
-        public string TwoFactorMethod { get; set; } = "Email"; // Email, SMS, Both
+        public required string TwoFactorMethod { get; set; } = "Email"; // Email, SMS, Both
         
         public string? PhoneNumber { get; set; }
         

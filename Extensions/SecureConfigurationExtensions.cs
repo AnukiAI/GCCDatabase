@@ -34,10 +34,10 @@ namespace GCCWebApp.Extensions
             this IConfigurationBuilder builder,
             IWebHostEnvironment environment)
         {
-            Console.WriteLine("🔐 Azure Key Vault integration available but requires additional NuGet packages");
-            Console.WriteLine("   Install: Azure.Extensions.AspNetCore.Configuration.Secrets");
-            Console.WriteLine("   Install: Azure.Identity");
-            Console.WriteLine("   See: Documentation/06 Training/Secure_Configuration_Guide.md");
+            // Note: Azure Key Vault integration requires additional NuGet packages:
+            // - Azure.Extensions.AspNetCore.Configuration.Secrets
+            // - Azure.Identity
+            // See: Documentation/06 Training/Secure_Configuration_Guide.md
             
             return builder;
         }
@@ -174,9 +174,9 @@ namespace GCCWebApp.Extensions
             }
         }
 
-        public Task StopAsync(CancellationToken cancellationToken)
+        public async Task StopAsync(CancellationToken cancellationToken)
         {
-            return Task.CompletedTask;
+            await Task.CompletedTask;
         }
     }
 }

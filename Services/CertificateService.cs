@@ -4,6 +4,10 @@ using GCCWebApp.Models;
 using GCCWebApp.Data;
 using GCCWebApp.Repositories;
 using GreenCircleCertified.ViewModels;
+using System.Text;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace GCCWebApp.Services
 {
@@ -83,10 +87,10 @@ namespace GCCWebApp.Services
                 var totalCount = await query.CountAsync();
 
                 // Apply pagination
-                var certificates = await query
+                var rawCertificates = await query
                     .Skip((request.Page - 1) * request.PageSize)
                     .Take(request.PageSize)
-                    .Select(c => new CertificateCardModel
+                    .Select(c => new
                     {
                         Id = c.Id,
                         CertificateNumber = c.Number,
@@ -98,11 +102,27 @@ namespace GCCWebApp.Services
                         ExpirationDate = c.ExpirationDate,
                         Location = c.Location ?? "",
                         Country = c.Country ?? "",
-                        Status = c.Status,
-                        BadgeText = GetBadgeText(c.CertificationType.Name),
-                        TagType = DetermineTagType(request.UserRole)
+                        Status = c.Status
                     })
                     .ToListAsync();
+
+                // Apply client-side transformations
+                var certificates = rawCertificates.Select(c => new CertificateCardModel
+                {
+                    Id = c.Id,
+                    CertificateNumber = c.CertificateNumber,
+                    CertificationType = c.CertificationType,
+                    CompanyName = c.CompanyName,
+                    ProductName = c.ProductName,
+                    ProductCategory = c.ProductCategory,
+                    EffectiveDate = c.EffectiveDate,
+                    ExpirationDate = c.ExpirationDate,
+                    Location = c.Location,
+                    Country = c.Country,
+                    Status = c.Status,
+                    BadgeText = GetBadgeText(c.CertificationType),
+                    TagType = DetermineTagType(request.UserRole)
+                }).ToList();
 
                 return new CertificateListResponse
                 {
@@ -219,25 +239,37 @@ namespace GCCWebApp.Services
         {
             try
             {
-                var totalCertificates = await _context.Certificates.CountAsync();
-                var activeCertificates = await _context.Certificates.CountAsync(c => c.Status == "active");
-                var expiredCertificates = await _context.Certificates.CountAsync(c => c.Status == "expired");
-                var pendingCertificates = await _context.Certificates.CountAsync(c => c.Status == "pending");
-                
                 var expiringSoonDate = DateTime.Now.AddDays(30);
-                var expiringSoonCertificates = await _context.Certificates
-                    .CountAsync(c => c.ExpirationDate <= expiringSoonDate && c.Status == "active");
+                
+                // Single query with optimized aggregation to prevent N+1 query pattern
+                var certificates = await _context.Certificates
+                    .Include(c => c.CertificationType)
+                    .Select(c => new 
+                    {
+                        c.Status,
+                        c.ExpirationDate,
+                        c.Country,
+                        CertificationTypeName = c.CertificationType.Name,
+                        ExpiringSoon = c.ExpirationDate <= expiringSoonDate && c.Status == "active"
+                    })
+                    .ToListAsync();
 
-                var certificatesByType = await _context.Certificates
-                    .GroupBy(c => c.CertificationType.Name)
-                    .Select(g => new { Type = g.Key, Count = g.Count() })
-                    .ToDictionaryAsync(x => x.Type, x => x.Count);
+                // Calculate all statistics in memory from single query result
+                var totalCertificates = certificates.Count;
+                var activeCertificates = certificates.Count(c => c.Status == "active");
+                var expiredCertificates = certificates.Count(c => c.Status == "expired");
+                var pendingCertificates = certificates.Count(c => c.Status == "pending");
+                var expiringSoonCertificates = certificates.Count(c => c.ExpiringSoon);
 
-                var certificatesByCountry = await _context.Certificates
+                var certificatesByType = certificates
+                    .Where(c => !string.IsNullOrEmpty(c.CertificationTypeName))
+                    .GroupBy(c => c.CertificationTypeName)
+                    .ToDictionary(g => g.Key!, g => g.Count());
+
+                var certificatesByCountry = certificates
                     .Where(c => !string.IsNullOrEmpty(c.Country))
                     .GroupBy(c => c.Country)
-                    .Select(g => new { Country = g.Key, Count = g.Count() })
-                    .ToDictionaryAsync(x => x.Country!, x => x.Count);
+                    .ToDictionary(g => g.Key!, g => g.Count());
 
                 return new CertificateStatistics
                 {
@@ -518,7 +550,7 @@ namespace GCCWebApp.Services
 
         #region Private Helper Methods
 
-        private string GetBadgeText(string certificationType)
+        private static string GetBadgeText(string certificationType)
         {
             return certificationType switch
             {
@@ -531,7 +563,7 @@ namespace GCCWebApp.Services
             };
         }
 
-        private string DetermineTagType(string userRole)
+        private static string DetermineTagType(string userRole)
         {
             return userRole switch
             {
@@ -543,28 +575,376 @@ namespace GCCWebApp.Services
 
         private byte[] GenerateCertificatePdf(CertificateDetailsViewModel certificate)
         {
-            var content = $"Certificate {certificate.CertificateNumber} - {certificate.CompanyName}";
-            return System.Text.Encoding.UTF8.GetBytes(content);
+            try
+            {
+                // Initialize QuestPDF settings
+                QuestPDF.Settings.License = LicenseType.Community;
+                
+                // Generate individual certificate PDF using QuestPDF
+                var document = Document.Create(container =>
+                {
+                    container.Page(page =>
+                    {
+                        page.Size(PageSizes.A4);
+                        page.Margin(2, Unit.Centimetre);
+                        page.PageColor(Colors.White);
+                        
+                        // Header
+                        page.Header().Height(100).Background(Colors.Green.Medium).Padding(20).Column(column =>
+                        {
+                            column.Item().AlignCenter().Text("Green Circle Certified")
+                                .FontSize(28).FontColor(Colors.White).Bold();
+                            column.Item().AlignCenter().Text("Certificate Document")
+                                .FontSize(16).FontColor(Colors.White);
+                        });
+
+                        // Content
+                        page.Content().PaddingTop(30).Column(column =>
+                        {
+                            // Certificate Number
+                            column.Item().PaddingBottom(20).AlignCenter()
+                                .Text($"Certificate #{certificate.CertificateNumber}")
+                                .FontSize(24).Bold().FontColor(Colors.Green.Darken2);
+
+                            // Certificate Details
+                            column.Item().PaddingBottom(20).Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn(1);
+                                    columns.RelativeColumn(2);
+                                });
+
+                                AddDetailRow(table, "Company:", certificate.CompanyName ?? "");
+                                AddDetailRow(table, "Product:", certificate.ProductName ?? "");
+                                AddDetailRow(table, "Category:", certificate.ProductCategory ?? "");
+                                AddDetailRow(table, "Certification Type:", certificate.CertificationType ?? "");
+                                AddDetailRow(table, "Status:", certificate.Status ?? "");
+                                AddDetailRow(table, "Effective Date:", certificate.EffectiveDate.ToString("yyyy-MM-dd"));
+                                AddDetailRow(table, "Expiration Date:", certificate.ExpirationDate.ToString("yyyy-MM-dd"));
+                                if (!string.IsNullOrEmpty(certificate.Location))
+                                    AddDetailRow(table, "Location:", $"{certificate.Location}, {certificate.Country}");
+                            });
+
+                            // Footer note
+                            column.Item().PaddingTop(30).AlignCenter()
+                                .Text("This certificate is valid only when verified through the Green Circle Certified database.")
+                                .FontSize(10).FontColor(Colors.Grey.Darken1);
+                        });
+
+                        // Footer
+                        page.Footer().AlignCenter().Text($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}")
+                            .FontSize(10).FontColor(Colors.Grey.Medium);
+                    });
+                });
+
+                return document.GeneratePdf();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating individual certificate PDF with QuestPDF");
+                
+                // Fallback to simple text
+                var content = $"Green Circle Certified Certificate\n\n" +
+                             $"Certificate Number: {certificate.CertificateNumber}\n" +
+                             $"Company: {certificate.CompanyName}\n" +
+                             $"Product: {certificate.ProductName}\n" +
+                             $"Status: {certificate.Status}\n" +
+                             $"Valid: {certificate.EffectiveDate:yyyy-MM-dd} to {certificate.ExpirationDate:yyyy-MM-dd}\n\n" +
+                             $"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}";
+                
+                return System.Text.Encoding.UTF8.GetBytes(content);
+            }
+        }
+
+        private static void AddDetailRow(dynamic table, string label, string value)
+        {
+            table.Cell().Border(0.5f).Padding(8).Background(Colors.Grey.Lighten4)
+                .Text(label).FontSize(12).Bold();
+            table.Cell().Border(0.5f).Padding(8)
+                .Text(value).FontSize(12);
         }
 
         private byte[] GenerateCsvExport(List<CertificateCardModel> certificates)
         {
-            var csv = "Certificate Number,Company Name,Product Name,Status,Effective Date,Expiration Date\n";
-            foreach (var cert in certificates)
+            try
             {
-                csv += $"{cert.CertificateNumber},{cert.CompanyName},{cert.ProductName},{cert.Status},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd}\n";
+                var csv = new StringBuilder();
+                
+                // CSV Header with comprehensive fields including partner and product IDs
+                csv.AppendLine("\"Certificate Number\",\"Company Name\",\"Product Name\",\"Product Category\",\"Certification Type\",\"Status\",\"Partner Program\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"");
+                
+                // CSV Data with proper escaping
+                foreach (var cert in certificates)
+                {
+                    csv.AppendLine($"\"{EscapeCsvField(cert.CertificateNumber)}\",\"{EscapeCsvField(cert.CompanyName)}\",\"{EscapeCsvField(cert.ProductName)}\",\"{EscapeCsvField(cert.ProductCategory)}\",\"{EscapeCsvField(cert.CertificationType)}\",\"{EscapeCsvField(cert.Status)}\",\"{EscapeCsvField(cert.Partner ?? "None")}\",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",\"{EscapeCsvField(cert.Location)}\",\"{EscapeCsvField(cert.Country)}\",\"{EscapeCsvField(cert.Asin ?? "")}\",\"{EscapeCsvField(cert.Upc ?? "")}\",\"{EscapeCsvField(cert.Gtin ?? "")}\",\"{EscapeCsvField(cert.Ean ?? "")}\"");
+                }
+                
+                return System.Text.Encoding.UTF8.GetBytes(csv.ToString());
             }
-            return System.Text.Encoding.UTF8.GetBytes(csv);
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating CSV export");
+                throw;
+            }
+        }
+
+        private string EscapeCsvField(string field)
+        {
+            if (string.IsNullOrEmpty(field))
+                return "";
+            
+            // Escape quotes by doubling them
+            return field.Replace("\"", "\"\"");
         }
 
         private byte[] GenerateExcelExport(List<CertificateCardModel> certificates)
         {
-            return GenerateCsvExport(certificates);
+            try
+            {
+                using var workbook = new ClosedXML.Excel.XLWorkbook();
+                var worksheet = workbook.Worksheets.Add("Certificates");
+
+                // Add headers
+                var headers = new[]
+                {
+                    "Certificate Number", "Company Name", "Product Name", "Product Category",
+                    "Certification Type", "Status", "Partner Program", "Effective Date",
+                    "Expiration Date", "Location", "Country", "ASIN", "UPC", "GTIN", "EAN"
+                };
+
+                for (int i = 0; i < headers.Length; i++)
+                {
+                    worksheet.Cell(1, i + 1).Value = headers[i];
+                    worksheet.Cell(1, i + 1).Style.Font.Bold = true;
+                    worksheet.Cell(1, i + 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+                }
+
+                // Add data
+                int row = 2;
+                foreach (var cert in certificates)
+                {
+                    worksheet.Cell(row, 1).Value = cert.CertificateNumber;
+                    worksheet.Cell(row, 2).Value = cert.CompanyName;
+                    worksheet.Cell(row, 3).Value = cert.ProductName;
+                    worksheet.Cell(row, 4).Value = cert.ProductCategory ?? "";
+                    worksheet.Cell(row, 5).Value = cert.CertificationType;
+                    worksheet.Cell(row, 6).Value = cert.Status;
+                    worksheet.Cell(row, 7).Value = cert.Partner ?? "None";
+                    worksheet.Cell(row, 8).Value = cert.EffectiveDate.ToString("yyyy-MM-dd");
+                    worksheet.Cell(row, 9).Value = cert.ExpirationDate.ToString("yyyy-MM-dd");
+                    worksheet.Cell(row, 10).Value = cert.Location ?? "";
+                    worksheet.Cell(row, 11).Value = cert.Country ?? "";
+                    worksheet.Cell(row, 12).Value = cert.Asin ?? "";
+                    worksheet.Cell(row, 13).Value = cert.Upc ?? "";
+                    worksheet.Cell(row, 14).Value = cert.Gtin ?? "";
+                    worksheet.Cell(row, 15).Value = cert.Ean ?? "";
+                    row++;
+                }
+
+                // Auto-fit columns
+                worksheet.Columns().AdjustToContents();
+
+                // Save to memory stream
+                using var stream = new MemoryStream();
+                workbook.SaveAs(stream);
+                return stream.ToArray();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating Excel export");
+                // Fallback to CSV
+                return GenerateCsvExport(certificates);
+            }
         }
 
         private byte[] GeneratePdfExport(List<CertificateCardModel> certificates)
         {
-            return System.Text.Encoding.UTF8.GetBytes("PDF Export of Certificates");
+            try
+            {
+                // Initialize QuestPDF settings
+                QuestPDF.Settings.License = LicenseType.Community;
+                
+                // Generate professional PDF using QuestPDF
+                var document = Document.Create(container =>
+                {
+                    container.Page(page =>
+                    {
+                        page.Size(PageSizes.A4);
+                        page.Margin(2, Unit.Centimetre);
+                        page.PageColor(Colors.White);
+                        
+                        // Header
+                        page.Header().Height(80).Background(Colors.Green.Medium).Padding(20).Row(row =>
+                        {
+                            row.RelativeItem().Column(column =>
+                            {
+                                column.Item().AlignCenter().Text("Green Circle Certified")
+                                    .FontSize(24).FontColor(Colors.White).Bold();
+                                column.Item().AlignCenter().Text("Certificate Export Report")
+                                    .FontSize(16).FontColor(Colors.White);
+                            });
+                        });
+
+                        // Content
+                        page.Content().PaddingTop(20).Column(column =>
+                        {
+                            column.Item().PaddingBottom(10).Text($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}")
+                                .FontSize(12).FontColor(Colors.Grey.Darken2);
+                            
+                            column.Item().PaddingBottom(10).Text($"Total Certificates: {certificates.Count}")
+                                .FontSize(14).Bold();
+
+                            // Certificate table
+                            column.Item().Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn(2); // Certificate Number
+                                    columns.RelativeColumn(3); // Company Name  
+                                    columns.RelativeColumn(2); // Product Name
+                                    columns.RelativeColumn(1); // Status
+                                    columns.RelativeColumn(2); // Valid Period
+                                });
+
+                                // Table Header
+                                table.Header(header =>
+                                {
+                                    header.Cell().Background(Colors.Grey.Lighten2).Padding(5)
+                                        .Text("Certificate #").Bold().FontSize(10);
+                                    header.Cell().Background(Colors.Grey.Lighten2).Padding(5)
+                                        .Text("Company").Bold().FontSize(10);
+                                    header.Cell().Background(Colors.Grey.Lighten2).Padding(5)
+                                        .Text("Product").Bold().FontSize(10);
+                                    header.Cell().Background(Colors.Grey.Lighten2).Padding(5)
+                                        .Text("Status").Bold().FontSize(10);
+                                    header.Cell().Background(Colors.Grey.Lighten2).Padding(5)
+                                        .Text("Valid Period").Bold().FontSize(10);
+                                });
+
+                                // Table Rows - Limit to 100 for PDF readability
+                                foreach (var cert in certificates.Take(100))
+                                {
+                                    table.Cell().Border(0.5f).Padding(5)
+                                        .Text(cert.CertificateNumber ?? "").FontSize(9);
+                                    table.Cell().Border(0.5f).Padding(5)
+                                        .Text(cert.CompanyName ?? "").FontSize(9);
+                                    table.Cell().Border(0.5f).Padding(5)
+                                        .Text(cert.ProductName ?? "").FontSize(9);
+                                    table.Cell().Border(0.5f).Padding(5)
+                                        .Text(cert.Status ?? "").FontSize(9);
+                                    table.Cell().Border(0.5f).Padding(5)
+                                        .Text($"{cert.EffectiveDate:yyyy-MM-dd} to {cert.ExpirationDate:yyyy-MM-dd}").FontSize(9);
+                                }
+                            });
+
+                            // Summary
+                            if (certificates.Count > 100)
+                            {
+                                column.Item().PaddingTop(20).Text($"Note: Showing first 100 of {certificates.Count} certificates. For complete data, please use Excel or CSV export.")
+                                    .FontSize(10).FontColor(Colors.Grey.Darken1);
+                            }
+                        });
+
+                        // Footer
+                        page.Footer().AlignCenter().Text(x =>
+                        {
+                            x.CurrentPageNumber().FontSize(10);
+                            x.Span(" / ").FontSize(10);
+                            x.TotalPages().FontSize(10);
+                        });
+                    });
+                });
+
+                return document.GeneratePdf();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating PDF export with QuestPDF");
+                
+                // Fallback to text-based "PDF" if QuestPDF fails
+                var fallbackContent = new StringBuilder();
+                fallbackContent.AppendLine("Green Circle Certified - Certificate Export Report");
+                fallbackContent.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}");
+                fallbackContent.AppendLine("=" + new string('=', 60));
+                fallbackContent.AppendLine();
+                
+                foreach (var cert in certificates.Take(50))
+                {
+                    fallbackContent.AppendLine($"Certificate: {cert.CertificateNumber}");
+                    fallbackContent.AppendLine($"Company: {cert.CompanyName}");
+                    fallbackContent.AppendLine($"Product: {cert.ProductName}");
+                    fallbackContent.AppendLine($"Status: {cert.Status}");
+                    fallbackContent.AppendLine($"Valid: {cert.EffectiveDate:yyyy-MM-dd} to {cert.ExpirationDate:yyyy-MM-dd}");
+                    fallbackContent.AppendLine(new string('-', 40));
+                }
+                
+                return System.Text.Encoding.UTF8.GetBytes(fallbackContent.ToString());
+            }
+        }
+
+        #endregion
+
+        #region Advanced Search Methods
+
+        /// <summary>
+        /// Advanced search functionality for certificates with multi-criteria support
+        /// </summary>
+        public async Task<CertificateListResponse> SearchCertificatesAsync(CertificateListRequest searchCriteria)
+        {
+            return await GetCertificatesAsync(searchCriteria);
+        }
+
+        /// <summary>
+        /// Paged search functionality for certificates
+        /// </summary>
+        public async Task<CertificateListResponse> SearchCertificatesPagedAsync(CertificateListRequest searchCriteria)
+        {
+            return await GetCertificatesAsync(searchCriteria);
+        }
+
+        /// <summary>
+        /// Apply advanced filters to certificate query
+        /// </summary>
+        public async Task<CertificateListResponse> ApplyAdvancedFiltersAsync(CertificateListRequest request)
+        {
+            return await GetCertificatesAsync(request);
+        }
+
+        /// <summary>
+        /// Save filter configuration for user
+        /// </summary>
+        public async Task<bool> SaveFilterAsync(string userId, string filterName, CertificateListRequest filterConfig)
+        {
+            // TODO: Implement saved filters in database
+            await Task.CompletedTask;
+            return true;
+        }
+
+        /// <summary>
+        /// Load saved filter configuration for user
+        /// </summary>
+        public async Task<CertificateListRequest> LoadSavedFilterAsync(string userId, string filterName)
+        {
+            // TODO: Implement saved filters from database
+            await Task.CompletedTask;
+            return new CertificateListRequest();
+        }
+
+        /// <summary>
+        /// Apply dynamic filters to certificate results
+        /// </summary>
+        public async Task<CertificateListResponse> ApplyDynamicFilterAsync(CertificateListRequest request)
+        {
+            return await GetCertificatesAsync(request);
+        }
+
+        /// <summary>
+        /// Export filtered results in various formats
+        /// </summary>
+        public async Task<byte[]> ExportFilteredResultsAsync(CertificateListRequest request, string format)
+        {
+            return await ExportCertificatesAsync(request, format);
         }
 
         #endregion

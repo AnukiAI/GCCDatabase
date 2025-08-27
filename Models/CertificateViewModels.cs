@@ -60,6 +60,11 @@ namespace GCCWebApp.Models
         public string Location { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
         public string Status { get; set; } = "active";
+        public string Partner { get; set; } = "None";
+        public string? Asin { get; set; }
+        public string? Upc { get; set; }
+        public string? Gtin { get; set; }
+        public string? Ean { get; set; }
         public string BadgeText { get; set; } = string.Empty;
         public string TagType { get; set; } = "External";
         public string CertificateUrl { get; set; } = string.Empty;

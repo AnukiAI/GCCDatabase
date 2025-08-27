@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using GCCWebApp.Validation;
 
 namespace GCCWebApp.Models.Api
 {
@@ -17,8 +18,13 @@ namespace GCCWebApp.Models.Api
             set => _pageSize = (value > MaxPageSize) ? MaxPageSize : value;
         }
 
-        public string SortBy { get; set; }
+        [StringLength(50, ErrorMessage = "Sort field name must not exceed 50 characters")]
+        public string? SortBy { get; set; }
+        
         public bool SortDescending { get; set; } = false;
-        public string SearchTerm { get; set; }
+        
+        [StringLength(100, ErrorMessage = "Search term must not exceed 100 characters")]
+        [InputSanitization(allowHtml: false, allowSqlKeywords: false, allowScriptTags: false)]
+        public string? SearchTerm { get; set; }
     }
 }

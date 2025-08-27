@@ -8,7 +8,7 @@ namespace GCCWebApp.Models
 
         [Required]
         [MaxLength(255)]
-        public string Name { get; set; } = string.Empty;
+        public required string Name { get; set; } = string.Empty;
 
         [MaxLength(255)]
         public string? ContactInfo { get; set; }

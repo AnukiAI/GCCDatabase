@@ -459,8 +459,7 @@
 
             if (exportBtn) {
                 exportBtn.addEventListener('click', function() {
-                    // In real app, would trigger export
-                    window.GreenCircle.showToast('Export started', 'success');
+                    showExportModal();
                 });
             }
 
@@ -498,6 +497,127 @@
         function editCertificate(id) {
             // Navigate to certificate edit view
             window.location.href = `/Certificate/Edit/${id}`;
+        }
+
+        function showExportModal() {
+            // Get current search parameters
+            const searchTerm = document.querySelector('.search-input')?.value || '';
+            const companyFilter = document.querySelector('.company-filter')?.value || '';
+            const productFilter = document.querySelector('.product-filter')?.value || '';
+            
+            // Create export data structure
+            const exportData = {
+                searchTerm: searchTerm,
+                companyId: companyFilter ? parseInt(companyFilter) : null,
+                productId: productFilter ? parseInt(productFilter) : null,
+                userRole: 'User' // This should come from actual user context
+            };
+            
+            exportCertificates(exportData);
+        }
+
+        async function exportCertificates(exportData) {
+            try {
+                // Show format selection modal
+                const modal = createExportFormatModal();
+                document.body.appendChild(modal);
+                
+                // Handle format selection
+                modal.querySelectorAll('.export-format-btn').forEach(btn => {
+                    btn.addEventListener('click', async (e) => {
+                        const format = e.target.closest('.export-format-btn').dataset.format;
+                        closeModal(modal);
+                        
+                        window.GreenCircle.showToast('Preparing export...', 'info');
+                        
+                        try {
+                            // Build query parameters for GET request to MVC controller
+                            const params = new URLSearchParams({
+                                format: format,
+                                searchTerm: exportData.searchTerm || '',
+                                companyId: exportData.companyId || '',
+                                productId: exportData.productId || '',
+                                userRole: exportData.userRole || 'Public'
+                            });
+                            
+                            const response = await fetch(`/Certificate/ExportCertificates?${params.toString()}`, {
+                                method: 'GET'
+                            });
+                            
+                            if (response.ok) {
+                                const blob = await response.blob();
+                                const url = window.URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `certificates_export_${new Date().toISOString().split('T')[0]}.${format}`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                window.URL.revokeObjectURL(url);
+                                
+                                window.GreenCircle.showToast('Export completed successfully', 'success');
+                            } else {
+                                const error = await response.json();
+                                window.GreenCircle.showToast(error.message || 'Export failed', 'error');
+                            }
+                        } catch (error) {
+                            console.error('Export error:', error);
+                            window.GreenCircle.showToast('Export failed', 'error');
+                        }
+                    });
+                });
+                
+                // Handle modal close
+                modal.querySelector('.modal-close').addEventListener('click', () => {
+                    closeModal(modal);
+                });
+                
+            } catch (error) {
+                console.error('Export modal error:', error);
+                window.GreenCircle.showToast('Export failed', 'error');
+            }
+        }
+
+        function createExportFormatModal() {
+            const modal = document.createElement('div');
+            modal.className = 'export-modal';
+            modal.innerHTML = `
+                <div class="export-modal-overlay"></div>
+                <div class="export-modal-content">
+                    <div class="export-modal-header">
+                        <h3>Export Certificates</h3>
+                        <span class="modal-close">&times;</span>
+                    </div>
+                    <div class="export-modal-body">
+                        <p>Choose export format:</p>
+                        <div class="export-format-buttons">
+                            <button class="export-format-btn" data-format="csv">
+                                <i class="fas fa-file-csv"></i>
+                                <span>CSV</span>
+                                <small>Comma-separated values</small>
+                            </button>
+                            <button class="export-format-btn" data-format="excel">
+                                <i class="fas fa-file-excel"></i>
+                                <span>Excel</span>
+                                <small>Microsoft Excel format</small>
+                            </button>
+                            <button class="export-format-btn" data-format="pdf">
+                                <i class="fas fa-file-pdf"></i>
+                                <span>PDF</span>
+                                <small>Portable Document Format</small>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            return modal;
+        }
+
+        function closeModal(modal) {
+            if (modal && modal.parentNode) {
+                modal.parentNode.removeChild(modal);
+            }
         }
     </script>
 }

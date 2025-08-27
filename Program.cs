@@ -268,6 +268,7 @@ builder.Services.AddScoped<IFileUploadService, FileUploadService>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ICertificatePdfService, CertificatePdfService>();
+builder.Services.AddScoped<ICertificateWorkflowService, CertificateWorkflowService>();
 
 // ===== PERFORMANCE MONITORING =====
 builder.Services.AddScoped<GCCWebApp.Services.Performance.IPerformanceMonitoringService, GCCWebApp.Services.Performance.PerformanceMonitoringService>();

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using GCCWebApp.Services.ETL;
 using GCCWebApp.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace GCCWebApp.Controllers.Api
 {
@@ -25,7 +26,7 @@ namespace GCCWebApp.Controllers.Api
         /// Run a full ETL pipeline
         /// </summary>
         [HttpPost("run-full")]
-        public async Task<ActionResult<ETLJobResult>> RunFullETL([FromBody] ETLConfiguration config)
+        public async Task<ActionResult<ETLJobResult>> RunFullETL([FromBody][Required] ETLConfiguration config)
         {
             try
             {
@@ -44,7 +45,7 @@ namespace GCCWebApp.Controllers.Api
         /// Run an incremental ETL pipeline
         /// </summary>
         [HttpPost("run-incremental")]
-        public async Task<ActionResult<ETLJobResult>> RunIncrementalETL([FromBody] ETLConfiguration config)
+        public async Task<ActionResult<ETLJobResult>> RunIncrementalETL([FromBody][Required] ETLConfiguration config)
         {
             try
             {
@@ -293,6 +294,7 @@ namespace GCCWebApp.Controllers.Api
                     }
                 }
 
+                await Task.CompletedTask;
                 return Ok(validationResult);
             }
             catch (Exception ex)

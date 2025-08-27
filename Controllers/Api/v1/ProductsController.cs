@@ -6,6 +6,7 @@ using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Models.Api;
 using Asp.Versioning;
+using System.ComponentModel.DataAnnotations;
 
 namespace GCCWebApp.Controllers.Api.v1
 {
@@ -26,7 +27,7 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Get all products with optional pagination and filtering
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(typeof(PaginatedResponse<IEnumerable<Product>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<Product>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetProducts([FromQuery] PaginationParams parameters)
         {
@@ -69,21 +70,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Take(parameters.PageSize)
                     .ToListAsync();
 
-                var totalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize);
-
-                var response = new PaginatedResponse<IEnumerable<Product>>
-                {
-                    Success = true,
-                    Data = products,
-                    TotalCount = totalCount,
-                    PageNumber = parameters.PageNumber,
-                    PageSize = parameters.PageSize,
-                    TotalPages = totalPages,
-                    HasPrevious = parameters.PageNumber > 1,
-                    HasNext = parameters.PageNumber < totalPages
-                };
-
-                return Ok(response);
+                return PaginatedResponse(products, totalCount, parameters.PageNumber, parameters.PageSize);
             }
             catch (Exception ex)
             {
@@ -96,9 +83,10 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Get a product by ID
         /// </summary>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(ApiResult<Product>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardApiResponse<Product>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetProduct(int id)
+        public async Task<IActionResult> GetProduct([FromRoute][Range(1, int.MaxValue, ErrorMessage = "Product ID must be greater than 0")] int id)
         {
             try
             {
@@ -125,7 +113,7 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Create a new product
         /// </summary>
         [HttpPost]
-        [ProducesResponseType(typeof(ApiResponse<Product>), StatusCodes.Status201Created)]
+        [ProducesResponseType(typeof(StandardApiResponse<Product>), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> CreateProduct([FromBody] Product product)
         {
@@ -159,10 +147,12 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Update an existing product
         /// </summary>
         [HttpPut("{id}")]
-        [ProducesResponseType(typeof(ApiResult<Product>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardApiResponse<Product>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> UpdateProduct(int id, [FromBody] Product product)
+        public async Task<IActionResult> UpdateProduct(
+            [FromRoute][Range(1, int.MaxValue, ErrorMessage = "Product ID must be greater than 0")] int id, 
+            [FromBody][Required] Product product)
         {
             try
             {
@@ -234,7 +224,7 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Search products by various criteria
         /// </summary>
         [HttpGet("search")]
-        [ProducesResponseType(typeof(PaginatedResponse<IEnumerable<Product>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<Product>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> SearchProducts(
             [FromQuery] string term,
             [FromQuery] int? categoryId,
@@ -278,21 +268,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Take(parameters.PageSize)
                     .ToListAsync();
 
-                var totalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize);
-
-                var response = new PaginatedResponse<IEnumerable<Product>>
-                {
-                    Success = true,
-                    Data = products,
-                    TotalCount = totalCount,
-                    PageNumber = parameters.PageNumber,
-                    PageSize = parameters.PageSize,
-                    TotalPages = totalPages,
-                    HasPrevious = parameters.PageNumber > 1,
-                    HasNext = parameters.PageNumber < totalPages
-                };
-
-                return Ok(response);
+                return PaginatedResponse(products, totalCount, parameters.PageNumber, parameters.PageSize);
             }
             catch (Exception ex)
             {

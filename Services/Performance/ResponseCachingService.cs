@@ -43,6 +43,7 @@ public class ResponseCachingService : IResponseCachingService
             }
 
             _logger.LogDebug("Cache miss for key: {Key}", key);
+            await Task.CompletedTask;
             return null;
         }
         catch (Exception ex)
@@ -75,6 +76,7 @@ public class ResponseCachingService : IResponseCachingService
             _cacheKeys[key] = DateTime.UtcNow.Add(cacheExpiration);
 
             _logger.LogDebug("Cache entry set for key: {Key}, Expiration: {Expiration}", key, cacheExpiration);
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -89,6 +91,7 @@ public class ResponseCachingService : IResponseCachingService
             _cache.Remove(key);
             _cacheKeys.TryRemove(key, out _);
             _logger.LogDebug("Cache entry removed for key: {Key}", key);
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -129,6 +132,7 @@ public class ResponseCachingService : IResponseCachingService
             
             _cacheKeys.Clear();
             _logger.LogInformation("Cache cleared - {Count} entries removed", keysToRemove.Count);
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -138,6 +142,7 @@ public class ResponseCachingService : IResponseCachingService
 
     public async Task<bool> ExistsAsync(string key)
     {
+        await Task.CompletedTask;
         return _cache.TryGetValue(key, out _);
     }
 

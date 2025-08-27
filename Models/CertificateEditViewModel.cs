@@ -15,7 +15,12 @@ namespace GCCWebApp.Models
         public string Number { get; set; } = string.Empty;
 
         [Display(Name = "Status")]
-        public string? Status { get; set; } = "active";
+        [Required]
+        public string Status { get; set; } = "active";
+
+        [Display(Name = "Partner Program")]
+        [MaxLength(100)]
+        public string? Partner { get; set; } = "None";
 
         [Required]
         [Display(Name = "Effective Date")]

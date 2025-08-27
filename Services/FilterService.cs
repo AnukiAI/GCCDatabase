@@ -210,7 +210,11 @@ namespace GCCWebApp.Services
         {
             try
             {
-                var query = _context.Certificates.AsQueryable();
+                // Include navigation properties first to prevent N+1 queries
+                var query = _context.Certificates
+                    .Include(c => c.Company)
+                    .Include(c => c.Product)
+                    .AsQueryable();
 
                 // Apply current filters to get accurate counts
                 if (!string.IsNullOrWhiteSpace(filters.SearchTerm))

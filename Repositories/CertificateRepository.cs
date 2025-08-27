@@ -77,20 +77,21 @@ namespace GCCWebApp.Repositories
         {
             var lowerSearchTerm = searchTerm.ToLower();
             
+            // Include navigation properties first to prevent N+1 queries
             return await _dbSet
+                .Include(c => c.Company)
+                .Include(c => c.Product)
+                .Include(c => c.CertificationType)
                 .Where(c => c.Number.ToLower().Contains(lowerSearchTerm) ||
                            c.Company.Name.ToLower().Contains(lowerSearchTerm) ||
                            c.Product.Name.ToLower().Contains(lowerSearchTerm) ||
                            (c.Location != null && c.Location.ToLower().Contains(lowerSearchTerm)) ||
                            (c.Country != null && c.Country.ToLower().Contains(lowerSearchTerm)))
-                .Include(c => c.Company)
-                .Include(c => c.Product)
-                .Include(c => c.CertificationType)
                 .ToListAsync();
         }
 
         public async Task<(IEnumerable<Certificate> certificates, int totalCount)> GetPagedCertificatesAsync(
-            int page, int pageSize, string? searchTerm = null, int? companyId = null, int? productId = null)
+            int page, int pageSize, string? searchTerm = null, int? companyId = null, int? productId = null, string? partner = null)
         {
             var query = _dbSet.AsQueryable();
 
@@ -111,6 +112,11 @@ namespace GCCWebApp.Repositories
             if (productId.HasValue)
             {
                 query = query.Where(c => c.ProductId == productId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(partner))
+            {
+                query = query.Where(c => c.Partner == partner);
             }
 
             var totalCount = await query.CountAsync();

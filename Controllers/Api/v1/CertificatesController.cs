@@ -6,6 +6,7 @@ using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Models.Api;
 using Asp.Versioning;
+using System.ComponentModel.DataAnnotations;
 
 namespace GCCWebApp.Controllers.Api.v1
 {
@@ -26,7 +27,7 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Get all certificates with optional pagination and filtering
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(typeof(PaginatedResponse<IEnumerable<Certificate>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<Certificate>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetCertificates([FromQuery] PaginationParams parameters)
         {
@@ -72,19 +73,7 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 var totalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize);
 
-                var response = new PaginatedResponse<IEnumerable<Certificate>>
-                {
-                    Success = true,
-                    Data = certificates,
-                    TotalCount = totalCount,
-                    PageNumber = parameters.PageNumber,
-                    PageSize = parameters.PageSize,
-                    TotalPages = totalPages,
-                    HasPrevious = parameters.PageNumber > 1,
-                    HasNext = parameters.PageNumber < totalPages
-                };
-
-                return Ok(response);
+                return PaginatedResponse(certificates, totalCount, parameters.PageNumber, parameters.PageSize);
             }
             catch (Exception ex)
             {
@@ -97,9 +86,10 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Get a certificate by ID
         /// </summary>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(ApiResult<Certificate>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardApiResponse<Certificate>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetCertificate(int id)
+        public async Task<IActionResult> GetCertificate([FromRoute][Range(1, int.MaxValue, ErrorMessage = "Certificate ID must be greater than 0")] int id)
         {
             try
             {
@@ -127,9 +117,11 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Get certificate by certificate number
         /// </summary>
         [HttpGet("number/{certificateNumber}")]
-        [ProducesResponseType(typeof(ApiResult<Certificate>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardApiResponse<Certificate>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> GetCertificateByNumber(string certificateNumber)
+        public async Task<IActionResult> GetCertificateByNumber(
+            [FromRoute][Required][StringLength(7, MinimumLength = 1, ErrorMessage = "Certificate number must be between 1 and 7 characters")] string certificateNumber)
         {
             try
             {
@@ -198,7 +190,7 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Update an existing certificate
         /// </summary>
         [HttpPut("{id}")]
-        [ProducesResponseType(typeof(ApiResult<Certificate>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardApiResponse<Certificate>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> UpdateCertificate(int id, [FromBody] Certificate certificate)
@@ -282,7 +274,7 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Search certificates by various criteria
         /// </summary>
         [HttpGet("search")]
-        [ProducesResponseType(typeof(PaginatedResponse<IEnumerable<Certificate>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<Certificate>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> SearchCertificates(
             [FromQuery] string term,
             [FromQuery] int? productId,
@@ -345,19 +337,7 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 var totalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize);
 
-                var response = new PaginatedResponse<IEnumerable<Certificate>>
-                {
-                    Success = true,
-                    Data = certificates,
-                    TotalCount = totalCount,
-                    PageNumber = parameters.PageNumber,
-                    PageSize = parameters.PageSize,
-                    TotalPages = totalPages,
-                    HasPrevious = parameters.PageNumber > 1,
-                    HasNext = parameters.PageNumber < totalPages
-                };
-
-                return Ok(response);
+                return PaginatedResponse(certificates, totalCount, parameters.PageNumber, parameters.PageSize);
             }
             catch (Exception ex)
             {
@@ -370,10 +350,10 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Get certificates expiring within specified days
         /// </summary>
         [HttpGet("expiring")]
-        [ProducesResponseType(typeof(PaginatedResponse<IEnumerable<Certificate>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<Certificate>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetExpiringCertificates(
             [FromQuery] int days = 30,
-            [FromQuery] PaginationParams parameters = null)
+            [FromQuery] PaginationParams? parameters = null)
         {
             try
             {

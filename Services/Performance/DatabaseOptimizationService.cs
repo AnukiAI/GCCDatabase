@@ -317,13 +317,20 @@ public class DatabaseOptimizationService : IDatabaseOptimizationService
             if (_context.Database.IsSqlServer())
             {
                 // Update statistics for SQL Server
-                var tables = new[] { "Certificates", "Companies", "Products", "Partners", "Users", "ApiKeys" };
+                // Use a whitelist of valid table names for security - this is the primary protection
+                var validTables = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                {
+                    "Certificates", "Companies", "Products", "Partners", "Users", "ApiKeys"
+                };
                 
-                foreach (var table in tables)
+                foreach (var table in validTables)
                 {
                     try
                     {
-                        await _context.Database.ExecuteSqlRawAsync($"UPDATE STATISTICS {table}");
+                        // Security is guaranteed by iterating only through the static whitelist above
+                        // Use FormattableString for consistency (though it doesn't parameterize table names)
+                        FormattableString sql = $"UPDATE STATISTICS {table}";
+                        await _context.Database.ExecuteSqlAsync(sql);
                         _logger.LogDebug("Updated statistics for table: {Table}", table);
                     }
                     catch (Exception ex)
@@ -334,9 +341,9 @@ public class DatabaseOptimizationService : IDatabaseOptimizationService
             }
             else if (_context.Database.IsSqlite())
             {
-                // SQLite automatic vacuum and analyze
-                await _context.Database.ExecuteSqlRawAsync("PRAGMA optimize");
-                await _context.Database.ExecuteSqlRawAsync("ANALYZE");
+                // SQLite automatic vacuum and analyze - using static strings for safety
+                await _context.Database.ExecuteSqlAsync($"PRAGMA optimize");
+                await _context.Database.ExecuteSqlAsync($"ANALYZE");
                 _logger.LogDebug("Executed SQLite ANALYZE and optimize");
             }
 

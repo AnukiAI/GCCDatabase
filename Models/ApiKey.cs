@@ -9,14 +9,14 @@ namespace GCCWebApp.Models
 
         [Required]
         [StringLength(100)]
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         [Required]
         [StringLength(500)]
-        public string Key { get; set; }
+        public required string Key { get; set; }
 
         [StringLength(500)]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
 
@@ -27,7 +27,7 @@ namespace GCCWebApp.Models
         public DateTime? ExpiresAt { get; set; }
 
         [StringLength(50)]
-        public string CreatedBy { get; set; }
+        public string? CreatedBy { get; set; }
 
         public int? RateLimitPerMinute { get; set; } = 60;
 
@@ -35,14 +35,14 @@ namespace GCCWebApp.Models
 
         public int? RateLimitPerDay { get; set; } = 10000;
 
-        public string AllowedIPs { get; set; }
+        public string? AllowedIPs { get; set; }
 
-        public string AllowedOrigins { get; set; }
+        public string? AllowedOrigins { get; set; }
 
-        public string Scopes { get; set; }
+        public string? Scopes { get; set; }
 
         // Security enhancements
-        public string KeyHash { get; set; } // Store hashed version of the key
+        public string? KeyHash { get; set; } // Store hashed version of the key
         
         public int? MaxConcurrentRequests { get; set; } = 10;
         
@@ -56,7 +56,7 @@ namespace GCCWebApp.Models
         
         public DateTime? BlockedUntil { get; set; }
         
-        public string UserAgent { get; set; } // Track which client is using this key
+        public string? UserAgent { get; set; } // Track which client is using this key
         
         // Additional properties needed by ApiKeyService
         public int? RateLimit { get; set; } = 100; // Default rate limit per hour
@@ -65,9 +65,9 @@ namespace GCCWebApp.Models
         
         public DateTime? LastViolationAt { get; set; }
         
-        public string LastViolationType { get; set; }
+        public string? LastViolationType { get; set; }
         
-        public string BlockReason { get; set; }
+        public string? BlockReason { get; set; }
         
         public int RequestCount { get; set; } = 0;
         

@@ -174,6 +174,7 @@ namespace GCCWebApp.Services
                 }
                 
                 _logger.LogWarning("File not found for deletion: {FilePath}", filePath);
+                await Task.CompletedTask;
                 return false;
             }
             catch (Exception ex)

@@ -337,6 +337,7 @@ public class CertificateSelector : ICertificateSelector
 
         // This would require additional Azure Key Vault certificate client implementation
         _logger.LogWarning("Key Vault certificate loading not yet implemented");
+        await Task.CompletedTask;
         return null;
     }
 }

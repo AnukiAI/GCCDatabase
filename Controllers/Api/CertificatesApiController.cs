@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Logging;
 using GCCWebApp.Models;
+using GCCWebApp.Models.Api;
 using GCCWebApp.Services;
 using GreenCircleCertified.ViewModels;
 using System.ComponentModel.DataAnnotations;
@@ -393,6 +394,61 @@ namespace GCCWebApp.Controllers.Api
                 return StatusCode(500, new ApiErrorResponse 
                 { 
                     Message = "An internal server error occurred while downloading the file." 
+                });
+            }
+        }
+
+        /// <summary>
+        /// Export certificates to various formats
+        /// </summary>
+        [HttpPost("export")]
+        [ProducesResponseType(typeof(FileResult), 200)]
+        [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+        public async Task<ActionResult> ExportCertificates([FromBody] CertificateExportRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("API request to export certificates in {Format} format", request.Format);
+
+                var listRequest = new CertificateListRequest
+                {
+                    Page = 1,
+                    PageSize = int.MaxValue, // Get all certificates for export
+                    UserRole = request.UserRole ?? "Public",
+                    Filters = new CertificateSearchFilters
+                    {
+                        SearchTerm = request.SearchTerm ?? string.Empty
+                    }
+                };
+
+                var exportData = await _certificateService.ExportCertificatesAsync(listRequest, request.Format);
+                
+                if (exportData == null)
+                {
+                    return BadRequest(new ApiErrorResponse 
+                    { 
+                        Message = "No certificates found to export or export failed." 
+                    });
+                }
+
+                var contentType = request.Format.ToLower() switch
+                {
+                    "csv" => "text/csv",
+                    "excel" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "pdf" => "application/pdf",
+                    _ => "text/csv"
+                };
+
+                var fileName = $"certificates_export_{DateTime.Now:yyyyMMdd_HHmmss}.{request.Format.ToLower()}";
+                
+                return File(exportData, contentType, fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting certificates in {Format} format", request.Format);
+                return StatusCode(500, new ApiErrorResponse 
+                { 
+                    Message = "An internal server error occurred while exporting certificates." 
                 });
             }
         }

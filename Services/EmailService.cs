@@ -179,17 +179,17 @@ namespace GCCWebApp.Services
             _logger = logger;
         }
 
-        public Task SendEmailAsync(string to, string subject, string body)
+        public async Task SendEmailAsync(string to, string subject, string body)
         {
             _logger.LogWarning($"MOCK EMAIL: To={to}, Subject={subject}");
             _logger.LogInformation($"MOCK EMAIL BODY: {body}");
-            return Task.CompletedTask;
+            await Task.CompletedTask;
         }
 
-        public Task<bool> TestConnectionAsync()
+        public async Task<bool> TestConnectionAsync()
         {
             _logger.LogInformation("Mock email service - connection test always returns true");
-            return Task.FromResult(true);
+            return await Task.FromResult(true);
         }
     }
 }

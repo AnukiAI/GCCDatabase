@@ -107,14 +107,26 @@ public class RequestResponseLoggingMiddleware
         if (request.Method != "GET" && request.ContentLength.HasValue && 
             request.ContentLength > 0 && request.ContentLength <= 1024 * 10) // 10KB limit
         {
-            request.EnableBuffering();
-            var buffer = new byte[Convert.ToInt32(request.ContentLength.Value)];
-            await request.Body.ReadExactlyAsync(buffer, 0, buffer.Length);
-            requestBody = Encoding.UTF8.GetString(buffer);
-            request.Body.Position = 0; // Reset stream position
-            
-            // Sanitize sensitive data in request body
-            requestBody = SanitizeRequestBody(requestBody, request.ContentType);
+            try
+            {
+                request.EnableBuffering();
+                var buffer = new byte[Convert.ToInt32(request.ContentLength.Value)];
+                var bytesRead = await request.Body.ReadAsync(buffer, 0, buffer.Length);
+                
+                if (bytesRead > 0)
+                {
+                    requestBody = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                    // Sanitize sensitive data in request body
+                    requestBody = SanitizeRequestBody(requestBody, request.ContentType);
+                }
+                
+                request.Body.Position = 0; // Reset stream position
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Failed to read request body for logging: {Error}", ex.Message);
+                requestBody = "[Failed to read request body]";
+            }
         }
 
         _logger.LogInformation("HTTP Request: {Method} {Path} - RequestId: {RequestId}", 

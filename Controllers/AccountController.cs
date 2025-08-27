@@ -611,24 +611,24 @@ namespace GCCWebApp.Controllers
             
             if (isTestMode)
             {
-                // Load test users from configuration
-                var testUsersSection = _configuration.GetSection("Authentication:TestUsers");
-                foreach (var userSection in testUsersSection.GetChildren())
+                // Load test users from environment variables for security
+                var testUsers = new Dictionary<string, (string password, string role)>
                 {
-                    var testEmail = userSection["Email"];
-                    var testPassword = userSection["Password"];
-                    var testRole = userSection["Role"];
-                    
-                    if (testEmail?.Equals(email, StringComparison.OrdinalIgnoreCase) == true && testPassword == password)
-                    {
-                        _logger.LogInformation("Test user {Email} authenticated with role {Role}", email, testRole);
-                        return testRole ?? "Public";
-                    }
+                    { "admin@test.com", (Environment.GetEnvironmentVariable("GCC_TEST_ADMIN_PASSWORD") ?? "admin", "Admin") },
+                    { "analyst@test.com", (Environment.GetEnvironmentVariable("GCC_TEST_ANALYST_PASSWORD") ?? "analyst", "Analyst") },
+                    { "external@test.com", (Environment.GetEnvironmentVariable("GCC_TEST_EXTERNAL_PASSWORD") ?? "external", "External") },
+                    { "public@test.com", (Environment.GetEnvironmentVariable("GCC_TEST_PUBLIC_PASSWORD") ?? "public", "Public") }
+                };
+
+                if (testUsers.TryGetValue(email.ToLowerInvariant(), out var user) && user.password == password)
+                {
+                    _logger.LogInformation("Test user {Email} authenticated with role {Role}", email, user.role);
+                    return user.role;
                 }
             }
             
             // Fallback to hardcoded test users for backward compatibility
-            var testUsers = new Dictionary<string, (string password, string role)>
+            var fallbackUsers = new Dictionary<string, (string password, string role)>
             {
                 { "admin@greencirclecertified.com", ("admin123", "Admin") },
                 { "analyst@greencirclecertified.com", ("analyst123", "Analyst") },
@@ -636,7 +636,7 @@ namespace GCCWebApp.Controllers
                 { "user@test.com", ("user123", "Public") }
             };
 
-            if (testUsers.TryGetValue(email.ToLower(), out var userData) && userData.password == password)
+            if (fallbackUsers.TryGetValue(email.ToLower(), out var userData) && userData.password == password)
             {
                 return userData.role;
             }

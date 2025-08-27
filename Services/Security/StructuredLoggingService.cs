@@ -277,6 +277,7 @@ public class StructuredLoggingService : IStructuredLoggingService
             {
                 _logger.LogInformation("AUDIT: {EventType} - {LogData}", eventType, logData);
             }
+            await Task.CompletedTask;
         }
         catch (Exception ex)
         {

@@ -348,7 +348,7 @@ namespace GCCWebApp.Services.ETL
                 INNER JOIN CertificationTypes ct ON c.CertificationTypeId = ct.Id
             ";
 
-            await _context.Database.ExecuteSqlRawAsync(sql);
+            await _context.Database.ExecuteSqlAsync($"{sql}");
         }
 
         private async Task CreateCompanyReportingViews()
@@ -369,7 +369,7 @@ namespace GCCWebApp.Services.ETL
                 GROUP BY c.Id, c.Name, c.Country, c.IsActive
             ";
 
-            await _context.Database.ExecuteSqlRawAsync(sql);
+            await _context.Database.ExecuteSqlAsync($"{sql}");
         }
 
         private async Task CreateComplianceReportingTables(ETLTransformedData transformedData)
@@ -387,7 +387,7 @@ namespace GCCWebApp.Services.ETL
                 )
             ";
 
-            await _context.Database.ExecuteSqlRawAsync(complianceSql);
+            await _context.Database.ExecuteSqlAsync($"{complianceSql}");
         }
 
         private async Task LoadToJsonFileAsync(ETLTransformedData transformedData, string filePath, ETLLoadResult loadResult)

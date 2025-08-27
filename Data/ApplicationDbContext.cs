@@ -54,6 +54,24 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Number).IsUnique();
                 
+                // Performance indexes for common search patterns
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.ExpirationDate);
+                entity.HasIndex(e => e.EffectiveDate);
+                entity.HasIndex(e => e.Country);
+                entity.HasIndex(e => e.CompanyId);
+                entity.HasIndex(e => e.ProductId);
+                entity.HasIndex(e => e.CertificationTypeId);
+                entity.HasIndex(e => e.CreatedAt);
+                
+                // Composite indexes for complex queries
+                entity.HasIndex(e => new { e.Status, e.ExpirationDate });
+                entity.HasIndex(e => new { e.CompanyId, e.Status });
+                entity.HasIndex(e => new { e.ProductId, e.Status });
+                entity.HasIndex(e => new { e.Country, e.Status });
+                entity.HasIndex(e => new { e.CertificationTypeId, e.Status });
+                entity.HasIndex(e => new { e.ExpirationDate, e.Status, e.CompanyId });
+                
                 // Relationships
                 entity.HasOne(e => e.Company)
                     .WithMany(c => c.Certificates)
@@ -83,12 +101,35 @@ namespace GCCWebApp.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Name).IsUnique();
+                
+                // Performance indexes for company searches
+                entity.HasIndex(e => e.Country);
+                entity.HasIndex(e => e.Website);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.CreatedAt);
+                
+                // Composite indexes
+                entity.HasIndex(e => new { e.Country, e.IsActive });
+                entity.HasIndex(e => new { e.Name, e.Country });
             });
 
             // Product configuration
             modelBuilder.Entity<Product>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                
+                // Performance indexes for product searches
+                entity.HasIndex(e => e.Name);
+                entity.HasIndex(e => e.CategoryId);
+                entity.HasIndex(e => e.ProductTypeId);
+                entity.HasIndex(e => e.CompanyId);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.CreatedAt);
+                
+                // Composite indexes for complex queries
+                entity.HasIndex(e => new { e.CategoryId, e.CompanyId });
+                entity.HasIndex(e => new { e.ProductTypeId, e.IsActive });
+                entity.HasIndex(e => new { e.CompanyId, e.IsActive });
                 
                 entity.HasOne(e => e.Category)
                     .WithMany(pc => pc.Products)
@@ -205,6 +246,16 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Username).IsUnique();
                 entity.HasIndex(e => e.Email).IsUnique();
+                
+                // Performance indexes for user queries  
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.LastLoginAt);
+                
+                // Composite indexes
+                entity.HasIndex(e => new { e.Status, e.IsActive });
+                entity.HasIndex(e => new { e.IsActive, e.CreatedAt });
             });
 
             // Role configuration
@@ -226,6 +277,23 @@ namespace GCCWebApp.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Name).IsUnique();
+            });
+            
+            // ApiKey configuration
+            modelBuilder.Entity<ApiKey>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.KeyHash).IsUnique();
+                
+                // Performance indexes for API key validation
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.ExpiresAt);
+                entity.HasIndex(e => e.CreatedBy);
+                entity.HasIndex(e => e.CreatedAt);
+                
+                // Composite indexes for API authentication
+                entity.HasIndex(e => new { e.KeyHash, e.IsActive, e.ExpiresAt });
+                entity.HasIndex(e => new { e.CreatedBy, e.IsActive });
             });
 
             // Many-to-many relationships

@@ -2,11 +2,11 @@ namespace GCCWebApp.Models
 {
     public class DashboardViewModel
     {
-        public string UserRole { get; set; } = string.Empty;
-        public string UserName { get; set; } = string.Empty;
-        public string UserEmail { get; set; } = string.Empty;
+        public required string UserRole { get; set; } = string.Empty;
+        public required string UserName { get; set; } = string.Empty;
+        public required string UserEmail { get; set; } = string.Empty;
         public bool HasError { get; set; } = false;
-        public string ErrorMessage { get; set; } = string.Empty;
+        public required string ErrorMessage { get; set; } = string.Empty;
 
         // Certificate Statistics
         public Dictionary<string, int> Statistics { get; set; } = new();
@@ -39,16 +39,16 @@ namespace GCCWebApp.Models
 
     public class StatItem
     {
-        public string Label { get; set; } = string.Empty;
+        public required string Label { get; set; } = string.Empty;
         public int Value { get; set; }
-        public string Icon { get; set; } = string.Empty;
-        public string Color { get; set; } = "primary";
-        public string Description { get; set; } = string.Empty;
+        public required string Icon { get; set; } = string.Empty;
+        public required string Color { get; set; } = "primary";
+        public required string Description { get; set; } = string.Empty;
     }
 
     public class CertificationTypeSummary
     {
-        public string Name { get; set; } = string.Empty;
+        public required string Name { get; set; } = string.Empty;
         public int Count { get; set; }
         public int ActiveCount { get; set; }
         public int ExpiredCount { get; set; }

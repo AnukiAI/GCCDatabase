@@ -13,6 +13,7 @@ namespace GCCWebApp.Models
         public string? SearchTerm { get; set; }
         public int? CompanyId { get; set; }
         public int? ProductId { get; set; }
+        public string? Partner { get; set; }
 
         public bool HasPreviousPage => CurrentPage > 1;
         public bool HasNextPage => CurrentPage < TotalPages;

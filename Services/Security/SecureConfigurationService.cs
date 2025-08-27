@@ -167,6 +167,7 @@ namespace GCCWebApp.Services.Security
                 _logger.LogInformation("✓ All required secrets are properly configured");
             }
 
+            await Task.CompletedTask;
             return isValid;
         }
 

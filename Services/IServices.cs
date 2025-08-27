@@ -17,6 +17,15 @@ namespace GCCWebApp.Services
         Task<bool> UpdateCertificateAsync(int id, CertificateEditViewModel certificate, string userRole);
         Task<bool> DeleteCertificateAsync(int id, string userRole);
         Task<CertificateDetailsViewModel> GetCertificateByCertificateNumberAsync(string certificateNumber, string userRole);
+        
+        // Advanced Search Methods
+        Task<CertificateListResponse> SearchCertificatesAsync(CertificateListRequest searchCriteria);
+        Task<CertificateListResponse> SearchCertificatesPagedAsync(CertificateListRequest searchCriteria);
+        Task<CertificateListResponse> ApplyAdvancedFiltersAsync(CertificateListRequest request);
+        Task<bool> SaveFilterAsync(string userId, string filterName, CertificateListRequest filterConfig);
+        Task<CertificateListRequest> LoadSavedFilterAsync(string userId, string filterName);
+        Task<CertificateListResponse> ApplyDynamicFilterAsync(CertificateListRequest request);
+        Task<byte[]> ExportFilteredResultsAsync(CertificateListRequest request, string format);
     }
 
     public interface IFilterService

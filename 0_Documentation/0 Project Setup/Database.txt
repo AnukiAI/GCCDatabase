@@ -137,14 +137,22 @@ CERTIFICATE RELATED ENTITIES
    - Id (int) - Primary Key
    - CertificateId (int) - Foreign Key to Certificates
    - FileName (string)
+   - OriginalFileName (string)
    - FilePath (string)
-   - FileSize (long)
    - ContentType (string)
-   - FileHash (string) - SHA256 hash for integrity
+   - FileSize (long)
+   - FileHash (string?) - SHA256 hash for integrity
+   - DocumentType (string)
+   - Description (string?)
+   - Version (int)
+   - IsActive (bool)
+   - IsPublic (bool)
+   - IsVirusScanned (bool)
+   - PassedVirusScan (bool)
+   - VirusScanDate (DateTime?)
    - UploadedBy (int?) - Foreign Key to Users
    - UploadedAt (DateTime)
-   - IsDeleted (bool)
-   - DeletedAt (DateTime?)
+   - UpdatedAt (DateTime)
    - Certificate - Navigation to Certificate
    - UploadedByUser - Navigation to User
 
@@ -208,8 +216,11 @@ USER MANAGEMENT
 14. Roles (Table: Roles)
     - Id (int) - Primary Key
     - Name (string) - Unique
-    - Description (string)
+    - Description (string?)
+    - IsSystem (bool) - System role flag
     - IsActive (bool)
+    - CreatedAt (DateTime)
+    - UpdatedAt (DateTime)
     - Users - Many-to-Many with Users
     - Permissions - Many-to-Many with Permissions
 
@@ -218,7 +229,9 @@ USER MANAGEMENT
     - Name (string)
     - Codename (string) - Unique
     - Description (string)
-    - Module (string)
+    - Category (string?) - Module category
+    - IsActive (bool)
+    - CreatedAt (DateTime)
     - Roles - Many-to-Many with Permissions
 
 API MANAGEMENT
@@ -229,65 +242,64 @@ API MANAGEMENT
     - Key (string) - Unique API key
     - Name (string)
     - Description (string)
-    - UserId (int) - Foreign Key to Users
+    - CreatedBy (string) - User who created the API key
     - IsActive (bool)
     - ExpiresAt (DateTime?)
     - LastUsedAt (DateTime?)
     - CreatedAt (DateTime)
-    - RevokedAt (DateTime?)
-    - RevokedBy (int?)
     - AllowedOrigins (string) - JSON array
-    - RateLimitPerMinute (int)
-    - RateLimitPerHour (int)
+    - AllowedIPs (string) - JSON array
+    - Scopes (string) - JSON array
+    - RateLimitPerMinute (int?)
+    - RateLimitPerHour (int?)
 
 ETL AND DATA MIGRATION
 ----------------------
 
 17. ETLConfigurations (Table: ETLConfigurations)
-    - Id (int) - Primary Key
+    - Id (Guid) - Primary Key
     - Name (string)
-    - Description (string)
+    - JobType (ETLJobType) - Full/Incremental/RealTime/OnDemand/Scheduled
+    - IsIncremental (bool)
     - DataSources (List<string>) - Comma-separated
     - Transformations (List<string>) - Comma-separated
     - Destinations (List<string>) - Comma-separated
-    - Schedule (string) - Cron expression
+    - CronSchedule (string) - Cron expression
     - IsActive (bool)
-    - LastRunAt (DateTime?)
-    - NextRunAt (DateTime?)
+    - LastRunTime (DateTime?)
     - Settings (Dictionary<string, object>) - JSON
+    - CreatedAt (DateTime)
+    - UpdatedAt (DateTime)
 
 18. ETLLogEntries (Table: ETLLogEntries)
-    - Id (int) - Primary Key
-    - JobId (string)
-    - Level (string) - Info/Warning/Error
+    - Id (Guid) - Primary Key
+    - JobId (Guid)
+    - LogLevel (string) - Info/Warning/Error
     - Message (string)
     - Timestamp (DateTime)
-    - Source (string)
+    - Category (string?)
     - Properties (Dictionary<string, object>) - JSON
 
 19. ETLAlerts (Table: ETLAlerts)
-    - Id (int) - Primary Key
+    - Id (Guid) - Primary Key
     - AlertType (string)
-    - Severity (string) - Low/Medium/High/Critical
+    - Severity (ETLSeverity) - Info/Warning/Error/Critical
     - Message (string)
     - Context (Dictionary<string, object>) - JSON
     - IsResolved (bool)
     - ResolvedAt (DateTime?)
-    - ResolvedBy (string)
     - CreatedAt (DateTime)
 
 20. ETLDataQualityIssues (Table: ETLDataQualityIssues)
-    - Id (int) - Primary Key
+    - Id (Guid) - Primary Key
     - IssueType (string)
-    - DataSource (string)
-    - RecordIdentifier (string)
+    - Description (string)
     - FieldName (string)
-    - ExpectedValue (object) - JSON
-    - ActualValue (object) - JSON
-    - Severity (string)
-    - Resolution (string)
+    - RecordId (string?)
+    - ExpectedValue (object?) - JSON
+    - ActualValue (object?) - JSON
+    - Severity (ETLSeverity) - Info/Warning/Error/Critical
     - DetectedAt (DateTime)
-    - ResolvedAt (DateTime?)
 
 21. CertificateAggregateData (Table: CertificateAggregates)
     - Period (string) - Part of composite key

@@ -54,24 +54,30 @@ namespace GCCWebApp.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("AllowedIPs")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<string>("AllowedOrigins")
-                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BlockReason")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("BlockedUntil")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("CreatedBy")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Environment")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime?>("ExpiresAt")
@@ -80,18 +86,45 @@ namespace GCCWebApp.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsTemporarilyBlocked")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Key")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("KeyHash")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastRotatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastSecurityIncident")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("LastUsedAt")
                         .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("LastViolationAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("LastViolationType")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("MaxConcurrentRequests")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
+
+                    b.Property<int?>("RateLimit")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("RateLimitPerDay")
+                        .HasColumnType("INTEGER");
 
                     b.Property<int?>("RateLimitPerHour")
                         .HasColumnType("INTEGER");
@@ -99,11 +132,43 @@ namespace GCCWebApp.Migrations
                     b.Property<int?>("RateLimitPerMinute")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("RequestCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("RequireTLS")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Scopes")
-                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SecurityViolationCount")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("SecurityViolations")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal?>("UsageCostPerRequest")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("UserAgent")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("KeyHash")
+                        .IsUnique();
+
+                    b.HasIndex("CreatedBy", "IsActive");
+
+                    b.HasIndex("KeyHash", "IsActive", "ExpiresAt");
 
                     b.ToTable("ApiKeys");
                 });
@@ -157,6 +222,10 @@ namespace GCCWebApp.Migrations
                         .HasMaxLength(7)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Partner")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("INTEGER");
 
@@ -180,14 +249,36 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("Country");
+
+                    b.HasIndex("CreatedAt");
+
                     b.HasIndex("CreatedBy");
+
+                    b.HasIndex("EffectiveDate");
+
+                    b.HasIndex("ExpirationDate");
 
                     b.HasIndex("Number")
                         .IsUnique();
 
                     b.HasIndex("ProductId");
 
+                    b.HasIndex("Status");
+
                     b.HasIndex("UpdatedBy");
+
+                    b.HasIndex("CertificationTypeId", "Status");
+
+                    b.HasIndex("CompanyId", "Status");
+
+                    b.HasIndex("Country", "Status");
+
+                    b.HasIndex("ProductId", "Status");
+
+                    b.HasIndex("Status", "ExpirationDate");
+
+                    b.HasIndex("ExpirationDate", "Status", "CompanyId");
 
                     b.ToTable("Certificates");
                 });
@@ -369,7 +460,14 @@ namespace GCCWebApp.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Email")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
                     b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Location")
@@ -384,10 +482,26 @@ namespace GCCWebApp.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("Website")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("Country");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsActive");
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("Website");
+
+                    b.HasIndex("Country", "IsActive");
+
+                    b.HasIndex("Name", "Country");
 
                     b.ToTable("Companies");
                 });
@@ -705,6 +819,9 @@ namespace GCCWebApp.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Model")
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
@@ -737,9 +854,21 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("CompanyId");
 
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Name");
+
                     b.HasIndex("ProductSubcategoryId");
 
                     b.HasIndex("ProductTypeId");
+
+                    b.HasIndex("CategoryId", "CompanyId");
+
+                    b.HasIndex("CompanyId", "IsActive");
+
+                    b.HasIndex("ProductTypeId", "IsActive");
 
                     b.ToTable("Products");
                 });
@@ -940,6 +1069,9 @@ namespace GCCWebApp.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<string>("AllowedIPs")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("TEXT");
 
@@ -964,6 +1096,12 @@ namespace GCCWebApp.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("INTEGER");
 
+                    b.Property<bool>("IsEmailVerified")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPhoneVerified")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("IsStaff")
                         .HasColumnType("INTEGER");
 
@@ -976,8 +1114,20 @@ namespace GCCWebApp.Migrations
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("LastSecurityAudit")
+                        .HasColumnType("TEXT");
+
                     b.Property<DateTime?>("LockedUntil")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("MaxConcurrentSessions")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("MaxPasswordHistory")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("MustChangePassword")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
                         .HasMaxLength(100)
@@ -986,17 +1136,45 @@ namespace GCCWebApp.Migrations
                     b.Property<DateTime?>("PasswordChangedAt")
                         .HasColumnType("TEXT");
 
+                    b.Property<DateTime?>("PasswordExpiresAt")
+                        .HasColumnType("TEXT");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("PasswordHistory")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("RecoveryCodes")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("RequirePasswordChange")
+                        .HasColumnType("INTEGER");
+
                     b.Property<bool>("RequirePasswordReset")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("SecurityQuestions")
+                        .HasColumnType("TEXT");
 
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("TwoFactorEnabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("TwoFactorMethod")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("TwoFactorSecret")
                         .HasColumnType("TEXT");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -1009,11 +1187,23 @@ namespace GCCWebApp.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt");
+
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("LastLoginAt");
+
+                    b.HasIndex("Status");
+
                     b.HasIndex("Username")
                         .IsUnique();
+
+                    b.HasIndex("IsActive", "CreatedAt");
+
+                    b.HasIndex("Status", "IsActive");
 
                     b.ToTable("Users");
                 });

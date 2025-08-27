@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using GCCWebApp.Models;
 using GCCWebApp.Repositories;
+using GCCWebApp.Services.Performance;
+using GCCWebApp.Services.Security;
 using System.Text;
 using System.Text.Json;
 
@@ -13,76 +15,110 @@ namespace GCCWebApp.Controllers
         private readonly ILogger<DashboardController> _logger;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICertificateRepository _certificateRepository;
+        private readonly IPerformanceMonitoringService _performanceMonitoring;
+        private readonly IStructuredLoggingService _structuredLogger;
 
         public DashboardController(
             ILogger<DashboardController> logger,
             IUnitOfWork unitOfWork,
-            ICertificateRepository certificateRepository)
+            ICertificateRepository certificateRepository,
+            IPerformanceMonitoringService performanceMonitoring,
+            IStructuredLoggingService structuredLogger)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
             _certificateRepository = certificateRepository;
+            _performanceMonitoring = performanceMonitoring;
+            _structuredLogger = structuredLogger;
         }
 
         public async Task<IActionResult> Index()
         {
-            try
+            return await _performanceMonitoring.MonitorAsync("Dashboard.Index", async () =>
             {
-                var userRole = HttpContext.Session.GetString("UserRole") ?? "Public";
-                
-                // Create dashboard based on user role
-                var model = new DashboardViewModel
+                try
                 {
-                    UserRole = userRole,
-                    UserName = HttpContext.Session.GetString("UserName") ?? "User",
-                    UserEmail = HttpContext.Session.GetString("UserEmail") ?? ""
-                };
+                    var userRole = HttpContext.Session.GetString("UserRole") ?? "Public";
+                    
+                    await _structuredLogger.LogUserActionAsync("Dashboard.Index", User, new { UserRole = userRole });
+                    
+                    // Create dashboard based on user role
+                    var model = new DashboardViewModel
+                    {
+                        UserRole = userRole,
+                        UserName = HttpContext.Session.GetString("UserName") ?? "User",
+                        UserEmail = HttpContext.Session.GetString("UserEmail") ?? "",
+                        ErrorMessage = ""
+                    };
 
-                if (userRole == "Admin" || userRole == "Analyst")
-                {
-                    // Load comprehensive statistics for internal users
-                    var stats = await _certificateRepository.GetCertificateStatisticsAsync();
-                    model.Statistics = stats;
-                    
-                    // Recent certificates
-                    var recentCerts = await _certificateRepository.GetPagedCertificatesAsync(1, 5);
-                    model.RecentCertificates = recentCerts.certificates;
-                    
-                    // Expiring certificates
-                    model.ExpiringCertificates = await _certificateRepository.GetCertificatesExpiringInDaysAsync(30);
-                    
-                    // Company and product counts
-                    model.TotalCompanies = await _unitOfWork.Companies.CountAsync();
-                    model.TotalProducts = await _unitOfWork.Products.CountAsync();
-                    model.TotalCertificationTypes = await _unitOfWork.CertificationTypes.CountAsync();
-                    
-                    // Dashboard breakdown data
-                    model.CertificationTypeBreakdown = await _certificateRepository.GetCertificationTypeStatisticsAsync();
-                    model.TopCompaniesBreakdown = await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
-                    model.ProductTypeBreakdown = await _certificateRepository.GetProductTypeStatisticsAsync(10);
-                }
-                else
-                {
-                    // Limited view for external users
-                    var activeCerts = await _certificateRepository.GetActiveCertificatesAsync();
-                    model.TotalActiveCertificates = activeCerts.Count();
-                    model.RecentCertificates = activeCerts.Take(5);
-                }
+                    if (userRole == "Admin" || userRole == "Analyst")
+                    {
+                        await LoadAdminDashboardData(model);
+                    }
+                    else
+                    {
+                        await LoadPublicDashboardData(model);
+                    }
 
-                return View(model);
-            }
-            catch (Exception ex)
+                    return View(model);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error loading dashboard");
+                    await _structuredLogger.LogExceptionAsync(ex, "Dashboard.Index", User);
+                    
+                    return View(new DashboardViewModel 
+                    { 
+                        UserRole = "Public", 
+                        UserName = "User", 
+                        UserEmail = "",
+                        HasError = true,
+                        ErrorMessage = "Unable to load dashboard data"
+                    });
+                }
+            });
+        }
+
+        private async Task LoadAdminDashboardData(DashboardViewModel model)
+        {
+            await _performanceMonitoring.MonitorAsync("Dashboard.LoadAdminData", async () =>
             {
-                _logger.LogError(ex, "Error loading dashboard");
-                return View(new DashboardViewModel 
-                { 
-                    UserRole = "Public", 
-                    UserName = "User", 
-                    UserEmail = "",
-                    HasError = true,
-                    ErrorMessage = "Unable to load dashboard data"
-                });
-            }
+                // Load comprehensive statistics for internal users - optimize with parallel execution
+                var statsTask = _certificateRepository.GetCertificateStatisticsAsync();
+                var recentCertsTask = _certificateRepository.GetPagedCertificatesAsync(1, 5);
+                var expiringCertsTask = _certificateRepository.GetCertificatesExpiringInDaysAsync(30);
+                var companiesCountTask = _unitOfWork.Companies.CountAsync();
+                var productsCountTask = _unitOfWork.Products.CountAsync();
+                var certTypesCountTask = _unitOfWork.CertificationTypes.CountAsync();
+                var certTypeBreakdownTask = _certificateRepository.GetCertificationTypeStatisticsAsync();
+                var topCompaniesTask = _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
+                var productTypeBreakdownTask = _certificateRepository.GetProductTypeStatisticsAsync(10);
+
+                // Execute all queries in parallel
+                await Task.WhenAll(statsTask, recentCertsTask, expiringCertsTask, companiesCountTask, 
+                    productsCountTask, certTypesCountTask, certTypeBreakdownTask, topCompaniesTask, productTypeBreakdownTask);
+
+                model.Statistics = await statsTask;
+                model.RecentCertificates = (await recentCertsTask).certificates;
+                model.ExpiringCertificates = await expiringCertsTask;
+                model.TotalCompanies = await companiesCountTask;
+                model.TotalProducts = await productsCountTask;
+                model.TotalCertificationTypes = await certTypesCountTask;
+                model.CertificationTypeBreakdown = await certTypeBreakdownTask;
+                model.TopCompaniesBreakdown = await topCompaniesTask;
+                model.ProductTypeBreakdown = await productTypeBreakdownTask;
+            });
+        }
+
+        private async Task LoadPublicDashboardData(DashboardViewModel model)
+        {
+            await _performanceMonitoring.MonitorAsync("Dashboard.LoadPublicData", async () =>
+            {
+                // Limited view for external users
+                var activeCerts = await _certificateRepository.GetActiveCertificatesAsync();
+                model.TotalActiveCertificates = activeCerts.Count();
+                model.RecentCertificates = activeCerts.Take(5);
+            });
         }
 
         [HttpGet]
@@ -311,7 +347,7 @@ namespace GCCWebApp.Controllers
             }
         }
 
-        private async Task<object> GetStatData(string type, Dictionary<string, int> stats)
+        private async Task<object?> GetStatData(string type, Dictionary<string, int> stats)
         {
             switch (type)
             {
@@ -359,7 +395,7 @@ namespace GCCWebApp.Controllers
             }
         }
 
-        private async Task<object> GetTableData(string type)
+        private async Task<object?> GetTableData(string type)
         {
             switch (type)
             {

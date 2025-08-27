@@ -17,17 +17,20 @@ namespace GCCWebApp.Controllers
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICertificateRepository _certificateRepository;
         private readonly ICertificatePdfService _pdfService;
+        private readonly ICertificateService _certificateService;
 
         public CertificateController(
             ILogger<CertificateController> logger,
             IUnitOfWork unitOfWork,
             ICertificateRepository certificateRepository,
-            ICertificatePdfService pdfService)
+            ICertificatePdfService pdfService,
+            ICertificateService certificateService)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
             _certificateRepository = certificateRepository;
             _pdfService = pdfService;
+            _certificateService = certificateService;
         }
 
         #region Basic CRUD Operations
@@ -36,12 +39,12 @@ namespace GCCWebApp.Controllers
         /// Main certificates listing page
         /// GET: /Certificate/Certificates
         /// </summary>
-        public async Task<IActionResult> Certificates(int page = 1, int pageSize = 10, string searchTerm = "", int? companyId = null, int? productId = null)
+        public async Task<IActionResult> Certificates(int page = 1, int pageSize = 10, string searchTerm = "", int? companyId = null, int? productId = null, string partner = null)
         {
             try
             {
                 var (certificates, totalCount) = await _certificateRepository.GetPagedCertificatesAsync(
-                    page, pageSize, searchTerm, companyId, productId);
+                    page, pageSize, searchTerm, companyId, productId, partner);
 
                 var model = new CertificateListViewModelSimple
                 {
@@ -52,7 +55,8 @@ namespace GCCWebApp.Controllers
                     TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
                     SearchTerm = searchTerm,
                     CompanyId = companyId,
-                    ProductId = productId
+                    ProductId = productId,
+                    Partner = partner
                 };
 
                 // Get companies and products for filter dropdowns
@@ -108,9 +112,10 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// Certificate internal view
+        /// Certificate internal view - Only for Admin and Analyst roles
         /// GET: /Certificate/CertificateInternalView
         /// </summary>
+        [Authorize(Policy = "AnalystOrAdmin")]
         public IActionResult CertificateInternalView()
         {
             // This will need to be updated to use real data
@@ -232,6 +237,7 @@ namespace GCCWebApp.Controllers
                     {
                         Number = model.Number,
                         Status = model.Status ?? "active",
+                        Partner = model.Partner ?? "None",
                         EffectiveDate = model.EffectiveDate,
                         ExpirationDate = model.ExpirationDate,
                         Location = model.Location,
@@ -555,20 +561,34 @@ namespace GCCWebApp.Controllers
 
         private bool CanUserEditCertificate()
         {
-            var userRole = HttpContext.Session.GetString("UserRole");
-            return userRole == "Admin" || userRole == "Analyst";
+            // Use proper authorization policies instead of session-based checking
+            return User.HasClaim("Role", "Admin") || User.HasClaim("Role", "Analyst");
         }
 
         private bool CanUserDeleteCertificate()
         {
-            var userRole = HttpContext.Session.GetString("UserRole");
-            return userRole == "Admin";
+            // Use proper authorization policies instead of session-based checking
+            return User.HasClaim("Role", "Admin");
         }
 
         private bool IsInternalUser()
         {
-            var userRole = HttpContext.Session.GetString("UserRole");
-            return userRole == "Admin" || userRole == "Analyst";
+            // Use proper authorization policies instead of session-based checking
+            return User.HasClaim("Role", "Admin") || User.HasClaim("Role", "Analyst");
+        }
+
+        private string GetUserRole()
+        {
+            if (User.HasClaim("Role", "Admin"))
+                return "Admin";
+            if (User.HasClaim("Role", "Analyst"))
+                return "Analyst";
+            if (User.HasClaim("Role", "External"))
+                return "External";
+            if (User.HasClaim("Role", "Internal"))
+                return "Internal";
+            
+            return "Public"; // Default role for anonymous users
         }
 
         private int? GetCurrentUserId()
@@ -657,6 +677,79 @@ namespace GCCWebApp.Controllers
             {
                 _logger.LogError(ex, "Error downloading certificate PDF for number: {Number}", number);
                 return BadRequest("Failed to download certificate");
+            }
+        }
+
+        #endregion
+
+        #region Export Operations
+
+        /// <summary>
+        /// Export certificates to various formats (CSV, Excel, PDF)
+        /// GET: /Certificate/Export?format=csv&searchTerm=...&filters=...
+        /// </summary>
+        [AllowAnonymous]
+        public async Task<IActionResult> ExportCertificates(
+            string format = "csv",
+            string? searchTerm = null,
+            string? sort = null,
+            [FromQuery] List<string> certificationTypes = null,
+            [FromQuery] List<string> countries = null,
+            [FromQuery] List<string> statuses = null,
+            DateTime? effectiveDateStart = null,
+            DateTime? effectiveDateEnd = null)
+        {
+            try
+            {
+                var userRole = GetUserRole();
+                
+                var request = new CertificateListRequest
+                {
+                    Page = 1,
+                    PageSize = 10000, // Large page size for export
+                    Sort = sort,
+                    UserRole = userRole,
+                    Filters = new CertificateSearchFilters
+                    {
+                        SearchTerm = searchTerm ?? "",
+                        CertificationTypes = certificationTypes ?? new List<string>(),
+                        Countries = countries ?? new List<string>(),
+                        Statuses = statuses ?? new List<string>(),
+                        EffectiveDateStart = effectiveDateStart,
+                        EffectiveDateEnd = effectiveDateEnd
+                    }
+                };
+
+                var exportData = await _certificateService.ExportCertificatesAsync(request, format);
+                
+                if (exportData == null || exportData.Length == 0)
+                {
+                    return BadRequest("No data to export or export failed");
+                }
+
+                var fileName = $"certificates-{DateTime.Now:yyyy-MM-dd-HHmmss}";
+                var contentType = format.ToLower() switch
+                {
+                    "csv" => "text/csv",
+                    "excel" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    "pdf" => "application/pdf",
+                    _ => "text/csv"
+                };
+                
+                var fileExtension = format.ToLower() switch
+                {
+                    "csv" => "csv",
+                    "excel" => "xlsx",
+                    "pdf" => "pdf",
+                    _ => "csv"
+                };
+
+                return File(exportData, contentType, $"{fileName}.{fileExtension}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting certificates in format: {Format}", format);
+                return BadRequest("Failed to export certificates");
             }
         }
 

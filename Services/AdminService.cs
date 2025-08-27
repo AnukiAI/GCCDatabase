@@ -8,10 +8,12 @@ namespace GCCWebApp.Services
     public class AdminService : IAdminService
     {
         private readonly ApplicationDbContext _context;
+        private readonly ILogger<AdminService> _logger;
 
-        public AdminService(ApplicationDbContext context)
+        public AdminService(ApplicationDbContext context, ILogger<AdminService> logger)
         {
             _context = context;
+            _logger = logger;
         }
 
         public async Task<AdminDashboardViewModel> GetDashboardDataAsync()
@@ -91,6 +93,7 @@ namespace GCCWebApp.Services
 
         public async Task<bool> CreateUserAsync(CreateUserViewModel model)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var user = new User
@@ -99,6 +102,8 @@ namespace GCCWebApp.Services
                     Email = model.Email,
                     FullName = model.Name,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
+                    Status = "active",
+                    TwoFactorMethod = "Email",
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 };
@@ -130,16 +135,20 @@ namespace GCCWebApp.Services
                 }
 
                 await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Failed to create user with email {Email}", model.Email);
                 return false;
             }
         }
 
         public async Task<bool> UpdateUserAsync(int id, UserViewModel model)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 var user = await _context.Users
@@ -180,10 +189,13 @@ namespace GCCWebApp.Services
                 }
 
                 await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                await transaction.RollbackAsync();
+                _logger.LogError(ex, "Failed to update user with ID {UserId}", id);
                 return false;
             }
         }
@@ -200,8 +212,9 @@ namespace GCCWebApp.Services
                 await _context.SaveChangesAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to delete user with ID {UserId}", id);
                 return false;
             }
         }

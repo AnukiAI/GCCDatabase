@@ -12,7 +12,7 @@ namespace GCCWebApp.Models
         public string Number { get; set; } = string.Empty; // Certificate number
 
         [MaxLength(50)]
-        public string Status { get; set; } = "active"; // active/expired/pending
+        public string Status { get; set; } = "active"; // Certificate lifecycle status
 
         public DateTime EffectiveDate { get; set; }
 
@@ -33,6 +33,9 @@ namespace GCCWebApp.Models
         public string? Ean { get; set; } // European Article Number
 
         public string? CertificateFile { get; set; } // File path
+
+        [MaxLength(100)]
+        public string? Partner { get; set; } = "None"; // Partner program: Amazon, Wayfair, None
 
         // Foreign Keys
         public int CompanyId { get; set; }

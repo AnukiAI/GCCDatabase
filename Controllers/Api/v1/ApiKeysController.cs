@@ -25,7 +25,7 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Get all API keys
         /// </summary>
         [HttpGet]
-        [ProducesResponseType(typeof(ApiResult<IEnumerable<object>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardApiResponse<IEnumerable<object>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetApiKeys()
         {
             try
@@ -64,7 +64,7 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Get an API key by ID
         /// </summary>
         [HttpGet("{id}")]
-        [ProducesResponseType(typeof(ApiResult<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetApiKey(int id)
         {

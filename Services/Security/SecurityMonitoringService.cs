@@ -11,7 +11,7 @@ namespace GCCWebApp.Services.Security;
 public interface ISecurityMonitoringService
 {
     Task LogSecurityEventAsync(SecurityEvent securityEvent);
-    Task<bool> DetectSuspiciousActivityAsync(string ipAddress, string userAgent, string userId = null);
+    Task<bool> DetectSuspiciousActivityAsync(string ipAddress, string userAgent, string? userId = null);
     Task<SecurityReport> GenerateSecurityReportAsync(DateTime fromDate, DateTime toDate);
     Task<List<SecurityAlert>> GetActiveAlertsAsync();
     Task ProcessFailedLoginAttemptAsync(string ipAddress, string username, string userAgent);
@@ -58,7 +58,7 @@ public class SecurityMonitoringService : ISecurityMonitoringService
         await ProcessSecurityEventAsync(securityEvent);
     }
 
-    public async Task<bool> DetectSuspiciousActivityAsync(string ipAddress, string userAgent, string userId = null)
+    public async Task<bool> DetectSuspiciousActivityAsync(string ipAddress, string userAgent, string? userId = null)
     {
         var suspiciousIndicators = new List<string>();
 
@@ -150,6 +150,7 @@ public class SecurityMonitoringService : ISecurityMonitoringService
                 ((double)(currentCount - previousCount) / previousCount) * 100 : 0;
         }
 
+        await Task.CompletedTask;
         return report;
     }
 
@@ -188,6 +189,7 @@ public class SecurityMonitoringService : ISecurityMonitoringService
             });
         }
 
+        await Task.CompletedTask;
         return alerts;
     }
 
@@ -254,6 +256,7 @@ public class SecurityMonitoringService : ISecurityMonitoringService
             }
         }
 
+        await Task.CompletedTask;
         return false;
     }
 
@@ -334,6 +337,7 @@ public class SecurityMonitoringService : ISecurityMonitoringService
             Size = 1
         };
         _cache.Set(cacheKey, requestCount + 1, cacheEntryOptions);
+        await Task.CompletedTask;
         return false;
     }
 
@@ -354,6 +358,7 @@ public class SecurityMonitoringService : ISecurityMonitoringService
             }
         }
 
+        await Task.CompletedTask;
         return false;
     }
 

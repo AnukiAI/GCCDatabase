@@ -392,3 +392,12 @@ SecurityandPenTesting_*.txt
 issuesList*.txt
 documentupdates.txt
 apiUpdates.txt
+
+# Environment variables and secrets - NEVER commit to source control
+.env
+.env.local
+.env.development
+.env.production
+.env.staging
+*.env
+!.env.example

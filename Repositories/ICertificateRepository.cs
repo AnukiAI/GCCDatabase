@@ -12,7 +12,7 @@ namespace GCCWebApp.Repositories
         Task<Certificate?> GetCertificateByNumberAsync(string certificateNumber);
         Task<IEnumerable<Certificate>> SearchCertificatesAsync(string searchTerm);
         Task<(IEnumerable<Certificate> certificates, int totalCount)> GetPagedCertificatesAsync(
-            int page, int pageSize, string? searchTerm = null, int? companyId = null, int? productId = null);
+            int page, int pageSize, string? searchTerm = null, int? companyId = null, int? productId = null, string? partner = null);
         
         // Advanced filtering methods
         Task<(IEnumerable<Certificate> certificates, int totalCount)> GetAdvancedFilteredCertificatesAsync(
@@ -37,6 +37,7 @@ namespace GCCWebApp.Repositories
         public int? ProductId { get; set; }
         public int? CertificationTypeId { get; set; }
         public string? Status { get; set; }
+        public string? Partner { get; set; }
         public string? Location { get; set; }
         public string? Country { get; set; }
         public DateTime? EffectiveDateFrom { get; set; }

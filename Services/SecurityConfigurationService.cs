@@ -70,7 +70,7 @@ namespace GCCWebApp.Services
             return result;
         }
 
-        public Task<bool> ValidateJwtConfigurationAsync()
+        public async Task<bool> ValidateJwtConfigurationAsync()
         {
             try
             {
@@ -82,43 +82,44 @@ namespace GCCWebApp.Services
                 if (string.IsNullOrEmpty(jwtKey))
                 {
                     _logger.LogError("JWT signing key is not configured");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
                 if (jwtKey.Contains("{") || jwtKey == "YourSuperSecretKeyForJWTTokenGeneration123456789")
                 {
                     _logger.LogError("JWT signing key appears to be a placeholder or default value");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
                 if (jwtKey.Length < 64)
                 {
                     _logger.LogError("JWT signing key is too short. Minimum 64 characters required");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
                 if (string.IsNullOrEmpty(jwtIssuer) || string.IsNullOrEmpty(jwtAudience))
                 {
                     _logger.LogError("JWT issuer and audience must be configured");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
                 if (!int.TryParse(jwtExpiry, out var expiryMinutes) || expiryMinutes <= 0 || expiryMinutes > 1440)
                 {
                     _logger.LogError("JWT expiry time is invalid. Should be between 1 and 1440 minutes");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
-                return Task.FromResult(true);
+                await Task.CompletedTask;
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error validating JWT configuration");
-                return Task.FromResult(false);
+                return false;
             }
         }
 
-        public Task<bool> ValidateApiKeySecurityAsync()
+        public async Task<bool> ValidateApiKeySecurityAsync()
         {
             try
             {
@@ -127,7 +128,7 @@ namespace GCCWebApp.Services
                 if (!rateLimitConfig.Exists())
                 {
                     _logger.LogWarning("Rate limiting is not configured for API endpoints");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
                 // Validate HTTPS requirement
@@ -135,19 +136,20 @@ namespace GCCWebApp.Services
                 if (allowedOrigins?.Any(origin => origin.StartsWith("http://") && !origin.Contains("localhost")) == true)
                 {
                     _logger.LogWarning("Non-localhost HTTP origins are configured, which is insecure");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
-                return Task.FromResult(true);
+                await Task.CompletedTask;
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error validating API key security configuration");
-                return Task.FromResult(false);
+                return false;
             }
         }
 
-        public Task<bool> ValidatePasswordPolicyAsync()
+        public async Task<bool> ValidatePasswordPolicyAsync()
         {
             try
             {
@@ -162,21 +164,22 @@ namespace GCCWebApp.Services
                 if (minLength < 12)
                 {
                     _logger.LogWarning("Password minimum length should be at least 12 characters");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
                 if (!requireUppercase || !requireLowercase || !requireDigits || !requireSpecialChars)
                 {
                     _logger.LogWarning("Password policy should require uppercase, lowercase, digits, and special characters");
-                    return Task.FromResult(false);
+                    return false;
                 }
 
-                return Task.FromResult(true);
+                await Task.CompletedTask;
+                return true;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error validating password policy configuration");
-                return Task.FromResult(false);
+                return false;
             }
         }
 

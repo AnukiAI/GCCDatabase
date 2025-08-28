@@ -42,10 +42,10 @@ namespace GCCWebApp.Controllers.Api.v1
                 if (!string.IsNullOrEmpty(parameters.SearchTerm))
                 {
                     query = query.Where(p => 
-                        p.Name.Contains(parameters.SearchTerm) ||
-                        p.Description.Contains(parameters.SearchTerm) ||
-                        p.Model.Contains(parameters.SearchTerm) ||
-                        p.Sku.Contains(parameters.SearchTerm));
+                        (p.Name != null && p.Name.Contains(parameters.SearchTerm)) ||
+                        (p.Description != null && p.Description.Contains(parameters.SearchTerm)) ||
+                        (p.Model != null && p.Model.Contains(parameters.SearchTerm)) ||
+                        (p.Sku != null && p.Sku.Contains(parameters.SearchTerm)));
                 }
 
                 var totalCount = await query.CountAsync();
@@ -242,12 +242,12 @@ namespace GCCWebApp.Controllers.Api.v1
                 if (!string.IsNullOrEmpty(term))
                 {
                     query = query.Where(p =>
-                        p.Name.Contains(term) ||
-                        p.Description.Contains(term) ||
-                        p.Model.Contains(term) ||
-                        p.Sku.Contains(term) ||
-                        p.Upc.Contains(term) ||
-                        p.Asin.Contains(term));
+                        (p.Name != null && p.Name.Contains(term)) ||
+                        (p.Description != null && p.Description.Contains(term)) ||
+                        (p.Model != null && p.Model.Contains(term)) ||
+                        (p.Sku != null && p.Sku.Contains(term)) ||
+                        (p.Upc != null && p.Upc.Contains(term)) ||
+                        (p.Asin != null && p.Asin.Contains(term)));
                 }
 
                 if (categoryId.HasValue)

@@ -1,0 +1,74 @@
+ ✻ Welcome to Claude Code!
+
+   /help for help, /status for your current setup
+
+   cwd: C:\Users\swest\OneDrive - PointSolve Technology Inc\LocalWest\Projects\GCC Database Solution\GCCWebApp\GCCWebApp
+
+> /clear 
+  ⎿  (no content)
+
+> I want to deploye to test environment.
+
+● I'll help you deploy to the test environment. Let me check the existing deployment configurations and
+   guide you through the process.
+
+● List(~\OneDrive - PointSolve Technology Inc\LocalWest\Projects\GCC Database Solution\GCCWebApp\GCCWebApp)
+  ⎿  Listed 770 paths (ctrl+r to expand)
+
+● Read(deploy-iis.cmd)
+  ⎿  Read 197 lines (ctrl+r to expand)
+
+● Read(appsettings.Test.json)
+  ⎿  Read 67 lines (ctrl+r to expand)
+
+● I can see you have an IIS deployment script ready. To deploy to the test environment, I'll help you
+  prepare and execute the deployment. Let me create a specialized test environment deployment script
+  based on your existing setup.
+
+● Write(deploy-test.cmd)
+  ⎿  Wrote 1 lines to deploy-test.cmd                                      
+     @echo off
+     echo =================================================================
+     echo GCC Web Application - TEST Environment Deployment Script
+     echo =================================================================
+     echo.
+     REM Check if running as administrator
+     net session >nul 2>&1
+     if %errorLevel% neq 0 (
+         echo [ERROR] This script requires administrator privileges.
+
+● I've created a comprehensive test environment deployment script (deploy-test.cmd). Here's how to
+  deploy to your test environment:
+
+  To Deploy:
+
+  Run as Administrator:
+  deploy-test.cmd
+
+  Test Environment Configuration:
+
+  - HTTP Port: 5102
+  - HTTPS Port: 5103
+  - Deploy Path: C:\inetpub\wwwroot\GCCWebApp-Test
+  - Database: gcc_database_test.db
+  - App Pool: GCCWebApp-Test-AppPool
+  - Site Name: GCCWebApp-Test
+
+  Key Features:
+
+  1. Separate from Production - Uses different ports and paths
+  2. Automatic Backup - Creates backup before deployment
+  3. Test Database - Separate test database with option to reset
+  4. Environment Configuration - Uses appsettings.Test.json
+  5. Health Checks - Verifies deployment status
+  6. Smoke Tests - Basic connectivity tests
+  7. Test Credentials - Pre-configured test users
+
+  After Deployment:
+
+  Access your test environment at:
+  - HTTP: http://localhost:5102
+  - HTTPS: https://localhost:5103
+
+  The script will prompt to open the browser and run automated tests after deployment.
+

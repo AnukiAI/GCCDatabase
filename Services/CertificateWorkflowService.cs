@@ -177,7 +177,7 @@ namespace GCCWebApp.Services
         /// <summary>
         /// Handles additional business logic when status changes
         /// </summary>
-        private async Task HandleStatusChangeBusinessLogic(Certificate certificate, string oldStatus, string newStatus, int userId)
+        private Task HandleStatusChangeBusinessLogic(Certificate certificate, string oldStatus, string newStatus, int userId)
         {
             try
             {
@@ -227,6 +227,8 @@ namespace GCCWebApp.Services
                 // Don't fail the status update if business logic fails
                 _logger.LogError(ex, "Error in status change business logic for certificate {CertificateId}", certificate.Id);
             }
+            
+            return Task.CompletedTask;
         }
     }
 }

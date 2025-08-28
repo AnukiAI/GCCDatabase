@@ -66,7 +66,7 @@ namespace GCCWebApp.Controllers
                     var success = await _companyService.UpdateCompanyAsync(model.Id, model);
                     if (success)
                     {
-                        result = await _companyService.GetCompanyByIdAsync(model.Id);
+                        result = await _companyService.GetCompanyByIdAsync(model.Id) ?? new CompanyViewModel();
                         return Json(new ApiResponse<CompanyViewModel> { Success = true, Data = result, Message = "Company updated successfully" });
                     }
                     else
@@ -80,7 +80,7 @@ namespace GCCWebApp.Controllers
                     var newId = await _companyService.CreateCompanyAsync(model);
                     if (newId > 0)
                     {
-                        result = await _companyService.GetCompanyByIdAsync(newId);
+                        result = await _companyService.GetCompanyByIdAsync(newId) ?? new CompanyViewModel();
                         return Json(new ApiResponse<CompanyViewModel> { Success = true, Data = result, Message = "Company created successfully" });
                     }
                     else

@@ -294,7 +294,7 @@ namespace GCCWebApp.Services.ETL
             return loadResult;
         }
 
-        private async Task<ETLLoadResult> LoadCompanyAggregatesAsync(List<object> aggregates)
+        private Task<ETLLoadResult> LoadCompanyAggregatesAsync(List<object> aggregates)
         {
             var loadResult = new ETLLoadResult
             {
@@ -319,7 +319,7 @@ namespace GCCWebApp.Services.ETL
                 });
             }
 
-            return loadResult;
+            return Task.FromResult(loadResult);
         }
 
         private async Task CreateCertificateReportingViews()

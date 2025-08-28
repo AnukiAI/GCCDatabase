@@ -70,7 +70,7 @@ namespace GCCWebApp.Services.ETL
             }
         }
 
-        public async Task<ETLTransformedData> ValidateAndCleanDataAsync(ETLExtractedData extractedData)
+        public Task<ETLTransformedData> ValidateAndCleanDataAsync(ETLExtractedData extractedData)
         {
             _logger.LogInformation("Starting data validation and cleaning");
 
@@ -114,12 +114,12 @@ namespace GCCWebApp.Services.ETL
                     transformedData.ValidRecords, transformedData.InvalidRecords, 
                     transformedData.DataQualityIssues.Count);
 
-                return transformedData;
+                return Task.FromResult(transformedData);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error during data validation and cleaning");
-                throw;
+                return Task.FromException<ETLTransformedData>(ex);
             }
         }
 

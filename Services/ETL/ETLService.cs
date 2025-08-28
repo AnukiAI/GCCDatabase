@@ -202,9 +202,9 @@ namespace GCCWebApp.Services.ETL
             return await RunFullETLPipelineAsync(config);
         }
 
-        public async Task<List<ETLJobStatus>> GetJobStatusesAsync()
+        public Task<List<ETLJobStatus>> GetJobStatusesAsync()
         {
-            return _activeJobs.Values.ToList();
+            return Task.FromResult(_activeJobs.Values.ToList());
         }
 
         public async Task<ETLJobResult> ExtractDataAsync(ETLConfiguration config)

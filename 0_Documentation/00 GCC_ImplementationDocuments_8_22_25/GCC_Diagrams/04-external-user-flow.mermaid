@@ -1,0 +1,32 @@
+flowchart TD
+    A[External User Login] --> B[External Dashboard]
+    B --> C{Available Actions}
+    
+    C --> D[View Certificates]
+    C --> E[Search Certificates]
+    C --> F[View Reports]
+    
+    D --> D1[Certificate Tile View - External]
+    D --> D2[Certificate Details - Limited]
+    D --> D3[Download Public Documents]
+    
+    E --> E1[Search by Company]
+    E --> E2[Search by Product]
+    E --> E3[Search by Certificate Name]
+    E --> E4[Date Range Filter]
+    
+    F --> F1[View Certificate Reports]
+    F --> F2[Export Allowed Data]
+    
+    D1 --> G[Certificate Information]
+    D2 --> G
+    D3 --> G
+    G --> G1[Certificate Number]
+    G --> G2[Company Name]
+    G --> G3[Product Information]
+    G --> G4[Certification Status]
+    G --> G5[Valid Date Range]
+    
+    style A fill:#fff3e0
+    style B fill:#fff3e0
+    style C fill:#fff3e0

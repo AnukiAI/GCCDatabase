@@ -386,7 +386,8 @@ if (!app.Environment.IsDevelopment())
     app.UseIpRateLimiting();
 }
 
-// Static files (already configured in UsePerformanceOptimization)
+// Static files
+app.UseStaticFiles();
 
 // Routing
 app.UseRouting();

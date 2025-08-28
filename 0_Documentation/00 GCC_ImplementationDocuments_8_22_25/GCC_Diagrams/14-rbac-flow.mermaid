@@ -1,0 +1,68 @@
+flowchart TD
+    A[Authenticated User Request] --> B[Extract User Identity]
+    B --> C[Lookup User Roles]
+    C --> D{Has Required Role?}
+    
+    D -->|No| E[Access Denied]
+    D -->|Yes| F[Check Resource Permissions]
+    
+    F --> G{Resource Access Allowed?}
+    G -->|No| H[Permission Denied]
+    G -->|Yes| I[Check Operation Permissions]
+    
+    I --> J{Operation Allowed?}
+    J -->|No| K[Operation Denied]
+    J -->|Yes| L[Grant Access]
+    
+    %% Role Definitions
+    subgraph "User Roles"
+        Admin["Admin (Full Access)"]
+        Analyst["Analyst (Certificate Management)"]
+        External["External (Limited View)"]
+        Public["Public (Read-Only)"]
+    end
+    
+    %% Permission Matrix
+    subgraph "Permission Matrix"
+        P1["Certificate: Create/Read/Update"]
+        P2["Certificate: Delete"]
+        P3["User: Manage"]
+        P4["Role: Manage"]
+        P5["System: Configure"]
+        P6["Reports: Generate"]
+        P7["API: Access"]
+        P8["Documents: Upload/Download"]
+    end
+    
+    %% Role-Permission Mapping
+    Admin -.-> P1
+    Admin -.-> P2
+    Admin -.-> P3
+    Admin -.-> P4
+    Admin -.-> P5
+    Admin -.-> P6
+    Admin -.-> P7
+    Admin -.-> P8
+    
+    Analyst -.-> P1
+    Analyst -.-> P6
+    Analyst -.-> P8
+    
+    External -.-> P6
+    External -.-> P8
+    
+    Public -.-> P6
+    
+    %% Audit Trail
+    L --> M[Log Successful Access]
+    E --> N[Log Access Denied]
+    H --> N
+    K --> N
+    
+    M --> O[Update Access Logs]
+    N --> P0[Update Security Logs]
+    
+    style E fill:#ffebee
+    style H fill:#ffebee
+    style K fill:#ffebee
+    style N fill:#fff3e0

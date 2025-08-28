@@ -1,0 +1,41 @@
+flowchart TD
+    A[Deployment Request] --> B{Environment}
+    
+    B --> C[Development]
+    B --> D[Staging]
+    B --> E[Production]
+    
+    C --> C1[Git Pull]
+    C1 --> C2[Build Application]
+    C2 --> C3[Run Tests]
+    C3 --> C4{Tests Pass?}
+    C4 -->|No| C5[Fix Issues]
+    C4 -->|Yes| C6[Deploy to Dev]
+    C5 --> C1
+    
+    D --> D1[Merge to Staging Branch]
+    D1 --> D2[Build Application]
+    D2 --> D3[Run Full Test Suite]
+    D3 --> D4{All Tests Pass?}
+    D4 -->|No| D5[Investigation Required]
+    D4 -->|Yes| D6[Deploy to Staging]
+    D6 --> D7[Smoke Tests]
+    D7 --> D8[UAT Testing]
+    
+    E --> E1[Create Release Tag]
+    E1 --> E2[Build Production Image]
+    E2 --> E3[Security Scan]
+    E3 --> E4{Security OK?}
+    E4 -->|No| E5[Fix Security Issues]
+    E4 -->|Yes| E6[Database Migration]
+    E6 --> E7[Blue-Green Deployment]
+    E7 --> E8[Health Checks]
+    E8 --> E9{Health OK?}
+    E9 -->|No| E10[Rollback]
+    E9 -->|Yes| E11[Switch Traffic]
+    E11 --> E12[Monitor System]
+    
+    style C5 fill:#fff3e0
+    style D5 fill:#fff3e0
+    style E5 fill:#ffebee
+    style E10 fill:#ffebee

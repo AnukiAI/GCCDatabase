@@ -2,12 +2,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
-using System.Linq.Dynamic.Core;
+using Microsoft.AspNetCore.Authorization;
 
 namespace GCCWebApp.Controllers.Api
 {
     [ApiController]
     [Route("api/certificate-tiles")]
+    [AllowAnonymous]
     public class CertificateTileApiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
@@ -41,6 +42,10 @@ namespace GCCWebApp.Controllers.Api
                 var query = _context.Certificates
                     .Include(c => c.Company)
                     .Include(c => c.Product)
+                        .ThenInclude(p => p.Category)
+                    .Include(c => c.Product.ProductType)
+                    .Include(c => c.CertificationType)
+                    .Include(c => c.Tags)
                     .AsQueryable();
 
                 // Apply search filter
@@ -48,28 +53,28 @@ namespace GCCWebApp.Controllers.Api
                 {
                     search = search.ToLower();
                     query = query.Where(c =>
-                        c.CertificateNumber.ToLower().Contains(search) ||
-                        c.CertificationType.ToLower().Contains(search) ||
+                        c.Number.ToLower().Contains(search) ||
+                        c.CertificationType.Name.ToLower().Contains(search) ||
                         c.Company.Name.ToLower().Contains(search) ||
                         c.Product.Name.ToLower().Contains(search) ||
-                        c.Product.Category.ToLower().Contains(search) ||
-                        c.Location.ToLower().Contains(search) ||
-                        c.Country.ToLower().Contains(search) ||
-                        c.ExternalTag.ToLower().Contains(search));
+                        c.Product.Category.Name.ToLower().Contains(search) ||
+                        (c.Location != null && c.Location.ToLower().Contains(search)) ||
+                        (c.Country != null && c.Country.ToLower().Contains(search)) ||
+                        c.Tags.Any(t => t.Name.ToLower().Contains(search)));
                 }
 
                 // Apply certification type filter
                 if (!string.IsNullOrWhiteSpace(certType))
                 {
                     var types = certType.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                    query = query.Where(c => types.Contains(c.CertificationType));
+                    query = query.Where(c => types.Contains(c.CertificationType.Name));
                 }
 
                 // Apply product category filter
                 if (!string.IsNullOrWhiteSpace(productCategory))
                 {
                     var categories = productCategory.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                    query = query.Where(c => categories.Contains(c.Product.Category));
+                    query = query.Where(c => categories.Contains(c.Product.Category.Name));
                 }
 
                 // Apply company filter
@@ -90,7 +95,7 @@ namespace GCCWebApp.Controllers.Api
                 if (!string.IsNullOrWhiteSpace(tags))
                 {
                     var tagsList = tags.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                    query = query.Where(c => tagsList.Contains(c.ExternalTag));
+                    query = query.Where(c => c.Tags.Any(t => tagsList.Contains(t.Name)));
                 }
 
                 // Apply sorting
@@ -106,21 +111,21 @@ namespace GCCWebApp.Controllers.Api
                     .Select(c => new
                     {
                         c.Id,
-                        c.CertificateNumber,
-                        c.CertificationType,
+                        CertificateNumber = c.Number,
+                        CertificationType = c.CertificationType.Name,
                         c.EffectiveDate,
                         c.ExpirationDate,
                         CompanyName = c.Company.Name,
-                        CompanyEmail = c.Company.ContactEmail,
-                        CompanyUrl = c.Company.ContactUrl,
+                        CompanyEmail = c.Company.Email,
+                        CompanyUrl = c.Company.Website,
                         ProductName = c.Product.Name,
-                        ProductCategory = c.Product.Category,
-                        ProductType = c.Product.Type,
-                        ProductSubcategory = c.Product.Subcategory,
+                        ProductCategory = c.Product.Category.Name,
+                        ProductType = c.Product.ProductType != null ? c.Product.ProductType.Name : "",
+                        ProductSubcategory = c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : "",
                         c.Location,
                         c.Country,
-                        c.ExternalTag,
-                        c.PdfPath,
+                        ExternalTags = string.Join(", ", c.Tags.Select(t => t.Name)),
+                        PdfPath = c.CertificateFile,
                         c.Status
                     })
                     .ToListAsync();
@@ -160,10 +165,10 @@ namespace GCCWebApp.Controllers.Api
 
                 // Search certificate numbers
                 var certNumbers = await _context.Certificates
-                    .Where(c => c.CertificateNumber.ToLower().Contains(term))
+                    .Where(c => c.Number.ToLower().Contains(term))
                     .Select(c => new { 
-                        value = c.CertificateNumber, 
-                        label = c.CertificateNumber, 
+                        value = c.Number, 
+                        label = c.Number, 
                         type = "Certificate Number" 
                     })
                     .Take(5)
@@ -195,13 +200,11 @@ namespace GCCWebApp.Controllers.Api
                 suggestions.AddRange(products);
 
                 // Search certification types
-                var certTypes = await _context.Certificates
-                    .Where(c => c.CertificationType.ToLower().Contains(term))
-                    .Select(c => c.CertificationType)
-                    .Distinct()
+                var certTypes = await _context.CertificationTypes
+                    .Where(ct => ct.Name.ToLower().Contains(term))
                     .Select(ct => new { 
-                        value = ct, 
-                        label = ct, 
+                        value = ct.Name, 
+                        label = ct.Name, 
                         type = "Certification Type" 
                     })
                     .Take(5)
@@ -241,28 +244,26 @@ namespace GCCWebApp.Controllers.Api
             {
                 var filters = new
                 {
-                    certificationTypes = await _context.Certificates
-                        .Select(c => c.CertificationType)
-                        .Where(ct => !string.IsNullOrEmpty(ct))
-                        .Distinct()
-                        .OrderBy(ct => ct)
+                    certificationTypes = await _context.CertificationTypes
+                        .Where(ct => ct.IsActive)
+                        .OrderBy(ct => ct.Name)
+                        .Select(ct => ct.Name)
                         .ToListAsync(),
 
-                    productCategories = await _context.Products
-                        .Select(p => p.Category)
-                        .Where(pc => !string.IsNullOrEmpty(pc))
-                        .Distinct()
-                        .OrderBy(pc => pc)
+                    productCategories = await _context.Set<ProductCategory>()
+                        .Where(pc => pc.IsActive)
+                        .OrderBy(pc => pc.Name)
+                        .Select(pc => pc.Name)
                         .ToListAsync(),
 
-                    productTypes = await _context.Products
-                        .Select(p => p.Type)
-                        .Where(pt => !string.IsNullOrEmpty(pt))
-                        .Distinct()
-                        .OrderBy(pt => pt)
+                    productTypes = await _context.Set<ProductType>()
+                        .Where(pt => pt.IsActive)
+                        .OrderBy(pt => pt.Name)
+                        .Select(pt => pt.Name)
                         .ToListAsync(),
 
                     companies = await _context.Companies
+                        .Where(c => c.IsActive && !c.IsDeleted)
                         .OrderBy(c => c.Name)
                         .Select(c => new { id = c.Id, name = c.Name })
                         .ToListAsync(),
@@ -274,11 +275,10 @@ namespace GCCWebApp.Controllers.Api
                         .OrderBy(c => c)
                         .ToListAsync(),
 
-                    tags = await _context.Certificates
-                        .Select(c => c.ExternalTag)
-                        .Where(t => !string.IsNullOrEmpty(t))
-                        .Distinct()
-                        .OrderBy(t => t)
+                    tags = await _context.Tags
+                        .Where(t => t.IsActive)
+                        .OrderBy(t => t.Name)
+                        .Select(t => t.Name)
                         .ToListAsync()
                 };
 
@@ -306,12 +306,12 @@ namespace GCCWebApp.Controllers.Api
                     return NotFound(new { error = "Certificate not found" });
                 }
 
-                if (string.IsNullOrEmpty(certificate.PdfPath))
+                if (string.IsNullOrEmpty(certificate.CertificateFile))
                 {
                     return NotFound(new { error = "Certificate PDF not available" });
                 }
 
-                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", certificate.PdfPath.TrimStart('/'));
+                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", certificate.CertificateFile.TrimStart('/'));
                 
                 if (!System.IO.File.Exists(fullPath))
                 {
@@ -319,7 +319,7 @@ namespace GCCWebApp.Controllers.Api
                 }
 
                 var fileBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
-                var fileName = $"Certificate_{certificate.CertificateNumber}.pdf";
+                var fileName = $"Certificate_{certificate.Number}.pdf";
                 
                 return File(fileBytes, "application/pdf", fileName);
             }
@@ -375,7 +375,7 @@ namespace GCCWebApp.Controllers.Api
             }
         }
 
-        private IQueryable<Certificate> ApplySorting(IQueryable<Certificate> query, string sortBy)
+        private IQueryable<Certificate> ApplySorting(IQueryable<Certificate> query, string? sortBy)
         {
             return sortBy?.ToLower() switch
             {
@@ -387,10 +387,10 @@ namespace GCCWebApp.Controllers.Api
                 "recently-issued" => query
                     .Where(c => c.EffectiveDate >= DateTime.Now.AddDays(-30))
                     .OrderByDescending(c => c.EffectiveDate),
-                "cert-number-newest" => query.OrderByDescending(c => c.CertificateNumber),
-                "cert-number-oldest" => query.OrderBy(c => c.CertificateNumber),
-                "cert-type" => query.OrderBy(c => c.CertificationType),
-                "cert-type-za" => query.OrderByDescending(c => c.CertificationType),
+                "cert-number-newest" => query.OrderByDescending(c => c.Number),
+                "cert-number-oldest" => query.OrderBy(c => c.Number),
+                "cert-type" => query.OrderBy(c => c.CertificationType.Name),
+                "cert-type-za" => query.OrderByDescending(c => c.CertificationType.Name),
                 "company-az" => query.OrderBy(c => c.Company.Name),
                 "company-za" => query.OrderByDescending(c => c.Company.Name),
                 "product-az" => query.OrderBy(c => c.Product.Name),
@@ -399,7 +399,7 @@ namespace GCCWebApp.Controllers.Api
                 "location-za" => query.OrderByDescending(c => c.Location),
                 "country" => query.OrderBy(c => c.Country),
                 "country-za" => query.OrderByDescending(c => c.Country),
-                "product-type" => query.OrderBy(c => c.Product.Type),
+                "product-type" => query.OrderBy(c => c.Product.ProductType != null ? c.Product.ProductType.Name : ""),
                 _ => query.OrderByDescending(c => c.EffectiveDate)
             };
         }

@@ -39,7 +39,7 @@ namespace GCCWebApp.Controllers
         /// Main certificates listing page
         /// GET: /Certificate/Certificates
         /// </summary>
-        public async Task<IActionResult> Certificates(int page = 1, int pageSize = 10, string searchTerm = "", int? companyId = null, int? productId = null, string partner = null)
+        public async Task<IActionResult> Certificates(int page = 1, int pageSize = 10, string searchTerm = "", int? companyId = null, int? productId = null, string? partner = null)
         {
             try
             {
@@ -130,15 +130,25 @@ namespace GCCWebApp.Controllers
         {
             try
             {
+                _logger.LogInformation("CertificateSingleView called with id: {Id}", id);
+                
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    _logger.LogWarning("CertificateSingleView called with null or empty id");
+                    return BadRequest("Certificate ID is required");
+                }
+
                 Certificate? certificate = null;
 
                 // Try to parse as integer first (ID)
                 if (int.TryParse(id, out int certificateId))
                 {
+                    _logger.LogInformation("Looking up certificate by ID: {CertificateId}", certificateId);
                     certificate = await _certificateRepository.GetByIdAsync(certificateId);
                 }
                 else
                 {
+                    _logger.LogInformation("Looking up certificate by number: {CertificateNumber}", id);
                     // Try to find by certificate number
                     certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
                 }
@@ -148,6 +158,9 @@ namespace GCCWebApp.Controllers
                     _logger.LogWarning("Certificate not found: {Id}", id);
                     return NotFound($"Certificate {id} not found");
                 }
+
+                _logger.LogInformation("Certificate found: {CertificateNumber}, Company: {CompanyName}, Product: {ProductName}", 
+                    certificate.Number, certificate.Company?.Name ?? "N/A", certificate.Product?.Name ?? "N/A");
 
                 var model = new CertificateDetailsViewModelSimple
                 {
@@ -693,9 +706,9 @@ namespace GCCWebApp.Controllers
             string format = "csv",
             string? searchTerm = null,
             string? sort = null,
-            [FromQuery] List<string> certificationTypes = null,
-            [FromQuery] List<string> countries = null,
-            [FromQuery] List<string> statuses = null,
+            [FromQuery] List<string>? certificationTypes = null,
+            [FromQuery] List<string>? countries = null,
+            [FromQuery] List<string>? statuses = null,
             DateTime? effectiveDateStart = null,
             DateTime? effectiveDateEnd = null)
         {

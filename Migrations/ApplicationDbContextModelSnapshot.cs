@@ -757,6 +757,64 @@ namespace GCCWebApp.Migrations
                     b.ToTable("ETLLogEntries");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.Partner", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("ContactInfo")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(255)
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("SortOrder");
+
+                    b.HasIndex("IsActive", "SortOrder");
+
+                    b.ToTable("Partners");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.Permission", b =>
                 {
                     b.Property<int>("Id")
@@ -1208,6 +1266,21 @@ namespace GCCWebApp.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("PartnerUser", b =>
+                {
+                    b.Property<int>("PartnersId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("UsersId")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("PartnersId", "UsersId");
+
+                    b.HasIndex("UsersId");
+
+                    b.ToTable("PartnerUser");
+                });
+
             modelBuilder.Entity("PermissionRole", b =>
                 {
                     b.Property<int>("PermissionsId")
@@ -1438,6 +1511,21 @@ namespace GCCWebApp.Migrations
                     b.Navigation("Category");
 
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("PartnerUser", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.Partner", null)
+                        .WithMany()
+                        .HasForeignKey("PartnersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GCCWebApp.Models.User", null)
+                        .WithMany()
+                        .HasForeignKey("UsersId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("PermissionRole", b =>

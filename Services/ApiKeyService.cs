@@ -217,13 +217,13 @@ namespace GCCWebApp.Services
                 ["ApiKeyName"] = apiKey.Name,
                 ["TotalRequests"] = apiKey.RequestCount,
                 ["SecurityViolations"] = apiKey.SecurityViolations,
-                ["LastUsed"] = apiKey.LastUsedAt,
+                ["LastUsed"] = (object?)apiKey.LastUsedAt ?? DBNull.Value,
                 ["IsActive"] = apiKey.IsActive,
                 ["IsBlocked"] = apiKey.IsTemporarilyBlocked,
-                ["BlockedUntil"] = apiKey.BlockedUntil,
-                ["LastViolation"] = apiKey.LastViolationAt,
+                ["BlockedUntil"] = (object?)apiKey.BlockedUntil ?? DBNull.Value,
+                ["LastViolation"] = (object?)apiKey.LastViolationAt ?? DBNull.Value,
                 ["CreatedAt"] = apiKey.CreatedAt,
-                ["ExpiresAt"] = apiKey.ExpiresAt
+                ["ExpiresAt"] = (object?)apiKey.ExpiresAt ?? DBNull.Value
             };
         }
 

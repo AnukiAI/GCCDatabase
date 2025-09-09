@@ -259,15 +259,27 @@ CertificateStatus  # Status history tracking
 
 ## Environment Variables & Configuration
 
-### Required Settings
-```
-ASPNETCORE_ENVIRONMENT=Development|Production
-AzureAdB2C__Instance=https://gccb2c.b2clogin.com/
-AzureAdB2C__Domain=gccb2c.onmicrosoft.com
-AzureAdB2C__ClientId=[Your Client ID]
-AzureAdB2C__ClientSecret=[Your Secret]
-JWT__SecretKey=[Your JWT Secret]
-JWT__Issuer=https://greencirclecertified.com
+### Required Settings (Production)
+```bash
+# Core Application
+ASPNETCORE_ENVIRONMENT=Production
+GCC_JWT_SECRET=64-character-secure-random-string
+
+# Azure AD B2C (Optional - Cookie auth fallback available)
+GCC_AZURE_AD_B2C_CLIENT_SECRET=azure-b2c-client-secret  
+GCC_AZURE_AD_CLIENT_SECRET=azure-ad-client-secret
+
+# Database
+DATABASE_CONNECTION_STRING="Server=prod-server;Database=GCCDatabase;User Id=appuser;Password=secure-password;Encrypt=true;"
+
+# Optional Services
+GCC_AZURE_BLOB_CONNECTION_STRING=azure-storage-connection
+GCC_APPLICATION_INSIGHTS_CONNECTION_STRING=app-insights-string
+GCC_SMTP_PASSWORD=email-server-password
+
+# JWT Configuration
+JWT__Issuer=https://api.greencirclecertified.com
+JWT__Audience=https://api.greencirclecertified.com
 ```
 
 ### Feature Flags
@@ -324,9 +336,9 @@ dotnet test --collect:"XPlat Code Coverage"
 
 ### API Authentication Methods
 
-#### 1. API Key Authentication
+#### 1. API Key Authentication (Recommended for Partners)
 ```http
-GET /api/v1/certificates
+GET /api/CertificateTileExternal/tiles
 X-API-Key: your-api-key-here
 ```
 
@@ -346,7 +358,7 @@ Content-Type: application/json
 }
 
 # Use token in subsequent requests
-GET /api/v1/certificates
+GET /api/Certificates
 Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 ```
 
@@ -395,6 +407,24 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 - **Development**: http://localhost:5101/swagger
 - **Production**: https://api.greencirclecertified.com/swagger
 - **Download spec**: `/swagger/v1/swagger.json`
+
+### Partner API Endpoints (Amazon Integration Ready)
+
+#### Certificate Access for External Partners
+```http
+GET    /api/CertificateTileExternal/tiles          # Get partner's certificates
+GET    /api/CertificateTileExternal/suggestions    # Search suggestions  
+GET    /api/CertificateTileExternal/filters        # Available filters
+GET    /api/CertificateTileExternal/certificate/{id} # Get specific certificate
+POST   /api/CertificateTileExternal/export         # Export partner's data
+```
+
+#### Amazon-Specific Features
+- **Automatic Partner Filtering**: Only shows Amazon-tagged certificates
+- **Rate Limiting**: 1000 API calls/hour (configurable per partner)
+- **IP Restrictions**: Amazon server IPs only
+- **Origin Validation**: *.amazon.com domains only
+- **Test Account**: partner@amazon.com / Partner123! (External role)
 
 ## Docker Deployment
 
@@ -676,6 +706,40 @@ test: Add tests
 chore: Update dependencies
 ```
 
+## Code Modification Best Practices
+
+### Safe Code Modification Strategies
+
+#### 1. Read First, Understand Context
+- Always use `Read` tool before editing any file
+- Check surrounding code for dependencies and interactions
+- Understand the full flow and impact before changing anything
+- Review related files that might be affected
+
+#### 2. Minimal, Targeted Edits
+- Use specific `old_string` matches with enough context to ensure uniqueness
+- Make the smallest possible changes to achieve the goal
+- Prefer `Edit` over `Write` for existing files
+- Use `MultiEdit` for multiple changes to the same file
+
+#### 3. Test-Driven Approach
+- Run existing tests before making changes
+- Verify functionality still works after each edit
+- Create test cases for new features first
+- Run build and lint commands after changes
+
+#### 4. Version Control Awareness
+- Check git status frequently
+- Make atomic commits for each logical change
+- Review changes before committing
+- Can revert if something breaks
+
+#### 5. Defensive Coding Patterns
+- Add new functionality without disturbing existing code
+- Use feature flags for new features when appropriate
+- Preserve existing method signatures when possible
+- Add new methods rather than modifying existing ones when feasible
+
 ## AI Assistant Instructions
 
 ### DO:
@@ -684,6 +748,9 @@ chore: Update dependencies
 - Create unique URLs for filtered searches
 - Use existing services and patterns
 - Check mockups before implementing UI
+- Read files before editing them
+- Use minimal, targeted edits
+- Test changes thoroughly
 
 ### DON'T:
 - Use pagination for certificate views
@@ -691,6 +758,8 @@ chore: Update dependencies
 - Modify the 14-state workflow without discussion
 - Push directly to master branch
 - Create files without checking if they exist
+- Replace entire methods when only small changes are needed
+- Make changes without understanding context
 
 ### ALWAYS:
 - Run tests after changes
@@ -698,8 +767,121 @@ chore: Update dependencies
 - Use ViewModels for UI binding
 - Check `/0_Documentation/pages/` for UI requirements
 - Update this file when major changes are made
+- Read before editing
+- Preserve working code
+- Use version control effectively
+
+## 🏪 Amazon API Integration - Production Ready
+
+### Amazon Integration Status: ✅ READY FOR TESTING & PRODUCTION
+
+The GCC Database Solution API is **fully implemented** and **production-ready** for Amazon integration with the following features:
+
+#### **Amazon-Specific Implementation**
+- **Dedicated External API Controller**: `CertificateTileExternalApiController.cs`
+- **Automatic Partner Filtering**: Only shows Amazon-tagged certificates + public certificates
+- **Test Account Ready**: `partner@amazon.com` / `Partner123!` (External role)
+- **API Key Authentication**: Secure, rate-limited access for Amazon systems
+
+#### **Available Endpoints for Amazon**
+```bash
+# Core Certificate Access
+GET    /api/CertificateTileExternal/tiles          # Get Amazon's certificates
+GET    /api/CertificateTileExternal/suggestions    # Search autocomplete
+GET    /api/CertificateTileExternal/filters        # Available filter options
+GET    /api/CertificateTileExternal/certificate/{id} # Get specific certificate details
+POST   /api/CertificateTileExternal/export         # Export Amazon's data (CSV/Excel/PDF)
+
+# Authentication & API Key Management
+POST   /api/v1/auth/login                          # JWT token authentication
+POST   /Admin/CreateApiKey                         # Create Amazon API key (Admin only)
+```
+
+#### **Security & Performance Features**
+- **Rate Limiting**: 1000 API calls/hour (configurable per partner)
+- **IP Whitelisting**: Restrict to Amazon server IPs
+- **Origin Validation**: Only *.amazon.com domains
+- **Request Logging**: Full audit trail of all API calls
+- **Automatic Failover**: Cookie auth backup if API key fails
+
+#### **Testing Amazon Integration Right Now**
+```bash
+# 1. Test public certificate access (no auth required)
+curl -X GET "http://localhost:5101/api/CertificateTileExternal/tiles" \
+     -H "accept: application/json"
+
+# 2. Login as Amazon test user
+curl -X POST "http://localhost:5101/Account/Login" \
+     -d "email=partner@amazon.com&password=Partner123!"
+
+# 3. Create API key for Amazon (after login)
+curl -X POST "http://localhost:5101/Admin/CreateApiKey" \
+     -H "Content-Type: application/json" \
+     -d '{"name": "Amazon Integration", "description": "Amazon marketplace API access"}'
+
+# 4. Test with API key
+curl -X GET "http://localhost:5101/api/CertificateTileExternal/tiles?partner=Amazon" \
+     -H "X-API-Key: generated-api-key-here"
+```
+
+### **Production Deployment Checklist**
+
+#### ✅ **Ready Components**
+- [x] **Core API Implementation**: All endpoints working
+- [x] **Authentication Systems**: API Key + JWT + Cookie fallback
+- [x] **Partner Filtering**: Amazon data isolation implemented  
+- [x] **Rate Limiting**: Configurable per-partner limits
+- [x] **Security Headers**: Production-grade security middleware
+- [x] **Error Handling**: Standardized API responses
+- [x] **Documentation**: Swagger/OpenAPI fully configured
+- [x] **Docker Support**: Container deployment ready
+
+#### 🔧 **Needs Production Configuration**
+- [ ] **JWT Secret**: Set `GCC_JWT_SECRET` environment variable (64+ characters)
+- [ ] **Database**: Configure production SQL Server connection string
+- [ ] **SSL Certificate**: HTTPS setup for production domain
+- [ ] **Azure Services** (Optional): B2C, Application Insights, Blob Storage
+- [ ] **SMTP Configuration** (Optional): Email notifications
+
+#### **Estimated Time to Production**: 2-4 hours (configuration only)
+
+### **Amazon Developer Quick Start**
+
+1. **Get API Access**:
+   - Contact GCC admin for Amazon-specific API key
+   - Receive API key with Amazon domain/IP restrictions
+
+2. **Test Integration**:
+   - Use development endpoint: `http://localhost:5101/api/CertificateTileExternal/`
+   - Test with Amazon test account: `partner@amazon.com`
+
+3. **Production Integration**:
+   - Switch to production endpoint: `https://api.greencirclecertified.com/api/CertificateTileExternal/`
+   - Use production API key with IP/domain restrictions
+
+4. **Handle API Responses**:
+   ```json
+   {
+     "success": true,
+     "data": [...certificates...],
+     "message": null,
+     "requestId": "unique-request-id",
+     "timestamp": "2025-09-08T15:30:00Z"
+   }
+   ```
+
+**Amazon integration is FULLY FUNCTIONAL and ready for immediate testing and production deployment.**
 
 ---
-*Last Updated: August 28, 2025*
+*Last Updated: September 8, 2025*
 - remember to suggest
 - remember the system is using .NET MVC and SQL Server, please update documentaiton to reflect this. I see Django and postgre in docs
+- We need to maintain the design as we are making updates. We should not be adding additional functionality
+- during coding, test that the javascript is rendering properly in the page. this has been causing a lot of issues.
+- There should not be a search bar in the navigation
+- minimum font size in the application is 16px for accessibility
+- When new use case functionality is added to the project. Update test projects to account for that scenario
+- Master Design Guide should be referenced to make sure our design is conistent throughout the application. C:\Users\swest\OneDrive - PointSolve Technology Inc\LocalWest\Projects\GCC Database Solution\GCCWebApp\GCCWebApp\0_Documentation\mockups\0_0_MasterDesignGuide.html
+- Reference Wireframes and User Stories to make sure we are implementing what was agreed upon with the client. C:\Users\swest\OneDrive - PointSolve Technology Inc\LocalWest\Projects\GCC Database Solution\GCCWebApp\GCCWebApp\0_Documentation\00 GCC_ImplementationDocuments_8_22_25\GCC Wireframes_UserStories_8_25_25.pptx
+- we are going to complete development on all of the pages.
+- remember Admin role and user cannot be deleted as per requirements

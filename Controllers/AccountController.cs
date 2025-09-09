@@ -6,8 +6,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
+using QRCoder;
 using GCCWebApp.Configuration;
 using GCCWebApp.Services;
+using GCCWebApp.Models;
 
 namespace GCCWebApp.Controllers
 {
@@ -392,9 +394,29 @@ namespace GCCWebApp.Controllers
                 return View("2FAAuthenticate");
             }
             
-            if (_twoFactorService.ValidateCode(email, authCode))
+            // Try TOTP first, then fallback to email/SMS codes
+            var isValidCode = false;
+            
+            // Check if user has TOTP enabled
+            var totpValid = await _twoFactorService.ValidateTotpCodeAsync(email, authCode);
+            if (totpValid)
             {
-                _logger.LogInformation($"2FA verification successful for {email}");
+                isValidCode = true;
+                _logger.LogInformation($"TOTP verification successful for {email}");
+            }
+            else
+            {
+                // Fallback to email/SMS code validation
+                var emailSmsValid = _twoFactorService.ValidateCode(email, authCode);
+                if (emailSmsValid)
+                {
+                    isValidCode = true;
+                    _logger.LogInformation($"Email/SMS 2FA verification successful for {email}");
+                }
+            }
+            
+            if (isValidCode)
+            {
                 await SignInUser(email, role, rememberMe || trustDevice);
                 return RedirectToLocal(returnUrl);
             }
@@ -630,10 +652,10 @@ namespace GCCWebApp.Controllers
             // Fallback to hardcoded test users for backward compatibility
             var fallbackUsers = new Dictionary<string, (string password, string role)>
             {
-                { "admin@greencirclecertified.com", ("admin123", "Admin") },
-                { "analyst@greencirclecertified.com", ("analyst123", "Analyst") },
-                { "partner@amazon.com", ("partner123", "External") },
-                { "user@test.com", ("user123", "Public") }
+                { "admin@greencirclecertified.com", ("Admin123!", "Admin") },
+                { "analyst@greencirclecertified.com", ("Analyst123!", "Analyst") },
+                { "partner@amazon.com", ("Partner123!", "External") },
+                { "user@test.com", ("User123!", "Public") }
             };
 
             if (fallbackUsers.TryGetValue(email.ToLower(), out var userData) && userData.password == password)
@@ -697,33 +719,230 @@ namespace GCCWebApp.Controllers
         }
 
         #endregion
-    }
 
-    #region View Models
+        #region TOTP Methods
 
-    public class LoginViewModel
+    /// <summary>
+    /// Setup TOTP (Time-based One-Time Password) for Microsoft Authenticator
+    /// </summary>
+    [Authorize]
+    [HttpGet]
+    public IActionResult SetupTotp()
     {
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email")]
-        public string Email { get; set; } = string.Empty;
+        var userEmail = HttpContext.Session.GetString("UserEmail") ?? User.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrEmpty(userEmail))
+        {
+            return RedirectToAction("Login");
+        }
 
-        [Required]
-        [DataType(DataType.Password)]
-        [Display(Name = "Password")]
-        public string Password { get; set; } = string.Empty;
-
-        [Display(Name = "Remember me?")]
-        public bool RememberMe { get; set; }
+        try
+        {
+            // Generate a random secret for TOTP without requiring database user
+            var secret = GenerateBase32Secret();
+            
+            // Store in session temporarily
+            HttpContext.Session.SetString($"TotpSecret_{userEmail}", secret);
+            
+            // Generate QR code URI
+            var issuer = "GCC Database";
+            var label = $"{issuer}:{userEmail}";
+            var qrCodeUri = $"otpauth://totp/{Uri.EscapeDataString(label)}?secret={secret}&issuer={Uri.EscapeDataString(issuer)}";
+            
+            ViewBag.TotpSecret = secret;
+            ViewBag.QrCodeUri = qrCodeUri;
+            ViewBag.UserEmail = userEmail;
+            
+            return View();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to setup TOTP for user {userEmail}");
+            TempData["ErrorMessage"] = "Failed to setup authenticator. Please try again.";
+            return RedirectToAction("TwoFactorPreferences");
+        }
     }
 
-    public class ForgotPasswordViewModel
+    private string GenerateBase32Secret(int length = 32)
     {
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email")]
-        public string Email { get; set; } = string.Empty;
+        const string base32Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+        var random = new Random();
+        var secret = new char[length];
+        
+        for (int i = 0; i < length; i++)
+        {
+            secret[i] = base32Chars[random.Next(base32Chars.Length)];
+        }
+        
+        return new string(secret);
     }
 
-    #endregion
+    /// <summary>
+    /// Generate QR code image for TOTP setup
+    /// </summary>
+    [Authorize]
+    [HttpGet]
+    public IActionResult GenerateQrCode()
+    {
+        var userEmail = HttpContext.Session.GetString("UserEmail") ?? User.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrEmpty(userEmail))
+        {
+            return BadRequest("User not authenticated");
+        }
+
+        try
+        {
+            // Get the secret from session
+            var secret = HttpContext.Session.GetString($"TotpSecret_{userEmail}");
+            if (string.IsNullOrEmpty(secret))
+            {
+                // Generate new if not found
+                secret = GenerateBase32Secret();
+                HttpContext.Session.SetString($"TotpSecret_{userEmail}", secret);
+            }
+            
+            // Generate QR code
+            var issuer = "GCC Database";
+            var label = $"{issuer}:{userEmail}";
+            var qrCodeUri = $"otpauth://totp/{Uri.EscapeDataString(label)}?secret={secret}&issuer={Uri.EscapeDataString(issuer)}";
+            
+            using var qrGenerator = new QRCoder.QRCodeGenerator();
+            var qrCodeData = qrGenerator.CreateQrCode(qrCodeUri, QRCoder.QRCodeGenerator.ECCLevel.Q);
+            using var qrCode = new QRCoder.PngByteQRCode(qrCodeData);
+            var qrCodeImage = qrCode.GetGraphic(10);
+            
+            return File(qrCodeImage, "image/png");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to generate QR code for user {userEmail}");
+            return BadRequest("Failed to generate QR code");
+        }
+    }
+
+    /// <summary>
+    /// Verify and enable TOTP
+    /// </summary>
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EnableTotp(string totpCode)
+    {
+        var userEmail = HttpContext.Session.GetString("UserEmail") ?? User.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrEmpty(userEmail))
+        {
+            return RedirectToAction("Login");
+        }
+
+        if (string.IsNullOrEmpty(totpCode) || totpCode.Length != 6)
+        {
+            TempData["ErrorMessage"] = "Please enter a valid 6-digit code from your authenticator app.";
+            return RedirectToAction("SetupTotp");
+        }
+
+        try
+        {
+            var success = await _twoFactorService.EnableTotpAsync(userEmail, totpCode);
+            if (success)
+            {
+                TempData["SuccessMessage"] = "Microsoft Authenticator has been successfully enabled for your account.";
+                return RedirectToAction("TwoFactorPreferences");
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Invalid code. Please check your authenticator app and try again.";
+                return RedirectToAction("SetupTotp");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to enable TOTP for user {userEmail}");
+            TempData["ErrorMessage"] = "Failed to enable authenticator. Please try again.";
+            return RedirectToAction("SetupTotp");
+        }
+    }
+
+    /// <summary>
+    /// Disable TOTP for user
+    /// </summary>
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DisableTotp()
+    {
+        var userEmail = HttpContext.Session.GetString("UserEmail") ?? User.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrEmpty(userEmail))
+        {
+            return RedirectToAction("Login");
+        }
+
+        try
+        {
+            var success = await _twoFactorService.DisableTotpAsync(userEmail);
+            if (success)
+            {
+                TempData["SuccessMessage"] = "Microsoft Authenticator has been disabled for your account.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = "Failed to disable authenticator.";
+            }
+            
+            return RedirectToAction("TwoFactorPreferences");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"Failed to disable TOTP for user {userEmail}");
+            TempData["ErrorMessage"] = "Failed to disable authenticator. Please try again.";
+            return RedirectToAction("TwoFactorPreferences");
+        }
+    }
+
+    /// <summary>
+    /// Validate TOTP code during login
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ValidateTotp(string totpCode)
+    {
+        var userEmail = HttpContext.Session.GetString("UserEmail");
+        if (string.IsNullOrEmpty(userEmail) || string.IsNullOrEmpty(totpCode))
+        {
+            ViewBag.ErrorMessage = "Please enter a valid code from your authenticator app.";
+            return View("TwoFactorAuthentication");
+        }
+
+        try
+        {
+            var isValid = await _twoFactorService.ValidateTotpCodeAsync(userEmail, totpCode);
+            
+            if (isValid)
+            {
+                // Complete login process
+                HttpContext.Session.SetString("Is2FAVerified", "true");
+                
+                var returnUrl = HttpContext.Session.GetString("ReturnUrl");
+                if (!string.IsNullOrEmpty(returnUrl))
+                {
+                    HttpContext.Session.Remove("ReturnUrl");
+                    return Redirect(returnUrl);
+                }
+                
+                return RedirectToAction("Index", "Dashboard");
+            }
+            else
+            {
+                ViewBag.ErrorMessage = "Invalid authenticator code. Please try again.";
+                return View("TwoFactorAuthentication");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, $"TOTP validation failed for user {userEmail}");
+            ViewBag.ErrorMessage = "Authentication failed. Please try again.";
+            return View("TwoFactorAuthentication");
+        }
+
+        #endregion
+    }
+}
 }

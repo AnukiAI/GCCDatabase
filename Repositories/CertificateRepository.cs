@@ -199,6 +199,16 @@ namespace GCCWebApp.Repositories
             if (filter.TagIds != null && filter.TagIds.Any())
                 query = query.Where(c => c.Tags.Any(t => filter.TagIds.Contains(t.Id)));
 
+            // New filter properties for API
+            if (filter.CertificationTypeNames != null && filter.CertificationTypeNames.Any())
+                query = query.Where(c => c.CertificationType != null && filter.CertificationTypeNames.Contains(c.CertificationType.Name));
+
+            if (filter.Countries != null && filter.Countries.Any())
+                query = query.Where(c => c.Country != null && filter.Countries.Contains(c.Country));
+
+            if (filter.CompanyIds != null && filter.CompanyIds.Any())
+                query = query.Where(c => filter.CompanyIds.Contains(c.CompanyId));
+
             var totalCount = await query.CountAsync();
 
             // Apply sorting
@@ -362,35 +372,60 @@ namespace GCCWebApp.Repositories
         public async Task<IEnumerable<(string Name, int Count)>> GetCertificationTypeStatisticsAsync()
         {
             return await _dbSet
-                .Where(c => c.Status == "active")
+                .Include(c => c.CertificationType)
+                .Where(c => c.Status == "active" && c.CertificationType != null)
                 .GroupBy(c => c.CertificationType.Name)
+                .OrderByDescending(g => g.Count())
                 .Select(g => new { Name = g.Key, Count = g.Count() })
-                .OrderByDescending(x => x.Count)
-                .Select(x => ValueTuple.Create(x.Name, x.Count))
-                .ToListAsync();
+                .ToListAsync()
+                .ContinueWith(task => task.Result.Select(x => (x.Name, x.Count)));
         }
 
         public async Task<IEnumerable<(string Name, int Count)>> GetTopCompaniesByActiveCertCountAsync(int topCount = 10)
         {
             return await _dbSet
-                .Where(c => c.Status == "active")
+                .Include(c => c.Company)
+                .Where(c => c.Status == "active" && c.Company != null)
                 .GroupBy(c => c.Company.Name)
-                .Select(g => new { Name = g.Key, Count = g.Count() })
-                .OrderByDescending(x => x.Count)
+                .OrderByDescending(g => g.Count())
                 .Take(topCount)
-                .Select(x => ValueTuple.Create(x.Name, x.Count))
-                .ToListAsync();
+                .Select(g => new { Name = g.Key, Count = g.Count() })
+                .ToListAsync()
+                .ContinueWith(task => task.Result.Select(x => (x.Name, x.Count)));
         }
 
         public async Task<IEnumerable<(string Name, int Count)>> GetProductTypeStatisticsAsync(int topCount = 10)
         {
             return await _dbSet
-                .Where(c => c.Status == "active")
-                .GroupBy(c => c.Product.ProductType.Name)
-                .Select(g => new { Name = g.Key, Count = g.Count() })
-                .OrderByDescending(x => x.Count)
+                .Include(c => c.Product)
+                    .ThenInclude(p => p.ProductType)
+                .Where(c => c.Status == "active" && c.Product != null && c.Product.ProductType != null)
+                .GroupBy(c => c.Product!.ProductType!.Name)
+                .OrderByDescending(g => g.Count())
                 .Take(topCount)
-                .Select(x => ValueTuple.Create(x.Name, x.Count))
+                .Select(g => new { Name = g.Key, Count = g.Count() })
+                .ToListAsync()
+                .ContinueWith(task => task.Result.Select(x => (x.Name, x.Count)));
+        }
+
+        public async Task<IEnumerable<string>> GetDistinctCountriesAsync()
+        {
+            var countries = await _dbSet
+                .Where(c => c.Country != null && c.Country.Trim() != "")
+                .Select(c => c.Country!)
+                .Distinct()
+                .OrderBy(c => c)
+                .ToListAsync();
+            return countries;
+        }
+
+        public new async Task<IEnumerable<Certificate>> FindAsync(System.Linq.Expressions.Expression<Func<Certificate, bool>> predicate)
+        {
+            return await _dbSet
+                .Where(predicate)
+                .Include(c => c.Company)
+                .Include(c => c.Product)
+                .Include(c => c.CertificationType)
                 .ToListAsync();
         }
     }

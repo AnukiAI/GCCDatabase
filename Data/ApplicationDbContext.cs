@@ -33,6 +33,7 @@ namespace GCCWebApp.Data
         // User management
         public DbSet<Role> Roles { get; set; }
         public DbSet<Permission> Permissions { get; set; }
+        public DbSet<Partner> Partners { get; set; }
 
         // API management
         public DbSet<ApiKey> ApiKeys { get; set; }
@@ -278,6 +279,21 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Name).IsUnique();
             });
+
+            // Partner configuration
+            modelBuilder.Entity<Partner>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.HasIndex(e => e.Name).IsUnique();
+                
+                // Performance indexes for partner searches
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.SortOrder);
+                entity.HasIndex(e => e.CreatedAt);
+                
+                // Composite indexes
+                entity.HasIndex(e => new { e.IsActive, e.SortOrder });
+            });
             
             // ApiKey configuration
             modelBuilder.Entity<ApiKey>(entity =>
@@ -316,6 +332,10 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Companies)
                 .WithMany(c => c.Users);
+
+            modelBuilder.Entity<User>()
+                .HasMany(u => u.Partners)
+                .WithMany(p => p.Users);
 
             // ETL Configuration
             modelBuilder.Entity<ETLConfiguration>(entity =>

@@ -92,43 +92,27 @@ class ExportUtils {
     }
 
     /**
-     * Export data to Excel format (using CSV with .xlsx extension for simplicity)
-     * @param {Array} data - Array of objects to export
-     * @param {Array} columns - Array of column definitions
-     * @param {string} filename - Base filename without extension
+     * Export data to Excel format using server-side ClosedXML generation
+     * @param {Array} data - Array of objects to export (not used, server gets fresh data)
+     * @param {Array} columns - Array of column definitions (not used, server defines format)
+     * @param {string} filename - Base filename without extension (used as entityType)
      * @param {Function} toastCallback - Optional callback for showing notifications
      */
     static exportToExcel(data, columns, filename, toastCallback = null) {
-        // For now, use CSV format but with .xlsx extension
-        // In a real implementation, you'd use a library like SheetJS
-        if (!data || data.length === 0) {
-            if (toastCallback) toastCallback('No data to export', 'warning');
-            return;
-        }
-
         try {
-            // Create tab-separated values for better Excel compatibility
-            const headers = columns.map(col => col.header).join('\t');
-            const rows = data.map(item => {
-                return columns.map(col => {
-                    let value = item[col.key];
-                    
-                    if (Array.isArray(value)) {
-                        value = value.join('; ');
-                    }
-                    
-                    if (value === null || value === undefined) {
-                        value = '';
-                    }
-                    
-                    return String(value);
-                }).join('\t');
-            });
-
-            const tsv = [headers, ...rows].join('\n');
-            this._downloadFile(tsv, `${filename}_${this._getDateString()}.xlsx`, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+            // Use server-side Excel generation
+            const entityType = filename; // Use filename as entity type
+            const url = `/Admin/ExportData?entityType=${encodeURIComponent(entityType)}&format=xlsx`;
             
-            if (toastCallback) toastCallback('Data exported to Excel successfully', 'success');
+            // Create a temporary link to trigger download
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${filename}_${this._getDateString()}.xlsx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            if (toastCallback) toastCallback('Excel export started', 'success');
         } catch (error) {
             console.error('Excel export error:', error);
             if (toastCallback) toastCallback('Export failed', 'error');

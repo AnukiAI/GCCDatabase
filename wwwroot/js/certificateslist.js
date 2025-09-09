@@ -19,45 +19,118 @@ class CertificateList {
     }
 
     setupEventListeners() {
-        // Sort dropdown toggle
-        const sortDropdownBtn = document.getElementById('sortDropdownBtn');
-        const sortDropdown = sortDropdownBtn?.parentElement;
-
-        if (sortDropdownBtn && sortDropdown) {
-            sortDropdownBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                sortDropdown.classList.toggle('open');
-            });
-
-            // Close dropdown when clicking outside
-            document.addEventListener('click', (e) => {
-                if (!sortDropdown.contains(e.target)) {
-                    sortDropdown.classList.remove('open');
-                }
-            });
-        }
-
-        // Sort options
-        const sortOptions = document.querySelectorAll('.sort-option');
-        sortOptions.forEach(option => {
-            option.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.handleSortChange(option);
-            });
+        // Use event delegation for all clickable elements
+        document.addEventListener('click', (e) => {
+            this.handleGlobalClick(e);
         });
-
-        // Clear filters
-        const clearFiltersBtn = document.getElementById('clearFiltersBtn');
-        if (clearFiltersBtn) {
-            clearFiltersBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                this.clearAllFilters();
-            });
-        }
 
         // Certificate card actions
         this.setupCertificateActions();
+    }
+
+    handleGlobalClick(e) {
+        const target = e.target;
+        const closestButton = target.closest('button');
+        const closestClickable = target.closest('[data-action]') || target.closest('.filter-header') || target.closest('.sort-option');
+
+        // Handle mobile filter toggle
+        if (target.closest('.mobile-filter-toggle')) {
+            e.preventDefault();
+            this.toggleMobileFilters();
+            return;
+        }
+
+        // Handle clear filters
+        if (target.closest('.clear-filters')) {
+            e.preventDefault();
+            this.clearAllFilters();
+            return;
+        }
+
+        // Handle filter header toggles
+        if (target.closest('.filter-header')) {
+            e.preventDefault();
+            this.toggleFilter(target.closest('.filter-header'));
+            return;
+        }
+
+        // Handle sort dropdown toggle
+        if (target.closest('.sort-dropdown-button')) {
+            e.preventDefault();
+            e.stopPropagation();
+            this.toggleSort();
+            return;
+        }
+
+        // Handle sort options
+        if (target.closest('.sort-option')) {
+            e.preventDefault();
+            this.selectSort(target.closest('.sort-option'));
+            return;
+        }
+
+        // Handle view toggle buttons
+        if (target.closest('.toggle-btn')) {
+            e.preventDefault();
+            const viewType = target.closest('.toggle-btn').getAttribute('data-view');
+            if (viewType) {
+                this.toggleView(viewType);
+            }
+            return;
+        }
+
+        // Handle certificate action buttons
+        if (target.closest('.action-icon')) {
+            e.preventDefault();
+            this.handleCertificateAction(target.closest('.action-icon'));
+            return;
+        }
+
+        // Handle certificate action buttons with data attributes
+        if (target.closest('.certificate-action-button[data-action]')) {
+            e.preventDefault();
+            this.handleCertificateAction(target.closest('.certificate-action-button[data-action]'));
+            return;
+        }
+
+        // Handle bulk actions
+        if (target.closest('[data-action="clear-selection"]')) {
+            e.preventDefault();
+            this.clearSelection();
+            return;
+        }
+
+        if (target.closest('[data-action="bulk-download"]')) {
+            e.preventDefault();
+            this.bulkDownload();
+            return;
+        }
+
+        if (target.closest('[data-action="bulk-export"]')) {
+            e.preventDefault();
+            this.bulkExport();
+            return;
+        }
+
+        // Handle table sorting
+        if (target.closest('[data-sort-column]')) {
+            e.preventDefault();
+            const column = target.closest('[data-sort-column]').getAttribute('data-sort-column');
+            this.sortTable(column);
+            return;
+        }
+
+        // Handle select all checkbox
+        if (target.id === 'selectAll') {
+            this.toggleSelectAll();
+            return;
+        }
+
+        // Close sort dropdown when clicking outside
+        const sortDropdown = document.querySelector('.sort-dropdown.open');
+        if (sortDropdown && !sortDropdown.contains(target)) {
+            sortDropdown.classList.remove('open');
+        }
     }
 
     setupFilters() {
@@ -96,8 +169,8 @@ class CertificateList {
             });
         });
 
-        // Filter checkboxes
-        const filterCheckboxes = document.querySelectorAll('.filter-option input[type="checkbox"]');
+        // Filter checkboxes - using broader selectors to catch all variations including External view's data attributes
+        const filterCheckboxes = document.querySelectorAll('.filter-item input[type="checkbox"], .filter-option input[type="checkbox"], input[type="checkbox"][name^="cert-"], input[type="checkbox"][name^="product-"], input[type="checkbox"][name^="company"], input[type="checkbox"][name^="country"], input[type="checkbox"][name^="tag"], input[type="checkbox"][data-type], input[type="checkbox"][data-category], input[type="checkbox"][data-country], .filter-tree input[type="checkbox"]');
         filterCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', (e) => {
                 this.handleFilterChange(e.target);
@@ -296,23 +369,86 @@ class CertificateList {
     }
 
     clearAllFilters() {
-        // Uncheck all filter checkboxes
-        const filterCheckboxes = document.querySelectorAll('.filter-option input[type="checkbox"]');
+        console.log('Clearing all filters...');
+        
+        // Uncheck all filter checkboxes - including those with data attributes (External view) and name attributes (Internal view)
+        const filterCheckboxes = document.querySelectorAll('.filter-item input[type="checkbox"], .filter-option input[type="checkbox"], input[type="checkbox"][name^="cert-"], input[type="checkbox"][name^="product-"], input[type="checkbox"][name^="company"], input[type="checkbox"][name^="countries"], input[type="checkbox"][name^="additional"], input[type="checkbox"][data-type], input[type="checkbox"][data-category], input[type="checkbox"][data-country], .filter-tree input[type="checkbox"]');
+        console.log(`Found ${filterCheckboxes.length} checkboxes to clear`);
+        
         filterCheckboxes.forEach(checkbox => {
-            checkbox.checked = false;
+            if (checkbox.checked) {
+                const identifier = checkbox.name || checkbox.id || checkbox.dataset.type || checkbox.dataset.category || checkbox.dataset.country;
+                console.log(`Unchecking: ${identifier}`);
+                checkbox.checked = false;
+                // Trigger change event to update any dependent logic
+                const event = new Event('change', { bubbles: true });
+                checkbox.dispatchEvent(event);
+            }
         });
 
-        // Clear all filter search inputs
+        // Clear the main search input
+        const searchInput = document.querySelector('.search-input');
+        if (searchInput && searchInput.value) {
+            console.log(`Clearing main search input: ${searchInput.value}`);
+            searchInput.value = '';
+            // Trigger input event to update search
+            const event = new Event('input', { bubbles: true });
+            searchInput.dispatchEvent(event);
+        }
+
+        // Clear any filter-specific search inputs
         const filterSearchInputs = document.querySelectorAll('.filter-search-input');
         filterSearchInputs.forEach(input => {
-            input.value = '';
-            // Trigger search to show all options
-            this.handleFilterSearch(input);
+            if (input.value) {
+                console.log(`Clearing filter search input: ${input.value}`);
+                input.value = '';
+                // Trigger search to show all options
+                this.handleFilterSearch(input);
+            }
         });
 
-        // Update results
-        this.updateResultsCount();
+        // Reset sort to default
+        const sortLabel = document.getElementById('sortLabel');
+        if (sortLabel) {
+            sortLabel.textContent = 'Default';
+        }
+
+        // Reset the sort dropdown value
+        this.currentSort = 'default';
+
+        // Close any open filter panels for mobile
+        const filterPanels = document.querySelectorAll('.filter-panel.open');
+        filterPanels.forEach(panel => {
+            panel.classList.remove('open');
+        });
+
+        // Show all certificate cards after clearing filters
+        this.showAllCertificates();
+        
+        // Update results count to show all
+        const resultsCountElement = document.getElementById('resultsCount');
+        if (resultsCountElement) {
+            const allCards = document.querySelectorAll('.certificate-card');
+            resultsCountElement.textContent = `${allCards.length} Results`;
+        }
+        
+        // If this is a dynamic page, reload without filters
+        if (window.location.search) {
+            window.location.href = window.location.pathname;
+        }
+        
         this.showToast('All filters cleared', 'info');
+        console.log('All filters cleared successfully');
+    }
+
+    showAllCertificates() {
+        console.log('Showing all certificate cards...');
+        // Find all certificate cards and make them visible
+        const certificateCards = document.querySelectorAll('.certificate-card');
+        certificateCards.forEach(card => {
+            card.style.display = ''; // Reset to default display
+        });
+        console.log(`Showed ${certificateCards.length} certificate cards`);
     }
 
     // Search handling
@@ -342,13 +478,136 @@ class CertificateList {
         // In MVC implementation, this would trigger a server request with sort parameters
     }
 
+    // New methods to handle inline functions
+    toggleFilter(filterHeader) {
+        const panel = filterHeader.parentElement;
+        panel.classList.toggle('open');
+
+        // Store filter state in localStorage for persistence
+        const filterId = filterHeader.dataset.filter;
+        if (filterId) {
+            const isOpen = panel.classList.contains('open');
+            localStorage.setItem(`filter_${filterId}_open`, isOpen);
+        }
+    }
+
+    toggleSort() {
+        const sortDropdown = document.getElementById('sortDropdown');
+        if (sortDropdown) {
+            sortDropdown.classList.toggle('open');
+        }
+    }
+
+    selectSort(sortOption) {
+        const sortValue = sortOption.getAttribute('data-sort') || sortOption.textContent.trim();
+        const sortText = sortOption.textContent.trim();
+
+        // Update button text
+        const sortLabel = document.getElementById('sortLabel');
+        if (sortLabel) {
+            sortLabel.textContent = sortText;
+        }
+
+        // Close dropdown
+        const sortDropdown = document.getElementById('sortDropdown');
+        if (sortDropdown) {
+            sortDropdown.classList.remove('open');
+        }
+
+        // Apply sort
+        this.applySorting(sortValue);
+        this.currentSort = sortValue;
+
+        // Show loading state
+        this.showLoadingState();
+
+        // Simulate API call delay
+        setTimeout(() => {
+            this.hideLoadingState();
+            this.showToast(`Sorted by ${sortText}`, 'success');
+        }, 500);
+    }
+
+    toggleView(viewType) {
+        // Remove active class from all toggle buttons
+        const toggleButtons = document.querySelectorAll('.toggle-btn');
+        toggleButtons.forEach(btn => btn.classList.remove('active'));
+
+        // Add active class to clicked button
+        const clickedButton = document.querySelector(`[data-view="${viewType}"]`);
+        if (clickedButton) {
+            clickedButton.classList.add('active');
+        }
+
+        // Update view
+        console.log(`Switching to ${viewType} view`);
+        this.showToast(`Switched to ${viewType} view`, 'info');
+    }
+
+    handleCertificateAction(actionElement) {
+        const action = actionElement.getAttribute('data-action');
+        const certificateNumber = actionElement.getAttribute('data-cert');
+
+        if (!certificateNumber) {
+            // Fallback to old method if data-cert is not available
+            const certificateCard = actionElement.closest('.certificate-card');
+            const fallbackNumber = this.getCertificateNumber(certificateCard);
+            
+            if (actionElement.classList.contains('edit')) {
+                this.editCertificate(fallbackNumber);
+            } else if (actionElement.classList.contains('download')) {
+                this.downloadCertificate(fallbackNumber);
+            } else if (actionElement.classList.contains('external')) {
+                this.viewCertificate(fallbackNumber);
+            }
+            return;
+        }
+
+        switch (action) {
+            case 'edit':
+                this.editCertificate(certificateNumber);
+                break;
+            case 'download':
+                this.downloadCertificate(certificateNumber);
+                break;
+            case 'view':
+                this.viewCertificate(certificateNumber);
+                break;
+            default:
+                console.warn('Unknown certificate action:', action);
+        }
+    }
+
+    getCertificateNumber(certificateCard) {
+        const certificateNumberElement = certificateCard.querySelector('.certificate-number .value');
+        return certificateNumberElement ? certificateNumberElement.textContent.trim() : 'Unknown';
+    }
+
+    editCertificate(certificateNumber) {
+        console.log('Editing certificate:', certificateNumber);
+        // In MVC implementation, this would navigate to edit page
+        window.location.href = `/Certificate/Edit/${certificateNumber}`;
+    }
+
+    downloadCertificate(certificateNumber) {
+        console.log('Downloading certificate:', certificateNumber);
+        // In MVC implementation, this would trigger a download
+        window.location.href = `/Certificate/Download/${certificateNumber}`;
+    }
+
+    viewCertificate(certificateNumber) {
+        console.log('Viewing certificate:', certificateNumber);
+        // In MVC implementation, this would navigate to details page
+        window.location.href = `/Certificate/Details/${certificateNumber}`;
+    }
+
     // Mobile filter controls
     toggleMobileFilters() {
-        const filtersSidebar = document.querySelector('.filters-sidebar');
-        const overlay = document.querySelector('.filter-overlay');
+        const filtersSidebar = document.querySelector('.sidebar');
+        const overlay = document.querySelector('.filter-overlay') || this.createFilterOverlay();
 
-        if (filtersSidebar && overlay) {
-            const isOpen = filtersSidebar.classList.contains('open');
+        if (filtersSidebar) {
+            const isOpen = filtersSidebar.classList.contains('mobile-open');
 
             if (isOpen) {
                 this.closeMobileFilters();
@@ -358,25 +617,39 @@ class CertificateList {
         }
     }
 
+    createFilterOverlay() {
+        const overlay = document.createElement('div');
+        overlay.className = 'filter-overlay';
+        overlay.addEventListener('click', () => {
+            this.closeMobileFilters();
+        });
+        document.body.appendChild(overlay);
+        return overlay;
+    }
+
     openMobileFilters() {
-        const filtersSidebar = document.querySelector('.filters-sidebar');
+        const filtersSidebar = document.querySelector('.sidebar');
         const overlay = document.querySelector('.filter-overlay');
 
-        if (filtersSidebar && overlay) {
-            filtersSidebar.classList.add('open');
-            overlay.classList.add('show');
+        if (filtersSidebar) {
+            filtersSidebar.classList.add('mobile-open');
             document.body.style.overflow = 'hidden';
+        }
+        if (overlay) {
+            overlay.classList.add('show');
         }
     }
 
     closeMobileFilters() {
-        const filtersSidebar = document.querySelector('.filters-sidebar');
+        const filtersSidebar = document.querySelector('.sidebar');
         const overlay = document.querySelector('.filter-overlay');
 
-        if (filtersSidebar && overlay) {
-            filtersSidebar.classList.remove('open');
-            overlay.classList.remove('show');
+        if (filtersSidebar) {
+            filtersSidebar.classList.remove('mobile-open');
             document.body.style.overflow = '';
+        }
+        if (overlay) {
+            overlay.classList.remove('show');
         }
     }
 
@@ -410,9 +683,11 @@ class CertificateList {
     updateResultsCount() {
         const resultsCountElement = document.getElementById('resultsCount');
         if (resultsCountElement) {
-            // Simulate random count for demo
-            const randomCount = Math.floor(Math.random() * 300) + 50;
-            resultsCountElement.textContent = randomCount;
+            // Count visible certificate cards
+            const visibleCards = document.querySelectorAll('.certificate-card:not([style*="display: none"])');
+            const count = visibleCards.length;
+            // Always include "Results" text
+            resultsCountElement.textContent = `${count} Results`;
         }
     }
 
@@ -557,6 +832,153 @@ class CertificateList {
         // Method to get current search term for MVC form submission
         const searchInput = document.getElementById('searchInput');
         return searchInput ? searchInput.value : '';
+    }
+
+    // New methods for table functionality and bulk actions
+    clearSelection() {
+        console.log('Clearing selection...');
+        const checkboxes = document.querySelectorAll('input[type="checkbox"]:checked');
+        checkboxes.forEach(checkbox => {
+            if (checkbox.id !== 'selectAll') {
+                checkbox.checked = false;
+            }
+        });
+        
+        // Update select all checkbox
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = false;
+        }
+        
+        // Update selected count
+        this.updateSelectedCount();
+        this.showToast('Selection cleared', 'info');
+    }
+
+    bulkDownload() {
+        const selectedCertificates = this.getSelectedCertificates();
+        console.log('Bulk downloading certificates:', selectedCertificates);
+        
+        if (selectedCertificates.length === 0) {
+            this.showToast('Please select certificates to download', 'warning');
+            return;
+        }
+        
+        // In MVC implementation, this would trigger bulk download
+        this.showToast(`Downloading ${selectedCertificates.length} certificates`, 'success');
+        
+        // Simulate download process
+        selectedCertificates.forEach((certId, index) => {
+            setTimeout(() => {
+                console.log(`Downloading certificate ${certId}`);
+                window.location.href = `/Certificate/Download/${certId}`;
+            }, index * 500); // Stagger downloads
+        });
+    }
+
+    bulkExport() {
+        const selectedCertificates = this.getSelectedCertificates();
+        console.log('Bulk exporting certificates:', selectedCertificates);
+        
+        if (selectedCertificates.length === 0) {
+            this.showToast('Please select certificates to export', 'warning');
+            return;
+        }
+        
+        // In MVC implementation, this would trigger bulk export
+        this.showToast(`Exporting ${selectedCertificates.length} certificates to Excel`, 'success');
+        
+        // Simulate export process
+        const exportData = selectedCertificates.join(',');
+        window.location.href = `/Certificate/Export?certificates=${exportData}&format=excel`;
+    }
+
+    toggleSelectAll() {
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const isChecked = selectAllCheckbox.checked;
+        
+        console.log('Toggle select all:', isChecked);
+        
+        // Select/deselect all visible certificate checkboxes
+        const certificateCheckboxes = document.querySelectorAll('.certificate-checkbox');
+        certificateCheckboxes.forEach(checkbox => {
+            checkbox.checked = isChecked;
+        });
+        
+        this.updateSelectedCount();
+        
+        const message = isChecked ? 'All certificates selected' : 'All certificates deselected';
+        this.showToast(message, 'info');
+    }
+
+    sortTable(column) {
+        console.log('Sorting table by column:', column);
+        
+        // Add visual indicator to column header
+        const headers = document.querySelectorAll('.grid-header-cell');
+        headers.forEach(header => {
+            const sortIndicator = header.querySelector('.sort-indicator');
+            if (sortIndicator) {
+                sortIndicator.className = 'fas fa-sort sort-indicator';
+            }
+        });
+        
+        // Update the clicked column's sort indicator
+        const clickedHeader = document.querySelector(`[data-sort-column="${column}"]`);
+        if (clickedHeader) {
+            const sortIndicator = clickedHeader.querySelector('.sort-indicator');
+            if (sortIndicator) {
+                // Toggle sort direction
+                const currentSort = clickedHeader.dataset.sortDirection || 'none';
+                let newSort = 'asc';
+                
+                if (currentSort === 'asc') {
+                    newSort = 'desc';
+                    sortIndicator.className = 'fas fa-sort-down sort-indicator';
+                } else if (currentSort === 'desc') {
+                    newSort = 'asc';
+                    sortIndicator.className = 'fas fa-sort-up sort-indicator';
+                } else {
+                    newSort = 'asc';
+                    sortIndicator.className = 'fas fa-sort-up sort-indicator';
+                }
+                
+                clickedHeader.dataset.sortDirection = newSort;
+            }
+        }
+        
+        // Show loading state
+        this.showLoadingState();
+        
+        // In MVC implementation, this would trigger a server request
+        setTimeout(() => {
+            this.hideLoadingState();
+            this.showToast(`Sorted by ${column} (${clickedHeader.dataset.sortDirection})`, 'success');
+        }, 500);
+    }
+
+    getSelectedCertificates() {
+        const selectedCheckboxes = document.querySelectorAll('.certificate-checkbox:checked');
+        const certificateIds = Array.from(selectedCheckboxes).map(checkbox => {
+            // Extract certificate ID from checkbox value or data attribute
+            return checkbox.value || checkbox.dataset.certificateId || checkbox.closest('.certificate-row')?.dataset.certificateId;
+        }).filter(id => id); // Remove any null/undefined values
+        
+        return certificateIds;
+    }
+
+    updateSelectedCount() {
+        const selectedCount = this.getSelectedCertificates().length;
+        const countElement = document.getElementById('selectedCount');
+        if (countElement) {
+            countElement.textContent = `${selectedCount} certificates selected`;
+        }
+        
+        // Show/hide bulk actions based on selection
+        const bulkActionsPanel = document.querySelector('.bulk-actions-panel');
+        if (bulkActionsPanel) {
+            bulkActionsPanel.style.display = selectedCount > 0 ? 'flex' : 'none';
+        }
     }
 }
 

@@ -720,7 +720,7 @@ namespace GCCWebApp.Controllers
                 {
                     Page = 1,
                     PageSize = 10000, // Large page size for export
-                    Sort = sort,
+                    Sort = sort ?? string.Empty,
                     UserRole = userRole,
                     Filters = new CertificateSearchFilters
                     {

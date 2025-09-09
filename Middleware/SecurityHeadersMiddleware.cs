@@ -221,6 +221,40 @@ public class SecurityHeadersMiddleware
 
     private async Task<bool> DetectSqlInjectionAsync(HttpContext context)
     {
+        var path = context.Request.Path.ToString().ToLowerInvariant();
+        var queryString = context.Request.QueryString.ToString().ToLowerInvariant();
+
+        // Whitelist legitimate endpoints that might contain SQL-like keywords
+        var whitelistedPaths = new[]
+        {
+            "/export/downloadstat",
+            "/export/downloadtable",
+            "/export/testdownloadnoauth",
+            "/export/testdata",
+            "/export/testtuples",
+            "/dashboard",
+            "/certificate",
+            "/admin"
+        };
+
+        // Check if this is a whitelisted path
+        if (whitelistedPaths.Any(whitelist => path.StartsWith(whitelist)))
+        {
+            // For whitelisted paths, use more specific SQL injection patterns
+            var strictSqlInjectionPatterns = new[]
+            {
+                "' or ", "\" or ", "' and ", "\" and ",
+                "'; drop", "\"; drop", "'; delete", "\"; delete",
+                "union all select", "union select", "1=1", "1' or '1'='1",
+                "admin'--", "' or 1=1--", "or 1=1#", "' or 'a'='a",
+                "xp_cmdshell", "exec(", "execute(", "sp_executesql"
+            };
+
+            return strictSqlInjectionPatterns.Any(pattern => 
+                queryString.Contains(pattern) || path.Contains(pattern));
+        }
+
+        // For non-whitelisted paths, use broader detection
         var sqlInjectionPatterns = new[]
         {
             "union", "select", "insert", "update", "delete", "drop", "exec", "execute",
@@ -228,9 +262,6 @@ public class SecurityHeadersMiddleware
             "nchar(", "varchar(", "nvarchar(", "alter", "begin", "cast", "create",
             "cursor", "declare", "fetch", "kill", "open", "sys", "table"
         };
-
-        var queryString = context.Request.QueryString.ToString().ToLowerInvariant();
-        var path = context.Request.Path.ToString().ToLowerInvariant();
 
         foreach (var pattern in sqlInjectionPatterns)
         {

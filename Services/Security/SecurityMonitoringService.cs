@@ -310,12 +310,27 @@ public class SecurityMonitoringService : ISecurityMonitoringService
         if (string.IsNullOrEmpty(userAgent))
             return true;
 
+        // Only flag actually malicious tools, not legitimate development tools
         var suspiciousPatterns = new[]
         {
-            "sqlmap", "nmap", "nikto", "w3af", "acunetix", "appscan",
-            "burp", "zap", "wget", "curl", "python", "perl", "php",
-            "script", "bot", "crawler", "spider"
+            "sqlmap", "nikto", "w3af", "acunetix", "appscan",
+            "burp scanner", "zap scanner", "havij", "bsqlhacker"
         };
+
+        // Allow legitimate development and monitoring tools
+        var legitimatePatterns = new[]
+        {
+            "curl", "wget", "postman", "insomnia", "httpie",
+            "python-requests", "python-urllib", "microsoft",
+            "chrome", "firefox", "safari", "edge"
+        };
+
+        // If it matches a legitimate pattern, don't flag as suspicious
+        if (legitimatePatterns.Any(pattern => 
+            userAgent.Contains(pattern, StringComparison.OrdinalIgnoreCase)))
+        {
+            return false;
+        }
 
         return suspiciousPatterns.Any(pattern => 
             userAgent.Contains(pattern, StringComparison.OrdinalIgnoreCase));

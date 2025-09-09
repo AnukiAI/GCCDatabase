@@ -402,7 +402,7 @@
                 <div class="stat-value">@Model.ActiveCertificates.ToString("N0")</div>
                 <div class="stat-title">Total Active Certs</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('total-active-certs')" title="Download Data" aria-label="Download Total Active Certs data">
+            <button class="stat-download-icon" data-stat-type="total-active-certs" title="Download Data" aria-label="Download Total Active Certs data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -415,7 +415,7 @@
                 <div class="stat-value">@Model.TotalCompanies.ToString("N0")</div>
                 <div class="stat-title"># Companies with Active Certs</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('companies-with-active-certs')" title="Download Data" aria-label="Download Companies with Active Certs data">
+            <button class="stat-download-icon" data-stat-type="companies-with-active-certs" title="Download Data" aria-label="Download Companies with Active Certs data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -428,7 +428,7 @@
                 <div class="stat-value">@Model.TotalCertificationTypes.ToString("N0")</div>
                 <div class="stat-title"># Product Categories with Active Certs</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('product-categories-with-active-certs')" title="Download Data" aria-label="Download Product Categories data">
+            <button class="stat-download-icon" data-stat-type="product-categories-with-active-certs" title="Download Data" aria-label="Download Product Categories data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -441,7 +441,7 @@
                 <div class="stat-value">@Model.TotalProducts.ToString("N0")</div>
                 <div class="stat-title"># Product Types with Active Certs</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('product-types-with-active-certs')" title="Download Data" aria-label="Download Product Types data">
+            <button class="stat-download-icon" data-stat-type="product-types-with-active-certs" title="Download Data" aria-label="Download Product Types data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -454,7 +454,7 @@
                 <div class="stat-value">@Model.Statistics.GetValueOrDefault("ProductSubcategories", 0).ToString("N0")</div>
                 <div class="stat-title"># Product Type Subcategories with Active Certs</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('product-subcategories-with-active-certs')" title="Download Data" aria-label="Download Product Subcategories data">
+            <button class="stat-download-icon" data-stat-type="product-subcategories-with-active-certs" title="Download Data" aria-label="Download Product Subcategories data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -467,7 +467,7 @@
                 <div class="stat-value">@Model.Statistics.GetValueOrDefault("ActiveProducts", 0).ToString("N0")</div>
                 <div class="stat-title"># Products with Active Certs</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('products-with-active-certs')" title="Download Data" aria-label="Download Products data">
+            <button class="stat-download-icon" data-stat-type="products-with-active-certs" title="Download Data" aria-label="Download Products data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -480,7 +480,7 @@
                 <div class="stat-value">@Model.Statistics.GetValueOrDefault("PublishedLastMonth", 0).ToString("N0")</div>
                 <div class="stat-title"># Certs Published Last Month</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('certs-published-last-month')" title="Download Data" aria-label="Download Certs Published Last Month data">
+            <button class="stat-download-icon" data-stat-type="certs-published-last-month" title="Download Data" aria-label="Download Certs Published Last Month data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -493,7 +493,7 @@
                 <div class="stat-value">@Model.Statistics.GetValueOrDefault("ExpiringThisMonth", 0).ToString("N0")</div>
                 <div class="stat-title"># Certs Expiring This Month</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('certs-expiring-this-month')" title="Download Data" aria-label="Download Certs Expiring This Month data">
+            <button class="stat-download-icon" data-stat-type="certs-expiring-this-month" title="Download Data" aria-label="Download Certs Expiring This Month data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -506,7 +506,7 @@
                 <div class="stat-value">@Model.Statistics.GetValueOrDefault("ExpiredLastMonth", 0).ToString("N0")</div>
                 <div class="stat-title"># Certs Expired Last Month</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('certs-expired-last-month')" title="Download Data" aria-label="Download Certs Expired Last Month data">
+            <button class="stat-download-icon" data-stat-type="certs-expired-last-month" title="Download Data" aria-label="Download Certs Expired Last Month data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -519,7 +519,7 @@
                 <div class="stat-value">@Model.Statistics.GetValueOrDefault("ExpiringNextMonth", 0).ToString("N0")</div>
                 <div class="stat-title"># Certs Expiring Next Month</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('certs-expiring-next-month')" title="Download Data" aria-label="Download Certs Expiring Next Month data">
+            <button class="stat-download-icon" data-stat-type="certs-expiring-next-month" title="Download Data" aria-label="Download Certs Expiring Next Month data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -532,7 +532,7 @@
                 <div class="stat-value">@Model.Statistics.GetValueOrDefault("PublishedThisYear", 0).ToString("N0")</div>
                 <div class="stat-title"># Certs Published This Year</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('certs-published-this-year')" title="Download Data" aria-label="Download Certs Published This Year data">
+            <button class="stat-download-icon" data-stat-type="certs-published-this-year" title="Download Data" aria-label="Download Certs Published This Year data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -545,7 +545,7 @@
                 <div class="stat-value">@Model.Statistics.GetValueOrDefault("PublishedLastYear", 0).ToString("N0")</div>
                 <div class="stat-title"># Certs Published Last Year</div>
             </div>
-            <button class="stat-download-icon" onclick="downloadStat('certs-published-last-year')" title="Download Data" aria-label="Download Certs Published Last Year data">
+            <button class="stat-download-icon" data-stat-type="certs-published-last-year" title="Download Data" aria-label="Download Certs Published Last Year data">
                 <i class="fas fa-download"></i>
             </button>
         </div>
@@ -557,7 +557,7 @@
         <div class="table-section">
             <div class="table-header">
                 <div class="table-title">Total Active Certs by Certification Type</div>
-                <button class="table-download-icon" onclick="downloadTable('cert-types')" title="Download Table Data" aria-label="Download certification types table">
+                <button class="table-download-icon" data-table-type="cert-types" title="Download Table Data" aria-label="Download certification types table">
                     <i class="fas fa-download"></i>
                 </button>
             </div>
@@ -591,7 +591,7 @@
         <div class="table-section">
             <div class="table-header">
                 <div class="table-title">Top 10 Companies by Active Cert Count</div>
-                <button class="table-download-icon" onclick="downloadTable('top-companies')" title="Download Table Data" aria-label="Download top companies table">
+                <button class="table-download-icon" data-table-type="top-companies" title="Download Table Data" aria-label="Download top companies table">
                     <i class="fas fa-download"></i>
                 </button>
             </div>
@@ -632,7 +632,7 @@
         <div class="table-section">
             <div class="table-header">
                 <div class="table-title"># Certs by Status</div>
-                <button class="table-download-icon" onclick="downloadTable('cert-status')" title="Download Table Data" aria-label="Download certificate status table">
+                <button class="table-download-icon" data-table-type="cert-status" title="Download Table Data" aria-label="Download certificate status table">
                     <i class="fas fa-download"></i>
                 </button>
             </div>
@@ -663,7 +663,7 @@
         <div class="table-section">
             <div class="table-header">
                 <div class="table-title">Top 10 Product Types by Active Cert Count</div>
-                <button class="table-download-icon" onclick="downloadTable('product-types')" title="Download Table Data" aria-label="Download product types table">
+                <button class="table-download-icon" data-table-type="product-types" title="Download Table Data" aria-label="Download product types table">
                     <i class="fas fa-download"></i>
                 </button>
             </div>
@@ -704,7 +704,7 @@
         <div class="table-section">
             <div class="table-header">
                 <div class="table-title">Top 5 Product Categories by Active Cert Count</div>
-                <button class="table-download-icon" onclick="downloadTable('product-categories')" title="Download Table Data" aria-label="Download product categories table">
+                <button class="table-download-icon" data-table-type="product-categories" title="Download Table Data" aria-label="Download product categories table">
                     <i class="fas fa-download"></i>
                 </button>
             </div>
@@ -744,15 +744,15 @@
 
     <!-- Action Buttons -->
     <div class="action-buttons">
-        <button class="action-button" onclick="showExpiringCerts(3)">
+        <button class="action-button" onclick="DashboardFunctions.showExpiringCerts(3)">
             <i class="fas fa-clock"></i>
             Expiring Certs Next 3 Months
         </button>
-        <button class="action-button" onclick="showActiveCerts()">
+        <button class="action-button" onclick="DashboardFunctions.showActiveCerts()">
             <i class="fas fa-certificate"></i>
             Current Active Certs
         </button>
-        <button class="action-button" onclick="showExpiringCerts(1)">
+        <button class="action-button" onclick="DashboardFunctions.showExpiringCerts(1)">
             <i class="fas fa-exclamation-triangle"></i>
             Expiring Certs Next 30 Days
         </button>
@@ -761,75 +761,5 @@
 
 
 @section Scripts {
-    <script>
-        // Stat download functionality
-        function downloadStat(statType) {
-            console.log('Downloading stat:', statType);
-
-            if (window.GreenCircle?.showToast) {
-                window.GreenCircle.showToast(`Downloading ${statType.replace(/-/g, ' ')} data...`, 'success');
-            }
-
-            // Trigger the actual download
-            window.location.href = `/Dashboard/DownloadStat?type=${statType}`;
-        }
-
-        // Table download functionality
-        function downloadTable(tableType) {
-            console.log('Downloading table:', tableType);
-
-            if (window.GreenCircle?.showToast) {
-                window.GreenCircle.showToast(`Downloading ${tableType.replace(/-/g, ' ')} table...`, 'success');
-            }
-
-            // Trigger the actual download
-            window.location.href = `/Dashboard/DownloadTable?type=${tableType}`;
-        }
-
-        // Dashboard functionality
-        function exportMetric() {
-            console.log('Exporting selected metric...');
-            window.GreenCircle?.showToast('Export started. You will be notified when complete.', 'info');
-        }
-
-        function showExpiringCerts(months) {
-            const period = months === 1 ? '30 days' : `${months} months`;
-            console.log(`Showing certificates expiring in next ${period}...`);
-            window.GreenCircle?.showToast(`Loading certificates expiring in next ${period}...`, 'info');
-        }
-
-        function showActiveCerts() {
-            console.log('Showing current active certificates...');
-            window.GreenCircle?.showToast('Loading current active certificates...', 'info');
-        }
-
-        // Add hover effects and animations
-        document.addEventListener('DOMContentLoaded', function() {
-            // Animate stat cards on scroll
-            const statCards = document.querySelectorAll('.stat-card');
-
-            // Add stagger animation
-            statCards.forEach((card, index) => {
-                card.style.animationDelay = `${index * 0.1}s`;
-                card.style.animation = 'slideUp 0.6s ease-out forwards';
-            });
-
-            // Add number counting animation
-            const statValues = document.querySelectorAll('.stat-value');
-            statValues.forEach(valueElement => {
-                const finalValue = parseInt(valueElement.textContent.replace(/,/g, ''));
-                let currentValue = 0;
-                const increment = finalValue / 50;
-                const timer = setInterval(() => {
-                    currentValue += increment;
-                    if (currentValue >= finalValue) {
-                        valueElement.textContent = finalValue.toLocaleString();
-                        clearInterval(timer);
-                    } else {
-                        valueElement.textContent = Math.floor(currentValue).toLocaleString();
-                    }
-                }, 30);
-            });
-        });
-    </script>
+    <script src="~/js/dashboard.js"></script>
 }

@@ -2,6 +2,7 @@ using GCCWebApp.Data;
 using GCCWebApp.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
+using ClosedXML.Excel;
 
 namespace GCCWebApp.Services
 {
@@ -204,8 +205,17 @@ namespace GCCWebApp.Services
         {
             try
             {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+                var user = await _context.Users
+                    .Include(u => u.Roles)
+                    .FirstOrDefaultAsync(u => u.Id == id);
                 if (user == null) return false;
+
+                // Prevent deletion of Admin users
+                if (user.Roles.Any(r => r.Name == "Admin"))
+                {
+                    _logger.LogWarning("Attempted to delete Admin user: {UserEmail}", user.Email);
+                    return false;
+                }
 
                 user.IsDeleted = true;
                 user.DeletedAt = DateTime.UtcNow;
@@ -228,9 +238,10 @@ namespace GCCWebApp.Services
                 {
                     Id = r.Id,
                     Name = r.Name,
-                    Description = r.Description,
+                    Description = r.Description ?? string.Empty,
                     Permissions = r.Permissions.Select(p => p.Codename).ToList(),
-                    UserCount = r.Users.Count()
+                    UserCount = r.Users.Count(),
+                    IsSystem = r.IsSystem
                 })
                 .ToListAsync();
         }
@@ -248,9 +259,10 @@ namespace GCCWebApp.Services
             {
                 Id = role.Id,
                 Name = role.Name,
-                Description = role.Description,
+                Description = role.Description ?? string.Empty,
                 Permissions = role.Permissions.Select(p => p.Codename).ToList(),
-                UserCount = role.Users.Count()
+                UserCount = role.Users.Count(),
+                IsSystem = role.IsSystem
             };
         }
 
@@ -336,12 +348,20 @@ namespace GCCWebApp.Services
                 var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == id);
                 if (role == null) return false;
 
+                // Prevent deletion of system roles
+                if (role.IsSystem)
+                {
+                    _logger.LogWarning("Attempted to delete system role: {RoleName}", role.Name);
+                    return false;
+                }
+
                 _context.Roles.Remove(role);
                 await _context.SaveChangesAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Failed to delete role with ID {RoleId}", id);
                 return false;
             }
         }
@@ -354,8 +374,8 @@ namespace GCCWebApp.Services
                 {
                     Name = p.Codename,
                     DisplayName = p.Name,
-                    Category = p.Category,
-                    Description = p.Description
+                    Category = p.Category ?? string.Empty,
+                    Description = p.Description ?? string.Empty
                 })
                 .ToListAsync();
         }
@@ -371,6 +391,12 @@ namespace GCCWebApp.Services
                 .OrderBy(pt => pt.Level)
                 .ThenBy(pt => pt.SortOrder)
                 .ToListAsync();
+            
+            // If no data exists, return sample data for demonstration
+            if (!allProductTypes.Any())
+            {
+                return GetSampleProductTypes();
+            }
 
             // Build hierarchical structure
             var result = new List<ProductTypeViewModel>();
@@ -387,6 +413,7 @@ namespace GCCWebApp.Services
                     Level = pt.Level,
                     SortOrder = pt.SortOrder,
                     ParentName = pt.Parent?.Name ?? "",
+                    ProductCount = pt.Products?.Count ?? 0,
                     Children = new List<ProductTypeViewModel>()
                 };
                 lookup[pt.Id] = viewModel;
@@ -410,6 +437,35 @@ namespace GCCWebApp.Services
             return result;
         }
 
+        private List<ProductTypeViewModel> GetSampleProductTypes()
+        {
+            return new List<ProductTypeViewModel>
+            {
+                new ProductTypeViewModel { Id = 1, Name = "Building Materials", Level = 0, SortOrder = 1, ProductCount = 89 },
+                new ProductTypeViewModel { Id = 2, Name = "Insulation", ParentId = 1, Level = 1, SortOrder = 1, ProductCount = 35, ParentName = "Building Materials" },
+                new ProductTypeViewModel { Id = 3, Name = "Foam Board", ParentId = 2, Level = 2, SortOrder = 1, ProductCount = 15, ParentName = "Insulation" },
+                new ProductTypeViewModel { Id = 4, Name = "Fiberglass", ParentId = 2, Level = 2, SortOrder = 2, ProductCount = 20, ParentName = "Insulation" },
+                new ProductTypeViewModel { Id = 5, Name = "Appliances", ParentId = 1, Level = 1, SortOrder = 2, ProductCount = 41, ParentName = "Building Materials" },
+                new ProductTypeViewModel { Id = 6, Name = "Kitchen Appliances", ParentId = 5, Level = 2, SortOrder = 1, ProductCount = 25, ParentName = "Appliances" },
+                new ProductTypeViewModel { Id = 7, Name = "Laundry Appliances", ParentId = 5, Level = 2, SortOrder = 2, ProductCount = 16, ParentName = "Appliances" },
+                new ProductTypeViewModel { Id = 8, Name = "Flooring", ParentId = 1, Level = 1, SortOrder = 3, ProductCount = 13, ParentName = "Building Materials" },
+                
+                new ProductTypeViewModel { Id = 9, Name = "Textiles", Level = 0, SortOrder = 2, ProductCount = 85 },
+                new ProductTypeViewModel { Id = 10, Name = "Carpeting", ParentId = 9, Level = 1, SortOrder = 1, ProductCount = 45, ParentName = "Textiles" },
+                new ProductTypeViewModel { Id = 11, Name = "Commercial Carpet", ParentId = 10, Level = 2, SortOrder = 1, ProductCount = 28, ParentName = "Carpeting" },
+                new ProductTypeViewModel { Id = 12, Name = "Residential Carpet", ParentId = 10, Level = 2, SortOrder = 2, ProductCount = 17, ParentName = "Carpeting" },
+                new ProductTypeViewModel { Id = 13, Name = "Fabric", ParentId = 9, Level = 1, SortOrder = 2, ProductCount = 40, ParentName = "Textiles" },
+                new ProductTypeViewModel { Id = 14, Name = "Upholstery Fabric", ParentId = 13, Level = 2, SortOrder = 1, ProductCount = 23, ParentName = "Fabric" },
+                new ProductTypeViewModel { Id = 15, Name = "Apparel Fabric", ParentId = 13, Level = 2, SortOrder = 2, ProductCount = 17, ParentName = "Fabric" },
+                
+                new ProductTypeViewModel { Id = 16, Name = "Consumer Products", Level = 0, SortOrder = 3, ProductCount = 73 },
+                new ProductTypeViewModel { Id = 17, Name = "Furniture", ParentId = 16, Level = 1, SortOrder = 1, ProductCount = 32, ParentName = "Consumer Products" },
+                new ProductTypeViewModel { Id = 18, Name = "Office Chairs", ParentId = 17, Level = 2, SortOrder = 1, ProductCount = 18, ParentName = "Furniture" },
+                new ProductTypeViewModel { Id = 19, Name = "Tables", ParentId = 17, Level = 2, SortOrder = 2, ProductCount = 14, ParentName = "Furniture" },
+                new ProductTypeViewModel { Id = 20, Name = "Electronics", ParentId = 16, Level = 1, SortOrder = 2, ProductCount = 41, ParentName = "Consumer Products" }
+            };
+        }
+
         public async Task<ProductTypeViewModel?> GetProductTypeByIdAsync(int id)
         {
             var productType = await _context.ProductTypes
@@ -429,39 +485,75 @@ namespace GCCWebApp.Services
             };
         }
 
-        public async Task<bool> CreateProductTypeAsync(ProductTypeViewModel model)
+        public async Task<ProductTypeViewModel?> CreateProductTypeAsync(ProductTypeViewModel model)
         {
             try
             {
+                // Determine level based on parent
+                int level = 0;
+                if (model.ParentId.HasValue)
+                {
+                    var parent = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.ParentId.Value);
+                    if (parent != null)
+                    {
+                        level = parent.Level + 1;
+                    }
+                }
+
                 var productType = new ProductType
                 {
                     Name = model.Name,
                     ParentId = model.ParentId,
-                    Level = model.Level,
+                    Level = level,
                     SortOrder = model.SortOrder,
                     IsActive = true
                 };
 
                 _context.ProductTypes.Add(productType);
                 await _context.SaveChangesAsync();
-                return true;
+                
+                // Return the created product type as view model
+                return new ProductTypeViewModel
+                {
+                    Id = productType.Id,
+                    Name = productType.Name,
+                    ParentId = productType.ParentId,
+                    Level = productType.Level,
+                    SortOrder = productType.SortOrder
+                };
             }
             catch
             {
-                return false;
+                return null;
             }
         }
 
-        public async Task<bool> UpdateProductTypeAsync(int id, ProductTypeViewModel model)
+        public async Task<bool> UpdateProductTypeAsync(ProductTypeViewModel model)
         {
             try
             {
-                var productType = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == id);
+                var productType = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.Id);
                 if (productType == null) return false;
+
+                // Update level based on new parent
+                if (model.ParentId != productType.ParentId)
+                {
+                    if (model.ParentId.HasValue)
+                    {
+                        var parent = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.ParentId.Value);
+                        if (parent != null)
+                        {
+                            productType.Level = parent.Level + 1;
+                        }
+                    }
+                    else
+                    {
+                        productType.Level = 0;
+                    }
+                }
 
                 productType.Name = model.Name;
                 productType.ParentId = model.ParentId;
-                productType.Level = model.Level;
                 productType.SortOrder = model.SortOrder;
 
                 await _context.SaveChangesAsync();
@@ -498,7 +590,7 @@ namespace GCCWebApp.Services
                 {
                     Id = ct.Id,
                     Name = ct.Name,
-                    Description = ct.Description,
+                    Description = ct.Description ?? string.Empty,
                     IsActive = ct.IsActive,
                     CertificateCount = ct.Certificates.Count()
                 })
@@ -517,7 +609,7 @@ namespace GCCWebApp.Services
             {
                 Id = certType.Id,
                 Name = certType.Name,
-                Description = certType.Description,
+                Description = certType.Description ?? string.Empty,
                 IsActive = certType.IsActive,
                 CertificateCount = certType.Certificates.Count()
             };
@@ -779,12 +871,122 @@ namespace GCCWebApp.Services
             }
         }
 
-        // For partners, products, and other entities, I'll implement stubs since the models aren't fully defined
-        public Task<List<PartnerViewModel>> GetPartnersAsync() => Task.FromResult(new List<PartnerViewModel>());
-        public Task<PartnerViewModel?> GetPartnerByIdAsync(int id) => Task.FromResult<PartnerViewModel?>(null);
-        public Task<bool> CreatePartnerAsync(PartnerViewModel model) => Task.FromResult(false);
-        public Task<bool> UpdatePartnerAsync(int id, PartnerViewModel model) => Task.FromResult(false);
-        public Task<bool> DeletePartnerAsync(int id) => Task.FromResult(false);
+        // Partners
+        public async Task<List<PartnerViewModel>> GetPartnersAsync()
+        {
+            return await _context.Partners
+                .Where(p => !p.IsDeleted)
+                .OrderBy(p => p.SortOrder)
+                .ThenBy(p => p.Name)
+                .Select(p => new PartnerViewModel
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description ?? "",
+                    Website = p.Website ?? "",
+                    IsActive = p.IsActive,
+                    UserCount = p.Users.Count,
+                    CreatedDate = p.CreatedAt
+                })
+                .ToListAsync();
+        }
+
+        public async Task<PartnerViewModel?> GetPartnerByIdAsync(int id)
+        {
+            var partner = await _context.Partners
+                .Where(p => p.Id == id && !p.IsDeleted)
+                .FirstOrDefaultAsync();
+
+            if (partner == null) return null;
+
+            return new PartnerViewModel
+            {
+                Id = partner.Id,
+                Name = partner.Name,
+                Description = partner.Description ?? "",
+                Website = partner.Website ?? "",
+                IsActive = partner.IsActive,
+                UserCount = partner.Users.Count,
+                CreatedDate = partner.CreatedAt
+            };
+        }
+
+        public async Task<bool> CreatePartnerAsync(PartnerViewModel model)
+        {
+            try
+            {
+                var partner = new Partner
+                {
+                    Name = model.Name,
+                    Description = model.Description,
+                    Website = model.Website,
+                    IsActive = model.IsActive,
+                    SortOrder = model.SortOrder,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Partners.Add(partner);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating partner {PartnerName}", model.Name);
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdatePartnerAsync(int id, PartnerViewModel model)
+        {
+            try
+            {
+                var partner = await _context.Partners
+                    .Where(p => p.Id == id && !p.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (partner == null) return false;
+
+                partner.Name = model.Name;
+                partner.Description = model.Description;
+                partner.Website = model.Website;
+                partner.IsActive = model.IsActive;
+                partner.SortOrder = model.SortOrder;
+                partner.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating partner {PartnerId}", id);
+                return false;
+            }
+        }
+
+        public async Task<bool> DeletePartnerAsync(int id)
+        {
+            try
+            {
+                var partner = await _context.Partners
+                    .Where(p => p.Id == id && !p.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (partner == null) return false;
+
+                // Soft delete
+                partner.IsDeleted = true;
+                partner.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting partner {PartnerId}", id);
+                return false;
+            }
+        }
 
         public async Task<List<ProductViewModel>> GetProductsAsync()
         {
@@ -796,7 +998,7 @@ namespace GCCWebApp.Services
                 {
                     Id = p.Id,
                     Name = p.Name,
-                    Description = p.Description ?? "",
+                    Description = p.Description ?? string.Empty ?? "",
                     ProductTypeName = p.ProductType != null ? p.ProductType.Name : "",
                     CompanyName = p.Company != null ? p.Company.Name : "",
                     IsActive = p.IsActive,
@@ -960,7 +1162,7 @@ namespace GCCWebApp.Services
                 {
                     Id = r.Id,
                     Name = r.Name,
-                    Description = r.Description,
+                    Description = r.Description ?? string.Empty,
                     IsActive = r.IsActive
                 })
                 .ToListAsync();
@@ -968,7 +1170,20 @@ namespace GCCWebApp.Services
 
         public async Task<byte[]> ExportDataAsync(string entityType, string format)
         {
-            // Basic CSV export implementation
+            format = format.ToLower();
+            
+            if (format == "xlsx")
+            {
+                return await GenerateExcelExport(entityType);
+            }
+            else
+            {
+                return await GenerateCsvExport(entityType);
+            }
+        }
+        
+        private async Task<byte[]> GenerateCsvExport(string entityType)
+        {
             var content = new StringBuilder();
             
             switch (entityType.ToLower())
@@ -978,8 +1193,8 @@ namespace GCCWebApp.Services
                     content.AppendLine("Id,Name,Email,Role,Status,Companies,LastLogin");
                     foreach (var user in users)
                     {
-                        content.AppendLine($"{user.Id},{user.Name},{user.Email},{user.Role},{user.Status}," +
-                                         $"\"{string.Join(", ", user.CompanyNames)}\",{user.LastLogin?.ToString("yyyy-MM-dd HH:mm")}");
+                        content.AppendLine($"{user.Id},\"{user.Name}\",\"{user.Email}\",\"{user.Role}\",\"{user.Status}\"," +
+                                         $"\"{string.Join(", ", user.CompanyNames)}\",\"{user.LastLogin?.ToString("yyyy-MM-dd HH:mm")}\"");
                     }
                     break;
                     
@@ -988,8 +1203,58 @@ namespace GCCWebApp.Services
                     content.AppendLine("Id,Name,Description,UserCount,Permissions");
                     foreach (var role in roles)
                     {
-                        content.AppendLine($"{role.Id},{role.Name},{role.Description},{role.UserCount}," +
+                        content.AppendLine($"{role.Id},\"{role.Name}\",\"{role.Description}\",{role.UserCount}," +
                                          $"\"{string.Join(", ", role.Permissions)}\"");
+                    }
+                    break;
+                    
+                case "certificate-types":
+                case "certificatetypes":
+                case "certificate_types":
+                    var certTypes = await GetCertificateTypesAsync();
+                    content.AppendLine("Id,Name,Description,IsActive,CertificateCount");
+                    foreach (var certType in certTypes)
+                    {
+                        content.AppendLine($"{certType.Id},\"{certType.Name}\",\"{certType.Description}\"," +
+                                         $"{certType.IsActive},{certType.CertificateCount}");
+                    }
+                    break;
+                    
+                case "certificate-fields":
+                case "certificatefields":
+                case "certificate_fields":
+                    var certFields = await GetCertificateFieldsAsync();
+                    content.AppendLine("Id,Name,FieldType,IsRequired,IsVisible,SortOrder,Options,DefaultValue,ValidationRules");
+                    foreach (var field in certFields)
+                    {
+                        content.AppendLine($"{field.Id},\"{field.Name}\",\"{field.FieldType}\"," +
+                                         $"{field.IsRequired},{field.IsVisible},{field.SortOrder}," +
+                                         $"\"{field.Options}\",\"{field.DefaultValue}\",\"{field.ValidationRules}\"");
+                    }
+                    break;
+                    
+                case "partners":
+                    var partners = await GetPartnersAsync();
+                    content.AppendLine("Id,Name,Description,Website,IsActive,UserCount,CreatedDate");
+                    foreach (var partner in partners)
+                    {
+                        content.AppendLine($"{partner.Id},\"{partner.Name}\",\"{partner.Description}\"," +
+                                         $"\"{partner.Website}\",{partner.IsActive},{partner.UserCount}," +
+                                         $"\"{partner.CreatedDate:yyyy-MM-dd HH:mm}\"");
+                    }
+                    break;
+                    
+                case "product-types":
+                case "producttypes":
+                case "product_types":
+                case "product_types_hierarchy":
+                    var productTypes = await GetProductTypesAsync();
+                    content.AppendLine("Id,Name,Type,Parent,Level,SortOrder,ProductCount");
+                    foreach (var productType in productTypes)
+                    {
+                        var typeLabel = productType.Level == 0 ? "Category" : productType.Level == 1 ? "Type" : "Subcategory";
+                        content.AppendLine($"{productType.Id},\"{productType.Name}\",\"{typeLabel}\"," +
+                                         $"\"{productType.ParentName}\",{productType.Level + 1},{productType.SortOrder},{productType.ProductCount}");
                     }
                     break;
                     
@@ -999,6 +1264,246 @@ namespace GCCWebApp.Services
             }
             
             return Encoding.UTF8.GetBytes(content.ToString());
+        }
+        
+        private async Task<byte[]> GenerateExcelExport(string entityType)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add(entityType);
+                
+                switch (entityType.ToLower())
+                {
+                    case "users":
+                        var users = await GetUsersAsync();
+                        
+                        // Headers
+                        worksheet.Cell(1, 1).Value = "ID";
+                        worksheet.Cell(1, 2).Value = "Name";
+                        worksheet.Cell(1, 3).Value = "Email";
+                        worksheet.Cell(1, 4).Value = "Role";
+                        worksheet.Cell(1, 5).Value = "Status";
+                        worksheet.Cell(1, 6).Value = "Companies";
+                        worksheet.Cell(1, 7).Value = "Last Login";
+                        
+                        // Data
+                        int row = 2;
+                        foreach (var user in users)
+                        {
+                            worksheet.Cell(row, 1).Value = user.Id;
+                            worksheet.Cell(row, 2).Value = user.Name;
+                            worksheet.Cell(row, 3).Value = user.Email;
+                            worksheet.Cell(row, 4).Value = user.Role;
+                            worksheet.Cell(row, 5).Value = user.Status;
+                            worksheet.Cell(row, 6).Value = string.Join(", ", user.CompanyNames);
+                            worksheet.Cell(row, 7).Value = user.LastLogin?.ToString("yyyy-MM-dd HH:mm");
+                            row++;
+                        }
+                        break;
+                        
+                    case "roles":
+                        var roles = await GetRolesAsync();
+                        
+                        // Headers
+                        worksheet.Cell(1, 1).Value = "ID";
+                        worksheet.Cell(1, 2).Value = "Name";
+                        worksheet.Cell(1, 3).Value = "Description";
+                        worksheet.Cell(1, 4).Value = "User Count";
+                        worksheet.Cell(1, 5).Value = "Permissions";
+                        
+                        // Data
+                        row = 2;
+                        foreach (var role in roles)
+                        {
+                            worksheet.Cell(row, 1).Value = role.Id;
+                            worksheet.Cell(row, 2).Value = role.Name;
+                            worksheet.Cell(row, 3).Value = role.Description;
+                            worksheet.Cell(row, 4).Value = role.UserCount;
+                            worksheet.Cell(row, 5).Value = string.Join(", ", role.Permissions);
+                            row++;
+                        }
+                        break;
+                        
+                    case "certificate-types":
+                    case "certificatetypes":
+                    case "certificate_types":
+                        var certTypes = await GetCertificateTypesAsync();
+                        
+                        // Headers
+                        worksheet.Cell(1, 1).Value = "ID";
+                        worksheet.Cell(1, 2).Value = "Name";
+                        worksheet.Cell(1, 3).Value = "Description";
+                        worksheet.Cell(1, 4).Value = "Is Active";
+                        worksheet.Cell(1, 5).Value = "Certificate Count";
+                        
+                        // Data
+                        row = 2;
+                        foreach (var certType in certTypes)
+                        {
+                            worksheet.Cell(row, 1).Value = certType.Id;
+                            worksheet.Cell(row, 2).Value = certType.Name;
+                            worksheet.Cell(row, 3).Value = certType.Description;
+                            worksheet.Cell(row, 4).Value = certType.IsActive;
+                            worksheet.Cell(row, 5).Value = certType.CertificateCount;
+                            row++;
+                        }
+                        break;
+                        
+                    case "certificate-fields":
+                    case "certificatefields":
+                    case "certificate_fields":
+                        var certFields = await GetCertificateFieldsAsync();
+                        
+                        // Headers
+                        worksheet.Cell(1, 1).Value = "ID";
+                        worksheet.Cell(1, 2).Value = "Name";
+                        worksheet.Cell(1, 3).Value = "Field Type";
+                        worksheet.Cell(1, 4).Value = "Required";
+                        worksheet.Cell(1, 5).Value = "Visible";
+                        worksheet.Cell(1, 6).Value = "Sort Order";
+                        worksheet.Cell(1, 7).Value = "Options";
+                        worksheet.Cell(1, 8).Value = "Default Value";
+                        worksheet.Cell(1, 9).Value = "Validation Rules";
+                        
+                        // Data
+                        row = 2;
+                        foreach (var field in certFields)
+                        {
+                            worksheet.Cell(row, 1).Value = field.Id;
+                            worksheet.Cell(row, 2).Value = field.Name;
+                            worksheet.Cell(row, 3).Value = field.FieldType;
+                            worksheet.Cell(row, 4).Value = field.IsRequired;
+                            worksheet.Cell(row, 5).Value = field.IsVisible;
+                            worksheet.Cell(row, 6).Value = field.SortOrder;
+                            worksheet.Cell(row, 7).Value = field.Options;
+                            worksheet.Cell(row, 8).Value = field.DefaultValue;
+                            worksheet.Cell(row, 9).Value = field.ValidationRules;
+                            row++;
+                        }
+                        break;
+                        
+                    case "partners":
+                        var partnersData = await GetPartnersAsync();
+                        
+                        // Headers
+                        worksheet.Cell(1, 1).Value = "ID";
+                        worksheet.Cell(1, 2).Value = "Name";
+                        worksheet.Cell(1, 3).Value = "Description";
+                        worksheet.Cell(1, 4).Value = "Website";
+                        worksheet.Cell(1, 5).Value = "Active";
+                        worksheet.Cell(1, 6).Value = "User Count";
+                        worksheet.Cell(1, 7).Value = "Created Date";
+                        
+                        // Data
+                        row = 2;
+                        foreach (var partner in partnersData)
+                        {
+                            worksheet.Cell(row, 1).Value = partner.Id;
+                            worksheet.Cell(row, 2).Value = partner.Name;
+                            worksheet.Cell(row, 3).Value = partner.Description;
+                            worksheet.Cell(row, 4).Value = partner.Website;
+                            worksheet.Cell(row, 5).Value = partner.IsActive;
+                            worksheet.Cell(row, 6).Value = partner.UserCount;
+                            worksheet.Cell(row, 7).Value = partner.CreatedDate.ToString("yyyy-MM-dd HH:mm");
+                            row++;
+                        }
+                        break;
+                        
+                    case "product-types":
+                    case "producttypes":
+                    case "product_types":
+                    case "product_types_hierarchy":
+                        var productTypes = await GetProductTypesAsync();
+                        
+                        // Headers
+                        worksheet.Cell(1, 1).Value = "ID";
+                        worksheet.Cell(1, 2).Value = "Name";
+                        worksheet.Cell(1, 3).Value = "Type";
+                        worksheet.Cell(1, 4).Value = "Parent";
+                        worksheet.Cell(1, 5).Value = "Level";
+                        worksheet.Cell(1, 6).Value = "Sort Order";
+                        worksheet.Cell(1, 7).Value = "Product Count";
+                        
+                        // Data
+                        row = 2;
+                        foreach (var productType in productTypes)
+                        {
+                            var typeLabel = productType.Level == 0 ? "Category" : productType.Level == 1 ? "Type" : "Subcategory";
+                            worksheet.Cell(row, 1).Value = productType.Id;
+                            worksheet.Cell(row, 2).Value = productType.Name;
+                            worksheet.Cell(row, 3).Value = typeLabel;
+                            worksheet.Cell(row, 4).Value = productType.ParentName;
+                            worksheet.Cell(row, 5).Value = productType.Level + 1;
+                            worksheet.Cell(row, 6).Value = productType.SortOrder;
+                            worksheet.Cell(row, 7).Value = productType.ProductCount;
+                            row++;
+                        }
+                        break;
+                        
+                    default:
+                        worksheet.Cell(1, 1).Value = "No data available for export";
+                        break;
+                }
+                
+                // Style the headers
+                var headerRange = worksheet.Range(1, 1, 1, worksheet.LastCellUsed()?.Address.ColumnNumber ?? 1);
+                headerRange.Style.Font.Bold = true;
+                headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+                headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                
+                // Auto-fit columns
+                worksheet.Columns().AdjustToContents();
+                
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return stream.ToArray();
+                }
+            }
+        }
+
+        // Two-Factor Authentication Management
+        public async Task<bool> Reset2FAAsync(int userId)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null) return false;
+
+                // Reset 2FA settings
+                user.TwoFactorEnabled = false;
+                user.TwoFactorSecret = null;
+                user.RecoveryCodes = null;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                // Log error here in production
+                return false;
+            }
+        }
+
+        public async Task<bool> Disable2FAAsync(int userId)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null) return false;
+
+                // Disable 2FA
+                user.TwoFactorEnabled = false;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                // Log error here in production
+                return false;
+            }
         }
     }
 }

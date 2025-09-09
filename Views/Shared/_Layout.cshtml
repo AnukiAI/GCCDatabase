@@ -40,8 +40,8 @@
                     <div class="user-dropdown">
                         @if (User.Identity?.IsAuthenticated == true)
                         {
-                            <form asp-controller="Account" asp-action="LogoutPost" method="post" id="logoutForm" style="margin: 0;">
-                                <button type="submit" class="dropdown-item" style="border: none; background: none; width: 100%; text-align: left; cursor: pointer;">
+                            <form asp-controller="Account" asp-action="LogoutPost" method="post" id="logoutForm" class="logout-form">
+                                <button type="submit" class="dropdown-item logout-button">
                                     <i class="fas fa-sign-out-alt"></i> Logout
                                 </button>
                             </form>
@@ -81,9 +81,13 @@
                     <i class="fas fa-bars"></i>
                 </div>
                 <ul class="nav-links">
-                    <button class="mobile-nav-close" id="mobile-nav-close">
-                        <i class="fas fa-times"></i>
-                    </button>
+                    <li class="mobile-nav-close-item">
+                        <button class="mobile-nav-close" id="mobile-nav-close" 
+                                title="Close navigation menu" 
+                                aria-label="Close navigation menu">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </li>
 
                     @if (User.Identity?.IsAuthenticated == true)
                     {
@@ -265,14 +269,6 @@
     <script src="~/js/main.js"></script>
     <script src="~/js/auth.js"></script>
 
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Initialize with Option 4 theme - ensure it's always applied
-            document.body.classList.add('theme-option4');
-
-            // Mobile menu functionality is handled in main.js
-        });
-    </script>
 
     @RenderSection("Scripts", required: false)
 </body>

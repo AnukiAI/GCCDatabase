@@ -213,16 +213,97 @@
         const grid = document.getElementById('certificatesGrid');
         if (!grid) return;
 
-        const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
+        // Check if we're in table view or tile view
+        const isTableView = grid.classList.contains('table-view');
         
-        if (append) {
-            grid.insertAdjacentHTML('beforeend', html);
+        if (isTableView) {
+            renderCertificatesTable();
         } else {
-            grid.innerHTML = html;
+            if (append) {
+                const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
+                grid.insertAdjacentHTML('beforeend', html);
+            } else {
+                renderCertificatesTiles();
+            }
         }
 
-        // Animate new cards
+        // Animate new cards if in tile view
+        if (!isTableView) {
+            animateCards();
+        }
+    }
+
+    // Render certificates in tile format (default)
+    function renderCertificatesTiles() {
+        const grid = document.getElementById('certificatesGrid');
+        if (!grid) return;
+
+        grid.innerHTML = state.certificates.map(cert => createCertificateCard(cert)).join('');
         animateCards();
+    }
+
+    // Render certificates in table format
+    function renderCertificatesTable() {
+        const grid = document.getElementById('certificatesGrid');
+        if (!grid) return;
+
+        const tableHtml = `
+            <div class="table-container">
+                <table class="certificates-table">
+                    <thead>
+                        <tr>
+                            <th>Certificate #</th>
+                            <th>Company</th>
+                            <th>Product</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Effective Date</th>
+                            <th>Expiration Date</th>
+                            <th>Location</th>
+                            <th>Partner</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${state.certificates.map(cert => createCertificateTableRow(cert)).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+        
+        grid.innerHTML = tableHtml;
+    }
+
+    // Create certificate table row for internal view
+    function createCertificateTableRow(cert) {
+        const statusBadge = getStatusBadge(cert.status);
+        const partnerBadge = cert.partner ? `<span class="partner-badge internal">${escapeHtml(cert.partner)}</span>` : '';
+        const location = formatLocation(cert.location, cert.country);
+        
+        return `
+            <tr class="certificate-row" data-id="${cert.id}" onclick="viewCertificateDetails('${cert.id}')">
+                <td class="cert-number">${escapeHtml(cert.certificateNumber)}</td>
+                <td class="company-name">${escapeHtml(cert.companyName)}</td>
+                <td class="product-name">${escapeHtml(cert.productName)}</td>
+                <td class="cert-type">${escapeHtml(cert.certificationType)}</td>
+                <td class="status">${statusBadge}</td>
+                <td class="effective-date">${formatDate(cert.effectiveDate)}</td>
+                <td class="expiration-date">${formatDate(cert.expirationDate)}</td>
+                <td class="location">${location}</td>
+                <td class="partner">${partnerBadge}</td>
+                <td class="actions">
+                    <button class="btn-icon" title="View Details" onclick="event.stopPropagation(); viewCertificateDetails('${cert.id}')">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn-icon" title="Edit Certificate" onclick="event.stopPropagation(); editCertificate('${cert.id}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.id}')">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
     }
 
     // Create certificate card HTML (Enhanced for internal view)
@@ -334,6 +415,9 @@
                 selectSort(sortValue, label);
             });
         });
+
+        // Toggle buttons
+        setupToggleButtons();
 
         attachFilterEventListeners();
     }
@@ -733,6 +817,41 @@
                 card.classList.add('animated', 'fadeInUp');
             }, index * 50);
         });
+    }
+
+    // Setup toggle buttons functionality
+    function setupToggleButtons() {
+        // View type toggle buttons (Tile/Table)
+        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const viewType = btn.dataset.view;
+                handleViewTypeChange(viewType);
+            });
+        });
+    }
+
+    function handleViewTypeChange(viewType) {
+        // Update active button state
+        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-view="${viewType}"]`).classList.add('active');
+
+        // Get the certificates grid container
+        const gridContainer = document.getElementById('certificatesGrid');
+        if (!gridContainer) return;
+
+        if (viewType === 'table') {
+            // Switch to table view
+            gridContainer.classList.add('table-view');
+            gridContainer.classList.remove('tile-view');
+            renderCertificatesTable();
+        } else {
+            // Switch to tile view (default)
+            gridContainer.classList.remove('table-view');
+            gridContainer.classList.add('tile-view');
+            renderCertificatesTiles();
+        }
     }
 
     function showToast(message, type = 'success') {

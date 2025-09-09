@@ -1,0 +1,654 @@
+@model GCCWebApp.Services.TwoFactorPreferences
+@{
+    ViewData["Title"] = "Two-Factor Authentication Settings";
+}
+
+@section Styles {
+    <style>
+        /* Admin Container - matching application standards */
+        .admin-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 0;
+        }
+
+        .admin-header h1 {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 0;
+            color: #002B76;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+        }
+
+        /* Card sections - matching dashboard style */
+        .settings-section {
+            background-color: #ffffff;
+            border: 1px solid #eaeaea;
+            padding: 24px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #002B76;
+            margin: 0;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+        }
+
+        /* Status indicators */
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #28a745;
+        }
+
+        .status-indicator.email-only {
+            border-left-color: #00AEEF;
+        }
+
+        .status-text {
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .status-description {
+            font-size: 16px;
+            color: #666;
+            margin: 4px 0 0 0;
+        }
+
+        .status-badge {
+            background-color: #28a745;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        .status-badge.primary {
+            background-color: #00AEEF;
+        }
+
+        /* Form elements - consistent with admin pages */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 16px;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 16px;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus {
+            border-color: #00AEEF;
+            box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+            outline: none;
+        }
+
+        .form-control:read-only {
+            background-color: #f8f9fa;
+            color: #666;
+        }
+
+        /* Radio buttons */
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .radio-option {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .radio-option:hover {
+            background-color: #f9fafb;
+            border-color: #00AEEF;
+        }
+
+        .radio-option input[type="radio"] {
+            width: 18px;
+            height: 18px;
+            margin: 2px 0 0 0;
+        }
+
+        .radio-option input[type="radio"]:checked {
+            accent-color: #00AEEF;
+        }
+
+        .radio-content {
+            flex: 1;
+        }
+
+        .radio-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #374151;
+            margin: 0 0 4px 0;
+        }
+
+        .radio-description {
+            font-size: 16px;
+            color: #6b7280;
+            margin: 0;
+        }
+
+        /* Buttons - matching admin style */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            justify-content: center;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        .btn-primary {
+            background-color: #00AEEF;
+            color: #ffffff;
+        }
+
+        .btn-primary:hover {
+            background-color: #002B76;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .btn-success {
+            background-color: #28a745;
+            color: #ffffff;
+        }
+
+        .btn-success:hover {
+            background-color: #20c997;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
+        }
+
+        .btn-outline-danger {
+            background-color: transparent;
+            border: 2px solid #dc3545;
+            color: #dc3545;
+        }
+
+        .btn-outline-danger:hover {
+            background-color: #dc3545;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline-secondary {
+            background-color: transparent;
+            border: 2px solid #6c757d;
+            color: #6c757d;
+        }
+
+        .btn-outline-secondary:hover {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        /* Alerts - consistent styling */
+        .alert {
+            padding: 16px 20px;
+            margin-bottom: 20px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            font-size: 16px;
+            position: relative;
+        }
+
+        .alert-dismissible {
+            padding-right: 50px;
+        }
+
+        .alert-success {
+            color: #155724;
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            border-left: 4px solid #28a745;
+        }
+
+        .alert-danger {
+            color: #721c24;
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            border-left: 4px solid #dc3545;
+        }
+
+        .alert-info {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            border-left: 4px solid #17a2b8;
+        }
+
+        /* Close button for alerts */
+        .btn-close {
+            position: absolute;
+            top: 50%;
+            right: 16px;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            font-size: 16px;
+            color: currentColor;
+            opacity: 0.7;
+            cursor: pointer;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-close:hover {
+            opacity: 1;
+        }
+
+        .btn-close::before {
+            content: '×';
+            font-size: 20px;
+            line-height: 1;
+        }
+
+        /* Feature cards */
+        .feature-card {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .feature-card.recommended {
+            border-color: #28a745;
+            border-width: 2px;
+        }
+
+        .feature-card.active {
+            border-color: #dc3545;
+            border-width: 2px;
+        }
+
+        .feature-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .feature-badge {
+            background-color: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .feature-badge.info {
+            background-color: #17a2b8;
+        }
+
+        .feature-badge.primary {
+            background-color: #007bff;
+        }
+
+        /* Footer actions */
+        .footer-actions {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 32px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+
+        /* Responsive design */
+        @@media (max-width: 768px) {
+            .admin-container {
+                padding: 16px;
+            }
+            
+            .admin-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+            
+            .settings-section {
+                padding: 20px;
+            }
+            
+            .section-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .footer-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+}
+
+<div class="admin-container">
+    <!-- Page Header -->
+    <div class="admin-header">
+        <h1>
+            <i class="fas fa-shield-alt" style="margin-right: 8px; color: #00AEEF;"></i>
+            Two-Factor Authentication Settings
+        </h1>
+    </div>
+
+    <!-- Alerts -->
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible">
+            <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" 
+                    title="Close alert" aria-label="Close success message"></button>
+        </div>
+    }
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible">
+            <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" 
+                    title="Close alert" aria-label="Close error message"></button>
+        </div>
+    }
+
+    <!-- Current Status Section -->
+    <div class="settings-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-info-circle" style="margin-right: 8px;"></i>
+                Current Status
+            </h2>
+        </div>
+        
+        @if (Model.IsTotpEnabled)
+        {
+            <div class="status-indicator">
+                <i class="fas fa-mobile-alt" style="color: #28a745; font-size: 20px;"></i>
+                <div>
+                    <div class="status-text" style="color: #28a745;">Microsoft Authenticator Enabled</div>
+                    <div class="status-description">Your account is protected with time-based authentication codes</div>
+                </div>
+                <span class="status-badge">ACTIVE</span>
+            </div>
+        }
+        else
+        {
+            <div class="status-indicator email-only">
+                <i class="fas fa-envelope" style="color: #00AEEF; font-size: 20px;"></i>
+                <div>
+                    <div class="status-text" style="color: #00AEEF;">Email-based 2FA</div>
+                    <div class="status-description">Verification codes are sent to: @(Model.Email ?? "your email")</div>
+                </div>
+                <span class="status-badge primary">ACTIVE</span>
+            </div>
+        }
+    </div>
+
+    <!-- Microsoft Authenticator Section -->
+    <div class="settings-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-mobile-alt" style="margin-right: 8px;"></i>
+                Microsoft Authenticator
+            </h2>
+        </div>
+        
+        @if (!Model.IsTotpEnabled)
+        {
+            <div class="feature-card recommended">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #28a745;">
+                            <i class="fas fa-star" style="margin-right: 6px; color: #ffc107;"></i>
+                            Recommended: Enhanced Security
+                        </h3>
+                        <p style="margin: 0 0 12px 0; font-size: 16px; color: #666;">
+                            Microsoft Authenticator provides the highest security with time-based codes that refresh every 30 seconds.
+                        </p>
+                        <div class="feature-badges">
+                            <span class="feature-badge">
+                                <i class="fas fa-check" style="margin-right: 4px;"></i>More Secure
+                            </span>
+                            <span class="feature-badge info">
+                                <i class="fas fa-clock" style="margin-right: 4px;"></i>No Network Required
+                            </span>
+                            <span class="feature-badge primary">
+                                <i class="fas fa-mobile" style="margin-right: 4px;"></i>Works Offline
+                            </span>
+                        </div>
+                    </div>
+                    <a href="@Url.Action("SetupTotp")" class="btn btn-success">
+                        <i class="fas fa-plus"></i>
+                        Setup Now
+                    </a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="feature-card active">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 20px;">
+                    <div style="flex: 1;">
+                        <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600; color: #28a745;">
+                            <i class="fas fa-shield-alt" style="margin-right: 6px;"></i>
+                            Microsoft Authenticator is Active
+                        </h3>
+                        <p style="margin: 0; font-size: 16px; color: #666;">
+                            Your account is protected with Microsoft Authenticator. 
+                            You can disable it if you prefer email-based authentication.
+                        </p>
+                    </div>
+                    <form asp-action="DisableTotp" method="post" style="display: inline;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-outline-danger" data-disable-authenticator>
+                            <i class="fas fa-times"></i>
+                            Disable
+                        </button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Backup Methods Section -->
+    <div class="settings-section">
+        <div class="section-header">
+            <h2 class="section-title">
+                <i class="fas fa-envelope" style="margin-right: 8px;"></i>
+                Backup Methods
+            </h2>
+        </div>
+        
+        <form asp-action="TwoFactorPreferences" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="UserId" aria-hidden="true" />
+            
+            <div class="form-group">
+                <label class="form-label" id="backup-method-label">
+                    <strong>Backup Method</strong>
+                    <span style="color: #666; font-weight: normal;">(when authenticator is not available)</span>
+                </label>
+                
+                <div class="radio-group" role="radiogroup" aria-labelledby="backup-method-label">
+                    <div class="radio-option">
+                        <input type="radio" id="methodEmail" name="PreferredMethod" value="Email"
+                               aria-label="Email Verification - Receive 6-digit codes via email"
+                               @(Model.PreferredMethod == GCCWebApp.Services.TwoFactorDeliveryMethod.Email ? "checked" : "") />
+                        <label for="methodEmail" class="radio-content">
+                            <div class="radio-title">
+                                <i class="fas fa-envelope" style="margin-right: 8px; color: #00AEEF;"></i>
+                                Email Verification
+                            </div>
+                            <div class="radio-description">Receive 6-digit codes via email</div>
+                        </label>
+                    </div>
+                    
+                    @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                    {
+                        <div class="radio-option">
+                            <input type="radio" id="methodSms" name="PreferredMethod" value="SMS"
+                                   aria-label="SMS Text Message - Send codes to @Model.PhoneNumber"
+                                   @(Model.PreferredMethod == GCCWebApp.Services.TwoFactorDeliveryMethod.SMS ? "checked" : "") />
+                            <label for="methodSms" class="radio-content">
+                                <div class="radio-title">
+                                    <i class="fas fa-sms" style="margin-right: 8px; color: #28a745;"></i>
+                                    SMS Text Message
+                                </div>
+                                <div class="radio-description">Send codes to @Model.PhoneNumber</div>
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label asp-for="Email" class="form-label">Email Address</label>
+                <input asp-for="Email" class="form-control" type="email" readonly />
+                <div style="margin-top: 6px; font-size: 14px;">
+                    @if (Model.IsEmailVerified)
+                    {
+                        <i class="fas fa-check-circle" style="color: #28a745; margin-right: 4px;"></i>
+                        <span style="color: #28a745; font-weight: 600;">Verified</span>
+                    }
+                    else
+                    {
+                        <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 4px;"></i>
+                        <span style="color: #ffc107; font-weight: 600;">Not verified</span>
+                    }
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label asp-for="PhoneNumber" class="form-label">
+                    Phone Number 
+                    <span style="color: #666; font-weight: normal;">(optional)</span>
+                </label>
+                <input asp-for="PhoneNumber" class="form-control" type="tel" 
+                       placeholder="+1 (555) 123-4567" />
+                <div style="margin-top: 6px; font-size: 14px;">
+                    @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                    {
+                        @if (Model.IsPhoneVerified)
+                        {
+                            <i class="fas fa-check-circle" style="color: #28a745; margin-right: 4px;"></i>
+                            <span style="color: #28a745; font-weight: 600;">Verified</span>
+                        }
+                        else
+                        {
+                            <i class="fas fa-exclamation-triangle" style="color: #ffc107; margin-right: 4px;"></i>
+                            <span style="color: #ffc107; font-weight: 600;">Not verified</span>
+                        }
+                    }
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 24px;">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Save Preferences
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Security Information -->
+    <div class="settings-section">
+        <div class="alert alert-info">
+            <h3 style="margin: 0 0 12px 0; font-size: 18px; font-weight: 600;">
+                <i class="fas fa-info-circle" style="margin-right: 8px;"></i>Security Information
+            </h3>
+            <div style="margin: 0; font-size: 16px;">
+                <div style="margin-bottom: 8px;"><strong>Microsoft Authenticator</strong> provides the highest security level</div>
+                <div style="margin-bottom: 8px;"><strong>Email codes</strong> are convenient but require internet access</div>
+                <div style="margin-bottom: 8px;"><strong>SMS codes</strong> work on basic phones but may have carrier delays</div>
+                <div><strong>You can always change these settings later</strong></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="footer-actions">
+        <a href="@Url.Action("Index", "Dashboard")" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i>
+            Back to Dashboard
+        </a>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/two-factor-preferences.js"></script>
+}

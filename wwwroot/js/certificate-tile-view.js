@@ -277,8 +277,67 @@
                 if (filterId) toggleFilter(filterId);
             });
         });
+        
+        // View toggle buttons
+        setupViewToggleButtons();
 
         attachFilterEventListeners();
+    }
+    
+    // Setup view toggle buttons
+    function setupViewToggleButtons() {
+        // View type toggle (Tile/Table)
+        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const viewType = btn.dataset.view;
+                handleViewTypeChange(viewType);
+            });
+        });
+        
+        // Access type toggle (External/Internal)
+        document.querySelectorAll('.access-toggle-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const accessType = btn.dataset.access;
+                handleAccessTypeChange(accessType);
+            });
+        });
+    }
+    
+    // Handle view type change (Tile/Table)
+    function handleViewTypeChange(viewType) {
+        // Update active state
+        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-view="${viewType}"]`).classList.add('active');
+        
+        if (viewType === 'table') {
+            // Redirect to table view
+            window.location.href = '/Certificate/Certificates';
+        } else {
+            // Already in tile view, just ensure we're showing tiles
+            const grid = document.getElementById('certificatesGrid');
+            if (grid) {
+                grid.style.display = 'grid';
+            }
+        }
+    }
+    
+    // Handle access type change (External/Internal)
+    function handleAccessTypeChange(accessType) {
+        // Update active state
+        document.querySelectorAll('.access-toggle-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        document.querySelector(`[data-access="${accessType}"]`).classList.add('active');
+        
+        if (accessType === 'internal') {
+            // Redirect to internal tile view
+            window.location.href = '/Certificate/CertificateTileViewInternal';
+        } else {
+            // Redirect to external tile view  
+            window.location.href = '/Certificate/CertificateTileViewExternal';
+        }
     }
 
     // Attach event listeners to filter checkboxes
@@ -649,7 +708,7 @@
     // Download certificate
     async function downloadCertificate(id) {
         try {
-            const response = await fetch(`/api/certificate-tiles/${id}/download`);
+            const response = await fetch(`/Certificate/Download/${id}`);
             
             if (response.ok) {
                 const blob = await response.blob();

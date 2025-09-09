@@ -18,6 +18,7 @@
     </span>
 }
 
+@Html.AntiForgeryToken()
 <div class="admin-container">
     <header class="admin-header">
         <div class="buttons-area">
@@ -315,53 +316,4 @@
 @section Scripts {
     <script src="~/js/admin/exportUtils.js"></script>
     <script src="~/js/product-types.js"></script>
-    <script>
-        // Add export functionality to Product Types
-        document.addEventListener('DOMContentLoaded', function() {
-            const exportBtn = document.getElementById('export-btn');
-            if (exportBtn) {
-                exportBtn.addEventListener('click', function() {
-                    // Flatten hierarchical data for export
-                    const flattenedData = [
-                        { id: 1, name: 'Building Materials', type: 'Category', parent: '', level: 1, productCount: 89 },
-                        { id: 2, name: 'Insulation', type: 'Type', parent: 'Building Materials', level: 2, productCount: 35 },
-                        { id: 3, name: 'Foam Board', type: 'Subcategory', parent: 'Insulation', level: 3, productCount: 15 },
-                        { id: 4, name: 'Appliances', type: 'Type', parent: 'Building Materials', level: 2, productCount: 41 },
-                        { id: 5, name: 'Kitchen Appliances', type: 'Subcategory', parent: 'Appliances', level: 3, productCount: 25 },
-                        { id: 6, name: 'Laundry Appliances', type: 'Subcategory', parent: 'Appliances', level: 3, productCount: 16 },
-                        { id: 7, name: 'Flooring', type: 'Type', parent: 'Building Materials', level: 2, productCount: 23 },
-                        { id: 8, name: 'Hardwood', type: 'Subcategory', parent: 'Flooring', level: 3, productCount: 15 },
-                        { id: 9, name: 'Laminate', type: 'Subcategory', parent: 'Flooring', level: 3, productCount: 8 },
-                        { id: 10, name: 'Textiles', type: 'Category', parent: '', level: 1, productCount: 85 },
-                        { id: 11, name: 'Carpeting', type: 'Type', parent: 'Textiles', level: 2, productCount: 45 },
-                        { id: 12, name: 'Commercial Carpet', type: 'Subcategory', parent: 'Carpeting', level: 3, productCount: 28 },
-                        { id: 13, name: 'Residential Carpet', type: 'Subcategory', parent: 'Carpeting', level: 3, productCount: 17 },
-                        { id: 14, name: 'Fabric', type: 'Type', parent: 'Textiles', level: 2, productCount: 40 },
-                        { id: 15, name: 'Upholstery Fabric', type: 'Subcategory', parent: 'Fabric', level: 3, productCount: 23 },
-                        { id: 16, name: 'Apparel Fabric', type: 'Subcategory', parent: 'Fabric', level: 3, productCount: 17 },
-                        { id: 17, name: 'Consumer Products', type: 'Category', parent: '', level: 1, productCount: 73 },
-                        { id: 18, name: 'Furniture', type: 'Type', parent: 'Consumer Products', level: 2, productCount: 32 },
-                        { id: 19, name: 'Office Chairs', type: 'Subcategory', parent: 'Furniture', level: 3, productCount: 18 },
-                        { id: 20, name: 'Tables', type: 'Subcategory', parent: 'Furniture', level: 3, productCount: 14 }
-                    ];
-
-                    const columns = [
-                        { key: 'id', header: 'ID' },
-                        { key: 'name', header: 'Name' },
-                        { key: 'type', header: 'Type' },
-                        { key: 'parent', header: 'Parent' },
-                        { key: 'level', header: 'Hierarchy Level' },
-                        { key: 'productCount', header: 'Product Count' }
-                    ];
-                    
-                    ExportUtils.showExportModal(
-                        flattenedData, 
-                        columns, 
-                        'product_types_hierarchy',
-                        (message, type) => alert(message)
-                    );
-                });
-            }
-        });
-    </script>
 }

@@ -74,6 +74,8 @@ namespace GCCWebApp.Models
         public List<string> Permissions { get; set; } = new List<string>();
         
         public int UserCount { get; set; }
+        
+        public bool IsSystem { get; set; } = false;
     }
 
     public class PermissionViewModel
@@ -118,6 +120,10 @@ namespace GCCWebApp.Models
         public int Level { get; set; }
         
         public int SortOrder { get; set; }
+        
+        public string? Description { get; set; }
+        
+        public int ProductCount { get; set; }
         
         public List<ProductTypeViewModel> Children { get; set; } = new List<ProductTypeViewModel>();
         
@@ -221,6 +227,8 @@ namespace GCCWebApp.Models
         public string ContactEmail { get; set; } = string.Empty;
         
         public bool IsActive { get; set; } = true;
+        
+        public int SortOrder { get; set; } = 0;
         
         public DateTime CreatedDate { get; set; }
         

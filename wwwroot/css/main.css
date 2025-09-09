@@ -81,6 +81,7 @@ body {
     flex-direction: column;
     min-height: 100vh;
     line-height: 1.6;
+    font-size: 16px; /* Minimum font size for accessibility */
 }
 
 /* ===== 4. LAYOUT CONTAINERS ===== */
@@ -287,6 +288,19 @@ body {
         text-align: center;
     }
 
+/* CSP-compliant logout form styling */
+.logout-form {
+    margin: 0;
+}
+
+.logout-button {
+    border: none;
+    background: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+}
+
 .divider {
     height: 1px;
     background-color: var(--border-color);
@@ -472,6 +486,16 @@ body {
         transform: rotate(90deg);
         transition: transform 0.3s ease;
     }
+
+/* Mobile nav close wrapper - ensures proper list structure */
+.mobile-nav-close-item {
+    position: absolute;
+    top: 0;
+    right: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
 
 .mobile-nav-close {
     display: none;
@@ -3618,7 +3642,8 @@ footer {
     pointer-events: none;
 }
 
-.sr-only {
+.sr-only,
+.visually-hidden {
     position: absolute;
     width: 1px;
     height: 1px;

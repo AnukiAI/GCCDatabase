@@ -3,6 +3,7 @@ class UserManagement {
     constructor() {
         this.users = [];
         this.filteredUsers = [];
+        this.companies = [];
         this.currentSort = { field: 'name', direction: 'asc' };
         this.currentEditingId = null;
         
@@ -12,6 +13,7 @@ class UserManagement {
     async init() {
         console.log('Initializing User Management...');
         this.bindEvents();
+        await this.loadCompanies();
         await this.loadUsers();
         this.renderUsers();
         this.updateUserCount();
@@ -45,6 +47,31 @@ class UserManagement {
         });
     }
     
+    async loadCompanies() {
+        try {
+            const response = await fetch('/Admin/GetCompanies', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+            
+            const result = await response.json();
+            
+            if (result.success && result.data) {
+                this.companies = result.data;
+                console.log(`Loaded ${this.companies.length} companies from backend`);
+                this.populateCompanyDropdowns();
+            } else {
+                console.error('Failed to load companies:', result.message);
+                this.companies = [];
+            }
+        } catch (error) {
+            console.error('Error loading companies:', error);
+            this.companies = [];
+        }
+    }
+
     async loadUsers() {
         try {
             this.showLoading(true);
@@ -115,7 +142,7 @@ class UserManagement {
                 <td class="user-company">${this.escapeHtml(companyDisplay)}</td>
                 <td class="user-email">${this.escapeHtml(user.email || '')}</td>
                 <td class="user-role">
-                    <span class="role-badge role-${(user.role || '').toLowerCase().replace(' ', '-')}">${this.escapeHtml(user.role || '')}</span>
+                    <span class="role-badge role-${(user.role || '').toLowerCase()}">${this.escapeHtml(user.role || '')}</span>
                 </td>
                 <td class="user-status">
                     <span class="status-badge ${statusClass}">${this.escapeHtml(user.status || '')}</span>
@@ -126,9 +153,33 @@ class UserManagement {
                         <button class="action-btn edit-btn" onclick="userManagement.editUser(${user.id})" title="Edit User">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn delete-btn" onclick="userManagement.deleteUser(${user.id})" title="Delete User">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="dropdown-container">
+                            <button class="action-btn dropdown-btn" onclick="userManagement.toggle2FADropdown(${user.id})" title="2FA Management">
+                                <i class="fas fa-shield-alt"></i>
+                                <i class="fas fa-caret-down dropdown-arrow"></i>
+                            </button>
+                            <div class="dropdown-menu" id="dropdown-${user.id}">
+                                <a href="/Account/TwoFactorPreferences?userId=${user.id}" class="dropdown-item">
+                                    <i class="fas fa-cog"></i> 2FA Settings
+                                </a>
+                                <button class="dropdown-item" onclick="userManagement.view2FAStatus(${user.id})">
+                                    <i class="fas fa-info-circle"></i> View 2FA Status
+                                </button>
+                                <button class="dropdown-item" onclick="userManagement.reset2FA(${user.id})">
+                                    <i class="fas fa-undo"></i> Reset 2FA
+                                </button>
+                                <button class="dropdown-item" onclick="userManagement.disable2FA(${user.id})">
+                                    <i class="fas fa-times-circle"></i> Disable 2FA
+                                </button>
+                            </div>
+                        </div>
+                        ${user.role !== 'Admin' ? `
+                            <button class="action-btn delete-btn" onclick="userManagement.deleteUser(${user.id})" title="Delete User">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : `
+                            <span class="admin-user-note" title="Admin users cannot be deleted">Protected</span>
+                        `}
                     </div>
                 </td>
             </tr>
@@ -163,13 +214,12 @@ class UserManagement {
             if (statusFilter !== 'all' && user.status?.toLowerCase() !== statusFilter) return false;
             
             // Role filter  
-            if (roleFilter !== 'all' && user.role?.toLowerCase().replace(' ', '-') !== roleFilter) return false;
+            if (roleFilter !== 'all' && user.role !== roleFilter) return false;
             
-            // Company filter (simplified - in real app would match company IDs)
+            // Company filter
             if (companyFilter !== 'all') {
-                const companyText = user.companyNames ? user.companyNames.join(' ') : (user.company || '');
-                const companyMatch = companyText?.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-                if (companyMatch !== companyFilter) return false;
+                const companyId = parseInt(companyFilter);
+                if (!user.companyIds || !user.companyIds.includes(companyId)) return false;
             }
             
             return true;
@@ -239,6 +289,15 @@ class UserManagement {
         document.getElementById('user-form').reset();
         document.getElementById('user-id').value = '';
         this.currentEditingId = null;
+        
+        // Set password as required for new users
+        const passwordField = document.getElementById('user-password');
+        const passwordHelp = document.getElementById('password-help');
+        if (passwordField && passwordHelp) {
+            passwordField.required = true;
+            passwordHelp.textContent = 'Password is required for new users';
+        }
+        
         this.showModal();
     }
     
@@ -253,9 +312,25 @@ class UserManagement {
         document.getElementById('user-id').value = user.id;
         document.getElementById('user-name').value = user.name || '';
         document.getElementById('user-email').value = user.email || '';
-        document.getElementById('user-company').value = user.companyNames ? user.companyNames.join(', ') : (user.company || '');
         document.getElementById('user-role').value = user.role || '';
         document.getElementById('user-status').value = user.status || '';
+        
+        // Set selected companies
+        const companySelect = document.getElementById('user-company');
+        if (companySelect && user.companyIds) {
+            Array.from(companySelect.options).forEach(option => {
+                option.selected = user.companyIds.includes(parseInt(option.value));
+            });
+        }
+
+        // Set password as optional for existing users
+        const passwordField = document.getElementById('user-password');
+        const passwordHelp = document.getElementById('password-help');
+        if (passwordField && passwordHelp) {
+            passwordField.required = false;
+            passwordField.value = '';
+            passwordHelp.textContent = 'Leave blank to keep current password';
+        }
         
         this.currentEditingId = userId;
         this.showModal();
@@ -265,6 +340,12 @@ class UserManagement {
         const user = this.users.find(u => u.id === userId);
         if (!user) {
             this.showNotification('User not found', 'error');
+            return;
+        }
+
+        // Prevent deletion of Admin users
+        if (user.role === 'Admin') {
+            this.showNotification('Cannot delete Admin users. Admin users are protected from deletion.', 'error');
             return;
         }
         
@@ -304,17 +385,38 @@ class UserManagement {
     async handleFormSubmit(e) {
         e.preventDefault();
         
+        const companySelect = document.getElementById('user-company');
+        const selectedCompanies = Array.from(companySelect.selectedOptions).map(option => parseInt(option.value));
+        const passwordField = document.getElementById('user-password');
+        const passwordValue = passwordField.value.trim();
+        
         const formData = {
             name: document.getElementById('user-name').value.trim(),
             email: document.getElementById('user-email').value.trim(),
-            company: document.getElementById('user-company').value.trim(),
+            companyIds: selectedCompanies,
             role: document.getElementById('user-role').value,
-            status: document.getElementById('user-status').value
+            status: document.getElementById('user-status').value,
+            requirePasswordReset: document.getElementById('require-password-reset').checked
         };
+
+        // Add password only if provided (for edits) or required (for new users)
+        if (passwordValue) {
+            formData.password = passwordValue;
+        } else if (!this.currentEditingId) {
+            // Generate a temporary password for new users if none provided
+            formData.password = 'TempPassword123!';
+            formData.requirePasswordReset = true; // Force password reset
+        }
         
         // Basic validation
         if (!formData.name || !formData.email) {
             this.showNotification('Name and email are required', 'error');
+            return;
+        }
+
+        // Password validation for new users
+        if (!this.currentEditingId && !passwordValue) {
+            this.showNotification('Password is required for new users', 'error');
             return;
         }
         
@@ -518,10 +620,169 @@ class UserManagement {
         return token || '';
     }
     
+    populateCompanyDropdowns() {
+        // Update filter dropdown
+        const companyFilter = document.getElementById('company-filter');
+        if (companyFilter) {
+            // Clear existing options except "All Companies"
+            const firstOption = companyFilter.children[0];
+            companyFilter.innerHTML = '';
+            companyFilter.appendChild(firstOption);
+            
+            // Add company options
+            this.companies.forEach(company => {
+                const option = document.createElement('option');
+                option.value = company.id;
+                option.textContent = company.name;
+                companyFilter.appendChild(option);
+            });
+        }
+
+        // Update modal company dropdown
+        const userCompanySelect = document.getElementById('user-company');
+        if (userCompanySelect) {
+            userCompanySelect.innerHTML = '';
+            this.companies.forEach(company => {
+                const option = document.createElement('option');
+                option.value = company.id;
+                option.textContent = company.name;
+                userCompanySelect.appendChild(option);
+            });
+        }
+    }
+
     escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
+    }
+    
+    // 2FA Management Methods
+    toggle2FADropdown(userId) {
+        console.log('Toggle 2FA dropdown for user:', userId);
+        const dropdown = document.getElementById(`dropdown-${userId}`);
+        
+        if (!dropdown) {
+            console.error('Dropdown not found for user:', userId);
+            return;
+        }
+        
+        const allDropdowns = document.querySelectorAll('.dropdown-menu');
+        
+        // Close all other dropdowns
+        allDropdowns.forEach(menu => {
+            if (menu !== dropdown) {
+                menu.classList.remove('show');
+            }
+        });
+        
+        // Toggle current dropdown
+        dropdown.classList.toggle('show');
+        console.log('Dropdown show class:', dropdown.classList.contains('show'));
+        
+        // Close dropdown when clicking outside
+        if (dropdown.classList.contains('show')) {
+            document.addEventListener('click', this.closeDropdownOnOutsideClick, { once: true });
+        }
+    }
+    
+    closeDropdownOnOutsideClick = (event) => {
+        if (!event.target.closest('.dropdown-container')) {
+            document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                menu.classList.remove('show');
+            });
+        }
+    }
+    
+    async view2FAStatus(userId) {
+        try {
+            const user = this.users.find(u => u.id === userId);
+            if (!user) {
+                this.showNotification('User not found', 'error');
+                return;
+            }
+            
+            // Show 2FA status modal or navigate to status page
+            const statusInfo = `
+                <strong>2FA Status for ${user.name}</strong><br>
+                Email: ${user.email}<br>
+                Current Status: ${user.twoFactorEnabled ? 'Enabled' : 'Disabled'}<br>
+                Method: ${user.twoFactorMethod || 'None'}<br>
+                Last Updated: ${user.twoFactorLastUpdated || 'Never'}
+            `;
+            
+            this.showNotification(statusInfo, 'info');
+            
+        } catch (error) {
+            console.error('Error viewing 2FA status:', error);
+            this.showNotification('Failed to load 2FA status', 'error');
+        }
+    }
+    
+    async reset2FA(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) {
+            this.showNotification('User not found', 'error');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to reset 2FA for ${user.name}? This will remove their current 2FA setup and require them to set it up again.`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/Admin/Reset2FA', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': this.getAntiForgeryToken()
+                },
+                body: JSON.stringify({ userId: userId })
+            });
+            
+            if (response.ok) {
+                this.showNotification(`2FA reset successfully for ${user.name}`, 'success');
+            } else {
+                this.showNotification('Failed to reset 2FA', 'error');
+            }
+            
+        } catch (error) {
+            console.error('Error resetting 2FA:', error);
+            this.showNotification('Failed to reset 2FA', 'error');
+        }
+    }
+    
+    async disable2FA(userId) {
+        const user = this.users.find(u => u.id === userId);
+        if (!user) {
+            this.showNotification('User not found', 'error');
+            return;
+        }
+        
+        if (!confirm(`Are you sure you want to disable 2FA for ${user.name}? This will make their account less secure.`)) {
+            return;
+        }
+        
+        try {
+            const response = await fetch('/Admin/Disable2FA', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': this.getAntiForgeryToken()
+                },
+                body: JSON.stringify({ userId: userId })
+            });
+            
+            if (response.ok) {
+                this.showNotification(`2FA disabled for ${user.name}`, 'success');
+            } else {
+                this.showNotification('Failed to disable 2FA', 'error');
+            }
+            
+        } catch (error) {
+            console.error('Error disabling 2FA:', error);
+            this.showNotification('Failed to disable 2FA', 'error');
+        }
     }
 }
 

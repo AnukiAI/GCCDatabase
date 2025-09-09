@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Caching.Memory;
+using QRCoder;
 
 namespace GCCWebApp.Services
 {
@@ -10,6 +12,12 @@ namespace GCCWebApp.Services
         Task SendCodeByEmailAsync(string email, string code);
         void StoreCode(string userId, string code);
         Task<bool> ResendCodeAsync(string userId, string email);
+        
+        // TOTP Methods
+        string GenerateTotpSecret();
+        string GenerateQrCodeUri(string email, string secret, string issuer = "GCC Database");
+        byte[] GenerateQrCodeImage(string qrCodeUri);
+        bool ValidateTotpCode(string secret, string userCode);
     }
 
     public class TwoFactorService : ITwoFactorService
@@ -194,6 +202,144 @@ namespace GCCWebApp.Services
             _logger.LogInformation($"2FA code resent to {email} for user {userId}");
             return true;
         }
+
+        #region TOTP Methods
+
+        public string GenerateTotpSecret()
+        {
+            var key = new byte[20]; // 160-bit key (recommended for TOTP)
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(key);
+            return Base32Encode(key);
+        }
+
+        public string GenerateQrCodeUri(string email, string secret, string issuer = "GCC Database")
+        {
+            var label = $"{issuer}:{email}";
+            return $"otpauth://totp/{Uri.EscapeDataString(label)}?secret={secret}&issuer={Uri.EscapeDataString(issuer)}";
+        }
+
+        public byte[] GenerateQrCodeImage(string qrCodeUri)
+        {
+            try
+            {
+                using var qrGenerator = new QRCodeGenerator();
+                var qrCodeData = qrGenerator.CreateQrCode(qrCodeUri, QRCodeGenerator.ECCLevel.Q);
+                using var qrCode = new BitmapByteQRCode(qrCodeData);
+                return qrCode.GetGraphic(20); // 20 pixels per module
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to generate QR code image");
+                throw;
+            }
+        }
+
+        public bool ValidateTotpCode(string secret, string userCode)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(secret) || string.IsNullOrEmpty(userCode))
+                    return false;
+
+                if (userCode.Length != 6 || !userCode.All(char.IsDigit))
+                    return false;
+
+                var secretBytes = Base32Decode(secret);
+                var unixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                var timeStep = unixTime / 30; // 30-second time window
+                
+                // Check current time window and ±1 window for clock drift tolerance
+                for (int i = -1; i <= 1; i++)
+                {
+                    var expectedCode = GenerateTotpCode(secretBytes, timeStep + i);
+                    if (expectedCode == userCode)
+                    {
+                        _logger.LogInformation("TOTP code validated successfully");
+                        return true;
+                    }
+                }
+                
+                _logger.LogWarning("TOTP code validation failed");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating TOTP code");
+                return false;
+            }
+        }
+
+        private string GenerateTotpCode(byte[] secretBytes, long timeStep)
+        {
+            var timeBytes = BitConverter.GetBytes(timeStep);
+            if (BitConverter.IsLittleEndian)
+                Array.Reverse(timeBytes);
+
+            using var hmac = new HMACSHA1(secretBytes);
+            var hash = hmac.ComputeHash(timeBytes);
+            
+            var offset = hash[hash.Length - 1] & 0x0F;
+            var binaryCode = ((hash[offset] & 0x7F) << 24) |
+                           ((hash[offset + 1] & 0xFF) << 16) |
+                           ((hash[offset + 2] & 0xFF) << 8) |
+                           (hash[offset + 3] & 0xFF);
+                           
+            var code = binaryCode % 1000000;
+            return code.ToString("D6");
+        }
+
+        private static string Base32Encode(byte[] data)
+        {
+            const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+            var result = new StringBuilder();
+            
+            for (int i = 0; i < data.Length; i += 5)
+            {
+                var chunk = new byte[5];
+                Array.Copy(data, i, chunk, 0, Math.Min(5, data.Length - i));
+                
+                var buffer = (long)chunk[0] << 32 | (long)chunk[1] << 24 | (long)chunk[2] << 16 | (long)chunk[3] << 8 | chunk[4];
+                
+                for (int j = 7; j >= 0; j--)
+                {
+                    if (i * 8 / 5 + j < (data.Length * 8 + 4) / 5)
+                        result.Append(alphabet[(int)(buffer >> (5 * j)) & 0x1F]);
+                }
+            }
+            
+            return result.ToString();
+        }
+
+        private static byte[] Base32Decode(string encoded)
+        {
+            const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+            encoded = encoded.ToUpper().Replace("=", "");
+            
+            var result = new List<byte>();
+            var buffer = 0L;
+            var bitsLeft = 0;
+            
+            foreach (var c in encoded)
+            {
+                var value = alphabet.IndexOf(c);
+                if (value < 0) continue;
+                
+                buffer = (buffer << 5) | (uint)value;
+                bitsLeft += 5;
+                
+                if (bitsLeft >= 8)
+                {
+                    result.Add((byte)(buffer >> (bitsLeft - 8)));
+                    bitsLeft -= 8;
+                }
+            }
+            
+            return result.ToArray();
+        }
+
+        #endregion
     }
+
 
 }

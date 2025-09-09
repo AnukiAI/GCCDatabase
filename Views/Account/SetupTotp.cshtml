@@ -1,0 +1,264 @@
+@model GCCWebApp.Models.SetupTotpViewModel
+@{
+    ViewData["Title"] = "Setup Microsoft Authenticator";
+    ViewData["BodyClass"] = "totp-setup-page";
+}
+
+<div class="container-fluid h-100">
+    <div class="row justify-content-center align-items-center min-vh-100">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-primary text-white text-center py-4">
+                    <i class="fas fa-shield-alt fa-2x mb-2"></i>
+                    <h3 class="mb-0">Setup Microsoft Authenticator</h3>
+                    <p class="mb-0 small">Secure your account with two-factor authentication</p>
+                </div>
+                
+                <div class="card-body p-4">
+                    @if (!string.IsNullOrEmpty(ViewBag.ErrorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            @ViewBag.ErrorMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    }
+
+                    <div class="row">
+                        <!-- QR Code Column -->
+                        <div class="col-md-6 text-center mb-4">
+                            <h5 class="text-primary mb-3">
+                                <i class="fas fa-qrcode me-2"></i>Step 1: Scan QR Code
+                            </h5>
+                            
+                            <div class="qr-code-container p-3 border rounded bg-light">
+                                <img src="@Url.Action("GenerateQrCode", "Account")" 
+                                     alt="QR Code for Microsoft Authenticator" 
+                                     class="img-fluid qr-code-image"
+                                     style="max-width: 200px; max-height: 200px;" />
+                            </div>
+                            
+                            <div class="mt-3">
+                                <p class="small text-muted mb-2">
+                                    <i class="fas fa-mobile-alt me-1"></i>
+                                    Open Microsoft Authenticator and scan this code
+                                </p>
+                                
+                                <details class="mt-2">
+                                    <summary class="btn btn-link btn-sm text-decoration-none">
+                                        <i class="fas fa-key me-1"></i>Manual Entry Code
+                                    </summary>
+                                    <div class="mt-2">
+                                        <code class="user-select-all small">@ViewBag.TotpSecret</code>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm ms-2" onclick="copyToClipboard('@ViewBag.TotpSecret')">
+                                            <i class="fas fa-copy"></i> Copy
+                                        </button>
+                                    </div>
+                                </details>
+                            </div>
+                        </div>
+
+                        <!-- Verification Column -->
+                        <div class="col-md-6">
+                            <h5 class="text-primary mb-3">
+                                <i class="fas fa-check-circle me-2"></i>Step 2: Enter Code
+                            </h5>
+                            
+                            <form asp-action="EnableTotp" method="post" class="verification-form">
+                                @Html.AntiForgeryToken()
+                                
+                                <div class="mb-3">
+                                    <label for="totpCode" class="form-label">
+                                        <strong>6-Digit Verification Code</strong>
+                                    </label>
+                                    <input type="text" 
+                                           class="form-control form-control-lg text-center totp-input" 
+                                           id="totpCode" 
+                                           name="totpCode" 
+                                           placeholder="000000"
+                                           maxlength="6"
+                                           pattern="[0-9]{6}"
+                                           autocomplete="one-time-code"
+                                           required>
+                                    <div class="form-text">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        Enter the 6-digit code from your authenticator app
+                                    </div>
+                                </div>
+
+                                <div class="d-grid gap-2">
+                                    <button type="submit" class="btn btn-success btn-lg">
+                                        <i class="fas fa-shield-alt me-2"></i>
+                                        Enable Authenticator
+                                    </button>
+                                    
+                                    <a href="@Url.Action("TwoFactorPreferences")" class="btn btn-outline-secondary">
+                                        <i class="fas fa-arrow-left me-2"></i>
+                                        Back to 2FA Settings
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Instructions -->
+                    <hr class="my-4">
+                    <div class="instructions">
+                        <h6 class="text-primary mb-3">
+                            <i class="fas fa-list-ol me-2"></i>Setup Instructions
+                        </h6>
+                        
+                        <ol class="small">
+                            <li class="mb-2">
+                                <strong>Download Microsoft Authenticator:</strong>
+                                <div class="mt-1">
+                                    <a href="https://apps.apple.com/app/microsoft-authenticator/id983156458" 
+                                       target="_blank" class="btn btn-outline-dark btn-sm me-2">
+                                        <i class="fab fa-apple"></i> iOS
+                                    </a>
+                                    <a href="https://play.google.com/store/apps/details?id=com.azure.authenticator" 
+                                       target="_blank" class="btn btn-outline-dark btn-sm">
+                                        <i class="fab fa-google-play"></i> Android
+                                    </a>
+                                </div>
+                            </li>
+                            <li class="mb-2">
+                                <strong>Add Account:</strong> Tap the <kbd>+</kbd> button and select "Other account"
+                            </li>
+                            <li class="mb-2">
+                                <strong>Scan QR Code:</strong> Point your camera at the QR code above
+                            </li>
+                            <li class="mb-2">
+                                <strong>Verify:</strong> Enter the 6-digit code displayed in the app
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+                
+                <div class="card-footer bg-light text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-lock me-1"></i>
+                        Your account will be more secure with two-factor authentication enabled
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.totp-setup-page {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+}
+
+.qr-code-container {
+    background: white !important;
+    display: inline-block;
+}
+
+.qr-code-image {
+    border-radius: 8px;
+}
+
+.totp-input {
+    font-size: 1.5rem;
+    letter-spacing: 0.2em;
+    font-weight: bold;
+    font-family: 'Courier New', monospace;
+}
+
+.totp-input:focus {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+.verification-form {
+    border-left: 3px solid #dee2e6;
+    padding-left: 1rem;
+}
+
+@@media (max-width: 768px) {
+    .verification-form {
+        border-left: none;
+        border-top: 3px solid #dee2e6;
+        padding-left: 0;
+        padding-top: 1rem;
+        margin-top: 2rem;
+    }
+}
+
+.instructions {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 8px;
+    border-left: 4px solid #007bff;
+}
+
+.card {
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.card-header {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const totpInput = document.getElementById('totpCode');
+    
+    // Auto-format and submit when 6 digits entered
+    totpInput.addEventListener('input', function(e) {
+        // Remove non-numeric characters
+        this.value = this.value.replace(/[^0-9]/g, '');
+        
+        // Limit to 6 digits
+        if (this.value.length > 6) {
+            this.value = this.value.slice(0, 6);
+        }
+        
+        // Add visual feedback when complete
+        if (this.value.length === 6) {
+            this.classList.add('is-valid');
+            // Auto-submit after short delay to let user see the complete code
+            setTimeout(() => {
+                if (this.value.length === 6) {
+                    this.form.submit();
+                }
+            }, 500);
+        } else {
+            this.classList.remove('is-valid');
+        }
+    });
+    
+    // Focus the input on page load
+    totpInput.focus();
+    
+    // Refresh QR code every 5 minutes in case of issues
+    setInterval(function() {
+        const qrImg = document.querySelector('.qr-code-image');
+        if (qrImg) {
+            qrImg.src = qrImg.src + '&t=' + new Date().getTime();
+        }
+    }, 300000); // 5 minutes
+});
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        // Show temporary success feedback
+        const btn = event.target.closest('button');
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+        btn.classList.add('btn-success');
+        btn.classList.remove('btn-outline-secondary');
+        
+        setTimeout(() => {
+            btn.innerHTML = originalHtml;
+            btn.classList.remove('btn-success');
+            btn.classList.add('btn-outline-secondary');
+        }, 2000);
+    });
+}
+</script>

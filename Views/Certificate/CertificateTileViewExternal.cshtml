@@ -2,102 +2,615 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 <link rel="stylesheet" href="~/css/certificatetileview.css" />
-<link rel="stylesheet" href="~/css/certificate-autocomplete.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+@* Removing inline styles to use external CSS instead
+<style>
+    /* External Certificate Tile View specific overrides */
+    /* Most styles now come from certificatetileview.css */
+    
+    /* Keep only External-specific styles that don't conflict */
+
+    /* Mobile filter toggle */
+    .mobile-filter-toggle {
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 12px 16px;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 16px; /* Minimum font size for accessibility */
+        font-weight: 500;
+        cursor: pointer;
+        margin-bottom: 15px;
+        transition: background-color 0.2s;
+    }
+
+    .mobile-filter-toggle:hover {
+        background: #0056b3;
+    }
+
+    /* Search bar */
+    .search-bar {
+        position: relative;
+        margin-bottom: 25px;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 12px 45px 12px 16px;
+        border: 2px solid #e0e0e0;
+        border-radius: 6px;
+        font-size: 16px; /* Minimum font size for accessibility */
+        transition: border-color 0.2s;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: #007bff;
+    }
+
+    .search-icon {
+        position: absolute;
+        right: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #666;
+        font-size: 16px;
+    }
+
+    /* Filter header */
+    .filters-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .filters-title {
+        font-size: 20px;
+        font-weight: 600;
+        margin: 0;
+        color: #333;
+    }
+
+    .clear-filters {
+        color: #dc3545;
+        text-decoration: none;
+        font-size: 16px; /* Minimum font size for accessibility */
+        font-weight: 500;
+        transition: color 0.2s;
+    }
+
+    .clear-filters:hover {
+        color: #c82333;
+        text-decoration: underline;
+    }
+
+    /* Filter panels */
+    .filter-panel {
+        margin-bottom: 20px;
+        border: 1px solid #e0e0e0;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background: #f8f9fa;
+        cursor: pointer;
+        font-weight: 500;
+        font-size: 16px; /* Minimum font size for accessibility */
+        transition: background-color 0.2s;
+    }
+
+    .filter-header:hover {
+        background: #e9ecef;
+    }
+
+    .filter-content {
+        padding: 15px;
+        background: white;
+    }
+
+    .filter-tree {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .filter-tree li {
+        margin-bottom: 8px;
+    }
+
+    .filter-tree input[type="checkbox"] {
+        margin-right: 8px;
+        transform: scale(1.1);
+    }
+
+    .filter-tree label {
+        cursor: pointer;
+        font-size: 16px; /* Minimum font size for accessibility */
+        line-height: 1.4;
+    }
+
+    /* Main content area */
+    .main-content {
+        flex: 1;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        padding: 25px;
+    }
+
+    /* Results header */
+    .results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid #f0f0f0;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+
+    .results-count {
+        font-size: 18px;
+        font-weight: 600;
+        color: #333;
+    }
+
+    /* View controls */
+    .view-controls {
+        display: flex;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .view-type-toggle {
+        display: flex;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .view-toggle-btn {
+        padding: 8px 12px;
+        border: none;
+        background: #f8f9fa;
+        cursor: pointer;
+        font-size: 16px; /* Minimum font size for accessibility */
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .view-toggle-btn:hover {
+        background: #e9ecef;
+    }
+
+    .view-toggle-btn.active {
+        background: #007bff;
+        color: white;
+    }
+
+    /* Sort controls */
+    .sort-controls {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .sort-label {
+        font-weight: 500;
+        font-size: 16px; /* Minimum font size for accessibility */
+        color: #333;
+    }
+
+    .sort-dropdown {
+        position: relative;
+    }
+
+    .sort-dropdown-button {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 16px; /* Minimum font size for accessibility */
+        transition: all 0.2s;
+        min-width: 180px;
+    }
+
+    .sort-dropdown-button:hover {
+        border-color: #007bff;
+        background: #f8f9fa;
+    }
+
+    .sort-dropdown-content {
+        position: absolute;
+        top: 100%;
+        right: 0;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        min-width: 250px;
+        max-height: 400px;
+        overflow-y: auto;
+        z-index: 1000;
+        display: none;
+    }
+
+    .sort-dropdown.open .sort-dropdown-content {
+        display: block;
+    }
+
+    .sort-group-header {
+        padding: 10px 15px;
+        background: #f8f9fa;
+        font-weight: 600;
+        font-size: 16px; /* Minimum font size for accessibility */
+        color: #555;
+        border-bottom: 1px solid #e0e0e0;
+    }
+
+    .sort-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px 15px;
+        cursor: pointer;
+        font-size: 16px; /* Minimum font size for accessibility */
+        transition: background-color 0.2s;
+    }
+
+    .sort-option:hover {
+        background: #f8f9fa;
+    }
+
+    .sort-option i {
+        width: 16px;
+        color: #666;
+    }
+
+    /* Certificate grid */
+    .certificates-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    /* Certificate cards */
+    .certificate-card {
+        background: white;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: all 0.2s;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .certificate-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        border-color: #007bff;
+    }
+
+    .card-header {
+        background: #003d7a;
+        color: white;
+        padding: 15px 20px;
+    }
+
+    .header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+    }
+
+    .certificate-category {
+        font-size: 16px; /* Minimum font size for accessibility */
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .certificate-id {
+        font-size: 18px;
+        font-weight: 700;
+    }
+
+    .company-name {
+        font-size: 20px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .card-body {
+        padding: 20px;
+    }
+
+    .product-info {
+        margin-bottom: 15px;
+    }
+
+    .product-name {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 8px;
+        line-height: 1.3;
+        color: #333;
+    }
+
+    .product-type {
+        font-size: 16px; /* Minimum font size for accessibility */
+        color: #666;
+        font-weight: 500;
+    }
+
+    .certificate-details {
+        border-top: 1px solid #f0f0f0;
+        padding-top: 15px;
+    }
+
+    .certificate-period {
+        display: flex;
+        align-items: center;
+        margin-bottom: 12px;
+        font-size: 16px; /* Minimum font size for accessibility */
+    }
+
+    .certificate-location {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #666;
+        font-size: 16px; /* Minimum font size for accessibility */
+    }
+
+    .certificate-location i {
+        color: #007bff;
+        width: 16px;
+    }
+
+    /* Card actions - External users have limited actions */
+    .card-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding: 15px 20px;
+        background: #f8f9fa;
+        border-top: 1px solid #e0e0e0;
+    }
+
+    .action-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 16px;
+    }
+
+    .action-icon.download {
+        color: #28a745;
+        background: #f8fff9;
+        border: 1px solid #d4edda;
+    }
+
+    .action-icon.download:hover {
+        background: #d4edda;
+        color: #1e7e34;
+    }
+
+    .action-icon.external {
+        color: #007bff;
+        background: #f8f9ff;
+        border: 1px solid #e3f2fd;
+    }
+
+    .action-icon.external:hover {
+        background: #e3f2fd;
+        color: #0056b3;
+    }
+
+    /* Loading indicator styles for lazy loading */
+    .loading-indicator {
+        display: none;
+        justify-content: center;
+        align-items: center;
+        padding: 40px 20px;
+        text-align: center;
+        font-size: 16px; /* Minimum font size for accessibility */
+        color: #666;
+        background-color: #f8f9fa;
+        margin: 20px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .loading-spinner {
+        width: 24px;
+        height: 24px;
+        border: 3px solid #f3f3f3;
+        border-top: 3px solid #007bff;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-right: 12px;
+    }
+
+    .loading-text {
+        font-weight: 500;
+        font-size: 16px; /* Minimum font size for accessibility */
+    }
+
+    @@keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    /* Responsive design */
+    @@media (max-width: 768px) {
+        .main-container {
+            flex-direction: column;
+            padding: 15px;
+        }
+
+        .sidebar {
+            width: 100%;
+            position: relative;
+            top: 0;
+        }
+
+        .mobile-filter-toggle {
+            display: flex;
+        }
+
+        .sidebar:not(.expanded) .search-bar,
+        .sidebar:not(.expanded) .filters-header,
+        .sidebar:not(.expanded) .filter-panel {
+            display: none;
+        }
+
+        .results-header {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 15px;
+        }
+
+        .view-controls {
+            justify-content: center;
+        }
+
+        .certificates-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .certificate-card {
+            margin-bottom: 15px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .main-container {
+            padding: 10px;
+        }
+
+        .main-content {
+            padding: 15px;
+        }
+
+        .certificate-card {
+            font-size: 14px;
+        }
+
+        .company-name {
+            font-size: 18px;
+        }
+
+        .product-name {
+            font-size: 16px;
+        }
+    }
+</style>
+*@
 
 <!-- Main Container -->
 <div class="main-container">
     <!-- Sidebar (Filters) -->
     <div class="sidebar">
-        <button class="mobile-filter-toggle" onclick="toggleMobileFilters()" style="display: none;">
+        <button class="mobile-filter-toggle" style="display: none;">
             <span>Show Filters & Search</span>
             <i class="fas fa-chevron-down"></i>
         </button>
 
         <!-- Search Bar -->
         <div class="search-bar">
-            <i class="fas fa-search search-icon"></i>
             <input type="text" class="search-input" placeholder="Search certificates, companies, products...">
+            <i class="fas fa-search search-icon"></i>
         </div>
 
         <div class="filters-header">
             <h3 class="filters-title">Filters</h3>
-            <a href="#" class="clear-filters" onclick="certificateTileViewExternal.clearAllFilters(); return false;">Clear Filters</a>
+            <a href="#" class="clear-filters">Clear Filters</a>
         </div>
 
         <!-- Certification Type Filter -->
         <div class="filter-panel">
-            <div class="filter-header" onclick="toggleFilter('cert-type')">
+            <div class="filter-header" data-filter="cert-type">
                 <span>Certification Type</span>
                 <i class="fas fa-chevron-down"></i>
             </div>
             <div class="filter-content" id="cert-type-content">
                 <ul class="filter-tree">
-                    <!-- Populated dynamically via JavaScript -->
+                    <li><input type="checkbox" id="csf" data-type="csf"><label for="csf">Certified Sustainability Facts</label></li>
+                    <li><input type="checkbox" id="env-facts" data-type="environmental-facts"><label for="env-facts">Environmental Facts</label></li>
+                    <li><input type="checkbox" id="recycled-content" data-type="recycled-content"><label for="recycled-content">Recycled Content</label></li>
+                    <li><input type="checkbox" id="energy-savings" data-type="energy-savings"><label for="energy-savings">Energy Savings</label></li>
                 </ul>
             </div>
         </div>
 
         <!-- Product Categories Filter -->
         <div class="filter-panel">
-            <div class="filter-header" onclick="toggleFilter('product-cat')">
+            <div class="filter-header" data-filter="product-cat">
                 <span>Product Categories</span>
                 <i class="fas fa-chevron-down"></i>
             </div>
             <div class="filter-content" id="product-cat-content">
                 <ul class="filter-tree">
-                    <!-- Populated dynamically via JavaScript -->
+                    <li><input type="checkbox" id="construction" data-category="construction"><label for="construction">Construction</label></li>
+                    <li><input type="checkbox" id="electronics" data-category="electronics"><label for="electronics">Electronics</label></li>
+                    <li><input type="checkbox" id="packaging" data-category="packaging"><label for="packaging">Packaging</label></li>
+                    <li><input type="checkbox" id="paper" data-category="paper"><label for="paper">Paper</label></li>
                 </ul>
             </div>
         </div>
 
-        <!-- Company Filter -->
+        <!-- Location Filter -->
         <div class="filter-panel">
-            <div class="filter-header" onclick="toggleFilter('company')">
-                <span>Company</span>
+            <div class="filter-header" data-filter="location">
+                <span>Location</span>
                 <i class="fas fa-chevron-down"></i>
             </div>
-            <div class="filter-content" id="company-content">
+            <div class="filter-content" id="location-content">
                 <ul class="filter-tree">
-                    <!-- Populated dynamically via JavaScript -->
-                </ul>
-            </div>
-        </div>
-
-        <!-- Countries Filter -->
-        <div class="filter-panel">
-            <div class="filter-header" onclick="toggleFilter('countries')">
-                <span>Countries</span>
-                <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="filter-content" id="countries-content">
-                <ul class="filter-tree">
-                    <!-- Populated dynamically via JavaScript -->
-                </ul>
-            </div>
-        </div>
-
-        <!-- Certificate Tags Filter -->
-        <div class="filter-panel">
-            <div class="filter-header" onclick="toggleFilter('cert-tags')">
-                <span>Certificate Tags</span>
-                <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="filter-content" id="cert-tags-content">
-                <ul class="filter-tree">
-                    <!-- Populated dynamically via JavaScript -->
+                    <li><input type="checkbox" id="us" data-country="us"><label for="us">United States</label></li>
+                    <li><input type="checkbox" id="ca" data-country="ca"><label for="ca">Canada</label></li>
+                    <li><input type="checkbox" id="mx" data-country="mx"><label for="mx">Mexico</label></li>
                 </ul>
             </div>
         </div>
 
         <!-- Partner Filter (External Only) -->
         <div class="filter-panel">
-            <div class="filter-header" onclick="toggleFilter('partner')">
+            <div class="filter-header" data-filter="partner">
                 <span>Partner</span>
                 <i class="fas fa-chevron-down"></i>
             </div>
             <div class="filter-content" id="partner-content">
                 <ul class="filter-tree">
-                    <!-- Populated dynamically via JavaScript -->
+                    <li><input type="checkbox" id="amazon" data-partner="amazon"><label for="amazon">Amazon</label></li>
+                    <li><input type="checkbox" id="wayfair" data-partner="wayfair"><label for="wayfair">Wayfair</label></li>
+                    <li><input type="checkbox" id="none" data-partner="none"><label for="none">General</label></li>
                 </ul>
             </div>
         </div>
@@ -106,7 +619,20 @@
     <!-- Main Content Area -->
     <div class="main-content">
         <div class="results-header">
-            <div class="results-count" id="resultsCount">Loading...</div>
+            <div class="results-count" id="resultsCount">Showing 15 certificates</div>
+            
+            <!-- View Toggle Buttons -->
+            <div class="view-controls">
+                <div class="view-type-toggle">
+                    <button class="view-toggle-btn active" data-view="tile" title="Tile View">
+                        <i class="fas fa-th-large"></i>
+                    </button>
+                    <button class="view-toggle-btn" data-view="list" title="List View">
+                        <i class="fas fa-list"></i>
+                    </button>
+                </div>
+            </div>
+            
             <div class="sort-controls">
                 <span class="sort-label">Sort By</span>
                 <div class="sort-dropdown" id="sortDropdown">
@@ -124,37 +650,6 @@
                         <div class="sort-option" data-sort="oldest-effective">
                             <i class="fas fa-calendar-minus"></i>
                             Oldest Effective Date
-                        </div>
-                        <div class="sort-option" data-sort="expiring">
-                            <i class="fas fa-clock"></i>
-                            Expiring Soon
-                        </div>
-                        <div class="sort-option" data-sort="longest-validity">
-                            <i class="fas fa-hourglass-end"></i>
-                            Longest Validity Period
-                        </div>
-                        <div class="sort-option" data-sort="recently-issued">
-                            <i class="fas fa-calendar-check"></i>
-                            Recently Issued (Last 30 Days)
-                        </div>
-
-                        <!-- Certificate Information -->
-                        <div class="sort-group-header">By Certificate</div>
-                        <div class="sort-option" data-sort="cert-number-newest">
-                            <i class="fas fa-certificate"></i>
-                            Certificate Number (Newest)
-                        </div>
-                        <div class="sort-option" data-sort="cert-number-oldest">
-                            <i class="fas fa-certificate"></i>
-                            Certificate Number (Oldest)
-                        </div>
-                        <div class="sort-option" data-sort="cert-type">
-                            <i class="fas fa-award"></i>
-                            Certification Type A-Z
-                        </div>
-                        <div class="sort-option" data-sort="cert-type-za">
-                            <i class="fas fa-award"></i>
-                            Certification Type Z-A
                         </div>
 
                         <!-- Alphabetical sorting -->
@@ -186,138 +681,125 @@
                             <i class="fas fa-map-marker-alt"></i>
                             Location Z-A
                         </div>
-                        <div class="sort-option" data-sort="country">
-                            <i class="fas fa-globe"></i>
-                            Country A-Z
-                        </div>
-                        <div class="sort-option" data-sort="country-za">
-                            <i class="fas fa-globe"></i>
-                            Country Z-A
-                        </div>
-
-                        <!-- Partner-specific sorting -->
-                        <div class="sort-group-header">Partner</div>
-                        <div class="sort-option" data-sort="partner">
-                            <i class="fas fa-handshake"></i>
-                            Partner A-Z
-                        </div>
-
-                        <!-- Advanced sorting -->
-                        <div class="sort-group-header">Advanced</div>
-                        <div class="sort-option" data-sort="product-type">
-                            <i class="fas fa-boxes"></i>
-                            Product Type A-Z
-                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="certificates-grid" id="certificatesGrid">
-            <!-- Certificates will be loaded dynamically -->
+            <!-- Certificate Card 1 -->
+            <div class="certificate-card" data-type="csf" data-company="assa-abloy" data-country="us" data-category="construction">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
+                        <div class="certificate-id">21-0476</div>
+                    </div>
+                    <div class="company-name">ASSA ABLOY</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">Mercury Thermal Break Frame, Fleming Adjustable Thermal Resistant Frame</div>
+                        <div class="product-type">Door Hardware</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            5/1/2021 - 4/30/2025
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            New Haven, CT, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" data-action="download" data-cert="21-0476">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" data-action="view" data-cert="21-0476">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 2 -->
+            <div class="certificate-card" data-type="environmental-facts" data-company="superior-essex" data-country="us" data-category="electronics">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">ENVIRONMENTAL FACTS</div>
+                        <div class="certificate-id">24-1605</div>
+                    </div>
+                    <div class="company-name">Superior Essex</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">Category 6A U/UTP Cable</div>
+                        <div class="product-type">Networking Cable</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            10/1/2024 - 9/30/2026
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Fort Wayne, IN, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" data-action="download" data-cert="24-1605">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" data-action="view" data-cert="24-1605">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Card 3 -->
+            <div class="certificate-card" data-type="recycled-content" data-company="gaf" data-country="us" data-category="construction">
+                <div class="card-header">
+                    <div class="header-row">
+                        <div class="certificate-category">RECYCLED CONTENT</div>
+                        <div class="certificate-id">24-1701</div>
+                    </div>
+                    <div class="company-name">GAF Materials Corporation</div>
+                </div>
+                <div class="card-body">
+                    <div class="product-info">
+                        <div class="product-name">Timberline HD Shingles</div>
+                        <div class="product-type">Roofing Materials</div>
+                    </div>
+                    <div class="certificate-details">
+                        <div class="certificate-period">
+                            <strong>Certification Period:</strong>
+                            11/1/2024 - 10/31/2026
+                        </div>
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Parsippany, NJ, United States
+                        </div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <div class="action-icon download" title="Download PDF" data-action="download" data-cert="24-1701">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="action-icon external" title="View Details" data-action="view" data-cert="24-1701">
+                        <i class="fas fa-external-link-alt"></i>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Loading indicator -->
-        <div class="loading-container" id="loadingContainer" style="display: none;">
-            <div class="spinner">
-                <i class="fas fa-spinner fa-spin"></i>
-            </div>
+        <!-- LOADING INDICATOR FOR LAZY LOADING -->
+        <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading more certificates...</div>
         </div>
     </div>
 </div>
 
-<!-- Include the certificate tile view JavaScript for external -->
-<script src="~/js/certificate-tile-view-external.js"></script>
-
-<script>
-    // Additional mobile filter functionality
-    function toggleFilter(filterId) {
-        const content = document.getElementById(filterId + '-content');
-        const header = content.previousElementSibling;
-        const icon = header.querySelector('i');
-        
-        if (content.style.display === 'none' || content.style.display === '') {
-            content.style.display = 'block';
-            icon.className = 'fas fa-chevron-up';
-        } else {
-            content.style.display = 'none';
-            icon.className = 'fas fa-chevron-down';
-        }
-    }
-
-    function toggleMobileFilters() {
-        const sidebar = document.querySelector('.sidebar');
-        const toggleBtn = document.querySelector('.mobile-filter-toggle');
-        
-        if (sidebar && toggleBtn) {
-            const isExpanded = sidebar.classList.contains('expanded');
-            
-            if (isExpanded) {
-                sidebar.classList.remove('expanded');
-                hideAllFilters(sidebar);
-            } else {
-                sidebar.classList.add('expanded');
-                showAllFilters(sidebar);
-            }
-            
-            // Update toggle button appearance
-            const icon = toggleBtn.querySelector('i');
-            const span = toggleBtn.querySelector('span');
-            
-            if (span && icon) {
-                span.textContent = isExpanded ? 'Show Filters & Search' : 'Hide Filters';
-                icon.className = isExpanded ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
-            }
-        }
-    }
-
-    function hideAllFilters(sidebar) {
-        const elementsToHide = sidebar.querySelectorAll('.search-bar, .filters-header, .filter-panel, .filter-content');
-        elementsToHide.forEach(el => {
-            el.style.display = 'none';
-            el.style.visibility = 'hidden';
-        });
-    }
-    
-    function showAllFilters(sidebar) {
-        const elements = sidebar.querySelectorAll('.search-bar, .filters-header, .filter-panel');
-        elements.forEach(el => {
-            el.style.display = '';
-            el.style.visibility = '';
-        });
-    }
-
-    // Handle responsive behavior
-    function updateMobileFilterToggle() {
-        const mobileToggle = document.querySelector('.mobile-filter-toggle');
-        const sidebar = document.querySelector('.sidebar');
-        
-        if (mobileToggle && sidebar) {
-            if (window.innerWidth <= 768) {
-                // Mobile/Tablet mode
-                mobileToggle.style.display = 'flex';
-                
-                // Force hide filters unless expanded
-                if (!sidebar.classList.contains('expanded')) {
-                    hideAllFilters(sidebar);
-                }
-            } else {
-                // Desktop mode
-                mobileToggle.style.display = 'none';
-                sidebar.classList.remove('expanded');
-                
-                // Show all filters on desktop
-                showAllFilters(sidebar);
-            }
-        }
-    }
-
-    // Initialize mobile toggle on load and resize
-    document.addEventListener('DOMContentLoaded', function() {
-        updateMobileFilterToggle();
-        window.addEventListener('resize', updateMobileFilterToggle);
-        window.addEventListener('orientationchange', function() {
-            setTimeout(updateMobileFilterToggle, 300);
-        });
-    });
-</script>
+<!-- External JavaScript for Certificate List -->
+<script src="~/js/certificateslist.js"></script>

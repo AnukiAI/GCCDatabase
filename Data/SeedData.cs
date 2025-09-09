@@ -1,10 +1,18 @@
 using GCCWebApp.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace GCCWebApp.Data
 {
     public static class SeedData
     {
+        private static string GenerateRandomAlphaNumeric(Random random, int length)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
         public static async Task InitializeAsync(ApplicationDbContext context)
         {
             // Ensure database is created and migrations are applied
@@ -30,12 +38,12 @@ namespace GCCWebApp.Data
             await context.ProductCategories.AddRangeAsync(categories);
             await context.SaveChangesAsync();
 
-            // Seed CertificationTypes
+            // Seed CertificationTypes (based on mockups)
             var certTypes = new List<CertificationType>
             {
                 new CertificationType { Name = "Certified Environmental Facts", AmazonCode = "CEF", Description = "Environmental impact certification", IsActive = true, SortOrder = 1 },
-                new CertificationType { Name = "Recycled Content", AmazonCode = "RC", Description = "Recycled content certification", IsActive = true, SortOrder = 2 },
-                new CertificationType { Name = "Certified Sustainability Facts", AmazonCode = "CSF", Description = "Comprehensive sustainability certification", IsActive = true, SortOrder = 3 },
+                new CertificationType { Name = "Certified Sustainability Facts", AmazonCode = "CSF", Description = "Comprehensive sustainability certification", IsActive = true, SortOrder = 2 },
+                new CertificationType { Name = "Recycled Content", AmazonCode = "RC", Description = "Recycled content certification", IsActive = true, SortOrder = 3 },
                 new CertificationType { Name = "Energy Savings", AmazonCode = "ES", Description = "Energy efficiency certification", IsActive = true, SortOrder = 4 },
                 new CertificationType { Name = "Material Ingredient Reporting", AmazonCode = "MIR", Description = "Material composition reporting", IsActive = true, SortOrder = 5 }
             };
@@ -43,14 +51,28 @@ namespace GCCWebApp.Data
             await context.CertificationTypes.AddRangeAsync(certTypes);
             await context.SaveChangesAsync();
 
-            // Seed Companies
+            // Seed Partners (based on requirements - Amazon, Wayfair, Other)
+            var partners = new List<Partner>
+            {
+                new Partner { Name = "Amazon", Description = "Global e-commerce marketplace specializing in certified sustainable products", Website = "https://www.amazon.com", SortOrder = 1, IsActive = true },
+                new Partner { Name = "Wayfair", Description = "Online furniture and home goods retailer focused on sustainable product offerings", Website = "https://www.wayfair.com", SortOrder = 2, IsActive = true },
+                new Partner { Name = "Other", Description = "Other retail partners and general partner category", SortOrder = 3, IsActive = true }
+            };
+
+            await context.Partners.AddRangeAsync(partners);
+            await context.SaveChangesAsync();
+
+            // Seed Companies (based on mockups and real data)
             var companies = new List<Company>
             {
-                new Company { Name = "ASSA ABLOY Access & Egress Hardware Group, Inc.", ContactInfo = "sustainability@assaabloy.com", Location = "Berlin, CT", Country = "United States", IsActive = true },
+                new Company { Name = "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division", ContactInfo = "sustainability@assaabloy.com", Location = "Berlin, CT", Country = "United States", IsActive = true },
+                new Company { Name = "Green Products Inc. - Environmental Division", ContactInfo = "contact@greenproducts.com", Location = "Portland, OR", Country = "United States", IsActive = true },
+                new Company { Name = "Acme Corporation", ContactInfo = "info@acme.com", Location = "New York, NY", Country = "United States", IsActive = true, Website = "https://www.acme.com" },
+                new Company { Name = "Globex Industries", ContactInfo = "sales@globex.com", Location = "Chicago, IL", Country = "United States", IsActive = true, Website = "https://www.globex.com" },
+                new Company { Name = "Stark Enterprises", ContactInfo = "hello@stark.com", Location = "Malibu, CA", Country = "United States", IsActive = true, Website = "https://www.stark.com" },
+                new Company { Name = "Wayne Technologies", ContactInfo = "contact@waynetech.com", Location = "Gotham, NY", Country = "United States", IsActive = true, Website = "https://www.waynetech.com" },
+                new Company { Name = "EcoFlex Manufacturing", ContactInfo = "info@ecoflex.com", Location = "Austin, TX", Country = "United States", IsActive = true },
                 new Company { Name = "GAF Materials Corporation", ContactInfo = "green@gaf.com", Location = "Cedar City, UT", Country = "United States", IsActive = true },
-                new Company { Name = "Domtar Corporation", ContactInfo = "sustainability@domtar.com", Location = "Ashdown, AR", Country = "United States", IsActive = true },
-                new Company { Name = "Superior Essex Inc.", ContactInfo = "sustainability@superioressex.com", Location = "Hoisington, KS", Country = "United States", IsActive = true },
-                new Company { Name = "Interface Inc.", ContactInfo = "sustainability@interface.com", Location = "Dalton, GA", Country = "United States", IsActive = true },
                 new Company { Name = "3M Company", ContactInfo = "sustainability@3m.com", Location = "St. Paul, MN", Country = "United States", IsActive = true },
                 new Company { Name = "Shaw Industries Group", ContactInfo = "green@shawinc.com", Location = "Dalton, GA", Country = "United States", IsActive = true },
                 new Company { Name = "Mohawk Industries", ContactInfo = "sustainability@mohawkind.com", Location = "Calhoun, GA", Country = "United States", IsActive = true },
@@ -131,12 +153,18 @@ namespace GCCWebApp.Data
             await context.ProductTypes.AddRangeAsync(productSubTypes);
             await context.SaveChangesAsync();
 
-            // Seed Products
+            // Seed Products (based on mockups)
             var products = new List<Product>
             {
-                new Product { Name = "EnergyGuard Polyiso Roof Insulation", Description = "High-performance roof insulation", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[1].Id, IsActive = true },
-                new Product { Name = "Kitchen Range Hood", Description = "Energy efficient kitchen appliance", CategoryId = categories[0].Id, ProductTypeId = productTypes[1].Id, CompanyId = companies[0].Id, IsActive = true },
-                new Product { Name = "Amazon Basics Multipurpose Copy Paper", Description = "Eco-friendly office paper", CategoryId = categories[3].Id, CompanyId = companies[2].Id, IsActive = true },
+                new Product { Name = "900ET Exit Device Trim with EcoFlex®", Description = "Exit device trim with sustainable EcoFlex technology", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[0].Id, IsActive = true },
+                new Product { Name = "Standard Exit Device - Model 9800", Description = "Commercial grade exit device", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[0].Id, IsActive = true },
+                new Product { Name = "Heavy-Duty Exit Hardware - Series 2000", Description = "Heavy-duty commercial exit hardware", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[0].Id, IsActive = true },
+                new Product { Name = "Commercial Door Closer - DC300", Description = "Commercial grade door closing mechanism", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[0].Id, IsActive = true },
+                new Product { Name = "Security Exit Device - EX700", Description = "High-security exit device system", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[0].Id, IsActive = true },
+                new Product { Name = "Reusable Water Bottle - Stainless Steel", Description = "Eco-friendly stainless steel water bottle", CategoryId = categories[5].Id, CompanyId = companies[1].Id, IsActive = true },
+                new Product { Name = "Bamboo Coffee Cup with Lid", Description = "Sustainable bamboo coffee cup", CategoryId = categories[5].Id, CompanyId = companies[1].Id, IsActive = true },
+                new Product { Name = "Glass Storage Container Set", Description = "Reusable glass storage containers", CategoryId = categories[5].Id, CompanyId = companies[1].Id, IsActive = true },
+                new Product { Name = "Organic Cotton Tote Bag", Description = "Sustainable organic cotton tote bag", CategoryId = categories[4].Id, CompanyId = companies[1].Id, IsActive = true },
                 new Product { Name = "10Gain XP Category 6A Cable", Description = "High-performance network cable", CategoryId = categories[1].Id, ProductTypeId = productTypes[5].Id, CompanyId = companies[3].Id, IsActive = true },
                 new Product { Name = "Carbon Negative Carpet Tile", Description = "Sustainable carpet tiles", CategoryId = categories[4].Id, ProductTypeId = productTypes[3].Id, CompanyId = companies[4].Id, IsActive = true },
                 new Product { Name = "3M VHB Tape", Description = "Very High Bond structural glazing tape", CategoryId = categories[0].Id, CompanyId = companies[5].Id, IsActive = true },
@@ -174,42 +202,86 @@ namespace GCCWebApp.Data
             await context.Products.AddRangeAsync(products);
             await context.SaveChangesAsync();
 
-            // Seed Certificates with comprehensive realistic data
+            // Seed Certificates with mockup data - Primary example from mockup
             var certificates = new List<Certificate>
             {
                 new Certificate
                 {
                     Number = "24-1605",
                     Status = "active",
-                    EffectiveDate = new DateTime(2024, 9, 1),
-                    ExpirationDate = new DateTime(2027, 8, 31),
+                    EffectiveDate = new DateTime(2024, 7, 1),
+                    ExpirationDate = new DateTime(2027, 6, 30),
                     Location = "Berlin, CT",
                     Country = "United States",
-                    Asin = "B08XYZ1234",
-                    Upc = "123456789012",
-                    Gtin = "01234567890123",
-                    Ean = "1234567890123",
+                    Asin = "B08X7N9MRQ",
+                    Upc = "846378985421",
+                    Gtin = "00846378985421",
+                    Ean = "0846378985421",
                     CompanyId = companies[0].Id,
                     ProductId = products[0].Id,
+                    CertificationTypeId = certTypes[0].Id,
+                    CreatedAt = new DateTime(2023, 1, 1),
+                    UpdatedAt = new DateTime(2023, 4, 15)
+                },
+                new Certificate
+                {
+                    Number = "24-1606",
+                    Status = "active",
+                    EffectiveDate = new DateTime(2024, 9, 1),
+                    ExpirationDate = new DateTime(2027, 8, 31),
+                    Location = "Portland, OR",
+                    Country = "United States",
+                    Upc = "846378985422",
+                    Gtin = "00846378985422",
+                    Ean = "0846378985422",
+                    CompanyId = companies[1].Id,
+                    ProductId = products[5].Id,
+                    CertificationTypeId = certTypes[1].Id,
+                    CreatedAt = new DateTime(2023, 1, 1),
+                    UpdatedAt = new DateTime(2023, 12, 31)
+                },
+                // Additional ASSA ABLOY products
+                new Certificate
+                {
+                    Number = "24-1607",
+                    Status = "active",
+                    EffectiveDate = new DateTime(2024, 8, 1),
+                    ExpirationDate = new DateTime(2027, 7, 31),
+                    Location = "Berlin, CT",
+                    Country = "United States",
+                    CompanyId = companies[0].Id,
+                    ProductId = products[1].Id,
+                    CertificationTypeId = certTypes[1].Id,
+                    CreatedAt = new DateTime(2023, 1, 1),
+                    UpdatedAt = new DateTime(2023, 4, 15)
+                },
+                new Certificate
+                {
+                    Number = "24-1608",
+                    Status = "draft",
+                    EffectiveDate = new DateTime(2025, 1, 1),
+                    ExpirationDate = new DateTime(2028, 12, 31),
+                    Location = "Berlin, CT",
+                    Country = "United States",
+                    CompanyId = companies[0].Id,
+                    ProductId = products[2].Id,
                     CertificationTypeId = certTypes[0].Id,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 },
                 new Certificate
                 {
-                    Number = "24-5637",
-                    Status = "active",
-                    EffectiveDate = new DateTime(2024, 11, 1),
-                    ExpirationDate = new DateTime(2025, 10, 31),
-                    Location = "Cedar City, UT",
+                    Number = "24-1609",
+                    Status = "expired",
+                    EffectiveDate = new DateTime(2021, 1, 1),
+                    ExpirationDate = new DateTime(2024, 1, 1),
+                    Location = "Berlin, CT",
                     Country = "United States",
-                    Asin = "B09ABC5678",
-                    Upc = "987654321098",
-                    CompanyId = companies[1].Id,
-                    ProductId = products[1].Id,
-                    CertificationTypeId = certTypes[1].Id,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
+                    CompanyId = companies[0].Id,
+                    ProductId = products[3].Id,
+                    CertificationTypeId = certTypes[2].Id,
+                    CreatedAt = new DateTime(2021, 1, 1),
+                    UpdatedAt = new DateTime(2024, 1, 1)
                 },
                 new Certificate
                 {
@@ -577,6 +649,88 @@ namespace GCCWebApp.Data
                     UpdatedAt = DateTime.UtcNow
                 }
             };
+
+            // Add many more certificates for lazy loading testing
+            var additionalCertificates = new List<Certificate>();
+            var random = new Random(42); // Fixed seed for consistent test data
+            var statuses = new[] { "active", "draft", "expired", "pending", "suspended", "expiring_soon" };
+            var locations = new[]
+            {
+                "New York, NY", "Los Angeles, CA", "Chicago, IL", "Houston, TX", "Phoenix, AZ",
+                "Philadelphia, PA", "San Antonio, TX", "San Diego, CA", "Dallas, TX", "San Jose, CA",
+                "Austin, TX", "Jacksonville, FL", "Fort Worth, TX", "Columbus, OH", "Charlotte, NC",
+                "San Francisco, CA", "Indianapolis, IN", "Seattle, WA", "Denver, CO", "Washington, DC",
+                "Boston, MA", "El Paso, TX", "Nashville, TN", "Detroit, MI", "Oklahoma City, OK",
+                "Portland, OR", "Las Vegas, NV", "Memphis, TN", "Louisville, KY", "Baltimore, MD",
+                "Milwaukee, WI", "Albuquerque, NM", "Tucson, AZ", "Fresno, CA", "Sacramento, CA",
+                "Kansas City, MO", "Mesa, AZ", "Atlanta, GA", "Omaha, NE", "Colorado Springs, CO",
+                "Raleigh, NC", "Miami, FL", "Oakland, CA", "Minneapolis, MN", "Tulsa, OK",
+                "Cleveland, OH", "Wichita, KS", "Arlington, TX", "New Orleans, LA", "Bakersfield, CA"
+            };
+
+            // Generate 150 additional certificates for comprehensive lazy loading testing
+            for (int i = 1; i <= 150; i++)
+            {
+                var certNumber = $"{2023 + (i % 3)}-{(5000 + i):D4}";
+                var status = statuses[random.Next(statuses.Length)];
+                var location = locations[random.Next(locations.Length)];
+                var companyId = companies[random.Next(companies.Count)].Id;
+                var productId = products[random.Next(products.Count)].Id;
+                var certTypeId = certTypes[random.Next(certTypes.Count)].Id;
+
+                var effectiveDate = DateTime.UtcNow.AddDays(random.Next(-1095, 365)); // Between 3 years ago and 1 year from now
+                var expirationDate = effectiveDate.AddYears(random.Next(1, 4)); // 1-3 years after effective date
+
+                // Adjust status based on dates for realism
+                if (expirationDate < DateTime.UtcNow)
+                    status = "expired";
+                else if (expirationDate < DateTime.UtcNow.AddMonths(3))
+                    status = "expiring_soon";
+                else if (effectiveDate > DateTime.UtcNow)
+                    status = random.Next(2) == 0 ? "draft" : "pending";
+                else
+                    status = "active";
+
+                var certificate = new Certificate
+                {
+                    Number = certNumber,
+                    Status = status,
+                    EffectiveDate = effectiveDate,
+                    ExpirationDate = expirationDate,
+                    Location = location,
+                    Country = "United States",
+                    CompanyId = companyId,
+                    ProductId = productId,
+                    CertificationTypeId = certTypeId,
+                    CreatedAt = effectiveDate.AddDays(-random.Next(1, 30)),
+                    UpdatedAt = DateTime.UtcNow.AddDays(-random.Next(1, 7))
+                };
+
+                // Add product IDs randomly to some certificates
+                if (random.Next(4) == 0) // 25% chance
+                {
+                    certificate.Upc = $"{random.Next(100000000, 999999999)}{random.Next(1000, 9999)}";
+                }
+                
+                if (random.Next(5) == 0) // 20% chance
+                {
+                    certificate.Asin = $"B{random.Next(10, 99)}{GenerateRandomAlphaNumeric(random, 8)}";
+                }
+                
+                if (random.Next(6) == 0) // ~17% chance
+                {
+                    certificate.Gtin = $"0{certificate.Upc ?? $"{random.Next(100000000, 999999999)}{random.Next(1000, 9999)}"}";
+                }
+                
+                if (random.Next(7) == 0) // ~14% chance
+                {
+                    certificate.Ean = certificate.Gtin ?? certificate.Upc ?? $"{random.Next(100000000, 999999999)}{random.Next(1000, 9999)}";
+                }
+
+                additionalCertificates.Add(certificate);
+            }
+
+            certificates.AddRange(additionalCertificates);
 
             await context.Certificates.AddRangeAsync(certificates);
             await context.SaveChangesAsync();

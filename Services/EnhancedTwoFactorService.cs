@@ -1,8 +1,10 @@
 using System.Security.Cryptography;
+using System.Text;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
+using QRCoder;
 
 namespace GCCWebApp.Services
 {
@@ -10,6 +12,7 @@ namespace GCCWebApp.Services
     {
         Email,
         SMS,
+        TOTP, // Time-based One-Time Password (Microsoft Authenticator)
         Both // Send to both email and SMS
     }
 
@@ -21,6 +24,8 @@ namespace GCCWebApp.Services
         public string? PhoneNumber { get; set; }
         public bool IsEmailVerified { get; set; }
         public bool IsPhoneVerified { get; set; }
+        public string? TotpSecret { get; set; }
+        public bool IsTotpEnabled { get; set; }
     }
 
     public interface IEnhancedTwoFactorService
@@ -37,6 +42,14 @@ namespace GCCWebApp.Services
         Task<bool> VerifyEmailAsync(string userId, string email, string verificationCode);
         Task<bool> VerifyPhoneAsync(string userId, string phoneNumber, string verificationCode);
         Task SendVerificationCodeAsync(string userId, string contact, TwoFactorDeliveryMethod method);
+        
+        // TOTP Methods
+        Task<string> GenerateTotpSecretAsync(string userId);
+        Task<string> GenerateQrCodeUriAsync(string userId, string email, string issuer = "GCC Database");
+        Task<byte[]> GenerateQrCodeImageAsync(string userId);
+        Task<bool> ValidateTotpCodeAsync(string userId, string userCode);
+        Task<bool> EnableTotpAsync(string userId, string userCode);
+        Task<bool> DisableTotpAsync(string userId);
     }
 
     public class EnhancedTwoFactorService : IEnhancedTwoFactorService
@@ -438,6 +451,242 @@ namespace GCCWebApp.Services
             var message = $"Your GCC Database email verification code is: {code}. This code expires in 10 minutes.";
             await _smsService.SendSmsAsync(phoneNumber, message);
         }
+
+        #region TOTP Methods
+
+        public async Task<string> GenerateTotpSecretAsync(string userId)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userId);
+                if (user == null)
+                {
+                    throw new InvalidOperationException($"User not found: {userId}");
+                }
+
+                if (!string.IsNullOrEmpty(user.TwoFactorSecret))
+                {
+                    return user.TwoFactorSecret; // Return existing secret
+                }
+
+                var secret = GenerateTotpSecret();
+                user.TwoFactorSecret = secret;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"TOTP secret generated for user {userId}");
+                return secret;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to generate TOTP secret for user {userId}");
+                throw;
+            }
+        }
+
+        public async Task<string> GenerateQrCodeUriAsync(string userId, string email, string issuer = "GCC Database")
+        {
+            var secret = await GenerateTotpSecretAsync(userId);
+            var label = $"{issuer}:{email}";
+            return $"otpauth://totp/{Uri.EscapeDataString(label)}?secret={secret}&issuer={Uri.EscapeDataString(issuer)}";
+        }
+
+        public async Task<byte[]> GenerateQrCodeImageAsync(string userId)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userId);
+                if (user?.TwoFactorSecret == null)
+                {
+                    throw new InvalidOperationException("No TOTP secret found for user");
+                }
+
+                var qrCodeUri = await GenerateQrCodeUriAsync(userId, user.Email);
+                
+                using var qrGenerator = new QRCodeGenerator();
+                var qrCodeData = qrGenerator.CreateQrCode(qrCodeUri, QRCodeGenerator.ECCLevel.Q);
+                using var qrCode = new BitmapByteQRCode(qrCodeData);
+                return qrCode.GetGraphic(20); // 20 pixels per module
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to generate QR code image for user {userId}");
+                throw;
+            }
+        }
+
+        public async Task<bool> ValidateTotpCodeAsync(string userId, string userCode)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userId);
+                if (user?.TwoFactorSecret == null)
+                {
+                    _logger.LogWarning($"No TOTP secret found for user {userId}");
+                    return false;
+                }
+
+                if (string.IsNullOrEmpty(userCode) || userCode.Length != 6 || !userCode.All(char.IsDigit))
+                {
+                    _logger.LogWarning($"Invalid TOTP code format for user {userId}");
+                    return false;
+                }
+
+                var secretBytes = Base32Decode(user.TwoFactorSecret);
+                var unixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+                var timeStep = unixTime / 30; // 30-second time window
+                
+                // Check current time window and ±1 window for clock drift tolerance
+                for (int i = -1; i <= 1; i++)
+                {
+                    var expectedCode = GenerateTotpCode(secretBytes, timeStep + i);
+                    if (expectedCode == userCode)
+                    {
+                        _logger.LogInformation($"TOTP code validated successfully for user {userId}");
+                        return true;
+                    }
+                }
+                
+                _logger.LogWarning($"TOTP code validation failed for user {userId}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error validating TOTP code for user {userId}");
+                return false;
+            }
+        }
+
+        public async Task<bool> EnableTotpAsync(string userId, string userCode)
+        {
+            try
+            {
+                if (!await ValidateTotpCodeAsync(userId, userCode))
+                {
+                    return false; // Invalid verification code
+                }
+
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userId);
+                if (user == null)
+                {
+                    return false;
+                }
+
+                user.TwoFactorEnabled = true;
+                user.TwoFactorMethod = "TOTP";
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"TOTP enabled for user {userId}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to enable TOTP for user {userId}");
+                return false;
+            }
+        }
+
+        public async Task<bool> DisableTotpAsync(string userId)
+        {
+            try
+            {
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userId);
+                if (user == null)
+                {
+                    return false;
+                }
+
+                user.TwoFactorEnabled = false;
+                user.TwoFactorMethod = "Email"; // Fallback to email
+                user.TwoFactorSecret = null; // Clear the secret
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation($"TOTP disabled for user {userId}");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Failed to disable TOTP for user {userId}");
+                return false;
+            }
+        }
+
+        private string GenerateTotpSecret()
+        {
+            var key = new byte[20]; // 160-bit key (recommended for TOTP)
+            using var rng = RandomNumberGenerator.Create();
+            rng.GetBytes(key);
+            return Base32Encode(key);
+        }
+
+        private string GenerateTotpCode(byte[] secretBytes, long timeStep)
+        {
+            var timeBytes = BitConverter.GetBytes(timeStep);
+            if (BitConverter.IsLittleEndian)
+                Array.Reverse(timeBytes);
+
+            using var hmac = new HMACSHA1(secretBytes);
+            var hash = hmac.ComputeHash(timeBytes);
+            
+            var offset = hash[hash.Length - 1] & 0x0F;
+            var binaryCode = ((hash[offset] & 0x7F) << 24) |
+                           ((hash[offset + 1] & 0xFF) << 16) |
+                           ((hash[offset + 2] & 0xFF) << 8) |
+                           (hash[offset + 3] & 0xFF);
+                           
+            var code = binaryCode % 1000000;
+            return code.ToString("D6");
+        }
+
+        private static string Base32Encode(byte[] data)
+        {
+            const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+            var result = new StringBuilder();
+            
+            for (int i = 0; i < data.Length; i += 5)
+            {
+                var chunk = new byte[5];
+                Array.Copy(data, i, chunk, 0, Math.Min(5, data.Length - i));
+                
+                var buffer = (long)chunk[0] << 32 | (long)chunk[1] << 24 | (long)chunk[2] << 16 | (long)chunk[3] << 8 | chunk[4];
+                
+                for (int j = 7; j >= 0; j--)
+                {
+                    if (i * 8 / 5 + j < (data.Length * 8 + 4) / 5)
+                        result.Append(alphabet[(int)(buffer >> (5 * j)) & 0x1F]);
+                }
+            }
+            
+            return result.ToString();
+        }
+
+        private static byte[] Base32Decode(string encoded)
+        {
+            const string alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+            encoded = encoded.ToUpper().Replace("=", "");
+            
+            var result = new List<byte>();
+            var buffer = 0L;
+            var bitsLeft = 0;
+            
+            foreach (var c in encoded)
+            {
+                var value = alphabet.IndexOf(c);
+                if (value < 0) continue;
+                
+                buffer = (buffer << 5) | value;
+                bitsLeft += 5;
+                
+                if (bitsLeft >= 8)
+                {
+                    result.Add((byte)(buffer >> (bitsLeft - 8)));
+                    bitsLeft -= 8;
+                }
+            }
+            
+            return result.ToArray();
+        }
+
+        #endregion
     }
 
     // Keep the original for backward compatibility

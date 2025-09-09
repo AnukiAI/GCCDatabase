@@ -54,7 +54,7 @@ namespace GCCWebApp.Models
         
         public bool TwoFactorEnabled { get; set; } = false;
         
-        public required string TwoFactorMethod { get; set; } = "Email"; // Email, SMS, Both
+        public required string TwoFactorMethod { get; set; } = "Email"; // Email, SMS, TOTP, Both
         
         public string? PhoneNumber { get; set; }
         
@@ -95,5 +95,6 @@ namespace GCCWebApp.Models
         public ICollection<Certificate> UpdatedCertificates { get; set; } = new List<Certificate>();
         public ICollection<Role> Roles { get; set; } = new List<Role>();
         public ICollection<Company> Companies { get; set; } = new List<Company>();
+        public ICollection<Partner> Partners { get; set; } = new List<Partner>();
     }
 }

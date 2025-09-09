@@ -7,6 +7,9 @@
 document.addEventListener('DOMContentLoaded', function () {
     console.log('DOM loaded, initializing...');
 
+    // Initialize theme
+    initializeTheme();
+
     // Initialize CSRF protection
     initializeCSRFProtection();
 
@@ -19,6 +22,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     console.log('All initialization complete');
 });
+
+/**
+ * Theme Initialization
+ */
+function initializeTheme() {
+    // Initialize with Option 4 theme - ensure it's always applied
+    document.body.classList.add('theme-option4');
+}
 
 /**
  * CSRF Protection for AJAX Requests
@@ -508,6 +519,20 @@ window.addEventListener('orientationchange', function () {
         }
     }, 300);
 });
+
+// User role management functions
+function changeUserRole(role) {
+    localStorage.setItem('userRole', role);
+    console.log('User role changed to:', role);
+    // Optionally reload the page or update UI based on new role
+    if (window.location.pathname.includes('/Admin/') || window.location.pathname.includes('/Dashboard/')) {
+        window.location.reload();
+    }
+}
+
+function getCurrentRole() {
+    return localStorage.getItem('userRole') || 'guest';
+}
 
 // Global exports for use in individual pages
 window.GreenCircle = {

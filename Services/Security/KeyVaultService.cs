@@ -45,7 +45,7 @@ public class KeyVaultService : IKeyVaultService
             try
             {
                 var credential = new DefaultAzureCredential();
-                _secretClient = new SecretClient(new Uri(keyVaultUrl), credential);
+                _secretClient = new SecretClient(new Uri(keyVaultUrl!), credential);
                 _logger.LogInformation("Azure Key Vault client initialized successfully");
             }
             catch (Exception ex)

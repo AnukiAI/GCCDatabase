@@ -703,11 +703,107 @@ body {
     border: 1px solid var(--border-color);
     overflow: hidden;
     box-shadow: var(--shadow-light);
+    margin-top: var(--space-md);
 }
 
     .table-view.active {
         display: block;
     }
+
+/* Table styles for actual table element */
+.table-container {
+    overflow-x: auto;
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.admin-table thead {
+    background: var(--light-gray);
+}
+
+.admin-table th {
+    padding: var(--space-md);
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-color);
+    border-bottom: 2px solid var(--border-color);
+    font-size: var(--font-size-base);
+}
+
+.admin-table td {
+    padding: var(--space-md);
+    border-bottom: 1px solid var(--border-color);
+    font-size: var(--font-size-base);
+}
+
+.admin-table tbody tr:hover {
+    background: var(--light-gray);
+}
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: var(--border-radius-sm);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.badge-category {
+    background: var(--blue-primary);
+    color: white;
+}
+
+.badge-type {
+    background: var(--green-primary);
+    color: white;
+}
+
+.badge-subcategory {
+    background: var(--green-secondary);
+    color: white;
+}
+
+.action-buttons {
+    display: flex;
+    gap: var(--space-sm);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 14px;
+    min-height: var(--touch-target-min);
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-outline-primary {
+    background: transparent;
+    border: 1px solid var(--blue-primary);
+    color: var(--blue-primary);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-outline-primary:hover {
+    background: var(--blue-primary);
+    color: white;
+}
+
+.btn-outline-danger {
+    background: transparent;
+    border: 1px solid var(--warning);
+    color: var(--warning);
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.btn-outline-danger:hover {
+    background: var(--warning);
+    color: white;
+}
 
 /* Table view collapse/expand functionality */
 .table-view .data-row[data-parent] {

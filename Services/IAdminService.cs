@@ -25,8 +25,8 @@ namespace GCCWebApp.Services
         // Product Types
         Task<List<ProductTypeViewModel>> GetProductTypesAsync();
         Task<ProductTypeViewModel?> GetProductTypeByIdAsync(int id);
-        Task<bool> CreateProductTypeAsync(ProductTypeViewModel model);
-        Task<bool> UpdateProductTypeAsync(int id, ProductTypeViewModel model);
+        Task<ProductTypeViewModel?> CreateProductTypeAsync(ProductTypeViewModel model);
+        Task<bool> UpdateProductTypeAsync(ProductTypeViewModel model);
         Task<bool> DeleteProductTypeAsync(int id);
         
         // Certificate Types
@@ -70,5 +70,9 @@ namespace GCCWebApp.Services
         
         // Export functionality
         Task<byte[]> ExportDataAsync(string entityType, string format);
+        
+        // Two-Factor Authentication Management
+        Task<bool> Reset2FAAsync(int userId);
+        Task<bool> Disable2FAAsync(int userId);
     }
 }

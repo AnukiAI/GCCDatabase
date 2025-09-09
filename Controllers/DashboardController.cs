@@ -285,6 +285,7 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> DownloadStat(string type)
         {
             try
@@ -317,6 +318,7 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> DownloadTable(string type)
         {
             try

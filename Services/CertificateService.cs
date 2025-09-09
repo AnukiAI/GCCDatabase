@@ -130,7 +130,7 @@ namespace GCCWebApp.Services
                     TotalCount = totalCount,
                     PageSize = request.PageSize,
                     CurrentPage = request.Page,
-                    CurrentSort = request.Sort,
+                    CurrentSort = request.Sort ?? string.Empty,
                     AppliedFilters = request.Filters,
                     Success = true
                 };
@@ -159,7 +159,7 @@ namespace GCCWebApp.Services
                     .FirstOrDefaultAsync(c => c.Id == id);
 
                 if (certificate == null)
-                    return null;
+                    return null!;
 
                 var viewModel = new CertificateDetailsViewModel
                 {
@@ -181,7 +181,7 @@ namespace GCCWebApp.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving certificate details for ID: {CertificateId}", id);
-                return null;
+                return null!;
             }
         }
 

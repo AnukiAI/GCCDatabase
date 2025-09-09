@@ -10,10 +10,12 @@ namespace GCCWebApp.Controllers
     public class AdminController : Controller
     {
         private readonly IAdminService _adminService;
+        private readonly ILogger<AdminController> _logger;
 
-        public AdminController(IAdminService adminService)
+        public AdminController(IAdminService adminService, ILogger<AdminController> logger)
         {
             _adminService = adminService;
+            _logger = logger;
         }
 
         // GET: Admin Dashboard
@@ -122,7 +124,7 @@ namespace GCCWebApp.Controllers
                 }
                 else
                 {
-                    return Json(new ApiResponse<object> { Success = false, Message = "User not found or delete failed" });
+                    return Json(new ApiResponse<object> { Success = false, Message = "Cannot delete user. Admin users cannot be deleted or user not found." });
                 }
             }
             catch (Exception ex)
@@ -173,6 +175,90 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateRole([FromBody] RoleViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid data provided",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            try
+            {
+                var success = await _adminService.CreateRoleAsync(model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Role created successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Failed to create role" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error creating role: " + ex.Message });
+            }
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateRole(int id, [FromBody] RoleViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid data provided",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            try
+            {
+                var success = await _adminService.UpdateRoleAsync(id, model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Role updated successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Role not found or update failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error updating role: " + ex.Message });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteRole(int id)
+        {
+            try
+            {
+                var success = await _adminService.DeleteRoleAsync(id);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Role deleted successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Cannot delete role. System roles cannot be deleted or role not found." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error deleting role: " + ex.Message });
+            }
+        }
+
         // Google Analytics
         public IActionResult GoogleAnalytics()
         {
@@ -208,6 +294,24 @@ namespace GCCWebApp.Controllers
             return Json(new ApiResponse<object> { Success = true, Message = "Google Analytics settings saved successfully" });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetCompanies()
+        {
+            try
+            {
+                var companies = await _adminService.GetCompaniesAsync();
+                return Json(new ApiResponse<List<LookupItem>> { Success = true, Data = companies });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<LookupItem>>
+                {
+                    Success = false,
+                    Message = "Error retrieving companies: " + ex.Message
+                });
+            }
+        }
+
         // Product Types
         public IActionResult ProductTypes()
         {
@@ -228,6 +332,95 @@ namespace GCCWebApp.Controllers
                 {
                     Success = false,
                     Message = "Error retrieving product types: " + ex.Message
+                });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateProductType([FromBody] ProductTypeViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return Json(new ApiResponse<ProductTypeViewModel>
+                    {
+                        Success = false,
+                        Message = "Invalid data provided"
+                    });
+                }
+
+                var result = await _adminService.CreateProductTypeAsync(model);
+                return Json(new ApiResponse<ProductTypeViewModel>
+                {
+                    Success = result != null,
+                    Data = result,
+                    Message = result != null ? "Product type created successfully" : "Failed to create product type"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<ProductTypeViewModel>
+                {
+                    Success = false,
+                    Message = "Error creating product type: " + ex.Message
+                });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateProductType(int id, [FromBody] ProductTypeViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return Json(new ApiResponse<ProductTypeViewModel>
+                    {
+                        Success = false,
+                        Message = "Invalid data provided"
+                    });
+                }
+
+                model.Id = id;
+                var result = await _adminService.UpdateProductTypeAsync(model);
+                return Json(new ApiResponse<ProductTypeViewModel>
+                {
+                    Success = result,
+                    Message = result ? "Product type updated successfully" : "Failed to update product type"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<ProductTypeViewModel>
+                {
+                    Success = false,
+                    Message = "Error updating product type: " + ex.Message
+                });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteProductType(int id)
+        {
+            try
+            {
+                var result = await _adminService.DeleteProductTypeAsync(id);
+                return Json(new ApiResponse<object>
+                {
+                    Success = result,
+                    Message = result ? "Product type deleted successfully" : "Failed to delete product type"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Error deleting product type: " + ex.Message
                 });
             }
         }
@@ -256,6 +449,90 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateCertificateType([FromBody] CertificateTypeViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid data provided",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            try
+            {
+                var success = await _adminService.CreateCertificateTypeAsync(model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Certificate type created successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Failed to create certificate type" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error creating certificate type: " + ex.Message });
+            }
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateCertificateType(int id, [FromBody] CertificateTypeViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid data provided",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            try
+            {
+                var success = await _adminService.UpdateCertificateTypeAsync(id, model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Certificate type updated successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Certificate type not found or update failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error updating certificate type: " + ex.Message });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteCertificateType(int id)
+        {
+            try
+            {
+                var success = await _adminService.DeleteCertificateTypeAsync(id);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Certificate type deleted successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Certificate type not found or delete failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error deleting certificate type: " + ex.Message });
+            }
+        }
+
         // Certificate Fields
         public IActionResult CertificateFields()
         {
@@ -263,17 +540,107 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetCertificateFields()
+        public async Task<IActionResult> GetCertificateFields()
         {
-            var fields = new List<CertificateFieldViewModel>
+            try
             {
-                new CertificateFieldViewModel { Id = 1, Name = "Certificate Number", FieldType = "text", IsRequired = true, IsVisible = true, SortOrder = 1 },
-                new CertificateFieldViewModel { Id = 2, Name = "Issue Date", FieldType = "date", IsRequired = true, IsVisible = true, SortOrder = 2 },
-                new CertificateFieldViewModel { Id = 3, Name = "Expiry Date", FieldType = "date", IsRequired = false, IsVisible = true, SortOrder = 3 },
-                new CertificateFieldViewModel { Id = 4, Name = "Certification Body", FieldType = "select", IsRequired = true, IsVisible = true, SortOrder = 4, Options = "UL,SGS,TUV,Bureau Veritas" }
-            };
+                var fields = await _adminService.GetCertificateFieldsAsync();
+                return Json(new ApiResponse<List<CertificateFieldViewModel>> { Success = true, Data = fields });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<CertificateFieldViewModel>>
+                {
+                    Success = false,
+                    Message = "Error retrieving certificate fields: " + ex.Message
+                });
+            }
+        }
 
-            return Json(new ApiResponse<List<CertificateFieldViewModel>> { Success = true, Data = fields });
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateCertificateField([FromBody] CertificateFieldViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid data provided",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            try
+            {
+                var success = await _adminService.CreateCertificateFieldAsync(model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Certificate field created successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Failed to create certificate field" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error creating certificate field: " + ex.Message });
+            }
+        }
+
+        [HttpPut]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateCertificateField(int id, [FromBody] CertificateFieldViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid data provided",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            try
+            {
+                var success = await _adminService.UpdateCertificateFieldAsync(id, model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Certificate field updated successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Certificate field not found or update failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error updating certificate field: " + ex.Message });
+            }
+        }
+
+        [HttpDelete]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteCertificateField(int id)
+        {
+            try
+            {
+                var success = await _adminService.DeleteCertificateFieldAsync(id);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Certificate field deleted successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Certificate field not found or delete failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error deleting certificate field: " + ex.Message });
+            }
         }
 
         // CSF Attributes
@@ -324,16 +691,91 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetPartners()
+        public async Task<IActionResult> GetPartners()
         {
-            var partners = new List<PartnerViewModel>
+            try
             {
-                new PartnerViewModel { Id = 1, Name = "Amazon", Description = "E-commerce marketplace", Website = "amazon.com", IsActive = true, UserCount = 15, CreatedDate = DateTime.Now.AddMonths(-6) },
-                new PartnerViewModel { Id = 2, Name = "Wayfair", Description = "Online furniture retailer", Website = "wayfair.com", IsActive = true, UserCount = 8, CreatedDate = DateTime.Now.AddMonths(-3) },
-                new PartnerViewModel { Id = 3, Name = "Other", Description = "Other retail partners", Website = "", IsActive = true, UserCount = 2, CreatedDate = DateTime.Now.AddMonths(-12) }
-            };
+                var partners = await _adminService.GetPartnersAsync();
+                return Json(new ApiResponse<List<PartnerViewModel>> { Success = true, Data = partners });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving partners");
+                return Json(new ApiResponse<List<PartnerViewModel>> { Success = false, Message = "Error retrieving partners", Data = new List<PartnerViewModel>() });
+            }
+        }
 
-            return Json(new ApiResponse<List<PartnerViewModel>> { Success = true, Data = partners });
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreatePartner([FromBody] PartnerViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Invalid data provided" });
+                }
+
+                var result = await _adminService.CreatePartnerAsync(model);
+                if (result)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Partner created successfully" });
+                }
+
+                return Json(new ApiResponse<object> { Success = false, Message = "Failed to create partner" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating partner");
+                return Json(new ApiResponse<object> { Success = false, Message = "Error creating partner" });
+            }
+        }
+
+        [HttpPut]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdatePartner(int id, [FromBody] PartnerViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Invalid data provided" });
+                }
+
+                var result = await _adminService.UpdatePartnerAsync(id, model);
+                if (result)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Partner updated successfully" });
+                }
+
+                return Json(new ApiResponse<object> { Success = false, Message = "Partner not found or failed to update" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating partner {PartnerId}", id);
+                return Json(new ApiResponse<object> { Success = false, Message = "Error updating partner" });
+            }
+        }
+
+        [HttpDelete]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeletePartner(int id)
+        {
+            try
+            {
+                var result = await _adminService.DeletePartnerAsync(id);
+                if (result)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Partner deleted successfully" });
+                }
+
+                return Json(new ApiResponse<object> { Success = false, Message = "Partner not found or failed to delete" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting partner {PartnerId}", id);
+                return Json(new ApiResponse<object> { Success = false, Message = "Error deleting partner" });
+            }
         }
 
         // Product Management
@@ -482,24 +924,6 @@ namespace GCCWebApp.Controllers
 
         // Lookup data for dropdowns
         [HttpGet]
-        public async Task<IActionResult> GetCompanies()
-        {
-            try
-            {
-                var companies = await _adminService.GetCompaniesAsync();
-                return Json(new ApiResponse<List<LookupItem>> { Success = true, Data = companies });
-            }
-            catch (Exception ex)
-            {
-                return Json(new ApiResponse<List<LookupItem>>
-                {
-                    Success = false,
-                    Message = "Error retrieving companies: " + ex.Message
-                });
-            }
-        }
-
-        [HttpGet]
         public async Task<IActionResult> GetRolesList()
         {
             try
@@ -572,5 +996,56 @@ namespace GCCWebApp.Controllers
         {
             return View();
         }
+
+        // 2FA Management Actions
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Reset2FA([FromBody] UserIdRequest request)
+        {
+            try
+            {
+                var success = await _adminService.Reset2FAAsync(request.UserId);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "2FA reset successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "User not found or 2FA reset failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error resetting 2FA: " + ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken] 
+        public async Task<IActionResult> Disable2FA([FromBody] UserIdRequest request)
+        {
+            try
+            {
+                var success = await _adminService.Disable2FAAsync(request.UserId);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "2FA disabled successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "User not found or 2FA disable failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error disabling 2FA: " + ex.Message });
+            }
+        }
+    }
+
+    // Request model for user ID operations
+    public class UserIdRequest
+    {
+        public int UserId { get; set; }
     }
 }

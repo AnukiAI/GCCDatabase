@@ -28,6 +28,10 @@ namespace GCCWebApp.Repositories
         Task<IEnumerable<(string Name, int Count)>> GetCertificationTypeStatisticsAsync();
         Task<IEnumerable<(string Name, int Count)>> GetTopCompaniesByActiveCertCountAsync(int topCount = 10);
         Task<IEnumerable<(string Name, int Count)>> GetProductTypeStatisticsAsync(int topCount = 10);
+        
+        // Additional methods for API
+        Task<IEnumerable<string>> GetDistinctCountriesAsync();
+        new Task<IEnumerable<Certificate>> FindAsync(System.Linq.Expressions.Expression<Func<Certificate, bool>> predicate);
     }
 
     public class CertificateSearchFilter
@@ -49,5 +53,10 @@ namespace GCCWebApp.Repositories
         public bool SortDescending { get; set; } = true;
         public int Page { get; set; } = 1;
         public int PageSize { get; set; } = 10;
+        
+        // Additional filter properties for API
+        public List<string>? CertificationTypeNames { get; set; }
+        public List<string>? Countries { get; set; }
+        public List<int>? CompanyIds { get; set; }
     }
 }

@@ -219,11 +219,14 @@
     font-weight: 500;
     font-size: var(--font-size-base);
     position: relative;
-    cursor: pointer;
     user-select: none;
 }
 
-.cert-types-table th:after {
+.cert-types-table th[data-sort] {
+    cursor: pointer;
+}
+
+.cert-types-table th:not(.no-sort):after {
     content: '▼';
     display: inline-block;
     margin-left: var(--space-xs);
@@ -231,8 +234,18 @@
     color: var(--text-secondary);
 }
 
-.cert-types-table th:hover {
+.cert-types-table th:not(.no-sort):hover {
     background-color: var(--medium-gray);
+}
+
+.cert-types-table th.no-sort {
+    cursor: default !important;
+}
+
+.cert-types-table th.no-sort:after,
+.cert-types-table th.actions-col:after {
+    content: none !important;
+    display: none !important;
 }
 
 .cert-types-table td {

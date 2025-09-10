@@ -203,8 +203,16 @@ namespace GCCWebApp.Controllers
         /// Initiate sign-out process (GET version for direct navigation)
         /// </summary>
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> Logout()
         {
+            // If user is not authenticated, just redirect to home
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                _logger.LogInformation("Logout called but user is not authenticated");
+                return RedirectToAction("CertificateTileView", "Certificate");
+            }
+            
             return await PerformLogout();
         }
 
@@ -213,8 +221,16 @@ namespace GCCWebApp.Controllers
         /// </summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [AllowAnonymous]
         public async Task<IActionResult> LogoutPost()
         {
+            // If user is not authenticated, just redirect to home
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                _logger.LogInformation("LogoutPost called but user is not authenticated");
+                return RedirectToAction("CertificateTileView", "Certificate");
+            }
+            
             return await PerformLogout();
         }
 

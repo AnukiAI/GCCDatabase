@@ -18,19 +18,18 @@
     </span>
 }
 
+@section PageActions {
+    <button id="export-btn" class="btn">
+        <i class="fas fa-download"></i> Export
+    </button>
+    <button id="add-certtype-btn" class="btn btn-add">
+        <i class="fas fa-plus"></i> Add New Certificate Type
+    </button>
+}
+
 @Html.AntiForgeryToken()
 
 <div class="admin-container">
-    <header class="admin-header">
-        <div class="buttons-area">
-            <button id="export-btn" class="btn">
-                <i class="fas fa-download"></i> Export
-            </button>
-            <button id="add-certtype-btn" class="btn btn-add">
-                <i class="fas fa-plus"></i> Add New Certificate Type
-            </button>
-        </div>
-    </header>
 
     <div class="search-filter-bar">
         <div class="search-box">
@@ -44,7 +43,7 @@
             <thead>
                 <tr>
                     <th width="90%" data-sort="name">Certificate Type Name</th>
-                    <th width="10%" class="actions-col">Actions</th>
+                    <th width="10%" class="actions-col no-sort">Actions</th>
                 </tr>
             </thead>
             <tbody>

@@ -172,12 +172,14 @@ function populateTable(data) {
             // If editing, show save and cancel buttons
             const saveBtn = document.createElement('button');
             saveBtn.className = 'btn-save';
-            saveBtn.textContent = 'Save';
+            saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+            saveBtn.title = 'Save';
             saveBtn.addEventListener('click', () => saveCertTypeEdit(certType.id));
 
             const cancelBtn = document.createElement('button');
             cancelBtn.className = 'btn-cancel';
-            cancelBtn.textContent = 'Cancel';
+            cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+            cancelBtn.title = 'Cancel';
             cancelBtn.addEventListener('click', cancelCertTypeEdit);
 
             actionsCell.appendChild(saveBtn);
@@ -223,12 +225,14 @@ function populateTable(data) {
 
         const saveBtn = document.createElement('button');
         saveBtn.className = 'btn-save';
-        saveBtn.textContent = 'Save';
+        saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+        saveBtn.title = 'Save';
         saveBtn.addEventListener('click', saveNewCertType);
 
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'btn-cancel';
-        cancelBtn.textContent = 'Cancel';
+        cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+        cancelBtn.title = 'Cancel';
         cancelBtn.addEventListener('click', cancelAddCertType);
 
         actionsCell.appendChild(saveBtn);

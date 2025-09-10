@@ -1,4 +1,5 @@
 using GCCWebApp.Services.Security;
+using Microsoft.AspNetCore.Hosting;
 
 namespace GCCWebApp.Middleware;
 
@@ -10,15 +11,18 @@ public class SecurityHeadersMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger<SecurityHeadersMiddleware> _logger;
     private readonly IConfiguration _configuration;
+    private readonly IWebHostEnvironment _environment;
 
     public SecurityHeadersMiddleware(
         RequestDelegate next,
         ILogger<SecurityHeadersMiddleware> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IWebHostEnvironment environment)
     {
         _next = next;
         _logger = logger;
         _configuration = configuration;
+        _environment = environment;
     }
 
     public async Task InvokeAsync(HttpContext context)
@@ -59,7 +63,7 @@ public class SecurityHeadersMiddleware
     {
         var response = context.Response;
         var isHttps = context.Request.IsHttps;
-        var isDevelopment = _configuration.GetValue<bool>("FeatureFlags:EnableDetailedErrorMessages", false);
+        var isDevelopment = _environment.IsDevelopment();
 
         // Content Security Policy
         var cspPolicy = BuildContentSecurityPolicy(isDevelopment);

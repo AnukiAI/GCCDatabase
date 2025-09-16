@@ -4,7 +4,8 @@ using System.IO;
 
 public class ApplyPartnersMigration
 {
-    public static void Main()
+    // Renamed from Main to avoid entry point conflict
+    public static void ApplyMigration()
     {
         var connectionString = "Data Source=gcc_database.db";
         

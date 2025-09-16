@@ -428,90 +428,262 @@ POST   /api/CertificateTileExternal/export         # Export partner's data
 
 ## Docker Deployment
 
-### Dockerfile
+### Current Container Status (as of September 15, 2025)
+
+```bash
+# Check running containers
+docker ps
+
+# Current containers:
+# - gcc-production: Running on port 5105 (healthy) - gcc-webapp:production
+# - gcc-webapp-fixed: Running on port 5102 (unhealthy) - gcc-webapp:production-fixed
+```
+
+### Available Deployment Scripts
+
+The project includes comprehensive Docker deployment automation:
+
+#### 1. Interactive Build Script - `docker-build.cmd`
+Full-featured build menu with options for:
+- Development, Test, Production builds
+- Multi-architecture builds (ARM64, AMD64)
+- Security scanning
+- Registry deployment
+- Build history and logging
+
+```bash
+# Windows
+./docker-build.cmd
+
+# Options available:
+# 1. Build Development Image
+# 2. Build Test Image
+# 3. Build Production Image
+# 4. Build All Environments
+# 5. Build and Push to Registry
+# 6. Build Multi-Architecture Image
+# 7. Security Scan Image
+# 8. Clean Build (No Cache)
+```
+
+#### 2. Quick Production Deployment - `docker-run-production.sh`
+```bash
+# Run production container with SQLite
+./docker-run-production.sh
+# Starts container on port 5105
+```
+
+#### 3. Plesk Server Deployment - `docker-deploy-plesk-FIXED.cmd`
+```bash
+# Deploy to Plesk server with PostgreSQL
+./docker-deploy-plesk-FIXED.cmd
+# Includes proper environment configuration
+```
+
+#### 4. Registry-Based Deployment
+```bash
+# Deploy from container registry (GitHub Packages)
+./docker-deploy-plesk-registry-UPDATED.cmd
+./docker-deploy-plesk-registry-MARIADB.cmd
+```
+
+#### 5. Docker Compose Deployment
+```bash
+# Full stack with PostgreSQL + Redis
+docker-compose up -d
+
+# With MariaDB
+docker-compose -f docker-compose.mariadb.yml up -d
+```
+
+### Current Dockerfile Configuration
 ```dockerfile
-# Already exists in project root
+# Production-optimized Dockerfile
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
-EXPOSE 80
-EXPOSE 443
+EXPOSE 8080
+EXPOSE 8081
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
+
+# Copy and restore dependencies
 COPY ["GCCWebApp.csproj", "."]
-RUN dotnet restore
+RUN dotnet restore "./GCCWebApp.csproj"
+
+# Build application
 COPY . .
-RUN dotnet build -c Release -o /app/build
+RUN dotnet build "./GCCWebApp.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
+# Publish application
 FROM build AS publish
-RUN dotnet publish -c Release -o /app/publish
+RUN dotnet publish "./GCCWebApp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
+# Final runtime image
 FROM base AS final
 WORKDIR /app
+
+# Security: Create non-root user
+RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
+USER appuser
+
+# Environment variables
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://+:8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
+
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "GCCWebApp.dll"]
 ```
 
-### Docker Commands
+### Docker Management Scripts
 
-#### Build and Run Locally
+#### Utility Scripts Available
 ```bash
-# Build Docker image
-docker build -t gcc-webapp:latest .
+# Build and deployment
+./docker-build.cmd              # Interactive build menu (comprehensive)
+./docker-build.sh               # Linux/bash version
+./docker-run-production.sh      # Quick production container start
 
-# Run container (Development)
-docker run -d \
-  --name gcc-webapp \
-  -p 5101:80 \
-  -e ASPNETCORE_ENVIRONMENT=Development \
-  -e ConnectionStrings__DefaultConnection="Data Source=/data/gcc_database.db" \
-  -v ${PWD}/data:/data \
-  gcc-webapp:latest
+# Plesk server deployment
+./docker-deploy-plesk-FIXED.cmd       # Fixed Plesk deployment with PostgreSQL
+./docker-deploy-plesk-FIXED.sh        # Linux version
+./docker-deploy-plesk-simple.sh       # Simplified Plesk deployment
+./docker-deploy-plesk-registry.cmd    # Deploy from container registry
 
-# Run container (Production)
-docker run -d \
-  --name gcc-webapp \
-  -p 80:80 \
-  -p 443:443 \
-  -e ASPNETCORE_ENVIRONMENT=Production \
-  -e ConnectionStrings__DefaultConnection="Server=sql-server;Database=GCC;User Id=sa;Password=YourPassword" \
-  -e AzureAdB2C__ClientSecret="your-secret" \
-  -v ${PWD}/certs:/https \
-  gcc-webapp:latest
+# Container management
+./docker-cleanup.cmd            # Clean up old containers and images
+./docker-health-check.cmd       # Health check script
+./docker-rollback.cmd           # Rollback to previous version
+./docker-push.cmd               # Push to registry
+
+# Multi-architecture builds
+./docker-buildx-multiarch.sh    # Build for multiple platforms (ARM64, AMD64)
+
+# Testing
+./docker-deploy-test.cmd        # Test deployment
 ```
 
-#### Docker Compose
+### Docker Commands
+
+#### Current Production Containers
+```bash
+# Check status of running containers
+docker ps | grep gcc
+
+# Current containers (September 2025):
+# gcc-production:     port 5105 (healthy)   - SQLite database
+# gcc-webapp-fixed:   port 5102 (unhealthy) - needs attention
+
+# Check container health
+docker inspect gcc-production --format='{{.State.Health.Status}}'
+
+# View container logs
+docker logs -f gcc-production
+docker logs -f gcc-webapp-fixed
+```
+
+#### Build and Run Commands
+```bash
+# Build production image
+docker build -t gcc-webapp:production .
+
+# Run with SQLite (current working config)
+docker run -d \
+  --name gcc-webapp \
+  -p 5105:8080 \
+  -e ASPNETCORE_ENVIRONMENT=Production \
+  -e ConnectionStrings__DefaultConnection="Data Source=/app/data/gcc_database.db" \
+  gcc-webapp:production
+
+# Run with PostgreSQL (Plesk configuration)
+docker run -d \
+  --name gcc-webapp \
+  -p 5102:5101 \
+  -e ASPNETCORE_ENVIRONMENT=Development \
+  -e ConnectionStrings__DefaultConnection="Host=localhost;Database=gccdb;Username=gccuser;Password=YourPassword;Port=5432" \
+  -e Jwt__Key="ThisIsAVeryLongSecretKeyForJwtTokenGenerationAtLeast64CharactersLong123456789" \
+  gcc-webapp:production
+```
+
+#### Docker Compose (Current Configuration)
 ```yaml
-# docker-compose.yml (exists in project)
-version: '3.8'
-
+# docker-compose.yml - PostgreSQL + Redis Stack
 services:
-  webapp:
-    build: .
+  gccwebapp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gcc-webapp
     ports:
-      - "5101:80"
-      - "5102:443"
+      - "8080:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=db;Database=GCC;User Id=sa;Password=YourPassword
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=gcc_database;Username=gcc_user;Password=${DB_PASSWORD:-defaultpassword123}
+      - Jwt__Key=${JWT_SECRET_KEY:-your-super-secret-jwt-key-min-64-chars-for-security-compliance-here}
+      - DatabaseProvider=postgresql
     depends_on:
-      - db
-    volumes:
-      - ./data:/data
-      - ./logs:/app/logs
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - gcc-network
 
-  db:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+  postgres:
+    image: postgres:15-alpine
+    container_name: gcc-postgres
     environment:
-      - ACCEPT_EULA=Y
-      - SA_PASSWORD=YourPassword
+      - POSTGRES_DB=gcc_database
+      - POSTGRES_USER=gcc_user
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-defaultpassword123}
     ports:
-      - "1433:1433"
+      - "5432:5432"
     volumes:
-      - sql-data:/var/opt/mssql
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gcc_user -d gcc_database"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - gcc-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: gcc-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redispassword123}
+    volumes:
+      - redis-data:/data
+    networks:
+      - gcc-network
 
 volumes:
-  sql-data:
+  postgres-data:
+  redis-data:
+  app-logs:
+
+networks:
+  gcc-network:
+    driver: bridge
+```
+
+Available compose configurations:
+```bash
+# PostgreSQL stack (recommended)
+docker-compose up -d
+
+# MariaDB stack
+docker-compose -f docker-compose.mariadb.yml up -d
+
+# Test environment
+docker-compose -f docker-compose.test.yml up -d
 ```
 
 #### Docker Compose Commands
@@ -565,9 +737,45 @@ docker tag gcc-webapp:latest yourusername/gcc-webapp:latest
 docker push yourusername/gcc-webapp:latest
 ```
 
-### Health Checks & Monitoring
+### Container Troubleshooting & Next Steps
 
-#### Health Check Endpoint
+#### Current Issues to Address (September 2025)
+1. **gcc-webapp-fixed container (port 5102)**: Status is unhealthy
+   ```bash
+   # Check specific health status
+   docker inspect gcc-webapp-fixed --format='{{.State.Health.Status}}'
+
+   # View detailed logs
+   docker logs --tail 50 gcc-webapp-fixed
+
+   # Restart if needed
+   docker restart gcc-webapp-fixed
+   ```
+
+2. **Database Configuration**: Multiple database options available
+   - SQLite: Working in gcc-production container
+   - PostgreSQL: Configured for Plesk deployment
+   - MariaDB: Alternative option via compose
+
+#### Recommended Next Steps
+```bash
+# 1. Fix unhealthy container
+docker stop gcc-webapp-fixed
+docker rm gcc-webapp-fixed
+
+# 2. Deploy fresh container using working configuration
+./docker-deploy-plesk-FIXED.cmd
+
+# 3. Or use Docker Compose for full stack
+docker-compose up -d
+
+# 4. Monitor health status
+watch docker ps
+```
+
+#### Container Health Monitoring
+
+##### Health Check Endpoint
 ```csharp
 // Already implemented in Program.cs
 app.MapHealthChecks("/health", new HealthCheckOptions
@@ -576,22 +784,86 @@ app.MapHealthChecks("/health", new HealthCheckOptions
 });
 ```
 
-#### Docker Health Check
+##### Docker Health Check (Built-in)
 ```dockerfile
-HEALTHCHECK --interval=30s --timeout=3s --retries=3 \
-  CMD curl -f http://localhost/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:8080/health || exit 1
 ```
 
-#### Container Logs
+##### Container Monitoring Commands
 ```bash
 # View container logs
-docker logs gcc-webapp
+docker logs gcc-production
+docker logs gcc-webapp-fixed
 
-# Follow logs
-docker logs -f gcc-webapp
+# Follow logs in real-time
+docker logs -f gcc-production
 
 # View last 100 lines
-docker logs --tail 100 gcc-webapp
+docker logs --tail 100 gcc-production
+
+# Check container stats
+docker stats gcc-production
+
+# Inspect container configuration
+docker inspect gcc-production | jq '.Config.Env'
+```
+
+##### Environment Variables Verification
+```bash
+# Check current container environment
+docker exec gcc-production env | grep -E "(ASPNETCORE|ConnectionStrings|Jwt)"
+
+# Should show:
+# ASPNETCORE_ENVIRONMENT=Production
+# ASPNETCORE_URLS=http://+:8080
+# ConnectionStrings__DefaultConnection=Data Source=/app/data/gcc_database.db
+```
+
+### Docker Deployment Quick Reference
+
+#### Production Deployment Options (Choose One)
+1. **SQLite + Single Container** (Currently Working)
+   ```bash
+   ./docker-run-production.sh
+   # Starts on port 5105, uses SQLite database
+   ```
+
+2. **PostgreSQL + Docker Compose** (Recommended for Scalability)
+   ```bash
+   docker-compose up -d
+   # Full stack: App + PostgreSQL + Redis
+   # App runs on port 8080
+   ```
+
+3. **Plesk Server Deployment** (For Hosting Provider)
+   ```bash
+   ./docker-deploy-plesk-FIXED.cmd
+   # Configured for Plesk hosting with PostgreSQL
+   ```
+
+4. **Interactive Build & Deploy**
+   ```bash
+   ./docker-build.cmd
+   # Choose option 3 for production build
+   # Then select deployment method
+   ```
+
+#### Container Status Summary
+```
+Container Name      | Port | Status    | Database | Purpose
+-------------------|------|-----------|----------|------------------
+gcc-production     | 5105 | Healthy   | SQLite   | Working production
+gcc-webapp-fixed   | 5102 | Unhealthy | Postgres | Needs attention
+```
+
+#### Emergency Recovery
+```bash
+# If all containers fail, rebuild from scratch:
+docker stop $(docker ps -q --filter "name=gcc")
+docker rm $(docker ps -aq --filter "name=gcc")
+./docker-build.cmd  # Choose option 3 (Production)
+./docker-run-production.sh
 ```
 
 ### Kubernetes Deployment (Optional)

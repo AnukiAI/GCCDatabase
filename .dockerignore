@@ -19,6 +19,9 @@ packages/
 .vs/
 *.vscode/
 
+# Launch settings (interferes with Docker port configuration)
+Properties/launchSettings.json
+
 # ReSharper
 *ReSharper*
 

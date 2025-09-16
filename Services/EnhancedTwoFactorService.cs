@@ -673,7 +673,7 @@ namespace GCCWebApp.Services
                 var value = alphabet.IndexOf(c);
                 if (value < 0) continue;
                 
-                buffer = (buffer << 5) | value;
+                buffer = (buffer << 5) | (uint)value;
                 bitsLeft += 5;
                 
                 if (bitsLeft >= 8)

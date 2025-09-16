@@ -35,6 +35,11 @@ RUN mkdir -p /app/logs
 # Copy the published application
 COPY --from=publish /app/publish .
 
+# Fix case sensitivity issues for Linux containers
+RUN if [ -f /app/wwwroot/img/GCCLogo.png ]; then \
+    cp /app/wwwroot/img/GCCLogo.png /app/wwwroot/img/gcclogo.png; \
+    fi
+
 # Create a non-root user for security
 RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
 USER appuser

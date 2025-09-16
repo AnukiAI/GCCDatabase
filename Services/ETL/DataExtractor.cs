@@ -365,10 +365,11 @@ namespace GCCWebApp.Services.ETL
                 // This would require a more sophisticated implementation based on the database type
                 // For now, we'll implement a basic SQL Server extraction
                 _logger.LogWarning("Database extraction not fully implemented for source: {Source}", source.Name);
-                
+
                 // Placeholder for database extraction logic
                 // Would use SqlConnection, etc. based on the database type
-                
+                await Task.CompletedTask; // Placeholder await to satisfy async signature
+
                 return extractedData;
             }
             catch (Exception ex)

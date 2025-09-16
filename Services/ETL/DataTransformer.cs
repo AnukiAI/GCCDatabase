@@ -225,15 +225,17 @@ namespace GCCWebApp.Services.ETL
             }
         }
 
-        private async Task<object?> TransformSingleCertificateAsync(Dictionary<string, object> certificate, 
+        private async Task<object?> TransformSingleCertificateAsync(Dictionary<string, object> certificate,
             ETLTransformedData transformedData)
         {
             try
             {
+                await Task.CompletedTask; // Placeholder await to satisfy async signature
+
                 // Validate required fields
                 if (!ValidateRequiredFields(certificate, new[] { "Id", "Number", "CompanyId", "ProductId" }))
                 {
-                    AddDataQualityIssue(transformedData, "MissingRequiredFields", 
+                    AddDataQualityIssue(transformedData, "MissingRequiredFields",
                         "Certificate missing required fields", certificate.GetValueOrDefault("Id")?.ToString());
                     return null;
                 }
@@ -330,6 +332,7 @@ namespace GCCWebApp.Services.ETL
 
         private async Task<object> EnrichCertificateData(Dictionary<string, object> certificate)
         {
+            await Task.CompletedTask; // Placeholder await to satisfy async signature
             var enrichedCert = new Dictionary<string, object>(certificate);
 
             // Add risk assessment
@@ -360,6 +363,7 @@ namespace GCCWebApp.Services.ETL
 
         private async Task<List<object>> CreateDailyAggregatesAsync(List<object> certificates)
         {
+            await Task.CompletedTask; // Placeholder await to satisfy async signature
             var aggregates = new List<object>();
 
             var groupedByDate = certificates
@@ -400,6 +404,7 @@ namespace GCCWebApp.Services.ETL
 
         private async Task<List<object>> CreateCompanyAggregatesAsync(List<object> companies)
         {
+            await Task.CompletedTask; // Placeholder await to satisfy async signature
             return companies.Select(c =>
             {
                 var companyDict = JsonSerializer.Deserialize<Dictionary<string, object>>(JsonSerializer.Serialize(c));

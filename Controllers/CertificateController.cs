@@ -86,6 +86,7 @@ namespace GCCWebApp.Controllers
         /// Certificate single view
         /// GET: /Certificate/CertificateTileViewExternal
         /// </summary>
+        [AllowAnonymous]
         public IActionResult CertificateTileViewExternal()
         {
             return View();

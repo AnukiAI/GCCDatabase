@@ -1,0 +1,40 @@
+# Fixed Dockerfile for Plesk deployment
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 8080
+
+# Install SQLite runtime (critical for the app to work!)
+RUN apt-get update && \
+    apt-get install -y sqlite3 curl && \
+    rm -rf /var/lib/apt/lists/*
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["GCCWebApp.csproj", "."]
+RUN dotnet restore "./GCCWebApp.csproj"
+COPY . .
+RUN dotnet build "./GCCWebApp.csproj" -c Release -o /app/build
+
+FROM build AS publish
+RUN dotnet publish "./GCCWebApp.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=publish /app/publish .
+
+# Create data directory with proper permissions
+RUN mkdir -p /app/data /app/logs && \
+    chmod 777 /app/data /app/logs
+
+# Copy logo fix
+RUN if [ -f /app/wwwroot/img/GCCLogo.png ]; then \
+    cp /app/wwwroot/img/GCCLogo.png /app/wwwroot/img/gcclogo.png; \
+    fi
+
+# NOTE: Running as root for now to avoid permission issues
+# In production, you'd want to properly configure volume permissions
+
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://+:8080
+
+ENTRYPOINT ["dotnet", "GCCWebApp.dll"]

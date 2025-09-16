@@ -1,435 +1,165 @@
 @{
+    // ViewData["Title"] = "Certificate Tile View";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 <link rel="stylesheet" href="~/css/certificatetileview.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-@* Removing inline styles to use external CSS instead
 <style>
-    /* External Certificate Tile View specific overrides */
-    /* Most styles now come from certificatetileview.css */
-    
-    /* Keep only External-specific styles that don't conflict */
-
-    /* Mobile filter toggle */
-    .mobile-filter-toggle {
-        display: none;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        padding: 12px 16px;
-        background: #007bff;
-        color: white;
-        border: none;
-        border-radius: 6px;
-        font-size: 16px; /* Minimum font size for accessibility */
-        font-weight: 500;
-        cursor: pointer;
-        margin-bottom: 15px;
-        transition: background-color 0.2s;
+    /* Fix for the Actions column white block */
+    .certificates-table th.actions-column {
+        min-width: 100px !important;
+        width: 100px !important;
+        background: #f8f9fa !important;
+        text-align: center;
+        padding: 12px 8px;
     }
 
-    .mobile-filter-toggle:hover {
-        background: #0056b3;
+    /* Ensure consistent header styling */
+    .certificates-table thead th {
+        background: #f8f9fa !important;
+        border-right: 1px solid #eee;
+        white-space: nowrap;
     }
 
-    /* Search bar */
-    .search-bar {
-        position: relative;
-        margin-bottom: 25px;
+    /* Remove any potential white blocks */
+    .certificates-table th {
+        background: #f8f9fa !important;
     }
 
-    .search-input {
-        width: 100%;
-        padding: 12px 45px 12px 16px;
-        border: 2px solid #e0e0e0;
-        border-radius: 6px;
-        font-size: 16px; /* Minimum font size for accessibility */
-        transition: border-color 0.2s;
-    }
-
-    .search-input:focus {
-        outline: none;
-        border-color: #007bff;
-    }
-
-    .search-icon {
-        position: absolute;
-        right: 15px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #666;
-        font-size: 16px;
-    }
-
-    /* Filter header */
-    .filters-header {
+    /* Results controls alignment */
+    .results-controls {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #f0f0f0;
+        padding: 10px 0;
     }
 
-    .filters-title {
-        font-size: 20px;
-        font-weight: 600;
-        margin: 0;
-        color: #333;
-    }
-
-    .clear-filters {
-        color: #dc3545;
-        text-decoration: none;
-        font-size: 16px; /* Minimum font size for accessibility */
-        font-weight: 500;
-        transition: color 0.2s;
-    }
-
-    .clear-filters:hover {
-        color: #c82333;
-        text-decoration: underline;
-    }
-
-    /* Filter panels */
-    .filter-panel {
-        margin-bottom: 20px;
-        border: 1px solid #e0e0e0;
-        border-radius: 6px;
-        overflow: hidden;
-    }
-
-    .filter-header {
+    .left-controls {
         display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 16px;
-        background: #f8f9fa;
-        cursor: pointer;
-        font-weight: 500;
-        font-size: 16px; /* Minimum font size for accessibility */
-        transition: background-color 0.2s;
-    }
-
-    .filter-header:hover {
-        background: #e9ecef;
-    }
-
-    .filter-content {
-        padding: 15px;
-        background: white;
-    }
-
-    .filter-tree {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-    }
-
-    .filter-tree li {
-        margin-bottom: 8px;
-    }
-
-    .filter-tree input[type="checkbox"] {
-        margin-right: 8px;
-        transform: scale(1.1);
-    }
-
-    .filter-tree label {
-        cursor: pointer;
-        font-size: 16px; /* Minimum font size for accessibility */
-        line-height: 1.4;
-    }
-
-    /* Main content area */
-    .main-content {
-        flex: 1;
-        background: white;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        padding: 25px;
-    }
-
-    /* Results header */
-    .results-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 25px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #f0f0f0;
-        flex-wrap: wrap;
-        gap: 15px;
-    }
-
-    .results-count {
-        font-size: 18px;
-        font-weight: 600;
-        color: #333;
-    }
-
-    /* View controls */
-    .view-controls {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-
-    .view-type-toggle {
-        display: flex;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        overflow: hidden;
-    }
-
-    .view-toggle-btn {
-        padding: 8px 12px;
-        border: none;
-        background: #f8f9fa;
-        cursor: pointer;
-        font-size: 16px; /* Minimum font size for accessibility */
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .view-toggle-btn:hover {
-        background: #e9ecef;
-    }
-
-    .view-toggle-btn.active {
-        background: #007bff;
-        color: white;
-    }
-
-    /* Sort controls */
-    .sort-controls {
-        display: flex;
-        align-items: center;
         gap: 10px;
     }
 
-    .sort-label {
-        font-weight: 500;
-        font-size: 16px; /* Minimum font size for accessibility */
-        color: #333;
-    }
-
-    .sort-dropdown {
-        position: relative;
-    }
-
-    .sort-dropdown-button {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 12px;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 16px; /* Minimum font size for accessibility */
-        transition: all 0.2s;
-        min-width: 180px;
-    }
-
-    .sort-dropdown-button:hover {
-        border-color: #007bff;
-        background: #f8f9fa;
-    }
-
-    .sort-dropdown-content {
-        position: absolute;
-        top: 100%;
-        right: 0;
-        background: white;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        min-width: 250px;
-        max-height: 400px;
-        overflow-y: auto;
-        z-index: 1000;
-        display: none;
-    }
-
-    .sort-dropdown.open .sort-dropdown-content {
-        display: block;
-    }
-
-    .sort-group-header {
-        padding: 10px 15px;
-        background: #f8f9fa;
-        font-weight: 600;
-        font-size: 16px; /* Minimum font size for accessibility */
-        color: #555;
-        border-bottom: 1px solid #e0e0e0;
-    }
-
-    .sort-option {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 15px;
-        cursor: pointer;
-        font-size: 16px; /* Minimum font size for accessibility */
-        transition: background-color 0.2s;
-    }
-
-    .sort-option:hover {
-        background: #f8f9fa;
-    }
-
-    .sort-option i {
-        width: 16px;
-        color: #666;
-    }
-
-    /* Certificate grid */
-    .certificates-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        gap: 20px;
-        margin-bottom: 30px;
-    }
-
-    /* Certificate cards */
-    .certificate-card {
-        background: white;
-        border: 1px solid #e0e0e0;
-        border-radius: 8px;
-        overflow: hidden;
-        transition: all 0.2s;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-
-    .certificate-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.15);
-        border-color: #007bff;
-    }
-
-    .card-header {
-        background: #003d7a;
-        color: white;
-        padding: 15px 20px;
-    }
-
-    .header-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 8px;
-    }
-
-    .certificate-category {
-        font-size: 16px; /* Minimum font size for accessibility */
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .certificate-id {
-        font-size: 18px;
-        font-weight: 700;
-    }
-
-    .company-name {
-        font-size: 20px;
-        font-weight: 700;
-        margin: 0;
-    }
-
-    .card-body {
-        padding: 20px;
-    }
-
-    .product-info {
-        margin-bottom: 15px;
-    }
-
-    .product-name {
-        font-size: 18px;
-        font-weight: 600;
-        margin-bottom: 8px;
-        line-height: 1.3;
-        color: #333;
-    }
-
-    .product-type {
-        font-size: 16px; /* Minimum font size for accessibility */
-        color: #666;
-        font-weight: 500;
-    }
-
-    .certificate-details {
-        border-top: 1px solid #f0f0f0;
-        padding-top: 15px;
-    }
-
-    .certificate-period {
-        display: flex;
-        align-items: center;
-        margin-bottom: 12px;
-        font-size: 16px; /* Minimum font size for accessibility */
-    }
-
-    .certificate-location {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #666;
-        font-size: 16px; /* Minimum font size for accessibility */
-    }
-
-    .certificate-location i {
-        color: #007bff;
-        width: 16px;
-    }
-
-    /* Card actions - External users have limited actions */
-    .card-actions {
+    .right-controls {
         display: flex;
         justify-content: flex-end;
-        gap: 10px;
-        padding: 15px 20px;
-        background: #f8f9fa;
-        border-top: 1px solid #e0e0e0;
     }
 
-    .action-icon {
+    .view-toggle-container {
+        margin-left: auto;
+    }
+
+    .view-toggle {
         display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 36px;
-        height: 36px;
-        border-radius: 6px;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-size: 16px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        overflow: hidden;
     }
 
+    .toggle-btn {
+        padding: 8px 12px;
+        border: none;
+        background: #f8f9fa;
+        cursor: pointer;
+        font-size: 16px; /* Minimum font size for accessibility */
+        transition: background-color 0.2s;
+    }
+
+    .toggle-btn:hover {
+        background: #e9ecef;
+    }
+
+    .toggle-btn.active {
+        background: #007bff;
+        color: white;
+    }
+
+    .toggle-btn i {
+        margin-right: 5px;
+    }
+
+    /* Button styling to ensure visibility */
+    .btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+        font-size: 16px;
+        font-weight: 500;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+        border: none;
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background-color: #00AEEF;
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background-color: #0095d8;
+    }
+
+    .export-options {
+        display: flex;
+        gap: 10px;
+    }
+
+    /* Override any CSS that might be hiding export buttons */
+    .export-options .btn.btn-primary {
+        display: inline-flex !important;
+    }
+
+    /* Action button styling - External users have limited actions (no edit) */
     .action-icon.download {
         color: #28a745;
-        background: #f8fff9;
-        border: 1px solid #d4edda;
     }
 
     .action-icon.download:hover {
-        background: #d4edda;
         color: #1e7e34;
+        background-color: #d4edda;
     }
 
-    .action-icon.external {
-        color: #007bff;
-        background: #f8f9ff;
-        border: 1px solid #e3f2fd;
+    .action-icon.view {
+        color: #17a2b8;
     }
 
-    .action-icon.external:hover {
-        background: #e3f2fd;
-        color: #0056b3;
+    .action-icon.view:hover {
+        color: #117a8b;
+        background-color: #d1ecf1;
+    }
+
+    /* Action buttons in table view */
+    .action-btn {
+        border: none;
+        background: transparent;
+        padding: 5px 8px;
+        margin: 0 2px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 14px;
+        transition: all 0.2s;
+    }
+
+    .action-btn.download {
+        color: #28a745;
+    }
+
+    .action-btn.download:hover {
+        color: #1e7e34;
+        background-color: #d4edda;
+    }
+
+    .action-btn.view {
+        color: #17a2b8;
+    }
+
+    .action-btn.view:hover {
+        color: #117a8b;
+        background-color: #d1ecf1;
     }
 
     /* Loading indicator styles for lazy loading */
@@ -467,71 +197,12 @@
         100% { transform: rotate(360deg); }
     }
 
-    /* Responsive design */
-    @@media (max-width: 768px) {
-        .main-container {
-            flex-direction: column;
-            padding: 15px;
-        }
-
-        .sidebar {
-            width: 100%;
-            position: relative;
-            top: 0;
-        }
-
-        .mobile-filter-toggle {
-            display: flex;
-        }
-
-        .sidebar:not(.expanded) .search-bar,
-        .sidebar:not(.expanded) .filters-header,
-        .sidebar:not(.expanded) .filter-panel {
-            display: none;
-        }
-
-        .results-header {
-            flex-direction: column;
-            align-items: stretch;
-            gap: 15px;
-        }
-
-        .view-controls {
-            justify-content: center;
-        }
-
-        .certificates-grid {
-            grid-template-columns: 1fr;
-        }
-
-        .certificate-card {
-            margin-bottom: 15px;
-        }
-    }
-
-    @@media (max-width: 480px) {
-        .main-container {
-            padding: 10px;
-        }
-
-        .main-content {
-            padding: 15px;
-        }
-
-        .certificate-card {
-            font-size: 14px;
-        }
-
-        .company-name {
-            font-size: 18px;
-        }
-
-        .product-name {
-            font-size: 16px;
-        }
+    /* Hide add certificate and export actions for external users */
+    .btn.btn-add,
+    .export-options .btn.btn-primary {
+        display: none !important;
     }
 </style>
-*@
 
 <!-- Main Container -->
 <div class="main-container">
@@ -544,8 +215,8 @@
 
         <!-- Search Bar -->
         <div class="search-bar">
-            <input type="text" class="search-input" placeholder="Search">
             <i class="fas fa-search search-icon"></i>
+            <input type="text" class="search-input" placeholder="Search...">
         </div>
 
         <div class="filters-header">
@@ -561,10 +232,126 @@
             </div>
             <div class="filter-content" id="cert-type-content">
                 <ul class="filter-tree">
-                    <li><input type="checkbox" id="csf" data-type="csf"><label for="csf">Certified Sustainability Facts</label></li>
-                    <li><input type="checkbox" id="env-facts" data-type="environmental-facts"><label for="env-facts">Environmental Facts</label></li>
-                    <li><input type="checkbox" id="recycled-content" data-type="recycled-content"><label for="recycled-content">Recycled Content</label></li>
-                    <li><input type="checkbox" id="energy-savings" data-type="energy-savings"><label for="energy-savings">Energy Savings</label></li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="biobased">
+                            Biobased
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-energy-savings">
+                            Certified Energy Savings
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-environmental-facts">
+                            Certified Environmental Facts
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-sustainability-facts">
+                            Certified Sustainability Facts
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-water-savings">
+                            Certified Water Savings
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="closed-loop-product">
+                            Closed Loop Product
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="dematerialization">
+                            Dematerialization
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="ghg-verification">
+                            Greenhouse Gas (GHG) Verification
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="greencircle-audited">
+                            GreenCircle Audited
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="lca-optimized">
+                            Life Cycle Assessment (LCA) Optimized
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="manufacturer-inventory-verification">
+                            Manufacturer Inventory Verification
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="recyclable-material">
+                            Recyclable Material
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="recycled-content">
+                            Recycled Content
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="renewable-resource-content">
+                            Renewable Resource Content
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="sustainable-energy-practices">
+                            Sustainable Energy Practices
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="sustainable-manufacturing-practices">
+                            Sustainable Manufacturing Practices
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="waste-diversion-landfill">
+                            Waste Diversion from Landfill
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="waste-system-audit">
+                            Waste System Audit
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="vantage-vinyl-verified">
+                            +Vantage Vinyl® Verified
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="preloved">
+                            Preloved
+                        </label>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -577,40 +364,657 @@
             </div>
             <div class="filter-content" id="product-cat-content">
                 <ul class="filter-tree">
-                    <li><input type="checkbox" id="construction" data-category="construction"><label for="construction">Construction</label></li>
-                    <li><input type="checkbox" id="electronics" data-category="electronics"><label for="electronics">Electronics</label></li>
-                    <li><input type="checkbox" id="packaging" data-category="packaging"><label for="packaging">Packaging</label></li>
-                    <li><input type="checkbox" id="paper" data-category="paper"><label for="paper">Paper</label></li>
+                    <!-- Chemicals and Raw Materials -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="chemicals-raw-materials">
+                            Chemicals and Raw Materials
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="additives">
+                            Additives
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="metal-alloys">
+                            Metal Alloys
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="minerals">
+                            Minerals
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="plastics">
+                            Plastics
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="hdpe">
+                            HDPE
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="ldpe">
+                            LDPE
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="lldpe">
+                            LLDPE
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pet">
+                            PET
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pp">
+                            PP
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pvc">
+                            PVC
+                        </label>
+                    </li>
+
+                    <!-- Clothing, Apparel, and Fabrics -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="clothing-apparel-fabrics">
+                            Clothing, Apparel, and Fabrics
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="apparel">
+                            Apparel
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="bags-accessories">
+                            Bags and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="jewelry">
+                            Jewelry
+                        </label>
+                    </li>
+
+                    <!-- Construction / Building Products -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="construction-building" checked>
+                            Construction / Building Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="adhesives-sealants">
+                            Adhesives and Sealants
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="ceramics-tile">
+                            Ceramics and Tile
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="coatings">
+                            Coatings
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="concrete-materials">
+                            Concrete and Concrete Materials
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="doors-hardware" checked>
+                            Doors, Door Hardware, and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="fiberglass-mats">
+                            Fiberglass Mats
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="flooring">
+                            Flooring
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="grout-mortar">
+                            Grout and Mortar
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="hvac">
+                            HVAC
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="insulation">
+                            Insulation
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="moisture-control">
+                            Moisture Control
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="plumbing-accessories">
+                            Plumbing and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="roofing">
+                            Roofing
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="wallcoverings">
+                            Wallcoverings and Interior Wall Finishes
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="windows-accessories">
+                            Windows, Parts, and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="wiring-cable">
+                            Wiring and Cable
+                        </label>
+                    </li>
+
+                    <!-- Consumer Products -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="consumer-products">
+                            Consumer Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="appliances">
+                            Appliances
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="baby-products">
+                            Baby Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="cleaning-supplies">
+                            Cleaning Supplies
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="furniture">
+                            Furniture
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="health-beauty">
+                            Health and Beauty
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="home-goods">
+                            Home Goods
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="office-supplies">
+                            Office Supplies (non-electronic)
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="ppe">
+                            Personal Protective Equipment
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pet-products">
+                            Pet Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="security">
+                            Security
+                        </label>
+                    </li>
+
+                    <!-- Electronics, Computers, and Accessories -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="electronics">
+                            Electronics, Computers, and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="card-reader">
+                            Card Reader
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="electronic-accessories">
+                            Electronic Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="microelectronics">
+                            Microelectronics
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="printers-cartridges">
+                            Printers and Printer Cartridges
+                        </label>
+                    </li>
+
+                    <!-- Food and Beverage -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="food-beverage">
+                            Food and Beverage
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="animal-products">
+                            Animal Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="beverages">
+                            Beverages
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="food">
+                            Food
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="fragrance-flavor">
+                            Fragrance and Flavor
+                        </label>
+                    </li>
+
+                    <!-- Healthcare and Pharmaceutical -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="healthcare-pharmaceutical">
+                            Healthcare and Pharmaceutical
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="medical-devices">
+                            Medical Devices
+                        </label>
+                    </li>
+
+                    <!-- Packaging -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="packaging">
+                            Packaging
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="paper">
+                            Paper
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="plastic-packaging">
+                            Plastic
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="other-packaging">
+                            Other
+                        </label>
+                    </li>
                 </ul>
             </div>
         </div>
 
-        <!-- Location Filter -->
+        <!-- Company Filter -->
         <div class="filter-panel">
-            <div class="filter-header" data-filter="location">
-                <span>Location</span>
+            <div class="filter-header" data-filter="company">
+                <span>Company</span>
                 <i class="fas fa-chevron-down"></i>
             </div>
-            <div class="filter-content" id="location-content">
+            <div class="filter-content" id="company-content">
                 <ul class="filter-tree">
-                    <li><input type="checkbox" id="us" data-country="us"><label for="us">United States</label></li>
-                    <li><input type="checkbox" id="ca" data-country="ca"><label for="ca">Canada</label></li>
-                    <li><input type="checkbox" id="mx" data-country="mx"><label for="mx">Mexico</label></li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="alcamare">
+                            Alcamare International Recycling Group
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="assa-abloy">
+                            ASSA ABLOY
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="assa-abloy-corbin">
+                            ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="assa-abloy-sargent">
+                            ASSA ABLOY Access & Egress Hardware Group, Inc. - SARGENT Manufacturing Co. Division
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="certainteed">
+                            CertainTeed Insulation Group
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="charter">
+                            Charter Next Generation
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="domtar">
+                            Domtar Corporation
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="gaf">
+                            GAF
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="mapei">
+                            MAPEI
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="superior-essex">
+                            Superior Essex®
+                        </label>
+                    </li>
                 </ul>
             </div>
         </div>
 
-        <!-- Partner Filter (External Only) -->
+        <!-- Countries Filter -->
         <div class="filter-panel">
-            <div class="filter-header" data-filter="partner">
-                <span>Partner</span>
+            <div class="filter-header" data-filter="countries">
+                <span>Countries</span>
                 <i class="fas fa-chevron-down"></i>
             </div>
-            <div class="filter-content" id="partner-content">
+            <div class="filter-content" id="countries-content">
                 <ul class="filter-tree">
-                    <li><input type="checkbox" id="amazon" data-partner="amazon"><label for="amazon">Amazon</label></li>
-                    <li><input type="checkbox" id="wayfair" data-partner="wayfair"><label for="wayfair">Wayfair</label></li>
-                    <li><input type="checkbox" id="none" data-partner="none"><label for="none">General</label></li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="united-states">
+                            United States
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="belgium">
+                            Belgium
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="canada">
+                            Canada
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="china">
+                            China
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="colombia">
+                            Colombia
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="dominican-republic">
+                            Dominican Republic
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="el-salvador">
+                            El Salvador
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="france">
+                            France
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="germany">
+                            Germany
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="hungary">
+                            Hungary
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="indonesia">
+                            Indonesia
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="mexico">
+                            Mexico
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="netherlands">
+                            Netherlands
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="pakistan">
+                            Pakistan
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="poland">
+                            Poland
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="saudi-arabia">
+                            Saudi Arabia
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="singapore">
+                            Singapore
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="south-korea">
+                            South Korea
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="spain">
+                            Spain
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="switzerland">
+                            Switzerland
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="united-kingdom">
+                            United Kingdom
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Certificate Tags Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" data-filter="cert-tags">
+                <span>Certificate Tags</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="cert-tags-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="energy-savings">
+                            Energy Savings
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="environmental-facts">
+                            Environmental Facts
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="greencircle-audited">
+                            GreenCircle Audited
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="lca-optimized">
+                            LCA Optimized
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="material-ingredient">
+                            Material Ingredient
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="recycled-content">
+                            Recycled Content
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Additional Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" data-filter="additional">
+                <span>Additional</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="additional-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="additional" value="apr">
+                            APR
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="additional" value="leed">
+                            LEED
+                        </label>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -619,25 +1023,14 @@
     <!-- Main Content Area -->
     <div class="main-content">
         <div class="results-header">
-            <div class="results-count" id="resultsCount">Showing 15 certificates</div>
-            
-            <!-- View Toggle Buttons -->
-            <div class="view-controls">
-                <div class="view-type-toggle">
-                    <button class="view-toggle-btn active" data-view="tile" title="Tile View">
-                        <i class="fas fa-th-large"></i>
-                    </button>
-                    <button class="view-toggle-btn" data-view="list" title="List View">
-                        <i class="fas fa-list"></i>
-                    </button>
-                </div>
-            </div>
-            
+            <div class="results-count" id="resultsCount">15 Results</div>
+
+
             <div class="sort-controls">
                 <span class="sort-label">Sort By</span>
                 <div class="sort-dropdown" id="sortDropdown">
-                    <button class="sort-dropdown-button" id="sortDropdownBtn">
-                        <span id="sortLabel">Newest Effective Date</span>
+                    <button class="sort-dropdown-button">
+                        <span id="sortLabel">Default</span>
                         <i class="fas fa-chevron-down"></i>
                     </button>
                     <div class="sort-dropdown-content" id="sortContent">
@@ -650,6 +1043,37 @@
                         <div class="sort-option" data-sort="oldest-effective">
                             <i class="fas fa-calendar-minus"></i>
                             Oldest Effective Date
+                        </div>
+                        <div class="sort-option" data-sort="expiring">
+                            <i class="fas fa-clock"></i>
+                            Expiring Soon
+                        </div>
+                        <div class="sort-option" data-sort="longest-validity">
+                            <i class="fas fa-hourglass-end"></i>
+                            Longest Validity Period
+                        </div>
+                        <div class="sort-option" data-sort="recently-issued">
+                            <i class="fas fa-calendar-check"></i>
+                            Recently Issued (Last 30 Days)
+                        </div>
+
+                        <!-- Certificate Information -->
+                        <div class="sort-group-header">By Certificate</div>
+                        <div class="sort-option" data-sort="cert-number-newest">
+                            <i class="fas fa-certificate"></i>
+                            Certificate Number (Newest)
+                        </div>
+                        <div class="sort-option" data-sort="cert-number-oldest">
+                            <i class="fas fa-certificate"></i>
+                            Certificate Number (Oldest)
+                        </div>
+                        <div class="sort-option" data-sort="cert-type">
+                            <i class="fas fa-award"></i>
+                            Certification Type A-Z
+                        </div>
+                        <div class="sort-option" data-sort="cert-type-za">
+                            <i class="fas fa-award"></i>
+                            Certification Type Z-A
                         </div>
 
                         <!-- Alphabetical sorting -->
@@ -681,116 +1105,72 @@
                             <i class="fas fa-map-marker-alt"></i>
                             Location Z-A
                         </div>
+                        <div class="sort-option" data-sort="country">
+                            <i class="fas fa-globe"></i>
+                            Country A-Z
+                        </div>
+                        <div class="sort-option" data-sort="country-za">
+                            <i class="fas fa-globe"></i>
+                            Country Z-A
+                        </div>
+
+                        <!-- Advanced sorting -->
+                        <div class="sort-group-header">Advanced</div>
+                        <div class="sort-option" data-sort="popularity">
+                            <i class="fas fa-star"></i>
+                            Most Popular Companies
+                        </div>
+                        <div class="sort-option" data-sort="product-type">
+                            <i class="fas fa-boxes"></i>
+                            Product Type A-Z
+                        </div>
+                        <div class="sort-option" data-sort="relevance">
+                            <i class="fas fa-search"></i>
+                            Relevance Score
+                        </div>
+                        <div class="sort-option" data-sort="status">
+                            <i class="fas fa-check-circle"></i>
+                            Status
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- After results-header div -->
+        <div class="results-controls">
+            <div class="left-controls">
+                <div class="export-options">
+                    <!-- External users can export but cannot add certificates -->
+                    <button class="btn btn-primary">
+                        Export (selected) to Excel
+                    </button>
+                    <button class="btn btn-primary">
+                        Export All to Excel
+                    </button>
+                    <button class="btn btn-primary">
+                        Download Selected
+                    </button>
+                </div>
+            </div>
+
+            <div class="right-controls">
+                <div class="view-toggle-container">
+                    <div class="view-toggle">
+                        <button class="toggle-btn active" data-view="tile">
+                            <i class="fas fa-th"></i> Tile
+                        </button>
+                        <button class="toggle-btn" data-view="list">
+                            <i class="fas fa-list"></i> List
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="certificates-grid" id="certificatesGrid">
-            <!-- Certificate Card 1 -->
-            <div class="certificate-card" data-type="csf" data-company="assa-abloy" data-country="us" data-category="construction">
-                <div class="card-header">
-                    <div class="header-row">
-                        <div class="certificate-category">CERTIFIED SUSTAINABILITY FACTS</div>
-                        <div class="certificate-id">21-0476</div>
-                    </div>
-                    <div class="company-name">ASSA ABLOY</div>
-                </div>
-                <div class="card-body">
-                    <div class="product-info">
-                        <div class="product-name">Mercury Thermal Break Frame, Fleming Adjustable Thermal Resistant Frame</div>
-                        <div class="product-type">Door Hardware</div>
-                    </div>
-                    <div class="certificate-details">
-                        <div class="certificate-period">
-                            <strong>Certification Period:</strong>
-                            5/1/2021 - 4/30/2025
-                        </div>
-                        <div class="certificate-location">
-                            <i class="fas fa-map-marker-alt"></i>
-                            New Haven, CT, United States
-                        </div>
-                    </div>
-                </div>
-                <div class="card-actions">
-                    <div class="action-icon download" title="Download PDF" data-action="download" data-cert="21-0476">
-                        <i class="fas fa-download"></i>
-                    </div>
-                    <div class="action-icon external" title="View Details" data-action="view" data-cert="21-0476">
-                        <i class="fas fa-external-link-alt"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Certificate Card 2 -->
-            <div class="certificate-card" data-type="environmental-facts" data-company="superior-essex" data-country="us" data-category="electronics">
-                <div class="card-header">
-                    <div class="header-row">
-                        <div class="certificate-category">ENVIRONMENTAL FACTS</div>
-                        <div class="certificate-id">24-1605</div>
-                    </div>
-                    <div class="company-name">Superior Essex</div>
-                </div>
-                <div class="card-body">
-                    <div class="product-info">
-                        <div class="product-name">Category 6A U/UTP Cable</div>
-                        <div class="product-type">Networking Cable</div>
-                    </div>
-                    <div class="certificate-details">
-                        <div class="certificate-period">
-                            <strong>Certification Period:</strong>
-                            10/1/2024 - 9/30/2026
-                        </div>
-                        <div class="certificate-location">
-                            <i class="fas fa-map-marker-alt"></i>
-                            Fort Wayne, IN, United States
-                        </div>
-                    </div>
-                </div>
-                <div class="card-actions">
-                    <div class="action-icon download" title="Download PDF" data-action="download" data-cert="24-1605">
-                        <i class="fas fa-download"></i>
-                    </div>
-                    <div class="action-icon external" title="View Details" data-action="view" data-cert="24-1605">
-                        <i class="fas fa-external-link-alt"></i>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Certificate Card 3 -->
-            <div class="certificate-card" data-type="recycled-content" data-company="gaf" data-country="us" data-category="construction">
-                <div class="card-header">
-                    <div class="header-row">
-                        <div class="certificate-category">RECYCLED CONTENT</div>
-                        <div class="certificate-id">24-1701</div>
-                    </div>
-                    <div class="company-name">GAF Materials Corporation</div>
-                </div>
-                <div class="card-body">
-                    <div class="product-info">
-                        <div class="product-name">Timberline HD Shingles</div>
-                        <div class="product-type">Roofing Materials</div>
-                    </div>
-                    <div class="certificate-details">
-                        <div class="certificate-period">
-                            <strong>Certification Period:</strong>
-                            11/1/2024 - 10/31/2026
-                        </div>
-                        <div class="certificate-location">
-                            <i class="fas fa-map-marker-alt"></i>
-                            Parsippany, NJ, United States
-                        </div>
-                    </div>
-                </div>
-                <div class="card-actions">
-                    <div class="action-icon download" title="Download PDF" data-action="download" data-cert="24-1701">
-                        <i class="fas fa-download"></i>
-                    </div>
-                    <div class="action-icon external" title="View Details" data-action="view" data-cert="24-1701">
-                        <i class="fas fa-external-link-alt"></i>
-                    </div>
-                </div>
-            </div>
+            <!-- Certificate cards will be loaded dynamically -->
         </div>
 
         <!-- LOADING INDICATOR FOR LAZY LOADING -->
@@ -798,8 +1178,135 @@
             <div class="loading-spinner"></div>
             <div class="loading-text">Loading more certificates...</div>
         </div>
+
+        <!-- TABLE VIEW CONTAINER -->
+        <div id="tableView" class="view-container" style="display: none;">
+            <!-- Bulk Actions Bar -->
+            <div class="bulk-actions-bar" style="display: none;" id="bulkActionsBar">
+                <div class="bulk-actions-left">
+                    <span class="selected-count" id="selectedCount">0 certificates selected</span>
+                    <button class="clear-selection-btn" data-action="clear-selection">Clear Selection</button>
+                </div>
+                <div class="bulk-actions-right">
+                    <button class="bulk-action-btn" data-action="bulk-download">
+                        <i class="fas fa-download"></i>Download Selected
+                    </button>
+                    <button class="bulk-action-btn" data-action="bulk-export">
+                        <i class="fas fa-file-excel"></i>Export to Excel
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Grid Container -->
+            <div class="table-scroll-wrapper">
+                <div class="table-grid-container">
+                    <div class="table-grid" id="certificateGrid">
+
+                        <!-- HEADER ROW -->
+                        <div class="grid-header">
+                            <div class="grid-header-cell select-cell">
+                                <input type="checkbox" id="selectAll" title="Select all visible rows">
+                            </div>
+                            <div class="grid-header-cell actions-column" style="min-width: 100px;">
+                                Actions
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="certificate">
+                                Certificate #
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="certificationType">
+                                Certification Type
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="csfAttributes">
+                                CSF Attributes
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="status">
+                                Status
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="effectiveDate">
+                                Effective Date
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="expirationDate">
+                                Expiration Date
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="company">
+                                Company
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="companyContact">
+                                Company Contact Email/URL
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="productName">
+                                Product Name
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="productCategory">
+                                Product Category
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="productType">
+                                Product Type
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="productSubcategory">
+                                Product Type Subcategory
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="location">
+                                Location
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="country">
+                                Country
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="externalTag">
+                                External Tag
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="internalTag">
+                                Internal Tag
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="asin">
+                                ASIN
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="upc">
+                                UPC
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="gtin">
+                                GTIN
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="ean">
+                                EAN
+                                <i class="fas fa-sort sort-indicator"></i>
+                            </div>
+                        </div>
+
+                        <!-- BODY CONTAINER -->
+                        <div class="grid-body" id="gridBody">
+                            <!-- Grid rows will be populated here - equivalent to tableBody -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <script src="~/js/certificateslist.js"></script>
+        <script src="~/js/certificateExternalService.js"></script>
+        <script src="~/js/certificateTileViewExternal.js"></script>
+        <script src="~/js/certificateTileViewExternalAdapter.js"></script>
+        <!-- Inline script block removed for CSP compliance -->
+        @* All script content moved to external files for CSP compliance *@
     </div>
 </div>
-
-<!-- External JavaScript for Certificate List -->
-<script src="~/js/certificateslist.js"></script>

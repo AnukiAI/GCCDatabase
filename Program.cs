@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
+using MySql.EntityFrameworkCore.Extensions;
 using Microsoft.AspNetCore.Mvc;
 using AspNetCoreRateLimit;
 using GCCWebApp.Configuration;
@@ -39,8 +40,51 @@ builder.Services.AddSession(options =>
 builder.Services.AddDistributedMemoryCache();
 
 // ===== DATABASE CONFIGURATION =====
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("SqliteConnection")));
+// Support for multiple database providers based on connection string
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration.GetConnectionString("SqliteConnection");
+
+if (!string.IsNullOrEmpty(connectionString))
+{
+    // Detect database type from connection string
+    if (connectionString.Contains("Server=") && connectionString.Contains("Port=") &&
+        connectionString.Contains("Database=") && (connectionString.Contains("User=") || connectionString.Contains("Uid=")))
+    {
+        // MySQL/MariaDB connection string format
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        {
+            options.UseMySQL(connectionString, mysqlOptions =>
+            {
+                mysqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null);
+            });
+        });
+        Console.WriteLine("Using MySQL/MariaDB database provider");
+    }
+    else if (connectionString.Contains("Data Source=") && connectionString.EndsWith(".db"))
+    {
+        // SQLite connection string format
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlite(connectionString));
+        Console.WriteLine("Using SQLite database provider");
+    }
+    else
+    {
+        // Default to SQLite for development
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            options.UseSqlite(connectionString));
+        Console.WriteLine("Using default SQLite database provider");
+    }
+}
+else
+{
+    // Fallback to SQLite for development
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseSqlite("Data Source=gcc_database.db"));
+    Console.WriteLine("Using default SQLite database provider");
+}
 
 // ===== AZURE AD B2C AUTHENTICATION =====
 var azureAdB2CSection = builder.Configuration.GetSection("AzureAdB2C");

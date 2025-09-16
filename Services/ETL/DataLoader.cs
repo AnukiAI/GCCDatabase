@@ -510,6 +510,7 @@ namespace GCCWebApp.Services.ETL
         {
             // This would implement loading to an external database
             // For now, we'll just log that it's not implemented
+            await Task.CompletedTask; // Placeholder await to satisfy async signature
             _logger.LogWarning("External database loading not implemented for destination: {Destination}", destination.Name);
             loadResult.RecordsLoaded = 0;
         }
@@ -518,6 +519,7 @@ namespace GCCWebApp.Services.ETL
         {
             // This would implement FTP upload functionality
             // For now, we'll just log that it's not implemented
+            await Task.CompletedTask; // Placeholder await to satisfy async signature
             _logger.LogWarning("FTP loading not implemented for destination: {Destination}", destination.Name);
             loadResult.RecordsLoaded = 0;
         }

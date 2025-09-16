@@ -1,0 +1,37 @@
+# Production Dockerfile - Works without Azure dependencies
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 8080
+
+# Install SQLite runtime
+RUN apt-get update && \
+    apt-get install -y sqlite3 curl && \
+    rm -rf /var/lib/apt/lists/*
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+COPY ["GCCWebApp.csproj", "."]
+RUN dotnet restore
+COPY . .
+RUN dotnet publish "GCCWebApp.csproj" -c Release -o /app/publish /p:UseAppHost=false
+
+FROM base AS final
+WORKDIR /app
+COPY --from=build /app/publish .
+
+# Create necessary directories with proper permissions
+RUN mkdir -p /app/data /app/logs /app/DataProtectionKeys && \
+    chmod 777 /app/data /app/logs /app/DataProtectionKeys
+
+# Fix logo case sensitivity
+RUN if [ -f /app/wwwroot/img/GCCLogo.png ]; then \
+    cp /app/wwwroot/img/GCCLogo.png /app/wwwroot/img/gcclogo.png; \
+    fi
+
+# Set environment to bypass Azure configuration
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://+:8080
+ENV DataProtection__PersistKeysToAzureBlobStorage=false
+ENV AzureStorageBlob__ConnectionString="UseDevelopmentStorage=true"
+
+ENTRYPOINT ["dotnet", "GCCWebApp.dll"]

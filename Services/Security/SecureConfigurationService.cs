@@ -23,6 +23,7 @@ namespace GCCWebApp.Services.Security
         private readonly IWebHostEnvironment _environment;
         private readonly ILogger<SecureConfigurationService> _logger;
         private readonly Dictionary<string, string> _requiredSecrets;
+        private readonly Dictionary<string, string> _optionalSecrets;
         private readonly Dictionary<string, string> _environmentMappings;
 
         public bool IsProductionEnvironment => _environment.IsProduction();
@@ -39,9 +40,14 @@ namespace GCCWebApp.Services.Security
             _requiredSecrets = new Dictionary<string, string>
             {
                 ["JWT_SECRET_KEY"] = "Jwt:Key",
+                ["DATABASE_CONNECTION_STRING"] = "ConnectionStrings:DefaultConnection"
+            };
+
+            // Optional secrets - only validated if features are enabled
+            _optionalSecrets = new Dictionary<string, string>
+            {
                 ["AZURE_AD_B2C_CLIENT_SECRET"] = "AzureAdB2C:ClientSecret",
                 ["AZURE_AD_CLIENT_SECRET"] = "AzureAd:ClientSecret",
-                ["DATABASE_CONNECTION_STRING"] = "ConnectionStrings:DefaultConnection",
                 ["AZURE_BLOB_CONNECTION_STRING"] = "DataProtection:AzureBlobStorageConnectionString",
                 ["APPLICATION_INSIGHTS_CONNECTION_STRING"] = "ApplicationInsights:ConnectionString",
                 ["SMTP_PASSWORD"] = "EmailConfiguration:Password"
@@ -146,6 +152,38 @@ namespace GCCWebApp.Services.Security
                     isValid = false;
                     _logger.LogError(ex, "Failed to retrieve required secret '{SecretKey}'", requiredSecret.Key);
                 }
+            }
+
+            // Check optional secrets (warn but don't fail)
+            var missingOptionalSecrets = new List<string>();
+            foreach (var optionalSecret in _optionalSecrets)
+            {
+                try
+                {
+                    var value = GetSecret(optionalSecret.Value);
+
+                    if (IsPlaceholder(value))
+                    {
+                        missingOptionalSecrets.Add(optionalSecret.Key);
+                        _logger.LogWarning("Optional secret '{SecretKey}' contains placeholder: {Value}",
+                            optionalSecret.Key, value);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("✓ Optional secret '{SecretKey}' is properly configured", optionalSecret.Key);
+                    }
+                }
+                catch (Exception)
+                {
+                    missingOptionalSecrets.Add(optionalSecret.Key);
+                    _logger.LogWarning("Optional secret '{SecretKey}' is not configured (this is OK)", optionalSecret.Key);
+                }
+            }
+
+            if (missingOptionalSecrets.Any())
+            {
+                _logger.LogInformation("ℹ️  Optional services not configured: {MissingOptionalSecrets}",
+                    string.Join(", ", missingOptionalSecrets));
             }
 
             if (!isValid && IsProductionEnvironment)

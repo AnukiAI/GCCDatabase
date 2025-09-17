@@ -1,12 +1,12 @@
-# GCC Web App - Private Plesk Server Deployment Guide
+# GCC Web Application - Plesk Container Deployment Guide
 
-## 🚀 Ready for Production Deployment
+## Overview
+Complete guide for deploying the GCC Web Application as a Docker container on a Plesk server with PostgreSQL or MariaDB.
 
-Your GCC Web Application is containerized and ready for deployment to your private Plesk server using the GitHub Container Registry.
-
-**Container Image**: `ghcr.io/anukiai/gcc-webapp:latest`
-
----
+## Current Status
+- **Production Container**: Running on port 5105 (SQLite) - Healthy
+- **Test Container**: Running on port 5102 (PostgreSQL) - Needs attention
+- **Image**: `gcc-webapp:production` or `ghcr.io/anukiai/gcc-webapp:latest`
 
 ## Prerequisites Checklist
 

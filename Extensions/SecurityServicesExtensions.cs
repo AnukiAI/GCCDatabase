@@ -86,10 +86,30 @@ public static class SecurityServicesExtensions
         {
             var connectionString = configuration.GetValue<string>("DataProtection:AzureBlobStorageConnectionString");
             var containerName = configuration.GetValue<string>("DataProtection:AzureBlobStorageContainerName");
-            
-            if (!string.IsNullOrEmpty(connectionString) && !string.IsNullOrEmpty(containerName))
+
+            // Only use Azure blob storage if properly configured with a valid connection string
+            if (!string.IsNullOrEmpty(connectionString) &&
+                !connectionString.StartsWith("{") && // Ignore placeholder values
+                connectionString.Contains("AccountName=") && // Ensure it's a valid connection string format
+                !string.IsNullOrEmpty(containerName))
             {
-                dataProtectionBuilder.PersistKeysToAzureBlobStorage(connectionString, containerName, "keys.xml");
+                try
+                {
+                    dataProtectionBuilder.PersistKeysToAzureBlobStorage(connectionString, containerName, "keys.xml");
+                }
+                catch (Exception ex)
+                {
+                    // Fall back to file system if Azure storage fails
+                    Console.WriteLine($"Warning: Azure blob storage configuration failed: {ex.Message}. Using file system instead.");
+                    var keysPath = Path.Combine(Directory.GetCurrentDirectory(), "DataProtectionKeys");
+                    dataProtectionBuilder.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
+                }
+            }
+            else
+            {
+                // Use file system if Azure is not properly configured
+                var keysPath = Path.Combine(Directory.GetCurrentDirectory(), "DataProtectionKeys");
+                dataProtectionBuilder.PersistKeysToFileSystem(new DirectoryInfo(keysPath));
             }
         }
         else
@@ -126,9 +146,17 @@ public static class SecurityServicesExtensions
             options.IdleTimeout = TimeSpan.FromMinutes(configuration.GetValue<int>("Session:TimeoutMinutes", 30));
             options.Cookie.HttpOnly = true;
             options.Cookie.IsEssential = true;
-            options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
-            options.Cookie.SameSite = SameSiteMode.Strict;
-            options.Cookie.Name = configuration.GetValue<string>("Session:CookieName", "__Host-SessionId");
+
+            // Use SameAsRequest for container deployments to work with both HTTP and HTTPS
+            var isProduction = configuration.GetValue<string>("ASPNETCORE_ENVIRONMENT") == "Production";
+            var forceHttps = configuration.GetValue<bool>("FeatureFlags:RequireHttpsForAllRequests", false);
+
+            options.Cookie.SecurePolicy = (isProduction && forceHttps)
+                ? CookieSecurePolicy.Always
+                : CookieSecurePolicy.SameAsRequest;
+
+            options.Cookie.SameSite = SameSiteMode.Lax; // Less strict for container compatibility
+            options.Cookie.Name = configuration.GetValue<string>("Session:CookieName", "GCC.Session");
         });
 
         return services;

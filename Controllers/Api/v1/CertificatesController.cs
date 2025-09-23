@@ -5,13 +5,31 @@ using GCCWebApp.Controllers.Api;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Models.Api;
+using GCCWebApp.Attributes;
 using Asp.Versioning;
+using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 
 namespace GCCWebApp.Controllers.Api.v1
 {
+    /// <summary>
+    /// Certificate management API endpoints
+    /// Provides CRUD operations for certificates with comprehensive filtering and search capabilities
+    /// </summary>
+    /// <remarks>
+    /// This controller manages all certificate-related operations including:
+    /// - Retrieving certificates with pagination and filtering
+    /// - Creating new certificates with validation
+    /// - Updating existing certificates
+    /// - Deleting certificates
+    /// - Advanced search capabilities
+    ///
+    /// All endpoints require authentication via API Key or JWT token.
+    /// Rate limits apply based on authentication method.
+    /// </remarks>
     [ApiVersion("1.0")]
     [Authorize(AuthenticationSchemes = "ApiKey")]
+    [SwaggerTag("Certificates")]
     public class CertificatesController : BaseApiController
     {
         private readonly ApplicationDbContext _context;
@@ -24,11 +42,51 @@ namespace GCCWebApp.Controllers.Api.v1
         }
 
         /// <summary>
-        /// Get all certificates with optional pagination and filtering
+        /// Retrieve certificates with pagination and filtering
         /// </summary>
+        /// <remarks>
+        /// Returns a paginated list of certificates with optional search filtering.
+        ///
+        /// **Features:**
+        /// - Pagination support (configurable page size)
+        /// - Search across certificate number, product name, and company name
+        /// - Sorting by multiple fields (certificate number, dates, product, company)
+        /// - Response caching for improved performance
+        ///
+        /// **Search Examples:**
+        /// - `searchTerm=24-` - Find certificates starting with "24-"
+        /// - `searchTerm=Paper` - Find certificates for products containing "Paper"
+        /// - `searchTerm=Green` - Find certificates for companies containing "Green"
+        ///
+        /// **Sorting Options:**
+        /// - `sortBy=certificatenumber` - Sort by certificate number
+        /// - `sortBy=issuedate` - Sort by effective date
+        /// - `sortBy=expirationdate` - Sort by expiration date
+        /// - `sortBy=productname` - Sort by product name
+        /// - `sortBy=companyname` - Sort by company name
+        ///
+        /// Add `sortDescending=true` for descending order.
+        /// </remarks>
+        /// <param name="parameters">Pagination and filtering parameters</param>
+        /// <returns>Paginated list of certificates matching the search criteria</returns>
+        /// <response code="200">Returns the paginated certificate list</response>
+        /// <response code="400">Invalid pagination parameters</response>
+        /// <response code="401">Authentication required</response>
+        /// <response code="429">Rate limit exceeded</response>
+        /// <response code="500">Internal server error</response>
         [HttpGet]
+        [ApiCache(durationInSeconds: CacheProfiles.Medium, varyByQueryParams: true)]
+        [SwaggerOperation(
+            Summary = "Get certificates with pagination",
+            Description = "Retrieve a paginated list of certificates with optional search and sorting",
+            OperationId = "GetCertificates",
+            Tags = new[] { "Certificates" }
+        )]
         [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<Certificate>>), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> GetCertificates([FromQuery] PaginationParams parameters)
         {
             try

@@ -34,51 +34,86 @@ namespace GCCWebApp.Controllers.Api
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> GetCertificates(
+            [FromQuery] string? searchTerm = null,
             [FromQuery] string? search = null,
             [FromQuery] string? certType = null,
             [FromQuery] string? productCategory = null,
             [FromQuery] string? company = null,
             [FromQuery] string? country = null,
             [FromQuery] string? tags = null,
-            [FromQuery] string sortBy = "newest",
+            [FromQuery] string? sort = "newest",
+            [FromQuery] string? sortBy = null,
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20)
+            [FromQuery] int pageSize = 20,
+            [FromQuery] string? certTypes = null,
+            [FromQuery] string? productCat = null,
+            [FromQuery] string? countries = null,
+            [FromQuery] string? certTags = null,
+            [FromQuery] string? additional = null)
         {
             try
             {
+                var finalSort = sort ?? sortBy ?? "newest";
+                var finalSearchTerm = searchTerm ?? search;
+
                 var filter = new CertificateSearchFilter
                 {
-                    SearchTerm = search,
+                    SearchTerm = finalSearchTerm,
                     Status = "active", // Only show active certificates for public view
-                    SortBy = MapSortBy(sortBy),
-                    SortDescending = sortBy == "newest" || sortBy == "cert-number-newest",
+                    SortBy = MapSortBy(finalSort),
+                    SortDescending = finalSort == "newest" || finalSort == "cert-number-newest",
                     Page = page,
                     PageSize = pageSize
                 };
 
-                // Parse filter arrays
-                if (!string.IsNullOrEmpty(certType))
+                // Parse filter arrays - handle multiple parameter names
+                var certTypeFilter = certType ?? certTypes;
+                if (!string.IsNullOrEmpty(certTypeFilter))
                 {
-                    filter.CertificationTypeNames = certType.Split(',').ToList();
+                    filter.CertificationTypeNames = certTypeFilter.Split(',').ToList();
                 }
 
-                if (!string.IsNullOrEmpty(country))
+                var countryFilter = country ?? countries;
+                if (!string.IsNullOrEmpty(countryFilter))
                 {
-                    filter.Countries = country.Split(',').ToList();
+                    filter.Countries = countryFilter.Split(',').ToList();
                 }
 
-                if (!string.IsNullOrEmpty(company))
+                var companyFilter = company;
+                if (!string.IsNullOrEmpty(companyFilter))
                 {
                     // Convert company IDs to filter
-                    var companyIds = company.Split(',')
+                    var companyIds = companyFilter.Split(',')
                         .Where(id => int.TryParse(id, out _))
                         .Select(int.Parse)
                         .ToList();
-                    
+
                     if (companyIds.Any())
                     {
                         filter.CompanyIds = companyIds;
                     }
+                    else
+                    {
+                        // If not numeric IDs, treat as company names
+                        filter.CompanyNames = companyFilter.Split(',').ToList();
+                    }
+                }
+
+                var productCategoryFilter = productCategory ?? productCat;
+                if (!string.IsNullOrEmpty(productCategoryFilter))
+                {
+                    filter.ProductCategories = productCategoryFilter.Split(',').ToList();
+                }
+
+                var tagsFilter = tags ?? certTags;
+                if (!string.IsNullOrEmpty(tagsFilter))
+                {
+                    filter.Tags = tagsFilter.Split(',').ToList();
+                }
+
+                if (!string.IsNullOrEmpty(additional))
+                {
+                    filter.AdditionalFilters = additional.Split(',').ToList();
                 }
 
                 var (certificates, totalCount) = await _certificateRepository.GetAdvancedFilteredCertificatesAsync(filter);
@@ -103,12 +138,14 @@ namespace GCCWebApp.Controllers.Api
 
                 var response = new
                 {
+                    success = true,
                     certificates = result,
                     totalCount,
                     totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
                     currentPage = page,
                     pageSize,
-                    hasMore = page < Math.Ceiling(totalCount / (double)pageSize)
+                    hasMore = page < Math.Ceiling(totalCount / (double)pageSize),
+                    message = (string?)null
                 };
 
                 return Ok(response);
@@ -116,7 +153,12 @@ namespace GCCWebApp.Controllers.Api
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving certificates for tile view");
-                return BadRequest(new { error = "Failed to retrieve certificates" });
+                return BadRequest(new {
+                    success = false,
+                    message = "Failed to retrieve certificates",
+                    certificates = new List<object>(),
+                    totalCount = 0
+                });
             }
         }
 

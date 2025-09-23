@@ -5,6 +5,7 @@
 
     // Get data from model with safe defaults
     var certificateId = Model.Certificate?.Id.ToString() ?? "0";
+    var certificateNumber = Model.Certificate?.Number ?? "";
     var certificationType = Model.Certificate?.CertificationType?.Name ?? "Certified Environmental Facts";
     var company = Model.Certificate?.Company?.Name ?? "Unknown Company";
     var productName = Model.Certificate?.Product?.Name ?? "Unknown Product";
@@ -16,6 +17,36 @@
     var companyContact = "";
     var companyUrl = "";
     var companyEmail = "";
+
+    // Format certificate number as YY-####
+    string GetFormattedCertificateNumber()
+    {
+        if (string.IsNullOrEmpty(certificateNumber)) return "N/A";
+
+        // If already in correct format, return as is
+        if (System.Text.RegularExpressions.Regex.IsMatch(certificateNumber, @"^\d{2}-\d{4}$"))
+            return certificateNumber;
+
+        // Try to get year from effective date
+        var year = "";
+        if (Model.Certificate?.EffectiveDate != null)
+        {
+            year = Model.Certificate.EffectiveDate.Year.ToString().Substring(2);
+        }
+        else
+        {
+            year = DateTime.Now.Year.ToString().Substring(2);
+        }
+
+        // If certificate number is just digits, format as YY-####
+        if (System.Text.RegularExpressions.Regex.IsMatch(certificateNumber, @"^\d+$"))
+        {
+            var paddedNumber = certificateNumber.PadLeft(4, '0');
+            return $"{year}-{paddedNumber}";
+        }
+
+        return certificateNumber; // Return as-is if we can't format it
+    }
 
     // Helper methods
     string GetProductCategoryDisplay()
@@ -65,7 +96,7 @@
         <div class="card-header">
             <div class="header-row">
                 <div class="certificate-category">@certificationType.ToUpper()</div>
-                <div class="certificate-id">@certificateId</div>
+                <div class="certificate-id">@GetFormattedCertificateNumber()</div>
             </div>
             <div class="company-name">@company</div>
         </div>
@@ -118,7 +149,15 @@
                 </div>
                 <!-- Right Column: Certificate Image -->
                 <div class="certificate-image-column">
-                    <img src="~/img/certpreview.png" alt="Certificate Details" class="certificate-image" />
+                    @{
+                        var certificateImageSrc = !string.IsNullOrEmpty(Model.Certificate?.CertificateFile)
+                            ? Model.Certificate.CertificateFile
+                            : "~/img/certpreview.png";
+                        var altText = !string.IsNullOrEmpty(Model.Certificate?.CertificateFile)
+                            ? $"Certificate {GetFormattedCertificateNumber()}"
+                            : "Certificate Preview";
+                    }
+                    <img src="@certificateImageSrc" alt="@altText" class="certificate-image" />
                 </div>
             </div>
             <!-- Action Buttons -->
@@ -131,3 +170,14 @@
     </div>
 </div>
 <script src="~/js/certificates.js"></script>
+<script>
+    // Make downloadCertificate available globally for this page
+    window.downloadCertificate = function(certificateId) {
+        try {
+            window.open(`/Certificate/Download/${certificateId}`, '_blank');
+            console.log('Certificate download started');
+        } catch (error) {
+            console.error('Error downloading certificate:', error);
+        }
+    };
+</script>

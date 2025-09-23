@@ -411,6 +411,101 @@ namespace GCCWebApp.Migrations
                     b.ToTable("CertificateDocuments");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.CertificateProductId", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("CertificateId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("CreatedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("DisplayOrder")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IsPublic")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Partner")
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProductIdType")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProductIdValue")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProductName")
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ProductSku")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CertificateId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Partner");
+
+                    b.HasIndex("ProductIdType");
+
+                    b.HasIndex("ProductIdValue");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.HasIndex("CertificateId", "IsActive");
+
+                    b.HasIndex("CertificateId", "ProductIdType");
+
+                    b.HasIndex("ProductIdType", "ProductIdValue")
+                        .IsUnique();
+
+                    b.HasIndex("Partner", "Status", "IsActive");
+
+                    b.HasIndex("Status", "IsActive", "CreatedAt");
+
+                    b.ToTable("CertificateProductIds");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.CertificationType", b =>
                 {
                     b.Property<int>("Id")
@@ -1415,6 +1510,31 @@ namespace GCCWebApp.Migrations
                     b.Navigation("UploadedByUser");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.CertificateProductId", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.Certificate", "Certificate")
+                        .WithMany("ProductIds")
+                        .HasForeignKey("CertificateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GCCWebApp.Models.User", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("GCCWebApp.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Certificate");
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("UpdatedByUser");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.CustomField", b =>
                 {
                     b.HasOne("GCCWebApp.Models.CertificationType", "CertificationType")
@@ -1578,6 +1698,8 @@ namespace GCCWebApp.Migrations
                     b.Navigation("CustomFieldValues");
 
                     b.Navigation("Documents");
+
+                    b.Navigation("ProductIds");
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.CertificationType", b =>

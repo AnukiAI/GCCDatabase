@@ -20,6 +20,7 @@ namespace GCCWebApp.Data
         public DbSet<CustomField> CustomFields { get; set; }
         public DbSet<CustomFieldValue> CustomFieldValues { get; set; }
         public DbSet<CertificateDocument> CertificateDocuments { get; set; }
+        public DbSet<CertificateProductId> CertificateProductIds { get; set; }
 
         // Product related entities
         public DbSet<ProductCategory> ProductCategories { get; set; }
@@ -229,7 +230,7 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.CertificateId);
                 entity.HasIndex(e => e.FileHash);
-                
+
                 entity.HasOne(e => e.Certificate)
                     .WithMany(c => c.Documents)
                     .HasForeignKey(e => e.CertificateId)
@@ -238,6 +239,44 @@ namespace GCCWebApp.Data
                 entity.HasOne(e => e.UploadedByUser)
                     .WithMany()
                     .HasForeignKey(e => e.UploadedBy)
+                    .OnDelete(DeleteBehavior.SetNull);
+            });
+
+            // Certificate product ID configuration
+            modelBuilder.Entity<CertificateProductId>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // Performance indexes for product ID searches
+                entity.HasIndex(e => e.CertificateId);
+                entity.HasIndex(e => e.ProductIdType);
+                entity.HasIndex(e => e.ProductIdValue);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.Partner);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.CreatedAt);
+
+                // Composite indexes for complex queries
+                entity.HasIndex(e => new { e.CertificateId, e.ProductIdType });
+                entity.HasIndex(e => new { e.ProductIdType, e.ProductIdValue }).IsUnique();
+                entity.HasIndex(e => new { e.Partner, e.Status, e.IsActive });
+                entity.HasIndex(e => new { e.CertificateId, e.IsActive });
+                entity.HasIndex(e => new { e.Status, e.IsActive, e.CreatedAt });
+
+                // Relationships
+                entity.HasOne(e => e.Certificate)
+                    .WithMany(c => c.ProductIds)
+                    .HasForeignKey(e => e.CertificateId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.CreatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.CreatedBy)
+                    .OnDelete(DeleteBehavior.SetNull);
+
+                entity.HasOne(e => e.UpdatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.UpdatedBy)
                     .OnDelete(DeleteBehavior.SetNull);
             });
 

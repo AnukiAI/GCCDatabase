@@ -61,5 +61,8 @@ namespace GCCWebApp.Models
         
         // Document relationships
         public ICollection<CertificateDocument> Documents { get; set; } = new List<CertificateDocument>();
+
+        // Product ID relationships - supports multiple ASINs, UPCs, etc.
+        public ICollection<CertificateProductId> ProductIds { get; set; } = new List<CertificateProductId>();
     }
 }

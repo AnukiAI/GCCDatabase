@@ -188,19 +188,19 @@ namespace GCCWebApp.Controllers.Api.v1
     public class LoginRequest
     {
         [Required]
-        public string Username { get; set; }
+        public required string Username { get; set; }
 
         [Required]
-        public string Password { get; set; }
+        public required string Password { get; set; }
     }
 
     public class RefreshTokenRequest
     {
         [Required]
-        public string AccessToken { get; set; }
+        public required string AccessToken { get; set; }
 
         [Required]
-        public string RefreshToken { get; set; }
+        public required string RefreshToken { get; set; }
     }
 
     public class TokenResponse

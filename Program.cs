@@ -16,6 +16,7 @@ using GCCWebApp.Authentication;
 using GCCWebApp.Services.Security;
 using GCCWebApp.Middleware;
 using GCCWebApp.Extensions;
+using GCCWebApp.HealthChecks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -251,6 +252,20 @@ builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection
 builder.Services.AddInMemoryRateLimiting();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 
+// ===== API ENHANCEMENTS =====
+// Custom API rate limiting with more granular control
+builder.Services.AddApiRateLimiting(options =>
+{
+    options.AnonymousLimit = 100;
+    options.AuthenticatedLimit = 500;
+    options.ApiKeyLimit = 1000;
+    options.PartnerApiKeyLimit = 2000;
+    options.AdminLimit = 5000;
+});
+
+// API Health Checks
+builder.Services.AddApiHealthChecks();
+
 // ===== CORS CONFIGURATION =====
 builder.Services.AddCors(options =>
 {
@@ -312,6 +327,7 @@ builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<IJwtTokenService, JwtTokenService>();
 builder.Services.AddScoped<ICertificatePdfService, CertificatePdfService>();
 builder.Services.AddScoped<ICertificateWorkflowService, CertificateWorkflowService>();
+builder.Services.AddScoped<IProductIdService, ProductIdService>();
 
 // ===== PERFORMANCE MONITORING =====
 builder.Services.AddScoped<GCCWebApp.Services.Performance.IPerformanceMonitoringService, GCCWebApp.Services.Performance.PerformanceMonitoringService>();
@@ -403,8 +419,14 @@ app.UseMiddleware<SecurityHeadersMiddleware>();
 // Request/Response logging middleware (early in pipeline for comprehensive logging)
 app.UseMiddleware<RequestResponseLoggingMiddleware>();
 
+// API Exception handling middleware (structured API error responses)
+app.UseApiExceptionHandling();
+
 // Global exception handling middleware (handles all exceptions with structured logging)
 app.UseMiddleware<GlobalExceptionHandlingMiddleware>();
+
+// API Rate Limiting middleware (custom implementation for APIs)
+app.UseApiRateLimiting();
 
 // Error handling
 if (!app.Environment.IsDevelopment())
@@ -486,6 +508,19 @@ if (app.Environment.IsDevelopment())
 
 // ===== ROUTE MAPPING =====
 
+// Certificate number edit route (must come before default)
+app.MapControllerRoute(
+    name: "certificate_edit_by_number",
+    pattern: "Certificate/Edit/{number}",
+    defaults: new { controller = "Certificate", action = "EditByNumber" },
+    constraints: new { number = @"^[0-9]+-[0-9A-Za-z]+$" });
+
+// Dashboard route - explicit mapping for /Dashboard to Dashboard/Index
+app.MapControllerRoute(
+    name: "dashboard",
+    pattern: "Dashboard",
+    defaults: new { controller = "Dashboard", action = "Index" });
+
 // Default MVC route - goes to public certificates view
 app.MapControllerRoute(
     name: "default",
@@ -498,6 +533,40 @@ app.MapControllerRoute(
 
 // Razor Pages
 app.MapRazorPages();
+
+// Health Checks
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = _ => true,
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = System.Text.Json.JsonSerializer.Serialize(new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                description = e.Value.Description,
+                duration = e.Value.Duration.TotalMilliseconds,
+                data = e.Value.Data
+            }),
+            totalDuration = report.TotalDuration.TotalMilliseconds
+        });
+        await context.Response.WriteAsync(result);
+    }
+});
+
+app.MapHealthChecks("/health/ready", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready")
+});
+
+app.MapHealthChecks("/health/live", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("live")
+});
 
 logger.LogInformation("Application started successfully");
 

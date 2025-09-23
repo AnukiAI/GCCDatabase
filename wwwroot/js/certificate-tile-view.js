@@ -14,14 +14,16 @@
             tags: [],
             sortBy: 'newest'
         },
-        currentPage: 1,
-        pageSize: 20,
+        loadedCount: 0,
+        batchSize: 20,
         totalCount: 0,
-        totalPages: 0,
         isLoading: false,
         hasMore: true,
         filterOptions: {},
-        debounceTimer: null
+        debounceTimer: null,
+        // Determine API endpoints based on current page
+        isInternalView: window.location.pathname.includes('TileViewInternal'),
+        apiBaseUrl: window.location.pathname.includes('TileViewInternal') ? '/api/certificate-tiles-internal' : '/api/certificate-tiles'
     };
 
     // Initialize on DOM ready
@@ -39,7 +41,7 @@
     // Load filter options from API
     async function loadFilterOptions() {
         try {
-            const response = await fetch('/api/certificate-tiles/filters');
+            const response = await fetch(`${state.apiBaseUrl}/filters`);
             if (response.ok) {
                 state.filterOptions = await response.json();
                 populateFilterOptions();
@@ -96,8 +98,9 @@
 
     // Load initial certificates
     async function loadInitialCertificates() {
-        state.currentPage = 1;
+        state.loadedCount = 0;
         state.certificates = [];
+        state.hasMore = true;
         await loadCertificates();
     }
 
@@ -110,20 +113,21 @@
 
         try {
             const params = buildApiParams();
-            const response = await fetch(`/api/certificate-tiles?${params}`);
+            const response = await fetch(`${state.apiBaseUrl}?${params}`);
             
             if (response.ok) {
                 const data = await response.json();
                 
                 if (append) {
                     state.certificates = [...state.certificates, ...data.certificates];
+                    state.loadedCount += data.certificates.length;
                 } else {
                     state.certificates = data.certificates;
+                    state.loadedCount = data.certificates.length;
                 }
-                
+
                 state.totalCount = data.totalCount;
-                state.totalPages = data.totalPages;
-                state.hasMore = data.hasMore;
+                state.hasMore = state.loadedCount < data.totalCount;
                 
                 renderCertificates(append);
                 updateResultsCount();
@@ -140,35 +144,35 @@
     // Build API query parameters
     function buildApiParams() {
         const params = new URLSearchParams();
-        
+
         if (state.filters.search) {
             params.append('search', state.filters.search);
         }
-        
+
         if (state.filters.certType.length > 0) {
             params.append('certType', state.filters.certType.join(','));
         }
-        
+
         if (state.filters.productCategory.length > 0) {
             params.append('productCategory', state.filters.productCategory.join(','));
         }
-        
+
         if (state.filters.company.length > 0) {
             params.append('company', state.filters.company.join(','));
         }
-        
+
         if (state.filters.country.length > 0) {
             params.append('country', state.filters.country.join(','));
         }
-        
+
         if (state.filters.tags.length > 0) {
             params.append('tags', state.filters.tags.join(','));
         }
-        
+
         params.append('sortBy', state.filters.sortBy);
-        params.append('page', state.currentPage);
-        params.append('pageSize', state.pageSize);
-        
+        params.append('offset', state.loadedCount);
+        params.append('limit', state.batchSize);
+
         return params.toString();
     }
 
@@ -178,7 +182,7 @@
         if (!grid) return;
 
         const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
-        
+
         if (append) {
             grid.insertAdjacentHTML('beforeend', html);
         } else {
@@ -187,24 +191,31 @@
 
         // Animate new cards
         animateCards();
+
+        // Also update table view if it's currently visible
+        const tableView = document.getElementById('tableView');
+        if (tableView && tableView.style.display !== 'none') {
+            renderTableRows(state.certificates);
+        }
     }
 
     // Create certificate card HTML
     function createCertificateCard(cert) {
         const certificationPeriod = formatCertificationPeriod(cert.effectiveDate, cert.expirationDate);
         const location = formatLocation(cert.location, cert.country);
-        
+        const formattedCertNumber = formatCertificateNumber(cert.certificateNumber || cert.number, cert.effectiveDate);
+
         return `
-            <div class="certificate-card" 
+            <div class="certificate-card"
                  data-id="${cert.id}"
-                 data-type="${escapeHtml(cert.certificationType)}" 
-                 data-company="${cert.companyName}" 
+                 data-type="${escapeHtml(cert.certificationType)}"
+                 data-company="${cert.companyName}"
                  data-country="${cert.country}"
                  onclick="viewCertificateDetails('${cert.id}')">
                 <div class="card-header">
                     <div class="header-row">
                         <div class="certificate-category">${escapeHtml(cert.certificationType)}</div>
-                        <div class="certificate-id">${escapeHtml(cert.certificateNumber)}</div>
+                        <div class="certificate-id">${escapeHtml(formattedCertNumber)}</div>
                     </div>
                     <div class="company-name">${escapeHtml(cert.companyName)}</div>
                 </div>
@@ -303,24 +314,42 @@
         });
     }
     
-    // Handle view type change (Tile/Table)
+    // Handle view type change (Tile/List)
     function handleViewTypeChange(viewType) {
         // Update active state
-        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+        document.querySelectorAll('.toggle-btn').forEach(btn => {
             btn.classList.remove('active');
         });
         document.querySelector(`[data-view="${viewType}"]`).classList.add('active');
-        
-        if (viewType === 'table') {
-            // Redirect to table view
-            window.location.href = '/Certificate/Certificates';
+
+        if (viewType === 'list') {
+            // Show table view within same page
+            showTableView();
         } else {
-            // Already in tile view, just ensure we're showing tiles
-            const grid = document.getElementById('certificatesGrid');
-            if (grid) {
-                grid.style.display = 'grid';
-            }
+            // Show tile view
+            showTileView();
         }
+    }
+
+    // Show table view
+    function showTableView() {
+        const tileView = document.getElementById('certificatesGrid');
+        const tableView = document.getElementById('tableView');
+
+        if (tileView) tileView.style.display = 'none';
+        if (tableView) {
+            tableView.style.display = 'block';
+            populateTableView();
+        }
+    }
+
+    // Show tile view
+    function showTileView() {
+        const tileView = document.getElementById('certificatesGrid');
+        const tableView = document.getElementById('tableView');
+
+        if (tableView) tableView.style.display = 'none';
+        if (tileView) tileView.style.display = 'grid';
     }
     
     // Handle access type change (External/Internal)
@@ -386,7 +415,6 @@
             (entries) => {
                 const lastEntry = entries[entries.length - 1];
                 if (lastEntry.isIntersecting && !state.isLoading && state.hasMore) {
-                    state.currentPage++;
                     loadCertificates(true);
                 }
             },
@@ -422,7 +450,7 @@
             // Handle autocomplete suggestions
             if (term.length >= 2) {
                 try {
-                    const response = await fetch(`/api/certificate-tiles/autocomplete?term=${encodeURIComponent(term)}`);
+                    const response = await fetch(`${state.apiBaseUrl}/autocomplete?term=${encodeURIComponent(term)}`);
                     if (response.ok) {
                         const data = await response.json();
                         renderAutocomplete(data.suggestions, autocompleteContainer, searchInput);
@@ -438,8 +466,8 @@
             // Debounced search execution
             state.debounceTimer = setTimeout(() => {
                 state.filters.search = term;
+                updateUrl(); // Update URL before loading to preserve state
                 loadInitialCertificates();
-                updateUrl();
             }, 300);
         });
 
@@ -477,8 +505,8 @@
                         searchInput.value = selectedItem.dataset.value;
                         state.filters.search = selectedItem.dataset.value;
                         autocompleteContainer.style.display = 'none';
+                        updateUrl(); // Update URL before loading to preserve state
                         loadInitialCertificates();
-                        updateUrl();
                     }
                     break;
                 case 'Escape':
@@ -511,8 +539,8 @@
                 state.filters.search = item.dataset.value;
                 container.style.display = 'none';
                 clearTimeout(state.debounceTimer); // Cancel pending search
+                updateUrl(); // Update URL before loading to preserve state
                 loadInitialCertificates();
-                updateUrl();
             });
             
             // Add hover handlers for better UX
@@ -733,38 +761,6 @@
     // Make it globally accessible
     window.downloadCertificate = downloadCertificate;
 
-    // Get shareable link
-    async function getShareableLink() {
-        try {
-            const response = await fetch('/api/certificate-tiles/share-link', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    search: state.filters.search,
-                    certType: state.filters.certType.join(','),
-                    productCategory: state.filters.productCategory.join(','),
-                    company: state.filters.company.join(','),
-                    country: state.filters.country.join(','),
-                    tags: state.filters.tags.join(','),
-                    sortBy: state.filters.sortBy
-                })
-            });
-            
-            if (response.ok) {
-                const data = await response.json();
-                copyToClipboard(data.url);
-                showToast('Link copied to clipboard!', 'success');
-            }
-        } catch (error) {
-            console.error('Error getting shareable link:', error);
-            showToast('Failed to generate link', 'error');
-        }
-    }
-    
-    // Make it globally accessible
-    window.getShareableLink = getShareableLink;
 
     // Utility functions
     function escapeHtml(text) {
@@ -792,6 +788,45 @@
         if (location) parts.push(location);
         if (country) parts.push(country);
         return parts.join(', ') || 'N/A';
+    }
+
+    // Format certificate number to YY-#### format
+    function formatCertificateNumber(certificateNumber, effectiveDate) {
+        if (!certificateNumber) return 'N/A';
+
+        // If already in correct format, return as is
+        if (/^\d{2}-\d{4}$/.test(certificateNumber)) {
+            return certificateNumber;
+        }
+
+        // Try to extract year from effective date
+        let year = '';
+        if (effectiveDate) {
+            const date = new Date(effectiveDate);
+            if (!isNaN(date.getTime())) {
+                year = date.getFullYear().toString().slice(-2);
+            }
+        }
+
+        // If we can't get year, use current year
+        if (!year) {
+            year = new Date().getFullYear().toString().slice(-2);
+        }
+
+        // If certificate number is just a number, format it as YY-####
+        if (/^\d+$/.test(certificateNumber)) {
+            const paddedNumber = certificateNumber.padStart(4, '0');
+            return `${year}-${paddedNumber}`;
+        }
+
+        // If it's something else, try to extract numbers and format
+        const numbers = certificateNumber.replace(/\D/g, '');
+        if (numbers) {
+            const paddedNumber = numbers.slice(-4).padStart(4, '0');
+            return `${year}-${paddedNumber}`;
+        }
+
+        return certificateNumber; // Return as-is if we can't format it
     }
 
     function showLoadingIndicator() {
@@ -871,12 +906,144 @@
         document.body.removeChild(textarea);
     }
 
+    // Populate table view with certificates
+    function populateTableView() {
+        const gridBody = document.getElementById('gridBody');
+        if (!gridBody) return;
+
+        // Clear existing content
+        gridBody.innerHTML = '';
+
+        // Show loading state
+        gridBody.innerHTML = '<div class="loading-state">Loading certificates...</div>';
+
+        // Use current certificates data
+        if (state.certificates && state.certificates.length > 0) {
+            renderTableRows(state.certificates);
+        } else {
+            // If no data, fetch fresh data
+            loadCertificates();
+        }
+    }
+
+    // Render table rows for certificates
+    function renderTableRows(certificates) {
+        const gridBody = document.getElementById('gridBody');
+        if (!gridBody) return;
+
+        if (!certificates || certificates.length === 0) {
+            gridBody.innerHTML = '<div class="no-results">No certificates found</div>';
+            return;
+        }
+
+        gridBody.innerHTML = certificates.map(cert => createTableRow(cert)).join('');
+        setupTableActionHandlers();
+    }
+
+    // Create table row HTML for a certificate
+    function createTableRow(cert) {
+        const effectiveDate = cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A';
+        const expirationDate = cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A';
+        const location = formatLocation(cert.location, cert.country);
+
+        return `
+            <div class="grid-row" data-cert-id="${cert.id}">
+                <div class="grid-cell select-cell">
+                    <input type="checkbox" class="cert-checkbox" value="${cert.id}">
+                </div>
+                <div class="grid-cell actions-column">
+                    <div class="action-buttons">
+                        <button class="action-btn edit-btn" onclick="editCertificate('${cert.id}')" title="Edit Certificate">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn download-btn" onclick="downloadCertificate('${cert.id}')" title="Download PDF">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${cert.id}')" title="View Details">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="grid-cell">${escapeHtml(cert.certificateNumber || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.certificationType || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.csfAttributes || '')}</div>
+                <div class="grid-cell">
+                    <span class="status-badge status-${(cert.status || '').toLowerCase().replace(/\s+/g, '-')}">${escapeHtml(cert.status || '')}</span>
+                </div>
+                <div class="grid-cell">${effectiveDate}</div>
+                <div class="grid-cell">${expirationDate}</div>
+                <div class="grid-cell">${escapeHtml(cert.companyName || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.companyContact || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.productName || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.productCategory || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.productType || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.productSubcategory || '')}</div>
+                <div class="grid-cell">${location}</div>
+                <div class="grid-cell">${escapeHtml(cert.country || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.externalTags || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.internalTags || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.asin || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.upc || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.gtin || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.ean || '')}</div>
+            </div>
+        `;
+    }
+
+    // Setup action handlers for table buttons
+    function setupTableActionHandlers() {
+        // Checkbox selection handling
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const certCheckboxes = document.querySelectorAll('.cert-checkbox');
+
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                certCheckboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                });
+                updateBulkActionsVisibility();
+            });
+        }
+
+        certCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateBulkActionsVisibility);
+        });
+    }
+
+    // Update bulk actions bar visibility
+    function updateBulkActionsVisibility() {
+        const selectedCheckboxes = document.querySelectorAll('.cert-checkbox:checked');
+        const bulkActionsBar = document.getElementById('bulkActionsBar');
+        const selectedCount = document.getElementById('selectedCount');
+
+        if (bulkActionsBar && selectedCount) {
+            if (selectedCheckboxes.length > 0) {
+                bulkActionsBar.style.display = 'flex';
+                selectedCount.textContent = `${selectedCheckboxes.length} certificate${selectedCheckboxes.length !== 1 ? 's' : ''} selected`;
+            } else {
+                bulkActionsBar.style.display = 'none';
+            }
+        }
+    }
+
+    // Edit certificate function
+    window.editCertificate = function(id) {
+        if (!id) {
+            console.error('Certificate ID is missing');
+            showToast('Error: Certificate ID not found', 'error');
+            return;
+        }
+        console.log('Editing certificate:', id);
+        window.location.href = `/Certificate/Edit/${id}`;
+    };
+
     // Export functions for global access as object as well
     window.certificateTileView = {
         viewCertificate: viewCertificate,
         downloadCertificate: downloadCertificate,
-        getShareableLink: getShareableLink,
-        clearAllFilters: clearAllFilters
+        clearAllFilters: clearAllFilters,
+        editCertificate: editCertificate,
+        populateTableView: populateTableView
     };
 
     // Initialize the app when DOM is ready

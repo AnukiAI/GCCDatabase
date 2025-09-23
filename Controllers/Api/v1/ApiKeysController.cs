@@ -175,8 +175,8 @@ namespace GCCWebApp.Controllers.Api.v1
 
     public class CreateApiKeyRequest
     {
-        public string Name { get; set; }
-        public string Description { get; set; }
+        public required string Name { get; set; }
+        public required string Description { get; set; }
         public DateTime? ExpiresAt { get; set; }
     }
 }

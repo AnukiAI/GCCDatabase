@@ -58,5 +58,9 @@ namespace GCCWebApp.Repositories
         public List<string>? CertificationTypeNames { get; set; }
         public List<string>? Countries { get; set; }
         public List<int>? CompanyIds { get; set; }
+        public List<string>? CompanyNames { get; set; }
+        public List<string>? ProductCategories { get; set; }
+        public List<string>? Tags { get; set; }
+        public List<string>? AdditionalFilters { get; set; }
     }
 }

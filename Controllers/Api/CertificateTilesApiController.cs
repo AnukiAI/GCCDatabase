@@ -45,6 +45,8 @@ namespace GCCWebApp.Controllers.Api
             [FromQuery] string? sortBy = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
+            [FromQuery] int offset = 0,
+            [FromQuery] int limit = 20,
             [FromQuery] string? certTypes = null,
             [FromQuery] string? productCat = null,
             [FromQuery] string? countries = null,
@@ -56,14 +58,18 @@ namespace GCCWebApp.Controllers.Api
                 var finalSort = sort ?? sortBy ?? "newest";
                 var finalSearchTerm = searchTerm ?? search;
 
+                // Support both page-based and offset-based pagination for backwards compatibility
+                var actualOffset = offset > 0 ? offset : (page - 1) * pageSize;
+                var actualLimit = limit > 0 ? limit : pageSize;
+
                 var filter = new CertificateSearchFilter
                 {
                     SearchTerm = finalSearchTerm,
                     Status = "active", // Only show active certificates for public view
                     SortBy = MapSortBy(finalSort),
                     SortDescending = finalSort == "newest" || finalSort == "cert-number-newest",
-                    Page = page,
-                    PageSize = pageSize
+                    Page = Math.Max(1, (actualOffset / actualLimit) + 1),
+                    PageSize = actualLimit
                 };
 
                 // Parse filter arrays - handle multiple parameter names
@@ -141,10 +147,8 @@ namespace GCCWebApp.Controllers.Api
                     success = true,
                     certificates = result,
                     totalCount,
-                    totalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
-                    currentPage = page,
-                    pageSize,
-                    hasMore = page < Math.Ceiling(totalCount / (double)pageSize),
+                    loadedCount = actualOffset + result.Count(),
+                    hasMore = actualOffset + result.Count() < totalCount,
                     message = (string?)null
                 };
 

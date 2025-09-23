@@ -6,6 +6,23 @@
 
 class CertificateList {
     constructor() {
+        // Infinite scroll state
+        this.currentPage = 1;
+        this.pageSize = 20;
+        this.isLoading = false;
+        this.hasMoreResults = true;
+        this.totalLoadedCertificates = 0;
+        this.lastRequestId = null;
+
+        // Filter and search state
+        this.currentFilters = {};
+        this.currentSearchTerm = '';
+        this.currentSort = 'default';
+
+        // Determine API endpoints based on current page
+        this.isInternalView = window.location.pathname.includes('TileViewInternal');
+        this.apiBaseUrl = this.isInternalView ? '/api/certificate-tiles-internal' : '/api/certificate-tiles';
+
         this.init();
     }
 
@@ -15,7 +32,8 @@ class CertificateList {
         this.setupSearch();
         this.setupSort();
         this.setupMobileFilters();
-        this.setupPagination();
+        this.setupInfiniteScroll();
+        this.loadInitialCertificates();
     }
 
     setupEventListeners() {
@@ -189,23 +207,60 @@ class CertificateList {
     setupSearch() {
         const searchInput = document.getElementById('searchInput');
         const searchBtn = document.querySelector('.search-btn');
+        const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+        const autocompleteList = document.getElementById('autocompleteList');
 
-        if (searchInput) {
-            // Debounced search
-            let searchTimeout;
+        this.selectedSuggestionIndex = -1;
+        this.currentSuggestions = [];
+
+        if (searchInput && autocompleteDropdown && autocompleteList) {
+            // Debounced autocomplete
+            let autocompleteTimeout;
             searchInput.addEventListener('input', (e) => {
-                clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => {
-                    this.performSearch(e.target.value);
-                }, 300);
+                const searchTerm = e.target.value.trim();
+
+                clearTimeout(autocompleteTimeout);
+
+                if (searchTerm.length >= 2) {
+                    autocompleteTimeout = setTimeout(() => {
+                        this.fetchAutocompleteSuggestions(searchTerm);
+                    }, 300);
+                } else {
+                    this.hideAutocompleteDropdown();
+                }
+            });
+
+            // Keyboard navigation
+            searchInput.addEventListener('keydown', (e) => {
+                if (this.isAutocompleteVisible()) {
+                    this.handleAutocompleteKeyNavigation(e);
+                }
             });
 
             // Search on Enter key
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    this.performSearch(e.target.value);
+                    if (this.selectedSuggestionIndex >= 0 && this.currentSuggestions[this.selectedSuggestionIndex]) {
+                        this.selectSuggestion(this.currentSuggestions[this.selectedSuggestionIndex]);
+                    } else {
+                        this.performSearch(e.target.value);
+                    }
                 }
+            });
+
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!searchInput.contains(e.target) && !autocompleteDropdown.contains(e.target)) {
+                    this.hideAutocompleteDropdown();
+                }
+            });
+
+            // Handle blur to hide dropdown with slight delay for click handling
+            searchInput.addEventListener('blur', () => {
+                setTimeout(() => {
+                    this.hideAutocompleteDropdown();
+                }, 150);
             });
         }
 
@@ -250,19 +305,57 @@ class CertificateList {
         }
     }
 
-    setupPagination() {
-        // Pagination will be handled by MVC backend
-        // This is just for client-side interactions
-        const paginationButtons = document.querySelectorAll('.pagination .btn');
-        paginationButtons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                if (!btn.disabled) {
-                    e.preventDefault();
-                    // In MVC implementation, this would trigger a page change
-                    console.log('Pagination clicked:', btn.textContent.trim());
+    setupInfiniteScroll() {
+        // Create intersection observer for infinite scroll
+        const options = {
+            root: null,
+            rootMargin: '100px',
+            threshold: 0.1
+        };
+
+        this.intersectionObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting && this.hasMoreResults && !this.isLoading) {
+                    this.loadMoreCertificates();
                 }
             });
-        });
+        }, options);
+
+        // Observe the loading container
+        const loadingContainer = document.getElementById('loadingContainer');
+        if (loadingContainer) {
+            this.intersectionObserver.observe(loadingContainer);
+        }
+
+        // Add scroll event listener as fallback
+        window.addEventListener('scroll', this.throttle(() => {
+            if (this.shouldLoadMore()) {
+                this.loadMoreCertificates();
+            }
+        }, 100));
+    }
+
+    throttle(func, limit) {
+        let inThrottle;
+        return function() {
+            const args = arguments;
+            const context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(() => inThrottle = false, limit);
+            }
+        };
+    }
+
+    shouldLoadMore() {
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        const windowHeight = window.innerHeight;
+        const documentHeight = document.documentElement.scrollHeight;
+
+        return (scrollTop + windowHeight >= documentHeight - 500) &&
+               this.hasMoreResults &&
+               !this.isLoading;
     }
 
     setupCertificateActions() {
@@ -341,19 +434,29 @@ class CertificateList {
     // Filter handling
     handleFilterChange(checkbox) {
         const filterValue = checkbox.value;
+        const filterName = checkbox.name || checkbox.getAttribute('data-filter-type') || 'unknown';
         const isChecked = checkbox.checked;
 
-        // In MVC implementation, this would update the filter state and trigger a request
-        console.log(`Filter ${filterValue} ${isChecked ? 'checked' : 'unchecked'}`);
+        console.log(`Filter ${filterName}=${filterValue} ${isChecked ? 'checked' : 'unchecked'}`);
 
-        // Update results count (simulated)
-        this.updateResultsCount();
+        // Update current filters state
+        if (!this.currentFilters[filterName]) {
+            this.currentFilters[filterName] = [];
+        }
 
-        // Apply filters with loading state
-        this.showLoadingState();
-        setTimeout(() => {
-            this.hideLoadingState();
-        }, 300);
+        if (isChecked) {
+            if (!this.currentFilters[filterName].includes(filterValue)) {
+                this.currentFilters[filterName].push(filterValue);
+            }
+        } else {
+            this.currentFilters[filterName] = this.currentFilters[filterName].filter(val => val !== filterValue);
+            if (this.currentFilters[filterName].length === 0) {
+                delete this.currentFilters[filterName];
+            }
+        }
+
+        // Reload certificates with new filters
+        this.loadInitialCertificates();
     }
 
     handleFilterSearch(searchInput) {
@@ -370,41 +473,31 @@ class CertificateList {
 
     clearAllFilters() {
         console.log('Clearing all filters...');
-        
+
+        // Reset internal state
+        this.currentFilters = {};
+        this.currentSearchTerm = '';
+        this.currentSort = 'default';
+
         // Uncheck all filter checkboxes - including those with data attributes (External view) and name attributes (Internal view)
         const filterCheckboxes = document.querySelectorAll('.filter-item input[type="checkbox"], .filter-option input[type="checkbox"], input[type="checkbox"][name^="cert-"], input[type="checkbox"][name^="product-"], input[type="checkbox"][name^="company"], input[type="checkbox"][name^="countries"], input[type="checkbox"][name^="additional"], input[type="checkbox"][data-type], input[type="checkbox"][data-category], input[type="checkbox"][data-country], .filter-tree input[type="checkbox"]');
         console.log(`Found ${filterCheckboxes.length} checkboxes to clear`);
-        
+
         filterCheckboxes.forEach(checkbox => {
-            if (checkbox.checked) {
-                const identifier = checkbox.name || checkbox.id || checkbox.dataset.type || checkbox.dataset.category || checkbox.dataset.country;
-                console.log(`Unchecking: ${identifier}`);
-                checkbox.checked = false;
-                // Trigger change event to update any dependent logic
-                const event = new Event('change', { bubbles: true });
-                checkbox.dispatchEvent(event);
-            }
+            checkbox.checked = false;
         });
 
         // Clear the main search input
         const searchInput = document.querySelector('.search-input');
-        if (searchInput && searchInput.value) {
-            console.log(`Clearing main search input: ${searchInput.value}`);
+        if (searchInput) {
             searchInput.value = '';
-            // Trigger input event to update search
-            const event = new Event('input', { bubbles: true });
-            searchInput.dispatchEvent(event);
         }
 
         // Clear any filter-specific search inputs
         const filterSearchInputs = document.querySelectorAll('.filter-search-input');
         filterSearchInputs.forEach(input => {
-            if (input.value) {
-                console.log(`Clearing filter search input: ${input.value}`);
-                input.value = '';
-                // Trigger search to show all options
-                this.handleFilterSearch(input);
-            }
+            input.value = '';
+            this.handleFilterSearch(input);
         });
 
         // Reset sort to default
@@ -413,30 +506,15 @@ class CertificateList {
             sortLabel.textContent = 'Default';
         }
 
-        // Reset the sort dropdown value
-        this.currentSort = 'default';
-
         // Close any open filter panels for mobile
         const filterPanels = document.querySelectorAll('.filter-panel.open');
         filterPanels.forEach(panel => {
             panel.classList.remove('open');
         });
 
-        // Show all certificate cards after clearing filters
-        this.showAllCertificates();
-        
-        // Update results count to show all
-        const resultsCountElement = document.getElementById('resultsCount');
-        if (resultsCountElement) {
-            const allCards = document.querySelectorAll('.certificate-card');
-            resultsCountElement.textContent = `${allCards.length} Results`;
-        }
-        
-        // If this is a dynamic page, reload without filters
-        if (window.location.search) {
-            window.location.href = window.location.pathname;
-        }
-        
+        // Reload certificates with cleared filters
+        this.loadInitialCertificates();
+
         this.showToast('All filters cleared', 'info');
         console.log('All filters cleared successfully');
     }
@@ -455,27 +533,23 @@ class CertificateList {
     performSearch(searchTerm) {
         console.log('Searching for:', searchTerm);
 
-        // Show loading state
-        this.showLoadingState();
+        this.currentSearchTerm = searchTerm.trim();
 
-        // In MVC implementation, this would trigger a server request
-        // Simulate API delay
-        setTimeout(() => {
-            this.hideLoadingState();
+        // Reload certificates with new search term
+        this.loadInitialCertificates();
 
-            if (searchTerm.trim()) {
-                this.showToast(`Searching for "${searchTerm}"`, 'info');
-            }
-
-            // Update results count (simulated)
-            this.updateResultsCount();
-        }, 500);
+        if (this.currentSearchTerm) {
+            this.showToast(`Searching for "${this.currentSearchTerm}"`, 'info');
+        }
     }
 
     // Sorting
     applySorting(sortValue) {
         console.log('Applying sort:', sortValue);
-        // In MVC implementation, this would trigger a server request with sort parameters
+        this.currentSort = sortValue;
+
+        // Reload certificates with new sort
+        this.loadInitialCertificates();
     }
 
     // New methods to handle inline functions
@@ -692,6 +766,11 @@ class CertificateList {
     }
 
     showLoadingState() {
+        const loadingContainer = document.getElementById('loadingContainer');
+        if (loadingContainer) {
+            loadingContainer.style.display = 'block';
+        }
+
         const certificatesGrid = document.getElementById('certificatesGrid');
         if (certificatesGrid) {
             certificatesGrid.classList.add('loading');
@@ -699,6 +778,11 @@ class CertificateList {
     }
 
     hideLoadingState() {
+        const loadingContainer = document.getElementById('loadingContainer');
+        if (loadingContainer) {
+            loadingContainer.style.display = 'none';
+        }
+
         const certificatesGrid = document.getElementById('certificatesGrid');
         if (certificatesGrid) {
             certificatesGrid.classList.remove('loading');
@@ -741,68 +825,194 @@ class CertificateList {
         }, 3000);
     }
 
+    // Infinite scroll core methods
+    async loadInitialCertificates() {
+        console.log('Loading initial certificates...');
+        this.resetScrollState();
+        await this.loadMoreCertificates(true);
+    }
+
+    async loadMoreCertificates(isInitial = false) {
+        if (this.isLoading || (!this.hasMoreResults && !isInitial)) {
+            return;
+        }
+
+        this.isLoading = true;
+        this.showLoadingState();
+
+        try {
+            const requestId = Date.now().toString();
+            this.lastRequestId = requestId;
+
+            const params = new URLSearchParams({
+                page: this.currentPage,
+                pageSize: this.pageSize,
+                searchTerm: this.currentSearchTerm,
+                sort: this.currentSort,
+                ...this.currentFilters
+            });
+
+            const response = await fetch(`${this.apiBaseUrl}?${params}`);
+
+            // Check if this is still the latest request
+            if (this.lastRequestId !== requestId) {
+                console.log('Request superseded, ignoring response');
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success && data.certificates) {
+                if (isInitial) {
+                    this.clearCertificatesGrid();
+                }
+
+                this.appendCertificates(data.certificates);
+                this.updatePagingState(data);
+                this.updateResultsCount(data.totalCount || this.totalLoadedCertificates);
+
+                console.log(`Loaded page ${this.currentPage}, ${data.certificates.length} certificates`);
+                this.currentPage++;
+            } else {
+                console.error('Failed to load certificates:', data.message);
+                this.hasMoreResults = false;
+            }
+
+        } catch (error) {
+            console.error('Error loading certificates:', error);
+            this.showToast('Error loading certificates. Please try again.', 'error');
+            this.hasMoreResults = false;
+        } finally {
+            this.isLoading = false;
+            this.hideLoadingState();
+        }
+    }
+
+    resetScrollState() {
+        this.currentPage = 1;
+        this.hasMoreResults = true;
+        this.totalLoadedCertificates = 0;
+        this.isLoading = false;
+    }
+
+    clearCertificatesGrid() {
+        const grid = document.getElementById('certificatesGrid');
+        if (grid) {
+            // Keep loading and end-of-results elements, remove certificate cards
+            const loadingContainer = document.getElementById('loadingContainer');
+            const endOfResults = document.getElementById('endOfResults');
+
+            grid.innerHTML = '';
+
+            if (loadingContainer) grid.appendChild(loadingContainer);
+            if (endOfResults) grid.appendChild(endOfResults);
+        }
+    }
+
+    appendCertificates(certificates) {
+        const grid = document.getElementById('certificatesGrid');
+        const loadingContainer = document.getElementById('loadingContainer');
+
+        if (grid && certificates) {
+            certificates.forEach(cert => {
+                const cardElement = this.createCertificateCard(cert);
+                // Insert before loading container
+                if (loadingContainer) {
+                    grid.insertBefore(cardElement, loadingContainer);
+                } else {
+                    grid.appendChild(cardElement);
+                }
+            });
+
+            this.totalLoadedCertificates += certificates.length;
+            this.setupCertificateActions();
+        }
+    }
+
+    updatePagingState(data) {
+        this.hasMoreResults = data.hasMore ||
+                           (data.totalCount && this.totalLoadedCertificates < data.totalCount) ||
+                           (data.certificates && data.certificates.length === this.pageSize);
+
+        const endOfResults = document.getElementById('endOfResults');
+        if (endOfResults) {
+            endOfResults.style.display = this.hasMoreResults ? 'none' : 'block';
+        }
+    }
+
     // Public API methods for MVC integration
     updateCertificates(certificates) {
         // Method to update the certificates grid with new data from MVC controller
-        const grid = document.getElementById('certificatesGrid');
-        if (grid && certificates) {
-            // Clear existing cards
-            grid.innerHTML = '';
-
-            // Add new certificate cards
-            certificates.forEach(cert => {
-                const cardElement = this.createCertificateCard(cert);
-                grid.appendChild(cardElement);
-            });
-
-            // Re-setup event listeners for new cards
-            this.setupCertificateActions();
+        this.clearCertificatesGrid();
+        if (certificates) {
+            this.appendCertificates(certificates);
+            this.totalLoadedCertificates = certificates.length;
+            this.updateResultsCount(certificates.length);
         }
     }
 
     createCertificateCard(certificate) {
         // Helper method to create certificate card HTML from data
-        const card = document.createElement('article');
+        const card = document.createElement('div');
         card.className = 'certificate-card';
 
+        // Add data attributes for filtering
+        if (certificate.certType) card.setAttribute('data-type', certificate.certType);
+        if (certificate.companySlug) card.setAttribute('data-company', certificate.companySlug);
+        if (certificate.country) card.setAttribute('data-country', certificate.country);
+        if (certificate.category) card.setAttribute('data-category', certificate.category);
+        if (certificate.effectiveDate) card.setAttribute('data-date', certificate.effectiveDate);
+
         card.innerHTML = `
-            <header class="card-header">
-                <h3>${certificate.certificationType}</h3>
-                <span class="badge badge-primary">${certificate.badgeText}</span>
-            </header>
-            <div class="certificate-single-container">
-                <div class="certificate-number">
-                    <span class="label">Certificate #:</span>
-                    <span class="value">${certificate.number}</span>
+            <div class="card-header">
+                <div class="header-row">
+                    <div class="certificate-category">${this.escapeHtml(certificate.certificationType || certificate.certType || 'CERTIFIED SUSTAINABILITY FACTS')}</div>
+                    <div class="certificate-id">${this.escapeHtml(certificate.certificateNumber || certificate.id || '')}</div>
                 </div>
-                <h4 class="company-name">${certificate.companyName}</h4>
-                <h5 class="product-name">${certificate.productName}</h5>
-                <div class="product-category">
-                    <span class="tag-type External">${certificate.category}</span>
+                <div class="company-name">${this.escapeHtml(certificate.companyName || '')}</div>
+            </div>
+            <div class="card-body">
+                <div class="product-info">
+                    <div class="product-name">${this.escapeHtml(certificate.productName || '')}</div>
+                    <div class="product-type">${this.escapeHtml(certificate.productType || certificate.category || '')}</div>
                 </div>
-                <div class="certification-period">
-                    <div class="period-label">Certification Period:</div>
-                    <div class="period-dates">${certificate.effectiveDate} - ${certificate.expirationDate}</div>
-                </div>
-                <div class="certificate-location">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span>${certificate.location}</span>
+                <div class="certificate-details">
+                    <div class="certificate-period">
+                        <strong>Certification Period:</strong>
+                        ${this.formatDateRange(certificate.effectiveDate, certificate.expirationDate)}
+                    </div>
+                    <div class="certificate-location">
+                        <i class="fas fa-map-marker-alt"></i>
+                        ${this.escapeHtml(certificate.location || certificate.manufacturingLocation || '')}
+                    </div>
                 </div>
             </div>
-            <footer class="certificate-actions">
-                <button class="btn btn-outline btn-sm" title="Download Certificate">
+            <div class="card-actions">
+                <div class="action-icon download" title="Download PDF" data-action="download" data-cert="${this.escapeHtml(certificate.certificateNumber || certificate.id || '')}">
                     <i class="fas fa-download"></i>
-                </button>
-                <button class="btn btn-outline btn-sm" title="View Details">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn btn-outline btn-sm" title="Expand">
-                    <i class="fas fa-expand"></i>
-                </button>
-            </footer>
+                </div>
+                <div class="action-icon external" title="View Details" data-action="view" data-cert="${this.escapeHtml(certificate.certificateNumber || certificate.id || '')}">
+                    <i class="fas fa-external-link-alt"></i>
+                </div>
+            </div>
         `;
 
         return card;
+    }
+
+    formatDateRange(startDate, endDate) {
+        if (!startDate || !endDate) return 'Date not available';
+
+        const formatDate = (dateStr) => {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', { month: 'numeric', day: 'numeric', year: 'numeric' });
+        };
+
+        return `${formatDate(startDate)} - ${formatDate(endDate)}`;
     }
 
     getFilterState() {
@@ -979,6 +1189,129 @@ class CertificateList {
         if (bulkActionsPanel) {
             bulkActionsPanel.style.display = selectedCount > 0 ? 'flex' : 'none';
         }
+    }
+
+    // Autocomplete functionality
+    async fetchAutocompleteSuggestions(searchTerm) {
+        try {
+            const response = await fetch(`${this.apiBaseUrl}/autocomplete?term=${encodeURIComponent(searchTerm)}`);
+            if (response.ok) {
+                const data = await response.json();
+                this.currentSuggestions = data.suggestions || [];
+                this.displayAutocompleteSuggestions(this.currentSuggestions);
+            } else {
+                this.hideAutocompleteDropdown();
+            }
+        } catch (error) {
+            console.error('Error fetching autocomplete suggestions:', error);
+            this.hideAutocompleteDropdown();
+        }
+    }
+
+    displayAutocompleteSuggestions(suggestions) {
+        const autocompleteList = document.getElementById('autocompleteList');
+        const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+
+        if (!autocompleteList || !autocompleteDropdown) return;
+
+        // Clear previous suggestions
+        autocompleteList.innerHTML = '';
+        this.selectedSuggestionIndex = -1;
+
+        if (suggestions.length === 0) {
+            this.hideAutocompleteDropdown();
+            return;
+        }
+
+        // Create suggestion items
+        suggestions.forEach((suggestion, index) => {
+            const li = document.createElement('li');
+            li.className = 'autocomplete-item';
+            li.innerHTML = `
+                <div class="suggestion-content">
+                    <span class="suggestion-text">${this.escapeHtml(suggestion.label)}</span>
+                    <span class="suggestion-type">${this.escapeHtml(suggestion.type)}</span>
+                </div>
+            `;
+
+            // Add click handler
+            li.addEventListener('click', () => {
+                this.selectSuggestion(suggestion);
+            });
+
+            // Add mouseover handler for keyboard navigation
+            li.addEventListener('mouseover', () => {
+                this.selectedSuggestionIndex = index;
+                this.updateSuggestionHighlight();
+            });
+
+            autocompleteList.appendChild(li);
+        });
+
+        // Show dropdown
+        autocompleteDropdown.style.display = 'block';
+    }
+
+    selectSuggestion(suggestion) {
+        const searchInput = document.getElementById('searchInput');
+        if (searchInput) {
+            searchInput.value = suggestion.value;
+            this.hideAutocompleteDropdown();
+            this.performSearch(suggestion.value);
+        }
+    }
+
+    hideAutocompleteDropdown() {
+        const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+        if (autocompleteDropdown) {
+            autocompleteDropdown.style.display = 'none';
+        }
+        this.currentSuggestions = [];
+        this.selectedSuggestionIndex = -1;
+    }
+
+    isAutocompleteVisible() {
+        const autocompleteDropdown = document.getElementById('autocompleteDropdown');
+        return autocompleteDropdown && autocompleteDropdown.style.display !== 'none';
+    }
+
+    handleAutocompleteKeyNavigation(e) {
+        const maxIndex = this.currentSuggestions.length - 1;
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                this.selectedSuggestionIndex = Math.min(this.selectedSuggestionIndex + 1, maxIndex);
+                this.updateSuggestionHighlight();
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                this.selectedSuggestionIndex = Math.max(this.selectedSuggestionIndex - 1, -1);
+                this.updateSuggestionHighlight();
+                break;
+            case 'Escape':
+                e.preventDefault();
+                this.hideAutocompleteDropdown();
+                break;
+        }
+    }
+
+    updateSuggestionHighlight() {
+        const suggestionItems = document.querySelectorAll('.autocomplete-item');
+
+        suggestionItems.forEach((item, index) => {
+            if (index === this.selectedSuggestionIndex) {
+                item.classList.add('highlighted');
+            } else {
+                item.classList.remove('highlighted');
+            }
+        });
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 }
 

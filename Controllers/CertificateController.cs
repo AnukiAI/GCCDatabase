@@ -297,7 +297,7 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// Edit certificate - GET
+        /// Edit certificate by ID - GET
         /// </summary>
         [Authorize(Policy = "AnalystOrAdmin")]
         public async Task<IActionResult> Edit(int id)
@@ -337,6 +337,35 @@ namespace GCCWebApp.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading edit form for certificate ID: {Id}", id);
+                return RedirectToAction("Error", "Home");
+            }
+        }
+
+        /// <summary>
+        /// Edit certificate by certificate number - GET
+        /// </summary>
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> EditByNumber(string number)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(number))
+                {
+                    return BadRequest("Certificate number is required");
+                }
+
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
+                if (certificate == null)
+                {
+                    return NotFound($"Certificate {number} not found");
+                }
+
+                // Redirect to Edit with ID to reuse existing logic
+                return RedirectToAction(nameof(Edit), new { id = certificate.Id });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading edit form for certificate number: {Number}", number);
                 return RedirectToAction("Error", "Home");
             }
         }
@@ -700,7 +729,7 @@ namespace GCCWebApp.Controllers
 
         /// <summary>
         /// Export certificates to various formats (CSV, Excel, PDF)
-        /// GET: /Certificate/Export?format=csv&searchTerm=...&filters=...
+        /// GET: /Certificate/Export?format=csv&amp;searchTerm=...&amp;filters=...
         /// </summary>
         [AllowAnonymous]
         public async Task<IActionResult> ExportCertificates(

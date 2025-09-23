@@ -37,7 +37,9 @@ namespace GCCWebApp.Controllers.Api
             [FromQuery] string? partner = null,
             [FromQuery] string? sortBy = "newest",
             [FromQuery] int page = 1,
-            [FromQuery] int pageSize = 20)
+            [FromQuery] int pageSize = 20,
+            [FromQuery] int offset = 0,
+            [FromQuery] int limit = 20)
         {
             try
             {
@@ -46,8 +48,10 @@ namespace GCCWebApp.Controllers.Api
                     .Include(c => c.Product)
                         .ThenInclude(p => p.Category)
                     .Include(c => c.Product.ProductType)
+                    .Include(c => c.Product.ProductSubcategory)
                     .Include(c => c.CertificationType)
                     .Include(c => c.Tags)
+                    .Include(c => c.ProductIds)
                     .AsQueryable();
 
                 // Apply search filter
@@ -120,29 +124,50 @@ namespace GCCWebApp.Controllers.Api
                 // Get total count
                 var totalCount = await query.CountAsync();
 
+                // Support both offset/limit and page/pageSize for compatibility
+                var actualOffset = offset > 0 ? offset : (page - 1) * pageSize;
+                var actualLimit = limit > 0 ? limit : pageSize;
+
                 // Apply pagination
                 var certificates = await query
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
+                    .Skip(actualOffset)
+                    .Take(actualLimit)
                     .Select(c => new
                     {
                         c.Id,
                         CertificateNumber = c.Number,
                         CertificationType = c.CertificationType.Name,
+                        CsfAttributes = c.CertificationType.Description ?? "",
+                        c.Status,
                         c.EffectiveDate,
                         c.ExpirationDate,
                         CompanyName = c.Company.Name,
-                        CompanyEmail = c.Company.Email,
-                        CompanyUrl = c.Company.Website,
+                        CompanyContact = !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? "",
                         ProductName = c.Product.Name,
                         ProductCategory = c.Product.Category.Name,
                         ProductType = c.Product.ProductType != null ? c.Product.ProductType.Name : "",
                         ProductSubcategory = c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : "",
                         c.Location,
                         c.Country,
-                        ExternalTags = string.Join(", ", c.Tags.Select(t => t.Name)),
+                        ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name)),
+                        InternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name)),
+                        // Product IDs - get first of each type for backward compatibility with old fields
+                        Asin = c.ProductIds.Where(pid => pid.ProductIdType == "ASIN" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? c.Asin ?? "",
+                        Upc = c.ProductIds.Where(pid => pid.ProductIdType == "UPC" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? c.Upc ?? "",
+                        Gtin = c.ProductIds.Where(pid => pid.ProductIdType == "GTIN" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? c.Gtin ?? "",
+                        Ean = c.ProductIds.Where(pid => pid.ProductIdType == "EAN" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? c.Ean ?? "",
+                        // Additional product ID types
+                        Isbn = c.ProductIds.Where(pid => pid.ProductIdType == "ISBN" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? "",
+                        Sku = c.ProductIds.Where(pid => pid.ProductIdType == "SKU" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? "",
+                        Mpn = c.ProductIds.Where(pid => pid.ProductIdType == "MPN" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? "",
+                        // All product IDs for detailed view
+                        AllProductIds = c.ProductIds.Where(pid => pid.IsActive).Select(pid => new {
+                            Type = pid.ProductIdType,
+                            Value = pid.ProductIdValue,
+                            Partner = pid.Partner,
+                            ProductName = pid.ProductName
+                        }).ToList(),
                         PdfPath = c.CertificateFile,
-                        c.Status,
                         c.Partner,
                         c.CreatedAt,
                         c.UpdatedAt
@@ -151,12 +176,15 @@ namespace GCCWebApp.Controllers.Api
 
                 return Ok(new
                 {
+                    success = true,
+                    certificates,
                     totalCount,
-                    page,
-                    pageSize,
-                    totalPages = (int)Math.Ceiling((double)totalCount / pageSize),
-                    hasMore = page * pageSize < totalCount,
-                    certificates
+                    loadedCount = actualOffset + certificates.Count(),
+                    hasMore = actualOffset + certificates.Count() < totalCount,
+                    page = Math.Max(1, (actualOffset / actualLimit) + 1),
+                    pageSize = actualLimit,
+                    totalPages = (int)Math.Ceiling((double)totalCount / actualLimit),
+                    message = (string?)null
                 });
             }
             catch (Exception ex)

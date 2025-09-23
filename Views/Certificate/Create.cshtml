@@ -7,6 +7,7 @@
 
 @section Styles {
     <link href="~/css/certificates.css" rel="stylesheet" />
+    <link href="~/css/product-id-manager.css" rel="stylesheet" />
 }
 
 @section Breadcrumbs {
@@ -184,40 +185,13 @@
                 </div>
             </div>
 
+            <!-- Product ID Manager Section -->
             <div class="form-section">
-                <h3>Product Identifiers</h3>
-                <p class="section-description">Optional product identification codes</p>
-                
-                <div class="row">
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label asp-for="Asin" class="form-label"></label>
-                            <input asp-for="Asin" class="form-control" placeholder="Amazon ASIN" />
-                            <span asp-validation-for="Asin" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label asp-for="Upc" class="form-label"></label>
-                            <input asp-for="Upc" class="form-control" placeholder="UPC Code" />
-                            <span asp-validation-for="Upc" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label asp-for="Gtin" class="form-label"></label>
-                            <input asp-for="Gtin" class="form-control" placeholder="GTIN" />
-                            <span asp-validation-for="Gtin" class="text-danger"></span>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="form-group">
-                            <label asp-for="Ean" class="form-label"></label>
-                            <input asp-for="Ean" class="form-control" placeholder="EAN" />
-                            <span asp-validation-for="Ean" class="text-danger"></span>
-                        </div>
-                    </div>
-                </div>
+                @{
+                    ViewData["CertificateId"] = 0; // New certificate, no ID yet
+                    ViewData["IsReadOnly"] = false;
+                }
+                @await Html.PartialAsync("_ProductIdManager", Model.ProductIds)
             </div>
 
             <!-- Product Image Upload Section - from mockup -->
@@ -551,6 +525,13 @@
             
             effectiveDate.addEventListener('change', validateDates);
             expirationDate.addEventListener('change', validateDates);
+        });
+    </script>
+    <script src="~/js/product-id-manager.js"></script>
+    <script>
+        // Initialize Product ID Manager for create form
+        document.addEventListener('DOMContentLoaded', function() {
+            const productIdManager = new ProductIdManager('.product-id-manager', 0, false);
         });
     </script>
 }

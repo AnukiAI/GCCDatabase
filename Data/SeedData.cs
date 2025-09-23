@@ -671,7 +671,7 @@ namespace GCCWebApp.Data
             // Generate 150 additional certificates for comprehensive lazy loading testing
             for (int i = 1; i <= 150; i++)
             {
-                var certNumber = $"{2023 + (i % 3)}-{(5000 + i):D4}";
+                var certNumber = $"{(2024 + (i % 2)) % 100:D2}-{(5000 + i):D4}";
                 var status = statuses[random.Next(statuses.Length)];
                 var location = locations[random.Next(locations.Length)];
                 var companyId = companies[random.Next(companies.Count)].Id;

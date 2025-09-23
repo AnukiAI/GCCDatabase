@@ -381,6 +381,7 @@
     font-weight: 600;
     color: var(--text-color);
     font-size: 0.95rem;
+    min-height: 180px;
 }
 
 .product-sku {

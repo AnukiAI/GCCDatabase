@@ -371,32 +371,34 @@ namespace GCCWebApp.Repositories
 
         public async Task<IEnumerable<(string Name, int Count)>> GetCertificationTypeStatisticsAsync()
         {
-            return await _dbSet
+            var results = await _dbSet
                 .Include(c => c.CertificationType)
                 .Where(c => c.Status == "active" && c.CertificationType != null)
                 .GroupBy(c => c.CertificationType.Name)
                 .OrderByDescending(g => g.Count())
                 .Select(g => new { Name = g.Key, Count = g.Count() })
-                .ToListAsync()
-                .ContinueWith(task => task.Result.Select(x => (x.Name, x.Count)));
+                .ToListAsync();
+
+            return results.Select(x => (x.Name, x.Count));
         }
 
         public async Task<IEnumerable<(string Name, int Count)>> GetTopCompaniesByActiveCertCountAsync(int topCount = 10)
         {
-            return await _dbSet
+            var results = await _dbSet
                 .Include(c => c.Company)
                 .Where(c => c.Status == "active" && c.Company != null)
                 .GroupBy(c => c.Company.Name)
                 .OrderByDescending(g => g.Count())
                 .Take(topCount)
                 .Select(g => new { Name = g.Key, Count = g.Count() })
-                .ToListAsync()
-                .ContinueWith(task => task.Result.Select(x => (x.Name, x.Count)));
+                .ToListAsync();
+
+            return results.Select(x => (x.Name, x.Count));
         }
 
         public async Task<IEnumerable<(string Name, int Count)>> GetProductTypeStatisticsAsync(int topCount = 10)
         {
-            return await _dbSet
+            var results = await _dbSet
                 .Include(c => c.Product)
                     .ThenInclude(p => p.ProductType)
                 .Where(c => c.Status == "active" && c.Product != null && c.Product.ProductType != null)
@@ -404,8 +406,9 @@ namespace GCCWebApp.Repositories
                 .OrderByDescending(g => g.Count())
                 .Take(topCount)
                 .Select(g => new { Name = g.Key, Count = g.Count() })
-                .ToListAsync()
-                .ContinueWith(task => task.Result.Select(x => (x.Name, x.Count)));
+                .ToListAsync();
+
+            return results.Select(x => (x.Name, x.Count));
         }
 
         public async Task<IEnumerable<string>> GetDistinctCountriesAsync()

@@ -1,60 +1,58 @@
-# GCC Web Application - Deployment Verification Checklist
+# GCC Web Application - Plesk .NET 8.0 Deployment Checklist
 
-## Pre-Deployment Checklist
+## Pre-Deployment Requirements
 
-### Infrastructure Requirements
-- [ ] Plesk server with root/sudo access
-- [ ] Docker installed and running
-- [ ] PostgreSQL or MariaDB installed
+### Server Infrastructure
+- [ ] Plesk Control Panel with .NET Toolkit Extension v2.3.0+
+- [ ] .NET 8.0 Runtime support confirmed
+- [ ] SSH access to Plesk server
 - [ ] Domain configured in Plesk
-- [ ] SSL certificate (Let's Encrypt or custom)
+- [ ] Database server (SQL Server/MySQL/SQLite)
 - [ ] Minimum 2GB RAM available
-- [ ] 10GB disk space available
+- [ ] 5GB disk space available
 
 ### Access Requirements
-- [ ] SSH/RDP access to server
+- [ ] SSH access to server
 - [ ] Plesk admin credentials
-- [ ] Database admin credentials
-- [ ] GitHub Container Registry access token
+- [ ] Database admin credentials (if using external DB)
+- [ ] Deployment package ready
 
 ## Deployment Steps Checklist
 
-### Step 1: Database Setup
-- [ ] Database server installed (PostgreSQL/MariaDB)
-- [ ] Database created (`gccdb`)
-- [ ] Database user created (`gccuser`)
-- [ ] Permissions granted
-- [ ] Connection tested successfully
-- [ ] Backup of existing data (if applicable)
+### Step 1: Local Build Verification
+- [x] Application builds successfully with .NET 8.0
+- [x] Production deployment package created (`gccwebapp-dotnet8.tar.gz`)
+- [x] Deployment scripts ready (`deploy-to-plesk-dotnet8.sh`)
+- [x] Configuration templates prepared
+- [x] All nullable reference warnings resolved
 
-### Step 2: Docker Configuration
-- [ ] Docker daemon running
-- [ ] Docker compose installed (optional)
-- [ ] GitHub registry authenticated
-- [ ] Image pulled successfully
-- [ ] Old containers cleaned up
+### Step 2: Server Preparation
+- [ ] Verify Plesk .NET Toolkit Extension is installed
+- [ ] Confirm .NET 8.0 Runtime is available
+- [ ] Test SSH access to server
+- [ ] Backup existing application (if any)
 
-### Step 3: Environment Configuration
-- [ ] `.env` file created
-- [ ] Database connection string configured
-- [ ] JWT secret key generated (64+ chars)
-- [ ] Domain URLs configured
-- [ ] Port mappings verified
-- [ ] Feature flags set appropriately
+### Step 3: Application Deployment
+- [ ] Upload deployment package (`gccwebapp-dotnet8.tar.gz`)
+- [ ] Extract to domain `/httpdocs/` directory
+- [ ] Set correct permissions (`psacln:psaserv`)
+- [ ] Verify essential files present (GCCWebApp.dll, wwwroot/, etc.)
 
-### Step 4: Container Deployment
-- [ ] Container started successfully
-- [ ] Container health check passing
-- [ ] Logs showing no errors
-- [ ] Application responding on configured port
-- [ ] Database migrations completed
+### Step 4: Plesk .NET Toolkit Configuration
+- [ ] Navigate to Websites & Domains → Your Domain
+- [ ] Click '.NET Toolkit'
+- [ ] Configure settings:
+  - [ ] Startup File: `GCCWebApp.dll`
+  - [ ] ASP.NET Core Version: `8.0`
+  - [ ] Environment: `Production`
+  - [ ] Port: (auto-assigned by Plesk)
 
-### Step 5: Nginx/Proxy Configuration
-- [ ] Nginx configuration added in Plesk
-- [ ] Proxy headers configured correctly
-- [ ] WebSocket support enabled (if needed)
-- [ ] Nginx configuration tested
-- [ ] Nginx reloaded successfully
+### Step 5: Environment Configuration
+- [ ] Set environment variables in Plesk:
+  - [ ] `ASPNETCORE_ENVIRONMENT=Production`
+  - [ ] `ConnectionStrings__DefaultConnection=your_connection_string`
+  - [ ] `GCC_JWT_SECRET=your_jwt_secret_min_64_chars`
+- [ ] Update `appsettings.Production.json` if needed
 
 ### Step 6: SSL Configuration
 - [ ] SSL certificate installed

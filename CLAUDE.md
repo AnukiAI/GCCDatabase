@@ -138,3 +138,5 @@ docker-compose up -d        # Full stack with PostgreSQL
 - **Design**: Follow Master Design Guide, 16px min font, no nav search bar
 - **Testing**: Update tests for new features, verify JS rendering
 - **Constraints**: Admin user/role cannot be deleted, Phase 1 has no partner branding
+- do not include icons in the text
+- External Users do not have the same permissions as Analyst and Admin. Admin has CRUD Roles. Analyst has read write and does not have access to the Admin pages.

@@ -1,0 +1,123 @@
+@{
+    ViewData["Title"] = "Dashboard";
+    ViewData["ActivePage"] = "Home";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="container dashboard-container">
+    <h2 class="dashboard-title">Analytics Dashboard</h2>
+
+    <!-- Stats Grid -->
+    <div class="stats-grid">
+        <div class="stat-card"><div class="stat-title">Total Active Certs</div><div class="stat-value">1293</div></div>
+        <div class="stat-card"><div class="stat-title"># Companies with Active Certs</div><div class="stat-value">187</div></div>
+        <div class="stat-card"><div class="stat-title"># Product Categories with Active Certs</div><div class="stat-value">110</div></div>
+        <div class="stat-card"><div class="stat-title"># Product Types with Active Certs</div><div class="stat-value">110</div></div>
+        <div class="stat-card"><div class="stat-title"># Product Type Subcategories with Active Certs</div><div class="stat-value">110</div></div>
+        <div class="stat-card"><div class="stat-title"># Products with Active Certs</div><div class="stat-value">1213</div></div>
+        <div class="stat-card"><div class="stat-title"># Certs Published Last Month</div><div class="stat-value">49</div></div>
+        <div class="stat-card"><div class="stat-title"># Certs Expiring This Month</div><div class="stat-value">39</div></div>
+        <div class="stat-card"><div class="stat-title"># Certs Expired Last Month</div><div class="stat-value">49</div></div>
+        <div class="stat-card"><div class="stat-title"># Certs Expiring Next Month</div><div class="stat-value">116</div></div>
+        <div class="stat-card"><div class="stat-title"># Certs Published This Year</div><div class="stat-value">742</div></div>
+        <div class="stat-card"><div class="stat-title"># Certs Published Last Year</div><div class="stat-value">1514</div></div>
+    </div>
+
+    <!-- Tables Container -->
+    <div class="tables-container">
+
+        <!-- Total Active Certs by Certification Type -->
+        <div class="table-section">
+            <div class="table-title">Total Active Certs by Certification Type</div>
+            <table>
+                <thead><tr><th>Certification Type</th><th>Total Active Certs</th></tr></thead>
+                <tbody>
+                    <tr><td>Cert Type 1</td><td>287</td></tr>
+                    <tr><td>Cert Type 2</td><td>261</td></tr>
+                    <tr><td>Cert Type 3</td><td>302</td></tr>
+                    <tr><td>Cert Type 4</td><td>342</td></tr>
+                    <tr><td>Cert Type 5</td><td>201</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Top 10 Companies by Active Cert Count -->
+        <div class="table-section">
+            <div class="table-title">Top 10 Companies by Active Cert Count</div>
+            <table>
+                <thead><tr><th>Company</th><th># of Active Certificates</th></tr></thead>
+                <tbody>
+                    <tr><td>Company 1</td><td>657</td></tr>
+                    <tr><td>Company 2</td><td>357</td></tr>
+                    <tr><td>Company 3</td><td>307</td></tr>
+                    <tr><td>Company 4</td><td>279</td></tr>
+                    <tr><td>Company 5</td><td>175</td></tr>
+                    <tr><td>Company 6</td><td>124</td></tr>
+                    <tr><td>Company 7</td><td>96</td></tr>
+                    <tr><td>Company 8</td><td>74</td></tr>
+                    <tr><td>Company 9</td><td>61</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Certs by Status -->
+        <div class="table-section">
+            <div class="table-title"># Certs by Status</div>
+            <table>
+                <thead><tr><th>Status</th><th># of Certificates</th></tr></thead>
+                <tbody>
+                    <tr><td>DRAFT</td><td>208</td></tr>
+                    <tr><td>Client Approved - Not Final</td><td>124</td></tr>
+                    <tr><td>Client Approved - Confidential</td><td>60</td></tr>
+                    <tr><td>Client Approved - Public</td><td>1293</td></tr>
+                    <tr><td>HOLD</td><td>37</td></tr>
+                    <tr><td>EXPIRED</td><td>764</td></tr>
+                    <tr><td>RESCINDED</td><td>124</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Top 10 Product Types by Active Cert Count -->
+        <div class="table-section">
+            <div class="table-title">Top 10 Product Types by Active Cert Count</div>
+            <table>
+                <thead><tr><th>Product Type</th><th># of Active Certificates</th></tr></thead>
+                <tbody>
+                    <tr><td>Product Type 1</td><td>168</td></tr>
+                    <tr><td>Product Type 2</td><td>161</td></tr>
+                    <tr><td>Product Type 3</td><td>144</td></tr>
+                    <tr><td>Product Type 4</td><td>140</td></tr>
+                    <tr><td>Product Type 5</td><td>135</td></tr>
+                    <tr><td>Product Type 6</td><td>126</td></tr>
+                    <tr><td>Product Type 7</td><td>115</td></tr>
+                    <tr><td>Product Type 8</td><td>103</td></tr>
+                    <tr><td>Product Type 9</td><td>86</td></tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Top 5 Product Categories by Active Cert Count -->
+        <div class="table-section">
+            <div class="table-title">Top 5 Product Categories by Active Cert Count</div>
+            <table>
+                <thead><tr><th>Product Category</th><th># of Active Certificates</th></tr></thead>
+                <tbody>
+                    <tr><td>[Product Category 1]</td><td>250</td></tr>
+                    <tr><td>[Product Category 2]</td><td>200</td></tr>
+                    <tr><td>[Product Category 3]</td><td>150</td></tr>
+                    <tr><td>[Product Category 4]</td><td>100</td></tr>
+                    <tr><td>[Product Category 5]</td><td>75</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <button class="action-button">Export Selected Metric</button>
+        <button class="action-button">Expiring Certs Next 3 Months</button>
+        <button class="action-button">Current Active Certs</button>
+        <button class="action-button">Expiring Certs Next 30 Days</button>
+    </div>
+</div>
+

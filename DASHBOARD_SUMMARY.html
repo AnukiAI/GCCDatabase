@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Page - Comprehensive Summary</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background: white;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media print {
+            body {
+                padding: 20px;
+                max-width: 100%;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            .no-break {
+                page-break-inside: avoid;
+            }
+        }
+
+        h1 {
+            color: #002B76;
+            font-size: 36px;
+            margin-bottom: 10px;
+            padding-bottom: 15px;
+            border-bottom: 3px solid #00AEEF;
+        }
+
+        h2 {
+            color: #002B76;
+            font-size: 28px;
+            margin-top: 35px;
+            margin-bottom: 20px;
+            padding-left: 10px;
+            border-left: 4px solid #00AEEF;
+        }
+
+        h3 {
+            color: #00AEEF;
+            font-size: 20px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        h4 {
+            color: #34495e;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 12px;
+            line-height: 1.7;
+            color: #4a5568;
+        }
+
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 15px;
+            color: #4a5568;
+        }
+
+        li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        code {
+            background: #f4f7fa;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #e83e8c;
+        }
+
+        pre {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            color: #212529;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: #002B76;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 14px;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        tr:hover {
+            background: #e3f2fd;
+        }
+
+        .header-info {
+            background: linear-gradient(135deg, #002B76 0%, #00AEEF 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .header-info h1 {
+            color: white;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .overview-box {
+            background: #f8f9fa;
+            border-left: 4px solid #00AEEF;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .feature-card h4 {
+            color: #00AEEF;
+            margin-bottom: 10px;
+        }
+
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-item {
+            background: white;
+            border: 1px solid #e0e0e0;
+            padding: 12px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            background: #00AEEF;
+            color: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        .metric-icon.red {
+            background: #FF4757;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+
+        .badge.blue {
+            background: #e3f2fd;
+            color: #00AEEF;
+        }
+
+        .badge.red {
+            background: #ffebee;
+            color: #FF4757;
+        }
+
+        .badge.green {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+
+        .checklist {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .checklist h3 {
+            margin-bottom: 15px;
+        }
+
+        .checklist ul {
+            list-style: none;
+            margin-left: 0;
+        }
+
+        .checklist li {
+            padding-left: 25px;
+            position: relative;
+            margin-bottom: 10px;
+        }
+
+        .checklist li:before {
+            content: "☐";
+            position: absolute;
+            left: 0;
+            color: #00AEEF;
+            font-weight: bold;
+        }
+
+        .footer-info {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+            text-align: center;
+            color: #6c757d;
+        }
+
+        .highlight {
+            background: #fff3cd;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+
+        .architecture-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        strong {
+            color: #002B76;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-info">
+        <h1>Dashboard Page - Comprehensive Summary</h1>
+        <p style="color: rgba(255,255,255,0.9); font-size: 18px; margin-top: 10px;">
+            Primary analytics and monitoring interface for the GCC Database Web Application
+        </p>
+    </div>
+
+    <div class="overview-box">
+        <h2 style="border: none; margin-top: 0;">Overview</h2>
+        <p>The Dashboard is the primary landing page for authenticated Admin and Analyst users after login. It provides a comprehensive data visualization and analytics interface for certificate management, offering real-time statistics, trend analysis, and quick access to critical certificate information.</p>
+    </div>
+
+    <h2>Access Control</h2>
+    <table>
+        <tr>
+            <th width="30%">Property</th>
+            <th>Details</th>
+        </tr>
+        <tr>
+            <td><strong>URL</strong></td>
+            <td><code>/Dashboard/Index</code></td>
+        </tr>
+        <tr>
+            <td><strong>Authorization</strong></td>
+            <td><span class="badge blue">AnalystOrAdmin</span> policy (Admin and Analyst roles only)</td>
+        </tr>
+        <tr>
+            <td><strong>External/Public users</strong></td>
+            <td>Receive limited view with restricted data access</td>
+        </tr>
+        <tr>
+            <td><strong>Redirect</strong></td>
+            <td>Users without proper authorization are redirected to login</td>
+        </tr>
+    </table>
+
+    <h2>Architecture</h2>
+    <div class="architecture-section">
+        <h3>Controller: DashboardController.cs</h3>
+        <ul>
+            <li><strong>Location:</strong> <code>Controllers/DashboardController.cs</code></li>
+            <li><strong>Key Dependencies:</strong>
+                <ul>
+                    <li><code>IUnitOfWork</code> - Database access pattern</li>
+                    <li><code>ICertificateRepository</code> - Certificate-specific queries</li>
+                    <li><code>IPerformanceMonitoringService</code> - Performance tracking</li>
+                    <li><code>IStructuredLoggingService</code> - Audit logging</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h3>View: Index.cshtml</h3>
+        <ul>
+            <li><strong>Location:</strong> <code>Views/Dashboard/Index.cshtml</code></li>
+            <li><strong>Model:</strong> <code>DashboardViewModel</code></li>
+            <li><strong>Layout:</strong> <code>_Layout.cshtml</code></li>
+        </ul>
+
+        <h3>JavaScript: dashboard.js</h3>
+        <ul>
+            <li><strong>Location:</strong> <code>wwwroot/js/dashboard.js</code></li>
+            <li><strong>Features:</strong> Download handlers, animations, navigation functions</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>Key Features</h2>
+
+    <h3>1. Statistics Grid (12 Metric Cards)</h3>
+    <p>Real-time metrics displayed in animated cards with individual download capabilities:</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Description</th>
+                <th>Icon</th>
+                <th>Color</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Total Active Certs</td>
+                <td>Count of all active certificates</td>
+                <td>fa-certificate</td>
+                <td><span class="badge blue">Blue (#00AEEF)</span></td>
+            </tr>
+            <tr>
+                <td>Companies with Active Certs</td>
+                <td>Number of companies</td>
+                <td>fa-building</td>
+                <td><span class="badge blue">Blue</span></td>
+            </tr>
+            <tr>
+                <td>Product Categories</td>
+                <td>Categories with active certs</td>
+                <td>fa-layer-group</td>
+                <td><span class="badge blue">Blue</span></td>
+            </tr>
+            <tr>
+                <td>Product Types</td>
+                <td>Types with active certificates</td>
+                <td>fa-tags</td>
+                <td><span class="badge blue">Blue</span></td>
+            </tr>
+            <tr>
+                <td>Product Subcategories</td>
+                <td>Subcategories with certs</td>
+                <td>fa-sitemap</td>
+                <td><span class="badge blue">Blue</span></td>
+            </tr>
+            <tr>
+                <td>Products with Active Certs</td>
+                <td>Individual products</td>
+                <td>fa-box</td>
+                <td><span class="badge blue">Blue</span></td>
+            </tr>
+            <tr>
+                <td>Certs Published Last Month</td>
+                <td>Recent publications</td>
+                <td>fa-calendar-plus</td>
+                <td><span class="badge blue">Blue</span></td>
+            </tr>
+            <tr>
+                <td>Certs Expiring This Month</td>
+                <td>Urgent expirations</td>
+                <td>fa-clock</td>
+                <td><span class="badge red">Red (#FF4757)</span></td>
+            </tr>
+            <tr>
+                <td>Certs Expired Last Month</td>
+                <td>Recent expirations</td>
+                <td>fa-exclamation-triangle</td>
+                <td><span class="badge red">Red</span></td>
+            </tr>
+            <tr>
+                <td>Certs Expiring Next Month</td>
+                <td>Upcoming expirations</td>
+                <td>fa-calendar-week</td>
+                <td><span class="badge red">Red</span></td>
+            </tr>
+            <tr>
+                <td>Certs Published This Year</td>
+                <td>Year-to-date publications</td>
+                <td>fa-chart-line</td>
+                <td><span class="badge blue">Blue</span></td>
+            </tr>
+            <tr>
+                <td>Certs Published Last Year</td>
+                <td>Historical comparison</td>
+                <td>fa-history</td>
+                <td><span class="badge blue">Blue</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="feature-card no-break">
+        <h4>Statistics Features:</h4>
+        <ul>
+            <li>Individual CSV/Excel download per metric</li>
+            <li>Animated number counting on load</li>
+            <li>Hover effects with elevation change</li>
+            <li>Responsive grid layout (auto-fit, min 320px)</li>
+        </ul>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h3>2. Data Tables (5 Tables)</h3>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h4>a. Total Active Certs by Certification Type</h4>
+            <ul>
+                <li>Shows breakdown by certification type</li>
+                <li>Sortable columns</li>
+                <li>Download as Excel/CSV</li>
+            </ul>
+        </div>
+
+        <div class="feature-card">
+            <h4>b. Top 10 Companies by Active Cert Count</h4>
+            <ul>
+                <li><strong>Access:</strong> Internal users only (Admin/Analyst)</li>
+                <li>Lists companies with most certificates</li>
+                <li>Company name and count display</li>
+            </ul>
+        </div>
+
+        <div class="feature-card">
+            <h4>c. Certs by Status</h4>
+            <ul>
+                <li>Active, Expired, Expiring Soon breakdown</li>
+                <li>Visual status indicators</li>
+                <li>Real-time counts</li>
+            </ul>
+        </div>
+
+        <div class="feature-card">
+            <h4>d. Top 10 Product Types by Active Cert Count</h4>
+            <ul>
+                <li><strong>Access:</strong> Internal users only</li>
+                <li>Product type distribution</li>
+                <li>Helps identify popular products</li>
+            </ul>
+        </div>
+
+        <div class="feature-card">
+            <h4>e. Top 5 Product Categories by Active Cert Count</h4>
+            <ul>
+                <li><strong>Access:</strong> Internal users only</li>
+                <li>Category-level analysis</li>
+                <li>Limited to top 5 for clarity</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="overview-box">
+        <h4>Table Features:</h4>
+        <ul>
+            <li>Individual download buttons per table</li>
+            <li>Hover row highlighting</li>
+            <li>Responsive design with scroll on mobile</li>
+            <li>Professional styling with headers</li>
+        </ul>
+    </div>
+
+    <h3>3. Action Buttons</h3>
+    <p>Three primary navigation buttons at bottom:</p>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h4>Expiring Certs Next 3 Months</h4>
+            <ul>
+                <li>Navigates to filtered certificate view</li>
+                <li>Shows 90-day expiration window</li>
+                <li>Icon: fa-clock</li>
+            </ul>
+        </div>
+
+        <div class="feature-card">
+            <h4>Current Active Certs</h4>
+            <ul>
+                <li>Direct link to all active certificates</li>
+                <li>Default certificate tile view</li>
+                <li>Icon: fa-certificate</li>
+            </ul>
+        </div>
+
+        <div class="feature-card">
+            <h4>Expiring Certs Next 30 Days</h4>
+            <ul>
+                <li>Urgent expiration filter</li>
+                <li>30-day window focus</li>
+                <li>Icon: fa-exclamation-triangle</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>Data Loading Strategy</h2>
+
+    <h3>Performance Optimization</h3>
+    <p>The dashboard uses <strong>parallel data loading</strong> for optimal performance:</p>
+
+    <pre><code>// All queries execute simultaneously
+await Task.WhenAll(
+    statsTask,
+    recentCertsTask,
+    expiringCertsTask,
+    companiesCountTask,
+    productsCountTask,
+    certTypesCountTask,
+    certTypeBreakdownTask,
+    topCompaniesTask,
+    productTypeBreakdownTask
+);</code></pre>
+
+    <h3>Role-Based Data Loading</h3>
+    <ul>
+        <li><strong>Admin/Analyst:</strong> Full dashboard with all statistics and tables</li>
+        <li><strong>External/Public:</strong> Limited view with only basic certificate counts</li>
+    </ul>
+
+    <h2>Export Functionality</h2>
+
+    <div class="architecture-section">
+        <h3>Download Formats</h3>
+        <ul>
+            <li><strong>Statistics:</strong> Individual metric CSV files with timestamp</li>
+            <li><strong>Tables:</strong> Excel/CSV export with full data</li>
+            <li><strong>Naming Convention:</strong> <code>{type}-{date}.xlsx</code> or <code>.csv</code></li>
+        </ul>
+
+        <h3>Export Endpoints</h3>
+        <ul>
+            <li><code>/Dashboard/DownloadStat?type={statType}</code> - Individual metrics</li>
+            <li><code>/Dashboard/DownloadTable?type={tableType}</code> - Table data</li>
+            <li><code>/Dashboard/GetChartData?chartType={type}</code> - Chart JSON data</li>
+        </ul>
+
+        <h3>Available Chart Types (API)</h3>
+        <ul>
+            <li><code>monthly</code> - Monthly certificate creation trends</li>
+            <li><code>status</code> - Certificate status distribution</li>
+            <li><code>company</code> - Top companies by certificate count</li>
+            <li><code>expiration</code> - Expiration timeline analysis</li>
+        </ul>
+    </div>
+
+    <h2>UI/UX Features</h2>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h4>Visual Design</h4>
+            <ul>
+                <li><strong>Color Scheme:</strong> Blue (#00AEEF) for active, Red (#FF4757) for warnings</li>
+                <li><strong>Font:</strong> Century Gothic, 16px minimum</li>
+                <li><strong>Cards:</strong> 12px border radius, subtle shadows</li>
+                <li><strong>Spacing:</strong> Consistent 20-40px gaps</li>
+            </ul>
+        </div>
+
+        <div class="feature-card">
+            <h4>Animations</h4>
+            <ol>
+                <li><strong>Card Entry:</strong> Staggered slideUp animation (0.6s)</li>
+                <li><strong>Number Counting:</strong> Incremental display (50 steps, 30ms)</li>
+                <li><strong>Hover Effects:</strong> Elevation and shadow changes</li>
+                <li><strong>Download Buttons:</strong> Scale transform on hover</li>
+            </ol>
+        </div>
+
+        <div class="feature-card">
+            <h4>Responsive Design</h4>
+            <ul>
+                <li><strong>Desktop (>1024px):</strong> Full grid layout, all features</li>
+                <li><strong>Tablet (768-1024px):</strong> 2-column grid, maintained tables</li>
+                <li><strong>Mobile (<768px):</strong> Single column, hidden secondary columns</li>
+                <li><strong>Small Mobile (<480px):</strong> Optimized padding, stacked buttons</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>Security & Monitoring</h2>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h4>Security Features</h4>
+            <ul>
+                <li>Session-based role verification</li>
+                <li>CSRF token validation for actions</li>
+                <li>Audit logging for all data access</li>
+                <li>Performance monitoring wrapper on all operations</li>
+            </ul>
+        </div>
+
+        <div class="feature-card">
+            <h4>Logging</h4>
+            <ul>
+                <li>User actions tracked with <code>IStructuredLoggingService</code></li>
+                <li>Performance metrics via <code>IPerformanceMonitoringService</code></li>
+                <li>Error logging with full exception details</li>
+                <li>Download attempts logged for audit</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2>Error Handling</h2>
+
+    <h3>Graceful Degradation</h3>
+    <ul>
+        <li>Missing data shows "No data available" messages</li>
+        <li>Failed loads display user-friendly error state</li>
+        <li>Maintains dashboard structure even with partial failures</li>
+        <li>Fallback to empty collections prevents crashes</li>
+    </ul>
+
+    <h3>Client-Side Error Management</h3>
+    <pre><code>// Toast notifications for user feedback
+if (window.GreenCircle?.showToast) {
+    window.GreenCircle.showToast('Message', 'success|error|info');
+}</code></pre>
+
+    <h2>Performance Considerations</h2>
+
+    <div class="feature-grid">
+        <div class="feature-card">
+            <h4>Optimizations</h4>
+            <ol>
+                <li><strong>Parallel Query Execution:</strong> All data loads simultaneously</li>
+                <li><strong>Lazy Loading:</strong> Charts load on-demand via AJAX</li>
+                <li><strong>Client Caching:</strong> Browser caches static resources</li>
+                <li><strong>Minimal DOM Manipulation:</strong> Single render pass</li>
+            </ol>
+        </div>
+
+        <div class="feature-card">
+            <h4>Load Times</h4>
+            <ul>
+                <li>Target: <2 seconds for full dashboard</li>
+                <li>Achieved through parallel processing</li>
+                <li>Progressive enhancement for slower connections</li>
+            </ul>
+        </div>
+    </div>
+
+    <h2>Integration Points</h2>
+
+    <h3>Connected Systems</h3>
+    <ol>
+        <li><strong>Certificate Repository:</strong> Primary data source</li>
+        <li><strong>Company/Product Services:</strong> Reference data</li>
+        <li><strong>Export Service:</strong> File generation</li>
+        <li><strong>Session Management:</strong> User context</li>
+        <li><strong>Performance Monitoring:</strong> Metrics collection</li>
+    </ol>
+
+    <h3>Navigation Targets</h3>
+    <ul>
+        <li><code>/Certificate/CertificateTileView</code> - Main certificate listing</li>
+        <li><code>/Certificate/Details/{id}</code> - Individual certificates</li>
+        <li><code>/Export/*</code> - Various export endpoints</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>Maintenance Notes</h2>
+
+    <h3>Common Tasks</h3>
+    <ol>
+        <li><strong>Add New Metric:</strong> Update controller statistics, add card in view</li>
+        <li><strong>Modify Tables:</strong> Adjust repository queries and view rendering</li>
+        <li><strong>Change Export Format:</strong> Modify <code>Generate*Csv</code> methods</li>
+        <li><strong>Update Styling:</strong> Edit embedded CSS in view</li>
+    </ol>
+
+    <h3>Known Limitations</h3>
+    <ul>
+        <li>Table data limited to top 10/5 for performance</li>
+        <li>Export limited to CSV/Excel formats</li>
+        <li>Real-time updates require page refresh</li>
+        <li>Mobile view hides some table columns</li>
+    </ul>
+
+    <h2>Future Enhancements (Suggested)</h2>
+    <ol>
+        <li>Real-time dashboard updates via SignalR</li>
+        <li>Customizable dashboard layouts</li>
+        <li>Advanced filtering on tables</li>
+        <li>Chart visualizations (currently API-ready)</li>
+        <li>Saved dashboard configurations</li>
+        <li>Scheduled report generation</li>
+        <li>Drill-down capabilities on metrics</li>
+        <li>PDF export option</li>
+    </ol>
+
+    <div class="checklist">
+        <h3>Testing Checklist</h3>
+        <ul>
+            <li>Role-based access control working</li>
+            <li>All 12 metrics loading correctly</li>
+            <li>Download buttons functional</li>
+            <li>Tables displaying proper data</li>
+            <li>Action buttons navigate correctly</li>
+            <li>Responsive design on all devices</li>
+            <li>Error states handled gracefully</li>
+            <li>Performance within 2-second target</li>
+            <li>Audit logging capturing actions</li>
+            <li>Export files properly formatted</li>
+        </ul>
+    </div>
+
+    <div class="footer-info">
+        <p><strong>Last Updated:</strong> September 2025</p>
+        <p><strong>Version:</strong> 1.0</p>
+        <p><strong>Status:</strong> <span class="badge green">Production Ready</span></p>
+    </div>
+</body>
+</html>

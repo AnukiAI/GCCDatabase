@@ -7,14 +7,6 @@ using GCCWebApp.Services;
 
 namespace GCCWebApp.Tests.Services
 {
-    // Define TwoFactorData class for testing since it's in EnhancedTwoFactorService
-    public class TwoFactorData
-    {
-        public string Code { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
-        public int Attempts { get; set; }
-    }
-    
     public class TwoFactorServiceTests
     {
         private readonly Mock<ILogger<TwoFactorService>> _loggerMock;
@@ -83,7 +75,7 @@ namespace GCCWebApp.Tests.Services
 
             // Assert
             var cacheKey = $"2fa_code_{userId}";
-            _memoryCache.TryGetValue(cacheKey, out TwoFactorData? data).Should().BeTrue();
+            _memoryCache.TryGetValue(cacheKey, out GCCWebApp.Services.TwoFactorData? data).Should().BeTrue();
             data.Should().NotBeNull();
             data!.Code.Should().Be(code);
             data.CreatedAt.Should().BeCloseTo(DateTime.UtcNow, TimeSpan.FromSeconds(5));
@@ -202,7 +194,7 @@ namespace GCCWebApp.Tests.Services
             var cacheKey = $"2fa_code_{userId}";
             
             // Store code with expired timestamp
-            var expiredData = new TwoFactorData
+            var expiredData = new GCCWebApp.Services.TwoFactorData
             {
                 Code = code,
                 CreatedAt = DateTime.UtcNow.AddMinutes(-6), // Expired
@@ -399,7 +391,7 @@ namespace GCCWebApp.Tests.Services
 
             // Assert
             var cacheKey = $"2fa_code_{userId}";
-            _memoryCache.TryGetValue(cacheKey, out TwoFactorData? data).Should().BeTrue();
+            _memoryCache.TryGetValue(cacheKey, out GCCWebApp.Services.TwoFactorData? data).Should().BeTrue();
             data.Should().NotBeNull();
             data!.Code.Should().MatchRegex(@"^\d{6}$");
         }

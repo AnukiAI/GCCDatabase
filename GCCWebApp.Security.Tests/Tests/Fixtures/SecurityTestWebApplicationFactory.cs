@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using GCCWebApp.Data;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting;
 
 namespace GCCWebApp.Security.Tests.Fixtures
 {
@@ -12,6 +13,30 @@ namespace GCCWebApp.Security.Tests.Fixtures
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            // Set environment variables to ensure Testing environment is detected
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
+
+            // Set environment early to avoid main Program.cs database initialization
+            builder.UseEnvironment("Testing");
+
+            // Override configuration first with SQLite to avoid migration issues
+            builder.ConfigureAppConfiguration(configBuilder =>
+            {
+                configBuilder.AddInMemoryCollection(new Dictionary<string, string>
+                {
+                    ["Jwt:Key"] = "ThisIsASecretKeyForTestingPurposesOnlyAndShouldBeAtLeast256BitsLongForSecurityValidation",
+                    ["Jwt:Issuer"] = "GCCWebApp.Security.Tests",
+                    ["Jwt:Audience"] = "GCCWebApp.Security.Tests",
+                    ["Jwt:ExpiryMinutes"] = "1", // Short expiry for testing
+                    ["ConnectionStrings:DefaultConnection"] = "Data Source=SecurityTest.db", // Use SQLite for testing
+                    ["ConnectionStrings:SqliteConnection"] = "Data Source=SecurityTest.db",
+                    ["RateLimiting:Enabled"] = "true",
+                    ["RateLimiting:RequestsPerMinute"] = "10",
+                    ["GCC_JWT_SECRET"] = "ThisIsASecretKeyForTestingPurposesOnlyAndShouldBeAtLeast256BitsLongForSecurityValidation",
+                    ["ASPNETCORE_ENVIRONMENT"] = "Testing"
+                }!);
+            });
+
             builder.ConfigureServices(services =>
             {
                 // Remove the existing DbContext registration
@@ -25,36 +50,21 @@ namespace GCCWebApp.Security.Tests.Fixtures
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
                     options.UseInMemoryDatabase("SecurityTestDb");
+                    options.EnableSensitiveDataLogging();
                 });
 
-                // Override configuration for security testing
-                var configuration = new ConfigurationBuilder()
-                    .AddInMemoryCollection(new Dictionary<string, string>
-                    {
-                        ["Jwt:Key"] = "ThisIsASecretKeyForTestingPurposesOnlyAndShouldBeAtLeast256Bits",
-                        ["Jwt:Issuer"] = "GCCWebApp.Security.Tests",
-                        ["Jwt:Audience"] = "GCCWebApp.Security.Tests",
-                        ["Jwt:ExpiryMinutes"] = "1", // Short expiry for testing
-                        ["ConnectionStrings:DefaultConnection"] = "DataSource=:memory:",
-                        ["RateLimiting:Enabled"] = "true",
-                        ["RateLimiting:RequestsPerMinute"] = "10"
-                    }!)
-                    .Build();
-
-                services.AddSingleton<IConfiguration>(configuration);
-
-                // Ensure the database is created
+                // Build service provider and handle database setup
                 var sp = services.BuildServiceProvider();
                 using var scope = sp.CreateScope();
                 var scopedServices = scope.ServiceProvider;
                 var db = scopedServices.GetRequiredService<ApplicationDbContext>();
+
+                // For InMemory databases, use EnsureCreated instead of migrations
                 db.Database.EnsureCreated();
 
                 // Seed test data for security tests
                 SeedSecurityTestData(db);
             });
-
-            builder.UseEnvironment("Testing");
         }
 
         private static void SeedSecurityTestData(ApplicationDbContext context)
@@ -114,7 +124,8 @@ namespace GCCWebApp.Security.Tests.Fixtures
                 {
                     Id = 1,
                     Name = "SecurityTestKey",
-                    Key = BCrypt.Net.BCrypt.HashPassword("test-api-key-123"),
+                    Key = "test-api-key-123", // Store as plain text for testing
+                    KeyHash = BCrypt.Net.BCrypt.HashPassword("test-api-key-123"),
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = "Security Test Suite",
@@ -127,7 +138,8 @@ namespace GCCWebApp.Security.Tests.Fixtures
                 {
                     Id = 2,
                     Name = "RestrictedTestKey",
-                    Key = BCrypt.Net.BCrypt.HashPassword("restricted-api-key-456"),
+                    Key = "restricted-api-key-456", // Store as plain text for testing
+                    KeyHash = BCrypt.Net.BCrypt.HashPassword("restricted-api-key-456"),
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = "Security Test Suite",

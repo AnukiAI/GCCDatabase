@@ -5,7 +5,7 @@ namespace GCCWebApp.UAT.Tests.Tests.UX
     [TestFixture]
     public abstract class UXUITestBase : PageTest
     {
-        protected string BaseUrl { get; set; } = "https://localhost:7248";
+        protected string BaseUrl { get; set; } = "http://localhost:5101";
         protected IPage TestPage { get; private set; } = null!;
 
         [SetUp]

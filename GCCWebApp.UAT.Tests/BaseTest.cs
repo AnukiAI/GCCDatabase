@@ -6,7 +6,7 @@ namespace GCCWebApp.UAT.Tests;
 [TestFixture]
 public abstract class BaseTest : PageTest
 {
-    protected string BaseUrl = "https://localhost:7130"; // Update with your app's URL
+    protected string BaseUrl = "http://localhost:5101"; // Update with your app's URL
     protected string ScreenshotPath = Path.Combine(Directory.GetCurrentDirectory(), "Screenshots");
 
     [OneTimeSetUp]

@@ -340,6 +340,4 @@ namespace GCCWebApp.Services
 
         #endregion
     }
-
-
 }

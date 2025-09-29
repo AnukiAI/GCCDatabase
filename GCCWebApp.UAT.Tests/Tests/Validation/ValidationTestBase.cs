@@ -9,7 +9,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Validation
     [TestFixture]
     public abstract class ValidationTestBase : PageTest
     {
-        protected string BaseUrl { get; set; } = "https://localhost:7248";
+        protected string BaseUrl { get; set; } = "http://localhost:5101";
         protected IPage TestPage { get; private set; } = null!;
 
         [SetUp]

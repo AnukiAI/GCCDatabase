@@ -7,8 +7,8 @@ namespace GCCWebApp.Services
     {
         Task<CertificateListResponse> GetCertificatesAsync(CertificateListRequest request);
         Task<CertificateDetailsViewModel> GetCertificateDetailsAsync(int id, string userRole);
-        Task<CertificateDownloadModel> GetCertificateDownloadAsync(int id, string userRole);
-        Task<byte[]> ExportCertificatesAsync(CertificateListRequest request, string format);
+        Task<CertificateDownloadModel?> GetCertificateDownloadAsync(int id, string userRole);
+        Task<byte[]?> ExportCertificatesAsync(CertificateListRequest request, string format);
         Task<CertificateStatistics> GetCertificateStatisticsAsync(string userRole);
         Task<BulkActionResult> PerformBulkActionAsync(BulkActionRequest request);
         Task<List<string>> GetSearchSuggestionsAsync(string term, string type, string userRole);
@@ -16,7 +16,7 @@ namespace GCCWebApp.Services
         Task<int> CreateCertificateAsync(CertificateEditViewModel certificate, string userRole);
         Task<bool> UpdateCertificateAsync(int id, CertificateEditViewModel certificate, string userRole);
         Task<bool> DeleteCertificateAsync(int id, string userRole);
-        Task<CertificateDetailsViewModel> GetCertificateByCertificateNumberAsync(string certificateNumber, string userRole);
+        Task<CertificateDetailsViewModel?> GetCertificateByCertificateNumberAsync(string certificateNumber, string userRole);
         
         // Advanced Search Methods
         Task<CertificateListResponse> SearchCertificatesAsync(CertificateListRequest searchCriteria);

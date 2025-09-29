@@ -587,6 +587,12 @@ using (var scope = app.Services.CreateScope())
             await SeedData.InitializeAsync(context);
             logger.LogInformation("✅ Development database seeded successfully");
         }
+        else if (app.Environment.EnvironmentName == "Testing")
+        {
+            // Testing: Use EnsureCreated for InMemory databases (no migrations needed)
+            await context.Database.EnsureCreatedAsync();
+            logger.LogInformation("✅ Testing database created successfully");
+        }
         else if (app.Environment.IsStaging())
         {
             // Staging: Apply migrations but minimal seeding

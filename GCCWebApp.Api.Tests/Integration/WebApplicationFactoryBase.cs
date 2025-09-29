@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using GCCWebApp;
 using GCCWebApp.Data;
 using GCCWebApp.Api.Tests.TestUtilities;
@@ -13,6 +14,29 @@ namespace GCCWebApp.Api.Tests.Integration
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            // Set environment variables to ensure Testing environment is detected
+            Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Testing");
+
+            // Set environment early to avoid main Program.cs database initialization
+            builder.UseEnvironment("Testing");
+
+            // Override configuration first
+            builder.ConfigureAppConfiguration(configBuilder =>
+            {
+                configBuilder.AddInMemoryCollection(new Dictionary<string, string>
+                {
+                    ["Jwt:Key"] = "ThisIsASecretKeyForTestingPurposesOnlyAndShouldBeAtLeast256BitsLongForSecurityValidation",
+                    ["Jwt:Issuer"] = "GCCWebApp.Api.Tests",
+                    ["Jwt:Audience"] = "GCCWebApp.Api.Tests",
+                    ["Jwt:ExpiryMinutes"] = "60",
+                    ["GCC_JWT_SECRET"] = "ThisIsASecretKeyForTestingPurposesOnlyAndShouldBeAtLeast256BitsLongForSecurityValidation",
+                    ["ConnectionStrings:DefaultConnection"] = "DataSource=:memory:",
+                    ["RateLimiting:Enabled"] = "true",
+                    ["RateLimiting:RequestsPerMinute"] = "1000", // Higher limit for testing
+                    ["ASPNETCORE_ENVIRONMENT"] = "Testing"
+                }!);
+            });
+
             builder.ConfigureServices(services =>
             {
                 // Remove the existing DbContext registration
@@ -22,10 +46,12 @@ namespace GCCWebApp.Api.Tests.Integration
                 if (descriptor != null)
                     services.Remove(descriptor);
 
-                // Add InMemory database for testing
+                // Add InMemory database for testing with unique name
+                var dbName = $"IntegrationTestDb_{Guid.NewGuid()}";
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("IntegrationTestDb");
+                    options.UseInMemoryDatabase(dbName);
+                    options.EnableSensitiveDataLogging();
                 });
 
                 // Build the service provider
@@ -48,8 +74,6 @@ namespace GCCWebApp.Api.Tests.Integration
                     throw;
                 }
             });
-
-            builder.UseEnvironment("Testing");
         }
     }
 }

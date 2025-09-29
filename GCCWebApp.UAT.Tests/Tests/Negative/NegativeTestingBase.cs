@@ -5,7 +5,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Negative
     [TestFixture]
     public abstract class NegativeTestingBase : PageTest
     {
-        protected string BaseUrl { get; set; } = "https://localhost:7248";
+        protected string BaseUrl { get; set; } = "http://localhost:5101";
         protected IPage TestPage { get; private set; } = null!;
 
         [SetUp]

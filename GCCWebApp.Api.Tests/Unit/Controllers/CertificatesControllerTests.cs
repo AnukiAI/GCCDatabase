@@ -9,6 +9,7 @@ using GCCWebApp.Models;
 using GCCWebApp.Models.Api;
 using GCCWebApp.Api.Tests.TestUtilities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Http;
 
 namespace GCCWebApp.Api.Tests.Unit.Controllers
 {
@@ -23,6 +24,14 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             _context = TestDbContextFactory.CreateInMemoryContext();
             _loggerMock = new Mock<ILogger<CertificatesController>>();
             _controller = new CertificatesController(_context, _loggerMock.Object);
+
+            // Set up HttpContext for the controller
+            var httpContext = new DefaultHttpContext();
+            httpContext.TraceIdentifier = "test-trace-id";
+            _controller.ControllerContext = new ControllerContext()
+            {
+                HttpContext = httpContext
+            };
 
             // Seed test data
             TestDbContextFactory.SeedTestData(_context);
@@ -49,12 +58,12 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             // Assert
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
-            okResult!.Value.Should().BeOfType<PaginatedResponse<IEnumerable<Certificate>>>();
-            
-            var response = okResult.Value as PaginatedResponse<IEnumerable<Certificate>>;
+            okResult!.Value.Should().BeOfType<StandardPaginatedResponse<List<Certificate>>>();
+
+            var response = okResult.Value as StandardPaginatedResponse<List<Certificate>>;
             response!.Success.Should().BeTrue();
             response.Data.Should().NotBeNull();
-            response.TotalCount.Should().BeGreaterThan(0);
+            response.Pagination.TotalCount.Should().BeGreaterThan(0);
         }
 
         [Fact]
@@ -74,8 +83,8 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             // Assert
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
-            var response = okResult!.Value as PaginatedResponse<IEnumerable<Certificate>>;
-            
+            var response = okResult!.Value as StandardPaginatedResponse<List<Certificate>>;
+
             response!.Success.Should().BeTrue();
             response.Data.Should().NotBeNull();
             response.Data.Should().HaveCountGreaterThan(0);
@@ -157,9 +166,9 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             var result = await _controller.CreateCertificate(certificate);
 
             // Assert
-            result.Should().BeOfType<ObjectResult>();
-            var objectResult = result as ObjectResult;
-            objectResult!.StatusCode.Should().Be(201);
+            result.Should().BeOfType<CreatedResult>();
+            var createdResult = result as CreatedResult;
+            createdResult!.StatusCode.Should().Be(201);
         }
 
         [Fact]
@@ -281,7 +290,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             // Assert
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
-            var response = okResult!.Value as PaginatedResponse<IEnumerable<Certificate>>;
+            var response = okResult!.Value as StandardPaginatedResponse<List<Certificate>>;
             
             response!.Success.Should().BeTrue();
             response.Data.Should().NotBeNull();
@@ -300,11 +309,11 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             // Assert
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
-            var response = okResult!.Value as PaginatedResponse<IEnumerable<Certificate>>;
+            var response = okResult!.Value as StandardPaginatedResponse<List<Certificate>>;
             
             response!.Success.Should().BeTrue();
             response.Data.Should().NotBeNull();
-            response.TotalCount.Should().BeGreaterThan(0);
+            response.Pagination.TotalCount.Should().BeGreaterThan(0);
         }
 
         [Theory]
@@ -342,10 +351,10 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             // Assert
             result.Should().BeOfType<OkObjectResult>();
             var okResult = result as OkObjectResult;
-            var response = okResult!.Value as PaginatedResponse<IEnumerable<Certificate>>;
+            var response = okResult!.Value as StandardPaginatedResponse<List<Certificate>>;
             
             // The PaginationParams should enforce maximum page size
-            response!.PageSize.Should().BeLessOrEqualTo(100);
+            response!.Pagination.PageSize.Should().BeLessOrEqualTo(100);
         }
     }
 }

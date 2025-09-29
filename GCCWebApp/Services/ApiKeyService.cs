@@ -118,8 +118,18 @@ namespace GCCWebApp.Services
             if (string.IsNullOrEmpty(apiKey.AllowedOrigins))
                 return true;
 
+            if (string.IsNullOrEmpty(origin))
+                return false;
+
+            // Extract hostname from origin URL
+            string hostname = origin;
+            if (Uri.TryCreate(origin, UriKind.Absolute, out var uri))
+            {
+                hostname = uri.Host;
+            }
+
             var allowedOrigins = apiKey.AllowedOrigins.Split(',', StringSplitOptions.RemoveEmptyEntries);
-            return allowedOrigins.Any(o => o.Trim().Equals(origin, StringComparison.OrdinalIgnoreCase));
+            return allowedOrigins.Any(o => o.Trim().Equals(hostname, StringComparison.OrdinalIgnoreCase));
         }
 
         public bool IsValidIP(ApiKey apiKey, string ipAddress)

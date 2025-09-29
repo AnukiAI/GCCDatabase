@@ -1,6 +1,38 @@
 /* certificates.css - Certificate-specific styles */
 /* These styles are loaded only on certificate-related pages */
 
+/* ===== GCC BRAND COLOR SYSTEM (from Master Design Guide) ===== */
+:root {
+    --forest-green: #447638;      /* Primary brand green */
+    --lime-green: #92C83E;        /* Secondary accent green */
+    --ocean-blue: #00AEEF;        /* Primary blue */
+    --navy-blue: #002876;         /* Dark blue for text/headers */
+    --off-white: #f9f9f9;         /* Background color */
+
+    /* Typography */
+    --primary-font: 'Century Gothic', 'CenturyGothic', 'AppleGothic', 'Nunito', system-ui, -apple-system, sans-serif;
+    --fallback-font: 'Nunito', Arial, system-ui, sans-serif;
+
+    /* Spacing system (8px base unit) */
+    --spacing-xs: 4px;   /* 0.5× */
+    --spacing-sm: 8px;   /* 1× */
+    --spacing-md: 16px;  /* 2× */
+    --spacing-lg: 24px;  /* 3× */
+    --spacing-xl: 32px;  /* 4× */
+    --spacing-2xl: 48px; /* 6× */
+
+    /* Layout */
+    --container-max-width: 1200px;
+    --content-max-width: 900px;
+
+    /* Transitions */
+    --transition: all 0.3s ease-in-out;
+
+    /* Shadows */
+    --shadow: 0 2px 10px rgba(0,0,0,0.1);
+    --shadow-lg: 0 4px 20px rgba(0,0,0,0.15);
+}
+
 /* ===== SEARCH SECTION ===== */
 .certificate-search-section {
     padding: 20px;
@@ -1593,4 +1625,445 @@
 @keyframes spin {
     0% { transform: translate(-50%, -50%) rotate(0deg); }
     100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* ===== CERTIFICATE CREATE FORM STYLES (Master Design Guide Implementation) ===== */
+
+/* Global Typography Override for Certificate Forms */
+.certificate-form,
+.certificate-form * {
+    font-family: var(--primary-font);
+}
+
+/* Certificate Create Form Container */
+.certificate-form {
+    background-color: var(--off-white);
+    min-height: 100vh;
+    padding: var(--spacing-lg);
+}
+
+.form-container {
+    max-width: var(--container-max-width);
+    margin: 0 auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+}
+
+/* Form Header */
+.form-header {
+    background: var(--off-white);
+    padding: var(--spacing-xl) var(--spacing-2xl);
+    border-bottom: 1px solid #dee2e6;
+    text-align: center;
+}
+
+.form-header h2 {
+    color: var(--navy-blue);
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+}
+
+.form-header h2 i {
+    color: var(--ocean-blue);
+}
+
+.form-header p {
+    color: #6c757d;
+    margin: 0;
+    font-size: 1rem;
+}
+
+/* Two-Column Grid Layout (from mockups) */
+.form-content {
+    padding: var(--spacing-2xl);
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 350px;  /* Main content + 350px sidebar */
+    gap: var(--spacing-2xl);
+    margin-bottom: var(--spacing-xl);
+}
+
+/* Main Form Area */
+.main-form-area {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+/* Sidebar Area */
+.form-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xl);
+}
+
+/* Form Sections */
+.form-section {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: var(--spacing-lg);
+    margin-bottom: var(--spacing-lg);
+}
+
+.form-section h3 {
+    color: var(--navy-blue);
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    border-bottom: 2px solid var(--ocean-blue);
+    padding-bottom: var(--spacing-sm);
+}
+
+.form-section h3 i {
+    color: var(--ocean-blue);
+    font-size: 1rem;
+}
+
+.section-description {
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: var(--spacing-md);
+    font-style: italic;
+}
+
+/* Form Groups and Controls */
+.form-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--navy-blue);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.875rem;
+    display: block;
+}
+
+.form-control,
+.form-select {
+    padding: 10px 12px;
+    border: 1px solid #ced4da;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    font-family: var(--primary-font);
+    transition: var(--transition);
+    width: 100%;
+}
+
+.form-control:focus,
+.form-select:focus {
+    outline: none;
+    border-color: var(--ocean-blue);
+    box-shadow: 0 0 0 0.2rem rgba(0, 174, 239, 0.25);
+}
+
+.form-control::placeholder {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.form-text {
+    font-size: 0.75rem;
+    color: #6c757d;
+    margin-top: var(--spacing-xs);
+}
+
+/* Upload Sections (Enhanced from mockup) */
+.upload-section {
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: var(--spacing-lg);
+    background: var(--off-white);
+}
+
+.upload-section h3 {
+    color: var(--navy-blue);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.upload-section h3 i {
+    color: var(--forest-green);
+}
+
+.upload-zone {
+    border: 2px dashed var(--ocean-blue);
+    border-radius: 8px;
+    padding: var(--spacing-2xl);
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    background: #f8fcff;
+    margin-bottom: var(--spacing-md);
+}
+
+.upload-zone:hover,
+.upload-zone.dragover {
+    border-color: var(--forest-green);
+    background: #f0f8f0;
+}
+
+.upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-md);
+}
+
+.upload-placeholder i {
+    font-size: 3rem;
+    color: var(--ocean-blue);
+}
+
+.upload-text {
+    color: var(--navy-blue);
+    font-size: 0.875rem;
+}
+
+.upload-text strong {
+    font-weight: 600;
+}
+
+.upload-link {
+    color: var(--forest-green);
+    text-decoration: none;
+}
+
+.upload-link:hover {
+    text-decoration: underline;
+}
+
+/* PDF Upload Specific */
+.pdf-upload-zone {
+    border: 2px dashed var(--forest-green);
+    background: #f8fff8;
+}
+
+.pdf-upload-zone:hover,
+.pdf-upload-zone.dragover {
+    border-color: var(--ocean-blue);
+    background: #f0f8ff;
+}
+
+.pdf-upload-placeholder i {
+    color: var(--forest-green);
+}
+
+/* Tag Management System (Enhanced from mockup) */
+.tags-section h3 {
+    color: var(--navy-blue);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: var(--spacing-md);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+.tags-section h3 i {
+    color: var(--lime-green);
+}
+
+.tags-group {
+    margin-bottom: var(--spacing-md);
+}
+
+.tags-group .form-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: var(--spacing-sm);
+}
+
+.tag-input-container {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+    align-items: stretch;
+}
+
+.tag-input-container input {
+    flex: 1;
+}
+
+.tag-input-container .btn {
+    white-space: nowrap;
+    padding: 8px var(--spacing-md);
+    font-size: 0.75rem;
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    min-height: 40px;
+    padding: var(--spacing-sm);
+    border: 1px dashed #dee2e6;
+    border-radius: 4px;
+    background: var(--off-white);
+}
+
+.tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px var(--spacing-sm);
+    border-radius: 16px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: white;
+    gap: var(--spacing-xs);
+}
+
+.tag.external {
+    background: linear-gradient(135deg, var(--forest-green), var(--lime-green));
+    border: 1px solid var(--forest-green);
+}
+
+.tag.internal {
+    background: linear-gradient(135deg, var(--ocean-blue), var(--navy-blue));
+    border: 1px solid var(--ocean-blue);
+}
+
+.tag-remove {
+    background: rgba(255, 255, 255, 0.3);
+    border: none;
+    border-radius: 50%;
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.625rem;
+    padding: 0;
+    margin-left: var(--spacing-xs);
+}
+
+.tag-remove:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* Button System (Master Design Guide) */
+.btn {
+    padding: 10px var(--spacing-lg);
+    border-radius: 24px;  /* Rounded buttons from design guide */
+    font-family: var(--primary-font);
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: var(--transition);
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    text-decoration: none;
+}
+
+.btn-primary {
+    background: var(--ocean-blue);
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0092c8;
+    color: white;
+}
+
+.btn-secondary {
+    background: var(--lime-green);
+    color: white;
+}
+
+.btn-secondary:hover {
+    background: var(--forest-green);
+    color: white;
+}
+
+.btn-outline {
+    background: white;
+    color: var(--forest-green);
+    border: 2px solid var(--forest-green);
+}
+
+.btn-outline:hover {
+    background: var(--forest-green);
+    color: white;
+}
+
+/* Form Actions */
+.form-actions {
+    display: flex;
+    gap: var(--spacing-md);
+    justify-content: flex-end;
+    padding-top: var(--spacing-lg);
+    border-top: 1px solid #dee2e6;
+    margin-top: var(--spacing-xl);
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: var(--spacing-lg);
+    }
+
+    .form-sidebar {
+        order: -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .certificate-form {
+        padding: var(--spacing-md);
+    }
+
+    .form-content {
+        padding: var(--spacing-lg);
+    }
+
+    .form-header {
+        padding: var(--spacing-lg);
+    }
+
+    .form-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .form-section {
+        padding: var(--spacing-md);
+    }
+
+    .upload-zone {
+        padding: var(--spacing-lg);
+    }
+
+    .upload-placeholder i {
+        font-size: 2rem;
+    }
+
+    .tag-input-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-actions {
+        flex-direction: column;
+    }
 }

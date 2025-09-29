@@ -291,21 +291,27 @@
 ---
 
 ## TC-CERT-004: Edit Certificate
-**Priority:** High  
+**Priority:** High
 **User Role:** Admin/Analyst
 
 ### Steps:
-1. Login as authorized user
-2. Navigate to certificate management
-3. Find existing certificate
-4. Click "Edit"
-5. Modify certificate details
-6. Click "Save"
-7. Verify success message
-8. Verify changes reflected
+1. Login as authorized user (admin@gcc.com or analyst@gcc.com)
+2. Navigate to certificate tile view (`/Certificate/CertificateTileViewInternal`)
+3. Verify edit icons are visible on certificate tiles (pencil/edit icon)
+4. Find existing certificate
+5. Click the "Edit" icon on certificate tile
+6. Verify navigation to edit page (`/Certificate/Edit/{id}`)
+7. Modify certificate details (name, company, etc.)
+8. Click "Save"
+9. Verify success message
+10. Verify changes reflected in tile view
 
-**Expected Result:** Certificate updated successfully  
-**Test Result:** [ ] PASS [ ] FAIL [ ] PARTIAL  
+**Expected Result:**
+- Edit icons visible on all certificate tiles for Admin/Analyst users
+- Edit icon successfully navigates to edit page
+- Certificate updated successfully
+
+**Test Result:** [ ] PASS [ ] FAIL [ ] PARTIAL
 **Comments:** ________________________________
 
 ---
@@ -331,20 +337,79 @@
 ---
 
 ## TC-CERT-006: External User Cannot Create/Edit Certificates
-**Priority:** Critical  
+**Priority:** Critical
 **User Role:** External
 
 ### Steps:
 1. Login as `external@company.com`
-2. Navigate to certificates section
+2. Navigate to certificate tile view (`/Certificate/CertificateTileViewExternal`)
 3. Verify no "Create" button visible
-4. Try to access create URL directly
-5. Verify access denied
-6. Try to edit existing certificate
-7. Verify edit access denied
+4. Verify NO edit icons visible on certificate tiles (pencil/edit icons should be hidden)
+5. Try to access create URL directly (`/Certificate/Create`)
+6. Verify access denied (401/403 error)
+7. Try to access edit URL directly (`/Certificate/Edit/1`)
+8. Verify edit access denied
 
-**Expected Result:** External users cannot create or edit certificates  
-**Test Result:** [ ] PASS [ ] FAIL [ ] PARTIAL  
+**Expected Result:**
+- External users cannot see edit icons on certificate tiles
+- External users cannot create or edit certificates
+- Direct URL access to create/edit pages is denied
+
+**Test Result:** [ ] PASS [ ] FAIL [ ] PARTIAL
+**Comments:** ________________________________
+
+---
+
+## TC-CERT-007: Edit Icon Visibility Test
+**Priority:** High
+**User Role:** Admin/Analyst vs External
+
+### Steps:
+1. **As Admin/Analyst:**
+   - Login as admin@gcc.com
+   - Navigate to `/Certificate/CertificateTileViewInternal`
+   - Verify edit icons (pencil) are visible on each certificate tile
+   - Count total number of edit icons displayed
+   - Verify edit icon styling (blue color, hover effect)
+
+2. **As External User:**
+   - Logout and login as external@company.com
+   - Navigate to `/Certificate/CertificateTileViewExternal`
+   - Verify NO edit icons are visible on any certificate tiles
+   - Verify only download and view details icons are shown
+
+**Expected Result:**
+- Internal users see edit icons on all certificate tiles
+- External users do NOT see any edit icons
+- Edit icons have proper styling and functionality
+
+**Test Result:** [ ] PASS [ ] FAIL [ ] PARTIAL
+**Comments:** ________________________________
+
+---
+
+## TC-CERT-008: No Checkboxes on Certificate Tiles
+**Priority:** Medium
+**User Role:** All Users
+
+### Steps:
+1. **Test All Views:**
+   - Navigate to `/Certificate/CertificateTileView` (main view)
+   - Navigate to `/Certificate/CertificateTileViewInternal` (internal view)
+   - Navigate to `/Certificate/CertificateTileViewExternal` (external view)
+
+2. **Verify Checkbox Absence:**
+   - Inspect each certificate tile carefully
+   - Verify NO checkboxes are present on any certificate tiles
+   - Verify NO bulk selection functionality exists
+   - Check both tile view and table view (if available)
+
+**Expected Result:**
+- No checkboxes visible on any certificate tiles in any view
+- No bulk selection functionality present
+- Clean tile layout without selection elements
+
+**Test Result:** [ ] PASS [ ] FAIL [ ] PARTIAL
 **Comments:** ________________________________
 
 ---

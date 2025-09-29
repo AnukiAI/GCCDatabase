@@ -390,7 +390,7 @@ namespace GCCWebApp.Services
             
             if (_cache.TryGetValue(verificationKey, out dynamic? stored) && stored != null)
             {
-                if (stored.Code == verificationCode && stored.Contact == email)
+                if (stored?.Code == verificationCode && stored?.Contact == email)
                 {
                     _cache.Remove(verificationKey);
                     
@@ -415,7 +415,7 @@ namespace GCCWebApp.Services
             
             if (_cache.TryGetValue(verificationKey, out dynamic? stored) && stored != null)
             {
-                if (stored.Code == verificationCode && stored.Contact == phoneNumber)
+                if (stored?.Code == verificationCode && stored?.Contact == phoneNumber)
                 {
                     _cache.Remove(verificationKey);
                     

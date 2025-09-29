@@ -406,7 +406,7 @@ namespace GCCWebApp.Services.ETL
                 // Load to destinations based on configuration
                 foreach (var destination in config.Destinations)
                 {
-                    ETLLoadResult loadResult = null;
+                    ETLLoadResult? loadResult = null;
 
                     switch (destination.ToLower())
                     {

@@ -261,14 +261,14 @@ namespace GCCWebApp.BDD.Tests.Support
             return this;
         }
 
-        public ProductIdentifierBuilder AsUPC(string value = null)
+        public ProductIdentifierBuilder AsUPC(string? value = null)
         {
             _identifier.IdentifierType = "UPC";
             _identifier.IdentifierValue = value ?? _faker.Commerce.Ean13();
             return this;
         }
 
-        public ProductIdentifierBuilder AsASIN(string value = null)
+        public ProductIdentifierBuilder AsASIN(string? value = null)
         {
             _identifier.IdentifierType = "ASIN";
             _identifier.IdentifierValue = value ?? $"B{_faker.Random.AlphaNumeric(9).ToUpper()}";

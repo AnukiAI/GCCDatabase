@@ -43,11 +43,33 @@
         align-items: center;
         margin-bottom: 20px;
         padding: 10px 0;
+        min-width: 0;
+        overflow-x: auto;
+        gap: 20px;
     }
 
     .left-controls {
         display: flex;
         gap: 10px;
+        flex-wrap: nowrap;
+        min-width: 0;
+        overflow-x: auto;
+    }
+
+    .export-options {
+        display: flex;
+        gap: 8px;
+        flex-wrap: nowrap;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .export-options .btn {
+        white-space: nowrap;
+        flex-shrink: 0;
+        min-width: auto;
+        padding: 8px 12px;
+        font-size: 14px;
     }
 
     .right-controls {
@@ -170,6 +192,15 @@
     @@keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
+    }
+
+    /* Fix product name width for internal view */
+    .certificate-card .product-name {
+        max-width: 100% !important;
+        width: 100% !important;
+        word-wrap: break-word !important;
+        word-break: break-word !important;
+        white-space: normal !important;
     }
 </style>
 <!-- Main Container -->
@@ -1112,6 +1143,9 @@
                     <a href="@Url.Action("Create", "Certificate")" class="btn btn-add">
                         <i class="fas fa-plus"></i> Add Certificate
                     </a>
+                    <button id="editCertificateBtn" class="btn btn-primary" disabled title="Select a certificate to edit">
+                        <i class="fas fa-edit"></i> Edit Certificate
+                    </button>
                     <button class="btn btn-primary">
                         Export (selected) to Excel
                     </button>

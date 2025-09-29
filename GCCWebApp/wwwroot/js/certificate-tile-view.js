@@ -210,16 +210,15 @@
                  data-id="${cert.id}"
                  data-type="${escapeHtml(cert.certificationType)}"
                  data-company="${cert.companyName}"
-                 data-country="${cert.country}"
-                 onclick="viewCertificateDetails('${cert.id}')">
+                 data-country="${cert.country}">
                 <div class="card-header">
                     <div class="header-row">
                         <div class="certificate-category">${escapeHtml(cert.certificationType)}</div>
-                        <div class="certificate-id">${escapeHtml(formattedCertNumber)}</div>
+                        <div class="certificate-id" onclick="viewCertificateDetails('${cert.id}')" style="cursor: pointer;">${escapeHtml(formattedCertNumber)}</div>
                     </div>
-                    <div class="company-name">${escapeHtml(cert.companyName)}</div>
+                    <div class="company-name" onclick="viewCertificateDetails('${cert.id}')" style="cursor: pointer;">${escapeHtml(cert.companyName)}</div>
                 </div>
-                <div class="card-body">
+                <div class="card-body" onclick="viewCertificateDetails('${cert.id}')" style="cursor: pointer;">
                     <div class="product-info">
                         <div class="product-name">${escapeHtml(cert.productName)}</div>
                         <div class="product-type">${escapeHtml(cert.productType || '')}</div>
@@ -298,7 +297,7 @@
     // Setup view toggle buttons
     function setupViewToggleButtons() {
         // View type toggle (Tile/Table)
-        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+        document.querySelectorAll('.toggle-btn[data-view]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const viewType = btn.dataset.view;
                 handleViewTypeChange(viewType);
@@ -761,6 +760,22 @@
     // Make it globally accessible
     window.downloadCertificate = downloadCertificate;
 
+    // Certificate selection handling removed - no longer using checkboxes
+    };
+
+
+    // Handle Edit Certificate button click
+    document.addEventListener('DOMContentLoaded', function() {
+        const editBtn = document.getElementById('editCertificateBtn');
+        if (editBtn) {
+            editBtn.addEventListener('click', function() {
+                if (selectedCertificates.size === 1) {
+                    const certId = Array.from(selectedCertificates)[0];
+                    window.location.href = `/Certificate/Edit/${certId}`;
+                }
+            });
+        }
+    });
 
     // Utility functions
     function escapeHtml(text) {
@@ -937,7 +952,6 @@
         }
 
         gridBody.innerHTML = certificates.map(cert => createTableRow(cert)).join('');
-        setupTableActionHandlers();
     }
 
     // Create table row HTML for a certificate
@@ -948,9 +962,6 @@
 
         return `
             <div class="grid-row" data-cert-id="${cert.id}">
-                <div class="grid-cell select-cell">
-                    <input type="checkbox" class="cert-checkbox" value="${cert.id}">
-                </div>
                 <div class="grid-cell actions-column">
                     <div class="action-buttons">
                         <button class="action-btn edit-btn" onclick="editCertificate('${cert.id}')" title="Edit Certificate">
@@ -990,41 +1001,7 @@
         `;
     }
 
-    // Setup action handlers for table buttons
-    function setupTableActionHandlers() {
-        // Checkbox selection handling
-        const selectAllCheckbox = document.getElementById('selectAll');
-        const certCheckboxes = document.querySelectorAll('.cert-checkbox');
-
-        if (selectAllCheckbox) {
-            selectAllCheckbox.addEventListener('change', function() {
-                certCheckboxes.forEach(checkbox => {
-                    checkbox.checked = this.checked;
-                });
-                updateBulkActionsVisibility();
-            });
-        }
-
-        certCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', updateBulkActionsVisibility);
-        });
-    }
-
-    // Update bulk actions bar visibility
-    function updateBulkActionsVisibility() {
-        const selectedCheckboxes = document.querySelectorAll('.cert-checkbox:checked');
-        const bulkActionsBar = document.getElementById('bulkActionsBar');
-        const selectedCount = document.getElementById('selectedCount');
-
-        if (bulkActionsBar && selectedCount) {
-            if (selectedCheckboxes.length > 0) {
-                bulkActionsBar.style.display = 'flex';
-                selectedCount.textContent = `${selectedCheckboxes.length} certificate${selectedCheckboxes.length !== 1 ? 's' : ''} selected`;
-            } else {
-                bulkActionsBar.style.display = 'none';
-            }
-        }
-    }
+    // Table action handlers simplified - checkboxes removed
 
     // Edit certificate function
     window.editCertificate = function(id) {

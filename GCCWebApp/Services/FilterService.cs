@@ -75,13 +75,13 @@ namespace GCCWebApp.Services
                             .AsQueryable();
 
                         if (!string.IsNullOrWhiteSpace(searchTerm))
-                            countryQuery = countryQuery.Where(g => g.Key.Contains(searchTerm));
+                            countryQuery = countryQuery.Where(g => g.Key != null && g.Key.Contains(searchTerm));
 
                         options = await countryQuery
                             .Select(g => new FilterOption
                             {
-                                Value = g.Key,
-                                Text = g.Key!,
+                                Value = g.Key ?? string.Empty,
+                                Text = g.Key ?? string.Empty,
                                 Count = g.Count()
                             })
                             .ToListAsync();
@@ -171,8 +171,8 @@ namespace GCCWebApp.Services
                     .GroupBy(c => c.Country)
                     .Select(g => new FilterOption
                     {
-                        Value = g.Key,
-                        Text = g.Key!,
+                        Value = g.Key ?? string.Empty,
+                        Text = g.Key ?? string.Empty,
                         Count = g.Count()
                     })
                     .OrderBy(f => f.Text)

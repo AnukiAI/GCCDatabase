@@ -106,7 +106,7 @@ class CertificateTileViewExternal {
         });
 
         // View toggle buttons
-        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+        document.querySelectorAll('.toggle-btn[data-view]').forEach(btn => {
             btn.addEventListener('click', (e) => this.handleViewToggle(e.currentTarget));
         });
 
@@ -511,7 +511,7 @@ class CertificateTileViewExternal {
         if (!viewType) return;
 
         // Update active state
-        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+        document.querySelectorAll('.toggle-btn[data-view]').forEach(btn => {
             btn.classList.remove('active');
         });
         button.classList.add('active');

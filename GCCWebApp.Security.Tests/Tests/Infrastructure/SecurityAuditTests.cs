@@ -30,7 +30,7 @@ namespace GCCWebApp.Security.Tests.Tests.Infrastructure
             var response = await _client.GetAsync("/");
 
             // Assert - Check for all required security headers
-            var requiredHeaders = new Dictionary<string, string[]>
+            var requiredHeaders = new Dictionary<string, string[]?>
             {
                 ["X-Content-Type-Options"] = ["nosniff"],
                 ["X-Frame-Options"] = ["DENY", "SAMEORIGIN"],

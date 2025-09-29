@@ -146,7 +146,7 @@ public class ResponseCachingService : IResponseCachingService
         return _cache.TryGetValue(key, out _);
     }
 
-    public async Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null) where T : class
+    public async Task<T?> GetOrSetAsync<T>(string key, Func<Task<T?>> factory, TimeSpan? expiration = null) where T : class
     {
         var cachedValue = await GetAsync<T>(key);
         if (cachedValue != null)

@@ -225,11 +225,11 @@ namespace GCCWebApp.Services.ETL
                     p.IsActive,
                     p.CreatedAt,
                     p.UpdatedAt,
-                    Company = new
+                    Company = p.Company != null ? new
                     {
                         p.Company.Id,
                         p.Company.Name
-                    },
+                    } : null,
                     Category = p.Category?.Name,
                     ProductType = p.ProductType?.Name,
                     ProductSubcategory = p.ProductSubcategory?.Name,

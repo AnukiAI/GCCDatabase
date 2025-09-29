@@ -6,10 +6,10 @@ namespace GCCWebApp.E2E.Tests.Tests.UI
 {
     public class CertificateUITests : IAsyncLifetime
     {
-        private IPlaywright _playwright;
-        private IBrowser _browser;
-        private IBrowserContext _context;
-        private IPage _page;
+        private IPlaywright _playwright = null!;
+        private IBrowser _browser = null!;
+        private IBrowserContext _context = null!;
+        private IPage _page = null!;
         
         // Update this URL to match your local development server
         private const string BaseUrl = "https://localhost:7001";

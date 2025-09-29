@@ -228,10 +228,10 @@
 }
 
 .filter-item {
-    margin-bottom: 1px !important; /* Reduced padding between items */
+    margin-bottom: 8px !important; /* Improved spacing between items */
     font-size: 16px;
-    padding: 1px 0 !important; /* Minimal vertical padding */
-    line-height: 1.2 !important;
+    padding: 4px 0 !important; /* Better vertical padding for readability */
+    line-height: 1.4 !important;
 }
 
     .filter-item label {
@@ -239,9 +239,9 @@
         align-items: center;
         cursor: pointer;
         transition: var(--transition);
-        padding: 1px 0 !important; /* Minimal padding for tight spacing */
+        padding: 4px 0 !important; /* Better padding for improved clickability */
         margin: 0 !important; /* Override any external label margins */
-        line-height: 1.2 !important;
+        line-height: 1.4 !important;
     }
 
         .filter-item label:hover {
@@ -249,11 +249,13 @@
         }
 
     .filter-item input[type="checkbox"] {
-        margin: 0 4px 0 0 !important; /* Override all other checkbox margins */
+        margin: 0 8px 0 0 !important; /* Improved spacing between checkbox and label */
         padding: 0 !important;
         accent-color: var(--blue-primary);
-        vertical-align: top !important;
+        vertical-align: middle !important;
         line-height: 1 !important;
+        width: 16px;
+        height: 16px;
     }
 
 .filter-level-1 {
@@ -372,6 +374,18 @@
     border-color: var(--green-primary);
 }
 
+/* Edit action icon specific styles */
+.action-icon.edit {
+    color: var(--blue-primary);
+    border-color: var(--blue-primary);
+}
+
+.action-icon.edit:hover {
+    background-color: var(--blue-primary);
+    border-color: var(--blue-primary);
+    color: var(--white);
+}
+
 .action-icon i {
     font-size: 16px;
 }
@@ -406,21 +420,30 @@
     line-height: 1.3;
 }
 
+/* Certificate selection checkbox removed */
+
 /* Product name styling for tile view only - NOT SingleCertificateView */
 .certificate-card .product-name {
-    font-size: 22px;
-    font-weight: 600;
-    margin: 15px 0 5px 0;
-    color: var(--text-color);
-    height: 140px; /* Fixed height for consistency across certificate tiles only */
-    display: -webkit-box;
-    -webkit-line-clamp: 5; /* Adjusted for 140px height */
-    -webkit-box-orient: vertical;
-    line-height: 1.5;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding: 10px;
-    box-sizing: border-box;
+    font-size: 22px !important;
+    font-weight: 600 !important;
+    margin: 15px 0 5px 0 !important;
+    color: var(--text-color) !important;
+    height: 128px !important; /* Reduced height for better layout consistency */
+    max-height: 128px !important; /* Ensure it doesn't exceed this height */
+    max-width: 100% !important; /* Allow full width of container */
+    width: 100% !important; /* Take full width of container */
+    display: -webkit-box !important;
+    -webkit-line-clamp: 4 !important; /* Adjusted for 128px height */
+    -webkit-box-orient: vertical !important;
+    line-height: 1.5 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    padding: 10px !important;
+    box-sizing: border-box !important;
+    white-space: normal !important; /* Override any white-space settings */
+    word-wrap: break-word !important; /* Override any word-wrap settings */
 }
 
 /* Product type styling for tile view only - NOT SingleCertificateView */
@@ -660,7 +683,6 @@
 
 .product-name {
     color: var(--text-muted);
-    max-width: 180px;
 }
 
 .cert-type {
@@ -751,9 +773,14 @@
     }
     
     .company-name,
-    .product-name,
     .location {
         max-width: 120px;
+    }
+
+    /* Product name should take full width on all screen sizes */
+    .product-name {
+        max-width: 100% !important;
+        width: 100% !important;
     }
 }
 

@@ -15,8 +15,8 @@ namespace GCCWebApp.BDD.Tests.Steps
         private readonly ScenarioContext _scenarioContext;
         private readonly WebApplicationFactory<Program> _factory;
         private HttpClient _client;
-        private HttpResponseMessage _response;
-        private Certificate _certificate;
+        private HttpResponseMessage _response = null!;
+        private Certificate _certificate = null!;
         private List<Certificate> _certificates;
 
         public CertificateSteps(ScenarioContext scenarioContext, WebApplicationFactory<Program> factory)

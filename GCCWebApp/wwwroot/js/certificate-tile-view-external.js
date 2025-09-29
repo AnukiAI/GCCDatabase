@@ -790,7 +790,7 @@
     // Setup toggle buttons functionality
     function setupToggleButtons() {
         // View type toggle buttons (Tile/Table)
-        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+        document.querySelectorAll('.toggle-btn[data-view]').forEach(btn => {
             btn.addEventListener('click', () => {
                 const viewType = btn.dataset.view;
                 handleViewTypeChange(viewType);
@@ -800,7 +800,7 @@
 
     function handleViewTypeChange(viewType) {
         // Update active button state
-        document.querySelectorAll('.view-toggle-btn').forEach(btn => {
+        document.querySelectorAll('.toggle-btn[data-view]').forEach(btn => {
             btn.classList.remove('active');
         });
         document.querySelector(`[data-view="${viewType}"]`).classList.add('active');

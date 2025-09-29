@@ -260,7 +260,9 @@
       "Bash(tar:*)",
       "Bash(./run-tests-simple.cmd)",
       "Bash(git check-ignore:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(start http://localhost:5101/Admin)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "defaultMode": "acceptEdits"

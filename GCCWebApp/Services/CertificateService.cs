@@ -942,7 +942,7 @@ namespace GCCWebApp.Services
         /// <summary>
         /// Export filtered results in various formats
         /// </summary>
-        public async Task<byte[]?> ExportFilteredResultsAsync(CertificateListRequest request, string format)
+        public async Task<byte[]> ExportFilteredResultsAsync(CertificateListRequest request, string format)
         {
             return await ExportCertificatesAsync(request, format);
         }

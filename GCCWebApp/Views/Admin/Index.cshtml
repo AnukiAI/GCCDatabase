@@ -5,7 +5,8 @@
 }
 
 @section Styles {
-    <link href="~/css/admin-dashboard.css" rel="stylesheet" />
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
 }
 
 @section Breadcrumbs {
@@ -19,85 +20,140 @@
 
 <div class="admin-container">
     <header class="admin-header">
-        <div class="title-area">
-            <h1>Admin Dashboard</h1>
-            <p class="subtitle">System overview and management tools</p>
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <h1 class="admin-page-title">Admin Dashboard</h1>
+                <p class="admin-page-subtitle">System overview and management tools</p>
+            </div>
         </div>
     </header>
 
-    <div class="dashboard-cards">
-        <div class="card">
-            <div class="card-header">
-                <h3>Certificates</h3>
-                <i class="fas fa-certificate"></i>
+    <div class="admin-dashboard-cards">
+        <div class="admin-card admin-card--primary">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">Certificates</h3>
+                <i class="fas fa-certificate admin-card-icon"></i>
             </div>
-            <div class="card-content">
-                <div class="stat-number">@Model.TotalCertificates</div>
-                <div class="stat-label">Total Certificates</div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h3>Companies</h3>
-                <i class="fas fa-building"></i>
-            </div>
-            <div class="card-content">
-                <div class="stat-number">@Model.TotalCompanies</div>
-                <div class="stat-label">Total Companies</div>
+            <div class="admin-card-content">
+                <div class="admin-card-stat">@Model.TotalCertificates</div>
+                <div class="admin-card-label">Total Certificates</div>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h3>Users</h3>
-                <i class="fas fa-users"></i>
+        <div class="admin-card admin-card--success">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">Companies</h3>
+                <i class="fas fa-building admin-card-icon"></i>
             </div>
-            <div class="card-content">
-                <div class="stat-number">@Model.TotalUsers</div>
-                <div class="stat-label">Total Users</div>
+            <div class="admin-card-content">
+                <div class="admin-card-stat">@Model.TotalCompanies</div>
+                <div class="admin-card-label">Total Companies</div>
             </div>
         </div>
 
-        <div class="card">
-            <div class="card-header">
-                <h3>Products</h3>
-                <i class="fas fa-box"></i>
+        <div class="admin-card admin-card--warning">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">Users</h3>
+                <i class="fas fa-users admin-card-icon"></i>
             </div>
-            <div class="card-content">
-                <div class="stat-number">@Model.TotalProducts</div>
-                <div class="stat-label">Total Products</div>
+            <div class="admin-card-content">
+                <div class="admin-card-stat">@Model.TotalUsers</div>
+                <div class="admin-card-label">Total Users</div>
+            </div>
+        </div>
+
+        <div class="admin-card admin-card--danger">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">Products</h3>
+                <i class="fas fa-box admin-card-icon"></i>
+            </div>
+            <div class="admin-card-content">
+                <div class="admin-card-stat">@Model.TotalProducts</div>
+                <div class="admin-card-label">Total Products</div>
             </div>
         </div>
     </div>
 
-    <div class="quick-actions">
-        <h2>Quick Actions</h2>
-        <div class="actions-grid">
-            <a href="@Url.Action("UserManagement", "Admin")" class="action-card">
-                <i class="fas fa-users"></i>
-                <span>Manage Users</span>
-            </a>
-            <a href="@Url.Action("RoleManagement", "Admin")" class="action-card">
-                <i class="fas fa-user-shield"></i>
-                <span>Manage Roles</span>
-            </a>
-            <a href="@Url.Action("ProductManagement", "Admin")" class="action-card">
-                <i class="fas fa-box"></i>
-                <span>Manage Products</span>
-            </a>
-            <a href="@Url.Action("CertificateTypes", "Admin")" class="action-card">
-                <i class="fas fa-certificate"></i>
-                <span>Certificate Types</span>
-            </a>
-            <a href="@Url.Action("Tags", "Admin")" class="action-card">
-                <i class="fas fa-tags"></i>
-                <span>Manage Tags</span>
-            </a>
-            <a href="@Url.Action("Partners", "Admin")" class="action-card">
-                <i class="fas fa-handshake"></i>
-                <span>Manage Partners</span>
-            </a>
+    <div class="admin-content admin-content--padded">
+        <div class="admin-section">
+            <h2 class="admin-section-title">Quick Actions</h2>
+            <p class="admin-section-subtitle">Common administrative tasks and system management</p>
+
+            <div class="admin-grid admin-grid--auto-fit admin-grid--gap-md">
+                <a href="@Url.Action("UserManagement", "Admin")" class="admin-card admin-card--clickable">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">Manage Users</h3>
+                        <i class="fas fa-users admin-card-icon"></i>
+                    </div>
+                    <div class="admin-card-content">
+                        <p>Create, edit, and manage user accounts and permissions</p>
+                    </div>
+                </a>
+
+                <a href="@Url.Action("RoleManagement", "Admin")" class="admin-card admin-card--clickable">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">Manage Roles</h3>
+                        <i class="fas fa-user-shield admin-card-icon"></i>
+                    </div>
+                    <div class="admin-card-content">
+                        <p>Configure user roles and access permissions</p>
+                    </div>
+                </a>
+
+                <a href="@Url.Action("ProductManagement", "Admin")" class="admin-card admin-card--clickable">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">Manage Products</h3>
+                        <i class="fas fa-box admin-card-icon"></i>
+                    </div>
+                    <div class="admin-card-content">
+                        <p>Add and organize product categories and types</p>
+                    </div>
+                </a>
+
+                <a href="@Url.Action("CertificateTypes", "Admin")" class="admin-card admin-card--clickable">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">Certificate Types</h3>
+                        <i class="fas fa-certificate admin-card-icon"></i>
+                    </div>
+                    <div class="admin-card-content">
+                        <p>Manage certificate types and classifications</p>
+                    </div>
+                </a>
+
+                <a href="@Url.Action("Tags", "Admin")" class="admin-card admin-card--clickable">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">Manage Tags</h3>
+                        <i class="fas fa-tags admin-card-icon"></i>
+                    </div>
+                    <div class="admin-card-content">
+                        <p>Organize content with tags and categories</p>
+                    </div>
+                </a>
+
+                <a href="@Url.Action("Partners", "Admin")" class="admin-card admin-card--clickable">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">Manage Partners</h3>
+                        <i class="fas fa-handshake admin-card-icon"></i>
+                    </div>
+                    <div class="admin-card-content">
+                        <p>Configure partner organizations and relationships</p>
+                    </div>
+                </a>
+            </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <script src="~/js/admin/admin-core.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Demonstrate notification system
+            setTimeout(() => {
+                AdminCore.showNotification('Admin dashboard loaded successfully!', 'success', {
+                    duration: 3000
+                });
+            }, 1000);
+        });
+    </script>
+}

@@ -26,9 +26,6 @@
         apiBaseUrl: window.location.pathname.includes('TileViewInternal') ? '/api/certificate-tiles-internal' : '/api/certificate-tiles'
     };
 
-    // Initialize on DOM ready
-    document.addEventListener('DOMContentLoaded', initialize);
-
     function initialize() {
         loadFilterOptions();
         loadInitialCertificates();
@@ -111,13 +108,19 @@
         state.isLoading = true;
         showLoadingIndicator();
 
+        console.log('Loading certificates from:', `${state.apiBaseUrl}?${buildApiParams()}`);
+
         try {
             const params = buildApiParams();
             const response = await fetch(`${state.apiBaseUrl}?${params}`);
-            
+
+            console.log('API Response status:', response.status, response.ok);
+
             if (response.ok) {
                 const data = await response.json();
-                
+
+                console.log('API data received:', data);
+
                 if (append) {
                     state.certificates = [...state.certificates, ...data.certificates];
                     state.loadedCount += data.certificates.length;
@@ -128,9 +131,12 @@
 
                 state.totalCount = data.totalCount;
                 state.hasMore = state.loadedCount < data.totalCount;
-                
+
                 renderCertificates(append);
                 updateResultsCount();
+            } else {
+                console.error('API response not OK:', response.status, response.statusText);
+                showError(`Failed to load certificates: ${response.statusText}`);
             }
         } catch (error) {
             console.error('Error loading certificates:', error);
@@ -179,14 +185,43 @@
     // Render certificates to the grid
     function renderCertificates(append = false) {
         const grid = document.getElementById('certificatesGrid');
-        if (!grid) return;
+        if (!grid) {
+            console.error('Certificate grid not found!');
+            return;
+        }
+
+        console.log('Rendering certificates:', state.certificates.length, 'append:', append);
 
         const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
 
         if (append) {
+            // Remove loading/end messages before appending
+            const loadingContainer = document.getElementById('loadingContainer');
+            const endOfResults = document.getElementById('endOfResults');
+            if (loadingContainer) loadingContainer.remove();
+            if (endOfResults) endOfResults.remove();
+
             grid.insertAdjacentHTML('beforeend', html);
         } else {
             grid.innerHTML = html;
+        }
+
+        // Re-add loading/end containers if they were removed
+        if (append) {
+            grid.insertAdjacentHTML('afterend', `
+                <div class="loading-container" id="loadingContainer" style="display: none;">
+                    <div class="loading-spinner">
+                        <i class="fas fa-spinner fa-spin"></i>
+                        <span>Loading certificates...</span>
+                    </div>
+                </div>
+                <div class="end-of-results" id="endOfResults" style="display: none;">
+                    <div class="end-message">
+                        <i class="fas fa-check-circle"></i>
+                        <span>You've reached the end of the results</span>
+                    </div>
+                </div>
+            `);
         }
 
         // Animate new cards
@@ -283,7 +318,7 @@
         // Filter toggles
         document.querySelectorAll('.filter-header').forEach(header => {
             header.addEventListener('click', () => {
-                const filterId = header.onclick.toString().match(/toggleFilter\('(.+?)'\)/)?.[1];
+                const filterId = header.dataset.filter;
                 if (filterId) toggleFilter(filterId);
             });
         });
@@ -759,23 +794,6 @@
     
     // Make it globally accessible
     window.downloadCertificate = downloadCertificate;
-
-    // Certificate selection handling removed - no longer using checkboxes
-    };
-
-
-    // Handle Edit Certificate button click
-    document.addEventListener('DOMContentLoaded', function() {
-        const editBtn = document.getElementById('editCertificateBtn');
-        if (editBtn) {
-            editBtn.addEventListener('click', function() {
-                if (selectedCertificates.size === 1) {
-                    const certId = Array.from(selectedCertificates)[0];
-                    window.location.href = `/Certificate/Edit/${certId}`;
-                }
-            });
-        }
-    });
 
     // Utility functions
     function escapeHtml(text) {

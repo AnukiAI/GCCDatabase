@@ -15,7 +15,7 @@ public interface IResponseCachingService
     Task RemoveByPatternAsync(string pattern);
     Task ClearAsync();
     Task<bool> ExistsAsync(string key);
-    Task<T> GetOrSetAsync<T>(string key, Func<Task<T>> factory, TimeSpan? expiration = null) where T : class;
+    Task<T?> GetOrSetAsync<T>(string key, Func<Task<T?>> factory, TimeSpan? expiration = null) where T : class;
 }
 
 public class ResponseCachingService : IResponseCachingService

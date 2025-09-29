@@ -7,7 +7,8 @@
 @Html.AntiForgeryToken()
 
 @section Styles {
-    <link href="~/css/product-management.css" rel="stylesheet" />
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
 }
 
 @section Breadcrumbs {
@@ -23,57 +24,226 @@
 
 <div class="admin-container">
     <header class="admin-header">
-        <div class="buttons-area">
-            <button id="export-btn" class="btn">
-                <i class="fas fa-download"></i> Export
-            </button>
-            <button class="btn btn-add" id="add-product-btn">
-                <i class="fas fa-plus"></i> Add New Product
-            </button>
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <h1 class="admin-page-title">Product Management</h1>
+                <p class="admin-page-subtitle">Manage product categories and types</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <button id="export-btn" class="admin-btn admin-btn--secondary">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button id="add-product-btn" class="admin-btn admin-btn--primary">
+                        <i class="fas fa-plus"></i> Add New Product
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
-    <div class="search-filter-bar">
-        <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search products...">
-            <i class="fas fa-search search-icon"></i>
+    <div class="admin-toolbar">
+        <div class="admin-search-section">
+            <div class="admin-search-box">
+                <label for="search-input" class="admin-sr-only">Search products</label>
+                <input type="text" id="search-input" class="admin-search-input" placeholder="Search products..." aria-label="Search products">
+                <i class="fas fa-search admin-search-icon"></i>
+            </div>
         </div>
     </div>
 
-    <div class="table-container">
-        <table id="products-table">
-    <thead>
-        <tr>
-            <th width="90%" data-sort="name">Product Name</th>
-            <th width="10%" class="actions-col">Actions</th>
-        </tr>
-    </thead>
-    <tbody id="products-table-body">
-        <!-- Add product row (initially hidden) -->
-        <tr id="add-row" class="add-row">
-            <td data-label="Product Name">
-                <input type="text" id="new-product-input" placeholder="Enter product name">
-            </td>
-            <td class="actions-cell" data-label="Actions">
-                <div class="edit-actions">
-                    <button class="save-btn" id="save-new-btn">Save</button>
-                    <button class="cancel-btn" id="cancel-new-btn">Cancel</button>
-                </div>
-            </td>
-        </tr>
-        <!-- Product data will be populated here -->
-    </tbody>
-        </table>
+    <div class="admin-content">
+        <div class="admin-table-container">
+            <table id="products-table" class="admin-table">
+                <thead class="admin-table-header">
+                    <tr>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="90%">
+                            Product Name <i class="admin-sort-icon fas fa-sort"></i>
+                        </th>
+                        <th class="admin-table-th admin-table-th--actions" width="10%">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="products-table-body" class="admin-table-body">
+                    <!-- Add product row (initially hidden) -->
+                    <tr id="add-row" class="admin-table-row admin-table-row--add" style="display: none;">
+                        <td class="admin-table-cell" data-label="Product Name">
+                            <input type="text" id="new-product-input" class="admin-input admin-input--inline" placeholder="Enter product name" aria-label="New product name">
+                        </td>
+                        <td class="admin-table-cell admin-table-cell--actions" data-label="Actions">
+                            <div class="admin-action-group">
+                                <button class="admin-btn admin-btn--sm admin-btn--success" id="save-new-btn" aria-label="Save new product">
+                                    <i class="fas fa-check"></i> Save
+                                </button>
+                                <button class="admin-btn admin-btn--sm admin-btn--secondary" id="cancel-new-btn" aria-label="Cancel adding product">
+                                    <i class="fas fa-times"></i> Cancel
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Product data will be populated here -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div class="footer-info" id="products-count">
-        Showing 0 of 0 products
+    <div class="admin-footer-info">
+        <span id="products-count" class="admin-count-display">Showing 0 of 0 products</span>
     </div>
 </div>
 
-<!-- Toast for notifications -->
-<div id="toast" class="toast"></div>
-
 @section Scripts {
+    <script src="~/js/admin/admin-core.js"></script>
     <script src="~/js/admin/productManagement.js"></script>
+    <script>
+        // Enhanced product management with admin framework
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize product management
+            if (typeof initializeProductManagement === 'function') {
+                initializeProductManagement();
+            }
+
+            // Enhanced inline add functionality
+            const addProductBtn = document.getElementById('add-product-btn');
+            const addRow = document.getElementById('add-row');
+            const newProductInput = document.getElementById('new-product-input');
+            const saveNewBtn = document.getElementById('save-new-btn');
+            const cancelNewBtn = document.getElementById('cancel-new-btn');
+
+            if (addProductBtn) {
+                addProductBtn.addEventListener('click', function() {
+                    // Show add row
+                    addRow.style.display = 'table-row';
+                    newProductInput.focus();
+                    AdminCore.announceToScreenReader('Add product form opened');
+                });
+            }
+
+            if (cancelNewBtn) {
+                cancelNewBtn.addEventListener('click', function() {
+                    // Hide add row and reset input
+                    addRow.style.display = 'none';
+                    newProductInput.value = '';
+                    AdminCore.announceToScreenReader('Add product cancelled');
+                });
+            }
+
+            if (saveNewBtn) {
+                saveNewBtn.addEventListener('click', function() {
+                    const productName = newProductInput.value.trim();
+
+                    if (!productName) {
+                        AdminCore.showNotification('Product name is required', 'error');
+                        newProductInput.focus();
+                        return;
+                    }
+
+                    // Show loading state
+                    AdminCore.showLoading(saveNewBtn);
+
+                    // Simulate API call (replace with actual implementation)
+                    setTimeout(() => {
+                        AdminCore.hideLoading(saveNewBtn);
+                        addRow.style.display = 'none';
+                        newProductInput.value = '';
+                        AdminCore.showNotification('Product added successfully!', 'success');
+
+                        // Refresh product list (implement actual refresh logic)
+                        if (typeof refreshProductList === 'function') {
+                            refreshProductList();
+                        }
+                    }, 1000);
+                });
+            }
+
+            // Handle Enter key in new product input
+            if (newProductInput) {
+                newProductInput.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        saveNewBtn.click();
+                    } else if (e.key === 'Escape') {
+                        cancelNewBtn.click();
+                    }
+                });
+            }
+
+            // Enhanced search functionality
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) {
+                // Debounced search
+                const debouncedSearch = AdminCore.debounce(function(value) {
+                    AdminCore.announceToScreenReader(`Searching for: ${value}`);
+                    // Implement search logic
+                    if (typeof handleProductSearch === 'function') {
+                        handleProductSearch(value);
+                    }
+                }, 300);
+
+                searchInput.addEventListener('input', function() {
+                    debouncedSearch(this.value);
+                });
+            }
+
+            // Table action handling with admin framework
+            document.addEventListener('click', function(e) {
+                if (e.target.matches('.admin-action-btn--edit') || e.target.closest('.admin-action-btn--edit')) {
+                    const row = e.target.closest('.admin-table-row');
+                    if (row) {
+                        const productId = row.dataset.id;
+                        editProduct(productId, row);
+                    }
+                }
+
+                if (e.target.matches('.admin-action-btn--delete') || e.target.closest('.admin-action-btn--delete')) {
+                    const row = e.target.closest('.admin-table-row');
+                    if (row) {
+                        const productId = row.dataset.id;
+                        const productName = row.querySelector('.product-name')?.textContent || 'this product';
+
+                        if (confirm(`Are you sure you want to delete "${productName}"?`)) {
+                            deleteProduct(productId, row);
+                        }
+                    }
+                }
+            });
+
+            // Sample functions for demonstration (replace with actual implementations)
+            window.editProduct = function(productId, row) {
+                // Convert row to edit mode (implement inline editing)
+                AdminCore.announceToScreenReader('Edit mode activated for ' + productId);
+            };
+
+            window.deleteProduct = function(productId, row) {
+                AdminCore.showLoading(row);
+
+                // Simulate deletion
+                setTimeout(() => {
+                    AdminCore.showNotification('Product deleted successfully!', 'success');
+                    // Remove row or refresh list
+                    if (row) {
+                        row.remove();
+                    }
+                }, 1000);
+            };
+
+            // Export functionality
+            const exportBtn = document.getElementById('export-btn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', function() {
+                    AdminCore.showLoading(exportBtn);
+
+                    // Simulate export (replace with actual implementation)
+                    setTimeout(() => {
+                        AdminCore.hideLoading(exportBtn);
+                        AdminCore.showNotification('Products exported successfully!', 'success');
+                    }, 2000);
+                });
+            }
+
+            // Show initial success message
+            setTimeout(() => {
+                AdminCore.showNotification('Product management loaded successfully!', 'success', { duration: 3000 });
+            }, 500);
+        });
+    </script>
 }

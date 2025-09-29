@@ -380,7 +380,7 @@ namespace GCCWebApp.Services.ETL
                     TotalCertificates = group.Count(),
                     ActiveCertificates = group.Count(c => c.ContainsKey("Status") && c["Status"]?.ToString() == "active"),
                     ExpiredCertificates = group.Count(c =>
-                        c.ContainsKey("ExpirationDate") && ParseDate(c["ExpirationDate"]?.ToString()) < DateTime.UtcNow),
+                        c.ContainsKey("ExpirationDate") && c["ExpirationDate"] != null && ParseDate(c["ExpirationDate"].ToString()) < DateTime.UtcNow),
                     CreatedAt = DateTime.UtcNow
                 };
 

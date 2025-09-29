@@ -82,6 +82,83 @@ namespace GCCWebApp.Controllers
 
         [HttpGet]
         [AllowAnonymous] // Temporarily allow anonymous access for testing
+        public async Task<IActionResult> DownloadReport(string type, string format = "excel")
+        {
+            try
+            {
+                // Temporarily bypass authentication for testing
+                var userRole = HttpContext.Session.GetString("UserRole") ?? "Admin"; // Default to Admin for testing
+
+                List<Certificate> certificates;
+                string reportTitle;
+
+                switch (type)
+                {
+                    case "active-certificates":
+                        certificates = await _context.Certificates
+                            .Include(c => c.Company)
+                            .Include(c => c.Product)
+                            .Include(c => c.CertificationType)
+                            .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > DateTime.UtcNow)
+                            .OrderByDescending(c => c.EffectiveDate)
+                            .ToListAsync();
+                        reportTitle = "Current Active Certificates";
+                        break;
+
+                    case "expiring-30-days":
+                        var thirtyDaysFromNow = DateTime.UtcNow.AddDays(30);
+                        certificates = await _context.Certificates
+                            .Include(c => c.Company)
+                            .Include(c => c.Product)
+                            .Include(c => c.CertificationType)
+                            .Where(c => c.Status.ToLower() == "active" &&
+                                       c.ExpirationDate > DateTime.UtcNow &&
+                                       c.ExpirationDate <= thirtyDaysFromNow)
+                            .OrderBy(c => c.ExpirationDate)
+                            .ToListAsync();
+                        reportTitle = "Certificates Expiring in Next 30 Days";
+                        break;
+
+                    case "expiring-3-months":
+                        var threeMonthsFromNow = DateTime.UtcNow.AddMonths(3);
+                        certificates = await _context.Certificates
+                            .Include(c => c.Company)
+                            .Include(c => c.Product)
+                            .Include(c => c.CertificationType)
+                            .Where(c => c.Status.ToLower() == "active" &&
+                                       c.ExpirationDate > DateTime.UtcNow &&
+                                       c.ExpirationDate <= threeMonthsFromNow)
+                            .OrderBy(c => c.ExpirationDate)
+                            .ToListAsync();
+                        reportTitle = "Certificates Expiring in Next 3 Months";
+                        break;
+
+                    default:
+                        return BadRequest("Invalid report type");
+                }
+
+                if (format?.ToLower() == "excel")
+                {
+                    var excelBytes = GenerateCertificateReportExcel(reportTitle, certificates);
+                    var fileName = $"{type}-{DateTime.UtcNow:yyyy-MM-dd}.xlsx";
+                    return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
+                }
+                else
+                {
+                    var csv = GenerateCertificateReportCsv(reportTitle, certificates);
+                    var fileName = $"{type}-{DateTime.UtcNow:yyyy-MM-dd}.csv";
+                    return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error downloading certificate report for type: {ReportType}", type);
+                return BadRequest("Error generating report");
+            }
+        }
+
+        [HttpGet]
+        [AllowAnonymous] // Temporarily allow anonymous access for testing
         public async Task<IActionResult> DownloadTable(string type, string format = "csv")
         {
             try
@@ -592,6 +669,96 @@ namespace GCCWebApp.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { Error = ex.Message, StackTrace = ex.StackTrace });
+            }
+        }
+
+        private string GenerateCertificateReportCsv(string reportTitle, List<Certificate> certificates)
+        {
+            var csv = new StringBuilder();
+            csv.AppendLine($"Report: {reportTitle}");
+            csv.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            csv.AppendLine($"Total Certificates: {certificates.Count}");
+            csv.AppendLine();
+            csv.AppendLine("Certificate Number,Status,Company,Product,Certification Type,Effective Date,Expiration Date,Location,Country");
+
+            foreach (var cert in certificates)
+            {
+                csv.AppendLine($"\"{cert.Number}\",\"{cert.Status}\",\"{cert.Company?.Name}\",\"{cert.Product?.Name}\",\"{cert.CertificationType?.Name}\",{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},\"{cert.Location}\",\"{cert.Country}\"");
+            }
+
+            return csv.ToString();
+        }
+
+        private byte[] GenerateCertificateReportExcel(string reportTitle, List<Certificate> certificates)
+        {
+            using (var workbook = new XLWorkbook())
+            {
+                var worksheet = workbook.Worksheets.Add("Certificates");
+
+                // Title
+                worksheet.Cell(1, 1).Value = reportTitle;
+                worksheet.Cell(1, 1).Style.Font.Bold = true;
+                worksheet.Cell(1, 1).Style.Font.FontSize = 14;
+                worksheet.Range(1, 1, 1, 9).Merge();
+
+                // Metadata
+                worksheet.Cell(2, 1).Value = "Generated:";
+                worksheet.Cell(2, 2).Value = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") + " UTC";
+                worksheet.Cell(3, 1).Value = "Total Certificates:";
+                worksheet.Cell(3, 2).Value = certificates.Count;
+
+                // Headers
+                int headerRow = 5;
+                worksheet.Cell(headerRow, 1).Value = "Certificate Number";
+                worksheet.Cell(headerRow, 2).Value = "Status";
+                worksheet.Cell(headerRow, 3).Value = "Company";
+                worksheet.Cell(headerRow, 4).Value = "Product";
+                worksheet.Cell(headerRow, 5).Value = "Certification Type";
+                worksheet.Cell(headerRow, 6).Value = "Effective Date";
+                worksheet.Cell(headerRow, 7).Value = "Expiration Date";
+                worksheet.Cell(headerRow, 8).Value = "Location";
+                worksheet.Cell(headerRow, 9).Value = "Country";
+
+                // Style headers
+                var headerRange = worksheet.Range(headerRow, 1, headerRow, 9);
+                headerRange.Style.Font.Bold = true;
+                headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#00AEEF");
+                headerRange.Style.Font.FontColor = XLColor.White;
+                headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+                // Data
+                int row = headerRow + 1;
+                foreach (var cert in certificates)
+                {
+                    worksheet.Cell(row, 1).Value = cert.Number;
+                    worksheet.Cell(row, 2).Value = cert.Status;
+                    worksheet.Cell(row, 3).Value = cert.Company?.Name ?? "";
+                    worksheet.Cell(row, 4).Value = cert.Product?.Name ?? "";
+                    worksheet.Cell(row, 5).Value = cert.CertificationType?.Name ?? "";
+                    worksheet.Cell(row, 6).Value = cert.EffectiveDate.ToString("yyyy-MM-dd");
+                    worksheet.Cell(row, 7).Value = cert.ExpirationDate.ToString("yyyy-MM-dd");
+                    worksheet.Cell(row, 8).Value = cert.Location ?? "";
+                    worksheet.Cell(row, 9).Value = cert.Country ?? "";
+                    row++;
+                }
+
+                // Add borders to data
+                if (certificates.Any())
+                {
+                    var dataRange = worksheet.Range(headerRow, 1, row - 1, 9);
+                    dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                }
+
+                // Auto-fit columns
+                worksheet.Columns().AdjustToContents();
+
+                using (var stream = new MemoryStream())
+                {
+                    workbook.SaveAs(stream);
+                    return stream.ToArray();
+                }
             }
         }
     }

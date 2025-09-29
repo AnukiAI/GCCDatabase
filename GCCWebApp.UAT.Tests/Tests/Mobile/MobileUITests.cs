@@ -11,7 +11,7 @@ public class MobileUITests : BaseTest
     public async Task Mobile_CertificateTileView_DisplaysCorrectlyOnSmallScreens()
     {
         // Arrange - Set mobile viewport (iPhone SE)
-        await Page.SetViewportSizeAsync(new ViewportSize { Width = 375, Height = 667 });
+        await Page.SetViewportSizeAsync(375, 667);
         await NavigateToPage("/Certificate/CertificateTileView");
         await TakeScreenshot("mobile_tile_view_iphone_se");
 
@@ -55,7 +55,7 @@ public class MobileUITests : BaseTest
     public async Task Mobile_Dashboard_ResponsiveLayout()
     {
         // Arrange - Mobile viewport
-        await Page.SetViewportSizeAsync(new ViewportSize { Width = 390, Height = 844 }); // iPhone 12
+        await Page.SetViewportSizeAsync(390, 844); // iPhone 12
         await LoginAsRole("Admin");
         await NavigateToPage("/Dashboard");
         await TakeScreenshot("mobile_dashboard_iphone12");
@@ -99,7 +99,7 @@ public class MobileUITests : BaseTest
     public async Task Mobile_SearchInterface_TouchOptimized()
     {
         // Arrange - Mobile viewport
-        await Page.SetViewportSizeAsync(new ViewportSize { Width = 375, Height = 667 });
+        await Page.SetViewportSizeAsync(375, 667);
         await NavigateToPage("/Certificate/CertificateTileView");
         await TakeScreenshot("mobile_search_interface");
 
@@ -147,7 +147,7 @@ public class MobileUITests : BaseTest
     public async Task Mobile_Navigation_HamburgerMenu()
     {
         // Arrange - Mobile viewport
-        await Page.SetViewportSizeAsync(new ViewportSize { Width = 375, Height = 667 });
+        await Page.SetViewportSizeAsync(375, 667);
         await LoginAsRole("Admin");
         await NavigateToPage("/");
         await TakeScreenshot("mobile_navigation_initial");
@@ -202,7 +202,7 @@ public class MobileUITests : BaseTest
     public async Task Mobile_CertificateDetails_TouchInteractions()
     {
         // Arrange - Mobile viewport
-        await Page.SetViewportSizeAsync(new ViewportSize { Width = 390, Height = 844 });
+        await Page.SetViewportSizeAsync(390, 844);
         await NavigateToPage("/Certificate/CertificateTileView");
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await TakeScreenshot("mobile_certificate_tiles");
@@ -260,7 +260,7 @@ public class MobileUITests : BaseTest
     public async Task Mobile_InfiniteScroll_TouchScrolling()
     {
         // Arrange - Mobile viewport
-        await Page.SetViewportSizeAsync(new ViewportSize { Width = 375, Height = 667 });
+        await Page.SetViewportSizeAsync(375, 667);
         await NavigateToPage("/Certificate/CertificateTileView");
         await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await TakeScreenshot("mobile_infinite_scroll_initial");
@@ -272,7 +272,7 @@ public class MobileUITests : BaseTest
         if (initialCount > 0)
         {
             // Simulate touch scroll (swipe up)
-            var viewport = await Page.ViewportSizeAsync();
+            var viewport = Page.ViewportSize;
             if (viewport != null)
             {
                 var startY = viewport.Height - 100;
@@ -313,7 +313,7 @@ public class MobileUITests : BaseTest
     public async Task Mobile_FormElements_TouchFriendly()
     {
         // Arrange - Mobile viewport
-        await Page.SetViewportSizeAsync(new ViewportSize { Width = 375, Height = 667 });
+        await Page.SetViewportSizeAsync(375, 667);
         await NavigateToPage("/Account/Login");
         await TakeScreenshot("mobile_login_form");
 
@@ -365,7 +365,7 @@ public class MobileUITests : BaseTest
     public async Task Mobile_TextReadability_AppropriateSize()
     {
         // Arrange - Mobile viewport
-        await Page.SetViewportSizeAsync(new ViewportSize { Width = 375, Height = 667 });
+        await Page.SetViewportSizeAsync(375, 667);
         await NavigateToPage("/");
         await TakeScreenshot("mobile_text_readability");
 
@@ -418,7 +418,7 @@ public class MobileUITests : BaseTest
         foreach (var viewport in viewports)
         {
             // Arrange
-            await Page.SetViewportSizeAsync(new ViewportSize { Width = viewport.Width, Height = viewport.Height });
+            await Page.SetViewportSizeAsync(viewport.Width, viewport.Height);
             await NavigateToPage("/Certificate/CertificateTileView");
             await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
             await TakeScreenshot($"mobile_{viewport.Name.ToLower().Replace(" ", "_")}");
@@ -448,6 +448,6 @@ public class MobileUITests : BaseTest
     public async Task MobileTestTeardown()
     {
         // Reset to desktop viewport for other tests
-        await Page.SetViewportSizeAsync(new ViewportSize { Width = 1280, Height = 720 });
+        await Page.SetViewportSizeAsync(1280, 720);
     }
 }

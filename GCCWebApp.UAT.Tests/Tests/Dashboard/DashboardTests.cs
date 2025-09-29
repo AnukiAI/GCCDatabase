@@ -287,7 +287,7 @@ public class DashboardTests : BaseTest
     public async Task Dashboard_ResponsiveDesign_DisplaysProperlyOnMobile()
     {
         // Arrange - Set mobile viewport
-        await Page.SetViewportSizeAsync(new ViewportSize { Width = 375, Height = 667 });
+        await Page.SetViewportSizeAsync(375, 667);
         await LoginAsRole("Admin");
         await NavigateToPage("/Dashboard");
         await TakeScreenshot("dashboard_mobile_view");
@@ -304,7 +304,7 @@ public class DashboardTests : BaseTest
             "Dashboard should not have significant horizontal overflow on mobile");
 
         // Reset to desktop viewport
-        await Page.SetViewportSizeAsync(new ViewportSize { Width = 1280, Height = 720 });
+        await Page.SetViewportSizeAsync(1280, 720);
         await TakeScreenshot("dashboard_desktop_view_restored");
     }
 

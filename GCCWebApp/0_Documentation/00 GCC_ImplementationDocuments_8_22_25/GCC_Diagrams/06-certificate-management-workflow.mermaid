@@ -1,0 +1,33 @@
+flowchart TD
+    A[Certificate Request] --> B{User Role Check}
+    
+    B -->|Admin/Analyst| C[Full Certificate Management]
+    B -->|External| D[Limited Certificate View]
+    B -->|Public| E[Public Certificate View]
+    
+    C --> F[Create/Edit Certificate]
+    F --> G[Enter Basic Information]
+    G --> H[Select/Create Company]
+    H --> I[Select/Create Product]
+    I --> J[Add Certificate Details]
+    J --> K[Upload Documents]
+    K --> L[Set Permissions]
+    L --> M[Save Certificate]
+    
+    M --> N{Validation}
+    N -->|Pass| O[Certificate Saved]
+    N -->|Fail| P[Show Errors]
+    P --> G
+    
+    D --> Q[View Assigned Certificates]
+    Q --> R[Search/Filter]
+    R --> S[View Details]
+    S --> T[Download Public Docs]
+    
+    E --> U[Browse Public Certificates]
+    U --> V[Basic Search]
+    V --> W[View Public Info]
+    
+    style C fill:#e8f5e8
+    style D fill:#fff3e0
+    style E fill:#fce4ec

@@ -1,0 +1,340 @@
+name: Docker Build and Push
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - develop
+      - 'release/**'
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - master
+      - develop
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to build'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - test
+          - prod
+      push_to_registry:
+        description: 'Push to registry'
+        required: true
+        default: 'false'
+        type: boolean
+
+env:
+  DOCKER_REGISTRY: docker.io  # Change to your registry
+  DOCKER_IMAGE_NAME: gcc-webapp
+  DOTNET_VERSION: '8.0'
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+      
+    outputs:
+      image-tag: ${{ steps.meta.outputs.tags }}
+      image-digest: ${{ steps.build.outputs.digest }}
+      
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64
+
+      - name: Log in to Docker Hub
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Log in to GitHub Container Registry
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine Environment
+        id: env
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "environment=${{ github.event.inputs.environment }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/main" ]] || [[ "${{ github.ref }}" == "refs/heads/master" ]]; then
+            echo "environment=prod" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == "refs/heads/develop" ]]; then
+            echo "environment=test" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.ref }}" == refs/heads/release/* ]]; then
+            echo "environment=staging" >> $GITHUB_OUTPUT
+          else
+            echo "environment=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ env.DOCKER_REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.DOCKER_IMAGE_NAME }}
+            ghcr.io/${{ github.repository_owner }}/${{ env.DOCKER_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=${{ steps.env.outputs.environment }}-latest
+            type=raw,value=${{ steps.env.outputs.environment }}-{{sha}}
+            type=raw,value={{date 'YYYYMMDD'}}-{{sha}}
+          labels: |
+            org.opencontainers.image.title=GCC Web Application
+            org.opencontainers.image.description=Green Circle Certified Web Application
+            org.opencontainers.image.vendor=GCC
+            environment=${{ steps.env.outputs.environment }}
+            
+      - name: Set build args
+        id: buildargs
+        run: |
+          if [[ "${{ steps.env.outputs.environment }}" == "prod" ]]; then
+            echo "build_config=Release" >> $GITHUB_OUTPUT
+            echo "aspnet_env=Production" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.env.outputs.environment }}" == "test" ]]; then
+            echo "build_config=Release" >> $GITHUB_OUTPUT
+            echo "aspnet_env=Test" >> $GITHUB_OUTPUT
+          else
+            echo "build_config=Debug" >> $GITHUB_OUTPUT
+            echo "aspnet_env=Development" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            BUILD_CONFIGURATION=${{ steps.buildargs.outputs.build_config }}
+            ASPNETCORE_ENVIRONMENT=${{ steps.buildargs.outputs.aspnet_env }}
+            BUILD_NUMBER=${{ github.run_number }}
+            GIT_COMMIT=${{ github.sha }}
+            BUILD_DATE=${{ github.event.repository.updated_at }}
+
+      - name: Run Trivy vulnerability scanner
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.meta.outputs.tags }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Upload Trivy results to GitHub Security
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Generate SBOM
+        if: github.event_name != 'pull_request'
+        uses: anchore/sbom-action@v0
+        with:
+          image: ${{ steps.meta.outputs.tags }}
+          format: 'spdx-json'
+          output-file: 'sbom.spdx.json'
+
+      - name: Upload SBOM
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v3
+        with:
+          name: sbom
+          path: sbom.spdx.json
+
+  test:
+    name: Test Docker Image
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name != 'pull_request'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Pull image
+        run: |
+          docker pull ${{ needs.build.outputs.image-tag }}
+
+      - name: Run container tests
+        run: |
+          # Start container
+          docker run -d \
+            --name gcc-test \
+            -p 8080:8080 \
+            -e ASPNETCORE_ENVIRONMENT=Test \
+            ${{ needs.build.outputs.image-tag }}
+          
+          # Wait for container to be ready
+          sleep 10
+          
+          # Health check
+          curl -f http://localhost:8080/health || exit 1
+          
+          # Basic smoke tests
+          curl -f http://localhost:8080 || exit 1
+          
+          # Check logs for errors
+          docker logs gcc-test 2>&1 | grep -i error && exit 1 || true
+          
+          # Stop container
+          docker stop gcc-test
+          docker rm gcc-test
+
+      - name: Run integration tests
+        run: |
+          # Start full stack with docker-compose
+          docker-compose -f docker-compose.test.yml up -d
+          
+          # Wait for services
+          sleep 30
+          
+          # Run tests
+          docker-compose -f docker-compose.test.yml exec -T gccwebapp-test dotnet test
+          
+          # Cleanup
+          docker-compose -f docker-compose.test.yml down
+
+  deploy:
+    name: Deploy to Environment
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop'
+    
+    environment:
+      name: ${{ needs.build.outputs.environment }}
+      url: ${{ steps.deploy.outputs.url }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to Kubernetes
+        id: deploy
+        run: |
+          # This is a placeholder for actual deployment
+          # Replace with your actual deployment commands
+          
+          echo "Deploying ${{ needs.build.outputs.image-tag }} to ${{ needs.build.outputs.environment }}"
+          
+          # Example for Kubernetes deployment
+          # kubectl set image deployment/gcc-webapp gcc-webapp=${{ needs.build.outputs.image-tag }}
+          # kubectl rollout status deployment/gcc-webapp
+          
+          # Example for Docker Swarm
+          # docker service update --image ${{ needs.build.outputs.image-tag }} gcc-webapp
+          
+          # Example for AWS ECS
+          # aws ecs update-service --cluster gcc-cluster --service gcc-service --force-new-deployment
+          
+          # Set output URL based on environment
+          if [[ "${{ needs.build.outputs.environment }}" == "prod" ]]; then
+            echo "url=https://gcc.yourdomain.com" >> $GITHUB_OUTPUT
+          elif [[ "${{ needs.build.outputs.environment }}" == "test" ]]; then
+            echo "url=https://test.gcc.yourdomain.com" >> $GITHUB_OUTPUT
+          else
+            echo "url=https://dev.gcc.yourdomain.com" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify deployment
+        run: |
+          # Wait for deployment
+          sleep 60
+          
+          # Check health endpoint
+          curl -f ${{ steps.deploy.outputs.url }}/health || exit 1
+
+      - name: Create deployment record
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: '${{ needs.build.outputs.environment }}',
+              description: 'Deployed via GitHub Actions',
+              auto_merge: false,
+              required_contexts: [],
+              production_environment: ${{ needs.build.outputs.environment == 'prod' }}
+            });
+
+  notify:
+    name: Send Notifications
+    needs: [build, test, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Send Slack notification
+        if: ${{ secrets.SLACK_WEBHOOK_URL != '' }}
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: |
+            Deployment Status: ${{ job.status }}
+            Environment: ${{ needs.build.outputs.environment }}
+            Image: ${{ needs.build.outputs.image-tag }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+          
+      - name: Send email notification
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: GCC Docker Build Failed - ${{ github.ref }}
+          body: |
+            Build failed for GCC Web Application
+            
+            Repository: ${{ github.repository }}
+            Branch/Tag: ${{ github.ref }}
+            Commit: ${{ github.sha }}
+            Author: ${{ github.actor }}
+            
+            Check the workflow run for details:
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          to: devops@greencirclecertified.com
+          from: GitHub Actions <noreply@github.com>

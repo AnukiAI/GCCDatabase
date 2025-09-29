@@ -1,0 +1,562 @@
+@{
+    ViewData["Title"] = "Role Management";
+    ViewData["BodyClass"] = "admin-role-management";
+}
+
+@* Anti-forgery token for AJAX requests *@
+@Html.AntiForgeryToken()
+
+@section Styles {
+    <style>
+        /* Admin Container */
+        .admin-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-lg);
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-lg);
+            flex-wrap: wrap;
+            gap: 20px;
+            padding: 0;
+        }
+
+        .buttons-area {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            flex-shrink: 0;
+        }
+
+        /* Search and Filter Bar */
+        .search-filter-bar {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-bottom: var(--space-lg);
+            flex-wrap: wrap;
+            background: var(--white);
+            padding: 16px;
+            border-radius: var(--border-radius-md);
+            border: 1px solid var(--border-color);
+        }
+
+        .search-box {
+            position: relative;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 8px 40px 8px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            font-size: 16px;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        /* Table Styling */
+        .table-container {
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-md);
+            overflow: hidden;
+            margin-bottom: var(--space-lg);
+        }
+
+        #role-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #role-table thead {
+            background: var(--light-gray);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        #role-table th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-color);
+            font-size: 16px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        #role-table th:hover {
+            background-color: #f0f0f0;
+        }
+
+        .sort-icon {
+            margin-left: 8px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        #role-table tbody tr {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        #role-table tbody tr:hover {
+            background-color: #f9f9f9;
+        }
+
+        #role-table td {
+            padding: 12px;
+            font-size: 16px;
+            color: var(--text-color);
+        }
+
+        .actions-col {
+            text-align: center;
+            width: 80px;
+        }
+
+        .permissions-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .permission-badge {
+            background: var(--blue-light);
+            color: var(--blue-dark);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .permission-more {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-style: italic;
+        }
+
+        .no-permissions {
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .badge-system {
+            background: var(--warning-color);
+            color: var(--white);
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+        }
+
+        .btn-icon {
+            padding: 6px;
+            border: none;
+            background: transparent;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn-icon:hover {
+            background: var(--light-gray);
+        }
+
+        .btn-delete:hover {
+            background: var(--danger-light);
+            color: var(--danger-color);
+        }
+
+        /* Footer Info */
+        .footer-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            color: var(--text-secondary);
+            font-size: 16px;
+        }
+
+        /* Modal Styling */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .modal-overlay {
+            background-color: rgba(0, 40, 118, 0.7);
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        .modal-content {
+            background-color: var(--white);
+            margin: 5% auto;
+            padding: 0;
+            border-radius: var(--border-radius-md);
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+            box-shadow: var(--shadow-strong);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            margin: 0;
+            color: var(--blue-dark);
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            font-size: 24px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 5px;
+            border: none;
+            background: none;
+        }
+
+        .modal-close:hover {
+            color: var(--text-color);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Form Styling */
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: var(--text-color);
+            font-size: 16px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            font-size: 16px;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--blue-primary);
+            box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+        }
+
+        .permissions-container {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            padding: 12px;
+        }
+
+        .permission-checkbox {
+            display: block;
+            padding: 8px 0;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .permission-checkbox:last-child {
+            border-bottom: none;
+        }
+
+        .permission-checkbox input {
+            width: auto;
+            margin-right: 8px;
+        }
+
+        .permission-checkbox small {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 14px;
+            margin-left: 24px;
+        }
+
+        .btn-primary {
+            background-color: var(--blue-primary);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #0095d8;
+        }
+
+        .btn-cancel {
+            background-color: #f8f9fa;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-cancel:hover {
+            background-color: #e2e6ea;
+        }
+
+        /* Loading and No Data */
+        .loading, .no-data {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+
+        .no-data-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .no-data-message i {
+            font-size: 48px;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid var(--blue-primary);
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: var(--border-radius-sm);
+            box-shadow: var(--shadow-md);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .notification-error {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        .notification-info {
+            background: var(--blue-primary);
+            color: white;
+        }
+
+        /* Responsive Design */
+        @@media (max-width: 1024px) {
+            .admin-container {
+                padding: var(--space-md);
+            }
+
+            .buttons-area {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .search-filter-bar {
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .search-box {
+                min-width: auto;
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .admin-container {
+                padding: var(--space-sm);
+            }
+
+            .admin-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 16px;
+            }
+
+            .buttons-area {
+                flex-direction: column;
+                gap: 8px;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            /* Hide less important columns on mobile */
+            #role-table th:nth-child(2),
+            #role-table td:nth-child(2),
+            #role-table th:nth-child(4),
+            #role-table td:nth-child(4) {
+                display: none;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 10% auto;
+            }
+        }
+
+        @@media (max-width: 480px) {
+            .modal-content {
+                width: 98%;
+                margin: 15% auto;
+            }
+
+            .modal-header,
+            .modal-body,
+            .modal-footer {
+                padding: 16px;
+            }
+
+            .modal-footer {
+                flex-direction: column;
+            }
+
+            .modal-footer .btn {
+                width: 100%;
+            }
+        }
+
+        /* System role indicators */
+        .system-role-note {
+            font-size: 11px;
+            color: var(--warning-color);
+            font-style: italic;
+            margin-left: 8px;
+        }
+    </style>
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Role Management</a>
+    </span>
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="buttons-area">
+            <button id="export-btn" class="btn">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button id="add-role-btn" class="btn btn-add">
+                <i class="fas fa-plus"></i> Add New Role
+            </button>
+        </div>
+    </header>
+
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search roles...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table id="role-table">
+            <thead>
+                <tr>
+                    <th width="20%" data-sort="name">Role Name <span class="sort-icon">▼</span></th>
+                    <th width="30%" data-sort="description">Description <span class="sort-icon">▼</span></th>
+                    <th width="35%">Permissions</th>
+                    <th width="10%" data-sort="users">Users <span class="sort-icon">▼</span></th>
+                    <th width="5%">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-info">
+        <span id="role-count">Showing 0 roles</span>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/roleManagement.js"></script>
+}

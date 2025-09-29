@@ -1,0 +1,319 @@
+@model List<GCCWebApp.Models.CertificateProductId>
+
+@{
+    var certificateId = ViewData["CertificateId"] as int? ?? 0;
+    var isReadOnly = ViewData["IsReadOnly"] as bool? ?? false;
+}
+
+<div class="product-id-manager" data-certificate-id="@certificateId">
+    <div class="product-manager-header">
+        <h3 class="product-manager-title">
+            <i class="fas fa-barcode me-2"></i>
+            Product ID Manager
+            <span class="product-count badge bg-primary ms-2" id="productIdCount">@Model?.Count</span>
+        </h3>
+
+        @if (!isReadOnly)
+        {
+            <div class="product-manager-actions">
+                <div class="btn-group me-2" role="group">
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="importProductIds">
+                        <i class="fas fa-upload me-1"></i>Import
+                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="exportProductIds">
+                        <i class="fas fa-download me-1"></i>Export
+                    </button>
+                </div>
+
+                <button type="button" class="btn btn-success btn-sm" id="addProductId">
+                    <i class="fas fa-plus me-1"></i>Add Product ID
+                </button>
+            </div>
+        }
+    </div>
+
+    <!-- Filter Section -->
+    <div class="product-manager-filters mb-3">
+        <div class="row g-2">
+            <div class="col-md-3">
+                <select class="form-select form-select-sm" id="filterByType">
+                    <option value="">All Types</option>
+                    <option value="ASIN">ASIN</option>
+                    <option value="UPC">UPC</option>
+                    <option value="GTIN">GTIN</option>
+                    <option value="EAN">EAN</option>
+                    <option value="ISBN">ISBN</option>
+                    <option value="SKU">SKU</option>
+                    <option value="MPN">MPN</option>
+                    <option value="OTHER">Other</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select form-select-sm" id="filterByStatus">
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                    <option value="Pending">Pending</option>
+                    <option value="Expired">Expired</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select class="form-select form-select-sm" id="filterByPartner">
+                    <option value="">All Partners</option>
+                    <option value="Amazon">Amazon</option>
+                    <option value="Wayfair">Wayfair</option>
+                    <option value="None">None</option>
+                    <option value="Other">Other</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <input type="text" class="form-control form-control-sm" id="searchProductIds" placeholder="Search product IDs...">
+            </div>
+        </div>
+    </div>
+
+    <!-- Product IDs Table -->
+    <div class="product-ids-table-container">
+        <table class="table table-sm table-hover" id="productIdsTable">
+            <thead class="table-light">
+                <tr>
+                    <th width="80">Type</th>
+                    <th width="120">Product ID</th>
+                    <th width="150">Product Name</th>
+                    <th width="100">SKU</th>
+                    <th width="80">Status</th>
+                    <th width="100">Partner</th>
+                    <th width="100">Created</th>
+                    <th width="100">Created By</th>
+                    @if (!isReadOnly)
+                    {
+                        <th width="80">Actions</th>
+                    }
+                </tr>
+            </thead>
+            <tbody id="productIdsTableBody">
+                @if (Model != null && Model.Any())
+                {
+                    @foreach (var productId in Model)
+                    {
+                        <tr data-product-id="@productId.Id">
+                            <td>
+                                <span class="product-type-badge product-type-@productId.ProductIdType.ToLower()">
+                                    @productId.ProductIdType
+                                </span>
+                            </td>
+                            <td class="product-id-value" title="@productId.ProductIdValue">
+                                @productId.ProductIdValue
+                            </td>
+                            <td class="product-name" title="@productId.ProductName">
+                                @(productId.ProductName ?? "-")
+                            </td>
+                            <td class="product-sku" title="@productId.ProductSku">
+                                @(productId.ProductSku ?? "-")
+                            </td>
+                            <td>
+                                <span class="status-badge status-@productId.Status.ToLower()">
+                                    @productId.Status
+                                </span>
+                            </td>
+                            <td>
+                                @if (!string.IsNullOrEmpty(productId.Partner))
+                                {
+                                    <span class="partner-badge partner-@productId.Partner.ToLower()">
+                                        @productId.Partner
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">-</span>
+                                }
+                            </td>
+                            <td class="created-date" title="@productId.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")">
+                                @productId.CreatedAt.ToString("yyyy-MM-dd")
+                            </td>
+                            <td class="created-by" title="@productId.CreatedByUser?.Username">
+                                @(productId.CreatedByUser?.Username ?? "System")
+                            </td>
+                            @if (!isReadOnly)
+                            {
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <button type="button" class="btn btn-outline-primary btn-edit-product-id"
+                                                data-product-id="@productId.Id"
+                                                title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-outline-danger btn-delete-product-id"
+                                                data-product-id="@productId.Id"
+                                                title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            }
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr id="noProductIdsRow">
+                        <td colspan="@(isReadOnly ? 8 : 9)" class="text-center text-muted py-4">
+                            <i class="fas fa-barcode fa-2x mb-2 d-block text-muted"></i>
+                            No product IDs added yet.
+                            @if (!isReadOnly)
+                            {
+                                <br><small>Click "Add Product ID" to get started.</small>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Info -->
+    <div class="pagination-info text-center text-muted mt-2" id="paginationInfo">
+        @if (Model != null && Model.Any())
+        {
+            <small>Showing @Model.Count product ID(s)</small>
+        }
+    </div>
+</div>
+
+<!-- Add/Edit Product ID Modal -->
+@if (!isReadOnly)
+{
+    <div class="modal fade" id="productIdModal" tabindex="-1" aria-labelledby="productIdModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="productIdModalLabel">Add Product ID</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form id="productIdForm">
+                    <div class="modal-body">
+                        <input type="hidden" id="productIdId" name="Id" value="0">
+                        <input type="hidden" id="certificateId" name="CertificateId" value="@certificateId">
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="productIdType" class="form-label">Type <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="productIdType" name="ProductIdType" required>
+                                        <option value="">Select Type</option>
+                                        <option value="ASIN">ASIN - Amazon Standard ID</option>
+                                        <option value="UPC">UPC - Universal Product Code</option>
+                                        <option value="GTIN">GTIN - Global Trade Item Number</option>
+                                        <option value="EAN">EAN - European Article Number</option>
+                                        <option value="ISBN">ISBN - Book Identifier</option>
+                                        <option value="SKU">SKU - Stock Keeping Unit</option>
+                                        <option value="MPN">MPN - Manufacturer Part Number</option>
+                                        <option value="OTHER">Other</option>
+                                    </select>
+                                    <div class="form-text" id="typeHelp">Format requirements will be shown here</div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="productIdValue" class="form-label">Product ID <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="productIdValue" name="ProductIdValue" required>
+                                    <div class="invalid-feedback" id="valueValidation"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="productIdStatus" class="form-label">Status</label>
+                                    <select class="form-select" id="productIdStatus" name="Status">
+                                        <option value="Active">Active</option>
+                                        <option value="Inactive">Inactive</option>
+                                        <option value="Pending">Pending</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="productIdPartner" class="form-label">Partner</label>
+                                    <select class="form-select" id="productIdPartner" name="Partner">
+                                        <option value="">None</option>
+                                        <option value="Amazon">Amazon</option>
+                                        <option value="Wayfair">Wayfair</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="productName" class="form-label">Product Name</label>
+                            <input type="text" class="form-control" id="productName" name="ProductName" placeholder="Optional product name">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="productSku" class="form-label">SKU</label>
+                            <input type="text" class="form-control" id="productSku" name="ProductSku" placeholder="Optional SKU">
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="productDescription" class="form-label">Description</label>
+                            <textarea class="form-control" id="productDescription" name="Description" rows="2" placeholder="Optional description or notes"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary" id="saveProductId">Save Product ID</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">Import Product IDs</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>CSV Format:</strong> Type, Value, Status, Partner, ProductName, ProductSku, Description<br>
+                        <small>Only Type and Value are required. Download a sample CSV to see the format.</small>
+                    </div>
+
+                    <form id="importForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="importFile" class="form-label">Choose CSV File</label>
+                            <input type="file" class="form-control" id="importFile" name="ImportFile" accept=".csv" required>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="overwriteExisting" name="OverwriteExisting">
+                            <label class="form-check-label" for="overwriteExisting">
+                                Overwrite existing product IDs with same type and value
+                            </label>
+                        </div>
+                    </form>
+
+                    <div id="importResults" class="mt-3" style="display: none;">
+                        <h6>Import Results:</h6>
+                        <div class="progress mb-2">
+                            <div class="progress-bar" id="importProgress" role="progressbar" style="width: 0%" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div id="importSummary"></div>
+                        <div id="importErrors" class="mt-2"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" id="downloadSample">Download Sample</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" id="startImport">Import</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

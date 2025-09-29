@@ -1,0 +1,78 @@
+﻿flowchart TD
+    %% External Systems
+    Amazon["🛒 Amazon Marketplace"]
+    GCC["✅ GreenCircle Certification System"]
+
+    %% Authentication Flow
+    subgraph "🔑 Authentication Flow"
+        A1["1️⃣ Client Credentials Request"]
+        A2["2️⃣ Token Validation"]
+        A3["3️⃣ JWT Token Issued"]
+    end
+
+    %% Certificate Data Flow
+    subgraph "📜 Certificate Data Flow"
+        C1["5️⃣ Request Certificates"]
+        C2["6️⃣ Retrieve Data from DB"]
+        C3["7️⃣ Transform & Format"]
+        C4["8️⃣ Response Generation"]
+    end
+
+    %% Status Update Flow
+    subgraph "🔄 Status Update Flow"
+        S1["9️⃣ Status Update Request"]
+        S2["🔍 Validate Request"]
+        S3["🔄 Change Status"]
+        S4["✅ Confirm Update"]
+    end
+
+    %% Database Operations
+    subgraph "💾 Database Operations"
+        D1["📊 Query Certificates"]
+        D2["🎯 Filter by Status"]
+        D3["📆 Filter by Date"]
+        D4["🔗 Process Product IDs"]
+    end
+
+    %% Authentication Flow Interactions
+    Amazon -->|"🔑 1. Request Access Token"| A1
+    A1 -->|"🛡️ 2. Validate Credentials"| A2
+    A2 -->|"🔐 3. Generate JWT"| A3
+    A3 -->|"📨 4. Return Token"| Amazon
+
+    %% Certificate Data Flow Interactions
+    Amazon -->|"📄 5. Fetch Certificate Data"| C1
+    C1 -->|"📂 6. Retrieve Data"| C2
+    C2 -->|"🔎 7. Query Database"| D1
+    D1 -->|"✅ 8. Apply Status Filter"| D2
+    D2 -->|"📆 9. Apply Date Filter"| D3
+    D3 -->|"🔢 10. Extract Product IDs"| D4
+    D4 -->|"📦 11. Return Processed Data"| C2
+    C2 -->|"🛠️ 12. Transform Data"| C3
+    C3 -->|"📝 13. Format as JSON"| C4
+    C4 -->|"📨 14. Send Response"| Amazon
+
+    %% Status Update Flow Interactions
+    Amazon -->|"🔄 15. Submit Status Update"| S1
+    S1 -->|"🔍 16. Validate Request"| S2
+    S2 -->|"🔁 17. Update Certification Status"| S3
+    S3 -->|"✅ 18. Confirm Change"| S4
+    S4 -->|"📨 19. Return Confirmation"| Amazon
+
+    %% Database & External Systems
+    GCC -->|"🔄 Manages Data"| D1
+
+    %% Styling Enhancements
+    classDef amazon fill:#FF9900,stroke:#FF9900,color:white;
+    classDef gcc fill:#00A86B,stroke:#00A86B,color:white;
+    classDef auth fill:#1E88E5,stroke:#1E88E5,color:white;
+    classDef cert fill:#43A047,stroke:#43A047,color:white;
+    classDef status fill:#E53935,stroke:#E53935,color:white;
+    classDef db fill:#8E24AA,stroke:#8E24AA,color:white;
+
+    class Amazon amazon;
+    class GCC gcc;
+    class A1,A2,A3 auth;
+    class C1,C2,C3,C4 cert;
+    class S1,S2,S3,S4 status;
+    class D1,D2,D3,D4 db;

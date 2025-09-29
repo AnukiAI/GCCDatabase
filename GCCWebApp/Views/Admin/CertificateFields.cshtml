@@ -1,0 +1,77 @@
+@{
+    ViewData["Title"] = "Certificate Field Management";
+    ViewData["BodyClass"] = "admin-certificate-fields";
+}
+
+@Html.AntiForgeryToken()
+
+@section Styles {
+    <link href="~/css/certificate-fields.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Data Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Certificate Fields</a>
+    </span>
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="buttons-area">
+            <button class="btn btn-export" id="export-btn">
+                <i class="fas fa-download"></i> Export
+            </button>
+            <button class="btn btn-add" id="add-field-btn">
+                <i class="fas fa-plus"></i> + Add New Field
+            </button>
+        </div>
+    </header>
+
+    <div class="search-filter-bar">
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search fields...">
+            <i class="fas fa-search search-icon"></i>
+        </div>
+    </div>
+
+
+    <div class="table-container">
+        <table id="certificate-fields-table">
+            <thead>
+                <tr>
+                    <th width="15%">Section <span class="info-icon">i</span></th>
+                    <th width="18%">Field Name <span class="info-icon">i</span></th>
+                    <th width="12%">Control Type <span class="info-icon">i</span></th>
+                    <th width="12%">Required <span class="info-icon">i</span></th>
+                    <th width="33%">Notes <span class="info-icon">i</span></th>
+                    <th width="10%">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="fields-table-body">
+                <!-- Fields will be populated by JavaScript -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer-info">
+        <span id="field-count">Showing 0 of 0 fields</span>
+        <div>
+            <button class="btn btn-outline" id="show-more-btn" style="display: none;">
+                <i class="fas fa-chevron-down"></i> Show More
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+@section Scripts {
+    <script src="~/js/admin/exportUtils.js"></script>
+    <script src="~/js/admin/certificate-fields.js"></script>
+}

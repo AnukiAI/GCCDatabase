@@ -1,0 +1,934 @@
+
+/* Infinite scroll loading and end states */
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    grid-column: 1 / -1; /* Span all grid columns */
+}
+
+.loading-spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    font-size: 16px;
+    color: var(--text-color);
+}
+
+.loading-spinner i {
+    font-size: 32px;
+    color: var(--primary-color);
+    animation: spin 1s linear infinite;
+}
+
+.end-of-results {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    grid-column: 1 / -1; /* Span all grid columns */
+}
+
+.end-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    font-size: 16px;
+    color: var(--text-muted);
+    text-align: center;
+}
+
+.end-message i {
+    font-size: 32px;
+    color: var(--success);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Certificates grid loading state */
+.certificates-grid.loading {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+/* Search bar in sidebar */
+.sidebar .search-bar {
+    position: relative;
+    margin-bottom: 20px;
+    padding-top: 10px;
+    width: 100%;
+}
+
+/* Search input styles now handled by main.css unified styles */
+
+/* Search input focus styles now handled by main.css unified styles */
+
+/* Search icon styles now handled by main.css unified styles */
+
+/* Sort controls in main content */
+.sort-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.sort-label {
+    font-size: 16px;
+    font-weight: 500;
+    white-space: nowrap;
+    color: var(--text-color);
+}
+
+.sort-dropdown {
+    position: relative;
+}
+
+.sort-dropdown-button {
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    padding: 8px 15px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+    font-family: inherit;
+    transition: var(--transition);
+    min-width: 200px;
+    justify-content: space-between;
+}
+
+    .sort-dropdown-button:hover {
+        border-color: var(--blue-primary);
+    }
+
+.sort-dropdown-content {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 100%;
+    background-color: var(--white);
+    min-width: 250px;
+    box-shadow: var(--shadow);
+    z-index: 100;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    margin-top: 4px;
+}
+
+.sort-dropdown.open .sort-dropdown-content {
+    display: block;
+}
+
+.sort-option {
+    display: flex;
+    align-items: center;
+    padding: 12px 15px;
+    text-decoration: none;
+    color: var(--text-color);
+    border-bottom: 1px solid var(--light-gray);
+    transition: var(--transition);
+    cursor: pointer;
+    font-size: 16px;
+}
+
+    .sort-option:hover {
+        background-color: rgba(0, 174, 239, 0.08);
+        color: var(--blue-primary);
+    }
+
+    .sort-option:last-child {
+        border-bottom: none;
+        border-radius: 0 0 6px 6px;
+    }
+
+    .sort-option i {
+        margin-right: 10px;
+        width: 16px;
+        text-align: center;
+        color: var(--blue-primary);
+    }
+
+/* Main Layout */
+.main-container {
+    display: flex;
+    max-width: 1400px;
+    margin: 0 auto;
+    background-color: var(--white);
+    min-height: calc(100vh - 200px);
+}
+
+/* Sidebar */
+.sidebar {
+    width: 300px;
+    background-color: var(--white);
+    border-right: 1px solid var(--border-color);
+    padding: 20px;
+    flex-shrink: 0;
+}
+.filters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.filters-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--blue-dark);
+}
+
+.filter-panel {
+    margin-bottom: 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.filter-header {
+    padding: 12px 15px;
+    background-color: var(--light-gray);
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 16px;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+    .filter-header:hover {
+        background-color: rgba(0, 174, 239, 0.08);
+    }
+
+.filter-content {
+    padding: 12px;
+    border-top: 1px solid var(--border-color);
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.filter-tree {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.filter-item {
+    margin-bottom: 1px !important; /* Reduced padding between items */
+    font-size: 16px;
+    padding: 1px 0 !important; /* Minimal vertical padding */
+    line-height: 1.2 !important;
+}
+
+    .filter-item label {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        transition: var(--transition);
+        padding: 1px 0 !important; /* Minimal padding for tight spacing */
+        margin: 0 !important; /* Override any external label margins */
+        line-height: 1.2 !important;
+    }
+
+        .filter-item label:hover {
+            color: var(--blue-primary);
+        }
+
+    .filter-item input[type="checkbox"] {
+        margin: 0 4px 0 0 !important; /* Override all other checkbox margins */
+        padding: 0 !important;
+        accent-color: var(--blue-primary);
+        vertical-align: top !important;
+        line-height: 1 !important;
+    }
+
+.filter-level-1 {
+    margin-left: 0;
+}
+
+.filter-level-2 {
+    margin-left: 20px;
+}
+
+.filter-level-3 {
+    margin-left: 40px;
+}
+
+/* Main Content 
+.main-content {
+    flex: 1;
+    padding: 20px;
+}
+*/
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-top: 20px;
+}
+
+
+.results-count {
+    font-size: 18px;
+    font-weight: 500;
+    color: var(--blue-dark);
+}
+
+.results-actions {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.results-actions .btn {
+    font-size: 16px;
+    white-space: nowrap;
+}
+
+/* Certificate Grid - FIXED */
+.certificates-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+    width: 100%;
+}
+
+.certificate-card {
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    transition: var(--transition);
+    width: 100%;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+}
+
+    .certificate-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    }
+
+/* Card Body - Ensure consistent spacing */
+.card-body {
+    padding: 15px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Card Actions - Download and View Details Icons */
+.card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 15px;
+    border-top: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.02);
+    margin-top: auto;
+}
+
+.action-icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--text-color);
+}
+
+.action-icon:hover {
+    background-color: var(--blue-primary);
+    border-color: var(--blue-primary);
+    color: var(--white);
+    transform: scale(1.05);
+}
+
+.action-icon.download:hover {
+    background-color: var(--green-primary);
+    border-color: var(--green-primary);
+}
+
+.action-icon i {
+    font-size: 16px;
+}
+
+.card-header {
+    background-color: var(--blue-dark);
+    color: var(--white);
+    padding: 12px 15px;
+    font-size: 16px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+/*
+.certificate-info {
+    padding: 15px;
+}
+
+
+.certificate-number {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 10px;
+    font-weight: 500;
+}
+
+.company-name {
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--blue-dark);
+    line-height: 1.3;
+}
+
+/* Product name styling for tile view only - NOT SingleCertificateView */
+.certificate-card .product-name {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 15px 0 5px 0;
+    color: var(--text-color);
+    height: 140px; /* Fixed height for consistency across certificate tiles only */
+    display: -webkit-box;
+    -webkit-line-clamp: 5; /* Adjusted for 140px height */
+    -webkit-box-orient: vertical;
+    line-height: 1.5;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding: 10px;
+    box-sizing: border-box;
+}
+
+/* Product type styling for tile view only - NOT SingleCertificateView */
+.certificate-card .product-type {
+    height: 55px; /* Fixed height for consistency across certificate tiles only */
+    display: -webkit-box;
+    -webkit-line-clamp: 3; /* Adjusted for 55px height */
+    -webkit-box-orient: vertical;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin: 5px 0;
+    box-sizing: border-box;
+}
+
+.product-category {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 15px;
+}
+
+.certification-period {
+    margin: 15px 0;
+    font-size: 16px;
+}
+
+    .certification-period strong {
+        color: var(--text-color);
+        display: block;
+        margin-bottom: 4px;
+    }
+
+.certificate-location {
+    font-size: 16px;
+    color: #666;
+    margin-top: 10px;
+}
+
+.certificate-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 12px 15px;
+    border-top: 1px solid var(--border-color);
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.action-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    color: var(--text-color);
+    transition: var(--transition);
+}
+
+    .action-button:hover {
+        background-color: rgba(0, 174, 239, 0.1);
+        color: var(--blue-primary);
+    }
+
+/* View Controls - Toggle Buttons */
+.view-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.view-type-toggle,
+.access-type-toggle {
+    display: flex;
+    background-color: var(--white);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.view-toggle-btn,
+.access-toggle-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    color: var(--text-color);
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.view-toggle-btn {
+    min-width: 40px;
+    justify-content: center;
+}
+
+.access-toggle-btn {
+    padding: 8px 15px;
+}
+
+.view-toggle-btn:hover,
+.access-toggle-btn:hover {
+    background-color: rgba(0, 174, 239, 0.1);
+    color: var(--blue-primary);
+}
+
+.view-toggle-btn.active,
+.access-toggle-btn.active {
+    background-color: var(--blue-primary);
+    color: var(--white);
+}
+
+.view-toggle-btn.active:hover,
+.access-toggle-btn.active:hover {
+    background-color: var(--blue-hover);
+}
+
+.view-toggle-btn i {
+    font-size: 16px;
+}
+
+.access-toggle-btn i {
+    font-size: 14px;
+}
+
+/* Results header layout adjustment */
+.results-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+/* Responsive adjustments for view controls */
+@media (max-width: 768px) {
+    .view-controls {
+        order: -1;
+        width: 100%;
+        justify-content: center;
+        margin-bottom: 10px;
+    }
+    
+    .results-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .sort-controls {
+        justify-content: center;
+    }
+}
+
+/* Table View Styles */
+.certificates-grid.table-view {
+    padding: 0;
+}
+
+.table-container {
+    background: var(--white);
+    border-radius: 8px;
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+}
+
+.certificates-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.certificates-table thead {
+    background-color: var(--light-gray);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.certificates-table th {
+    padding: 16px 12px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--dark-gray);
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-right: 1px solid var(--border-color);
+}
+
+.certificates-table th:last-child {
+    border-right: none;
+}
+
+.certificates-table tbody {
+    background: var(--white);
+}
+
+.certificate-row {
+    border-bottom: 1px solid var(--light-border);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.certificate-row:hover {
+    background-color: var(--hover-color);
+}
+
+.certificate-row:last-child {
+    border-bottom: none;
+}
+
+.certificates-table td {
+    padding: 14px 12px;
+    vertical-align: top;
+    border-right: 1px solid var(--light-border);
+    word-wrap: break-word;
+}
+
+.certificates-table td:last-child {
+    border-right: none;
+}
+
+.cert-number {
+    font-weight: 600;
+    color: var(--blue-primary);
+    font-family: 'Courier New', monospace;
+    font-size: 13px;
+}
+
+.company-name {
+    font-weight: 500;
+    color: var(--text-color);
+    max-width: 200px;
+}
+
+.product-name {
+    color: var(--text-muted);
+    max-width: 180px;
+}
+
+.cert-type {
+    font-size: 12px;
+    color: var(--text-color);
+    max-width: 140px;
+}
+
+.effective-date,
+.expiration-date {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.location {
+    color: var(--text-muted);
+    font-size: 12px;
+    max-width: 150px;
+}
+
+.partner .partner-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.partner .partner-badge.external {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.partner .partner-badge.internal {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+
+.btn-icon {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 4px;
+    color: var(--text-muted);
+    transition: all 0.2s ease;
+    font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+}
+
+.btn-icon:hover {
+    background-color: var(--hover-color);
+    color: var(--blue-primary);
+    transform: scale(1.1);
+}
+
+.btn-icon:active {
+    transform: scale(0.95);
+}
+
+/* Hide tile view styles when in table mode */
+.certificates-grid.table-view .certificate-card {
+    display: none;
+}
+
+/* Responsive table design */
+@media (max-width: 1024px) {
+    .certificates-table th,
+    .certificates-table td {
+        padding: 10px 8px;
+        font-size: 12px;
+    }
+    
+    .company-name,
+    .product-name,
+    .location {
+        max-width: 120px;
+    }
+}
+
+@media (max-width: 768px) {
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .certificates-table {
+        min-width: 800px;
+    }
+    
+    .certificates-table th,
+    .certificates-table td {
+        padding: 8px 6px;
+        font-size: 11px;
+    }
+    
+    .actions {
+        gap: 4px;
+    }
+    
+    .btn-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+}
+
+/* ====================================================
+   AUTOCOMPLETE DROPDOWN STYLES
+   ====================================================*/
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--white);
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    max-height: 300px;
+    overflow-y: auto;
+    margin-top: -1px;
+}
+
+.autocomplete-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.autocomplete-item {
+    padding: 0;
+    border-bottom: 1px solid var(--light-border);
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.highlighted {
+    background-color: var(--blue-primary);
+    color: var(--off-white);
+}
+
+.suggestion-content {
+    padding: 12px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 16px;
+}
+
+.suggestion-text {
+    font-size: 16px;
+    color: var(--text-color);
+    font-weight: 500;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.suggestion-type {
+    font-size: 14px;
+    color: var(--text-muted);
+    font-weight: 400;
+    background-color: var(--light-gray);
+    padding: 2px 8px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    margin-left: 12px;
+}
+
+/* Type-specific styling */
+.suggestion-type:contains("Company") {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+.suggestion-type:contains("Product") {
+    background-color: #f3e5f5;
+    color: #7b1fa2;
+}
+
+.suggestion-type:contains("Certificate") {
+    background-color: #e8f5e8;
+    color: #388e3c;
+}
+
+.suggestion-type:contains("Certification Type") {
+    background-color: #fff3e0;
+    color: #f57c00;
+}
+
+/* Search bar positioning updates */
+.sidebar .search-bar {
+    position: relative;
+    z-index: 1001;
+}
+
+.search-input:focus + .autocomplete-dropdown {
+    border-color: var(--blue-primary);
+}
+
+/* Mobile responsiveness for autocomplete */
+@media (max-width: 768px) {
+    .autocomplete-dropdown {
+        max-height: 200px;
+        font-size: 15px;
+    }
+
+    .suggestion-content {
+        padding: 10px 12px;
+    }
+
+    .suggestion-text {
+        font-size: 15px;
+    }
+
+    .suggestion-type {
+        font-size: 12px;
+        padding: 1px 6px;
+        margin-left: 8px;
+    }
+}
+
+/* Accessibility improvements */
+.autocomplete-item:focus-visible {
+    outline: 2px solid var(--blue-primary);
+    outline-offset: -2px;
+}
+
+/* Loading state for autocomplete */
+.autocomplete-loading {
+    padding: 12px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+}
+
+.autocomplete-no-results {
+    padding: 12px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-style: italic;
+}

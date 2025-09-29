@@ -1,0 +1,316 @@
+@{
+    ViewData["Title"] = "Welcome to GreenCircle";
+    ViewData["BodyClass"] = "login-page";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - GreenCircle Certified Database</title>
+    <link href="~/css/main.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet" />
+    <style>
+        /* Login-specific styles */
+        .login-page {
+            background: linear-gradient(135deg, #002B76 0%, #00AEEF 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .auth-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+            text-align: center;
+        }
+
+        .welcome-icon {
+            width: 120px;
+            height: 120px;
+            background: linear-gradient(135deg, #92C83E 0%, #447638 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 30px;
+            box-shadow: 0 15px 40px rgba(146, 200, 62, 0.3);
+            animation: welcomePulse 3s infinite;
+        }
+
+        .welcome-icon i {
+            font-size: 60px;
+            color: white;
+        }
+
+        @@keyframes welcomePulse {
+            0%, 100% {
+                transform: scale(1);
+                box-shadow: 0 15px 40px rgba(146, 200, 62, 0.3);
+            }
+            50% {
+                transform: scale(1.05);
+                box-shadow: 0 20px 50px rgba(146, 200, 62, 0.4);
+            }
+        }
+
+        .auth-header h2 {
+            font-size: 36px;
+            font-weight: 700;
+            color: #002B76;
+            margin-bottom: 20px;
+        }
+
+        .auth-content {
+            margin-bottom: 40px;
+        }
+
+        .auth-content p {
+            color: #6b7280;
+            font-size: 18px;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .welcome-features {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 40px;
+            text-align: left;
+        }
+
+        .welcome-features h3 {
+            color: #002B76;
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .features-list {
+            display: grid;
+            gap: 15px;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #92C83E;
+        }
+
+        .feature-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #92C83E 0%, #7bb82e 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .feature-text h4 {
+            color: #002B76;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 5px 0;
+        }
+
+        .feature-text p {
+            color: #6b7280;
+            font-size: 14px;
+            margin: 0;
+            line-height: 1.4;
+        }
+
+        .btn-primary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            background: linear-gradient(135deg, #92C83E 0%, #7bb82e 100%);
+            color: white;
+            text-decoration: none;
+            padding: 18px 40px;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            margin-bottom: 20px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 35px rgba(146, 200, 62, 0.4);
+            text-decoration: none;
+            color: white;
+        }
+
+        .btn-primary:active {
+            transform: translateY(-1px);
+        }
+
+        .countdown-section {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .countdown-section p {
+            font-size: 14px;
+            color: #6b7280;
+            margin-bottom: 10px;
+        }
+
+        .countdown {
+            font-size: 24px;
+            font-weight: 700;
+            color: #002B76;
+        }
+
+
+        @@media (max-width: 480px) {
+            .auth-container {
+                padding: 30px 20px;
+            }
+
+            .auth-header h2 {
+                font-size: 30px;
+            }
+
+            .welcome-icon {
+                width: 100px;
+                height: 100px;
+            }
+
+            .welcome-icon i {
+                font-size: 48px;
+            }
+
+            .welcome-features {
+                padding: 20px;
+            }
+
+            .countdown {
+                font-size: 20px;
+            }
+        }
+
+        /* Reset default styles */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+
+
+    </style>
+</head>
+<body class="login-page">
+    <div class="auth-container">
+        <div class="welcome-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+
+        <div class="auth-header">
+            <h2>Welcome to GreenCircle!</h2>
+        </div>
+
+        <div class="auth-content">
+            <p>Your account has been successfully created and verified. You now have access to the GreenCircle Certified Database.</p>
+        </div>
+
+        <div class="welcome-features">
+            <h3>What you can do now:</h3>
+            <div class="features-list">
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <div class="feature-text">
+                        <h4>Search Certifications</h4>
+                        <p>Browse and search through our comprehensive database of sustainability certifications</p>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-certificate"></i>
+                    </div>
+                    <div class="feature-text">
+                        <h4>View Detailed Reports</h4>
+                        <p>Access detailed certification reports and sustainability metrics</p>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-download"></i>
+                    </div>
+                    <div class="feature-text">
+                        <h4>Export Data</h4>
+                        <p>Download certification data and reports for your analysis</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <a href="@Url.Action("Index", "Home")" class="btn-primary">
+            <i class="fas fa-rocket"></i>
+            Get Started
+        </a>
+
+        <div class="countdown-section">
+            <p>Redirecting you to the dashboard in:</p>
+            <div class="countdown" id="countdown">5</div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            let countdown = 5;
+            const countdownElement = document.getElementById('countdown');
+            
+            const timer = setInterval(function() {
+                countdown--;
+                countdownElement.textContent = countdown;
+                
+                if (countdown <= 0) {
+                    clearInterval(timer);
+                    window.location.href = '@Url.Action("Index", "Home")';
+                }
+            }, 1000);
+            
+            // Allow users to cancel auto-redirect by clicking the Get Started button
+            document.querySelector('.btn-primary').addEventListener('click', function() {
+                clearInterval(timer);
+            });
+        });
+    </script>
+</body>
+</html>

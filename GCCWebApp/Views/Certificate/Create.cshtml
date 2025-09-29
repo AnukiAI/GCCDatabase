@@ -1,0 +1,537 @@
+@model GCCWebApp.Models.CertificateEditViewModel
+
+@{
+    ViewData["Title"] = "Create Certificate";
+    ViewData["BodyClass"] = "role-admin";
+}
+
+@section Styles {
+    <link href="~/css/certificates.css" rel="stylesheet" />
+    <link href="~/css/product-id-manager.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-analyst-show role-admin-show">
+        <a href="/">Home</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a asp-controller="Certificate" asp-action="CertificateTileViewInternal">Certificate Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Create Certificate</span>
+    </span>
+}
+
+@section PageActions {
+    <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="btn btn-outline">
+        <i class="fas fa-arrow-left"></i> Back to Management
+    </a>
+}
+
+<div class="certificate-form">
+    <div class="form-container">
+        <div class="form-header">
+            <h2><i class="fas fa-plus-circle"></i> Create New Certificate</h2>
+            <p>Add a new certificate to the GreenCircle Certified database</p>
+        </div>
+
+        <form asp-action="Create" method="post" class="needs-validation" novalidate>
+            <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
+
+            <div class="form-section">
+                <h3>Certificate Information</h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Number" class="form-label"></label>
+                            <input asp-for="Number" class="form-control" placeholder="Enter certificate number" required />
+                            <span asp-validation-for="Number" class="text-danger"></span>
+                            <small class="form-text text-muted">Maximum 7 characters</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Status" class="form-label"></label>
+                            <select asp-for="Status" class="form-control">
+                                <option value="draft">Draft</option>
+                                <option value="application_submitted">Application Submitted</option>
+                                <option value="under_review">Under Review</option>
+                                <option value="technical_review">Technical Review</option>
+                                <option value="compliance_verification">Compliance Verification</option>
+                                <option value="final_approval">Final Approval</option>
+                                <option value="active" selected>Active</option>
+                                <option value="expiring_soon">Expiring Soon</option>
+                                <option value="renewal_in_progress">Renewal In Progress</option>
+                                <option value="expired">Expired</option>
+                                <option value="suspended">Suspended</option>
+                                <option value="archived">Archived</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="client_declined">Client Won't Proceed</option>
+                            </select>
+                            <span asp-validation-for="Status" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Partner" class="form-label"></label>
+                            <select asp-for="Partner" class="form-control">
+                                <option value="None">None</option>
+                                <option value="Amazon">Amazon CPF</option>
+                                <option value="Wayfair">Wayfair</option>
+                            </select>
+                            <span asp-validation-for="Partner" class="text-danger"></span>
+                            <small class="form-text text-muted">Select partner program for this certificate</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="EffectiveDate" class="form-label"></label>
+                            <input asp-for="EffectiveDate" class="form-control" type="date" required />
+                            <span asp-validation-for="EffectiveDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="ExpirationDate" class="form-label"></label>
+                            <input asp-for="ExpirationDate" class="form-control" type="date" required />
+                            <span asp-validation-for="ExpirationDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Associated Records</h3>
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label asp-for="CompanyId" class="form-label"></label>
+                            <select asp-for="CompanyId" class="form-control" required>
+                                <option value="">Select a company...</option>
+                                @if (ViewBag.Companies != null)
+                                {
+                                    @foreach (var company in ViewBag.Companies)
+                                    {
+                                        <option value="@company.Id">@company.Name</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="CompanyId" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label asp-for="ProductId" class="form-label"></label>
+                            <select asp-for="ProductId" class="form-control" required>
+                                <option value="">Select a product...</option>
+                                @if (ViewBag.Products != null)
+                                {
+                                    @foreach (var product in ViewBag.Products)
+                                    {
+                                        <option value="@product.Id">@product.Name</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="ProductId" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label asp-for="CertificationTypeId" class="form-label"></label>
+                            <select asp-for="CertificationTypeId" class="form-control" required>
+                                <option value="">Select certification type...</option>
+                                @if (ViewBag.CertificationTypes != null)
+                                {
+                                    @foreach (var certType in ViewBag.CertificationTypes)
+                                    {
+                                        <option value="@certType.Id">@certType.Name</option>
+                                    }
+                                }
+                            </select>
+                            <span asp-validation-for="CertificationTypeId" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Location Information</h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Location" class="form-label"></label>
+                            <input asp-for="Location" class="form-control" placeholder="Enter location" />
+                            <span asp-validation-for="Location" class="text-danger"></span>
+                            <small class="form-text text-muted">Maximum 175 characters</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Country" class="form-label"></label>
+                            <input asp-for="Country" class="form-control" placeholder="Enter country" />
+                            <span asp-validation-for="Country" class="text-danger"></span>
+                            <small class="form-text text-muted">Maximum 100 characters</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product ID Manager Section -->
+            <div class="form-section">
+                @{
+                    ViewData["CertificateId"] = 0; // New certificate, no ID yet
+                    ViewData["IsReadOnly"] = false;
+                }
+                @await Html.PartialAsync("_ProductIdManager", Model.ProductIds)
+            </div>
+
+            <!-- Product Image Upload Section - from mockup -->
+            <div class="form-section">
+                <h3><i class="fas fa-images"></i> Product Image Upload</h3>
+                <p class="section-description">Upload product images (JPG, PNG, maximum 5MB)</p>
+                
+                <div class="upload-section">
+                    <div class="upload-zone" id="productImageUpload">
+                        <div class="upload-placeholder">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <div class="upload-text">
+                                <strong>Drag and drop images here</strong> or <a href="#" class="upload-link">click to select</a>
+                            </div>
+                            <small class="text-muted">Supported formats: JPG, PNG (max 5MB each)</small>
+                        </div>
+                        <input type="file" id="productImages" name="productImages" multiple accept="image/jpeg,image/png" style="display: none;" />
+                    </div>
+                    <div id="imagePreviewContainer" class="image-preview-container"></div>
+                </div>
+            </div>
+
+            <!-- Tag Management Section - from mockup -->
+            <div class="form-section">
+                <h3><i class="fas fa-tags"></i> Tags (Multiselect)</h3>
+                <p class="section-description">Add external and internal tags for better organization</p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="tags-group">
+                            <label class="form-label">External Tags</label>
+                            <div class="tag-input-container">
+                                <input type="text" id="externalTagInput" class="form-control" placeholder="Type and press Enter to add external tag..." />
+                                <button type="button" class="btn btn-outline btn-sm" data-action="add-tag" data-tag-type="external">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </div>
+                            <div class="tags-container" id="externalTagsContainer">
+                                <!-- External tags will be added dynamically -->
+                            </div>
+                            <input type="hidden" name="ExternalTags" id="externalTagsHidden" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="tags-group">
+                            <label class="form-label">Internal Tags</label>
+                            <div class="tag-input-container">
+                                <input type="text" id="internalTagInput" class="form-control" placeholder="Type and press Enter to add internal tag..." />
+                                <button type="button" class="btn btn-outline btn-sm" data-action="add-tag" data-tag-type="internal">
+                                    <i class="fas fa-plus"></i> Add
+                                </button>
+                            </div>
+                            <div class="tags-container" id="internalTagsContainer">
+                                <!-- Internal tags will be added dynamically -->
+                            </div>
+                            <input type="hidden" name="InternalTags" id="internalTagsHidden" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate PDF Upload Section - from mockup -->
+            <div class="form-section">
+                <h3><i class="fas fa-file-pdf"></i> Certificate Document Upload</h3>
+                <p class="section-description">Upload the official certificate PDF document</p>
+                
+                <div class="pdf-upload-section">
+                    <div class="pdf-upload-zone" id="pdfUploadZone">
+                        <div class="pdf-upload-placeholder">
+                            <i class="fas fa-file-pdf"></i>
+                            <div class="pdf-upload-text">
+                                <strong>Drag and drop your certificate PDF here</strong> or <a href="#" class="upload-link">click to select</a>
+                            </div>
+                            <small class="text-muted">Supported format: PDF (max 10MB)</small>
+                        </div>
+                        <input type="file" id="certificatePdf" name="certificatePdf" accept="application/pdf" style="display: none;" />
+                    </div>
+                    <div id="pdfPreviewContainer" class="pdf-preview-container"></div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Create Certificate
+                </button>
+                <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+                <button type="reset" class="btn btn-outline">
+                    <i class="fas fa-undo"></i> Reset Form
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        // Tag Management System - from mockup functionality
+        let externalTags = [];
+        let internalTags = [];
+
+        function addTag(type) {
+            const input = document.getElementById(type + 'TagInput');
+            const tagText = input.value.trim();
+            
+            if (tagText && tagText.length > 0) {
+                const tagArray = type === 'external' ? externalTags : internalTags;
+                
+                // Check if tag already exists
+                if (!tagArray.includes(tagText)) {
+                    tagArray.push(tagText);
+                    createTagElement(tagText, type);
+                    updateHiddenInput(type);
+                }
+                
+                input.value = '';
+            }
+        }
+
+        function createTagElement(tagText, type) {
+            const container = document.getElementById(type + 'TagsContainer');
+            const tagElement = document.createElement('span');
+            tagElement.className = `tag ${type}`;
+            tagElement.innerHTML = `
+                ${tagText}
+                <button type="button" class="tag-remove" onclick="removeTag('${tagText}', '${type}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            `;
+            container.appendChild(tagElement);
+        }
+
+        function removeTag(tagText, type) {
+            const tagArray = type === 'external' ? externalTags : internalTags;
+            const index = tagArray.indexOf(tagText);
+            
+            if (index > -1) {
+                tagArray.splice(index, 1);
+                updateHiddenInput(type);
+                
+                // Remove the visual element
+                const container = document.getElementById(type + 'TagsContainer');
+                const tagElements = container.getElementsByClassName('tag');
+                for (let element of tagElements) {
+                    if (element.textContent.trim().replace('×', '').trim() === tagText) {
+                        element.remove();
+                        break;
+                    }
+                }
+            }
+        }
+
+        function updateHiddenInput(type) {
+            const tagArray = type === 'external' ? externalTags : internalTags;
+            const hiddenInput = document.getElementById(type + 'TagsHidden');
+            hiddenInput.value = JSON.stringify(tagArray);
+        }
+
+        // Enter key support for tag inputs
+        document.getElementById('externalTagInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addTag('external');
+            }
+        });
+
+        document.getElementById('internalTagInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                addTag('internal');
+            }
+        });
+
+        // File Upload Functionality - Drag and Drop from mockup
+        function initializeFileUploads() {
+            // Product Image Upload
+            const imageUploadZone = document.getElementById('productImageUpload');
+            const imageInput = document.getElementById('productImages');
+            const imagePreview = document.getElementById('imagePreviewContainer');
+
+            // PDF Upload
+            const pdfUploadZone = document.getElementById('pdfUploadZone');
+            const pdfInput = document.getElementById('certificatePdf');
+            const pdfPreview = document.getElementById('pdfPreviewContainer');
+
+            // Image upload handlers
+            imageUploadZone.addEventListener('click', () => imageInput.click());
+            
+            imageUploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                imageUploadZone.classList.add('dragover');
+            });
+
+            imageUploadZone.addEventListener('dragleave', () => {
+                imageUploadZone.classList.remove('dragover');
+            });
+
+            imageUploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                imageUploadZone.classList.remove('dragover');
+                handleImageFiles(e.dataTransfer.files);
+            });
+
+            imageInput.addEventListener('change', (e) => {
+                handleImageFiles(e.target.files);
+            });
+
+            // PDF upload handlers
+            pdfUploadZone.addEventListener('click', () => pdfInput.click());
+            
+            pdfUploadZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                pdfUploadZone.classList.add('dragover');
+            });
+
+            pdfUploadZone.addEventListener('dragleave', () => {
+                pdfUploadZone.classList.remove('dragover');
+            });
+
+            pdfUploadZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                pdfUploadZone.classList.remove('dragover');
+                handlePdfFile(e.dataTransfer.files[0]);
+            });
+
+            pdfInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handlePdfFile(e.target.files[0]);
+                }
+            });
+        }
+
+        function handleImageFiles(files) {
+            const previewContainer = document.getElementById('imagePreviewContainer');
+            
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/') && file.size <= 5 * 1024 * 1024) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const previewDiv = document.createElement('div');
+                        previewDiv.className = 'image-preview';
+                        previewDiv.innerHTML = `
+                            <img src="${e.target.result}" alt="Preview">
+                            <div class="image-info">
+                                <span class="filename">${file.name}</span>
+                                <span class="filesize">(${(file.size / 1024).toFixed(1)}KB)</span>
+                                <button type="button" class="remove-image" onclick="removeImagePreview(this)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        `;
+                        previewContainer.appendChild(previewDiv);
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    alert('Please select valid image files (JPG/PNG) under 5MB.');
+                }
+            });
+        }
+
+        function handlePdfFile(file) {
+            if (file && file.type === 'application/pdf' && file.size <= 10 * 1024 * 1024) {
+                const previewContainer = document.getElementById('pdfPreviewContainer');
+                previewContainer.innerHTML = `
+                    <div class="pdf-preview">
+                        <div class="pdf-info">
+                            <i class="fas fa-file-pdf"></i>
+                            <div class="pdf-details">
+                                <span class="filename">${file.name}</span>
+                                <span class="filesize">(${(file.size / 1024 / 1024).toFixed(2)}MB)</span>
+                            </div>
+                            <button type="button" class="remove-pdf" onclick="removePdfPreview()">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            } else {
+                alert('Please select a valid PDF file under 10MB.');
+            }
+        }
+
+        function removeImagePreview(button) {
+            button.closest('.image-preview').remove();
+        }
+
+        function removePdfPreview() {
+            document.getElementById('pdfPreviewContainer').innerHTML = '';
+            document.getElementById('certificatePdf').value = '';
+        }
+
+        // Form validation enhancement
+        (function() {
+            'use strict';
+            window.addEventListener('load', function() {
+                // Initialize file uploads
+                initializeFileUploads();
+                
+                var forms = document.getElementsByClassName('needs-validation');
+                var validation = Array.prototype.filter.call(forms, function(form) {
+                    form.addEventListener('submit', function(event) {
+                        if (form.checkValidity() === false) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        form.classList.add('was-validated');
+                    }, false);
+                });
+            }, false);
+        })();
+
+        // Date validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const effectiveDate = document.querySelector('input[name="EffectiveDate"]');
+            const expirationDate = document.querySelector('input[name="ExpirationDate"]');
+            
+            function validateDates() {
+                if (effectiveDate.value && expirationDate.value) {
+                    const effective = new Date(effectiveDate.value);
+                    const expiration = new Date(expirationDate.value);
+                    
+                    if (expiration <= effective) {
+                        expirationDate.setCustomValidity('Expiration date must be after effective date');
+                    } else {
+                        expirationDate.setCustomValidity('');
+                    }
+                }
+            }
+            
+            effectiveDate.addEventListener('change', validateDates);
+            expirationDate.addEventListener('change', validateDates);
+        });
+    </script>
+    <script src="~/js/product-id-manager.js"></script>
+    <script>
+        // Initialize Product ID Manager for create form
+        document.addEventListener('DOMContentLoaded', function() {
+            const productIdManager = new ProductIdManager('.product-id-manager', 0, false);
+        });
+    </script>
+}

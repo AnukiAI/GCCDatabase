@@ -1,0 +1,78 @@
+using GCCWebApp.Models;
+
+namespace GCCWebApp.Services
+{
+    public interface IAdminService
+    {
+        // Dashboard
+        Task<AdminDashboardViewModel> GetDashboardDataAsync();
+        
+        // User Management
+        Task<List<UserViewModel>> GetUsersAsync();
+        Task<UserViewModel?> GetUserByIdAsync(int id);
+        Task<bool> CreateUserAsync(CreateUserViewModel model);
+        Task<bool> UpdateUserAsync(int id, UserViewModel model);
+        Task<bool> DeleteUserAsync(int id);
+        
+        // Role Management
+        Task<List<RoleViewModel>> GetRolesAsync();
+        Task<RoleViewModel?> GetRoleByIdAsync(int id);
+        Task<bool> CreateRoleAsync(RoleViewModel model);
+        Task<bool> UpdateRoleAsync(int id, RoleViewModel model);
+        Task<bool> DeleteRoleAsync(int id);
+        Task<List<PermissionViewModel>> GetPermissionsAsync();
+        
+        // Product Types
+        Task<List<ProductTypeViewModel>> GetProductTypesAsync();
+        Task<ProductTypeViewModel?> GetProductTypeByIdAsync(int id);
+        Task<ProductTypeViewModel?> CreateProductTypeAsync(ProductTypeViewModel model);
+        Task<bool> UpdateProductTypeAsync(ProductTypeViewModel model);
+        Task<bool> DeleteProductTypeAsync(int id);
+        
+        // Certificate Types
+        Task<List<CertificateTypeViewModel>> GetCertificateTypesAsync();
+        Task<CertificateTypeViewModel?> GetCertificateTypeByIdAsync(int id);
+        Task<bool> CreateCertificateTypeAsync(CertificateTypeViewModel model);
+        Task<bool> UpdateCertificateTypeAsync(int id, CertificateTypeViewModel model);
+        Task<bool> DeleteCertificateTypeAsync(int id);
+        
+        // Certificate Fields
+        Task<List<CertificateFieldViewModel>> GetCertificateFieldsAsync();
+        Task<CertificateFieldViewModel?> GetCertificateFieldByIdAsync(int id);
+        Task<bool> CreateCertificateFieldAsync(CertificateFieldViewModel model);
+        Task<bool> UpdateCertificateFieldAsync(int id, CertificateFieldViewModel model);
+        Task<bool> DeleteCertificateFieldAsync(int id);
+        
+        // Tags
+        Task<List<TagViewModel>> GetTagsAsync();
+        Task<TagViewModel?> GetTagByIdAsync(int id);
+        Task<bool> CreateTagAsync(TagViewModel model);
+        Task<bool> UpdateTagAsync(int id, TagViewModel model);
+        Task<bool> DeleteTagAsync(int id);
+        
+        // Partners
+        Task<List<PartnerViewModel>> GetPartnersAsync();
+        Task<PartnerViewModel?> GetPartnerByIdAsync(int id);
+        Task<bool> CreatePartnerAsync(PartnerViewModel model);
+        Task<bool> UpdatePartnerAsync(int id, PartnerViewModel model);
+        Task<bool> DeletePartnerAsync(int id);
+        
+        // Product Management
+        Task<List<ProductViewModel>> GetProductsAsync();
+        Task<ProductViewModel?> GetProductByIdAsync(int id);
+        Task<bool> CreateProductAsync(ProductViewModel model);
+        Task<bool> UpdateProductAsync(int id, ProductViewModel model);
+        Task<bool> DeleteProductAsync(int id);
+        
+        // Lookup data
+        Task<List<LookupItem>> GetCompaniesAsync();
+        Task<List<LookupItem>> GetRolesListAsync();
+        
+        // Export functionality
+        Task<byte[]> ExportDataAsync(string entityType, string format);
+        
+        // Two-Factor Authentication Management
+        Task<bool> Reset2FAAsync(int userId);
+        Task<bool> Disable2FAAsync(int userId);
+    }
+}

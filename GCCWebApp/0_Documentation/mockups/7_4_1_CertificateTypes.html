@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Types Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* ===== CSS CUSTOM PROPERTIES - Project Standards ===== */
+        :root {
+            /* Colors - Updated to match master design guide */
+            --blue-dark: #002B76;
+            --blue-primary: #00AEEF;
+            --green-primary: #92C83E;
+            --green-secondary: #447638;
+            --green-light: #92C83E;
+            --green-lighter: #D4F084;
+            --green-pale: #E8F7B8;
+            --text-color: #333;
+            --text-secondary: #666;
+            --border-color: #eaeaea;
+            --light-gray: #f9f9f9;
+            --medium-gray: #DDDDDD;
+            --dark-gray: #333333;
+            --white: #ffffff;
+            --warning: #ff5252;
+            --success: #92C83E;
+            --header-color: #FCFDEB;
+            /* Layout - Updated spacing values */
+            --border-radius-sm: 4px;
+            --border-radius-md: 8px;
+            --border-radius-lg: 12px;
+            --space-xs: 4px;
+            --space-sm: 8px;
+            --space-md: 16px;
+            --space-lg: 24px;
+            --space-xl: 32px;
+            /* Font sizes - ensuring 16px minimum */
+            --font-size-base: 16px;
+            --font-size-small: 16px;
+            --font-size-large: 18px;
+            --font-size-xl: 20px;
+            /* Minimum touch target size */
+            --touch-target-min: 44px;
+            /* Effects - Updated shadows and transitions */
+            --shadow-light: 0 2px 4px rgba(0, 0, 0, 0.04);
+            --shadow-medium: 0 4px 6px rgba(0, 0, 0, 0.1);
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --shadow-strong: 0 8px 16px rgba(0, 0, 0, 0.2);
+            --transition-fast: 0.15s ease;
+            --transition: 0.3s ease;
+            --transition-slow: 0.5s ease;
+        }
+
+        /* ===== RESET & BASE ===== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            background: var(--light-gray);
+            color: var(--text-color);
+            line-height: 1.6;
+            font-size: var(--font-size-base);
+        }
+
+        /* ===== LAYOUT CONTAINERS ===== */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: var(--space-lg);
+            background-color: var(--white);
+            border-radius: var(--border-radius-md);
+            box-shadow: var(--shadow);
+        }
+
+        /* ===== PAGE HEADER ===== */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-lg);
+            flex-wrap: wrap;
+            gap: var(--space-md);
+        }
+
+        .title-area {
+            flex-grow: 1;
+        }
+
+        .page-title {
+            color: var(--blue-dark);
+            font-size: var(--font-size-xl);
+            font-weight: 500;
+            margin: 0;
+        }
+
+        /* ===== BUTTON SYSTEM ===== */
+        .btn {
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--border-radius-sm);
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            font-size: var(--font-size-base);
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--space-sm);
+            transition: var(--transition);
+            border: none;
+            text-decoration: none;
+            min-height: var(--touch-target-min);
+        }
+
+        .btn-add {
+            background-color: var(--green-primary);
+            color: var(--white);
+        }
+
+            .btn-add:hover {
+                background-color: var(--green-secondary);
+            }
+
+        .btn-save {
+            background-color: var(--green-primary);
+            color: var(--white);
+            border: none;
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            font-size: var(--font-size-base);
+            transition: var(--transition);
+        }
+
+            .btn-save:hover {
+                background-color: var(--green-primary);
+            }
+
+        .btn-cancel {
+            background-color: #f8f9fa;
+            color: var(--text-color);
+            border: 1px solid var(--border-color);
+            padding: var(--space-sm) var(--space-md);
+            border-radius: var(--border-radius-sm);
+            cursor: pointer;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            font-size: var(--font-size-base);
+            transition: var(--transition);
+        }
+
+            .btn-cancel:hover {
+                background-color: #e2e6ea;
+            }
+
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: var(--space-sm);
+            margin-left: var(--space-xs);
+            font-size: var(--font-size-base);
+            transition: var(--transition);
+            min-height: var(--touch-target-min);
+            min-width: var(--touch-target-min);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .edit-btn {
+            color: var(--blue-primary);
+        }
+
+            .edit-btn:hover {
+                background-color: #eef;
+                border-radius: var(--border-radius-sm);
+            }
+
+        .delete-btn {
+            color: var(--warning);
+        }
+
+            .delete-btn:hover {
+                background-color: #fee;
+                border-radius: var(--border-radius-sm);
+            }
+
+        /* ===== SEARCH & FILTER BAR ===== */
+        .search-filter-bar {
+            display: flex;
+            align-items: center;
+            background-color: var(--light-gray);
+            border-radius: var(--border-radius-sm);
+            padding: var(--space-sm);
+            margin-bottom: var(--space-md);
+            gap: var(--space-sm);
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            flex-grow: 1;
+            min-width: 200px;
+        }
+
+            .search-box input {
+                width: 100%;
+                padding: var(--space-sm) var(--space-sm) var(--space-sm) 36px;
+                border-radius: var(--border-radius-sm);
+                border: 1px solid var(--border-color);
+                background-color: var(--white);
+                font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+                font-size: var(--font-size-base);
+                box-sizing: border-box;
+            }
+
+        .search-icon {
+            position: absolute;
+            left: var(--space-sm);
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        /* ===== TABLE SYSTEM ===== */
+        .table-container {
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            overflow: hidden;
+            margin-bottom: var(--space-lg);
+        }
+
+        .cert-types-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            .cert-types-table th {
+                text-align: left;
+                padding: var(--space-md);
+                border-bottom: 1px solid var(--border-color);
+                background-color: var(--light-gray);
+                color: var(--text-color);
+                font-weight: 500;
+                font-size: var(--font-size-base);
+                position: relative;
+                cursor: pointer;
+                user-select: none;
+            }
+
+                .cert-types-table th:after {
+                    content: '▼';
+                    display: inline-block;
+                    margin-left: var(--space-xs);
+                    font-size: 12px;
+                    color: var(--text-secondary);
+                }
+
+                .cert-types-table th:hover {
+                    background-color: var(--medium-gray);
+                }
+
+            .cert-types-table td {
+                padding: var(--space-md);
+                border-bottom: 1px solid #eee;
+                font-size: var(--font-size-base);
+                vertical-align: middle;
+            }
+
+            .cert-types-table tbody tr:hover {
+                background-color: #fafafa;
+            }
+
+        .actions-cell {
+            text-align: right;
+        }
+
+        /* ===== FORM INPUTS ===== */
+        .edit-input {
+            width: 100%;
+            padding: var(--space-sm);
+            border: 2px solid var(--blue-primary);
+            border-radius: var(--border-radius-sm);
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            font-size: var(--font-size-base);
+            box-sizing: border-box;
+            transition: var(--transition);
+        }
+
+            .edit-input:focus {
+                outline: none;
+                border-color: var(--blue-dark);
+                box-shadow: 0 0 0 2px rgba(0, 174, 239, 0.2);
+            }
+
+        .add-row input {
+            width: 100%;
+            padding: var(--space-sm);
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius-sm);
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            font-size: var(--font-size-base);
+            box-sizing: border-box;
+        }
+
+            .add-row input:focus {
+                outline: none;
+                border-color: var(--blue-primary);
+                box-shadow: 0 0 0 2px rgba(0, 174, 239, 0.2);
+            }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            margin-top: var(--space-md);
+            text-align: right;
+            color: var(--text-secondary);
+            font-size: var(--font-size-base);
+        }
+
+        /* ===== RESPONSIVE STYLES ===== */
+        @media (max-width: 768px) {
+            .container {
+                padding: var(--space-md);
+                margin: var(--space-sm);
+            }
+
+            .page-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: var(--space-sm);
+            }
+
+            .cert-types-table thead {
+                display: none;
+            }
+
+            .cert-types-table,
+            .cert-types-table tbody,
+            .cert-types-table tr,
+            .cert-types-table td {
+                display: block;
+                width: 100%;
+            }
+
+                .cert-types-table tr {
+                    margin-bottom: var(--space-md);
+                    border-bottom: 2px solid var(--border-color);
+                    padding: var(--space-sm);
+                    background-color: var(--white);
+                    border-radius: var(--border-radius-sm);
+                }
+
+                .cert-types-table td {
+                    text-align: right;
+                    padding-left: 50%;
+                    position: relative;
+                    border-bottom: 1px solid #eee;
+                    min-height: var(--touch-target-min);
+                    display: flex;
+                    align-items: center;
+                }
+
+                    .cert-types-table td:before {
+                        content: attr(data-label);
+                        position: absolute;
+                        left: 0;
+                        width: 45%;
+                        padding-left: var(--space-sm);
+                        font-weight: 500;
+                        text-align: left;
+                        color: var(--blue-dark);
+                    }
+
+            .actions-cell {
+                text-align: left;
+                justify-content: flex-start;
+            }
+
+            .search-filter-bar {
+                padding: var(--space-sm);
+            }
+
+            .search-box {
+                min-width: auto;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .action-btn {
+                min-height: 48px;
+                min-width: 48px;
+                font-size: 18px;
+            }
+
+            .btn {
+                min-height: 48px;
+                padding: var(--space-md) var(--space-lg);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="page-header">
+            <div class="title-area">
+                <h1 class="page-title">Certificate Types</h1>
+            </div>
+            <button id="add-certtype-btn" class="btn btn-add">
+                <i class="fas fa-plus"></i> Add New Certificate Type
+            </button>
+        </header>
+
+        <div class="search-filter-bar">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search certificate types...">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table class="cert-types-table" id="cert-types-table">
+                <thead>
+                    <tr>
+                        <th width="70%" data-sort="name">Certificate Type Name</th>
+                        <th width="30%" style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Certificate type data will be populated here -->
+                </tbody>
+            </table>
+        </div>
+
+        <div class="footer" id="certtypes-count">
+            Showing 0 of 0 certificate types
+        </div>
+    </div>
+
+    <script>
+        // Sample data with expanded set for better testing
+        let certTypes = [
+            { id: 1, name: 'Formaldehyde-Free' },
+            { id: 2, name: 'VOC-Free' },
+            { id: 3, name: 'Recycled Content' },
+            { id: 4, name: 'Biodegradable' },
+            { id: 5, name: 'Energy Star' },
+            { id: 6, name: 'GREENGUARD Gold' },
+            { id: 7, name: 'Cradle to Cradle' },
+            { id: 8, name: 'SCS Certified' },
+            { id: 9, name: 'EPEAT' },
+            { id: 10, name: 'Forest Stewardship Council' },
+            { id: 11, name: 'Green Seal' },
+            { id: 12, name: 'EcoLogo' },
+            { id: 13, name: 'LEED Approved' },
+            { id: 14, name: 'Sustainable Packaging' },
+            { id: 15, name: 'Carbon Neutral' }
+        ];
+
+        // DOM Elements
+        const certTypesTableBody = document.querySelector('#cert-types-table tbody');
+        const certTypesCountElement = document.getElementById('certtypes-count');
+        const searchInput = document.getElementById('search-input');
+        const addCertTypeBtn = document.getElementById('add-certtype-btn');
+
+        // Track editing states
+        let editingId = null;
+        let addingNew = false;
+
+        // Function to populate the table
+        function populateTable(data) {
+            certTypesTableBody.innerHTML = '';
+
+            // Add rows for existing certificate types first
+            data.forEach(certType => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-id', certType.id);
+
+                // Certificate Type Name cell
+                const nameCell = document.createElement('td');
+                nameCell.setAttribute('data-label', 'Certificate Type Name');
+
+                // Check if this certificate type is currently being edited
+                if (editingId === certType.id) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.className = 'edit-input';
+                    input.value = certType.name;
+                    input.id = `edit-certtype-${certType.id}`;
+                    nameCell.appendChild(input);
+                } else {
+                    nameCell.textContent = certType.name;
+                }
+
+                row.appendChild(nameCell);
+
+                // Actions cell
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'actions-cell';
+                actionsCell.setAttribute('data-label', 'Actions');
+
+                if (editingId === certType.id) {
+                    // If editing, show save and cancel buttons
+                    const saveBtn = document.createElement('button');
+                    saveBtn.className = 'btn-save';
+                    saveBtn.textContent = 'Save';
+                    saveBtn.addEventListener('click', () => saveCertTypeEdit(certType.id));
+
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.className = 'btn-cancel';
+                    cancelBtn.textContent = 'Cancel';
+                    cancelBtn.addEventListener('click', cancelCertTypeEdit);
+
+                    actionsCell.appendChild(saveBtn);
+                    actionsCell.appendChild(cancelBtn);
+                } else {
+                    // If not editing, show edit and delete buttons
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'action-btn edit-btn';
+                    editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                    editBtn.title = 'Edit';
+                    editBtn.addEventListener('click', () => editCertType(certType.id));
+
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'action-btn delete-btn';
+                    deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                    deleteBtn.title = 'Delete';
+                    deleteBtn.addEventListener('click', () => deleteCertType(certType.id));
+
+                    actionsCell.appendChild(editBtn);
+                    actionsCell.appendChild(deleteBtn);
+                }
+
+                row.appendChild(actionsCell);
+                certTypesTableBody.appendChild(row);
+            });
+
+            // Check if we need to add a new row for adding a certificate type (at bottom)
+            if (addingNew) {
+                const addRow = document.createElement('tr');
+                addRow.className = 'add-row';
+
+                const inputCell = document.createElement('td');
+                inputCell.setAttribute('data-label', 'Certificate Type Name');
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = 'Enter certificate type name';
+                input.id = 'new-certtype-input';
+                inputCell.appendChild(input);
+
+                const actionsCell = document.createElement('td');
+                actionsCell.className = 'actions-cell';
+                actionsCell.setAttribute('data-label', 'Actions');
+
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'btn-save';
+                saveBtn.textContent = 'Save';
+                saveBtn.addEventListener('click', saveNewCertType);
+
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'btn-cancel';
+                cancelBtn.textContent = 'Cancel';
+                cancelBtn.addEventListener('click', cancelAddCertType);
+
+                actionsCell.appendChild(saveBtn);
+                actionsCell.appendChild(cancelBtn);
+
+                addRow.appendChild(inputCell);
+                addRow.appendChild(actionsCell);
+
+                certTypesTableBody.appendChild(addRow);
+            }
+
+            // Update the certificate types count
+            updateCertTypesCount();
+        }
+
+        // Function to filter certificate types based on search input
+        function filterCertTypes() {
+            const searchTerm = searchInput.value.toLowerCase();
+
+            if (!searchTerm) {
+                return [...certTypes];
+            }
+
+            return certTypes.filter(certType =>
+                certType.name.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        // Function to update the certificate types count display
+        function updateCertTypesCount() {
+            const filteredCount = filterCertTypes().length;
+            const totalCount = certTypes.length;
+            certTypesCountElement.textContent = `Showing ${filteredCount} of ${totalCount} certificate types`;
+        }
+
+        // Function to add a new certificate type
+        function addCertType() {
+            // Prevent multiple add rows
+            if (addingNew || editingId !== null) return;
+
+            addingNew = true;
+            populateTable(filterCertTypes());
+
+            // Focus on the new input
+            setTimeout(() => {
+                const newInput = document.getElementById('new-certtype-input');
+                if (newInput) newInput.focus();
+            }, 0);
+        }
+
+        // Function to save a new certificate type
+        function saveNewCertType() {
+            const newInput = document.getElementById('new-certtype-input');
+            const certTypeName = newInput.value.trim();
+
+            if (certTypeName) {
+                const newId = certTypes.length > 0 ? Math.max(...certTypes.map(p => p.id)) + 1 : 1;
+                certTypes.push({ id: newId, name: certTypeName });
+
+                addingNew = false;
+                populateTable(filterCertTypes());
+            } else {
+                alert('Please enter a certificate type name.');
+            }
+        }
+
+        // Function to cancel adding a new certificate type
+        function cancelAddCertType() {
+            addingNew = false;
+            populateTable(filterCertTypes());
+        }
+
+        // Function to edit a certificate type
+        function editCertType(id) {
+            // Prevent multiple edits
+            if (editingId !== null || addingNew) return;
+
+            editingId = id;
+            populateTable(filterCertTypes());
+
+            // Focus on the edit input
+            setTimeout(() => {
+                const editInput = document.getElementById(`edit-certtype-${id}`);
+                if (editInput) {
+                    editInput.focus();
+                    editInput.select();
+                }
+            }, 0);
+        }
+
+        // Function to save certificate type edit
+        function saveCertTypeEdit(id) {
+            const editInput = document.getElementById(`edit-certtype-${id}`);
+            const newName = editInput.value.trim();
+
+            if (newName) {
+                const certTypeIndex = certTypes.findIndex(p => p.id === id);
+                if (certTypeIndex !== -1) {
+                    certTypes[certTypeIndex].name = newName;
+                }
+
+                editingId = null;
+                populateTable(filterCertTypes());
+            } else {
+                alert('Please enter a certificate type name.');
+            }
+        }
+
+        // Function to cancel certificate type edit
+        function cancelCertTypeEdit() {
+            editingId = null;
+            populateTable(filterCertTypes());
+        }
+
+        // Function to delete a certificate type
+        function deleteCertType(id) {
+            if (confirm('Are you sure you want to delete this certificate type?')) {
+                certTypes = certTypes.filter(certType => certType.id !== id);
+                populateTable(filterCertTypes());
+            }
+        }
+
+        // Event listeners
+        addCertTypeBtn.addEventListener('click', addCertType);
+
+        searchInput.addEventListener('input', () => {
+            populateTable(filterCertTypes());
+        });
+
+        // Add event listener for "enter" key on search input
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                populateTable(filterCertTypes());
+            }
+        });
+
+        // Initialize sortable header
+        const nameHeader = document.querySelector('th[data-sort="name"]');
+        let sortDirection = 'asc';
+
+        nameHeader.addEventListener('click', () => {
+            sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+
+            certTypes.sort((a, b) => {
+                const nameA = a.name.toLowerCase();
+                const nameB = b.name.toLowerCase();
+
+                if (sortDirection === 'asc') {
+                    return nameA.localeCompare(nameB);
+                } else {
+                    return nameB.localeCompare(nameA);
+                }
+            });
+
+            // Update sort icon
+            const sortIcon = sortDirection === 'asc' ? '▼' : '▲';
+            nameHeader.setAttribute('data-sort-direction', sortDirection);
+
+            populateTable(filterCertTypes());
+        });
+
+        // Initialize table
+        populateTable(certTypes);
+    </script>
+</body>
+</html>

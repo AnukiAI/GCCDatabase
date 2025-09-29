@@ -1,0 +1,186 @@
+@{
+    // ViewData["Title"] = "Certificate Details - Internal";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<!-- Certificate Details -->
+<div class="certificate-single-container" data-id="@Model.CertificateNumber">
+    <!-- Certificate Card styled like tile view -->
+    <div class="certificate-card certificate-single-card">
+        <div class="card-header">
+            <div class="header-row">
+                <div class="certificate-category">@Model.CertificationType.ToUpper()</div>
+                <div class="certificate-id">@Model.CertificateNumber</div>
+            </div>
+            <div class="company-name">@Model.CompanyName</div>
+        </div>
+        <div class="card-body">
+            <div class="product-info">
+                <div class="product-name">@Model.ProductName</div>
+                <div class="product-type">@Model.ProductType</div>
+            </div>
+            <!-- Main Detail Grid -->
+            <div class="certificate-details-grid">
+                <!-- Left Column: Certificate Info -->
+                <div class="details-column">
+                    <!-- Certification Details -->
+                    <div class="detail-section">
+                        <h3 class="certificate-section-title">Certification Details</h3>
+                        @if (!string.IsNullOrEmpty(Model.CSFAttributes))
+                        {
+                            <div class="certificate-field"><strong>CSF Attributes:</strong> <span>@Model.CSFAttributes</span></div>
+                        }
+                        <div class="certificate-field"><strong>Status:</strong> <span class="status-@Model.Status.ToLower()">@Model.Status</span></div>
+                        <div class="certificate-field">
+                            <strong>Category:</strong>
+                            <span class="tag-type External">@Model.ProductCategory</span>
+                        </div>
+                        <div class="certificate-field"><strong>Product Type:</strong> <span>@Model.ProductType</span></div>
+                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@Model.ProductTypeSubcategory</span></div>
+                        @if (!string.IsNullOrEmpty(Model.Partner))
+                        {
+                            <div class="certificate-field"><strong>Partner:</strong> <span>@Model.Partner</span></div>
+                        }
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            @Model.Location, @Model.Country
+                        </div>
+                    </div>
+
+                    <!-- Certification Period -->
+                    <div class="detail-section">
+                        <h3 class="certificate-section-title">Certification Period</h3>
+                        <div class="certificate-period">
+                            <strong>Effective Date:</strong> @Model.EffectiveDate.ToString("M/d/yyyy")<br>
+                            <strong>Expiration Date:</strong> @Model.ExpirationDate.ToString("M/d/yyyy")
+                        </div>
+                    </div>
+
+                    <!-- Contact Info -->
+                    <div class="detail-section">
+                        <h3 class="certificate-section-title">Contact Information</h3>
+                        <div class="certificate-field">
+                            <strong>Company Email:</strong>
+                            <span>
+                                @if (!string.IsNullOrEmpty(Model.CompanyContactEmail))
+                                {
+                                    <a href="mailto:@Model.CompanyContactEmail">@Model.CompanyContactEmail</a>
+                                }
+                                else
+                                {
+                                    <text>Available upon request</text>
+                                }
+                            </span>
+                        </div>
+                        <div class="certificate-field">
+                            <strong>Company URL:</strong>
+                            <span>
+                                @if (!string.IsNullOrEmpty(Model.CompanyContactURL))
+                                {
+                                    <a href="@Model.CompanyContactURL" target="_blank" rel="noopener">@Model.CompanyContactURL</a>
+                                }
+                                else
+                                {
+                                    <text>Not provided</text>
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Product Identifiers (Always show for Internal users) -->
+                    <div class="detail-section">
+                        <h3 class="certificate-section-title">Product Identifiers</h3>
+                        @if (!string.IsNullOrEmpty(Model.ASIN))
+                        {
+                            <div class="certificate-field"><strong>ASIN:</strong> <span>@Model.ASIN</span></div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.UPC))
+                        {
+                            <div class="certificate-field"><strong>UPC:</strong> <span>@Model.UPC</span></div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.GTIN))
+                        {
+                            <div class="certificate-field"><strong>GTIN:</strong> <span>@Model.GTIN</span></div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.EAN))
+                        {
+                            <div class="certificate-field"><strong>EAN:</strong> <span>@Model.EAN</span></div>
+                        }
+                        @if (string.IsNullOrEmpty(Model.ASIN) && string.IsNullOrEmpty(Model.UPC) && string.IsNullOrEmpty(Model.GTIN) && string.IsNullOrEmpty(Model.EAN))
+                        {
+                            <div class="certificate-field"><em>No product identifiers available</em></div>
+                        }
+                    </div>
+
+                    <!-- Record Information (Always show for Internal users) -->
+                    <div class="detail-section record-info">
+                        <h3 class="certificate-section-title">Record Information</h3>
+                        <div class="certificate-field"><strong>Created Date:</strong> <span>@Model.RecordCreatedDate.ToString("M/d/yyyy")</span></div>
+                        <div class="certificate-field"><strong>Last Updated:</strong> <span>@Model.RecordLastUpdatedDate.ToString("M/d/yyyy")</span></div>
+                        @if (!string.IsNullOrEmpty(Model.CreatedBy))
+                        {
+                            <div class="certificate-field"><strong>Created By:</strong> <span>@Model.CreatedBy</span></div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.LastEditedBy))
+                        {
+                            <div class="certificate-field"><strong>Last Edited By:</strong> <span>@Model.LastEditedBy</span></div>
+                        }
+                    </div>
+
+                    <!-- Tags (Both Internal and External for Internal users) -->
+                    <div class="certificate-tags">
+                        @if (!string.IsNullOrEmpty(Model.ExternalTag))
+                        {
+                            <div class="tag external">@Model.ExternalTag</div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.InternalTag))
+                        {
+                            <div class="tag internal">@Model.InternalTag</div>
+                        }
+                    </div>
+                    <!-- Verification URL -->
+                    @if (!string.IsNullOrEmpty(Model.VerificationURL))
+                    {
+                        <div class="verification-section">
+                            <div class="verification-url">
+                                <strong>Verification URL:</strong>
+                                <a href="@Model.VerificationURL" target="_blank" rel="noopener">@Model.VerificationURL</a>
+                            </div>
+                        </div>
+                    }
+                </div>
+                <!-- Right Column: Certificate Image -->
+                <div class="certificate-image-column">
+                    @if (!string.IsNullOrEmpty(Model.CertificateUploadPath))
+                    {
+                        <img src="@Model.CertificateUploadPath" alt="Certificate Details" class="certificate-image" />
+                    }
+                    else
+                    {
+                        <img src="~/img/certpreview.png" alt="Certificate Details" class="certificate-image" />
+                    }
+                </div>
+            </div>
+            <!-- Action Buttons -->
+            <div class="card-actions">
+                <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@Model.CertificateNumber')">
+                    <i class="fas fa-download"></i>
+                </div>
+                @if (ViewBag.CanEdit)
+                {
+                    <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@Model.CertificateNumber')">
+                        <i class="fas fa-edit"></i>
+                    </div>
+                }
+                @if (ViewBag.CanDelete)
+                {
+                    <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@Model.CertificateNumber')">
+                        <i class="fas fa-trash"></i>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/certificates.js"></script>

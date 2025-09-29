@@ -1,0 +1,126 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    
+    <!-- Test project configuration -->
+    <!-- Microsoft.Extensions packages inherited from main app via EntityFramework 9.0.8 -->
+    
+    <!-- Test execution settings -->
+    <VSTestLogger>console;verbosity=detailed</VSTestLogger>
+    <VSTestResultsDirectory>TestResults</VSTestResultsDirectory>
+    
+    <!-- Suppress specific warnings for test projects -->
+    <NoWarn>$(NoWarn);CS1998;NUnit1033;NU1605</NoWarn>
+    
+    <!-- Performance optimizations -->
+    <OptimizeTestFileExecution>true</OptimizeTestFileExecution>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+    
+    <!-- Documentation -->
+    <Description>User Acceptance Tests (UAT) for GCC Web Application using Playwright and NUnit</Description>
+    <AssemblyTitle>GCC Web App UAT Tests</AssemblyTitle>
+  </PropertyGroup>
+
+  <ItemGroup Label="Test Framework Packages">
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit.Analyzers" Version="4.4.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageReference Include="NUnit.ConsoleRunner" Version="3.18.1" />
+    <PackageReference Include="xunit" Version="2.5.3" />
+  </ItemGroup>
+
+  <ItemGroup Label="Playwright Browser Automation">
+    <PackageReference Include="Microsoft.Playwright" Version="1.48.0" />
+    <PackageReference Include="Microsoft.Playwright.NUnit" Version="1.48.0" />
+  </ItemGroup>
+
+  <ItemGroup Label="ASP.NET Core Testing">
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
+    <!-- Microsoft.Extensions packages inherited from main app via project reference -->
+  </ItemGroup>
+
+  <ItemGroup Label="Code Coverage and Reporting">
+    <PackageReference Include="coverlet.collector" Version="6.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="coverlet.msbuild" Version="6.0.2">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="ReportGenerator" Version="5.3.8" />
+  </ItemGroup>
+
+  <ItemGroup Label="Additional Test Utilities">
+    <PackageReference Include="FluentAssertions" Version="6.12.1" />
+    <PackageReference Include="Bogus" Version="35.6.1" />
+    <!-- Microsoft.Extensions.DependencyInjection inherited from main app -->
+  </ItemGroup>
+
+  <ItemGroup Label="Project References">
+    <ProjectReference Include="..\GCCWebApp\GCCWebApp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup Label="Global Usings">
+    <Using Include="NUnit.Framework" />
+    <Using Include="Microsoft.Playwright" />
+    <Using Include="Microsoft.Playwright.NUnit" />
+    <Using Include="FluentAssertions" />
+  </ItemGroup>
+
+  <ItemGroup Label="Test Configuration Files">
+    <None Update="appsettings.Test.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="playwright.config.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="run-tests.cmd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="run-all-tests.cmd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="test-sample.cmd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="test-single.cmd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup Label="Test Data and Resources">
+    <Folder Include="Screenshots\" />
+    <Folder Include="TestResults\" />
+    <Folder Include="TestData\" />
+  </ItemGroup>
+
+  <!-- Playwright browser installation target -->
+  <Target Name="InstallPlaywrightBrowsers" BeforeTargets="Build" Condition="'$(CI)' != 'true'">
+    <Exec Command="pwsh bin/Debug/net8.0/playwright.ps1 install" Condition="'$(OS)' == 'Windows_NT'" ContinueOnError="true" IgnoreExitCode="true" />
+    <Exec Command="dotnet run --project $(MSBuildThisFileDirectory) --no-build -- install" Condition="'$(OS)' != 'Windows_NT'" ContinueOnError="true" IgnoreExitCode="true" />
+  </Target>
+
+  <!-- Clean up test artifacts -->
+  <Target Name="CleanTestArtifacts" BeforeTargets="Clean">
+    <ItemGroup>
+      <TestArtifacts Include="Screenshots\**\*" />
+      <TestArtifacts Include="TestResults\**\*" />
+      <TestArtifacts Include="bin\**\*" />
+      <TestArtifacts Include="obj\**\*" />
+    </ItemGroup>
+    <Delete Files="@(TestArtifacts)" ContinueOnError="true" />
+  </Target>
+
+</Project>

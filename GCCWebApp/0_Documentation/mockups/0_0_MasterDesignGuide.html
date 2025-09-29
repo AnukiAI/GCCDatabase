@@ -1,0 +1,887 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Eco-Friendly Design System</title>
+    <script src="https://cdn.jsdelivr.net/npm/react@18/umd/react.development.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.20.6/babel.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css">
+    <style>
+        .focus-ring:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.3);
+        }
+
+        .modal-overlay {
+            background-color: rgba(0, 40, 118, 0.7);
+        }
+
+        .tooltip {
+            background-color: #002876;
+            color: #F5F2E8;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.875rem;
+            position: absolute;
+            z-index: 1000;
+            white-space: nowrap;
+        }
+
+        .tab-active {
+            border-bottom: 3px solid #00AEEF;
+            color: #002876;
+        }
+
+        .progress-bar {
+            background-color: #F5F2E8;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background-color: #92C83E;
+            height: 100%;
+            transition: width 0.3s ease-in-out;
+        }
+
+        .toggle {
+            background-color: #ccc;
+            border-radius: 9999px;
+            width: 48px;
+            height: 24px;
+            position: relative;
+            transition: background-color 0.2s;
+        }
+
+        .toggle-on {
+            background-color: #92C83E;
+        }
+
+        .toggle-circle {
+            background-color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: transform 0.2s;
+        }
+
+        .toggle-on .toggle-circle {
+            transform: translateX(24px);
+        }
+
+        .autocomplete-list {
+            background-color: #F5F2E8;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+            position: absolute;
+            width: 100%;
+            z-index: 1000;
+        }
+
+        .autocomplete-item:hover, .autocomplete-item:focus {
+            background-color: #00AEEF;
+            color: #F5F2E8;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+    // Note: This code uses the in-browser Babel transformer for development.
+    // For production, precompile JSX using a build tool like Vite or Webpack.
+    // See https://babeljs.io/docs/setup/ for setup instructions.
+    const { useState } = React;
+
+    const StyleGuide = () => {
+      // Color palette
+      const colors = {
+        forestGreen: "#447638",
+        limeGreen: "#92C83E",
+        oceanBlue: "#00AEEF",
+        navyBlue: "#002876",
+        offWhite: "#f9f9f9",
+      };
+
+      // State for controls
+      const [isModalOpen, setIsModalOpen] = useState(false);
+      const [isTooltipVisible, setIsTooltipVisible] = useState(false);
+      const [activeTab, setActiveTab] = useState(0);
+      const [progress, setProgress] = useState(50);
+      const [isToggled, setIsToggled] = useState(false);
+      const [searchQuery, setSearchQuery] = useState("");
+      const suggestions = [
+        "Solar Energy",
+        "Wind Power",
+        "Recycling Tips",
+        "Eco-Friendly Products",
+        "Sustainable Living"
+      ];
+
+      // Modal component
+      const Modal = ({ isOpen, onClose, children }) => {
+        if (!isOpen) return null;
+        return (
+          <div className="fixed inset-0 flex items-center justify-center modal-overlay z-50" role="dialog" aria-modal="true">
+            <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full" style={{ backgroundColor: colors.offWhite }}>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-bold" style={{ color: colors.navyBlue }}>Eco-Friendly Action</h3>
+                <button onClick={onClose} className="text-gray-500 hover:text-gray-700 focus-ring" aria-label="Close modal">
+                  <i className="fas fa-times"></i>
+                </button>
+              </div>
+              {children}
+            </div>
+          </div>
+        );
+      };
+
+      // Tooltip component
+      const Tooltip = ({ text, children }) => {
+        return (
+          <div className="relative inline-block">
+            <div
+              onMouseEnter={() => setIsTooltipVisible(true)}
+              onMouseLeave={() => setIsTooltipVisible(false)}
+              onFocus={() => setIsTooltipVisible(true)}
+              onBlur={() => setIsTooltipVisible(false)}
+            >
+              {children}
+            </div>
+            {isTooltipVisible && (
+              <div className="tooltip" style={{ top: '-2rem' }} role="tooltip">
+                {text}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      // Accordion component
+      const Accordion = ({ title, children }) => {
+        const [isOpen, setIsOpen] = useState(false);
+        const uniqueId = title.replace(/\s+/g, '-').toLowerCase();
+        return (
+          <div className="border rounded-lg" style={{ borderColor: colors.forestGreen }}>
+            <button
+              className="w-full flex justify-between items-center px-4 py-3 text-left focus-ring"
+              onClick={() => setIsOpen(!isOpen)}
+              style={{ backgroundColor: colors.offWhite }}
+              aria-expanded={isOpen}
+              aria-controls={`accordion-content-${uniqueId}`}
+              id={`accordion-button-${uniqueId}`}
+            >
+              <span className="font-medium" style={{ color: colors.navyBlue }}>{title}</span>
+              <i className={`fas ${isOpen ? 'fa-chevron-up' : 'fa-chevron-down'} text-gray-500`}></i>
+            </button>
+            {isOpen && (
+              <div id={`accordion-content-${uniqueId}`} className="p-4" style={{ backgroundColor: colors.offWhite }}>
+                {children}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      // Tabs component
+      const Tabs = ({ tabs }) => {
+        return (
+          <div role="tablist">
+            <div className="flex border-b" style={{ borderColor: colors.forestGreen }}>
+              {tabs.map((tab, index) => (
+                <button
+                  key={index}
+                  className={`px-4 py-2 font-medium focus-ring ${activeTab === index ? 'tab-active' : 'text-gray-500'}`}
+                  onClick={() => setActiveTab(index)}
+                  style={{ fontFamily: "Century Gothic, CenturyGothic, AppleGothic, sans-serif" }}
+                  aria-selected={activeTab === index}
+                  role="tab"
+                  id={`tab-${index}`}
+                  aria-controls={`panel-${index}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+            <div
+              id={`panel-${activeTab}`}
+              className="p-4 bg-gray-50 rounded-b-lg"
+              style={{ backgroundColor: colors.offWhite }}
+              role="tabpanel"
+              aria-labelledby={`tab-${activeTab}`}
+            >
+              {tabs[activeTab].content}
+            </div>
+          </div>
+        );
+      };
+
+      // Progress Bar component
+      const ProgressBar = ({ progress }) => {
+        return (
+          <div className="progress-bar h-4 w-full" role="progressbar" aria-valuenow={progress} aria-valuemin="0" aria-valuemax="100">
+            <div className="progress-fill" style={{ width: `${progress}%` }}></div>
+          </div>
+        );
+      };
+
+      // Toggle Switch component
+      const ToggleSwitch = ({ isOn, onToggle }) => {
+        return (
+          <button
+            className={`toggle ${isOn ? 'toggle-on' : ''} focus-ring`}
+            onClick={onToggle}
+            aria-checked={isOn}
+            role="switch"
+          >
+            <div className="toggle-circle"></div>
+          </button>
+        );
+      };
+
+      // Search Bar with Autocomplete component
+      const SearchBar = ({ suggestions }) => {
+        const filteredSuggestions = suggestions.filter(s =>
+          s.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        return (
+          <div className="relative">
+            <div className="flex items-center">
+              <input
+                type="text"
+                className="w-full px-4 py-2 rounded-l border focus:outline-none focus-ring"
+                placeholder="Search eco-friendly topics..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                style={{ borderColor: colors.forestGreen }}
+                aria-label="Search eco-friendly topics"
+                aria-autocomplete="list"
+                aria-controls="autocomplete-list"
+                id="search-input"
+              />
+              <button
+                className="px-4 py-2 rounded-r text-white font-medium focus-ring"
+                style={{ backgroundColor: colors.oceanBlue }}
+                aria-label="Search"
+              >
+                <i className="fas fa-search"></i>
+              </button>
+            </div>
+            {searchQuery && filteredSuggestions.length > 0 && (
+              <div className="autocomplete-list mt-1" role="listbox" id="autocomplete-list">
+                {filteredSuggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    className="autocomplete-item px-4 py-2 cursor-pointer focus-ring"
+                    onClick={() => setSearchQuery(suggestion)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        setSearchQuery(suggestion);
+                      }
+                    }}
+                    role="option"
+                    aria-selected={false}
+                    tabIndex="0"
+                  >
+                    {suggestion}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      };
+
+      return (
+        <div className="p-6 bg-gray-100">
+          <div className="max-w-6xl mx-auto">
+            <header className="mb-12 pb-6 border-b border-gray-300">
+              <h1 className="text-3xl font-bold mb-2" style={{ color: colors.navyBlue, fontFamily: "Century Gothic, CenturyGothic, AppleGothic, sans-serif" }}>
+                Eco-Friendly Design System
+              </h1>
+              <p className="text-lg text-gray-700">A comprehensive guide for sustainable web design implementation</p>
+            </header>
+
+            {/* Typography Section */}
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold mb-6" style={{ color: colors.navyBlue }}>Typography</h2>
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h3 className="text-xl font-bold mb-4">Font Pairings</h3>
+                <div className="mb-8">
+                  <h4 className="text-lg font-medium mb-2">Primary Font</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 rounded">
+                      <p className="mb-2 text-sm text-gray-500">Headings: Century Gothic (Bold)</p>
+                      <h5 className="text-3xl font-bold" style={{ fontFamily: "Century Gothic, CenturyGothic, AppleGothic, sans-serif", color: colors.navyBlue }}>
+                        Sustainable Future
+                      </h5>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded">
+                      <p className="mb-2 text-sm text-gray-500">Body: Century Gothic (Regular)</p>
+                      <p style={{ fontFamily: "Century Gothic, CenturyGothic, AppleGothic, sans-serif" }}>
+                        Clean, modern, and distinctive geometric sans-serif typeface with excellent readability. Its rounded, open letterforms create a contemporary, eco-friendly aesthetic.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-lg font-medium mb-2">Alternative Pairing</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-gray-50 rounded">
+                      <p className="mb-2 text-sm text-gray-500">Headings: Century Gothic (Bold)</p>
+                      <h5 className="text-3xl font-bold" style={{ fontFamily: "Century Gothic, CenturyGothic, AppleGothic, sans-serif", color: colors.navyBlue }}>
+                        Eco Innovation
+                      </h5>
+                    </div>
+                    <div className="p-4 bg-gray-50 rounded">
+                      <p className="mb-2 text-sm text-gray-500">Body: Arial (Regular) - Fallback</p>
+                      <p style={{ fontFamily: "Arial, sans-serif" }}>
+                        When Century Gothic isn't available, Arial serves as an excellent fallback with good readability and clean design for long-form content.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-xl font-bold mb-4">Typographic Scale</h3>
+                <div className="space-y-4">
+                  <div className="p-3 border-l-4" style={{ borderColor: colors.oceanBlue }}>
+                    <h1 className="text-4xl font-bold" style={{ color: colors.navyBlue }}>H1: Page Title (2rem/32px)</h1>
+                  </div>
+                  <div className="p-3 border-l-4" style={{ borderColor: colors.oceanBlue }}>
+                    <h2 className="text-3xl font-bold" style={{ color: colors.navyBlue }}>H2: Section Header (1.75rem/28px)</h2>
+                  </div>
+                  <div className="p-3 border-l-4" style={{ borderColor: colors.oceanBlue }}>
+                    <h3 className="text-2xl font-bold" style={{ color: colors.navyBlue }}>H3: Subsection Title (1.5rem/24px)</h3>
+                  </div>
+                  <div className="p-3 border-l-4" style={{ borderColor: colors.oceanBlue }}>
+                    <h4 className="text-xl font-bold" style={{ color: colors.navyBlue }}>H4: Group Heading (1.25rem/20px)</h4>
+                  </div>
+                  <div className="p-3 border-l-4" style={{ borderColor: colors.oceanBlue }}>
+                    <p className="text-base">Body Text (1rem/16px): Main content text used throughout the website.</p>
+                  </div>
+                  <div className="p-3 border-l-4" style={{ borderColor: colors.oceanBlue }}>
+                    <p className="text-sm">Small Text (0.875rem/14px): Used for captions, footnotes, and supplementary information.</p>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* UI Components Section */}
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold mb-6" style={{ color: colors.navyBlue }}>UI Components</h2>
+              {/* Buttons */}
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h3 className="text-xl font-bold mb-4">Buttons</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <div className="p-4 bg-gray-50 rounded flex flex-col items-center">
+                    <button className="px-6 py-3 rounded-full text-white font-medium focus-ring" style={{ backgroundColor: colors.oceanBlue }}>
+                      Primary Button
+                    </button>
+                    <p className="mt-3 text-sm text-gray-500">Used for main actions</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded flex flex-col items-center">
+                    <button className="px-6 py-3 rounded-full text-white font-medium focus-ring" style={{ backgroundColor: colors.limeGreen }}>
+                      Secondary Button
+                    </button>
+                    <p className="mt-3 text-sm text-gray-500">Used for alternative actions</p>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded flex flex-col items-center">
+                    <button className="px-6 py-3 rounded-full text-gray-700 font-medium border-2 focus-ring" style={{ borderColor: colors.forestGreen }}>
+                      Tertiary Button
+                    </button>
+                    <p className="mt-3 text-sm text-gray-500">Used for optional actions</p>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="p-4 bg-gray-50 rounded">
+                    <h4 className="font-medium mb-3">States</h4>
+                    <div className="space-y-3">
+                      <button className="w-full px-4 py-2 rounded-full text-white font-medium focus-ring" style={{ backgroundColor: colors.oceanBlue }}>
+                        Default
+                      </button>
+                      <button className="w-full px-4 py-2 rounded-full text-white font-medium focus-ring" style={{ backgroundColor: "#0092c8" }}>
+                        Hover
+                      </button>
+                      <button className="w-full px-4 py-2 rounded-full text-white font-medium focus-ring" style={{ backgroundColor: "#007ba8" }}>
+                        Active/Pressed
+                      </button>
+                      <button className="w-full px-4 py-2 rounded-full text-white font-medium opacity-50" style={{ backgroundColor: colors.oceanBlue }} disabled>
+                        Disabled
+                      </button>
+                    </div>
+                  </div>
+                  <div className="p-4 bg-gray-50 rounded">
+                    <h4 className="font-medium mb-3">Size Variations</h4>
+                    <div className="space-y-3">
+                      <button className="px-6 py-3 rounded-full text-white font-medium text-lg focus-ring" style={{ backgroundColor: colors.oceanBlue }}>
+                        Large
+                      </button>
+                      <div>
+                        <button className="px-5 py-2 rounded-full text-white font-medium focus-ring" style={{ backgroundColor: colors.oceanBlue }}>
+                          Medium
+                        </button>
+                      </div>
+                      <button className="px-4 py-1 rounded-full text-white font-medium text-sm focus-ring" style={{ backgroundColor: colors.oceanBlue }}>
+                        Small
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Form Elements */}
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h3 className="text-xl font-bold mb-4">Form Elements</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <div className="mb-4">
+                      <label className="block text-gray-700 mb-2" htmlFor="text-input">Text Input</label>
+                      <input
+                        id="text-input"
+                        type="text"
+                        className="w-full px-4 py-2 rounded border focus:outline-none focus-ring"
+                        placeholder="Enter text here"
+                        style={{ borderColor: "#ccc" }}
+                        aria-label="Text input"
+                      />
+                    </div>
+                    <div className="mb-4">
+                      <label className="block text-gray-700 mb-2" htmlFor="select-dropdown">Select Dropdown</label>
+                      <div className="relative">
+                        <select id="select-dropdown" className="w-full px-4 py-2 rounded border appearance-none bg-white focus-ring" style={{ borderColor: "#ccc" }} aria-label="Select option">
+                          <option>Select an option</option>
+                          <option>Option 1</option>
+                          <option>Option 2</option>
+                        </select>
+                        <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+                          <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="mb-4">
+                      <label className="block text-gray-700 mb-2" htmlFor="checkbox-input">Checkbox</label>
+                      <div className="flex items-center">
+                        <input
+                          id="checkbox-input"
+                          type="checkbox"
+                          className="w-6 h-6 rounded focus-ring"
+                          style={{ backgroundColor: colors.limeGreen }}
+                          aria-label="Checkbox"
+                        />
+                        <span className="ml-2">Checkbox Label</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-gray-700 mb-2" htmlFor="radio-input">Radio Button</label>
+                      <div className="flex items-center">
+                        <input
+                          id="radio-input"
+                          type="radio"
+                          className="w-6 h-6 rounded focus-ring"
+                          style={{ backgroundColor: colors.oceanBlue }}
+                          aria-label="Radio option"
+                        />
+                        <span className="ml-2">Radio Option</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Card */}
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-xl font-bold mb-4">Cards</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="rounded-lg overflow-hidden shadow-md border border-gray-200" style={{ backgroundColor: colors.offWhite }}>
+                    <div className="h-40 bg-gray-300"></div>
+                    <div className="p-4">
+                      <h4 className="font-bold mb-2" style={{ color: colors.navyBlue }}>Card Title</h4>
+                      <p className="text-gray-700 mb-4">This is some text within a card body.</p>
+                      <button className="px-4 py-1 rounded-full text-white text-sm focus-ring" style={{ backgroundColor: colors.oceanBlue }}>
+                        Learn More
+                      </button>
+                    </div>
+                  </div>
+                  <div className="rounded-lg overflow-hidden shadow-md" style={{ backgroundColor: colors.offWhite }}>
+                    <div className="p-4">
+                      <h4 className="font-bold mb-2" style={{ color: colors.navyBlue }}>Feature Card</h4>
+                      <div className="flex items-center mb-3">
+                        <div className="w-8 h-8 rounded-full flex items-center justify-center mr-2" style={{ backgroundColor: colors.forestGreen }}>
+                          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                          </svg>
+                        </div>
+                        <span className="font-medium">Eco-friendly Feature</span>
+                      </div>
+                      <p className="text-gray-700">Descriptive text about this eco-friendly feature or benefit.</p>
+                    </div>
+                  </div>
+                  <div className="rounded-lg overflow-hidden shadow-md border-t-4" style={{ borderColor: colors.limeGreen, backgroundColor: colors.offWhite }}>
+                    <div className="p-4">
+                      <h4 className="font-bold mb-2" style={{ color: colors.navyBlue }}>Sustainability Tip</h4>
+                      <p className="text-gray-700 mb-3">This card style is used for highlighting important sustainability tips and information.</p>
+                      <div className="text-right">
+                        <a href="#" className="font-medium focus-ring" style={{ color: colors.forestGreen }}>More Tips</a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            {/* Icon Set */}
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold mb-6" style={{ color: colors.navyBlue }}>Icon Set (Font Awesome)</h2>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                  {[
+                    { name: "Recycle", icon: "fa-recycle" },
+                    { name: "Leaf", icon: "fa-leaf" },
+                    { name: "Water", icon: "fa-tint" },
+                    { name: "Sun", icon: "fa-sun" },
+                    { name: "Globe", icon: "fa-globe-americas" },
+                    { name: "Seedling", icon: "fa-seedling" },
+                    { name: "Check", icon: "fa-check" },
+                    { name: "Energy", icon: "fa-bolt" },
+                    { name: "Tree", icon: "fa-tree" },
+                    { name: "Lightbulb", icon: "fa-lightbulb" },
+                    { name: "Wind", icon: "fa-wind" },
+                    { name: "Solar Panel", icon: "fa-solar-panel" },
+                    { name: "Bicycle", icon: "fa-bicycle" },
+                    { name: "Mountain", icon: "fa-mountain" },
+                    { name: "Cloud", icon: "fa-cloud" }
+                  ].map((icon, index) => (
+                    <div key={index} className="flex flex-col items-center justify-center p-4 border rounded bg-gray-50">
+                      <div className="w-12 h-12 rounded-full flex items-center justify-center mb-2" style={{ backgroundColor: index % 2 === 0 ? colors.forestGreen : colors.oceanBlue }}>
+                        <i className={`fas ${icon.icon} text-xl text-white`} aria-hidden="true"></i>
+                      </div>
+                      <span className="text-sm text-center">{icon.name}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-6 p-4 bg-gray-50 rounded">
+                  <h4 className="font-medium mb-2">Font Awesome Implementation</h4>
+                  <p className="mb-3 text-sm">Include Font Awesome in your project by adding the following to your HTML head:</p>
+                  <div className="bg-gray-800 text-white p-3 rounded text-sm font-mono mb-4">
+                    &lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"&gt;
+                  </div>
+                  <h4 className="font-medium mb-2">Icon Guidelines</h4>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>Use solid icons (fas) for filled icons and regular icons (far) for outlined versions</li>
+                    <li>Maintain consistent sizing with fa-sm, fa-lg, fa-xl, fa-2x, etc. classes</li>
+                    <li>Apply brand colors using custom CSS to maintain design consistency</li>
+                    <li>Use fixed-width icons (fa-fw) when aligning icons in lists or navigation</li>
+                    <li>Include appropriate aria-labels when icons are used without accompanying text</li>
+                    <li>Consider using stacked icons or icon+text combinations for more complex concepts</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+
+            {/* Spacing & Layout */}
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold mb-6" style={{ color: colors.navyBlue }}>Spacing & Layout</h2>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-xl font-bold mb-4">Spacing System</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div>
+                    <h4 className="font-medium mb-3">Base Unit: 8px</h4>
+                    <div className="space-y-3">
+                      {[
+                        { name: "xs", size: "4px (0.5×)" },
+                        { name: "sm", size: "8px (1×)" },
+                        { name: "md", size: "16px (2×)" },
+                        { name: "lg", size: "24px (3×)" },
+                        { name: "xl", size: "32px (4×)" },
+                        { name: "2xl", size: "48px (6×)" }
+                      ].map((space, index) => (
+                        <div key={index} className="flex items-center">
+                          <div className="w-16 text-sm font-medium">{space.name}</div>
+                          <div className="h-8 bg-gray-300" style={{
+                            width: `${(index + 0.5) * 8}px`,
+                            backgroundColor: colors.oceanBlue,
+                            opacity: 0.5 + (index * 0.1)
+                          }}></div>
+                          <div className="ml-4 text-sm text-gray-500">{space.size}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="font-medium mb-3">Layout Widths</h4>
+                    <div className="space-y-6">
+                      <div>
+                        <div className="h-8 w-full bg-gray-300 relative mb-2" style={{ backgroundColor: colors.forestGreen, opacity: 0.7 }}>
+                          <div className="absolute inset-0 flex items-center justify-center text-white font-medium">Container (max: 1200px)</div>
+                        </div>
+                        <p className="text-sm text-gray-600">Main content container with max-width of 1200px and responsive padding</p>
+                      </div>
+                      <div>
+                        <div className="h-8 w-3/4 bg-gray-300 relative mb-2" style={{ backgroundColor: colors.limeGreen, opacity: 0.7 }}>
+                          <div className="absolute inset-0 flex items-center justify-center text-white font-medium">Content (max: 900px)</div>
+                        </div>
+                        <p className="text-sm text-gray-600">Narrower content width for improved readability of text-heavy sections</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold mb-4">Responsive Breakpoints</h3>
+                <div className="space-y-3">
+                  {[
+                    { name: "Mobile", size: "< 640px" },
+                    { name: "Tablet", size: "≥ 640px" },
+                    { name: "Laptop", size: "≥ 1024px" },
+                    { name: "Desktop", size: "≥ 1280px" }
+                  ].map((breakpoint, index) => (
+                    <div key={index} className="flex items-center p-3 bg-gray-50 rounded">
+                      <div className="w-24 font-medium">{breakpoint.name}</div>
+                      <div className="text-sm text-gray-600">{breakpoint.size}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            {/* UI Controls and Patterns */}
+            <section className="mb-12">
+              <h2 className="text-2xl font-bold mb-6" style={{ color: colors.navyBlue }}>UI Controls & Patterns</h2>
+              {/* Modals */}
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h3 className="text-xl font-bold mb-4">Modals</h3>
+                <div className="p-4 bg-gray-50 rounded mb-4">
+                  <button
+                    className="px-6 py-3 rounded-full text-white font-medium focus-ring"
+                    style={{ backgroundColor: colors.oceanBlue }}
+                    onClick={() => setIsModalOpen(true)}
+                  >
+                    Open Modal
+                  </button>
+                  <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+                    <p className="text-gray-700 mb-4">Take an eco-friendly action by confirming your choice below.</p>
+                    <div className="flex justify-end space-x-3">
+                      <button
+                        className="px-4 py-2 rounded-full text-gray-700 font-medium border-2 focus-ring"
+                        style={{ borderColor: colors.forestGreen }}
+                        onClick={() => setIsModalOpen(false)}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        className="px-4 py-2 rounded-full text-white font-medium focus-ring"
+                        style={{ backgroundColor: colors.limeGreen }}
+                        onClick={() => setIsModalOpen(false)}
+                      >
+                        Confirm
+                      </button>
+                    </div>
+                  </Modal>
+                </div>
+                <div className="p-4 bg-gray-50 rounded">
+                  <h4 className="font-medium mb-3">Guidelines</h4>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>Use modals for critical actions or confirmations requiring user focus.</li>
+                    <li>Include clear call-to-action buttons (e.g., Confirm, Cancel).</li>
+                    <li>Ensure modals are dismissible via close button or overlay click.</li>
+                    <li>Maintain accessibility with keyboard navigation and ARIA attributes.</li>
+                  </ul>
+                </div>
+              </div>
+              {/* Tooltips */}
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h3 className="text-xl font-bold mb-4">Tooltips</h3>
+                <div className="p-4 bg-gray-50 rounded mb-4">
+                  <Tooltip text="Learn about eco-friendly practices">
+                    <button className="px-4 py-2 rounded-full text-white font-medium focus-ring" style={{ backgroundColor: colors.forestGreen }}>
+                      Hover for Tooltip
+                    </button>
+                  </Tooltip>
+                </div>
+                <div className="p-4 bg-gray-50 rounded">
+                  <h4 className="font-medium mb-3">Guidelines</h4>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>Use tooltips for brief, contextual help or descriptions.</li>
+                    <li>Trigger on hover or click for touch devices.</li>
+                    <li>Keep text concise (1-2 short sentences).</li>
+                    <li>Ensure tooltips don’t obscure other interactive elements.</li>
+                  </ul>
+                </div>
+              </div>
+              {/* Navigation Bar */}
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h3 className="text-xl font-bold mb-4">Navigation Bar</h3>
+                <div className="p-4 bg-gray-50 rounded mb-4">
+                  <nav className="flex items-center justify-between p-4 rounded-lg" style={{ backgroundColor: colors.offWhite }}>
+                    <div className="text-xl font-bold" style={{ color: colors.navyBlue, fontFamily: "Century Gothic, CenturyGothic, AppleGothic, sans-serif" }}>
+                      EcoBrand
+                    </div>
+                    <div className="hidden md:flex space-x-6">
+                      {["Home", "Features", "Sustainability", "Contact"].map((item, index) => (
+                        <a
+                          key={index}
+                          href="#"
+                          className="text-gray-700 hover:text-white hover:bg-gray-700 px-3 py-2 rounded-full transition focus-ring"
+                          style={{ fontFamily: "Century Gothic, CenturyGothic, AppleGothic, sans-serif" }}
+                        >
+                          {item}
+                        </a>
+                      ))}
+                    </div>
+                    <div className="md:hidden">
+                      <button className="text-gray-700 focus-ring" aria-label="Toggle menu">
+                        <i className="fas fa-bars text-xl"></i>
+                      </button>
+                    </div>
+                  </nav>
+                </div>
+                <div className="p-4 bg-gray-50 rounded">
+                  <h4 className="font-medium mb-3">Guidelines</h4>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>Keep navigation items concise (4-7 max for top-level).</li>
+                    <li>Use hamburger menu for mobile devices.</li>
+                    <li>Highlight active states with color or underline.</li>
+                    <li>Ensure accessibility with keyboard navigation and ARIA labels.</li>
+                  </ul>
+                </div>
+              </div>
+              {/* Accordion */}
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h3 className="text-xl font-bold mb-4">Accordion</h3>
+                <div className="p-4 bg-gray-50 rounded mb-4">
+                  <Accordion title="Eco-Friendly Practices">
+                    <p className="text-gray-700">
+                      Learn about sustainable practices such as reducing waste, conserving energy, and using renewable resources to promote a healthier planet.
+                    </p>
+                  </Accordion>
+                  <Accordion title="Green Technology">
+                    <p className="text-gray-700">
+                      Explore innovations like solar panels, wind turbines, and energy-efficient appliances that support sustainability.
+                    </p>
+                  </Accordion>
+                </div>
+                <div className="p-4 bg-gray-50 rounded">
+                  <h4 className="font-medium mb-3">Guidelines</h4>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>Use accordions for FAQs or collapsible content sections.</li>
+                    <li>Limit nesting to one level for simplicity.</li>
+                    <li>Provide clear expand/collapse indicators (e.g., chevrons).</li>
+                    <li>Ensure accessibility with keyboard support and ARIA attributes.</li>
+                  </ul>
+                </div>
+              </div>
+              {/* Tabs */}
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h3 className="text-xl font-bold mb-4">Tabs</h3>
+                <div className="p-4 bg-gray-50 rounded mb-4">
+                  <Tabs tabs={[
+                    {
+                      label: "Renewable Energy",
+                      content: <p className="text-gray-700">Explore solar, wind, and hydro energy solutions for a sustainable future.</p>
+                    },
+                    {
+                      label: "Recycling",
+                      content: <p className="text-gray-700">Learn best practices for recycling plastics, paper, and electronics.</p>
+                    },
+                    {
+                      label: "Conservation",
+                      content: <p className="text-gray-700">Discover ways to conserve water and energy in daily life.</p>
+                    }
+                  ]} />
+                </div>
+                <div className="p-4 bg-gray-50 rounded">
+                  <h4 className="font-medium mb-3">Guidelines</h4>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>Use tabs to organize related content into switchable sections.</li>
+                    <li>Limit to 3-5 tabs to avoid overwhelming users.</li>
+                    <li>Highlight active tab with a clear visual indicator (e.g., border, color).</li>
+                    <li>Ensure accessibility with keyboard navigation and ARIA roles.</li>
+                  </ul>
+                </div>
+              </div>
+              {/* Progress Bar */}
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h3 className="text-xl font-bold mb-4">Progress Bar</h3>
+                <div className="p-4 bg-gray-50 rounded mb-4">
+                  <ProgressBar progress={progress} />
+                  <div className="mt-4 flex space-x-4">
+                    <button
+                      className="px-4 py-2 rounded-full text-white font-medium focus-ring"
+                      style={{ backgroundColor: colors.oceanBlue }}
+                      onClick={() => setProgress(Math.max(0, progress - 10))}
+                    >
+                      Decrease
+                    </button>
+                    <button
+                      className="px-4 py-2 rounded-full text-white font-medium focus-ring"
+                      style={{ backgroundColor: colors.limeGreen }}
+                      onClick={() => setProgress(Math.min(100, progress + 10))}
+                    >
+                      Increase
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded">
+                  <h4 className="font-medium mb-3">Guidelines</h4>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>Use progress bars for tasks longer than 1-2 seconds (e.g., uploads, loading).</li>
+                    <li>Provide clear visual feedback with a contrasting fill color.</li>
+                    <li>Include percentage or status text for clarity if needed.</li>
+                    <li>Ensure smooth transitions for dynamic updates.</li>
+                  </ul>
+                </div>
+              </div>
+              {/* Toggle Switch */}
+              <div className="bg-white p-6 rounded-lg shadow-sm mb-6">
+                <h3 className="text-xl font-bold mb-4">Toggle Switch</h3>
+                <div className="p-4 bg-gray-50 rounded mb-4">
+                  <div className="flex items-center space-x-4">
+                    <ToggleSwitch isOn={isToggled} onToggle={() => setIsToggled(!isToggled)} />
+                    <span className="text-gray-700">{isToggled ? "Eco Mode On" : "Eco Mode Off"}</span>
+                  </div>
+                </div>
+                <div className="p-4 bg-gray-50 rounded">
+                  <h4 className="font-medium mb-3">Guidelines</h4>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>Use toggle switches for binary settings (e.g., on/off).</li>
+                    <li>Provide clear on/off states with color and position changes.</li>
+                    <li>Include a label to describe the toggle’s purpose.</li>
+                    <li>Ensure accessibility with ARIA roles and keyboard support.</li>
+                  </ul>
+                </div>
+              </div>
+              {/* Search Bar with Autocomplete */}
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <h3 className="text-xl font-bold mb-4">Search Bar with Autocomplete</h3>
+                <div className="p-4 bg-gray-50 rounded mb-4">
+                  <SearchBar suggestions={suggestions} />
+                </div>
+                <div className="p-4 bg-gray-50 rounded">
+                  <h4 className="font-medium mb-3">Guidelines</h4>
+                  <ul className="list-disc pl-5 space-y-1 text-sm">
+                    <li>Use search bars for finding specific content quickly.</li>
+                    <li>Provide autocomplete suggestions for common queries.</li>
+                    <li>Ensure suggestions are keyboard-navigable.</li>
+                    <li>Clear the input field easily with a reset button if needed.</li>
+                  </ul>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<StyleGuide />);
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "bindingCulture": {
+    "language": "en-us"
+  },
+  "language": {
+    "feature": "en-us"
+  },
+  "runtime": {
+    "missingOrPendingStepsOutcome": "Error",
+    "allowDebugGeneratedFiles": false,
+    "allowRowTests": true,
+    "addNonParallelizableMarkerForTags": [
+      "db",
+      "browser"
+    ]
+  },
+  "generator": {
+    "allowDebugGeneratedFiles": false,
+    "allowRowTests": true,
+    "addNonParallelizableMarkerForTags": [
+      "db",
+      "browser"
+    ]
+  }
+}

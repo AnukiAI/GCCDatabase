@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database - Complete Sitemap & Page Summary</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background: white;
+            padding: 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        @media print {
+            body {
+                padding: 20px;
+                max-width: 100%;
+            }
+            .page-break {
+                page-break-before: always;
+            }
+            .no-break {
+                page-break-inside: avoid;
+            }
+        }
+
+        .header-info {
+            background: linear-gradient(135deg, #002B76 0%, #00AEEF 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .header-info h1 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+
+        .header-info p {
+            color: rgba(255,255,255,0.9);
+            font-size: 18px;
+        }
+
+        h2 {
+            color: #002B76;
+            font-size: 28px;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            padding-left: 10px;
+            border-left: 4px solid #00AEEF;
+        }
+
+        h3 {
+            color: #00AEEF;
+            font-size: 20px;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        h4 {
+            color: #34495e;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .nav-structure {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border-left: 4px solid #00AEEF;
+        }
+
+        .role-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+
+        .role-header {
+            background: #002B76;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .page-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .page-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .page-card h4 {
+            color: #00AEEF;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .page-url {
+            background: #f4f7fa;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            color: #e83e8c;
+            margin-bottom: 10px;
+        }
+
+        .page-description {
+            color: #4a5568;
+            margin-bottom: 15px;
+        }
+
+        .page-features {
+            margin-top: 15px;
+        }
+
+        .page-features ul {
+            margin-left: 20px;
+            color: #4a5568;
+        }
+
+        .page-features li {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+
+        .badge.admin {
+            background: #ffebee;
+            color: #f44336;
+        }
+
+        .badge.analyst {
+            background: #e3f2fd;
+            color: #2196f3;
+        }
+
+        .badge.external {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+
+        .badge.public {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+
+        .badge.authenticated {
+            background: #f3e5f5;
+            color: #9c27b0;
+        }
+
+        .icon {
+            width: 20px;
+            text-align: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        th {
+            background: #002B76;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 14px;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .architecture-overview {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .summary-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #e0e0e0;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: #00AEEF;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .footer-info {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
+            text-align: center;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="header-info">
+        <h1>GCC Database - Complete Sitemap & Page Summary</h1>
+        <p>Comprehensive overview of all pages, navigation structure, and access control</p>
+    </div>
+
+    <div class="summary-stats">
+        <div class="stat-card">
+            <div class="stat-number">57+</div>
+            <div class="stat-label">Total Pages/Views</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">10</div>
+            <div class="stat-label">Controllers</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">4</div>
+            <div class="stat-label">User Roles</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-number">3</div>
+            <div class="stat-label">Access Levels</div>
+        </div>
+    </div>
+
+    <h2>Navigation Structure by Role</h2>
+
+    <div class="nav-structure">
+        <h3>Role-Based Navigation Hierarchy</h3>
+
+        <div class="role-section">
+            <div class="role-header">🔓 Public Users (Unauthenticated)</div>
+            <ul>
+                <li><strong>Landing Page:</strong> Certificate Tile View (Public)</li>
+                <li><strong>Available Actions:</strong> Browse certificates, view details</li>
+                <li><strong>Navigation Items:</strong> None (single page access)</li>
+            </ul>
+        </div>
+
+        <div class="role-section">
+            <div class="role-header">👤 External Users</div>
+            <ul>
+                <li><strong>Certificates</strong> → External Certificate Tile View</li>
+                <li><strong>Products</strong> → Product Management</li>
+                <li><strong>Note:</strong> No company access, limited certificate data</li>
+            </ul>
+        </div>
+
+        <div class="role-section">
+            <div class="role-header">📊 Analyst Users</div>
+            <ul>
+                <li><strong>Certificates</strong> → Internal Certificate Tile View</li>
+                <li><strong>Dashboard</strong> → Analytics Dashboard</li>
+                <li><strong>Companies & Products</strong> (Submenu)
+                    <ul>
+                        <li>Companies</li>
+                        <li>Products</li>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+
+        <div class="role-section">
+            <div class="role-header">🔧 Admin Users</div>
+            <ul>
+                <li><strong>All Analyst features +</strong></li>
+                <li><strong>Administration</strong> (Submenu)
+                    <ul>
+                        <li>Role Management</li>
+                        <li>User Management</li>
+                        <li><strong>Configuration/Settings</strong>
+                            <ul>
+                                <li>Google Analytics Tracking</li>
+                            </ul>
+                        </li>
+                        <li><strong>API Management</strong>
+                            <ul>
+                                <li>GCC API Integration</li>
+                            </ul>
+                        </li>
+                        <li><strong>Data Management</strong>
+                            <ul>
+                                <li>Certificate Types</li>
+                                <li>Product Types</li>
+                                <li>Certificate Fields</li>
+                                <li>CSF Attributes</li>
+                                <li>Tags</li>
+                                <li>Partners</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </li>
+                <li><strong>Breadcrumb Navigation:</strong> Visible only to admins</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>Complete Page Inventory</h2>
+
+    <h3>🏠 Home & Landing</h3>
+    <div class="page-grid">
+        <div class="page-card">
+            <h4><span class="icon">🏠</span> Home Page</h4>
+            <div class="page-url">/Home/Index</div>
+            <div class="page-description">Default landing redirects to Certificate Tile View</div>
+            <span class="badge public">Public</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">📋</span> Certificate Tile View (Public)</h4>
+            <div class="page-url">/Certificate/CertificateTileView</div>
+            <div class="page-description">Main public landing page with certificate browsing</div>
+            <span class="badge public">Public</span>
+            <div class="page-features">
+                <strong>Features:</strong>
+                <ul>
+                    <li>Infinite scroll (no pagination)</li>
+                    <li>Advanced search with autocomplete</li>
+                    <li>Shareable filtered URLs</li>
+                    <li>Direct certificate downloads</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <h3>🔐 Authentication & Account</h3>
+    <div class="page-grid">
+        <div class="page-card">
+            <h4><span class="icon">🔑</span> Login</h4>
+            <div class="page-url">/Account/Login</div>
+            <div class="page-description">Primary authentication entry point</div>
+            <span class="badge public">Public</span>
+            <div class="page-features">
+                <strong>Features:</strong>
+                <ul>
+                    <li>Azure AD B2C integration</li>
+                    <li>Cookie authentication fallback</li>
+                    <li>2FA support (email/SMS/TOTP)</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🔐</span> Two-Factor Authentication</h4>
+            <div class="page-url">/Account/TwoFactorAuthentication</div>
+            <div class="page-description">2FA verification step during login</div>
+            <span class="badge public">Public</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">⚙️</span> 2FA Preferences</h4>
+            <div class="page-url">/Account/TwoFactorPreferences</div>
+            <div class="page-description">Configure 2FA delivery methods and TOTP</div>
+            <span class="badge authenticated">Authenticated</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">📱</span> TOTP Setup</h4>
+            <div class="page-url">/Account/SetupTotp</div>
+            <div class="page-description">Microsoft Authenticator setup with QR code</div>
+            <span class="badge authenticated">Authenticated</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🔒</span> Access Denied</h4>
+            <div class="page-url">/Account/AccessDenied</div>
+            <div class="page-description">Authorization failure page</div>
+            <span class="badge public">Public</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🔄</span> Password Reset</h4>
+            <div class="page-url">/Account/ResetPassword</div>
+            <div class="page-description">Password recovery flow</div>
+            <span class="badge public">Public</span>
+        </div>
+    </div>
+
+    <h3>📊 Dashboard & Analytics</h3>
+    <div class="page-grid">
+        <div class="page-card">
+            <h4><span class="icon">📊</span> Dashboard</h4>
+            <div class="page-url">/Dashboard/Index</div>
+            <div class="page-description">Primary analytics interface with 12 metrics and 5 data tables</div>
+            <span class="badge analyst">Analyst</span> <span class="badge admin">Admin</span>
+            <div class="page-features">
+                <strong>Features:</strong>
+                <ul>
+                    <li>Real-time certificate statistics</li>
+                    <li>Excel/CSV export capabilities</li>
+                    <li>Performance monitoring integration</li>
+                    <li>Role-based data visibility</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <h3>📋 Certificate Management</h3>
+    <div class="page-grid">
+        <div class="page-card">
+            <h4><span class="icon">📋</span> Certificate Tile View (Internal)</h4>
+            <div class="page-url">/Certificate/CertificateTileViewInternal</div>
+            <div class="page-description">Internal certificate browsing with full data access</div>
+            <span class="badge analyst">Analyst</span> <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🌐</span> Certificate Tile View (External)</h4>
+            <div class="page-url">/Certificate/CertificateTileViewExternal</div>
+            <div class="page-description">Partner-filtered certificate view</div>
+            <span class="badge external">External</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">📄</span> Certificate Details</h4>
+            <div class="page-url">/Certificate/Details/{id}</div>
+            <div class="page-description">Individual certificate detail view</div>
+            <span class="badge public">Public</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">📑</span> Certificate Single View</h4>
+            <div class="page-url">/Certificate/CertificateSingleView/{id}</div>
+            <div class="page-description">Focused single certificate display</div>
+            <span class="badge public">Public</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">➕</span> Create Certificate</h4>
+            <div class="page-url">/Certificate/Create</div>
+            <div class="page-description">New certificate creation form</div>
+            <span class="badge analyst">Analyst</span> <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">✏️</span> Edit Certificate</h4>
+            <div class="page-url">/Certificate/Edit/{id}</div>
+            <div class="page-description">Certificate modification interface</div>
+            <span class="badge analyst">Analyst</span> <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">📥</span> Certificate Import</h4>
+            <div class="page-url">/Certificate/Import</div>
+            <div class="page-description">Bulk certificate import utility</div>
+            <span class="badge analyst">Analyst</span> <span class="badge admin">Admin</span>
+        </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h3>🏢 Company Management</h3>
+    <div class="page-grid">
+        <div class="page-card">
+            <h4><span class="icon">🏢</span> Companies List</h4>
+            <div class="page-url">/Company/Index</div>
+            <div class="page-description">Company directory and management</div>
+            <span class="badge analyst">Analyst</span> <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🏢➕</span> Create Company</h4>
+            <div class="page-url">/Company/Create</div>
+            <div class="page-description">New company creation form</div>
+            <span class="badge analyst">Analyst</span> <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🏢⚙️</span> Company Management</h4>
+            <div class="page-url">/Company/Management</div>
+            <div class="page-description">Advanced company administration</div>
+            <span class="badge analyst">Analyst</span> <span class="badge admin">Admin</span>
+        </div>
+    </div>
+
+    <h3>📦 Product Management</h3>
+    <div class="page-grid">
+        <div class="page-card">
+            <h4><span class="icon">📦</span> Product Management</h4>
+            <div class="page-url">/Product/Management</div>
+            <div class="page-description">Product catalog and ID management</div>
+            <span class="badge external">External</span> <span class="badge analyst">Analyst</span> <span class="badge admin">Admin</span>
+            <div class="page-features">
+                <strong>Features:</strong>
+                <ul>
+                    <li>Multiple ASIN support (100s per certificate)</li>
+                    <li>Product types: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN</li>
+                    <li>Bulk CSV import/export</li>
+                    <li>Product ID validation</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">📂</span> Product Categories</h4>
+            <div class="page-url">/Product/Categories</div>
+            <div class="page-description">Product category organization</div>
+            <span class="badge analyst">Analyst</span> <span class="badge admin">Admin</span>
+        </div>
+    </div>
+
+    <h3>🔧 Administration (Admin Only)</h3>
+    <div class="page-grid">
+        <div class="page-card">
+            <h4><span class="icon">👥</span> User Management</h4>
+            <div class="page-url">/Admin/UserManagement</div>
+            <div class="page-description">Complete user administration interface</div>
+            <span class="badge admin">Admin</span>
+            <div class="page-features">
+                <strong>Features:</strong>
+                <ul>
+                    <li>Create, edit, delete users</li>
+                    <li>Role assignment</li>
+                    <li>Advanced search and filtering</li>
+                    <li>Bulk operations support</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🎭</span> Role Management</h4>
+            <div class="page-url">/Admin/RoleManagement</div>
+            <div class="page-description">Role and permission management</div>
+            <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">📊</span> Google Analytics</h4>
+            <div class="page-url">/Admin/GoogleAnalytics</div>
+            <div class="page-description">Analytics configuration and tracking setup</div>
+            <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🔗</span> GCC API Integration</h4>
+            <div class="page-url">/Admin/GCCAPI</div>
+            <div class="page-description">External API management and configuration</div>
+            <span class="badge admin">Admin</span>
+        </div>
+    </div>
+
+    <h3>🔧 Data Management (Admin Only)</h3>
+    <div class="page-grid">
+        <div class="page-card">
+            <h4><span class="icon">📋</span> Certificate Types</h4>
+            <div class="page-url">/Admin/CertificateTypes</div>
+            <div class="page-description">Certificate type definitions and management</div>
+            <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">📦</span> Product Types</h4>
+            <div class="page-url">/Admin/ProductTypes</div>
+            <div class="page-description">Product type categories and configuration</div>
+            <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">📝</span> Certificate Fields</h4>
+            <div class="page-url">/Admin/CertificateFields</div>
+            <div class="page-description">Custom certificate field definitions</div>
+            <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🏷️</span> CSF Attributes</h4>
+            <div class="page-url">/Admin/CSFAttributes</div>
+            <div class="page-description">Certificate Sustainability Framework attribute management</div>
+            <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🔖</span> Tags</h4>
+            <div class="page-url">/Admin/Tags</div>
+            <div class="page-description">Tag system for certificate categorization</div>
+            <span class="badge admin">Admin</span>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🤝</span> Partners</h4>
+            <div class="page-url">/Admin/Partners</div>
+            <div class="page-description">Partner organization management (Amazon, Wayfair, etc.)</div>
+            <span class="badge admin">Admin</span>
+        </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>API Endpoints</h2>
+
+    <div class="architecture-overview">
+        <h3>Public API</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                    <th>Access</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>/api/v1/certificates</code></td>
+                    <td>GET</td>
+                    <td>Public certificate listing</td>
+                    <td>Public</td>
+                </tr>
+                <tr>
+                    <td><code>/api/CertificateTileExternal/tiles</code></td>
+                    <td>GET</td>
+                    <td>External partner certificate data</td>
+                    <td>API Key</td>
+                </tr>
+                <tr>
+                    <td><code>/Certificate/Download/{id}</code></td>
+                    <td>GET</td>
+                    <td>Certificate PDF download</td>
+                    <td>Public</td>
+                </tr>
+                <tr>
+                    <td><code>/Certificate/Export</code></td>
+                    <td>GET</td>
+                    <td>Certificate data export (CSV/Excel)</td>
+                    <td>Authenticated</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h3>Authenticated API</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Endpoint</th>
+                    <th>Method</th>
+                    <th>Description</th>
+                    <th>Access</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>/api/v1/certificates</code></td>
+                    <td>POST/PUT/DELETE</td>
+                    <td>Certificate CRUD operations</td>
+                    <td>Analyst/Admin</td>
+                </tr>
+                <tr>
+                    <td><code>/Dashboard/GetChartData</code></td>
+                    <td>GET</td>
+                    <td>Dashboard chart data (JSON)</td>
+                    <td>Analyst/Admin</td>
+                </tr>
+                <tr>
+                    <td><code>/Dashboard/DownloadStat</code></td>
+                    <td>GET</td>
+                    <td>Individual statistic export</td>
+                    <td>Analyst/Admin</td>
+                </tr>
+                <tr>
+                    <td><code>/Dashboard/DownloadTable</code></td>
+                    <td>GET</td>
+                    <td>Table data export</td>
+                    <td>Analyst/Admin</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h2>Architecture Summary</h2>
+
+    <div class="architecture-overview">
+        <h3>Technology Stack</h3>
+        <ul>
+            <li><strong>Framework:</strong> ASP.NET Core 8.0 MVC</li>
+            <li><strong>Database:</strong> Entity Framework Core with SQL Server/SQLite</li>
+            <li><strong>Authentication:</strong> Azure AD B2C + Cookie fallback</li>
+            <li><strong>UI Framework:</strong> Bootstrap + Custom CSS</li>
+            <li><strong>PDF Generation:</strong> QuestPDF</li>
+            <li><strong>File Exports:</strong> ClosedXML for Excel</li>
+        </ul>
+
+        <h3>Key Patterns</h3>
+        <ul>
+            <li><strong>Repository Pattern:</strong> Data access abstraction</li>
+            <li><strong>Unit of Work:</strong> Transaction management</li>
+            <li><strong>Role-based Authorization:</strong> Policy-driven security</li>
+            <li><strong>Performance Monitoring:</strong> Integrated tracking</li>
+            <li><strong>Structured Logging:</strong> Comprehensive audit trail</li>
+        </ul>
+
+        <h3>Security Features</h3>
+        <ul>
+            <li><strong>Multi-factor Authentication:</strong> Email/SMS/TOTP support</li>
+            <li><strong>Role-based Access Control:</strong> 4-tier permission system</li>
+            <li><strong>Session Management:</strong> Secure session handling</li>
+            <li><strong>CSRF Protection:</strong> Anti-forgery tokens</li>
+            <li><strong>API Security:</strong> Key-based authentication with rate limiting</li>
+        </ul>
+    </div>
+
+    <h2>User Journey Flows</h2>
+
+    <div class="page-grid">
+        <div class="page-card">
+            <h4><span class="icon">🌐</span> Public User Flow</h4>
+            <div class="page-features">
+                <ol>
+                    <li>Land on Certificate Tile View</li>
+                    <li>Browse/search certificates</li>
+                    <li>View certificate details</li>
+                    <li>Download certificate PDFs</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">🔑</span> Authentication Flow</h4>
+            <div class="page-features">
+                <ol>
+                    <li>Access Login page</li>
+                    <li>Azure AD B2C or local auth</li>
+                    <li>2FA verification (if enabled)</li>
+                    <li>Redirect to role-specific landing</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">📊</span> Analyst Workflow</h4>
+            <div class="page-features">
+                <ol>
+                    <li>Login → Dashboard</li>
+                    <li>Review analytics and metrics</li>
+                    <li>Manage certificates and companies</li>
+                    <li>Export data for analysis</li>
+                </ol>
+            </div>
+        </div>
+
+        <div class="page-card">
+            <h4><span class="icon">⚙️</span> Admin Workflow</h4>
+            <div class="page-features">
+                <ol>
+                    <li>All analyst capabilities +</li>
+                    <li>User and role management</li>
+                    <li>System configuration</li>
+                    <li>Data type administration</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-info">
+        <p><strong>Last Updated:</strong> September 2025</p>
+        <p><strong>Total Pages Documented:</strong> 57+</p>
+        <p><strong>Status:</strong> Production Ready</p>
+        <p><strong>Next Steps:</strong> Create individual HTML summaries for each major page section</p>
+    </div>
+</body>
+</html>

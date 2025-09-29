@@ -1,0 +1,964 @@
+@{
+    // ViewData["Title"] = "Certificate Database";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+<link rel="stylesheet" href="~/css/certificatetileview.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<!-- Main Container -->
+<div class="main-container">
+    <!-- Sidebar (Filters) -->
+    <div class="sidebar">
+        <button class="mobile-filter-toggle" style="display: none;">
+            <span>Show Filters & Search</span>
+            <i class="fas fa-chevron-down"></i>
+        </button>
+
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <i class="fas fa-search search-icon"></i>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search">
+            <div class="autocomplete-dropdown" id="autocompleteDropdown" style="display: none;">
+                <ul class="autocomplete-list" id="autocompleteList">
+                    <!-- Suggestions will be populated dynamically -->
+                </ul>
+            </div>
+        </div>
+
+        <div class="filters-header">
+            <h3 class="filters-title">Filters</h3>
+            <a href="#" class="clear-filters">Clear Filters</a>
+        </div>
+
+        <!-- Certification Type Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" data-filter="cert-type">
+                <span>Certification Type</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="cert-type-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="biobased">
+                            Biobased
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-energy-savings">
+                            Certified Energy Savings
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-environmental-facts">
+                            Certified Environmental Facts
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-sustainability-facts">
+                            Certified Sustainability Facts
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="certified-water-savings">
+                            Certified Water Savings
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="closed-loop-product">
+                            Closed Loop Product
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="dematerialization">
+                            Dematerialization
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="ghg-verification">
+                            Greenhouse Gas (GHG) Verification
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="greencircle-audited">
+                            GreenCircle Audited
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="lca-optimized">
+                            Life Cycle Assessment (LCA) Optimized
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="manufacturer-inventory-verification">
+                            Manufacturer Inventory Verification
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="recyclable-material">
+                            Recyclable Material
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="recycled-content">
+                            Recycled Content
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="renewable-resource-content">
+                            Renewable Resource Content
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="sustainable-energy-practices">
+                            Sustainable Energy Practices
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="sustainable-manufacturing-practices">
+                            Sustainable Manufacturing Practices
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="waste-diversion-landfill">
+                            Waste Diversion from Landfill
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="waste-system-audit">
+                            Waste System Audit
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="vantage-vinyl-verified">
+                            +Vantage Vinyl� Verified
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-type" value="preloved">
+                            Preloved
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Product Categories Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" data-filter="product-cat">
+                <span>Product Categories</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="product-cat-content">
+                <ul class="filter-tree">
+                    <!-- Chemicals and Raw Materials -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="chemicals-raw-materials">
+                            Chemicals and Raw Materials
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="additives">
+                            Additives
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="metal-alloys">
+                            Metal Alloys
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="minerals">
+                            Minerals
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="plastics">
+                            Plastics
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="hdpe">
+                            HDPE
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="ldpe">
+                            LDPE
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="lldpe">
+                            LLDPE
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pet">
+                            PET
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pp">
+                            PP
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-3">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pvc">
+                            PVC
+                        </label>
+                    </li>
+
+                    <!-- Clothing, Apparel, and Fabrics -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="clothing-apparel-fabrics">
+                            Clothing, Apparel, and Fabrics
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="apparel">
+                            Apparel
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="bags-accessories">
+                            Bags and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="jewelry">
+                            Jewelry
+                        </label>
+                    </li>
+
+                    <!-- Construction / Building Products -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="construction-building" checked>
+                            Construction / Building Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="adhesives-sealants">
+                            Adhesives and Sealants
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="ceramics-tile">
+                            Ceramics and Tile
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="coatings">
+                            Coatings
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="concrete-materials">
+                            Concrete and Concrete Materials
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="doors-hardware" checked>
+                            Doors, Door Hardware, and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="fiberglass-mats">
+                            Fiberglass Mats
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="flooring">
+                            Flooring
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="grout-mortar">
+                            Grout and Mortar
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="hvac">
+                            HVAC
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="insulation">
+                            Insulation
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="moisture-control">
+                            Moisture Control
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="plumbing-accessories">
+                            Plumbing and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="roofing">
+                            Roofing
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="wallcoverings">
+                            Wallcoverings and Interior Wall Finishes
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="windows-accessories">
+                            Windows, Parts, and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="wiring-cable">
+                            Wiring and Cable
+                        </label>
+                    </li>
+
+                    <!-- Consumer Products -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="consumer-products">
+                            Consumer Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="appliances">
+                            Appliances
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="baby-products">
+                            Baby Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="cleaning-supplies">
+                            Cleaning Supplies
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="furniture">
+                            Furniture
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="health-beauty">
+                            Health and Beauty
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="home-goods">
+                            Home Goods
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="office-supplies">
+                            Office Supplies (non-electronic)
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="ppe">
+                            Personal Protective Equipment
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="pet-products">
+                            Pet Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="security">
+                            Security
+                        </label>
+                    </li>
+
+                    <!-- Electronics, Computers, and Accessories -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="electronics">
+                            Electronics, Computers, and Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="card-reader">
+                            Card Reader
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="electronic-accessories">
+                            Electronic Accessories
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="microelectronics">
+                            Microelectronics
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="printers-cartridges">
+                            Printers and Printer Cartridges
+                        </label>
+                    </li>
+
+                    <!-- Food and Beverage -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="food-beverage">
+                            Food and Beverage
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="animal-products">
+                            Animal Products
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="beverages">
+                            Beverages
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="food">
+                            Food
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="fragrance-flavor">
+                            Fragrance and Flavor
+                        </label>
+                    </li>
+
+                    <!-- Healthcare and Pharmaceutical -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="healthcare-pharmaceutical">
+                            Healthcare and Pharmaceutical
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="medical-devices">
+                            Medical Devices
+                        </label>
+                    </li>
+
+                    <!-- Packaging -->
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="packaging">
+                            Packaging
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="paper">
+                            Paper
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="plastic-packaging">
+                            Plastic
+                        </label>
+                    </li>
+                    <li class="filter-item filter-level-2">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="other-packaging">
+                            Other
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Company Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" data-filter="company">
+                <span>Company</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="company-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="alcamare">
+                            Alcamare International Recycling Group
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="assa-abloy">
+                            ASSA ABLOY
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="assa-abloy-corbin">
+                            ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="assa-abloy-sargent">
+                            ASSA ABLOY Access & Egress Hardware Group, Inc. - SARGENT Manufacturing Co. Division
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="certainteed">
+                            CertainTeed Insulation Group
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="charter">
+                            Charter Next Generation
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="domtar">
+                            Domtar Corporation
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="gaf">
+                            GAF
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="mapei">
+                            MAPEI
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="company" value="superior-essex">
+                            Superior Essex�
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Countries Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" data-filter="countries">
+                <span>Countries</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="countries-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="united-states">
+                            United States
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="belgium">
+                            Belgium
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="canada">
+                            Canada
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="china">
+                            China
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="colombia">
+                            Colombia
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="dominican-republic">
+                            Dominican Republic
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="el-salvador">
+                            El Salvador
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="france">
+                            France
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="germany">
+                            Germany
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="hungary">
+                            Hungary
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="indonesia">
+                            Indonesia
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="mexico">
+                            Mexico
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="netherlands">
+                            Netherlands
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="pakistan">
+                            Pakistan
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="poland">
+                            Poland
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="saudi-arabia">
+                            Saudi Arabia
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="singapore">
+                            Singapore
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="south-korea">
+                            South Korea
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="spain">
+                            Spain
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="switzerland">
+                            Switzerland
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="countries" value="united-kingdom">
+                            United Kingdom
+                        </label>
+                    </li>
+                         </ul>
+            </div>
+        </div>
+
+        <!-- Certificate Tags Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" data-filter="cert-tags">
+                <span>Certificate Tags</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="cert-tags-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="energy-savings">
+                            Energy Savings
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="environmental-facts">
+                            Environmental Facts
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="greencircle-audited">
+                            GreenCircle Audited
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="lca-optimized">
+                            LCA Optimized
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="material-ingredient">
+                            Material Ingredient
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="cert-tags" value="recycled-content">
+                            Recycled Content
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Additional Filter -->
+        <div class="filter-panel">
+            <div class="filter-header" data-filter="additional">
+                <span>Additional</span>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+            <div class="filter-content" id="additional-content">
+                <ul class="filter-tree">
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="additional" value="apr">
+                            APR
+                        </label>
+                    </li>
+                    <li class="filter-item">
+                        <label>
+                            <input type="checkbox" name="additional" value="leed">
+                            LEED
+                        </label>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <div class="results-header">
+            <div class="results-count" id="resultsCount">15 Results</div>
+            <div class="results-actions">
+                <div class="sort-controls">
+                    <span class="sort-label">Sort By</span>
+                    <div class="sort-dropdown" id="sortDropdown">
+                    <button class="sort-dropdown-button" id="sortDropdownBtn">
+                        <span id="sortLabel">Default</span>
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="sort-dropdown-content" id="sortContent">
+                        <!-- Date-based sorting -->
+                        <div class="sort-group-header">By Date</div>
+                        <div class="sort-option" data-sort="newest">
+                            <i class="fas fa-calendar-plus"></i>
+                            Newest Effective Date
+                        </div>
+                        <div class="sort-option" data-sort="oldest-effective">
+                            <i class="fas fa-calendar-minus"></i>
+                            Oldest Effective Date
+                        </div>
+                        <div class="sort-option" data-sort="expiring">
+                            <i class="fas fa-clock"></i>
+                            Expiring Soon
+                        </div>
+                        <div class="sort-option" data-sort="longest-validity">
+                            <i class="fas fa-hourglass-end"></i>
+                            Longest Validity Period
+                        </div>
+                        <div class="sort-option" data-sort="recently-issued">
+                            <i class="fas fa-calendar-check"></i>
+                            Recently Issued (Last 30 Days)
+                        </div>
+
+                        <!-- Certificate Information -->
+                        <div class="sort-group-header">By Certificate</div>
+                        <div class="sort-option" data-sort="cert-number-newest">
+                            <i class="fas fa-certificate"></i>
+                            Certificate Number (Newest)
+                        </div>
+                        <div class="sort-option" data-sort="cert-number-oldest">
+                            <i class="fas fa-certificate"></i>
+                            Certificate Number (Oldest)
+                        </div>
+                        <div class="sort-option" data-sort="cert-type">
+                            <i class="fas fa-award"></i>
+                            Certification Type A-Z
+                        </div>
+                        <div class="sort-option" data-sort="cert-type-za">
+                            <i class="fas fa-award"></i>
+                            Certification Type Z-A
+                        </div>
+
+                        <!-- Alphabetical sorting -->
+                        <div class="sort-group-header">Alphabetical</div>
+                        <div class="sort-option" data-sort="company-az">
+                            <i class="fas fa-building"></i>
+                            Company A-Z
+                        </div>
+                        <div class="sort-option" data-sort="company-za">
+                            <i class="fas fa-building"></i>
+                            Company Z-A
+                        </div>
+                        <div class="sort-option" data-sort="product-az">
+                            <i class="fas fa-tag"></i>
+                            Product Name A-Z
+                        </div>
+                        <div class="sort-option" data-sort="product-za">
+                            <i class="fas fa-tag"></i>
+                            Product Name Z-A
+                        </div>
+
+                        <!-- Location sorting -->
+                        <div class="sort-group-header">By Location</div>
+                        <div class="sort-option" data-sort="location-az">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Location A-Z
+                        </div>
+                        <div class="sort-option" data-sort="location-za">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Location Z-A
+                        </div>
+                        <div class="sort-option" data-sort="country">
+                            <i class="fas fa-globe"></i>
+                            Country A-Z
+                        </div>
+                        <div class="sort-option" data-sort="country-za">
+                            <i class="fas fa-globe"></i>
+                            Country Z-A
+                        </div>
+
+                        <!-- Advanced sorting -->
+                        <div class="sort-group-header">Advanced</div>
+                        <div class="sort-option" data-sort="popularity">
+                            <i class="fas fa-star"></i>
+                            Most Popular Companies
+                        </div>
+                        <div class="sort-option" data-sort="product-type">
+                            <i class="fas fa-boxes"></i>
+                            Product Type A-Z
+                        </div>
+                        <div class="sort-option" data-sort="relevance">
+                            <i class="fas fa-search"></i>
+                            Relevance Score
+                        </div>
+                        <div class="sort-option" data-sort="status">
+                            <i class="fas fa-check-circle"></i>
+                            Status
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        </div>
+
+        <div class="certificates-grid" id="certificatesGrid">
+            <!-- Dynamic certificate cards will be loaded here via infinite scroll -->
+            <div class="loading-container" id="loadingContainer" style="display: none;">
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading certificates...</span>
+                </div>
+            </div>
+            <div class="end-of-results" id="endOfResults" style="display: none;">
+                <div class="end-message">
+                    <i class="fas fa-check-circle"></i>
+                    <span>You've reached the end of the results</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="~/js/certificate-tile-view.js"></script>

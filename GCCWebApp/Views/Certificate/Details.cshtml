@@ -1,0 +1,79 @@
+﻿@model GreenCircleCertified.ViewModels.CertificateDetailsViewModel
+
+@{
+    ViewData["Title"] = $"Certificate {Model.CertificateNumber} - {Model.ProductName}";
+    ViewData["BodyClass"] = "role-admin";
+    ViewData["UserName"] = "Jane Smith";
+}
+
+@section Styles {
+    <link href="~/css/certificates.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-public-show">
+        <a href="/">Home</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="/Certificate">Certificates</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Certificate Details</span>
+    </span>
+    <span class="role-element role-external-show">
+        <a href="/">Home</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a asp-controller="Certificate" asp-action="Index">Certificates</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Certificate Details</span>
+    </span>
+    <span class="role-element role-analyst-show role-admin-show">
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a asp-controller="Certificate" asp-action="Management">Certificate Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Certificate Details</span>
+    </span>
+}
+
+@section PageActions {
+    <button class="btn btn-outline role-element role-public-show role-external-show" onclick="window.history.back()">
+        <i class="fas fa-arrow-left"></i> Back to Search
+    </button>
+    <button class="btn btn-outline role-element role-public-show role-external-show" onclick="downloadCertificate()">
+        <i class="fas fa-download"></i> Download Certificate
+    </button>
+    <button class="btn btn-outline role-element role-public-show role-external-show" onclick="printCertificate()">
+        <i class="fas fa-print"></i> Print
+    </button>
+
+    <button class="btn btn-outline role-element role-analyst-show role-admin-show" onclick="window.history.back()">
+        <i class="fas fa-arrow-left"></i> Back to Management
+    </button>
+    <button class="btn btn-outline role-element role-analyst-show role-admin-show" onclick="downloadCertificate()">
+        <i class="fas fa-download"></i> Download PDF
+    </button>
+    <button class="btn btn-outline role-element role-analyst-show role-admin-show" onclick="exportCertificateData()">
+        <i class="fas fa-file-export"></i> Export Data
+    </button>
+    <button class="btn btn-primary role-element role-analyst-show role-admin-show" onclick="editCertificate()">
+        <i class="fas fa-edit"></i> Edit Certificate
+    </button>
+
+    <div class="btn-group role-element role-admin-show">
+        <button class="btn btn-outline dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="fas fa-cog"></i> Admin Actions
+        </button>
+        <ul class="dropdown-menu">
+            <li><a class="dropdown-item" href="#" onclick="duplicateCertificate()"><i class="fas fa-copy"></i> Duplicate</a></li>
+            <li><a class="dropdown-item" href="#" onclick="addInternalNote()"><i class="fas fa-sticky-note"></i> Add Note</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item" href="#" onclick="updateCertificateStatus('Suspended')"><i class="fas fa-pause"></i> Suspend</a></li>
+            <li><a class="dropdown-item text-danger" href="#" onclick="updateCertificateStatus('Revoked')"><i class="fas fa-ban"></i> Revoke</a></li>
+        </ul>
+    </div>
+}
+
+<div class="certificate-badge">Certificate 1.1</div>
+
+<partial name="_CertificateDetailContent" model="Model" />
+<partial name="_CertificateDetailScripts" model="Model" />

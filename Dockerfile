@@ -10,20 +10,20 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 # Copy the project file and restore dependencies
-COPY ["GCCWebApp.csproj", "."]
-RUN dotnet restore "./GCCWebApp.csproj"
+COPY ["GCCWebApp/GCCWebApp/GCCWebApp.csproj", "GCCWebApp/GCCWebApp/"]
+RUN dotnet restore "GCCWebApp/GCCWebApp/GCCWebApp.csproj"
 
 # Copy the rest of the source code
 COPY . .
-WORKDIR "/src/."
+WORKDIR "/src/GCCWebApp/GCCWebApp"
 
 # Build the application
-RUN dotnet build "./GCCWebApp.csproj" -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "GCCWebApp.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 # Publish the application
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./GCCWebApp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "GCCWebApp.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 # Final stage: runtime image
 FROM base AS final

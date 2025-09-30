@@ -328,8 +328,27 @@ MigrationBackup/
 # Documentation and markdown files (not needed in Docker image)
 Documentation/
 docs/
+0_Documentation/
 *.md
 *.txt
+
+# Test projects (not needed in production build)
+**/GCCWebApp.Tests/
+**/GCCWebApp.UAT.Tests/
+**/GCCWebApp.Security.Tests/
+**/GCCWebApp.Performance.Tests/
+**/GCCWebApp.BDD.Tests/
+**/GCCWebApp.Api.Tests/
+**/GCCWebApp.Tests.Common/
+**/GCCWebApp.E2E.Tests/
+**/GCCWebApp.RoleBasedUI.Tests/
+**/GCCWebApp.RoleBasedUI.Tests2/
+**/GCCWebApp.Accessibility.Tests/
+
+# Archived files
+pages/
+pages_old/
+archive/
 
 # Log files
 logs/

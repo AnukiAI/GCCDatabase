@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Certificate - GreenCircle Certified Database</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --success-color: #28a745;
+            --border-color: #e0e0e0;
+            --bg-light: #f8f9fa;
+            --bg-section: #fafafa;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-muted: #888;
+            --input-border: #ccc;
+            --focus-shadow: rgba(0, 123, 255, 0.1);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            color: var(--text-primary);
+            background: #fff;
+            line-height: 1.6;
+        }
+
+        /* Header Styles */
+        .header {
+            background: #fff;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .header-top {
+            padding: 12px 20px;
+            background: var(--bg-light);
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .user-name {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        .header-middle {
+            padding: 20px;
+        }
+
+        .logo-text {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 4px;
+        }
+
+        .logo-subtext {
+            font-size: 14px;
+            color: var(--text-secondary);
+        }
+
+        /* Breadcrumbs */
+        .breadcrumbs {
+            padding: 12px 20px;
+            background: var(--bg-light);
+            font-size: 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .breadcrumbs a {
+            color: var(--primary-color);
+            text-decoration: none;
+        }
+
+        .breadcrumbs a:hover {
+            text-decoration: underline;
+        }
+
+        .breadcrumbs .separator {
+            margin: 0 8px;
+            color: var(--text-muted);
+        }
+
+        .breadcrumbs .current {
+            color: var(--text-primary);
+        }
+
+        /* Main Container */
+        .page-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 24px 20px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
+            padding-bottom: 16px;
+            border-bottom: 3px solid var(--primary-color);
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .section-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .section-indicator {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-style: italic;
+        }
+
+        .help-text {
+            font-size: 13px;
+            color: var(--text-muted);
+            font-weight: 400;
+            display: block;
+            margin-top: 4px;
+        }
+
+        /* Form Grid Layout */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        /* Form Section Grouping */
+        .form-section {
+            background: var(--bg-section);
+            padding: 24px;
+            border-radius: 6px;
+            margin-bottom: 24px;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Form Groups */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .form-group label .required {
+            color: #dc3545;
+            margin-left: 2px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px var(--focus-shadow);
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            position: sticky;
+            top: 20px;
+            height: fit-content;
+        }
+
+        .tags-section {
+            background: var(--bg-section);
+            padding: 20px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        .tags-section h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .tags-group {
+            margin-bottom: 20px;
+        }
+
+        .tags-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .tags-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .tags-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 12px;
+            min-height: 40px;
+            padding: 8px;
+            background: #fff;
+            border: 1px dashed var(--border-color);
+            border-radius: 4px;
+        }
+
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--primary-color);
+            color: #fff;
+            border-radius: 16px;
+            font-size: 13px;
+        }
+
+        .tag-remove {
+            background: none;
+            border: none;
+            color: #fff;
+            cursor: pointer;
+            font-size: 16px;
+            line-height: 1;
+            padding: 0;
+        }
+
+        /* Certificate Section */
+        .certificate-section {
+            background: var(--bg-section);
+            padding: 24px;
+            border-radius: 6px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-color);
+        }
+
+        .certificate-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        /* PDF Upload */
+        .pdf-upload-area {
+            margin-top: 24px;
+        }
+
+        .pdf-upload {
+            border: 2px dashed var(--primary-color);
+            border-radius: 6px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #fff;
+        }
+
+        .pdf-upload:hover {
+            background: var(--bg-light);
+            border-color: #0056b3;
+        }
+
+        .pdf-upload-icon {
+            font-size: 48px;
+            color: var(--primary-color);
+            margin-bottom: 12px;
+        }
+
+        .pdf-upload-text {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .pdf-upload-hint {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* Product Manager */
+        .product-manager {
+            background: var(--bg-section);
+            padding: 24px;
+            border-radius: 6px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-color);
+        }
+
+        .manager-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .manager-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+
+        .btn-secondary {
+            background: var(--secondary-color);
+            color: #fff;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: #fff;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-outline {
+            background: #fff;
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-outline:hover {
+            background: var(--bg-light);
+        }
+
+        .btn-outline-secondary {
+            background: #fff;
+            color: var(--secondary-color);
+            border: 1px solid var(--secondary-color);
+        }
+
+        .btn-outline-secondary:hover {
+            background: var(--secondary-color);
+            color: #fff;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 2px solid var(--border-color);
+        }
+
+        .primary-actions,
+        .secondary-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Table */
+        .table-container {
+            overflow-x: auto;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--bg-light);
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-secondary);
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        td {
+            padding: 12px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 16px;
+            }
+
+            .certificate-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .primary-actions,
+            .secondary-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+
+            .manager-header {
+                flex-direction: column;
+                gap: 16px;
+            }
+
+            .manager-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+        }
+
+        /* Utility Classes */
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-primary {
+            background: var(--primary-color);
+            color: #fff;
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        .mb-3 {
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-top">
+            <div class="user-name">admin@test.com</div>
+        </div>
+        <div class="header-middle">
+            <div class="logo-text">GreenCircle Certified Database</div>
+            <div class="logo-subtext">Browse the directory to access active GreenCircle certifications.</div>
+        </div>
+    </header>
+
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs">
+        <a href="/">Home</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="/Certificate/CertificateTileViewInternal">Certificate Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Create Certificate</span>
+    </div>
+
+    <!-- Main Content -->
+    <main class="page-container">
+        <div class="page-header">
+            <h1 class="page-title">Create Certificate</h1>
+        </div>
+
+        <form>
+            <div class="form-grid">
+                <!-- Main Form Area -->
+                <div class="main-form">
+                    <!-- Company Information Section -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-building"></i> Company Information</h3>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="company">Company <span class="required">*</span></label>
+                            <select id="company" required>
+                                <option value="">Select a company...</option>
+                                <option>ASSA ABLOY Access & Egress Hardware Group, Inc.</option>
+                                <option>Green Products Inc. - Environmental Division</option>
+                                <option>Acme Corporation</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="contact">Company Contact</label>
+                            <input type="text" id="contact" placeholder="Company URL/Phone">
+                        </div>
+                    </div>
+
+                    <!-- Certification Details Section -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-certificate"></i> Certification Details</h3>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="certNumber">Certification # <span class="required">*</span></label>
+                            <input type="text" id="certNumber" placeholder="XX-XXX" maxlength="7" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="certType">Certification Type <span class="required">*</span></label>
+                            <select id="certType" required>
+                                <option value="">Select</option>
+                                <option>Certified Environmental Facts</option>
+                                <option>Certified Sustainability Facts</option>
+                                <option>Recycled Content</option>
+                                <option>Energy Savings</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="effectiveDate">Effective Date <span class="required">*</span></label>
+                            <input type="date" id="effectiveDate" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expirationDate">Expiration Date <span class="required">*</span></label>
+                            <input type="date" id="expirationDate" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="status">Status <span class="required">*</span></label>
+                            <select id="status" required>
+                                <option value="">Select</option>
+                                <option>Draft</option>
+                                <option>Client Approved - Not Paid</option>
+                                <option selected>Active</option>
+                                <option>Hold</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="partner">Partner</label>
+                            <select id="partner">
+                                <option value="">Select</option>
+                                <option>Amazon</option>
+                                <option>Wayfair</option>
+                                <option selected>None</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Product Information Section -->
+                    <div class="form-section">
+                        <div class="section-header">
+                            <h3><i class="fas fa-box"></i> Product Information</h3>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="product">Product Name <span class="required">*</span></label>
+                            <select id="product" required>
+                                <option value="">Select a product...</option>
+                                <option>900ET Exit Device Trim with EcoFlex</option>
+                                <option>Standard Exit Device - Model 9800</option>
+                                <option>Reusable Water Bottle - Stainless Steel</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="category">Product Category</label>
+                            <select id="category">
+                                <option value="">Select</option>
+                                <option>Building Materials</option>
+                                <option>Paper</option>
+                                <option>Textiles</option>
+                                <option>Packaging</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="productType">Product Type</label>
+                            <select id="productType">
+                                <option value="">Select</option>
+                                <option>Insulation</option>
+                                <option>Flooring</option>
+                                <option>Roofing</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="subcategory">Product Type Subcategory</label>
+                            <select id="subcategory">
+                                <option value="">Select</option>
+                                <option>Foam Insulation</option>
+                                <option>Batt Insulation</option>
+                                <option>Rigid Insulation</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="location">Location</label>
+                            <input type="text" id="location" placeholder="City, State">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="country">Country</label>
+                            <select id="country">
+                                <option value="">Select</option>
+                                <option>United States</option>
+                                <option>Canada</option>
+                                <option>Mexico</option>
+                                <option>United Kingdom</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <div class="tags-section">
+                        <h3>Tags (Multiselect)</h3>
+
+                        <div class="tags-group">
+                            <label>External Tags</label>
+                            <select>
+                                <option>Select</option>
+                                <option>APR Recognized</option>
+                                <option>LEED Eligible</option>
+                                <option>Energy Star</option>
+                            </select>
+                            <div class="tags-container">
+                                <span class="tag">
+                                    APR Recognized
+                                    <button type="button" class="tag-remove">&times;</button>
+                                </span>
+                                <span class="tag">
+                                    LEED Eligible
+                                    <button type="button" class="tag-remove">&times;</button>
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="tags-group">
+                            <label>Internal Tags</label>
+                            <select>
+                                <option>Select</option>
+                                <option>Priority</option>
+                                <option>Featured</option>
+                                <option>New Product</option>
+                            </select>
+                            <div class="tags-container">
+                                <span class="tag">
+                                    Priority
+                                    <button type="button" class="tag-remove">&times;</button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Certificate Upload Section -->
+            <div class="certificate-section">
+                <div class="section-header">
+                    <div>
+                        <h3><i class="fas fa-file-pdf"></i> Certificate Upload</h3>
+                        <span class="help-text">Upload the official PDF certificate document</span>
+                    </div>
+                    <span class="section-indicator">Required for submission</span>
+                </div>
+
+                <div class="certificate-grid">
+                    <div class="form-group">
+                        <label for="certName">Certificate Name</label>
+                        <input type="text" id="certName" placeholder="Enter certificate name">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="certTypeUpload">Certification Type</label>
+                        <select id="certTypeUpload">
+                            <option value="">Select type</option>
+                            <option>Certified Environmental Facts</option>
+                            <option>Certified Sustainability Facts</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="pdf-upload-area">
+                    <div class="pdf-upload">
+                        <div class="pdf-upload-icon">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div class="pdf-upload-text">Drag and drop your certificate here or click to select</div>
+                        <div class="pdf-upload-hint">PDF files only, maximum 10MB</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product ID Manager Section -->
+            <div class="product-manager">
+                <div class="section-header">
+                    <div>
+                        <h3><i class="fas fa-barcode"></i> Product ID Manager <span class="badge badge-primary">0</span></h3>
+                        <span class="help-text">Manage ASINs, UPCs, GTINs, and other product identifiers</span>
+                    </div>
+                </div>
+
+                <div class="manager-header">
+                    <div class="manager-actions">
+                        <button type="button" class="btn btn-outline btn-sm">
+                            <i class="fas fa-upload"></i> Import
+                        </button>
+                        <button type="button" class="btn btn-outline btn-sm">
+                            <i class="fas fa-download"></i> Export
+                        </button>
+                        <button type="button" class="btn btn-success btn-sm">
+                            <i class="fas fa-plus"></i> Add Product ID
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Product ID</th>
+                                <th>Product Name</th>
+                                <th>SKU</th>
+                                <th>Status</th>
+                                <th>Partner</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="7">
+                                    <div class="empty-state">
+                                        <i class="fas fa-barcode"></i>
+                                        <div>No product IDs added yet.</div>
+                                        <div class="text-muted">Click "Add Product ID" to get started.</div>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <div class="primary-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Certificate
+                    </button>
+                    <button type="button" class="btn btn-secondary">
+                        <i class="fas fa-plus-circle"></i> Save & Add Another
+                    </button>
+                </div>
+                <div class="secondary-actions">
+                    <button type="button" class="btn btn-outline-secondary">
+                        <i class="fas fa-undo"></i> Reset Form
+                    </button>
+                    <a href="/Certificate/CertificateTileViewInternal" class="btn btn-outline">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </div>
+        </form>
+    </main>
+</body>
+</html>

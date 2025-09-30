@@ -91,7 +91,7 @@ class RoleManagement {
     renderRoles() {
         const tbody = document.querySelector('#role-table tbody');
         if (!tbody) return;
-        
+
         if (this.filteredRoles.length === 0) {
             tbody.innerHTML = `
                 <tr>
@@ -104,9 +104,10 @@ class RoleManagement {
                     </td>
                 </tr>
             `;
+            this.updateRoleCount();
             return;
         }
-        
+
         tbody.innerHTML = this.filteredRoles.map(role => `
             <tr data-role-id="${role.id}">
                 <td>
@@ -122,23 +123,28 @@ class RoleManagement {
                 <td class="text-center">${role.userCount || 0}</td>
                 <td class="actions-col">
                     <div class="action-buttons">
-                        ${!role.isSystem ? `
-                            <button class="btn-icon" onclick="roleManager.editRole(${role.id})" title="Edit">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-icon btn-delete" onclick="roleManager.deleteRole(${role.id})" title="Delete">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        ` : `
-                            <button class="btn-icon" onclick="roleManager.viewRole(${role.id})" title="View System Role">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <span class="system-role-note" title="System roles cannot be deleted">System</span>
-                        `}
+                        <button class="admin-action-btn admin-action-btn--edit" onclick="roleManager.editRole(${role.id})" title="Edit">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="admin-action-btn admin-action-btn--delete" onclick="roleManager.deleteRole(${role.id})"
+                                title="${role.name === 'Admin' ? 'Cannot delete Admin role' : 'Delete'}"
+                                ${role.name === 'Admin' ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                     </div>
                 </td>
             </tr>
         `).join('');
+
+        this.updateRoleCount();
+    }
+
+    updateRoleCount() {
+        const countDisplay = document.getElementById('role-count');
+        if (countDisplay) {
+            const count = this.filteredRoles.length;
+            countDisplay.textContent = `Showing ${count} role${count !== 1 ? 's' : ''}`;
+        }
     }
     
     renderPermissions(permissions) {
@@ -227,108 +233,96 @@ class RoleManagement {
     
     showAddRoleModal() {
         this.currentEditingId = null;
-        this.showModal('Add New Role', {
-            name: '',
-            description: '',
-            permissions: []
-        });
+
+        // Populate the existing modal
+        document.getElementById('modal-title').textContent = 'Add New Role';
+        document.getElementById('role-name').value = '';
+        document.getElementById('role-description').value = '';
+        document.getElementById('system-role-warning').style.display = 'none';
+
+        // Populate permissions
+        this.populatePermissions([]);
+
+        // Show modal using AdminCore if available
+        if (typeof AdminCore !== 'undefined' && AdminCore.openModal) {
+            AdminCore.openModal('role-modal');
+        } else {
+            document.getElementById('role-modal').style.display = 'block';
+        }
     }
-    
+
     async editRole(id) {
         const role = this.roles.find(r => r.id === id);
         if (!role) return;
-        
+
         this.currentEditingId = id;
-        this.showModal('Edit Role', role);
-    }
-    
-    viewRole(id) {
-        const role = this.roles.find(r => r.id === id);
-        if (!role) return;
-        
-        this.showModal('View System Role', role, true);
-    }
-    
-    showModal(title, role, readOnly = false) {
-        // Create modal HTML
-        const modalHtml = `
-            <div id="role-modal" class="modal">
-                <div class="modal-overlay"></div>
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3 class="modal-title">${title}</h3>
-                        <span class="modal-close">&times;</span>
-                    </div>
-                    <div class="modal-body">
-                        <form id="role-form">
-                            <div class="form-group">
-                                <label for="role-name">Role Name</label>
-                                <input type="text" id="role-name" value="${this.escapeHtml(role.name || '')}" 
-                                       ${readOnly ? 'readonly' : 'required'}>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="role-description">Description</label>
-                                <textarea id="role-description" rows="3" 
-                                          ${readOnly ? 'readonly' : ''}>${this.escapeHtml(role.description || '')}</textarea>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label>Permissions</label>
-                                <div class="permissions-container">
-                                    ${this.renderPermissionCheckboxes(role.permissions || [], readOnly)}
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    <div class="modal-footer">
-                        ${!readOnly ? `
-                            <button type="button" class="btn btn-cancel" onclick="roleManager.hideModal()">Cancel</button>
-                            <button type="submit" class="btn btn-primary" onclick="roleManager.saveRole(event)">Save</button>
-                        ` : `
-                            <button type="button" class="btn btn-primary" onclick="roleManager.hideModal()">Close</button>
-                        `}
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        // Add modal to page
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        // Show modal
-        setTimeout(() => {
+
+        // Populate the existing modal
+        document.getElementById('modal-title').textContent = 'Edit Role';
+        document.getElementById('role-name').value = role.name || '';
+        document.getElementById('role-description').value = role.description || '';
+
+        // Show system role warning if applicable
+        const isSystemRole = role.isSystemRole || role.name === 'Admin';
+        document.getElementById('system-role-warning').style.display = isSystemRole ? 'block' : 'none';
+
+        // Populate permissions
+        this.populatePermissions(role.permissions || []);
+
+        // Show modal using AdminCore if available
+        if (typeof AdminCore !== 'undefined' && AdminCore.openModal) {
+            AdminCore.openModal('role-modal');
+        } else {
             document.getElementById('role-modal').style.display = 'block';
-        }, 10);
-        
-        // Bind close events
-        document.querySelector('.modal-close').addEventListener('click', () => this.hideModal());
-        document.querySelector('.modal-overlay').addEventListener('click', () => this.hideModal());
+        }
     }
-    
-    renderPermissionCheckboxes(selectedPermissions, readOnly) {
+
+    populatePermissions(selectedPermissions) {
+        const container = document.getElementById('permissions-container');
+        if (!container) return;
+
         if (this.permissions.length === 0) {
-            return '<p>No permissions available</p>';
+            container.innerHTML = '<p class="admin-text-muted">No permissions available</p>';
+            return;
         }
-        
-        return this.permissions.map(perm => `
-            <label class="permission-checkbox">
-                <input type="checkbox" 
-                       name="permissions" 
-                       value="${perm.id}"
-                       ${selectedPermissions.includes(perm.name) ? 'checked' : ''}
-                       ${readOnly ? 'disabled' : ''}>
-                <span>${this.escapeHtml(perm.name)}</span>
-                ${perm.description ? `<small>${this.escapeHtml(perm.description)}</small>` : ''}
-            </label>
-        `).join('');
-    }
-    
-    hideModal() {
-        const modal = document.getElementById('role-modal');
-        if (modal) {
-            modal.remove();
-        }
+
+        // Group permissions by category for better display
+        const permissionsByCategory = {};
+
+        this.permissions.forEach(perm => {
+            const category = perm.category || 'Other';
+            if (!permissionsByCategory[category]) {
+                permissionsByCategory[category] = [];
+            }
+            permissionsByCategory[category].push(perm);
+        });
+
+        // Generate HTML for permissions
+        let html = '';
+        Object.keys(permissionsByCategory).sort().forEach(category => {
+            html += `<div class="admin-permission-group">
+                        <h4 class="admin-permission-category">${this.escapeHtml(category)}</h4>
+                        <div class="admin-checkbox-grid">`;
+
+            permissionsByCategory[category].forEach(perm => {
+                const isChecked = selectedPermissions.includes(perm.name) ||
+                                selectedPermissions.includes(perm.id);
+                html += `
+                    <label class="admin-checkbox-item">
+                        <input type="checkbox"
+                               name="permissions"
+                               value="${perm.id || perm.name}"
+                               ${isChecked ? 'checked' : ''}>
+                        <span>${this.escapeHtml(perm.name)}</span>
+                        ${perm.description ? `<small class="admin-text-muted">${this.escapeHtml(perm.description)}</small>` : ''}
+                    </label>
+                `;
+            });
+
+            html += '</div></div>';
+        });
+
+        container.innerHTML = html;
     }
     
     async saveRole(event) {
@@ -370,7 +364,14 @@ class RoleManagement {
             
             if (result.success) {
                 this.showNotification(result.message || 'Role saved successfully', 'success');
-                this.hideModal();
+
+                // Close modal using AdminCore if available
+                if (typeof AdminCore !== 'undefined' && AdminCore.closeModal) {
+                    AdminCore.closeModal('role-modal');
+                } else {
+                    document.getElementById('role-modal').style.display = 'none';
+                }
+
                 await this.loadRoles();
                 this.renderRoles();
             } else {
@@ -386,12 +387,12 @@ class RoleManagement {
         const role = this.roles.find(r => r.id === id);
         if (!role) return;
 
-        // Prevent deletion of system roles
-        if (role.isSystem) {
-            this.showNotification('Cannot delete system roles. System roles are protected from deletion.', 'error');
+        // Prevent deletion of Admin role
+        if (role.name === 'Admin') {
+            this.showNotification('The Admin role cannot be deleted as it is required by the system.', 'error');
             return;
         }
-        
+
         if (!confirm(`Are you sure you want to delete the role "${role.name}"?`)) {
             return;
         }

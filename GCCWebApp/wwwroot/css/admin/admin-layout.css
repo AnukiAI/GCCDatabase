@@ -102,7 +102,7 @@
 .admin-search-section {
     flex: 1;
     min-width: 200px;
-    max-width: 400px;
+    max-width: 100%;
 }
 
 .admin-filter-section {
@@ -180,7 +180,7 @@
 .admin-footer-info {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-end;
     padding: var(--admin-space-md) var(--admin-space-lg);
     background-color: var(--admin-bg-accent);
     border-top: 1px solid var(--admin-border-secondary);

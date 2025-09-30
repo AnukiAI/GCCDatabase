@@ -3,8 +3,12 @@
     ViewData["BodyClass"] = "admin-product-management";
 }
 
+@* Anti-forgery token for AJAX requests *@
+@Html.AntiForgeryToken()
+
 @section Styles {
     <link href="~/css/product-management.css" rel="stylesheet" />
+    <link href="~/css/admin-company-style.css" rel="stylesheet" />
 }
 
 @section Breadcrumbs {
@@ -21,10 +25,13 @@
 <div class="admin-container">
     <header class="admin-header">
         <div class="title-area">
-            <h1 class="page-title">Product Management</h1>
-            <p class="subtitle">Add, edit, and manage products with their specifications and relationships</p>
+            <h1 class="page-title"></h1>
+            <p class="subtitle"></p>
         </div>
         <div class="buttons-area">
+            <button id="template-btn" class="btn" onclick="downloadImportTemplate()" title="Download CSV template for bulk import">
+                <i class="fas fa-file-download"></i> Template
+            </button>
             <button id="import-btn" class="btn">
                 <i class="fas fa-upload"></i> Import
             </button>
@@ -697,18 +704,66 @@
             productForm.reset();
         }
 
-        function importProducts() {
+        async function importProducts() {
             const input = document.createElement('input');
             input.type = 'file';
             input.accept = '.csv';
-            input.onchange = function(e) {
+            input.onchange = async function(e) {
                 const file = e.target.files[0];
                 if (file) {
-                    // Handle CSV import (placeholder)
-                    showToast('Import functionality will be implemented with backend integration');
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    // Get anti-forgery token
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                    if (token) {
+                        formData.append('__RequestVerificationToken', token);
+                    }
+
+                    try {
+                        showToast('Importing products...', 'info');
+
+                        const response = await fetch('/Product/ImportProducts', {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'RequestVerificationToken': token
+                            }
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                            showToast(result.message || 'Products imported successfully', 'success');
+
+                            // Show detailed results if there are errors
+                            if (result.data && result.data.errors && result.data.errors.length > 0) {
+                                let errorMsg = `Import completed with ${result.data.successCount} successes and ${result.data.errorCount} errors.\n\nFirst errors:\n`;
+                                errorMsg += result.data.errors.slice(0, 5).join('\n');
+                                if (result.data.errors.length > 5) {
+                                    errorMsg += `\n... and ${result.data.errors.length - 5} more`;
+                                }
+                                console.warn('Import errors:', result.data.errors);
+                                alert(errorMsg);
+                            }
+
+                            // Reload products
+                            await loadProducts();
+                            populateTable();
+                        } else {
+                            showToast(result.message || 'Import failed', 'error');
+                        }
+                    } catch (error) {
+                        console.error('Import error:', error);
+                        showToast('Error importing products', 'error');
+                    }
                 }
             };
             input.click();
+        }
+
+        function downloadImportTemplate() {
+            window.location.href = '/Product/DownloadProductImportTemplate';
         }
 
         function exportProducts() {

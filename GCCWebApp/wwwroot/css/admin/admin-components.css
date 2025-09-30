@@ -648,3 +648,86 @@
         font-size: 16px; /* Prevents zoom on iOS */
     }
 }
+
+/* =============================================================================
+   PERMISSIONS CONTAINER
+   Styles for permission checkboxes in role management
+   ============================================================================= */
+
+.admin-permissions-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: var(--admin-space-md);
+    background-color: var(--admin-bg-secondary);
+    border: 1px solid var(--admin-border-primary);
+    border-radius: var(--admin-radius-md);
+}
+
+.admin-permission-group {
+    margin-bottom: var(--admin-space-lg);
+}
+
+.admin-permission-group:last-child {
+    margin-bottom: 0;
+}
+
+.admin-permission-category {
+    font-size: var(--admin-font-size-base);
+    font-weight: var(--admin-font-weight-semibold);
+    color: var(--admin-primary);
+    margin-bottom: var(--admin-space-sm);
+    padding-bottom: var(--admin-space-xs);
+    border-bottom: 2px solid var(--admin-border-secondary);
+}
+
+.admin-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--admin-space-sm);
+}
+
+.admin-checkbox-item {
+    display: flex;
+    align-items: flex-start;
+    padding: var(--admin-space-sm);
+    background-color: var(--admin-bg-primary);
+    border: 1px solid var(--admin-border-primary);
+    border-radius: var(--admin-radius-sm);
+    cursor: pointer;
+    transition: all var(--admin-transition-fast);
+}
+
+.admin-checkbox-item:hover {
+    background-color: var(--admin-bg-hover);
+    border-color: var(--admin-primary);
+}
+
+.admin-checkbox-item input[type="checkbox"] {
+    margin-right: var(--admin-space-sm);
+    margin-top: 2px;
+}
+
+.admin-checkbox-item span {
+    flex: 1;
+    font-size: var(--admin-font-size-base);
+    color: var(--admin-text-primary);
+    line-height: var(--admin-line-height-normal);
+}
+
+.admin-checkbox-item small {
+    display: block;
+    margin-top: var(--admin-space-xs);
+    font-size: var(--admin-font-size-sm);
+    color: var(--admin-text-secondary);
+    line-height: var(--admin-line-height-tight);
+}
+
+@media (max-width: 768px) {
+    .admin-checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-permissions-container {
+        max-height: 300px;
+    }
+}

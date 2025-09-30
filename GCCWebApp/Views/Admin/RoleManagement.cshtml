@@ -24,7 +24,6 @@
     <header class="admin-header">
         <div class="admin-header-content">
             <div class="admin-title-section">
-                <h1 class="admin-page-title">Role Management</h1>
                 <p class="admin-page-subtitle">Manage user roles and permissions</p>
             </div>
             <div class="admin-actions-section">
@@ -162,29 +161,10 @@
                 roleForm.addEventListener('submit', function(e) {
                     e.preventDefault();
 
-                    const formData = AdminCore.serializeForm(roleForm);
-                    const errors = AdminCore.validateForm(roleForm);
-
-                    if (errors.length > 0) {
-                        AdminCore.showNotification(errors.join('<br>'), 'error');
-                        return;
+                    // Use roleManager's saveRole method if available
+                    if (window.roleManager && typeof window.roleManager.saveRole === 'function') {
+                        window.roleManager.saveRole(e);
                     }
-
-                    // Show loading state
-                    const saveBtn = document.getElementById('save-btn');
-                    AdminCore.showLoading(saveBtn);
-
-                    // Simulate API call (replace with actual implementation)
-                    setTimeout(() => {
-                        AdminCore.hideLoading(saveBtn);
-                        AdminCore.closeModal('role-modal');
-                        AdminCore.showNotification('Role saved successfully!', 'success');
-
-                        // Refresh role list (implement actual refresh logic)
-                        if (typeof refreshRoleList === 'function') {
-                            refreshRoleList();
-                        }
-                    }, 1500);
                 });
             }
 

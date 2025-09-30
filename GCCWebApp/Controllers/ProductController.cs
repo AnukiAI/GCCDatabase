@@ -406,7 +406,7 @@ namespace GCCWebApp.Controllers
         private async Task<List<int>> GetCurrentUserCompanyIdsAsync()
         {
             var userEmail = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-            
+
             if (string.IsNullOrEmpty(userEmail))
                 return new List<int>();
 
@@ -421,6 +421,197 @@ namespace GCCWebApp.Controllers
             }
 
             return new List<int>();
+        }
+
+        /// <summary>
+        /// Import products from CSV file
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> ImportProducts(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "No file provided" });
+            }
+
+            if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Only CSV files are supported" });
+            }
+
+            try
+            {
+                var results = new { successCount = 0, errorCount = 0, errors = new List<string>() };
+                var successCount = 0;
+                var errorCount = 0;
+                var errors = new List<string>();
+
+                using (var stream = new StreamReader(file.OpenReadStream()))
+                {
+                    var line = await stream.ReadLineAsync(); // Skip header
+                    var lineNumber = 1;
+
+                    while ((line = await stream.ReadLineAsync()) != null)
+                    {
+                        lineNumber++;
+                        try
+                        {
+                            var values = ParseCsvLine(line);
+
+                            if (values.Length < 4) // Minimum required fields
+                            {
+                                errors.Add($"Line {lineNumber}: Insufficient fields");
+                                errorCount++;
+                                continue;
+                            }
+
+                            // CSV Format: Name, Company, Category, Status, SKU, Model, Description
+                            var productName = values[0];
+                            var companyName = values.Length > 1 ? values[1] : "";
+                            var categoryName = values.Length > 2 ? values[2] : "";
+                            var status = values.Length > 3 ? values[3] : "Active";
+                            var sku = values.Length > 4 ? values[4] : null;
+                            var model = values.Length > 5 ? values[5] : null;
+                            var description = values.Length > 6 ? values[6] : null;
+
+                            if (string.IsNullOrWhiteSpace(productName))
+                            {
+                                errors.Add($"Line {lineNumber}: Product name is required");
+                                errorCount++;
+                                continue;
+                            }
+
+                            // Find company
+                            var company = await _context.Companies.FirstOrDefaultAsync(c => c.Name == companyName);
+                            if (company == null && !string.IsNullOrWhiteSpace(companyName))
+                            {
+                                errors.Add($"Line {lineNumber}: Company '{companyName}' not found");
+                                errorCount++;
+                                continue;
+                            }
+
+                            // Find category
+                            var category = await _context.ProductCategories.FirstOrDefaultAsync(c => c.Name == categoryName);
+                            if (category == null && !string.IsNullOrWhiteSpace(categoryName))
+                            {
+                                errors.Add($"Line {lineNumber}: Category '{categoryName}' not found");
+                                errorCount++;
+                                continue;
+                            }
+
+                            // Check for duplicate by name
+                            var existingProduct = await _context.Products
+                                .FirstOrDefaultAsync(p => p.Name == productName);
+
+                            if (existingProduct != null)
+                            {
+                                errors.Add($"Line {lineNumber}: Product '{productName}' already exists");
+                                errorCount++;
+                                continue;
+                            }
+
+                            // Create product
+                            var product = new Product
+                            {
+                                Name = productName,
+                                Description = description,
+                                Model = model,
+                                Sku = sku,
+                                CategoryId = category?.Id ?? 0,
+                                CompanyId = company?.Id,
+                                IsActive = status.Equals("Active", StringComparison.OrdinalIgnoreCase),
+                                CreatedAt = DateTime.UtcNow,
+                                UpdatedAt = DateTime.UtcNow
+                            };
+
+                            _context.Products.Add(product);
+                            successCount++;
+                        }
+                        catch (Exception ex)
+                        {
+                            errors.Add($"Line {lineNumber}: {ex.Message}");
+                            errorCount++;
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                var message = $"Import completed. {successCount} products imported successfully";
+                if (errorCount > 0)
+                {
+                    message += $", {errorCount} errors occurred";
+                }
+
+                return Json(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = new { successCount, errorCount, errors = errors.Take(10).ToList() }, // Limit errors to first 10
+                    Message = message
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = $"Import failed: {ex.Message}"
+                });
+            }
+        }
+
+        /// <summary>
+        /// Download sample CSV template for product import
+        /// </summary>
+        [HttpGet]
+        public IActionResult DownloadProductImportTemplate()
+        {
+            var csv = "Name,Company,Category,Status,SKU,Model,Description\n" +
+                      "Sample Product,Acme Corporation,Building Materials,Active,SKU001,MODEL-X,Sample product description\n" +
+                      "Another Product,Globex Industries,Electronics / Electrical,Active,SKU002,MODEL-Y,Another product description";
+
+            var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
+            return File(bytes, "text/csv", "product_import_template.csv");
+        }
+
+        private string[] ParseCsvLine(string line)
+        {
+            var values = new List<string>();
+            var current = new System.Text.StringBuilder();
+            var inQuotes = false;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                var c = line[i];
+
+                if (c == '"')
+                {
+                    if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                    {
+                        // Escaped quote
+                        current.Append('"');
+                        i++;
+                    }
+                    else
+                    {
+                        inQuotes = !inQuotes;
+                    }
+                }
+                else if (c == ',' && !inQuotes)
+                {
+                    values.Add(current.ToString().Trim());
+                    current.Clear();
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+
+            values.Add(current.ToString().Trim());
+            return values.ToArray();
         }
     }
 

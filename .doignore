@@ -1,0 +1,20 @@
+# Ignore test projects during DigitalOcean build
+GCCWebApp.Tests/
+GCCWebApp.UAT.Tests/
+GCCWebApp.Security.Tests/
+GCCWebApp.Performance.Tests/
+GCCWebApp.BDD.Tests/
+GCCWebApp.Api.Tests/
+GCCWebApp.Tests.Common/
+GCCWebApp.E2E.Tests/
+GCCWebApp.RoleBasedUI.Tests/
+GCCWebApp.RoleBasedUI.Tests2/
+GCCWebApp.Accessibility.Tests/
+
+# Ignore documentation
+0_Documentation/
+Documentation/
+
+# Ignore deployment guides
+*.md
+!README.md

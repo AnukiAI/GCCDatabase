@@ -142,3 +142,5 @@ docker-compose up -d        # Full stack with PostgreSQL
 - External Users do not have the same permissions as Analyst and Admin. Admin has CRUD Roles. Analyst has read write and does not have access to the Admin pages.
 - remember this
 - always check requirements, user stories, mockups before making any changes. Do not add functionality that is not specific to the documentation.
+- remember we are not using docker now.
+- we are not using Docker for deployments now

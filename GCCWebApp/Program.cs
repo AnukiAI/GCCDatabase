@@ -48,7 +48,41 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 if (!string.IsNullOrEmpty(connectionString))
 {
     // Detect database type from connection string
-    if (connectionString.Contains("Server=") && connectionString.Contains("Port=") &&
+    if (connectionString.Contains("Server=tcp:") ||
+        (connectionString.Contains("Server=") && (connectionString.Contains("database.windows.net") ||
+         connectionString.Contains("mssqllocaldb") || connectionString.Contains("sqlexpress"))))
+    {
+        // SQL Server / Azure SQL Database connection string format
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        {
+            options.UseSqlServer(connectionString, sqlServerOptions =>
+            {
+                sqlServerOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorNumbersToAdd: null);
+                sqlServerOptions.CommandTimeout(30);
+            });
+        });
+        Console.WriteLine("Using SQL Server database provider");
+    }
+    else if (connectionString.Contains("Host=") || connectionString.Contains("postgres"))
+    {
+        // PostgreSQL / Azure Database for PostgreSQL connection string format
+        builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        {
+            options.UseNpgsql(connectionString, npgsqlOptions =>
+            {
+                npgsqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 5,
+                    maxRetryDelay: TimeSpan.FromSeconds(30),
+                    errorCodesToAdd: null);
+                npgsqlOptions.CommandTimeout(30);
+            });
+        });
+        Console.WriteLine("Using PostgreSQL database provider");
+    }
+    else if (connectionString.Contains("Server=") && connectionString.Contains("Port=") &&
         connectionString.Contains("Database=") && (connectionString.Contains("User=") || connectionString.Contains("Uid=")))
     {
         // MySQL/MariaDB connection string format

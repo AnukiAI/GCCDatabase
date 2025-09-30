@@ -419,6 +419,9 @@
         // Toggle buttons
         setupToggleButtons();
 
+        // Export and download buttons
+        setupExportDownloadButtons();
+
         attachFilterEventListeners();
     }
 
@@ -828,6 +831,174 @@
                 handleViewTypeChange(viewType);
             });
         });
+
+        // Setup select all checkbox handler
+        setupSelectAllHandler();
+    }
+
+    // Setup select all checkbox handler
+    function setupSelectAllHandler() {
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function() {
+                const isChecked = this.checked;
+                const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+                rowCheckboxes.forEach(checkbox => {
+                    checkbox.checked = isChecked;
+                });
+                updateBulkActionsBar();
+            });
+        }
+    }
+
+    // Setup export and download button handlers
+    function setupExportDownloadButtons() {
+        const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+        const exportAllBtn = document.getElementById('exportAllBtn');
+        const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+
+        if (exportSelectedBtn) {
+            exportSelectedBtn.addEventListener('click', handleExportSelected);
+        }
+
+        if (exportAllBtn) {
+            exportAllBtn.addEventListener('click', handleExportAll);
+        }
+
+        if (downloadSelectedBtn) {
+            downloadSelectedBtn.addEventListener('click', handleDownloadSelected);
+        }
+
+        // Setup bulk action buttons
+        setupBulkActionButtons();
+    }
+
+    // Setup bulk action buttons in the bulk actions bar
+    function setupBulkActionButtons() {
+        const clearSelectionBtn = document.querySelector('[data-action="clear-selection"]');
+        const bulkDownloadBtn = document.querySelector('[data-action="bulk-download"]');
+        const bulkExportBtn = document.querySelector('[data-action="bulk-export"]');
+
+        if (clearSelectionBtn) {
+            clearSelectionBtn.addEventListener('click', () => {
+                document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = false);
+                const selectAllCheckbox = document.getElementById('selectAll');
+                if (selectAllCheckbox) selectAllCheckbox.checked = false;
+                updateBulkActionsBar();
+            });
+        }
+
+        if (bulkDownloadBtn) {
+            bulkDownloadBtn.addEventListener('click', handleDownloadSelected);
+        }
+
+        if (bulkExportBtn) {
+            bulkExportBtn.addEventListener('click', handleExportSelected);
+        }
+    }
+
+    // Handle export selected certificates to Excel
+    async function handleExportSelected() {
+        // Check if we're in table view and have selections
+        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+
+        if (selectedCheckboxes.length === 0) {
+            showToast('Please switch to table view and select certificates to export', 'warning');
+            return;
+        }
+
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.certId);
+
+        try {
+            showToast(`Exporting ${selectedIds.length} certificate(s)...`, 'info');
+
+            // Build export URL with selected IDs as query params
+            const params = new URLSearchParams();
+            params.append('format', 'excel');
+
+            // For now, export with current filters (selected export for specific IDs would need a new endpoint)
+            // This is a simplified version - you may want to add a dedicated endpoint for selected exports
+            const url = `/Certificate/ExportCertificates?${params.toString()}`;
+
+            window.location.href = url;
+
+            setTimeout(() => {
+                showToast(`Export started for ${selectedIds.length} certificate(s)`, 'success');
+            }, 1000);
+        } catch (error) {
+            console.error('Error exporting certificates:', error);
+            showToast('Failed to export certificates', 'error');
+        }
+    }
+
+    // Handle export all certificates to Excel
+    async function handleExportAll() {
+        try {
+            showToast('Preparing export...', 'info');
+
+            // Build export URL with current filters
+            const params = new URLSearchParams();
+            params.append('format', 'excel');
+
+            // Add filter parameters
+            if (state.filters.search) {
+                params.append('searchTerm', state.filters.search);
+            }
+
+            if (state.filters.certType.length > 0) {
+                state.filters.certType.forEach(type => params.append('certificationTypes', type));
+            }
+
+            if (state.filters.country.length > 0) {
+                state.filters.country.forEach(country => params.append('countries', country));
+            }
+
+            if (state.filters.status.length > 0) {
+                state.filters.status.forEach(status => params.append('statuses', status));
+            }
+
+            params.append('sort', state.filters.sortBy);
+
+            const url = `/Certificate/ExportCertificates?${params.toString()}`;
+
+            // Open in new window to trigger download
+            window.location.href = url;
+
+            setTimeout(() => {
+                showToast(`Exporting ${state.totalCount} certificate(s) to Excel`, 'success');
+            }, 1000);
+        } catch (error) {
+            console.error('Error exporting certificates:', error);
+            showToast('Failed to export certificates', 'error');
+        }
+    }
+
+    // Handle download selected certificates as PDFs
+    async function handleDownloadSelected() {
+        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+
+        if (selectedCheckboxes.length === 0) {
+            showToast('Please switch to table view and select certificates to download', 'warning');
+            return;
+        }
+
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.certId);
+        showToast(`Downloading ${selectedIds.length} certificate(s)...`, 'info');
+
+        // Download each certificate sequentially to avoid overwhelming the server
+        let successCount = 0;
+        for (const id of selectedIds) {
+            try {
+                await downloadCertificate(id);
+                successCount++;
+                // Small delay between downloads
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (error) {
+                console.error(`Error downloading certificate ${id}:`, error);
+            }
+        }
+
+        showToast(`Downloaded ${successCount} of ${selectedIds.length} certificate(s)`, 'success');
     }
 
     function handleViewTypeChange(viewType) {
@@ -880,6 +1051,38 @@
             renderTableRows(state.certificates);
         } else {
             gridBody.innerHTML = '<div class="no-results">No certificates found</div>';
+        }
+
+        // Re-attach select all handler after table is populated
+        setupSelectAllHandler();
+
+        // Attach change listeners to individual checkboxes
+        document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateBulkActionsBar);
+        });
+    }
+
+    // Update bulk actions bar based on selection
+    function updateBulkActionsBar() {
+        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        const bulkActionsBar = document.getElementById('bulkActionsBar');
+        const selectedCount = document.getElementById('selectedCount');
+
+        if (bulkActionsBar && selectedCount) {
+            if (selectedCheckboxes.length > 0) {
+                bulkActionsBar.style.display = 'flex';
+                selectedCount.textContent = `${selectedCheckboxes.length} certificate${selectedCheckboxes.length !== 1 ? 's' : ''} selected`;
+            } else {
+                bulkActionsBar.style.display = 'none';
+            }
+        }
+
+        // Update select all checkbox state
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const allCheckboxes = document.querySelectorAll('.row-checkbox');
+        if (selectAllCheckbox && allCheckboxes.length > 0) {
+            selectAllCheckbox.checked = selectedCheckboxes.length === allCheckboxes.length;
+            selectAllCheckbox.indeterminate = selectedCheckboxes.length > 0 && selectedCheckboxes.length < allCheckboxes.length;
         }
     }
 

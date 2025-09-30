@@ -235,7 +235,7 @@
         display: grid;
         grid-template-columns:
             40px      /* Select checkbox */
-            100px     /* Actions */
+            140px     /* Actions */
             120px     /* Certificate # */
             180px     /* Certification Type */
             150px     /* CSF Attributes */
@@ -297,6 +297,7 @@
         display: flex;
         align-items: center;
         min-height: 48px;
+        cursor: default;
     }
 
     .grid-cell:last-child {
@@ -305,6 +306,26 @@
 
     .grid-row:hover .grid-cell {
         background: #f8f9fa;
+    }
+
+    /* Ensure row cells are not clickable - only action buttons should be clickable */
+    .grid-row {
+        cursor: default;
+    }
+
+    .grid-row .grid-cell {
+        pointer-events: auto;
+    }
+
+    /* Action buttons should be clickable */
+    .grid-cell.actions-column,
+    .grid-cell.actions-column * {
+        cursor: pointer;
+        pointer-events: auto;
+    }
+
+    .grid-cell.select-cell {
+        cursor: pointer;
     }
 
     /* Select cell */
@@ -1262,9 +1283,6 @@
                     <a href="@Url.Action("Create", "Certificate")" class="btn btn-add">
                         <i class="fas fa-plus"></i> Add Certificate
                     </a>
-                    <button class="btn btn-primary" id="exportSelectedBtn">
-                        Export (selected) to Excel
-                    </button>
                     <button class="btn btn-primary" id="exportAllBtn">
                         Export All to Excel
                     </button>

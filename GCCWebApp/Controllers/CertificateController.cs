@@ -225,7 +225,32 @@ namespace GCCWebApp.Controllers
             try
             {
                 var model = new CertificateEditViewModel();
-                
+
+                // Load dropdown data
+                ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
+                ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
+                ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading create certificate form");
+                return RedirectToAction("Error", "Home");
+            }
+        }
+
+        /// <summary>
+        /// Test page for Create form - bypasses browser cache
+        /// GET: /Certificate/Create2
+        /// </summary>
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> Create2()
+        {
+            try
+            {
+                var model = new CertificateEditViewModel();
+
                 // Load dropdown data
                 ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
                 ViewBag.Products = await _unitOfWork.Products.GetAllAsync();

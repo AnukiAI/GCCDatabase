@@ -5561,7 +5561,7 @@ input[type="checkbox"] {
 .table-grid {
     display: grid;
     grid-template-columns: 40px /* Select checkbox */
-    100px /* Actions - min-width 100px as per your style */
+    140px /* Actions - increased width for button layout */
     120px /* Certificate # */
     180px /* Certification Type */
     150px /* CSF Attributes */
@@ -5582,7 +5582,7 @@ input[type="checkbox"] {
     100px /* UPC */
     100px /* GTIN */
     100px; /* EAN */
-    min-width: 2550px;
+    min-width: 2590px;
     overflow-x: auto;
 }
 
@@ -5620,8 +5620,8 @@ input[type="checkbox"] {
     /* Actions column specific styling */
     .grid-header-cell.actions-column {
         background: #f8f9fa !important;
-        min-width: 100px !important;
-        width: 100px !important;
+        min-width: 140px !important;
+        width: 140px !important;
         justify-content: center;
     }
 
@@ -5693,7 +5693,7 @@ input[type="checkbox"] {
     .grid-cell.actions-cell {
         justify-content: center;
         gap: 4px;
-        min-width: 100px;
+        min-width: 140px;
     }
 
     .grid-cell.cert-number {
@@ -5705,6 +5705,16 @@ input[type="checkbox"] {
         justify-content: center;
     }
 
+/* Action Buttons Container */
+.action-buttons {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: nowrap;
+}
+
 /* Action Buttons */
 .action-btn {
     padding: 4px 6px;
@@ -5715,11 +5725,12 @@ input[type="checkbox"] {
     color: #666;
     font-size: 16px;
     transition: all 0.2s ease;
-    min-width: 24px;
-    height: 24px;
+    min-width: 28px;
+    height: 28px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
     .action-btn:hover.edit {
@@ -5815,6 +5826,30 @@ input[type="checkbox"] {
     overflow: hidden;
 }
 
+/* Large Monitor Optimization (1920px and above) */
+@media (min-width: 1920px) {
+    .table-grid-container {
+        max-width: 100%;
+        margin: 0 auto;
+    }
+
+    .table-grid {
+        min-width: 100%;
+    }
+
+    .grid-header-cell,
+    .grid-cell {
+        padding: 12px 10px;
+    }
+}
+
+/* Desktop Optimization (1440px - 1919px) */
+@media (min-width: 1440px) and (max-width: 1919px) {
+    .table-grid-container {
+        max-width: 100%;
+    }
+}
+
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
     .table-grid {
@@ -5830,6 +5865,16 @@ input[type="checkbox"] {
 
     .table-scroll-wrapper {
         margin: 10px;
+    }
+
+    .action-buttons {
+        gap: 4px;
+    }
+
+    .action-btn {
+        min-width: 24px;
+        height: 24px;
+        font-size: 14px;
     }
 }
 

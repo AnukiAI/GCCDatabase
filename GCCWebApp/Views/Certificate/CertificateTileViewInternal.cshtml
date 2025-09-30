@@ -17,8 +17,8 @@
 <style>
     /* Fix for the Actions column white block */
     .certificates-table th.actions-column {
-        min-width: 100px !important;
-        width: 100px !important;
+        min-width: 140px !important;
+        width: 140px !important;
         background: #f8f9fa !important;
         text-align: center;
         padding: 12px 8px;
@@ -40,26 +40,25 @@
     .results-controls {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         margin-bottom: 20px;
         padding: 10px 0;
         min-width: 0;
-        overflow-x: auto;
         gap: 20px;
     }
 
     .left-controls {
         display: flex;
         gap: 10px;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         min-width: 0;
-        overflow-x: auto;
+        flex: 1;
     }
 
     .export-options {
         display: flex;
         gap: 8px;
-        flex-wrap: nowrap;
+        flex-wrap: wrap;
         align-items: center;
         min-width: 0;
     }
@@ -75,6 +74,8 @@
     .right-controls {
         display: flex;
         justify-content: flex-end;
+        flex-shrink: 0;
+        align-self: flex-start;
     }
 
     .view-toggle-container {
@@ -202,9 +203,127 @@
         word-break: break-word !important;
         white-space: normal !important;
     }
+
+    /* Full width table view */
+    .main-content {
+        flex: 1;
+        padding: 20px;
+        min-width: 0;
+        width: 100%;
+    }
+
+    /* Table scroll wrapper - full width with horizontal scroll */
+    .table-scroll-wrapper {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: visible;
+        margin-top: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Table grid container */
+    .table-grid-container {
+        min-width: 100%;
+        width: max-content;
+    }
+
+    /* Grid layout for table */
+    .table-grid {
+        display: grid;
+        grid-template-columns:
+            40px      /* Select checkbox */
+            100px     /* Actions */
+            120px     /* Certificate # */
+            180px     /* Certification Type */
+            150px     /* CSF Attributes */
+            80px      /* Status */
+            110px     /* Effective Date */
+            110px     /* Expiration Date */
+            200px     /* Company */
+            200px     /* Company Contact */
+            180px     /* Product Name */
+            150px     /* Product Category */
+            150px     /* Product Type */
+            170px     /* Product Subcategory */
+            120px     /* Location */
+            100px     /* Country */
+            120px     /* External Tag */
+            120px     /* Internal Tag */
+            100px     /* ASIN */
+            100px     /* UPC */
+            100px     /* GTIN */
+            100px;    /* EAN */
+        min-width: max-content;
+        width: 100%;
+    }
+
+    /* Header cell styling */
+    .grid-header-cell {
+        background: #f8f9fa;
+        padding: 12px 8px;
+        font-weight: 600;
+        font-size: 16px;
+        color: #333;
+        border-bottom: 2px solid #dee2e6;
+        border-right: 1px solid #eee;
+        white-space: nowrap;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .grid-header-cell:last-child {
+        border-right: none;
+    }
+
+    /* Body row styling */
+    .grid-body {
+        display: contents;
+    }
+
+    .grid-row {
+        display: contents;
+    }
+
+    .grid-cell {
+        padding: 12px 8px;
+        border-bottom: 1px solid #eee;
+        border-right: 1px solid #eee;
+        background: white;
+        font-size: 16px;
+        display: flex;
+        align-items: center;
+        min-height: 48px;
+    }
+
+    .grid-cell:last-child {
+        border-right: none;
+    }
+
+    .grid-row:hover .grid-cell {
+        background: #f8f9fa;
+    }
+
+    /* Select cell */
+    .select-cell {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Actions column */
+    .actions-column {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+    }
 </style>
 <!-- Main Container -->
-<div class="main-container">
+<div class="main-container" style="max-width: 100%; width: 100%;">
     <!-- Sidebar (Filters) -->
     <div class="sidebar">
         <button class="mobile-filter-toggle" style="display: none;">
@@ -1143,9 +1262,6 @@
                     <a href="@Url.Action("Create", "Certificate")" class="btn btn-add">
                         <i class="fas fa-plus"></i> Add Certificate
                     </a>
-                    <button id="editCertificateBtn" class="btn btn-primary" disabled title="Select a certificate to edit">
-                        <i class="fas fa-edit"></i> Edit Certificate
-                    </button>
                     <button class="btn btn-primary">
                         Export (selected) to Excel
                     </button>
@@ -1210,7 +1326,7 @@
                             <div class="grid-header-cell select-cell">
                                 <input type="checkbox" id="selectAll" title="Select all visible rows">
                             </div>
-                            <div class="grid-header-cell actions-column" style="min-width: 100px;">
+                            <div class="grid-header-cell actions-column" style="min-width: 140px;">
                                 Actions
                             </div>
                             <div class="grid-header-cell" data-sort-column="certificate">

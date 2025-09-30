@@ -112,11 +112,11 @@ function exportMetric() {
 
 async function showExpiringCerts(months) {
     const period = months === 1 ? '30 days' : `${months} months`;
-    console.log(`Generating report for certificates expiring in next ${period}...`);
+    console.log(`Generating CSV report for certificates expiring in next ${period}...`);
 
     try {
         const reportType = months === 1 ? 'expiring-30-days' : `expiring-${months}-months`;
-        const response = await fetch(`/Export/DownloadReport?type=${reportType}&format=excel`, {
+        const response = await fetch(`/Export/DownloadReport?type=${reportType}&format=csv`, {
             method: 'GET',
             credentials: 'same-origin',
             headers: {
@@ -130,7 +130,7 @@ async function showExpiringCerts(months) {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `certificates-expiring-next-${period.replace(' ', '-')}-${new Date().toISOString().split('T')[0]}.xlsx`;
+            link.download = `certificates-expiring-next-${period.replace(' ', '-')}-${new Date().toISOString().split('T')[0]}.csv`;
             link.style.display = 'none';
 
             document.body.appendChild(link);
@@ -140,7 +140,7 @@ async function showExpiringCerts(months) {
             window.URL.revokeObjectURL(url);
 
             if (window.GreenCircle?.showToast) {
-                window.GreenCircle.showToast(`Downloaded report: Certificates expiring in next ${period}`, 'success');
+                window.GreenCircle.showToast(`Downloaded CSV report: Certificates expiring in next ${period}`, 'success');
             }
         } else if (response.status === 302 || response.status === 401) {
             console.error('Authentication required');
@@ -162,10 +162,10 @@ async function showExpiringCerts(months) {
 }
 
 async function showActiveCerts() {
-    console.log('Generating report for current active certificates...');
+    console.log('Generating CSV report for current active certificates...');
 
     try {
-        const response = await fetch(`/Export/DownloadReport?type=active-certificates&format=excel`, {
+        const response = await fetch(`/Export/DownloadReport?type=active-certificates&format=csv`, {
             method: 'GET',
             credentials: 'same-origin',
             headers: {
@@ -179,7 +179,7 @@ async function showActiveCerts() {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `active-certificates-${new Date().toISOString().split('T')[0]}.xlsx`;
+            link.download = `active-certificates-${new Date().toISOString().split('T')[0]}.csv`;
             link.style.display = 'none';
 
             document.body.appendChild(link);
@@ -189,7 +189,7 @@ async function showActiveCerts() {
             window.URL.revokeObjectURL(url);
 
             if (window.GreenCircle?.showToast) {
-                window.GreenCircle.showToast('Downloaded report: Current active certificates', 'success');
+                window.GreenCircle.showToast('Downloaded CSV report: Current active certificates', 'success');
             }
         } else if (response.status === 302 || response.status === 401) {
             console.error('Authentication required');

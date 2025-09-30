@@ -744,15 +744,15 @@
 
     <!-- Action Buttons -->
     <div class="action-buttons">
-        <button class="action-button" onclick="DashboardFunctions.showExpiringCerts(3)">
+        <button type="button" class="action-button" onclick="event.preventDefault(); DashboardFunctions.showExpiringCerts(3)">
             <i class="fas fa-download"></i>
             Download Expiring Certs Report (Next 3 Months)
         </button>
-        <button class="action-button" onclick="DashboardFunctions.showActiveCerts()">
+        <button type="button" class="action-button" onclick="event.preventDefault(); DashboardFunctions.showActiveCerts()">
             <i class="fas fa-download"></i>
             Download Current Active Certs Report
         </button>
-        <button class="action-button" onclick="DashboardFunctions.showExpiringCerts(1)">
+        <button type="button" class="action-button" onclick="event.preventDefault(); DashboardFunctions.showExpiringCerts(1)">
             <i class="fas fa-download"></i>
             Download Expiring Certs Report (Next 30 Days)
         </button>

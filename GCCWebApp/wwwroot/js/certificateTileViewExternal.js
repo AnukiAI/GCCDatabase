@@ -516,15 +516,136 @@ class CertificateTileViewExternal {
         });
         button.classList.add('active');
 
-        // Toggle view (tile vs list)
-        const grid = document.getElementById('certificatesGrid');
-        if (grid) {
-            if (viewType === 'list') {
-                grid.classList.add('list-view');
-            } else {
-                grid.classList.remove('list-view');
-            }
+        // Toggle between tile and table view
+        if (viewType === 'list') {
+            this.showTableView();
+        } else {
+            this.showTileView();
         }
+    }
+
+    /**
+     * Show table view
+     */
+    showTableView() {
+        const tileView = document.getElementById('certificatesGrid');
+        const tableView = document.getElementById('tableView');
+
+        if (tileView) tileView.style.display = 'none';
+        if (tableView) {
+            tableView.style.display = 'block';
+            this.populateTableView();
+        }
+    }
+
+    /**
+     * Show tile view
+     */
+    showTileView() {
+        const tileView = document.getElementById('certificatesGrid');
+        const tableView = document.getElementById('tableView');
+
+        if (tableView) tableView.style.display = 'none';
+        if (tileView) tileView.style.display = 'grid';
+    }
+
+    /**
+     * Populate table view with certificates
+     */
+    populateTableView() {
+        const gridBody = document.getElementById('gridBody');
+        if (!gridBody) return;
+
+        // Clear existing content
+        gridBody.innerHTML = '';
+
+        // Use current certificates data
+        const certificates = this.service.state.certificates || [];
+        if (certificates && certificates.length > 0) {
+            gridBody.innerHTML = certificates.map(cert => this.createTableRow(cert)).join('');
+        } else {
+            gridBody.innerHTML = '<div class="no-results">No certificates found</div>';
+        }
+    }
+
+    /**
+     * Create table row HTML for a certificate (External view - no Internal Tag, no Edit button)
+     */
+    createTableRow(cert) {
+        const effectiveDate = cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A';
+        const expirationDate = cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A';
+        const location = this.formatLocation(cert.location, cert.country);
+        const statusBadge = this.getStatusBadge(cert.status);
+
+        return `
+            <div class="grid-row" data-cert-id="${cert.id}">
+                <div class="grid-cell select-cell">
+                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}">
+                </div>
+                <div class="grid-cell actions-column">
+                    <div class="action-buttons">
+                        <button class="action-btn download-btn" onclick="window.certificateTileViewExternal.handleDownload('${cert.id}')" title="Download PDF">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="action-btn view-btn" onclick="window.certificateTileViewExternal.handleView('${cert.id}')" title="View Details">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="grid-cell">${this.escapeHtml(cert.certificateNumber || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.certificationType || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.csfAttributes || '')}</div>
+                <div class="grid-cell">${statusBadge}</div>
+                <div class="grid-cell">${effectiveDate}</div>
+                <div class="grid-cell">${expirationDate}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.companyName || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.companyContact || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.productName || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.productCategory || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.productType || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.productSubcategory || '')}</div>
+                <div class="grid-cell">${location}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.country || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.externalTags || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.asin || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.upc || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.gtin || '')}</div>
+                <div class="grid-cell">${this.escapeHtml(cert.ean || '')}</div>
+            </div>
+        `;
+    }
+
+    /**
+     * Format location string
+     */
+    formatLocation(location, country) {
+        if (location && country) {
+            return `${location}, ${country}`;
+        }
+        return location || country || 'N/A';
+    }
+
+    /**
+     * Get status badge HTML
+     */
+    getStatusBadge(status) {
+        const statusMap = {
+            'Active': 'badge-success',
+            'Expired': 'badge-danger',
+            'Pending': 'badge-warning',
+            'Draft': 'badge-secondary'
+        };
+        const badgeClass = statusMap[status] || 'badge-secondary';
+        return `<span class="badge ${badgeClass}">${this.escapeHtml(status || 'Unknown')}</span>`;
+    }
+
+    /**
+     * Escape HTML to prevent XSS
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     /**

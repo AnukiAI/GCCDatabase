@@ -837,21 +837,112 @@
         });
         document.querySelector(`[data-view="${viewType}"]`).classList.add('active');
 
-        // Get the certificates grid container
-        const gridContainer = document.getElementById('certificatesGrid');
-        if (!gridContainer) return;
-
-        if (viewType === 'table') {
-            // Switch to table view
-            gridContainer.classList.add('table-view');
-            gridContainer.classList.remove('tile-view');
-            renderCertificatesTable();
+        if (viewType === 'list') {
+            // Show table view within same page
+            showTableView();
         } else {
-            // Switch to tile view (default)
-            gridContainer.classList.remove('table-view');
-            gridContainer.classList.add('tile-view');
-            renderCertificatesTiles();
+            // Show tile view
+            showTileView();
         }
+    }
+
+    // Show table view
+    function showTableView() {
+        const tileView = document.getElementById('certificatesGrid');
+        const tableView = document.getElementById('tableView');
+
+        if (tileView) tileView.style.display = 'none';
+        if (tableView) {
+            tableView.style.display = 'block';
+            populateTableView();
+        }
+    }
+
+    // Show tile view
+    function showTileView() {
+        const tileView = document.getElementById('certificatesGrid');
+        const tableView = document.getElementById('tableView');
+
+        if (tableView) tableView.style.display = 'none';
+        if (tileView) tileView.style.display = 'grid';
+    }
+
+    // Populate table view with certificates
+    function populateTableView() {
+        const gridBody = document.getElementById('gridBody');
+        if (!gridBody) return;
+
+        // Clear existing content
+        gridBody.innerHTML = '';
+
+        // Use current certificates data
+        if (state.certificates && state.certificates.length > 0) {
+            renderTableRows(state.certificates);
+        } else {
+            gridBody.innerHTML = '<div class="no-results">No certificates found</div>';
+        }
+    }
+
+    // Render table rows for certificates
+    function renderTableRows(certificates) {
+        const gridBody = document.getElementById('gridBody');
+        if (!gridBody) return;
+
+        if (!certificates || certificates.length === 0) {
+            gridBody.innerHTML = '<div class="no-results">No certificates found</div>';
+            return;
+        }
+
+        gridBody.innerHTML = certificates.map(cert => createTableRow(cert)).join('');
+    }
+
+    // Create table row HTML for a certificate
+    function createTableRow(cert) {
+        const effectiveDate = cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A';
+        const expirationDate = cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A';
+        const location = formatLocation(cert.location, cert.country);
+        const statusBadge = getStatusBadge(cert.status);
+
+        return `
+            <div class="grid-row" data-cert-id="${cert.id}">
+                <div class="grid-cell select-cell">
+                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}">
+                </div>
+                <div class="grid-cell actions-column">
+                    <div class="action-buttons">
+                        <button class="action-btn edit-btn" onclick="editCertificate('${cert.id}')" title="Edit Certificate">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="action-btn download-btn" onclick="downloadCertificate('${cert.id}')" title="Download PDF">
+                            <i class="fas fa-download"></i>
+                        </button>
+                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${cert.id}')" title="View Details">
+                            <i class="fas fa-external-link-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="grid-cell">${escapeHtml(cert.certificateNumber || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.certificationType || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.csfAttributes || '')}</div>
+                <div class="grid-cell">${statusBadge}</div>
+                <div class="grid-cell">${effectiveDate}</div>
+                <div class="grid-cell">${expirationDate}</div>
+                <div class="grid-cell">${escapeHtml(cert.companyName || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.companyContact || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.productName || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.productCategory || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.productType || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.productSubcategory || '')}</div>
+                <div class="grid-cell">${location}</div>
+                <div class="grid-cell">${escapeHtml(cert.country || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.externalTags || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.internalTags || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.asin || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.upc || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.gtin || '')}</div>
+                <div class="grid-cell">${escapeHtml(cert.ean || '')}</div>
+            </div>
+        `;
     }
 
     function showToast(message, type = 'success') {
@@ -891,11 +982,18 @@
     }
 
     // Export functions for global access
+    window.viewCertificate = viewCertificate;
+    window.viewCertificateDetails = viewCertificateDetails;
+    window.editCertificate = editCertificate;
+    window.downloadCertificate = downloadCertificate;
+
     window.certificateTileViewInternal = {
         viewCertificate: viewCertificate,
+        viewCertificateDetails: viewCertificateDetails,
         editCertificate: editCertificate,
         downloadCertificate: downloadCertificate,
-        clearAllFilters: clearAllFilters
+        clearAllFilters: clearAllFilters,
+        populateTableView: populateTableView
     };
 
     // Initialize the app when DOM is ready

@@ -25,7 +25,7 @@ namespace GCCWebApp.Services
         Task<bool> SaveFilterAsync(string userId, string filterName, CertificateListRequest filterConfig);
         Task<CertificateListRequest> LoadSavedFilterAsync(string userId, string filterName);
         Task<CertificateListResponse> ApplyDynamicFilterAsync(CertificateListRequest request);
-        Task<byte[]> ExportFilteredResultsAsync(CertificateListRequest request, string format);
+        Task<byte[]?> ExportFilteredResultsAsync(CertificateListRequest request, string format);
     }
 
     public interface IFilterService

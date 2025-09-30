@@ -427,53 +427,50 @@ body {
 }
 
 .action-btn {
-    background: none;
-    border: none;
-    color: black;
-    cursor: pointer;
-    padding: 8px 12px;
+    padding: 4px 6px;
+    border: 1px solid #ddd;
+    background: white;
     border-radius: var(--border-radius-sm);
-    transition: var(--transition);
+    cursor: pointer;
+    color: #666;
     font-size: var(--font-size-base);
+    transition: all 0.2s ease;
     min-width: 40px;
     min-height: 40px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: 1px solid transparent;
+    flex-shrink: 0;
 }
 
-    .action-btn:hover {
-        background: var(--light-gray);
-        border-color: var(--border-color);
-    }
-
     .action-btn.edit {
-        color: var(--blue-primary);
+        color: #666;
     }
 
         .action-btn.edit:hover {
-            background: rgba(0, 174, 239, 0.1);
-            border-color: var(--blue-primary);
+            background: #00AEEF;
+            color: white;
+            border-color: #00AEEF;
         }
 
     .action-btn.add {
-        color: var(--green-primary);
+        color: #666;
     }
 
         .action-btn.add:hover {
-            color: var(--green-primary);
-            background: rgba(146, 200, 62, 0.1);
-            border-color: var(--green-primary);
+            background: #7CB342;
+            color: white;
+            border-color: #7CB342;
         }
 
     .action-btn.delete {
-        color: var(--warning);
+        color: #666;
     }
 
         .action-btn.delete:hover {
-            background: rgba(255, 82, 82, 0.1);
-            border-color: var(--warning);
+            background: #ff5252;
+            color: white;
+            border-color: #ff5252;
         }
 
 .node-content.active .action-btn {

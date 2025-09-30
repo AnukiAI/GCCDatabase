@@ -158,6 +158,7 @@ RenewalInProgress → [Active|Expired|Archived|Cancelled|ClientDeclined]
 **Implementation Status:** ✅ COMPLETE
 - Controller: `Controllers/DashboardController.cs`
 - View: `Views/Dashboard/Index.cshtml`
+- JavaScript: `wwwroot/js/dashboard.js`
 
 **Dashboard Metrics:**
 1. Active Certificates Count
@@ -173,6 +174,37 @@ RenewalInProgress → [Active|Expired|Archived|Cancelled|ClientDeclined]
 11. Partner Distribution
 12. Geographic Distribution
 
+**Dashboard CSV Export Reports:**
+The Dashboard includes three quick-action export buttons that generate CSV reports:
+
+1. **Expiring Certificates Report (Next 3 Months)**
+   - Button: "Download Expiring Certs Report (Next 3 Months)"
+   - Endpoint: `/Export/DownloadReport?type=expiring-3-months&format=csv`
+   - Filename: `certificates-expiring-next-3-months-YYYY-MM-DD.csv`
+   - Data: All certificates with expiration dates within the next 90 days
+   - Columns: Certificate Number, Company Name, Product Name, Certification Type, Effective Date, Expiration Date, Status, Location, Country
+
+2. **Active Certificates Report**
+   - Button: "Download Current Active Certs Report"
+   - Endpoint: `/Export/DownloadReport?type=active-certificates&format=csv`
+   - Filename: `active-certificates-YYYY-MM-DD.csv`
+   - Data: All certificates with "Active" status
+   - Columns: Certificate Number, Company Name, Product Name, Certification Type, Effective Date, Expiration Date, Location, Country
+
+3. **Expiring Certificates Report (Next 30 Days)**
+   - Button: "Download Expiring Certs Report (Next 30 Days)"
+   - Endpoint: `/Export/DownloadReport?type=expiring-30-days&format=csv`
+   - Filename: `certificates-expiring-next-30-days-YYYY-MM-DD.csv`
+   - Data: All certificates with expiration dates within the next 30 days
+   - Columns: Certificate Number, Company Name, Product Name, Certification Type, Effective Date, Expiration Date, Status, Location, Country
+
+**Technical Implementation:**
+- Format: CSV (Comma-Separated Values)
+- Authentication: Required (Admin/Analyst roles only)
+- Download Method: Client-side blob download via JavaScript
+- Toast Notifications: Success/Error feedback to user
+- Error Handling: 401/302 redirects for authentication, graceful failure messages
+
 #### US-007: Export Functionality
 **As a** User
 **I want to** export certificate data
@@ -186,11 +218,17 @@ RenewalInProgress → [Active|Expired|Archived|Cancelled|ClientDeclined]
 - ⚠️ Excel export with formatting
 - ✅ Download uploaded certificate files when available
 - ✅ Fallback to generated PDF if no uploaded file exists
+- ✅ Dashboard CSV export reports:
+  - Export certificates expiring in next 3 months (CSV)
+  - Export current active certificates (CSV)
+  - Export certificates expiring in next 30 days (CSV)
 
-**Implementation Status:** 🟡 PARTIAL (90%)
+**Implementation Status:** 🟡 PARTIAL (95%)
 - PDF: `Services/CertificatePdfService.cs`
+- CSV: `wwwroot/js/dashboard.js` (Dashboard reports)
 - Missing: Excel formatting
 - Updated: Certificate download now uses uploaded files when available (2025-09-28)
+- Updated: Dashboard export buttons now generate CSV reports (2025-09-29)
 
 ### EPIC 4: User Management
 

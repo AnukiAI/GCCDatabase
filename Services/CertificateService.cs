@@ -703,47 +703,184 @@ namespace GCCWebApp.Services
             try
             {
                 using var workbook = new ClosedXML.Excel.XLWorkbook();
-                var worksheet = workbook.Worksheets.Add("Certificates");
 
-                // Add headers
-                var headers = new[]
+                // ========== CERTIFICATES WORKSHEET ==========
+                var certSheet = workbook.Worksheets.Add("Certificates");
+
+                // Add headers with professional styling
+                var certHeaders = new[]
                 {
                     "Certificate Number", "Company Name", "Product Name", "Product Category",
                     "Certification Type", "Status", "Partner Program", "Effective Date",
                     "Expiration Date", "Location", "Country", "ASIN", "UPC", "GTIN", "EAN"
                 };
 
-                for (int i = 0; i < headers.Length; i++)
+                for (int i = 0; i < certHeaders.Length; i++)
                 {
-                    worksheet.Cell(1, i + 1).Value = headers[i];
-                    worksheet.Cell(1, i + 1).Style.Font.Bold = true;
-                    worksheet.Cell(1, i + 1).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.LightGray;
+                    var cell = certSheet.Cell(1, i + 1);
+                    cell.Value = certHeaders[i];
+                    cell.Style.Font.Bold = true;
+                    cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+                    cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#2c5f2d"); // GCC green
+                    cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+                    cell.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
                 }
 
-                // Add data
-                int row = 2;
+                // Add certificate data
+                int certRow = 2;
                 foreach (var cert in certificates)
                 {
-                    worksheet.Cell(row, 1).Value = cert.CertificateNumber;
-                    worksheet.Cell(row, 2).Value = cert.CompanyName;
-                    worksheet.Cell(row, 3).Value = cert.ProductName;
-                    worksheet.Cell(row, 4).Value = cert.ProductCategory ?? "";
-                    worksheet.Cell(row, 5).Value = cert.CertificationType;
-                    worksheet.Cell(row, 6).Value = cert.Status;
-                    worksheet.Cell(row, 7).Value = cert.Partner ?? "None";
-                    worksheet.Cell(row, 8).Value = cert.EffectiveDate.ToString("yyyy-MM-dd");
-                    worksheet.Cell(row, 9).Value = cert.ExpirationDate.ToString("yyyy-MM-dd");
-                    worksheet.Cell(row, 10).Value = cert.Location ?? "";
-                    worksheet.Cell(row, 11).Value = cert.Country ?? "";
-                    worksheet.Cell(row, 12).Value = cert.Asin ?? "";
-                    worksheet.Cell(row, 13).Value = cert.Upc ?? "";
-                    worksheet.Cell(row, 14).Value = cert.Gtin ?? "";
-                    worksheet.Cell(row, 15).Value = cert.Ean ?? "";
-                    row++;
+                    certSheet.Cell(certRow, 1).Value = cert.CertificateNumber;
+                    certSheet.Cell(certRow, 2).Value = cert.CompanyName;
+                    certSheet.Cell(certRow, 3).Value = cert.ProductName;
+                    certSheet.Cell(certRow, 4).Value = cert.ProductCategory ?? "";
+                    certSheet.Cell(certRow, 5).Value = cert.CertificationType;
+                    certSheet.Cell(certRow, 6).Value = cert.Status;
+                    certSheet.Cell(certRow, 7).Value = cert.Partner ?? "None";
+                    certSheet.Cell(certRow, 8).Value = cert.EffectiveDate.ToString("yyyy-MM-dd");
+                    certSheet.Cell(certRow, 9).Value = cert.ExpirationDate.ToString("yyyy-MM-dd");
+                    certSheet.Cell(certRow, 10).Value = cert.Location ?? "";
+                    certSheet.Cell(certRow, 11).Value = cert.Country ?? "";
+                    certSheet.Cell(certRow, 12).Value = cert.Asin ?? "";
+                    certSheet.Cell(certRow, 13).Value = cert.Upc ?? "";
+                    certSheet.Cell(certRow, 14).Value = cert.Gtin ?? "";
+                    certSheet.Cell(certRow, 15).Value = cert.Ean ?? "";
+
+                    // Add zebra striping for better readability
+                    if (certRow % 2 == 0)
+                    {
+                        certSheet.Row(certRow).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#f5f5f5");
+                    }
+
+                    certRow++;
                 }
 
-                // Auto-fit columns
-                worksheet.Columns().AdjustToContents();
+                // Apply borders to all data
+                var certDataRange = certSheet.Range(1, 1, certRow - 1, certHeaders.Length);
+                certDataRange.Style.Border.OutsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+                certDataRange.Style.Border.InsideBorder = ClosedXML.Excel.XLBorderStyleValues.Thin;
+
+                // Auto-fit columns and freeze header row
+                certSheet.Columns().AdjustToContents();
+                certSheet.SheetView.FreezeRows(1);
+
+                // ========== COMPANIES SUMMARY WORKSHEET ==========
+                var companySheet = workbook.Worksheets.Add("Companies");
+                var companies = certificates
+                    .GroupBy(c => c.CompanyName)
+                    .Select(g => new
+                    {
+                        CompanyName = g.Key,
+                        CertificateCount = g.Count(),
+                        ActiveCerts = g.Count(c => c.Status.ToLower() == "active"),
+                        Countries = string.Join(", ", g.Select(c => c.Country).Distinct().Where(c => !string.IsNullOrEmpty(c)))
+                    })
+                    .OrderByDescending(c => c.CertificateCount)
+                    .ToList();
+
+                // Company headers
+                var compHeaders = new[] { "Company Name", "Total Certificates", "Active Certificates", "Countries" };
+                for (int i = 0; i < compHeaders.Length; i++)
+                {
+                    var cell = companySheet.Cell(1, i + 1);
+                    cell.Value = compHeaders[i];
+                    cell.Style.Font.Bold = true;
+                    cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+                    cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#2c5f2d");
+                    cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+                }
+
+                // Company data
+                int compRow = 2;
+                foreach (var comp in companies)
+                {
+                    companySheet.Cell(compRow, 1).Value = comp.CompanyName;
+                    companySheet.Cell(compRow, 2).Value = comp.CertificateCount;
+                    companySheet.Cell(compRow, 3).Value = comp.ActiveCerts;
+                    companySheet.Cell(compRow, 4).Value = comp.Countries;
+
+                    if (compRow % 2 == 0)
+                    {
+                        companySheet.Row(compRow).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#f5f5f5");
+                    }
+                    compRow++;
+                }
+
+                companySheet.Columns().AdjustToContents();
+                companySheet.SheetView.FreezeRows(1);
+
+                // ========== PRODUCTS SUMMARY WORKSHEET ==========
+                var productSheet = workbook.Worksheets.Add("Products");
+                var products = certificates
+                    .GroupBy(c => new { c.ProductName, c.ProductCategory })
+                    .Select(g => new
+                    {
+                        ProductName = g.Key.ProductName,
+                        ProductCategory = g.Key.ProductCategory ?? "Uncategorized",
+                        CertificateCount = g.Count(),
+                        Companies = string.Join(", ", g.Select(c => c.CompanyName).Distinct().Take(3))
+                    })
+                    .OrderByDescending(p => p.CertificateCount)
+                    .ToList();
+
+                // Product headers
+                var prodHeaders = new[] { "Product Name", "Category", "Certificate Count", "Top Companies" };
+                for (int i = 0; i < prodHeaders.Length; i++)
+                {
+                    var cell = productSheet.Cell(1, i + 1);
+                    cell.Value = prodHeaders[i];
+                    cell.Style.Font.Bold = true;
+                    cell.Style.Font.FontColor = ClosedXML.Excel.XLColor.White;
+                    cell.Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#2c5f2d");
+                    cell.Style.Alignment.Horizontal = ClosedXML.Excel.XLAlignmentHorizontalValues.Center;
+                }
+
+                // Product data
+                int prodRow = 2;
+                foreach (var prod in products)
+                {
+                    productSheet.Cell(prodRow, 1).Value = prod.ProductName;
+                    productSheet.Cell(prodRow, 2).Value = prod.ProductCategory;
+                    productSheet.Cell(prodRow, 3).Value = prod.CertificateCount;
+                    productSheet.Cell(prodRow, 4).Value = prod.Companies;
+
+                    if (prodRow % 2 == 0)
+                    {
+                        productSheet.Row(prodRow).Style.Fill.BackgroundColor = ClosedXML.Excel.XLColor.FromHtml("#f5f5f5");
+                    }
+                    prodRow++;
+                }
+
+                productSheet.Columns().AdjustToContents();
+                productSheet.SheetView.FreezeRows(1);
+
+                // ========== SUMMARY WORKSHEET ==========
+                var summarySheet = workbook.Worksheets.Add("Summary");
+                summarySheet.Cell(1, 1).Value = "GCC Certificate Export Summary";
+                summarySheet.Cell(1, 1).Style.Font.Bold = true;
+                summarySheet.Cell(1, 1).Style.Font.FontSize = 16;
+                summarySheet.Cell(1, 1).Style.Font.FontColor = ClosedXML.Excel.XLColor.FromHtml("#2c5f2d");
+
+                summarySheet.Cell(3, 1).Value = "Export Date:";
+                summarySheet.Cell(3, 2).Value = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") + " UTC";
+
+                summarySheet.Cell(4, 1).Value = "Total Certificates:";
+                summarySheet.Cell(4, 2).Value = certificates.Count;
+
+                summarySheet.Cell(5, 1).Value = "Active Certificates:";
+                summarySheet.Cell(5, 2).Value = certificates.Count(c => c.Status.ToLower() == "active");
+
+                summarySheet.Cell(6, 1).Value = "Total Companies:";
+                summarySheet.Cell(6, 2).Value = companies.Count;
+
+                summarySheet.Cell(7, 1).Value = "Total Products:";
+                summarySheet.Cell(7, 2).Value = products.Count;
+
+                summarySheet.Column(1).Style.Font.Bold = true;
+                summarySheet.Columns().AdjustToContents();
+
+                // Move Summary to first position
+                summarySheet.Position = 1;
 
                 // Save to memory stream
                 using var stream = new MemoryStream();

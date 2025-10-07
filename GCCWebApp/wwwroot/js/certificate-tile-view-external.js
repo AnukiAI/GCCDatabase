@@ -689,26 +689,38 @@
             showToast('Error: Certificate ID not found', 'error');
             return;
         }
-        window.location.href = `/Certificate/CertificateSingleView/${id}`;
+        window.location.href = `/Certificate/CertificateExternalView/${id}`;
     };
 
     function viewCertificate(id) {
-        window.open(`/Certificate/CertificateSingleView/${id}`, '_blank');
+        // Encode URI to handle certificate numbers with special chars like "24-0366"
+        window.open(`/Certificate/CertificateExternalView/${encodeURIComponent(id)}`, '_blank');
     }
-    
+
     window.viewCertificate = viewCertificate;
 
     // Download certificate (External view - with access control)
     async function downloadCertificate(id) {
         try {
             const response = await fetch(`/api/certificate-tiles-external/${id}/download`);
-            
+
             if (response.ok) {
                 const blob = await response.blob();
+
+                // Extract filename from Content-Disposition header or use certificate number
+                let filename = `Certificate_${id}.pdf`; // Fallback
+                const contentDisposition = response.headers.get('Content-Disposition');
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        filename = filenameMatch[1].replace(/['"]/g, '');
+                    }
+                }
+
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Certificate_${id}.pdf`;
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);

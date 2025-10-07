@@ -3,6 +3,8 @@ using System.IO;
 using System.Security.Cryptography;
 using GCCWebApp.Models;
 using GCCWebApp.Data;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 namespace GCCWebApp.Services
 {
@@ -123,6 +125,19 @@ namespace GCCWebApp.Services
                     return result;
                 }
 
+                // Validate image dimensions and detect corruption
+                ImageValidationResult imageValidation;
+                using (var stream = file.OpenReadStream())
+                {
+                    imageValidation = await ValidateImageAsync(stream);
+                }
+
+                if (!imageValidation.IsValid)
+                {
+                    result.AddError(imageValidation.ErrorMessage ?? "Image validation failed.");
+                    return result;
+                }
+
                 // Generate unique filename
                 var fileExtension = Path.GetExtension(file.FileName).ToLower();
                 var fileName = $"{identifier}_{DateTime.UtcNow:yyyyMMdd_HHmmss}{fileExtension}";
@@ -135,18 +150,35 @@ namespace GCCWebApp.Services
                     filePath = Path.Combine(_imagesPath, fileName);
                 }
 
-                // Save file
-                using (var stream = new FileStream(filePath, FileMode.Create))
+                // Save file with optional resizing for large images
+                using (var inputStream = file.OpenReadStream())
                 {
-                    await file.CopyToAsync(stream);
+                    using (var image = await Image.LoadAsync(inputStream))
+                    {
+                        // Resize if image is too large (max 2000px on longest side)
+                        if (image.Width > 2000 || image.Height > 2000)
+                        {
+                            var resizeOptions = new ResizeOptions
+                            {
+                                Size = new Size(2000, 2000),
+                                Mode = ResizeMode.Max
+                            };
+                            image.Mutate(x => x.Resize(resizeOptions));
+                            _logger.LogInformation("Image resized from {OriginalWidth}x{OriginalHeight} to {NewWidth}x{NewHeight}",
+                                imageValidation.Width, imageValidation.Height, image.Width, image.Height);
+                        }
+
+                        await image.SaveAsync(filePath);
+                    }
                 }
 
                 result.FilePath = Path.Combine("uploads", "images", fileName).Replace("\\", "/");
                 result.FileName = fileName;
-                result.FileSize = file.Length;
+                result.FileSize = new FileInfo(filePath).Length; // Get actual file size after processing
                 result.IsSuccess = true;
 
-                _logger.LogInformation("Image file uploaded successfully: {FileName} for {Identifier}", fileName, identifier);
+                _logger.LogInformation("Image file uploaded successfully: {FileName} for {Identifier} (Dimensions: {Width}x{Height})",
+                    fileName, identifier, imageValidation.Width, imageValidation.Height);
             }
             catch (Exception ex)
             {
@@ -406,6 +438,61 @@ namespace GCCWebApp.Services
             return true;
         }
 
+        /// <summary>
+        /// Validates image dimensions and detects corruption
+        /// </summary>
+        private async Task<ImageValidationResult> ValidateImageAsync(Stream stream)
+        {
+            var result = new ImageValidationResult { IsValid = true };
+
+            try
+            {
+                using (var image = await Image.LoadAsync(stream))
+                {
+                    result.Width = image.Width;
+                    result.Height = image.Height;
+
+                    // Check minimum dimensions
+                    if (image.Width < 100 || image.Height < 100)
+                    {
+                        result.IsValid = false;
+                        result.ErrorMessage = $"Image dimensions too small. Minimum size is 100x100 pixels. Uploaded: {image.Width}x{image.Height}.";
+                        return result;
+                    }
+
+                    // Check maximum dimensions
+                    if (image.Width > 4000 || image.Height > 4000)
+                    {
+                        result.IsValid = false;
+                        result.ErrorMessage = $"Image dimensions too large. Maximum size is 4000x4000 pixels. Uploaded: {image.Width}x{image.Height}.";
+                        return result;
+                    }
+
+                    _logger.LogInformation("Image validation passed: {Width}x{Height} pixels", image.Width, image.Height);
+                }
+            }
+            catch (UnknownImageFormatException ex)
+            {
+                result.IsValid = false;
+                result.ErrorMessage = "The uploaded file is not a valid image or is corrupted.";
+                _logger.LogWarning(ex, "Image format not recognized or corrupted");
+            }
+            catch (InvalidImageContentException ex)
+            {
+                result.IsValid = false;
+                result.ErrorMessage = "The image file is corrupted or contains invalid data.";
+                _logger.LogWarning(ex, "Invalid image content detected");
+            }
+            catch (Exception ex)
+            {
+                result.IsValid = false;
+                result.ErrorMessage = "Failed to validate image. The file may be corrupted.";
+                _logger.LogError(ex, "Unexpected error during image validation");
+            }
+
+            return result;
+        }
+
         #region Private Helper Methods
 
         private bool IsValidCertificateFile(string fileExtension, string contentType)
@@ -482,5 +569,16 @@ namespace GCCWebApp.Services
         Certificate,
         Image,
         Document
+    }
+
+    /// <summary>
+    /// Represents the result of image validation
+    /// </summary>
+    public class ImageValidationResult
+    {
+        public bool IsValid { get; set; }
+        public int Width { get; set; }
+        public int Height { get; set; }
+        public string? ErrorMessage { get; set; }
     }
 }

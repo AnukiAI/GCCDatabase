@@ -51,9 +51,10 @@ This analysis compares the design mockups in `0_Documentation/pages/` against th
 - **14-State Lifecycle**: ✅ Complete status workflow implemented
 
 #### ❌ **MOCKUP FEATURES NOT IMPLEMENTED**
-1. **Product Image Upload Section**
-   - Mockup: Dedicated image upload area with placeholder
-   - Implementation: No image upload functionality
+1. **~~Product Image Upload Section~~** (NOT A REQUIREMENT - Removed)
+   - ~~Mockup: Dedicated image upload area with placeholder~~
+   - ~~Implementation: No image upload functionality~~
+   - **Note:** Product images are not required for certificates and may be added at a later date if needed.
 
 2. **Tags (Multiselect) System**
    - Mockup: External/Internal tag management with visual tag display
@@ -180,7 +181,7 @@ The master layout implementation is **95% faithful** to the mockup design, inclu
 ### 🟡 **PHASE 1: Core User Experience (2-3 weeks)**
 1. **Enhanced File Upload System**
    - Implement drag-and-drop certificate PDF upload
-   - Add product image upload functionality
+   - ~~Add product image upload functionality~~ (NOT A REQUIREMENT - Product images not required)
    - File preview and management interface
 
 2. **Tag Management System**

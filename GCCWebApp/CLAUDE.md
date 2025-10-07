@@ -145,3 +145,4 @@ docker-compose up -d        # Full stack with PostgreSQL
 - remember we are not using docker now.
 - we are not using Docker for deployments now
 - Please don't ust say yay that's perfect. Please comment on things that you are not sure of or don't know
+- Product Image is not a requirement for Certficates. This may be added at a later date. update all documentation and views

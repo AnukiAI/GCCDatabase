@@ -151,7 +151,32 @@
                 <div class="certificate-image-column">
                     @{
                         string certificateImageSrc;
-                        if (!string.IsNullOrEmpty(Model.Certificate?.CertificateFile))
+                        // First check for CertificateImagePath (new field for uploaded certificate images)
+                        if (!string.IsNullOrEmpty(Model.Certificate?.CertificateImagePath))
+                        {
+                            // If it's a URL, use it directly
+                            if (Model.Certificate.CertificateImagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                            {
+                                certificateImageSrc = Model.Certificate.CertificateImagePath;
+                            }
+                            // If it starts with ~, convert to URL
+                            else if (Model.Certificate.CertificateImagePath.StartsWith("~"))
+                            {
+                                certificateImageSrc = Url.Content(Model.Certificate.CertificateImagePath);
+                            }
+                            // If it starts with /, it's already root-relative
+                            else if (Model.Certificate.CertificateImagePath.StartsWith("/"))
+                            {
+                                certificateImageSrc = Model.Certificate.CertificateImagePath;
+                            }
+                            // Otherwise, assume it's in uploads folder
+                            else
+                            {
+                                certificateImageSrc = $"/uploads/{Model.Certificate.CertificateImagePath}";
+                            }
+                        }
+                        // Fallback to CertificateFile for backward compatibility
+                        else if (!string.IsNullOrEmpty(Model.Certificate?.CertificateFile))
                         {
                             // If it's a URL, use it directly
                             if (Model.Certificate.CertificateFile.StartsWith("http", StringComparison.OrdinalIgnoreCase))
@@ -184,7 +209,14 @@
                             ? $"Certificate {GetFormattedCertificateNumber()}"
                             : "Certificate Preview Placeholder";
                     }
-                    <img src="@certificateImageSrc" alt="@altText" class="certificate-image" onerror="this.src='@Url.Content("~/img/certpreview.png")';this.onerror=null;" />
+                    <div class="certificate-image-container" style="position: relative;">
+                        <img src="@certificateImageSrc" alt="@altText" class="certificate-image" onerror="this.src='@Url.Content("~/img/certpreview.png")';this.onerror=null;" onclick="openImageZoom('@certificateImageSrc')" />
+
+                        <!-- Magnifying Glass Icon overlay -->
+                        <div class="zoom-icon-overlay" onclick="openImageZoom('@certificateImageSrc')" title="Click to zoom">
+                            <i class="fas fa-search-plus"></i>
+                        </div>
+                    </div>
 
                     <!-- Download Button directly below image -->
                     <div class="certificate-download-action">
@@ -197,6 +229,14 @@
         </div>
     </div>
 </div>
+
+<!-- Image Zoom Modal -->
+<div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageZoom()">
+    <span class="zoom-close">&times;</span>
+    <img class="zoom-modal-content" id="zoomedImage">
+    <div class="zoom-caption" id="imageCaption">Certificate Preview</div>
+</div>
+
 <script src="~/js/certificates.js"></script>
 <script>
     // Make downloadCertificate available globally for this page
@@ -208,4 +248,33 @@
             console.error('Error downloading certificate:', error);
         }
     };
+
+    // Image zoom functionality
+    function openImageZoom(imageSrc) {
+        const modal = document.getElementById('imageZoomModal');
+        const modalImg = document.getElementById('zoomedImage');
+        const caption = document.getElementById('imageCaption');
+
+        modal.style.display = 'block';
+        modalImg.src = imageSrc;
+        caption.innerHTML = 'Certificate @GetFormattedCertificateNumber() - Click anywhere to close';
+
+        // Prevent body scroll when modal is open
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageZoom() {
+        const modal = document.getElementById('imageZoomModal');
+        modal.style.display = 'none';
+
+        // Restore body scroll
+        document.body.style.overflow = 'auto';
+    }
+
+    // Close on ESC key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeImageZoom();
+        }
+    });
 </script>

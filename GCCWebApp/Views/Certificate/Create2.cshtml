@@ -537,6 +537,8 @@
 
                 <!-- Sidebar -->
                 <div class="sidebar">
+                    <!-- Product Image Upload - NOT A REQUIREMENT (may be added later) -->
+                    <!--
                     <div class="upload-section">
                         <h3>Upload Product Image 📎</h3>
                         <div class="upload-placeholder" id="productImageUpload">
@@ -545,6 +547,7 @@
                         </div>
                         <div id="imagePreviewContainer"></div>
                     </div>
+                    -->
 
                     <div class="tags-section">
                         <h3>Tags (Multiselect)</h3>
@@ -703,15 +706,16 @@
 
         // File Upload Functionality - mockup style
         function initializeFileUploads() {
-            // Product Image Upload
-            const imageUploadZone = document.getElementById('productImageUpload');
-            const imageInput = document.getElementById('productImages');
+            // Product Image Upload - DISABLED (not a requirement)
+            // const imageUploadZone = document.getElementById('productImageUpload');
+            // const imageInput = document.getElementById('productImages');
 
             // PDF Upload
             const pdfUploadZone = document.getElementById('pdfUploadZone');
             const pdfInput = document.getElementById('certificatePdf');
 
-            // Image upload handlers
+            // Image upload handlers - DISABLED (not a requirement)
+            /*
             if (imageUploadZone && imageInput) {
                 imageUploadZone.addEventListener('click', () => imageInput.click());
 
@@ -734,6 +738,7 @@
                     handleImageFiles(e.target.files);
                 });
             }
+            */
 
             // PDF upload handlers
             if (pdfUploadZone && pdfInput) {
@@ -762,6 +767,8 @@
             }
         }
 
+        // Product Image handling - DISABLED (not a requirement)
+        /*
         function handleImageFiles(files) {
             const previewContainer = document.getElementById('imagePreviewContainer');
             if (!previewContainer) return;
@@ -788,6 +795,7 @@
                 }
             });
         }
+        */
 
         function handlePdfFile(file) {
             if (file && file.type === 'application/pdf' && file.size <= 10 * 1024 * 1024) {
@@ -809,9 +817,12 @@
             }
         }
 
+        // DISABLED (not a requirement)
+        /*
         function removeImagePreview(button) {
             button.parentElement.remove();
         }
+        */
 
         function removePdfPreview() {
             const previewContainer = document.getElementById('pdfPreviewContainer');

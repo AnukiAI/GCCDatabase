@@ -23,7 +23,11 @@
         debounceTimer: null,
         // Determine API endpoints based on current page
         isInternalView: window.location.pathname.includes('TileViewInternal'),
-        apiBaseUrl: window.location.pathname.includes('TileViewInternal') ? '/api/certificate-tiles-internal' : '/api/certificate-tiles'
+        apiBaseUrl: window.location.pathname.includes('TileViewInternal') ? '/api/certificate-tiles-internal' : '/api/certificate-tiles',
+        // Retry mechanism
+        retryCount: 0,
+        maxRetries: 3,
+        retryDelay: 1000 // Start with 1 second
     };
 
     function initialize() {
@@ -111,8 +115,15 @@
         console.log('Loading certificates from:', `${state.apiBaseUrl}?${buildApiParams()}`);
 
         try {
+            // Check network connectivity first
+            if (!navigator.onLine) {
+                throw new Error('No network connection');
+            }
+
             const params = buildApiParams();
-            const response = await fetch(`${state.apiBaseUrl}?${params}`);
+            const response = await fetch(`${state.apiBaseUrl}?${params}`, {
+                signal: AbortSignal.timeout(30000) // 30 second timeout
+            });
 
             console.log('API Response status:', response.status, response.ok);
 
@@ -132,15 +143,49 @@
                 state.totalCount = data.totalCount;
                 state.hasMore = state.loadedCount < data.totalCount;
 
+                // Reset retry count on success
+                state.retryCount = 0;
+
                 renderCertificates(append);
                 updateResultsCount();
+
+                // Show end of results indicator if no more certificates
+                if (!state.hasMore && state.certificates.length > 0) {
+                    showEndOfResults();
+                }
+            } else if (response.status >= 500) {
+                // Server error - retry
+                throw new Error(`Server error: ${response.status}`);
             } else {
                 console.error('API response not OK:', response.status, response.statusText);
                 showError(`Failed to load certificates: ${response.statusText}`);
             }
         } catch (error) {
             console.error('Error loading certificates:', error);
-            showError('Failed to load certificates. Please try again.');
+
+            // Retry logic for network errors
+            if (state.retryCount < state.maxRetries && (error.name === 'TypeError' || error.name === 'AbortError' || error.message.includes('Server error'))) {
+                state.retryCount++;
+                const delay = state.retryDelay * Math.pow(2, state.retryCount - 1); // Exponential backoff
+
+                console.log(`Retrying in ${delay}ms (attempt ${state.retryCount}/${state.maxRetries})...`);
+                showError(`Connection failed. Retrying in ${delay / 1000} seconds... (${state.retryCount}/${state.maxRetries})`);
+
+                setTimeout(() => {
+                    state.isLoading = false;
+                    loadCertificates(append);
+                }, delay);
+
+                return; // Don't hide loading indicator, will retry
+            } else {
+                // Max retries reached or non-retryable error
+                state.retryCount = 0;
+                const errorMessage = error.message.includes('No network connection')
+                    ? 'No network connection. Please check your internet and try again.'
+                    : 'Failed to load certificates. Please try again.';
+                showError(errorMessage);
+                showRetryButton(append);
+            }
         } finally {
             state.isLoading = false;
             hideLoadingIndicator();
@@ -192,17 +237,29 @@
 
         console.log('Rendering certificates:', state.certificates.length, 'append:', append);
 
+        // Handle empty state
+        if (state.certificates.length === 0 && !append) {
+            showEmptyState();
+            return;
+        }
+
         const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
 
         if (append) {
             // Remove loading/end messages before appending
             const loadingContainer = document.getElementById('loadingContainer');
             const endOfResults = document.getElementById('endOfResults');
+            const retryContainer = document.getElementById('retryContainer');
             if (loadingContainer) loadingContainer.remove();
             if (endOfResults) endOfResults.remove();
+            if (retryContainer) retryContainer.remove();
 
             grid.insertAdjacentHTML('beforeend', html);
         } else {
+            // Clear empty state if it exists
+            const emptyState = document.getElementById('emptyState');
+            if (emptyState) emptyState.remove();
+
             grid.innerHTML = html;
         }
 
@@ -278,7 +335,7 @@
                     <div class="action-icon download" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.id}')">
                         <i class="fas fa-download"></i>
                     </div>
-                    <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.id}')">
+                    <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.certificateNumber || cert.number || cert.id}')">
                         <i class="fas fa-external-link-alt"></i>
                     </div>
                 </div>
@@ -750,7 +807,8 @@
             return;
         }
         console.log('Opening certificate in new tab:', id);
-        window.open(`/Certificate/CertificateSingleView/${id}`, '_blank');
+        // Encode URI to handle certificate numbers with special chars like "24-0366"
+        window.open(`/Certificate/CertificateSingleView/${encodeURIComponent(id)}`, '_blank');
     };
 
     // View certificate (external link - new tab)
@@ -761,7 +819,8 @@
             return;
         }
         console.log('Opening certificate in new tab:', id);
-        window.open(`/Certificate/CertificateSingleView/${id}`, '_blank');
+        // Encode URI to handle certificate numbers with special chars like "24-0366"
+        window.open(`/Certificate/CertificateSingleView/${encodeURIComponent(id)}`, '_blank');
     }
     
     // Make it globally accessible
@@ -771,13 +830,24 @@
     async function downloadCertificate(id) {
         try {
             const response = await fetch(`/Certificate/Download/${id}`);
-            
+
             if (response.ok) {
                 const blob = await response.blob();
+
+                // Extract filename from Content-Disposition header or use certificate number
+                let filename = `Certificate_${id}.pdf`; // Fallback
+                const contentDisposition = response.headers.get('Content-Disposition');
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        filename = filenameMatch[1].replace(/['"]/g, '');
+                    }
+                }
+
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Certificate_${id}.pdf`;
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);
@@ -928,6 +998,113 @@
         showToast(message, 'error');
     }
 
+    // Show empty state when no certificates found
+    function showEmptyState() {
+        const grid = document.getElementById('certificatesGrid');
+        if (!grid) return;
+
+        const hasActiveFilters = state.filters.search ||
+                                 state.filters.certType.length > 0 ||
+                                 state.filters.productCategory.length > 0 ||
+                                 state.filters.company.length > 0 ||
+                                 state.filters.country.length > 0 ||
+                                 state.filters.tags.length > 0;
+
+        const emptyStateHtml = `
+            <div id="emptyState" class="empty-state" style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 60px 20px;
+                text-align: center;
+                grid-column: 1 / -1;
+                background: #f8f9fa;
+                border-radius: 8px;
+                margin: 20px 0;
+            ">
+                <i class="fas fa-search" style="font-size: 64px; color: #ccc; margin-bottom: 20px;"></i>
+                <h3 style="color: #333; margin-bottom: 10px;">No certificates found</h3>
+                <p style="color: #666; margin-bottom: 20px;">
+                    ${hasActiveFilters
+                        ? 'Try adjusting your filters or search terms to find what you\'re looking for.'
+                        : 'There are no certificates available at this time.'}
+                </p>
+                ${hasActiveFilters ? `
+                    <button onclick="certificateTileView.clearAllFilters()" class="btn btn-primary" style="
+                        padding: 10px 24px;
+                        background: #007bff;
+                        color: white;
+                        border: none;
+                        border-radius: 4px;
+                        cursor: pointer;
+                        font-size: 14px;
+                    ">
+                        Clear All Filters
+                    </button>
+                ` : ''}
+            </div>
+        `;
+
+        grid.innerHTML = emptyStateHtml;
+        updateResultsCount();
+    }
+
+    // Show end of results indicator
+    function showEndOfResults() {
+        const endOfResults = document.getElementById('endOfResults');
+        if (endOfResults) {
+            endOfResults.style.display = 'block';
+        }
+    }
+
+    // Show retry button after failed load
+    function showRetryButton(append) {
+        const grid = document.getElementById('certificatesGrid');
+        if (!grid) return;
+
+        const retryHtml = `
+            <div id="retryContainer" class="retry-container" style="
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 40px 20px;
+                text-align: center;
+                grid-column: 1 / -1;
+            ">
+                <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #dc3545; margin-bottom: 16px;"></i>
+                <p style="color: #666; margin-bottom: 20px;">Failed to load certificates. Please try again.</p>
+                <button onclick="certificateTileView.retryLoad(${append})" class="btn btn-primary" style="
+                    padding: 10px 24px;
+                    background: #007bff;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 14px;
+                ">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+            </div>
+        `;
+
+        if (append) {
+            grid.insertAdjacentHTML('afterend', retryHtml);
+        } else {
+            grid.innerHTML = retryHtml;
+        }
+    }
+
+    // Retry loading certificates
+    function retryLoad(append) {
+        const retryContainer = document.getElementById('retryContainer');
+        if (retryContainer) retryContainer.remove();
+
+        state.retryCount = 0; // Reset retry count
+        loadCertificates(append);
+    }
+
     function copyToClipboard(text) {
         const textarea = document.createElement('textarea');
         textarea.value = text;
@@ -1038,7 +1215,8 @@
         downloadCertificate: downloadCertificate,
         clearAllFilters: clearAllFilters,
         editCertificate: editCertificate,
-        populateTableView: populateTableView
+        populateTableView: populateTableView,
+        retryLoad: retryLoad
     };
 
     // Initialize the app when DOM is ready

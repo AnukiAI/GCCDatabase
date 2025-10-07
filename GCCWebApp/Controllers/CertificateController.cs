@@ -21,6 +21,7 @@ namespace GCCWebApp.Controllers
         private readonly ICertificatePdfService _pdfService;
         private readonly ICertificateService _certificateService;
         private readonly IWebHostEnvironment _hostingEnvironment;
+        private readonly IFileUploadService _fileUploadService;
 
         public CertificateController(
             ILogger<CertificateController> logger,
@@ -28,7 +29,8 @@ namespace GCCWebApp.Controllers
             ICertificateRepository certificateRepository,
             ICertificatePdfService pdfService,
             ICertificateService certificateService,
-            IWebHostEnvironment hostingEnvironment)
+            IWebHostEnvironment hostingEnvironment,
+            IFileUploadService fileUploadService)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
@@ -36,6 +38,7 @@ namespace GCCWebApp.Controllers
             _pdfService = pdfService;
             _certificateService = certificateService;
             _hostingEnvironment = hostingEnvironment;
+            _fileUploadService = fileUploadService;
         }
 
         #region Basic CRUD Operations
@@ -108,24 +111,117 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// Certificate external view
-        /// GET: /Certificate/CertificateExternalView
+        /// Certificate external view - For external partners
+        /// GET: /Certificate/CertificateExternalView/{id}
         /// </summary>
-        public IActionResult CertificateExternalView()
+        [Authorize(Policy = "ExternalAccess")]
+        public async Task<IActionResult> CertificateExternalView(string id)
         {
-            // This will need to be updated to use real data
-            return View();
+            try
+            {
+                _logger.LogInformation("CertificateExternalView called with id: {Id}", id);
+
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    _logger.LogWarning("CertificateExternalView called with null or empty id");
+                    return BadRequest("Certificate ID is required");
+                }
+
+                Certificate? certificate = null;
+
+                // Try to parse as integer first (ID)
+                if (int.TryParse(id, out int certificateId))
+                {
+                    _logger.LogInformation("Looking up certificate by ID: {CertificateId}", certificateId);
+                    certificate = await _certificateRepository.GetByIdAsync(certificateId);
+                }
+                else
+                {
+                    _logger.LogInformation("Looking up certificate by number: {CertificateNumber}", id);
+                    certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
+                }
+
+                if (certificate == null)
+                {
+                    _logger.LogWarning("Certificate not found: {Id}", id);
+                    return NotFound($"Certificate {id} not found");
+                }
+
+                _logger.LogInformation("Certificate found: {CertificateNumber}, Company: {CompanyName}, Product: {ProductName}",
+                    certificate.Number, certificate.Company?.Name ?? "N/A", certificate.Product?.Name ?? "N/A");
+
+                var model = new CertificateDetailsViewModelSimple
+                {
+                    Certificate = certificate,
+                    CanEdit = false,
+                    CanDelete = false,
+                    ShowInternalData = false
+                };
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading certificate {Id}", id);
+                return RedirectToAction("Error", "Home");
+            }
         }
 
         /// <summary>
         /// Certificate internal view - Only for Admin and Analyst roles
-        /// GET: /Certificate/CertificateInternalView
+        /// GET: /Certificate/CertificateInternalView/{id}
         /// </summary>
         [Authorize(Policy = "AnalystOrAdmin")]
-        public IActionResult CertificateInternalView()
+        public async Task<IActionResult> CertificateInternalView(string id)
         {
-            // This will need to be updated to use real data
-            return View();
+            try
+            {
+                _logger.LogInformation("CertificateInternalView called with id: {Id}", id);
+
+                if (string.IsNullOrWhiteSpace(id))
+                {
+                    _logger.LogWarning("CertificateInternalView called with null or empty id");
+                    return BadRequest("Certificate ID is required");
+                }
+
+                Certificate? certificate = null;
+
+                // Try to parse as integer first (ID)
+                if (int.TryParse(id, out int certificateId))
+                {
+                    _logger.LogInformation("Looking up certificate by ID: {CertificateId}", certificateId);
+                    certificate = await _certificateRepository.GetByIdAsync(certificateId);
+                }
+                else
+                {
+                    _logger.LogInformation("Looking up certificate by number: {CertificateNumber}", id);
+                    certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
+                }
+
+                if (certificate == null)
+                {
+                    _logger.LogWarning("Certificate not found: {Id}", id);
+                    return NotFound($"Certificate {id} not found");
+                }
+
+                _logger.LogInformation("Certificate found: {CertificateNumber}, Company: {CompanyName}, Product: {ProductName}",
+                    certificate.Number, certificate.Company?.Name ?? "N/A", certificate.Product?.Name ?? "N/A");
+
+                var model = new CertificateDetailsViewModelSimple
+                {
+                    Certificate = certificate,
+                    CanEdit = CanUserEditCertificate(),
+                    CanDelete = CanUserDeleteCertificate(),
+                    ShowInternalData = true
+                };
+
+                return View(model);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading certificate {Id}", id);
+                return RedirectToAction("Error", "Home");
+            }
         }
 
         /// <summary>
@@ -271,7 +367,7 @@ namespace GCCWebApp.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "AnalystOrAdmin")]
-        public async Task<IActionResult> Create(CertificateEditViewModel model)
+        public async Task<IActionResult> Create(CertificateEditViewModel model, IFormFile? certificateImage)
         {
             try
             {
@@ -297,6 +393,26 @@ namespace GCCWebApp.Controllers
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
+
+                    // Handle certificate image upload
+                    if (certificateImage != null && certificateImage.Length > 0)
+                    {
+                        var uploadResult = await _fileUploadService.UploadImageAsync(certificateImage, $"cert_{model.Number}");
+                        if (uploadResult.IsSuccess)
+                        {
+                            certificate.CertificateImagePath = uploadResult.FilePath;
+                            _logger.LogInformation("Certificate image uploaded successfully: {FilePath}", uploadResult.FilePath);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Certificate image upload failed: {Errors}", string.Join(", ", uploadResult.Errors));
+                            ModelState.AddModelError("certificateImage", string.Join(", ", uploadResult.Errors));
+                            ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
+                            ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
+                            ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+                            return View(model);
+                        }
+                    }
 
                     await _certificateRepository.AddAsync(certificate);
                     await _unitOfWork.CompleteAsync();

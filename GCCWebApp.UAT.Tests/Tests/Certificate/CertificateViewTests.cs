@@ -425,7 +425,7 @@ public class CertificateViewTests : BaseTest
         // Act - Test various filter combinations
         var filterTests = new[]
         {
-            new { Name = "Search Filter", Selector = "input[type='search'], .search-input, #searchInput", Value = "test" },
+            new { Name = "Search Filter", Selector = "input[type='search'], .search-input, #searchInput", Value = (string?)"test" },
             new { Name = "Status Filter", Selector = "select[name*='status'], .status-filter", Value = (string?)null },
             new { Name = "Partner Filter", Selector = "select[name*='partner'], .partner-filter", Value = (string?)null }
         };

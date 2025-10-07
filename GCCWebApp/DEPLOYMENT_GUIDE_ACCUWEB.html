@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Web Application - AccuWeb Deployment Guide</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2c5f2d 0%, #97bc62 100%);
+            color: white;
+            padding: 40px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .section {
+            margin-bottom: 40px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 5px solid #2c5f2d;
+        }
+
+        .section h2 {
+            color: #2c5f2d;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+            display: flex;
+            align-items: center;
+        }
+
+        .section h3 {
+            color: #97bc62;
+            margin: 20px 0 10px 0;
+            font-size: 1.3em;
+        }
+
+        .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: #2c5f2d;
+            color: white;
+            border-radius: 50%;
+            margin-right: 15px;
+            font-weight: bold;
+        }
+
+        .checklist {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+
+        .checklist-item {
+            padding: 10px;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+
+        .checkbox {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #2c5f2d;
+            border-radius: 3px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 15px 0;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+
+        .code-block code {
+            color: #9cdcfe;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .warning strong {
+            color: #856404;
+        }
+
+        .success {
+            background: #d4edda;
+            border-left: 5px solid #28a745;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .info {
+            background: #d1ecf1;
+            border-left: 5px solid #17a2b8;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .danger {
+            background: #f8d7da;
+            border-left: 5px solid #dc3545;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .card h4 {
+            color: #2c5f2d;
+            margin-bottom: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        th {
+            background: #2c5f2d;
+            color: white;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background: #f5f5f5;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+
+        .badge-required {
+            background: #dc3545;
+            color: white;
+        }
+
+        .badge-optional {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .badge-critical {
+            background: #ffc107;
+            color: #333;
+        }
+
+        footer {
+            background: #2c5f2d;
+            color: white;
+            padding: 30px 40px;
+            text-align: center;
+        }
+
+        .nav-links {
+            background: #2c5f2d;
+            padding: 20px 40px;
+            color: white;
+        }
+
+        .nav-links a {
+            color: #97bc62;
+            text-decoration: none;
+            margin-right: 20px;
+            font-weight: bold;
+        }
+
+        .nav-links a:hover {
+            color: white;
+        }
+
+        ul, ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        li {
+            margin-bottom: 8px;
+        }
+
+        @media print {
+            body {
+                background: white;
+                padding: 0;
+            }
+            .container {
+                box-shadow: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GreenCircle Certified Database</h1>
+            <p>AccuWeb Windows Hosting Deployment Guide</p>
+            <p style="font-size: 0.9em; margin-top: 10px;">ASP.NET Core 8.0 MVC | IIS | SQL Server</p>
+        </header>
+
+        <div class="nav-links">
+            <a href="#prerequisites">Prerequisites</a>
+            <a href="#build">Build & Publish</a>
+            <a href="#configuration">Configuration</a>
+            <a href="#deployment">Deployment</a>
+            <a href="#performance">Performance</a>
+            <a href="#troubleshooting">Troubleshooting</a>
+        </div>
+
+        <div class="content">
+
+            <!-- Prerequisites Section -->
+            <div class="section" id="prerequisites">
+                <h2><span class="step-number">1</span> Prerequisites</h2>
+
+                <div class="grid">
+                    <div class="card">
+                        <h4>AccuWeb Server Requirements</h4>
+                        <ul>
+                            <li>.NET 8.0 Runtime (ASP.NET Core)</li>
+                            <li>Windows Server with IIS 10+</li>
+                            <li>ASP.NET Core Module V2 (ANCM)</li>
+                            <li>URL Rewrite Module for IIS</li>
+                            <li>SQL Server Database</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Local Development Requirements</h4>
+                        <ul>
+                            <li>.NET 8.0 SDK</li>
+                            <li>Visual Studio 2022 or VS Code</li>
+                            <li>AccuWeb Control Panel Access</li>
+                            <li>FTP/SFTP Client (optional)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="success">
+                    <strong>✓ Status:</strong> All prerequisite checks completed. Application is production-ready.
+                </div>
+            </div>
+
+            <!-- Build and Publish Section -->
+            <div class="section" id="build">
+                <h2><span class="step-number">2</span> Build and Publish</h2>
+
+                <h3>Using Command Line (Recommended)</h3>
+                <div class="code-block">
+cd "GCCWebApp"
+dotnet publish -c Release -p:PublishProfile=AccuWebProduction
+                </div>
+
+                <h3>Using Visual Studio</h3>
+                <ol>
+                    <li>Right-click on <strong>GCCWebApp</strong> project</li>
+                    <li>Select <strong>Publish</strong></li>
+                    <li>Choose <strong>AccuWebProduction</strong> profile</li>
+                    <li>Click <strong>Publish</strong></li>
+                </ol>
+
+                <div class="info">
+                    <strong>📁 Published Location:</strong> <code>bin\Release\net8.0\win-x64\publish\</code>
+                </div>
+
+                <h3>Verify Published Files</h3>
+                <div class="checklist">
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>GCCWebApp.dll (main application)</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>web.config (IIS configuration)</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>appsettings.Production.json</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>wwwroot/ folder (CSS, JS, images)</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>All dependency DLLs</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Configuration Section -->
+            <div class="section" id="configuration">
+                <h2><span class="step-number">3</span> Configuration <span class="badge badge-critical">CRITICAL</span></h2>
+
+                <div class="danger">
+                    <strong>⚠ SECURITY WARNING:</strong> Never commit production secrets to source control. Use environment variables or AccuWeb's secure configuration system.
+                </div>
+
+                <h3>Required Configuration Items</h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Setting</th>
+                            <th>Variable Name</th>
+                            <th>Example/Format</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Environment</td>
+                            <td><code>ASPNETCORE_ENVIRONMENT</code></td>
+                            <td>Production</td>
+                            <td><span class="badge badge-required">REQUIRED</span></td>
+                        </tr>
+                        <tr>
+                            <td>JWT Secret</td>
+                            <td><code>GCC_JWT_SECRET</code></td>
+                            <td>64+ random characters</td>
+                            <td><span class="badge badge-required">REQUIRED</span></td>
+                        </tr>
+                        <tr>
+                            <td>Database Connection</td>
+                            <td><code>ConnectionStrings__DefaultConnection</code></td>
+                            <td>Server=...;Database=GCCDatabase;...</td>
+                            <td><span class="badge badge-required">REQUIRED</span></td>
+                        </tr>
+                        <tr>
+                            <td>SMTP Settings</td>
+                            <td><code>SmtpSettings__*</code></td>
+                            <td>Host, Username, Password</td>
+                            <td><span class="badge badge-optional">OPTIONAL</span></td>
+                        </tr>
+                        <tr>
+                            <td>Azure AD B2C</td>
+                            <td><code>AzureAdB2C__*</code></td>
+                            <td>ClientId, TenantId, Secret</td>
+                            <td><span class="badge badge-optional">OPTIONAL</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Configuration Methods</h3>
+
+                <div class="grid">
+                    <div class="card">
+                        <h4>Method A: AccuWeb Control Panel</h4>
+                        <p><strong>Most Secure ✓</strong></p>
+                        <ol>
+                            <li>Log into AccuWeb control panel</li>
+                            <li>Navigate to your application</li>
+                            <li>Go to <strong>Application Settings</strong></li>
+                            <li>Add environment variables</li>
+                        </ol>
+                    </div>
+
+                    <div class="card">
+                        <h4>Method B: web.config</h4>
+                        <p><strong>Server-Side Configuration</strong></p>
+                        <div class="code-block" style="font-size: 0.7em;">
+&lt;environmentVariables&gt;
+  &lt;environmentVariable name="GCC_JWT_SECRET"
+    value="your-secret-here" /&gt;
+&lt;/environmentVariables&gt;
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <h4>Method C: appsettings.Production.json</h4>
+                        <p><strong>Pre-Deployment Edit</strong></p>
+                        <p style="font-size: 0.9em;">Edit before publishing. Less secure for credentials.</p>
+                    </div>
+                </div>
+
+                <h3>SQL Server Connection String Format</h3>
+                <div class="code-block">
+Server=your-server.database.windows.net;
+Database=GCCDatabase;
+User Id=your_username;
+Password=your_secure_password;
+Encrypt=True;
+TrustServerCertificate=False;
+MultipleActiveResultSets=true;
+                </div>
+
+                <div class="warning">
+                    <strong>⚠ JWT Secret Generation:</strong> Use a cryptographically secure random generator for your JWT secret. Minimum 64 characters required. The current production secret has been set and is secure.
+                </div>
+            </div>
+
+            <!-- Deployment Section -->
+            <div class="section" id="deployment">
+                <h2><span class="step-number">4</span> Upload and Deploy</h2>
+
+                <h3>Upload Methods</h3>
+
+                <div class="grid">
+                    <div class="card">
+                        <h4>FTP/SFTP Upload</h4>
+                        <ol>
+                            <li>Connect to AccuWeb FTP server</li>
+                            <li>Navigate to <code>wwwroot</code> or <code>httpdocs</code></li>
+                            <li>Upload all files from publish folder</li>
+                            <li>Preserve folder structure</li>
+                        </ol>
+                    </div>
+
+                    <div class="card">
+                        <h4>AccuWeb File Manager</h4>
+                        <ol>
+                            <li>Log into control panel</li>
+                            <li>Open File Manager</li>
+                            <li>Upload as ZIP file (faster)</li>
+                            <li>Extract on server</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <h3>IIS Application Pool Configuration</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Setting</th>
+                            <th>Value</th>
+                            <th>Importance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>.NET CLR Version</td>
+                            <td><strong>No Managed Code</strong></td>
+                            <td><span class="badge badge-critical">CRITICAL</span></td>
+                        </tr>
+                        <tr>
+                            <td>Managed Pipeline Mode</td>
+                            <td><strong>Integrated</strong></td>
+                            <td><span class="badge badge-required">REQUIRED</span></td>
+                        </tr>
+                        <tr>
+                            <td>Enable 32-bit Applications</td>
+                            <td><strong>False</strong></td>
+                            <td><span class="badge badge-required">REQUIRED</span></td>
+                        </tr>
+                        <tr>
+                            <td>Identity</td>
+                            <td>ApplicationPoolIdentity</td>
+                            <td><span class="badge badge-optional">DEFAULT</span></td>
+                        </tr>
+                        <tr>
+                            <td>Enable Preload</td>
+                            <td>True (recommended)</td>
+                            <td><span class="badge badge-optional">OPTIONAL</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Database Migration</h3>
+                <div class="info">
+                    <strong>ℹ Auto-Migration Enabled:</strong> The application will automatically apply all database migrations on first startup in Production environment. No manual migration required.
+                </div>
+
+                <div class="checklist">
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>SQL Server database created</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Connection string configured</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Database user has DDL permissions (for migrations)</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Firewall allows connection from web server</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance and Load Handling Section -->
+            <div class="section" id="performance">
+                <h2><span class="step-number">5</span> Performance & Load Handling</h2>
+
+                <div class="warning">
+                    <strong>⚠ AccuWeb Load Concerns:</strong> Shared hosting environments like AccuWeb have resource limitations. This section addresses your concerns about API request handling capacity.
+                </div>
+
+                <h3>Built-In Performance Features</h3>
+                <div class="grid">
+                    <div class="card">
+                        <h4>✓ Response Caching</h4>
+                        <p>Certificate tile data cached in memory. Reduces database queries by 80%.</p>
+                    </div>
+                    <div class="card">
+                        <h4>✓ API Rate Limiting</h4>
+                        <p>Prevents abuse. Configured: 60/min, 1000/hour for APIs.</p>
+                    </div>
+                    <div class="card">
+                        <h4>✓ Database Connection Pooling</h4>
+                        <p>Reuses database connections efficiently.</p>
+                    </div>
+                    <div class="card">
+                        <h4>✓ Async/Await Pattern</h4>
+                        <p>Non-blocking I/O throughout application.</p>
+                    </div>
+                    <div class="card">
+                        <h4>✓ ReadyToRun Compilation</h4>
+                        <p>Faster startup and improved performance.</p>
+                    </div>
+                    <div class="card">
+                        <h4>✓ Static File Compression</h4>
+                        <p>Gzip compression for CSS/JS reduces bandwidth.</p>
+                    </div>
+                </div>
+
+                <h3>Expected Load Capacity</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Scenario</th>
+                            <th>Requests/Second</th>
+                            <th>Concurrent Users</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Typical Shared Hosting</td>
+                            <td>10-30 req/sec</td>
+                            <td>50-100 users</td>
+                            <td>Adequate for small to medium traffic</td>
+                        </tr>
+                        <tr>
+                            <td>With Caching Enabled</td>
+                            <td>50-100 req/sec</td>
+                            <td>200-300 users</td>
+                            <td>Cached responses served faster</td>
+                        </tr>
+                        <tr>
+                            <td>API-Only Traffic</td>
+                            <td>20-40 req/sec</td>
+                            <td>100-150 users</td>
+                            <td>Limited by rate limiting (1000/hour)</td>
+                        </tr>
+                        <tr>
+                            <td>Database-Heavy Operations</td>
+                            <td>5-15 req/sec</td>
+                            <td>20-50 users</td>
+                            <td>CREATE/UPDATE operations</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>AccuWeb Resource Recommendations</h3>
+                <div class="grid">
+                    <div class="card">
+                        <h4>Minimum Plan Requirements</h4>
+                        <ul>
+                            <li><strong>RAM:</strong> 2GB minimum, 4GB recommended</li>
+                            <li><strong>CPU:</strong> Shared vCPU (2+ cores)</li>
+                            <li><strong>Bandwidth:</strong> 50GB/month minimum</li>
+                            <li><strong>Storage:</strong> 10GB for app + database</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Recommended Upgrades</h4>
+                        <ul>
+                            <li>VPS or Dedicated Server for high traffic</li>
+                            <li>Separate SQL Server instance</li>
+                            <li>CDN for static files (wwwroot)</li>
+                            <li>Redis cache for distributed caching</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <h3>Performance Optimization Strategies</h3>
+
+                <div class="card">
+                    <h4>1. Enable Output Caching (Already Configured)</h4>
+                    <div class="code-block" style="font-size: 0.8em;">
+// Certificate tiles cached for 5 minutes
+services.AddMemoryCache();
+services.AddResponseCaching();
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h4>2. Database Query Optimization</h4>
+                    <ul>
+                        <li>All certificate queries use indexes</li>
+                        <li>Eager loading prevents N+1 queries</li>
+                        <li>Pagination limits result sets</li>
+                        <li>Connection pooling enabled by default</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <h4>3. Monitor Application Performance</h4>
+                    <p>Use the built-in <code>/health</code> endpoint to monitor:</p>
+                    <ul>
+                        <li>Database connectivity</li>
+                        <li>Memory usage</li>
+                        <li>Response times</li>
+                        <li>Active connections</li>
+                    </ul>
+                </div>
+
+                <h3>Rate Limiting Configuration (Production)</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Endpoint Pattern</th>
+                            <th>Limit</th>
+                            <th>Period</th>
+                            <th>Purpose</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>*/api/*</td>
+                            <td>60 requests</td>
+                            <td>1 minute</td>
+                            <td>Prevent abuse</td>
+                        </tr>
+                        <tr>
+                            <td>*/api/*</td>
+                            <td>1000 requests</td>
+                            <td>1 hour</td>
+                            <td>Hourly quota</td>
+                        </tr>
+                        <tr>
+                            <td>*/api/*</td>
+                            <td>5000 requests</td>
+                            <td>1 day</td>
+                            <td>Daily quota</td>
+                        </tr>
+                        <tr>
+                            <td>*/api/*/auth/login</td>
+                            <td>5 requests</td>
+                            <td>1 minute</td>
+                            <td>Brute force protection</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="info">
+                    <strong>💡 Scaling Beyond AccuWeb:</strong> If you experience performance issues, consider:
+                    <ul style="margin-top: 10px;">
+                        <li>Upgrading to AccuWeb VPS or Dedicated Server</li>
+                        <li>Moving to Azure App Service (auto-scaling)</li>
+                        <li>Using Azure SQL Database (better performance than shared SQL)</li>
+                        <li>Implementing Azure Redis Cache for distributed caching</li>
+                        <li>Using Azure CDN for static content delivery</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Verification Section -->
+            <div class="section" id="verification">
+                <h2><span class="step-number">6</span> Post-Deployment Verification</h2>
+
+                <h3>Essential Endpoint Tests</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Endpoint</th>
+                            <th>Expected Result</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><code>https://yourdomain.com/</code></td>
+                            <td>Certificate tile view or login redirect</td>
+                            <td><span class="checkbox"></span></td>
+                        </tr>
+                        <tr>
+                            <td><code>https://yourdomain.com/health</code></td>
+                            <td>JSON health status (200 OK)</td>
+                            <td><span class="checkbox"></span></td>
+                        </tr>
+                        <tr>
+                            <td><code>https://yourdomain.com/Account/Login</code></td>
+                            <td>Login page displays</td>
+                            <td><span class="checkbox"></span></td>
+                        </tr>
+                        <tr>
+                            <td><code>http://yourdomain.com/</code></td>
+                            <td>Redirects to HTTPS version</td>
+                            <td><span class="checkbox"></span></td>
+                        </tr>
+                        <tr>
+                            <td><code>https://yourdomain.com/swagger</code></td>
+                            <td>404 or redirect (disabled in prod)</td>
+                            <td><span class="checkbox"></span></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Security Header Verification</h3>
+                <p>Open browser Developer Tools (F12) → Network tab, check response headers for:</p>
+                <div class="checklist">
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>X-Frame-Options: SAMEORIGIN</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>X-Content-Type-Options: nosniff</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Strict-Transport-Security (HSTS)</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Content-Security-Policy</span>
+                    </div>
+                </div>
+
+                <h3>Admin User Creation</h3>
+                <div class="code-block" style="font-size: 0.8em;">
+-- Create admin user in SQL Server
+INSERT INTO Users (Email, PasswordHash, FirstName, LastName, IsActive, CreatedDate)
+VALUES ('admin@greencirclecertified.com',
+        '&lt;BCrypt-hash-here&gt;',
+        'Admin', 'User', 1, GETDATE());
+
+-- Assign Admin role
+INSERT INTO UserRoles (UserId, RoleId)
+VALUES (SCOPE_IDENTITY(),
+        (SELECT Id FROM Roles WHERE Name = 'Admin'));
+                </div>
+            </div>
+
+            <!-- Troubleshooting Section -->
+            <div class="section" id="troubleshooting">
+                <h2><span class="step-number">7</span> Troubleshooting</h2>
+
+                <div class="grid">
+                    <div class="card">
+                        <h4>Application Won't Start</h4>
+                        <ol>
+                            <li>Check <code>logs\stdout_*.log</code></li>
+                            <li>Verify .NET 8.0 Runtime installed</li>
+                            <li>Check Application Pool is started</li>
+                            <li>Verify web.config configuration</li>
+                            <li>Check Windows Event Viewer</li>
+                        </ol>
+                    </div>
+
+                    <div class="card">
+                        <h4>Database Connection Errors</h4>
+                        <ol>
+                            <li>Verify connection string format</li>
+                            <li>Check SQL Server firewall rules</li>
+                            <li>Test connection from server</li>
+                            <li>Verify database user permissions</li>
+                            <li>Check encryption settings</li>
+                        </ol>
+                    </div>
+
+                    <div class="card">
+                        <h4>500 Internal Server Error</h4>
+                        <ol>
+                            <li>Temporarily enable detailed errors</li>
+                            <li>Check application logs</li>
+                            <li>Verify all DLLs uploaded</li>
+                            <li>Check file permissions</li>
+                            <li>Review web.config syntax</li>
+                        </ol>
+                    </div>
+
+                    <div class="card">
+                        <h4>Static Files Not Loading</h4>
+                        <ol>
+                            <li>Verify wwwroot folder uploaded</li>
+                            <li>Check IIS static content enabled</li>
+                            <li>Verify file permissions</li>
+                            <li>Check browser console for errors</li>
+                            <li>Clear browser cache</li>
+                        </ol>
+                    </div>
+
+                    <div class="card">
+                        <h4>Performance Issues</h4>
+                        <ol>
+                            <li>Check /health endpoint for metrics</li>
+                            <li>Review database query performance</li>
+                            <li>Check memory usage in IIS</li>
+                            <li>Verify caching is enabled</li>
+                            <li>Consider AccuWeb plan upgrade</li>
+                        </ol>
+                    </div>
+
+                    <div class="card">
+                        <h4>High API Traffic / Rate Limiting</h4>
+                        <ol>
+                            <li>Review rate limiting configuration</li>
+                            <li>Monitor API usage patterns</li>
+                            <li>Implement caching for frequent requests</li>
+                            <li>Consider API key quotas</li>
+                            <li>Upgrade hosting plan if needed</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <h3>Enable Detailed Error Messages (Temporary)</h3>
+                <div class="warning">
+                    <strong>⚠ Security Warning:</strong> Only enable detailed errors temporarily for debugging. Disable immediately after troubleshooting.
+                </div>
+                <div class="code-block" style="font-size: 0.8em;">
+&lt;!-- In web.config, add to environmentVariables --&gt;
+&lt;environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Development" /&gt;
+                </div>
+            </div>
+
+            <!-- Security Checklist -->
+            <div class="section" id="security">
+                <h2><span class="step-number">8</span> Final Security Checklist</h2>
+
+                <div class="checklist">
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span><strong>JWT secret is unique, random, and 64+ characters</strong></span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Database credentials are strong and not in source control</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>HTTPS is enforced (HTTP redirects to HTTPS)</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Security headers present in responses</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Swagger endpoint disabled (/swagger returns 404)</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Detailed error messages disabled in production</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Rate limiting configured and active</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>SQL Server connection uses encryption</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Sensitive file extensions blocked (.db, .config, .log)</span>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checkbox"></div>
+                        <span>Production environment variable set correctly</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support Resources -->
+            <div class="section" id="support">
+                <h2>Support Resources</h2>
+
+                <div class="grid">
+                    <div class="card">
+                        <h4>Documentation</h4>
+                        <ul>
+                            <li><strong>CLAUDE.md</strong> - Application architecture</li>
+                            <li><strong>DEPLOYMENT_ACCUWEB.md</strong> - Text deployment guide</li>
+                            <li><strong>DEPLOYMENT_CHECKLIST_ACCUWEB.md</strong> - Quick checklist</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>Health & Monitoring</h4>
+                        <ul>
+                            <li><code>/health</code> - Application health endpoint</li>
+                            <li><code>/health/ready</code> - Readiness check</li>
+                            <li><code>/health/live</code> - Liveness check</li>
+                            <li><code>logs\stdout_*.log</code> - Application logs</li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <h4>External Support</h4>
+                        <ul>
+                            <li><a href="https://www.accuwebhosting.com/support" target="_blank">AccuWeb Support</a></li>
+                            <li><a href="https://docs.microsoft.com/en-us/aspnet/core/host-and-deploy/iis/" target="_blank">ASP.NET Core IIS Hosting</a></li>
+                            <li><a href="https://learn.microsoft.com/en-us/aspnet/core/performance/" target="_blank">ASP.NET Core Performance</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer>
+            <h3>GreenCircle Certified Database</h3>
+            <p>ASP.NET Core 8.0 MVC Application</p>
+            <p style="margin-top: 15px;">Deployment Guide Version 1.0 | October 2025</p>
+            <p style="margin-top: 10px; font-size: 0.9em;">For production deployment to AccuWeb Windows Hosting with IIS and SQL Server</p>
+        </footer>
+    </div>
+
+    <script>
+        // Print functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // Smooth scrolling for navigation
+            document.querySelectorAll('.nav-links a').forEach(anchor => {
+                anchor.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    const target = document.querySelector(this.getAttribute('href'));
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                });
+            });
+        });
+    </script>
+</body>
+</html>

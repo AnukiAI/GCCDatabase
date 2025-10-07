@@ -52,6 +52,10 @@ namespace GCCWebApp.Models
         [Display(Name = "EAN")]
         public string? Ean { get; set; }
 
+        [Display(Name = "Certificate Image")]
+        [MaxLength(500)]
+        public string? CertificateImagePath { get; set; }
+
         /// <summary>
         /// Product IDs associated with this certificate (managed by Product ID Manager)
         /// This is for the new Product ID Manager functionality

@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC WebApp - Server Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c5f2d;
+            border-bottom: 3px solid #2c5f2d;
+            padding-bottom: 10px;
+        }
+        .success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+        .checklist {
+            margin: 20px 0;
+        }
+        .checklist li {
+            padding: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌿 GCC Web Application - Server Test Page</h1>
+
+        <div class="success">
+            ✅ <strong>SUCCESS!</strong> Static file serving is working correctly.
+        </div>
+
+        <div class="info">
+            <strong>Server Information:</strong>
+            <ul>
+                <li><strong>Domain:</strong> gccwebapp.com</li>
+                <li><strong>Web Server IP:</strong> 64.27.52.66</li>
+                <li><strong>SQL Server IP:</strong> 68.71.129.120:1533</li>
+                <li><strong>Test Time:</strong> <span id="timestamp"></span></li>
+            </ul>
+        </div>
+
+        <h2>Deployment Checklist:</h2>
+        <div class="checklist">
+            <ul>
+                <li>✅ Files uploaded to httpdocs</li>
+                <li>✅ Static content serving (HTML/CSS)</li>
+                <li>⏳ ASP.NET Core Runtime installation (pending)</li>
+                <li>⏳ Application startup</li>
+                <li>⏳ Database connection</li>
+                <li>⏳ Health endpoint test</li>
+            </ul>
+        </div>
+
+        <h2>Next Steps:</h2>
+        <ol>
+            <li>Contact AccuWeb to install ASP.NET Core 8.0 Hosting Bundle</li>
+            <li>Verify .NET CLR Version is set to "No Managed Code"</li>
+            <li>Recycle IIS Application Pool</li>
+            <li>Test: <code>http://64.27.52.66/health</code></li>
+        </ol>
+
+        <div class="info">
+            <strong>Expected After Runtime Installation:</strong><br>
+            When ASP.NET Core runtime is installed, you should be able to access:<br>
+            <ul>
+                <li><code>/health</code> - Health check endpoint</li>
+                <li><code>/Certificate/CertificateTileView</code> - Main application</li>
+                <li><code>/Account/Login</code> - Admin login</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+    </script>
+</body>
+</html>

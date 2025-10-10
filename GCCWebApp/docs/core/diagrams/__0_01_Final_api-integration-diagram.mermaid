@@ -1,0 +1,70 @@
+flowchart TD
+    %% External Users
+    subgraph "External Users"
+        ExternalUser["General External Users"]
+        APIUser["External Users with API Permissions"]
+    end
+
+    %% External Systems
+    subgraph "External Systems"
+        Amazon["Amazon Marketplace"]
+        ExternalSystems["Other External Systems"]
+    end
+
+    %% API Gateway
+    APIGateway["API Gateway"]
+
+    %% Authentication
+    Auth["Authentication Service"]
+    AuthEndpoints["POST /oauth/token"]
+
+    %% Certificate API Endpoints
+    subgraph "Certificate API"
+        CertGet["GET /certifications/:id"]
+        CertList["GET /certifications"]
+        CertPush["POST /certifications"]
+    end
+
+    %% Database
+    DB[(Database)]
+
+    %% Internal Admin Interface
+    AdminUI["Admin Interface"]
+
+    %% Flows - External Users & Access Control
+    ExternalUser -.-> |"No direct API access"| APIGateway
+    APIUser --> |"Authenticated API requests"| APIGateway
+
+    %% Flows - External Systems
+    Amazon --> |"Request certifications"| APIGateway
+    ExternalSystems --> |"Request or Push Data"| APIGateway
+
+    %% API Gateway Routing
+    APIGateway --> |"Validate request"| Auth
+    APIGateway --> |"Route"| AuthEndpoints
+    APIGateway --> |"Route"| CertGet
+    APIGateway --> |"Route"| CertList
+    APIGateway --> |"Route"| CertPush
+
+    %% Certificate API Interactions
+    CertGet --> |"Retrieve data"| DB
+    CertList --> |"Retrieve list"| DB
+    CertPush --> |"Store new certification"| DB
+
+    %% UI Interactions
+    AdminUI --> |"Manage Certifications"| CertPush
+
+    %% Styling
+    classDef external fill:#f5b942,stroke:#d69e31
+    classDef apiGateway fill:#67b7dc,stroke:#4a8aa9
+    classDef endpoints fill:#a5d6a7,stroke:#75a478
+    classDef database fill:#ce93d8,stroke:#9c64a6
+    classDef ui fill:#90caf9,stroke:#5d8eb3
+    classDef restricted stroke:#ff0000,stroke-width:2px
+
+    class ExternalUser restricted
+    class Amazon,ExternalSystems external
+    class APIUser,APIGateway,Auth apiGateway
+    class CertGet,CertList,CertPush endpoints
+    class DB database
+    class AdminUI ui

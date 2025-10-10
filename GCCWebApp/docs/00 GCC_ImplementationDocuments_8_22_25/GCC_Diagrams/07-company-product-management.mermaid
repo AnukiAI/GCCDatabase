@@ -1,0 +1,35 @@
+flowchart TD
+    A[Admin Access] --> B{Management Type}
+    
+    B --> C[Company Management]
+    B --> D[Product Management]
+    
+    C --> C1[View Companies]
+    C --> C2[Create Company]
+    C --> C3[Edit Company]
+    C --> C4[Manage Company Details]
+    
+    C2 --> C5[Enter Company Info]
+    C5 --> C6[Company Name]
+    C6 --> C7[Contact Information]
+    C7 --> C8[Address Details]
+    C8 --> C9[Save Company]
+    
+    D --> D1[View Products]
+    D --> D2[Create Product]
+    D --> D3[Edit Product]
+    D --> D4[Manage Product Types]
+    
+    D2 --> D5[Enter Product Info]
+    D5 --> D6[Product Name]
+    D6 --> D7[Product Category]
+    D7 --> D8[Product Description]
+    D8 --> D9[Save Product]
+    
+    D4 --> D10[Product Type Management]
+    D10 --> D11[Create Product Type]
+    D10 --> D12[Edit Product Type]
+    D10 --> D13[Delete Product Type]
+    
+    style A fill:#f3e5f5
+    style B fill:#f3e5f5

@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Google Analytics Settings</title>
+    <style>
+        :root {
+            --green-primary: #447638;
+            --green-secondary: #92C83E;
+            --blue-primary: #00AEEF;
+            --blue-dark: #002B76;
+            --gray-light: #f5f5f5;
+            --gray-dark: #333;
+            --border-color: #ddd;
+        }
+
+        body {
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            background-color: var(--gray-light);
+            margin: 0;
+            padding: 20px;
+            color: var(--gray-dark);
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            font-size: 24px;
+            color: var(--green-primary);
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 8px;
+            margin-top: 20px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+            input[type="text"]:disabled {
+                background-color: #f9f9f9;
+                color: #999;
+                cursor: not-allowed;
+            }
+
+        .description {
+            font-size: 14px;
+            color: #666;
+            margin-top: 8px;
+        }
+
+        .toggle {
+            display: flex;
+            align-items: center;
+            margin-top: 20px;
+        }
+
+            .toggle input {
+                margin-right: 10px;
+                transform: scale(1.3);
+            }
+
+        .status {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+            .status.enabled {
+                background: #e6f4ea;
+                border-left: 5px solid var(--green-secondary);
+                color: var(--green-primary);
+            }
+
+            .status.disabled {
+                background: #f5f5f5;
+                border-left: 5px solid #ccc;
+                color: #666;
+            }
+
+        pre {
+            background-color: #f4f4f4;
+            padding: 10px;
+            overflow-x: auto;
+            border-left: 3px solid var(--blue-primary);
+            margin-top: 20px;
+            font-size: 13px;
+        }
+
+        .save-button {
+            margin-top: 25px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: var(--green-secondary);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+            .save-button:hover {
+                background-color: var(--green-primary);
+            }
+
+        .privacy-note {
+            font-size: 13px;
+            color: #888;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Google Analytics Integration</h1>
+
+        <label for="ga-id">Tracking ID (G-XXXXXXX)</label>
+        <input type="text" id="ga-id" placeholder="e.g., G-XXXXXXXXXX" disabled />
+
+        <div class="description">
+            Enter your Google Analytics 4 Measurement ID to start tracking your website traffic.
+            <a href="https://support.google.com/analytics/answer/9304153" target="_blank">Learn more</a>
+        </div>
+
+        <div class="toggle">
+            <input type="checkbox" id="enable-tracking" onchange="toggleTracking()" />
+            <label for="enable-tracking">Enable Google Analytics Tracking</label>
+        </div>
+
+        <div class="status disabled" id="status-display">
+            Tracking is currently <strong>disabled</strong>.
+        </div>
+
+        <label>Script Preview</label>
+        <pre id="script-preview">
+&lt;script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX">&lt;/script>
+&lt;script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+&lt;/script>
+        </pre>
+
+        <button class="save-button">Save Settings</button>
+
+        <h2 style="margin-top: 40px;">Change History</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px;">
+            <thead style="background-color: var(--gray-light);">
+                <tr>
+                    <th style="text-align: left; padding: 10px; border-bottom: 2px solid var(--border-color);">Date</th>
+                    <th style="text-align: left; padding: 10px; border-bottom: 2px solid var(--border-color);">User</th>
+                    <th style="text-align: left; padding: 10px; border-bottom: 2px solid var(--border-color);">Tracking ID</th>
+                    <th style="text-align: left; padding: 10px; border-bottom: 2px solid var(--border-color);">Action</th>
+                </tr>
+            </thead>
+            <tbody id="history-log">
+                <tr>
+                    <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">2025-04-29 10:15</td>
+                    <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">Admin</td>
+                    <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">G-XXXXXX1234</td>
+                    <td style="padding: 10px; border-bottom: 1px solid var(--border-color);">Enabled</td>
+                </tr>
+                <!-- More entries will go here -->
+            </tbody>
+        </table>
+
+        <div class="privacy-note">
+            Note: You may be required to display a cookie consent banner for GDPR or CCPA compliance.
+        </div>
+    </div>
+
+    <script>
+        function toggleTracking() {
+            const checkbox = document.getElementById('enable-tracking');
+            const trackingInput = document.getElementById('ga-id');
+            const statusDisplay = document.getElementById('status-display');
+            const scriptPreview = document.getElementById('script-preview');
+
+            if (checkbox.checked) {
+                // Enabled state
+                trackingInput.disabled = false;
+                statusDisplay.className = 'status enabled';
+                statusDisplay.innerHTML = 'Tracking is currently <strong>enabled</strong>.';
+
+                // Update script preview with actual ID if available
+                const trackingId = trackingInput.value || 'G-XXXXXXXXXX';
+                scriptPreview.innerHTML = `&lt;script async src="https://www.googletagmanager.com/gtag/js?id=${trackingId}">&lt;/script>
+&lt;script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '${trackingId}');
+&lt;/script>`;
+            } else {
+                // Disabled state
+                trackingInput.disabled = true;
+                statusDisplay.className = 'status disabled';
+                statusDisplay.innerHTML = 'Tracking is currently <strong>disabled</strong>.';
+
+                // Reset script preview to placeholder
+                scriptPreview.innerHTML = `&lt;script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX">&lt;/script>
+&lt;script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-XXXXXXXXXX');
+&lt;/script>`;
+            }
+        }
+
+        // Update script preview when tracking ID changes
+        document.getElementById('ga-id').addEventListener('input', function() {
+            const checkbox = document.getElementById('enable-tracking');
+            if (checkbox.checked) {
+                toggleTracking(); // Refresh the script preview
+            }
+        });
+    </script>
+</body>
+</html>

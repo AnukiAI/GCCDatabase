@@ -1,0 +1,26 @@
+flowchart TD
+    A[Public User Access] --> B[Public Certificate View]
+    B --> C{Public Actions}
+    
+    C --> D[Browse Certificates]
+    C --> E[Search Certificates]
+    C --> F[View Certificate Details]
+    
+    D --> D1[Public Certificate List]
+    D --> D2[Paginated View]
+    D --> D3[Basic Filtering]
+    
+    E --> E1[Search by Company]
+    E --> E2[Search by Product]
+    E --> E3[Basic Text Search]
+    
+    F --> F1[Public Certificate Information]
+    F1 --> F2[Certificate Number]
+    F1 --> F3[Company Name]
+    F1 --> F4[Product Name]
+    F1 --> F5[Certification Status]
+    F1 --> F6[Public Documents Only]
+    
+    style A fill:#fce4ec
+    style B fill:#fce4ec
+    style C fill:#fce4ec

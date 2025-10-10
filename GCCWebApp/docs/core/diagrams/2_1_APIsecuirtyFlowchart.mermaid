@@ -1,0 +1,86 @@
+flowchart TD
+    %% External Users & Systems
+    subgraph "External Access"
+        APIUser["API User (OAuth2, 2FA, Read-Only)"]
+        ExternalSystem["External System (API Key/OAuth2, Write Access)"]
+    end
+
+    %% Authentication & Security Layer
+    subgraph "Security & Authentication"
+        Auth["Authentication Service (OAuth2, JWT, 2FA)"]
+        MFA["Multi-Factor Authentication"]
+        APIGateway["API Gateway (Validates JWT, Enforces RBAC)"]
+        WAF["Web Application Firewall (Threat Protection)"]
+        SIEM["Security Monitoring & Anomaly Detection"]
+        Vault["Secure Vault (Stores API Keys, JWT Secrets)"]
+    end
+
+    %% API Endpoints
+    subgraph "Certificate API"
+        CertGet["GET /certifications/:id (Read-Only)"]
+        CertPush["POST /certifications (Write Access)"]
+    end
+
+    %% Database
+    subgraph "Data Storage"
+        DB["Database (Stores Certification Data)"]
+    end
+
+    %% Internal Admin Interface
+    subgraph "Admin Panel"
+        AdminUI["Admin Interface (JWT, 2FA, Full Access)"]
+    end
+
+    %% Authentication Flow (Users & Systems)
+    APIUser --> Auth
+    ExternalSystem --> Auth
+    Auth --> MFA
+    MFA --> Auth
+    Auth --> APIUser
+    Auth --> ExternalSystem
+    Auth --> AdminUI
+
+    %% OAuth2 Refresh Token Flow
+    APIUser --> Auth
+    Auth --> APIUser
+
+    %% API Gateway Validation & Processing
+    APIUser --> APIGateway
+    ExternalSystem --> APIGateway
+    APIGateway --> CertGet
+    APIGateway --> CertPush
+
+    %% Authorization Flow (RBAC & Access Control)
+    APIUser --> CertGet
+    ExternalSystem --> CertPush
+    AdminUI --> CertPush
+
+    %% Security Controls (Threat Mitigation)
+    APIGateway -.-> RateLimit["Rate Limiting & API Abuse Protection"]
+    APIGateway -.-> Logs["API Logging & Audit Trail"]
+    APIGateway -.-> RBAC["Role-Based Access Control"]
+    APIGateway -.-> WAF
+    APIGateway -.-> SIEM
+
+    %% API Key & Secret Management
+    ExternalSystem --> Vault
+    Auth -.-> Vault
+
+    %% Data Flow
+    CertGet --> DB
+    CertPush --> DB
+
+    %% Styling
+    classDef security fill:#F8F9FA,stroke:#495057,stroke-width:2px
+    classDef apiGateway fill:#D4E6F1,stroke:#2471A3,stroke-width:2px
+    classDef endpoints fill:#D5F5E3,stroke:#1D8348,stroke-width:2px
+    classDef database fill:#E8DAEF,stroke:#7D3C98,stroke-width:2px
+    classDef ui fill:#F9E79F,stroke:#B7950B,stroke-width:2px
+    classDef restricted stroke:#E74C3C,stroke-width:2px
+
+    class APIUser,ExternalSystem security
+    class APIGateway,Auth,WAF,SIEM,Vault apiGateway
+    class CertGet,CertPush endpoints
+    class DB database
+    class AdminUI ui
+    class RateLimit,Logs,RBAC restricted

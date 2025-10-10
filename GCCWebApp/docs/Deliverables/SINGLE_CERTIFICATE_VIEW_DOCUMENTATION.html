@@ -1,0 +1,1358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Certificate View Pages - Technical Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Master Design Guide Colors */
+        :root {
+            --navy-blue: #002876;
+            --ocean-blue: #00AEEF;
+            --lime-green: #92C83E;
+            --forest-green: #447638;
+            --off-white: #F9F9F9;
+            --cream: #F5F2E8;
+            --text-dark: #333333;
+            --text-light: #666666;
+            --border-color: #EAEAEA;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, var(--off-white) 0%, #ffffff 100%);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .documentation-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        /* Header Section */
+        .doc-header {
+            background: linear-gradient(135deg, var(--navy-blue) 0%, #003a9e 100%);
+            color: white;
+            padding: 60px 40px;
+            border-radius: 12px;
+            margin-bottom: 40px;
+            box-shadow: var(--shadow);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .doc-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(0, 174, 239, 0.2) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(30%, -30%);
+        }
+
+        .doc-header h1 {
+            font-size: 42px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .doc-header .subtitle {
+            font-size: 20px;
+            opacity: 0.9;
+            margin-bottom: 24px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .metadata {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            position: relative;
+            z-index: 1;
+        }
+
+        .metadata-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .metadata-item i {
+            color: var(--lime-green);
+            font-size: 18px;
+        }
+
+        /* Navigation Tabs */
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 40px;
+            border-bottom: 2px solid var(--border-color);
+            overflow-x: auto;
+        }
+
+        .nav-tab {
+            padding: 16px 24px;
+            cursor: pointer;
+            border: none;
+            background: transparent;
+            color: var(--text-light);
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            white-space: nowrap;
+            border-bottom: 3px solid transparent;
+        }
+
+        .nav-tab:hover {
+            color: var(--navy-blue);
+            background: rgba(0, 174, 239, 0.05);
+        }
+
+        .nav-tab.active {
+            color: var(--navy-blue);
+            border-bottom-color: var(--ocean-blue);
+        }
+
+        .nav-tab i {
+            margin-right: 8px;
+        }
+
+        /* Content Sections */
+        .content-section {
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .section-card {
+            background: white;
+            padding: 32px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--ocean-blue);
+        }
+
+        .section-card h2 {
+            color: var(--navy-blue);
+            font-size: 28px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-card h2 i {
+            color: var(--lime-green);
+        }
+
+        .section-card h3 {
+            color: var(--navy-blue);
+            font-size: 22px;
+            margin: 24px 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--off-white);
+        }
+
+        .section-card p {
+            margin-bottom: 16px;
+            color: var(--text-dark);
+            font-size: 16px;
+        }
+
+        /* Feature Grid */
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            margin: 24px 0;
+        }
+
+        .feature-card {
+            background: var(--off-white);
+            padding: 24px;
+            border-radius: 8px;
+            border-left: 3px solid var(--lime-green);
+            transition: transform 0.3s ease;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .feature-card h4 {
+            color: var(--navy-blue);
+            margin-bottom: 8px;
+            font-size: 18px;
+        }
+
+        .feature-card p {
+            font-size: 14px;
+            color: var(--text-light);
+            margin: 0;
+        }
+
+        /* Code Blocks */
+        .code-block {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 16px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .code-block .keyword {
+            color: #569cd6;
+        }
+
+        .code-block .string {
+            color: #ce9178;
+        }
+
+        .code-block .comment {
+            color: #6a9955;
+        }
+
+        /* Comparison Table */
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 24px 0;
+            background: white;
+            box-shadow: var(--shadow);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .comparison-table th {
+            background: var(--navy-blue);
+            color: white;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+        }
+
+        .comparison-table td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .comparison-table tr:hover {
+            background: var(--off-white);
+        }
+
+        /* Status Badges */
+        .badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 4px;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* Screenshot Container */
+        .screenshot-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            margin: 20px 0;
+        }
+
+        .screenshot-container img {
+            width: 100%;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+        }
+
+        .screenshot-caption {
+            margin-top: 12px;
+            color: var(--text-light);
+            font-size: 14px;
+            text-align: center;
+            font-style: italic;
+        }
+
+        /* Alert Boxes */
+        .alert {
+            padding: 16px 20px;
+            border-radius: 8px;
+            margin: 16px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .alert i {
+            font-size: 20px;
+            margin-top: 2px;
+        }
+
+        .alert-info {
+            background: #e7f3ff;
+            border-left: 4px solid var(--ocean-blue);
+            color: #004085;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            border-left: 4px solid var(--lime-green);
+            color: #155724;
+        }
+
+        .alert-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            color: #856404;
+        }
+
+        /* URL Examples */
+        .url-example {
+            background: var(--off-white);
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 8px 0;
+            border-left: 3px solid var(--ocean-blue);
+        }
+
+        /* Print Styles */
+        @media print {
+            .nav-tabs {
+                display: none;
+            }
+            .content-section {
+                display: block !important;
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="documentation-container">
+        <!-- Header -->
+        <div class="doc-header">
+            <h1><i class="fas fa-file-alt"></i> Single Certificate View Pages</h1>
+            <p class="subtitle">Comprehensive Technical Documentation for Certificate Detail Views</p>
+            <div class="metadata">
+                <div class="metadata-item">
+                    <i class="fas fa-calendar"></i>
+                    <span>Last Updated: October 6, 2025</span>
+                </div>
+                <div class="metadata-item">
+                    <i class="fas fa-code-branch"></i>
+                    <span>Version: 1.1</span>
+                </div>
+                <div class="metadata-item">
+                    <i class="fas fa-user"></i>
+                    <span>GCC Development Team</span>
+                </div>
+                <div class="metadata-item">
+                    <i class="fas fa-check-circle"></i>
+                    <span>Status: Production Ready</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('overview')">
+                <i class="fas fa-home"></i> Overview
+            </button>
+            <button class="nav-tab" onclick="showTab('three-views')">
+                <i class="fas fa-th-large"></i> Three View Types
+            </button>
+            <button class="nav-tab" onclick="showTab('implementation')">
+                <i class="fas fa-code"></i> Implementation
+            </button>
+            <button class="nav-tab" onclick="showTab('routes')">
+                <i class="fas fa-route"></i> Routes & URLs
+            </button>
+            <button class="nav-tab" onclick="showTab('permissions')">
+                <i class="fas fa-shield-alt"></i> Permissions
+            </button>
+            <button class="nav-tab" onclick="showTab('testing')">
+                <i class="fas fa-vial"></i> Testing
+            </button>
+            <button class="nav-tab" onclick="showTab('troubleshooting')">
+                <i class="fas fa-wrench"></i> Troubleshooting
+            </button>
+        </div>
+
+        <!-- Overview Tab -->
+        <div id="overview" class="content-section active">
+            <div class="section-card">
+                <h2><i class="fas fa-info-circle"></i> Overview</h2>
+                <p>The GCC Database Solution implements <strong>three distinct Single Certificate View pages</strong>, each tailored to different user types with role-appropriate data visibility and functionality.</p>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb"></i>
+                    <div>
+                        <strong>Key Principle:</strong> Each view type shows different levels of detail based on the user's role and relationship to the certificate. This ensures data privacy while maximizing transparency for authorized users.
+                    </div>
+                </div>
+
+                <h3>Purpose</h3>
+                <p>Single Certificate Views provide detailed information about individual certificates, allowing users to:</p>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>View comprehensive certificate details</li>
+                    <li>Download certificate PDFs</li>
+                    <li>Access product identifiers (ASIN, UPC, GTIN, EAN)</li>
+                    <li>Verify certification authenticity</li>
+                    <li>Edit/manage certificates (Internal users only)</li>
+                </ul>
+
+                <h3>The Three View Types</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4><i class="fas fa-globe" style="color: var(--ocean-blue);"></i> Public View</h4>
+                        <p><strong>Audience:</strong> Anonymous public users</p>
+                        <p><strong>Purpose:</strong> Certificate verification and public transparency</p>
+                        <span class="badge badge-info">No Authentication</span>
+                    </div>
+                    <div class="feature-card">
+                        <h4><i class="fas fa-handshake" style="color: var(--lime-green);"></i> External View</h4>
+                        <p><strong>Audience:</strong> Partner users (Amazon, Wayfair)</p>
+                        <p><strong>Purpose:</strong> Enhanced details for partner integration</p>
+                        <span class="badge badge-warning">External Role Required</span>
+                    </div>
+                    <div class="feature-card">
+                        <h4><i class="fas fa-user-shield" style="color: var(--forest-green);"></i> Internal View</h4>
+                        <p><strong>Audience:</strong> GCC Analysts and Admins</p>
+                        <p><strong>Purpose:</strong> Full certificate management and editing</p>
+                        <span class="badge badge-success">Analyst/Admin Only</span>
+                    </div>
+                </div>
+
+                <h3>Implementation Timeline</h3>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><strong>September 28, 2025:</strong> Initial views created (CertificateInternalView.cshtml, CertificateExternalView.cshtml)</li>
+                    <li><strong>October 6, 2025:</strong> Controller actions updated to accept ID parameters and load certificate data</li>
+                    <li><strong>October 6, 2025:</strong> Production deployment ready</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Three Views Tab -->
+        <div id="three-views" class="content-section">
+            <div class="section-card">
+                <h2><i class="fas fa-th-large"></i> Three View Types - Detailed Comparison</h2>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Public View</th>
+                            <th>External View</th>
+                            <th>Internal View</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Authentication Required</strong></td>
+                            <td>No (AllowAnonymous)</td>
+                            <td>Yes (External role)</td>
+                            <td>Yes (Analyst/Admin)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Certificate Details</strong></td>
+                            <td>Basic info only</td>
+                            <td>Extended details</td>
+                            <td>Complete details</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Product Identifiers</strong></td>
+                            <td>Public IDs only</td>
+                            <td>All IDs visible</td>
+                            <td>All IDs + Product ID Manager</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Contact Information</strong></td>
+                            <td>Limited</td>
+                            <td>Full contact info</td>
+                            <td>Full contact info</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Record Information</strong></td>
+                            <td>Hidden</td>
+                            <td>Hidden</td>
+                            <td>Visible (Created/Updated dates, users)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Internal Tags</strong></td>
+                            <td>Hidden</td>
+                            <td>Hidden</td>
+                            <td>Visible</td>
+                        </tr>
+                        <tr>
+                            <td><strong>External Tags</strong></td>
+                            <td>Visible</td>
+                            <td>Visible</td>
+                            <td>Visible</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Edit Certificate Button</strong></td>
+                            <td>No</td>
+                            <td>No</td>
+                            <td>Yes (if permissions allow)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Delete Certificate Button</strong></td>
+                            <td>No</td>
+                            <td>No</td>
+                            <td>Yes (Admin only)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>PDF Download</strong></td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                            <td>Yes</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Certificate Image</strong></td>
+                            <td>Yes (if uploaded)</td>
+                            <td>Yes (if uploaded)</td>
+                            <td>Yes (if uploaded)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Partner Information</strong></td>
+                            <td>Visible (if set)</td>
+                            <td>Visible (if set)</td>
+                            <td>Visible (always)</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Status Information</strong></td>
+                            <td>Active only shown</td>
+                            <td>All statuses shown</td>
+                            <td>All statuses + workflow actions</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>Design Principle:</strong> Each view progressively reveals more information based on user trust and role requirements. Public users see only what's necessary for verification, while internal users see complete administrative details.
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h2><i class="fas fa-eye"></i> Data Visibility Matrix</h2>
+                <h3>Fields Visible in Each View</h3>
+
+                <h4 style="margin-top: 20px; color: var(--ocean-blue);">Always Visible (All Views)</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>Certificate Number</li>
+                    <li>Certification Type</li>
+                    <li>Company Name</li>
+                    <li>Product Name</li>
+                    <li>Product Type</li>
+                    <li>Effective Date</li>
+                    <li>Expiration Date</li>
+                    <li>Location & Country</li>
+                    <li>External Tags</li>
+                    <li>Certificate Image (if uploaded)</li>
+                </ul>
+
+                <h4 style="margin-top: 20px; color: var(--lime-green);">External & Internal Only</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>Full Contact Information (email, URL)</li>
+                    <li>All Product Identifiers (ASIN, UPC, GTIN, EAN)</li>
+                    <li>Product Category & Subcategory</li>
+                    <li>Partner Assignment (Amazon, Wayfair)</li>
+                    <li>CSF Attributes (if applicable)</li>
+                </ul>
+
+                <h4 style="margin-top: 20px; color: var(--forest-green);">Internal Only</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>Internal Tags</li>
+                    <li>Record Creation Date & User</li>
+                    <li>Last Updated Date & User</li>
+                    <li>Certificate Status (all 14 states)</li>
+                    <li>Edit/Delete Action Buttons</li>
+                    <li>Product ID Manager Integration</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Implementation Tab -->
+        <div id="implementation" class="content-section">
+            <div class="section-card">
+                <h2><i class="fas fa-code"></i> Technical Implementation</h2>
+
+                <h3>Controller Actions</h3>
+                <p>Three separate controller actions handle the different views:</p>
+
+                <h4>1. Public View - CertificateSingleView</h4>
+                <div class="code-block">
+<span class="comment">/// Summary: Certificate single view by ID or certificate number - Public access allowed</span>
+<span class="comment">/// Route: GET /Certificate/CertificateSingleView/{id}</span>
+[<span class="keyword">AllowAnonymous</span>]
+<span class="keyword">public async Task</span>&lt;<span class="keyword">IActionResult</span>&gt; <span class="keyword">CertificateSingleView</span>(<span class="keyword">string</span> id)
+{
+    <span class="comment">// Lookup certificate by ID or certificate number</span>
+    <span class="keyword">if</span> (<span class="keyword">int</span>.TryParse(id, <span class="keyword">out int</span> certificateId))
+        certificate = <span class="keyword">await</span> _certificateRepository.GetByIdAsync(certificateId);
+    <span class="keyword">else</span>
+        certificate = <span class="keyword">await</span> _certificateRepository.GetCertificateByNumberAsync(id);
+
+    <span class="keyword">var</span> model = <span class="keyword">new</span> CertificateDetailsViewModelSimple
+    {
+        Certificate = certificate,
+        CanEdit = <span class="keyword">false</span>,
+        CanDelete = <span class="keyword">false</span>,
+        ShowInternalData = <span class="keyword">false</span>
+    };
+
+    <span class="keyword">return</span> View(model);
+}
+                </div>
+
+                <h4>2. External View - CertificateExternalView</h4>
+                <div class="code-block">
+<span class="comment">/// Summary: Certificate external view - For external partners</span>
+<span class="comment">/// Route: GET /Certificate/CertificateExternalView/{id}</span>
+[<span class="keyword">Authorize</span>(Policy = <span class="string">"ExternalAccess"</span>)]
+<span class="keyword">public async Task</span>&lt;<span class="keyword">IActionResult</span>&gt; <span class="keyword">CertificateExternalView</span>(<span class="keyword">string</span> id)
+{
+    <span class="comment">// Same certificate lookup logic</span>
+
+    <span class="keyword">var</span> model = <span class="keyword">new</span> CertificateDetailsViewModelSimple
+    {
+        Certificate = certificate,
+        CanEdit = <span class="keyword">false</span>,
+        CanDelete = <span class="keyword">false</span>,
+        ShowInternalData = <span class="keyword">false</span>
+    };
+
+    <span class="keyword">return</span> View(model);
+}
+                </div>
+
+                <h4>3. Internal View - CertificateInternalView</h4>
+                <div class="code-block">
+<span class="comment">/// Summary: Certificate internal view - Only for Admin and Analyst roles</span>
+<span class="comment">/// Route: GET /Certificate/CertificateInternalView/{id}</span>
+[<span class="keyword">Authorize</span>(Policy = <span class="string">"AnalystOrAdmin"</span>)]
+<span class="keyword">public async Task</span>&lt;<span class="keyword">IActionResult</span>&gt; <span class="keyword">CertificateInternalView</span>(<span class="keyword">string</span> id)
+{
+    <span class="comment">// Same certificate lookup logic</span>
+
+    <span class="keyword">var</span> model = <span class="keyword">new</span> CertificateDetailsViewModelSimple
+    {
+        Certificate = certificate,
+        CanEdit = CanUserEditCertificate(),
+        CanDelete = CanUserDeleteCertificate(),
+        ShowInternalData = <span class="keyword">true</span>
+    };
+
+    <span class="keyword">return</span> View(model);
+}
+                </div>
+
+                <h3>View Models</h3>
+                <p>All three views use the same <code>CertificateDetailsViewModelSimple</code> model:</p>
+
+                <div class="code-block">
+<span class="keyword">public class</span> CertificateDetailsViewModelSimple
+{
+    <span class="keyword">public</span> Certificate Certificate { <span class="keyword">get</span>; <span class="keyword">set</span>; }
+    <span class="keyword">public bool</span> CanEdit { <span class="keyword">get</span>; <span class="keyword">set</span>; }
+    <span class="keyword">public bool</span> CanDelete { <span class="keyword">get</span>; <span class="keyword">set</span>; }
+    <span class="keyword">public bool</span> ShowInternalData { <span class="keyword">get</span>; <span class="keyword">set</span>; }
+}
+                </div>
+
+                <h3>View Files</h3>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><strong>Public:</strong> <code>Views/Certificate/CertificateSingleView.cshtml</code></li>
+                    <li><strong>External:</strong> <code>Views/Certificate/CertificateExternalView.cshtml</code></li>
+                    <li><strong>Internal:</strong> <code>Views/Certificate/CertificateInternalView.cshtml</code></li>
+                </ul>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    <div>
+                        <strong>Note:</strong> The views use conditional rendering based on the <code>ShowInternalData</code> flag to show/hide internal-only fields. This allows for maintainable code while supporting role-specific visibility.
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h2><i class="fas fa-database"></i> Data Access</h2>
+
+                <h3>Certificate Lookup</h3>
+                <p>All three views support flexible certificate lookup by either:</p>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><strong>Database ID:</strong> Integer value (e.g., 55, 124)</li>
+                    <li><strong>Certificate Number:</strong> Formatted string (e.g., "24-0366", "25-1234")</li>
+                </ul>
+
+                <div class="code-block">
+<span class="comment">// Try to parse as integer first (ID)</span>
+<span class="keyword">if</span> (<span class="keyword">int</span>.TryParse(id, <span class="keyword">out int</span> certificateId))
+{
+    certificate = <span class="keyword">await</span> _certificateRepository.GetByIdAsync(certificateId);
+}
+<span class="keyword">else</span>
+{
+    <span class="comment">// Find by certificate number</span>
+    certificate = <span class="keyword">await</span> _certificateRepository.GetCertificateByNumberAsync(id);
+}
+                </div>
+
+                <h3>Related Data Loading</h3>
+                <p>The repository automatically loads related entities:</p>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>Company (with contact information)</li>
+                    <li>Product (with product type)</li>
+                    <li>Certification Type</li>
+                    <li>Product IDs (ASIN, UPC, GTIN, EAN collections)</li>
+                    <li>Tags (External and Internal)</li>
+                    <li>Custom Field Values</li>
+                </ul>
+            </div>
+
+            <div class="section-card">
+                <h2><i class="fas fa-link"></i> JavaScript Integration with Tile Views</h2>
+
+                <h3>Tile View to Single View Navigation</h3>
+                <p>Each Tile View has corresponding JavaScript that handles navigation to the appropriate Single View:</p>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Tile View</th>
+                            <th>JavaScript File</th>
+                            <th>Single View URL</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>CertificateTileView (Public)</td>
+                            <td>certificate-tile-view.js</td>
+                            <td>/Certificate/CertificateSingleView/{id}</td>
+                        </tr>
+                        <tr>
+                            <td>CertificateTileViewExternal</td>
+                            <td>certificate-tile-view-external.js</td>
+                            <td>/Certificate/CertificateExternalView/{id}</td>
+                        </tr>
+                        <tr>
+                            <td>CertificateTileViewInternal</td>
+                            <td>certificate-tile-view-internal.js</td>
+                            <td>/Certificate/CertificateInternalView/{id}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>JavaScript Functions</h3>
+                <p>The JavaScript files implement two key navigation functions:</p>
+
+                <h4>Internal View Example (certificate-tile-view-internal.js)</h4>
+                <div class="code-block">
+<span class="comment">// Navigate to certificate detail (same window)</span>
+window.<span class="keyword">viewCertificateDetails</span> = <span class="keyword">function</span>(id) {
+    <span class="keyword">if</span> (!id) {
+        console.error(<span class="string">'Certificate ID is missing'</span>);
+        showToast(<span class="string">'Error: Certificate ID not found'</span>, <span class="string">'error'</span>);
+        <span class="keyword">return</span>;
+    }
+    window.location.href = <span class="string">`/Certificate/CertificateInternalView/${id}`</span>;
+};
+
+<span class="comment">// Open certificate in new tab</span>
+<span class="keyword">function</span> <span class="keyword">viewCertificate</span>(id) {
+    window.open(<span class="string">`/Certificate/CertificateInternalView/${id}`</span>, <span class="string">'_blank'</span>);
+}
+                </div>
+
+                <h4>External View Example (certificate-tile-view-external.js)</h4>
+                <div class="code-block">
+<span class="comment">// Navigate to certificate detail (same window)</span>
+window.<span class="keyword">viewCertificateDetails</span> = <span class="keyword">function</span>(id) {
+    <span class="keyword">if</span> (!id) {
+        console.error(<span class="string">'Certificate ID is missing'</span>);
+        showToast(<span class="string">'Error: Certificate ID not found'</span>, <span class="string">'error'</span>);
+        <span class="keyword">return</span>;
+    }
+    window.location.href = <span class="string">`/Certificate/CertificateExternalView/${id}`</span>;
+};
+
+<span class="comment">// Open certificate in new tab</span>
+<span class="keyword">function</span> <span class="keyword">viewCertificate</span>(id) {
+    window.open(<span class="string">`/Certificate/CertificateExternalView/${id}`</span>, <span class="string">'_blank'</span>);
+}
+                </div>
+
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Important:</strong> Each JavaScript file MUST use the correct Single View URL that matches the user's role. Using the wrong URL will result in either authentication errors or displaying inappropriate data visibility.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Routes & URLs Tab -->
+        <div id="routes" class="content-section">
+            <div class="section-card">
+                <h2><i class="fas fa-route"></i> Routes & URL Structure</h2>
+
+                <h3>Public View URLs</h3>
+                <div class="url-example">http://localhost:5101/Certificate/CertificateSingleView/55</div>
+                <div class="url-example">http://localhost:5101/Certificate/CertificateSingleView/24-0366</div>
+                <p style="margin-top: 12px;">
+                    <span class="badge badge-info">No Auth Required</span>
+                    <span class="badge badge-info">SEO Friendly</span>
+                    <span class="badge badge-info">Public Access</span>
+                </p>
+
+                <h3>External View URLs</h3>
+                <div class="url-example">http://localhost:5101/Certificate/CertificateExternalView/55</div>
+                <div class="url-example">http://localhost:5101/Certificate/CertificateExternalView/24-0366</div>
+                <p style="margin-top: 12px;">
+                    <span class="badge badge-warning">External Role Required</span>
+                    <span class="badge badge-warning">Partner Access</span>
+                </p>
+
+                <h3>Internal View URLs</h3>
+                <div class="url-example">http://localhost:5101/Certificate/CertificateInternalView/55</div>
+                <div class="url-example">http://localhost:5101/Certificate/CertificateInternalView/24-0366</div>
+                <p style="margin-top: 12px;">
+                    <span class="badge badge-success">Analyst/Admin Only</span>
+                    <span class="badge badge-success">Edit Access</span>
+                </p>
+
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div>
+                        <strong>Important:</strong> The URL parameter can be either a numeric ID or a certificate number. The controller automatically detects which format is being used and routes accordingly.
+                    </div>
+                </div>
+
+                <h3>URL Patterns</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>View Type</th>
+                            <th>Route Pattern</th>
+                            <th>Example</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Public</td>
+                            <td>/Certificate/CertificateSingleView/{id}</td>
+                            <td>/Certificate/CertificateSingleView/55</td>
+                        </tr>
+                        <tr>
+                            <td>External</td>
+                            <td>/Certificate/CertificateExternalView/{id}</td>
+                            <td>/Certificate/CertificateExternalView/24-0366</td>
+                        </tr>
+                        <tr>
+                            <td>Internal</td>
+                            <td>/Certificate/CertificateInternalView/{id}</td>
+                            <td>/Certificate/CertificateInternalView/55</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Navigation Flow</h3>
+                <p>Users can reach Single Views from:</p>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><strong>Tile Views:</strong> Clicking on a certificate tile navigates to the appropriate Single View</li>
+                    <li><strong>Direct URLs:</strong> Bookmarked or shared URLs for specific certificates</li>
+                    <li><strong>Search Results:</strong> Certificate search results link to Single Views</li>
+                    <li><strong>Dashboard:</strong> Recent certificates widget links to Internal View</li>
+                    <li><strong>Edit Pages:</strong> After saving, redirects to appropriate Single View</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Permissions Tab -->
+        <div id="permissions" class="content-section">
+            <div class="section-card">
+                <h2><i class="fas fa-shield-alt"></i> Authorization & Permissions</h2>
+
+                <h3>Authorization Policies</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>View Type</th>
+                            <th>Policy</th>
+                            <th>Allowed Roles</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Public View</td>
+                            <td>[AllowAnonymous]</td>
+                            <td>Everyone (no authentication)</td>
+                        </tr>
+                        <tr>
+                            <td>External View</td>
+                            <td>[Authorize(Policy = "ExternalAccess")]</td>
+                            <td>External, Analyst, Admin</td>
+                        </tr>
+                        <tr>
+                            <td>Internal View</td>
+                            <td>[Authorize(Policy = "AnalystOrAdmin")]</td>
+                            <td>Analyst, Admin</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h3>Edit/Delete Permissions</h3>
+                <p>Within the Internal View, additional permission checks control action buttons:</p>
+
+                <div class="code-block">
+<span class="comment">// Edit button visibility</span>
+<span class="keyword">private bool</span> CanUserEditCertificate()
+{
+    <span class="keyword">return</span> User.IsInRole(<span class="string">"Admin"</span>) || User.IsInRole(<span class="string">"Analyst"</span>);
+}
+
+<span class="comment">// Delete button visibility</span>
+<span class="keyword">private bool</span> CanUserDeleteCertificate()
+{
+    <span class="keyword">return</span> User.IsInRole(<span class="string">"Admin"</span>);
+}
+                </div>
+
+                <h3>Access Control Matrix</h3>
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Public</th>
+                            <th>External</th>
+                            <th>Analyst</th>
+                            <th>Admin</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>View Public Details</td>
+                            <td>✓</td>
+                            <td>✓</td>
+                            <td>✓</td>
+                            <td>✓</td>
+                        </tr>
+                        <tr>
+                            <td>View Extended Details</td>
+                            <td>✗</td>
+                            <td>✓</td>
+                            <td>✓</td>
+                            <td>✓</td>
+                        </tr>
+                        <tr>
+                            <td>View Internal Data</td>
+                            <td>✗</td>
+                            <td>✗</td>
+                            <td>✓</td>
+                            <td>✓</td>
+                        </tr>
+                        <tr>
+                            <td>Edit Certificate</td>
+                            <td>✗</td>
+                            <td>✗</td>
+                            <td>✓</td>
+                            <td>✓</td>
+                        </tr>
+                        <tr>
+                            <td>Delete Certificate</td>
+                            <td>✗</td>
+                            <td>✗</td>
+                            <td>✗</td>
+                            <td>✓</td>
+                        </tr>
+                        <tr>
+                            <td>Download PDF</td>
+                            <td>✓</td>
+                            <td>✓</td>
+                            <td>✓</td>
+                            <td>✓</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="alert alert-success">
+                    <i class="fas fa-lock"></i>
+                    <div>
+                        <strong>Security Note:</strong> All authorization checks are enforced at both the controller level (via attributes) and the view level (via conditional rendering). This provides defense-in-depth security.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Testing Tab -->
+        <div id="testing" class="content-section">
+            <div class="section-card">
+                <h2><i class="fas fa-vial"></i> Testing Scenarios</h2>
+
+                <h3>Manual Test Cases</h3>
+
+                <h4>Test Case 1: Public View Access</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><strong>Precondition:</strong> User not logged in</li>
+                    <li><strong>Action:</strong> Navigate to /Certificate/CertificateSingleView/55</li>
+                    <li><strong>Expected:</strong> View loads with public fields only, no edit buttons</li>
+                    <li><strong>Verify:</strong> Internal tags, record info, and admin actions are hidden</li>
+                </ul>
+
+                <h4>Test Case 2: External Partner Access</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><strong>Precondition:</strong> Logged in as External user</li>
+                    <li><strong>Action:</strong> Navigate to /Certificate/CertificateExternalView/55</li>
+                    <li><strong>Expected:</strong> View loads with extended details, no edit buttons</li>
+                    <li><strong>Verify:</strong> Product IDs visible, internal data hidden</li>
+                </ul>
+
+                <h4>Test Case 3: Internal Staff Access</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><strong>Precondition:</strong> Logged in as Analyst</li>
+                    <li><strong>Action:</strong> Navigate to /Certificate/CertificateInternalView/55</li>
+                    <li><strong>Expected:</strong> View loads with all fields, edit button visible</li>
+                    <li><strong>Verify:</strong> Internal tags, record info, and edit access available</li>
+                </ul>
+
+                <h4>Test Case 4: Admin Delete Access</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><strong>Precondition:</strong> Logged in as Admin</li>
+                    <li><strong>Action:</strong> Navigate to /Certificate/CertificateInternalView/55</li>
+                    <li><strong>Expected:</strong> View loads with edit AND delete buttons</li>
+                    <li><strong>Verify:</strong> Delete button only visible to Admin role</li>
+                </ul>
+
+                <h4>Test Case 5: Certificate Number Lookup</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><strong>Action:</strong> Navigate to /Certificate/CertificateSingleView/24-0366</li>
+                    <li><strong>Expected:</strong> Certificate loaded by number instead of ID</li>
+                    <li><strong>Verify:</strong> Correct certificate displayed</li>
+                </ul>
+
+                <h4>Test Case 6: Invalid Certificate ID</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><strong>Action:</strong> Navigate to /Certificate/CertificateSingleView/99999</li>
+                    <li><strong>Expected:</strong> 404 Not Found or error message</li>
+                    <li><strong>Verify:</strong> Graceful error handling</li>
+                </ul>
+
+                <h3>Automated Test Coverage</h3>
+                <p>The following test files cover Single View functionality:</p>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><code>GCCWebApp.Tests/Controllers/CertificateControllerTests.cs</code></li>
+                    <li><code>GCCWebApp.UAT.Tests/Tests/Integration/CertificateSingleViewTests.cs</code></li>
+                    <li><code>GCCWebApp.Security.Tests/Tests/AuthorizationTests.cs</code></li>
+                </ul>
+
+                <h3>Key Test Scenarios</h3>
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <h4>Authorization Tests</h4>
+                        <p>Verify correct policy enforcement for each view type</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Data Visibility Tests</h4>
+                        <p>Confirm role-appropriate field visibility</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>URL Routing Tests</h4>
+                        <p>Test ID and certificate number lookups</p>
+                    </div>
+                    <div class="feature-card">
+                        <h4>Permission Tests</h4>
+                        <p>Verify edit/delete button visibility</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section-card">
+                <h2><i class="fas fa-clipboard-check"></i> Production Checklist</h2>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>✅ All three view actions accept ID parameters</li>
+                    <li>✅ Certificate lookup supports both ID and certificate number</li>
+                    <li>✅ Authorization policies correctly configured</li>
+                    <li>✅ Role-based field visibility implemented</li>
+                    <li>✅ Edit/Delete buttons show based on permissions</li>
+                    <li>✅ PDF download functionality works in all views</li>
+                    <li>✅ Certificate images display correctly</li>
+                    <li>✅ Error handling for invalid IDs</li>
+                    <li>✅ Responsive design for mobile/tablet</li>
+                    <li>✅ SEO-friendly URLs</li>
+                    <li>✅ Accessibility standards met (WCAG 2.1)</li>
+                    <li>✅ Performance optimized (lazy loading, caching)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Troubleshooting Tab -->
+        <div id="troubleshooting" class="content-section">
+            <div class="section-card">
+                <h2><i class="fas fa-wrench"></i> Troubleshooting Common Issues</h2>
+
+                <h3>Issue #1: 404 Not Found When Clicking Certificate Tiles</h3>
+                <div class="alert alert-warning">
+                    <i class="fas fa-bug"></i>
+                    <div>
+                        <strong>Symptom:</strong> Clicking on certificate tiles results in "404 Not Found" error
+                    </div>
+                </div>
+
+                <h4>Root Cause</h4>
+                <p>JavaScript files are using incorrect URL patterns that don't match the actual controller action names.</p>
+
+                <h4>Common Incorrect URLs:</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><code>/Certificate/CertificateSingleViewInternal/{id}</code> ❌ (does not exist)</li>
+                    <li><code>/Certificate/CertificateSingleViewExternal/{id}</code> ❌ (does not exist)</li>
+                </ul>
+
+                <h4>Correct URLs:</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li><code>/Certificate/CertificateInternalView/{id}</code> ✅</li>
+                    <li><code>/Certificate/CertificateExternalView/{id}</code> ✅</li>
+                    <li><code>/Certificate/CertificateSingleView/{id}</code> ✅ (public only)</li>
+                </ul>
+
+                <h4>Solution</h4>
+                <p><strong>Fix Applied (October 6, 2025):</strong></p>
+
+                <div class="code-block">
+<span class="comment">// File: wwwroot/js/certificate-tile-view-internal.js</span>
+<span class="comment">// BEFORE (incorrect):</span>
+window.location.href = <span class="string">`/Certificate/CertificateSingleViewInternal/${id}`</span>;
+
+<span class="comment">// AFTER (correct):</span>
+window.location.href = <span class="string">`/Certificate/CertificateInternalView/${id}`</span>;
+                </div>
+
+                <div class="code-block">
+<span class="comment">// File: wwwroot/js/certificate-tile-view-external.js</span>
+<span class="comment">// BEFORE (incorrect - was using public view):</span>
+window.location.href = <span class="string">`/Certificate/CertificateSingleView/${id}`</span>;
+
+<span class="comment">// AFTER (correct - now uses external view):</span>
+window.location.href = <span class="string">`/Certificate/CertificateExternalView/${id}`</span>;
+                </div>
+
+                <h4>Verification Steps</h4>
+                <ol style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>Clear browser cache (Ctrl+F5 or Cmd+Shift+R)</li>
+                    <li>Navigate to tile view page</li>
+                    <li>Click on a certificate tile</li>
+                    <li>Verify it navigates to the correct Single View page without 404 error</li>
+                    <li>Check browser Developer Tools Console for any JavaScript errors</li>
+                </ol>
+            </div>
+
+            <div class="section-card">
+                <h3>Issue #2: Wrong Data Visibility in Single View</h3>
+                <div class="alert alert-warning">
+                    <i class="fas fa-eye-slash"></i>
+                    <div>
+                        <strong>Symptom:</strong> External users see internal-only data, or internal users see limited data
+                    </div>
+                </div>
+
+                <h4>Root Cause</h4>
+                <p>User is being directed to the wrong Single View action for their role.</p>
+
+                <h4>Solution</h4>
+                <p>Ensure the Tile View JavaScript calls the correct Single View URL:</p>
+
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>User Role</th>
+                            <th>Must Use This URL</th>
+                            <th>JavaScript File</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Public (Anonymous)</td>
+                            <td>/Certificate/CertificateSingleView/{id}</td>
+                            <td>certificate-tile-view.js</td>
+                        </tr>
+                        <tr>
+                            <td>External Partners</td>
+                            <td>/Certificate/CertificateExternalView/{id}</td>
+                            <td>certificate-tile-view-external.js</td>
+                        </tr>
+                        <tr>
+                            <td>Analyst/Admin</td>
+                            <td>/Certificate/CertificateInternalView/{id}</td>
+                            <td>certificate-tile-view-internal.js</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="section-card">
+                <h3>Issue #3: Authorization/Authentication Errors</h3>
+                <div class="alert alert-warning">
+                    <i class="fas fa-lock"></i>
+                    <div>
+                        <strong>Symptom:</strong> "Access Denied" or "401 Unauthorized" when accessing Single Views
+                    </div>
+                </div>
+
+                <h4>Possible Causes</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>User not logged in when accessing Internal or External views</li>
+                    <li>User has wrong role assignment</li>
+                    <li>Authorization policy not configured correctly</li>
+                </ul>
+
+                <h4>Solution Steps</h4>
+                <ol style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>Verify user is logged in (check authentication cookie)</li>
+                    <li>Check user role assignment in database</li>
+                    <li>Verify authorization policies are registered in Startup.cs/Program.cs</li>
+                    <li>Test with test credentials:
+                        <ul style="margin-left: 24px; margin-top: 8px;">
+                            <li>Admin: admin@greencirclecertified.com / Admin123!</li>
+                            <li>Analyst: analyst@greencirclecertified.com / Analyst123!</li>
+                            <li>External: partner@amazon.com / Partner123!</li>
+                        </ul>
+                    </li>
+                </ol>
+            </div>
+
+            <div class="section-card">
+                <h3>Issue #4: Certificate Not Found (404)</h3>
+                <div class="alert alert-warning">
+                    <i class="fas fa-search"></i>
+                    <div>
+                        <strong>Symptom:</strong> "Certificate {id} not found" error message
+                    </div>
+                </div>
+
+                <h4>Possible Causes</h4>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>Certificate ID doesn't exist in database</li>
+                    <li>Certificate number format is incorrect</li>
+                    <li>Database connection issue</li>
+                </ul>
+
+                <h4>Debugging Steps</h4>
+                <ol style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>Check application logs for certificate lookup errors</li>
+                    <li>Verify certificate exists in database:
+                        <div class="code-block" style="margin-top: 8px;">SELECT * FROM Certificates WHERE Id = {id}</div>
+                    </li>
+                    <li>Test with known certificate ID from Tile View</li>
+                    <li>Ensure related entities (Company, Product, CertificationType) are not null</li>
+                </ol>
+            </div>
+
+            <div class="section-card">
+                <h2><i class="fas fa-history"></i> Version History</h2>
+
+                <h3>October 6, 2025 - v1.1</h3>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>✅ Fixed JavaScript URL routing in certificate-tile-view-internal.js</li>
+                    <li>✅ Fixed JavaScript URL routing in certificate-tile-view-external.js</li>
+                    <li>✅ Updated CertificateInternalView action to accept ID parameter</li>
+                    <li>✅ Updated CertificateExternalView action to accept ID parameter</li>
+                    <li>✅ Added JavaScript integration documentation</li>
+                    <li>✅ Added troubleshooting section</li>
+                </ul>
+
+                <h3>September 28, 2025 - v1.0</h3>
+                <ul style="margin-left: 24px; margin-bottom: 16px;">
+                    <li>Initial creation of CertificateInternalView.cshtml</li>
+                    <li>Initial creation of CertificateExternalView.cshtml</li>
+                    <li>Initial creation of CertificateSingleView.cshtml (public)</li>
+                    <li>Basic controller actions (without ID parameters)</li>
+                </ul>
+
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i>
+                    <div>
+                        <strong>Current Status:</strong> All Single Certificate View pages are production-ready and fully functional as of October 6, 2025.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all content sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => section.classList.remove('active'));
+
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.nav-tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+
+            // Show selected content section
+            document.getElementById(tabName).classList.add('active');
+
+            // Add active class to clicked tab
+            event.target.classList.add('active');
+        }
+
+        // Print functionality
+        function printDocumentation() {
+            window.print();
+        }
+    </script>
+</body>
+</html>

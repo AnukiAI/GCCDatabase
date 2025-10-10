@@ -1,0 +1,59 @@
+erDiagram
+    %% Core Entity Relationships with Updated Fields
+    Certificate ||--|| Company : "belongs to"
+    Certificate ||--|| Product : describes
+    Certificate ||--|| CertificationType : "has type"
+    Certificate }o--o{ CSFAttribute : "has"
+    Certificate }o--o{ ExternalTag : "has"
+    Certificate }o--o{ InternalTag : "has"
+    Certificate ||--|| User : "created by"
+    Certificate ||--o{ ProductIdentifier : "has"
+    Certificate ||--o{ CustomFieldValue : "has"
+    Certificate }o--o{ Partner : "accessible by"
+    
+    CustomFieldValue ||--|| CustomField : "for"
+
+    Product ||--|| ProductCategory : "in"
+    ProductCategory ||--o{ ProductType : has
+    ProductType ||--o{ ProductSubcategory : has
+    
+    %% Partner relationships (NEW)
+    Partner ||--o{ Company : "manages"
+    Partner ||--o{ User : "has users"
+    Company ||--o| Partner : "associated with"
+    
+    %% Key Attributes for Core Entities
+    Certificate {
+        certificate_number varchar UK
+        status varchar
+        status_type varchar "NEW"
+        partner varchar "NEW"
+        auto_generated boolean "NEW"
+        manual_override boolean "NEW"
+    }
+    
+    Company {
+        name varchar UK
+        contact_email varchar "UPDATED"
+        contact_phone varchar "UPDATED"
+        website_url varchar "NEW"
+        partner_id int FK "NEW"
+    }
+    
+    Partner {
+        name varchar UK "NEW ENTITY"
+        code varchar UK
+        api_enabled boolean
+        data_segregation boolean
+    }
+    
+    Product {
+        name varchar
+        category_id int FK
+    }
+    
+    ProductIdentifier {
+        product_id int FK "NEW ENTITY"
+        identifier_type varchar
+        identifier_value varchar
+    }

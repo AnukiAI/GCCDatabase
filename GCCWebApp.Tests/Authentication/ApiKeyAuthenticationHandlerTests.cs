@@ -39,10 +39,11 @@ namespace GCCWebApp.Tests.Authentication
             };
 
             _optionsMock.Setup(o => o.CurrentValue).Returns(options);
-            _loggerFactoryMock.Setup(lf => lf.CreateLogger<ApiKeyAuthenticationHandler>()).Returns(_loggerMock.Object);
+            // Fix: Mock the underlying CreateLogger method, not the extension method
+            _loggerFactoryMock.Setup(lf => lf.CreateLogger(It.IsAny<string>())).Returns(_loggerMock.Object);
 
             var authScheme = new AuthenticationScheme("ApiKey", "ApiKey", typeof(ApiKeyAuthenticationHandler));
-            
+
             _handler = new ApiKeyAuthenticationHandler(
                 _optionsMock.Object,
                 _loggerFactoryMock.Object,

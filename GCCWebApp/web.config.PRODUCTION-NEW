@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <location path="." inheritInChildApplications="false">
+    <system.webServer>
+      <handlers>
+        <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+      </handlers>
+      <!-- Self-contained deployment for AccuWebHosting -->
+      <aspNetCore processPath=".\GCCWebApp.exe"
+                  arguments=""
+                  stdoutLogEnabled="true"
+                  stdoutLogFile=".\logs\stdout"
+                  hostingModel="inprocess">
+        <environmentVariables>
+          <!-- CRITICAL: Set environment to Production -->
+          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Production" />
+
+          <!-- CRITICAL: NEW DATABASE - SQL Server connection string -->
+          <environmentVariable name="ConnectionStrings__DefaultConnection" value="Server=tcp:68.71.129.120,1533;Database=gccwebap_certificates;User Id=GCC_adminxyz123;Password=Q3Ez4elgE_47KNi;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=true;" />
+
+          <!-- JWT Secret (required for API authentication) -->
+          <environmentVariable name="GCC_JWT_SECRET" value="your-jwt-secret-key-minimum-64-characters-long-change-this-in-production" />
+        </environmentVariables>
+      </aspNetCore>
+    </system.webServer>
+  </location>
+</configuration>

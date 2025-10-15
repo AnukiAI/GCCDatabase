@@ -79,8 +79,12 @@ External: `partner@amazon.com` / `Partner123!`
 
 ## Database
 
-**Dev**: SQLite (`Data Source=gcc_database.db`)
-**Prod**: SQL Server
+**Dev**: SQLite (`Data Source=gcc_database.db`) or SQL Server LocalDB
+**Prod**: SQL Server on AccuWebHosting
+  - Server: `68.71.129.120,1533` (port 1533)
+  - Database: `gccwebap_certificates`
+  - Username: `GCC_adminxyz123`
+  - Connection: IP-based (domain name not configured)
 **Tables**: Certificates, Companies, Products, Users, ApiKeys, CertificateProductIds
 **Key Migrations**: `20250918212035_AddCertificateProductIds`, `20250827182202_AddPartnerFieldToCertificate`
 
@@ -146,3 +150,4 @@ docker-compose up -d        # Full stack with PostgreSQL
 - we are not using Docker for deployments now
 - Please don't ust say yay that's perfect. Please comment on things that you are not sure of or don't know
 - Product Image is not a requirement for Certficates. This may be added at a later date. update all documentation and views
+- for each output and search create a formal presentation document in html format that can be used to update stakeholders

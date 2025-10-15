@@ -79,8 +79,12 @@ External: `partner@amazon.com` / `Partner123!`
 
 ## Database
 
-**Dev**: SQLite (`Data Source=gcc_database.db`)
-**Prod**: SQL Server
+**Dev**: SQLite (`Data Source=gcc_database.db`) or SQL Server LocalDB
+**Prod**: SQL Server on AccuWebHosting
+  - Server: `68.71.129.120,1533` (port 1533)
+  - Database: `gccwebap_certificates`
+  - Username: `GCC_adminxyz123`
+  - Connection: IP-based (domain name not configured)
 **Tables**: Certificates, Companies, Products, Users, ApiKeys, CertificateProductIds
 **Key Migrations**: `20250918212035_AddCertificateProductIds`, `20250827182202_AddPartnerFieldToCertificate`
 

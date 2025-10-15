@@ -166,21 +166,69 @@ namespace GCCWebApp.UAT.Tests.Tests.Screenshots
         {
             // Wait for network idle
             await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-            
+
             // Wait for DOM content
             await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
-            
+
             // Wait for images
             await WaitForImagesAsync(page);
-            
+
             // Wait for any AJAX requests
             await WaitForAjaxAsync(page);
-            
+
             // Hide dynamic elements
             await HideDynamicElementsAsync(page);
-            
+
             // Final stabilization pause
             await page.WaitForTimeoutAsync(500);
+        }
+
+        /// <summary>
+        /// Wait for infinite scroll to load content
+        /// Used for certificate tile view with infinite scroll implementation
+        /// </summary>
+        public static async Task WaitForInfiniteScroll(IPage page, int timeout = 3000, int maxScrolls = 5)
+        {
+            try
+            {
+                int scrollCount = 0;
+                int lastHeight = 0;
+                int scrollDelayMs = Math.Max(500, timeout / maxScrolls); // Calculate delay based on timeout
+
+                while (scrollCount < maxScrolls)
+                {
+                    // Get current scroll height
+                    var currentHeight = await page.EvaluateAsync<int>("() => document.body.scrollHeight");
+
+                    // If height hasn't changed, we've reached the end
+                    if (lastHeight == currentHeight && scrollCount > 0)
+                    {
+                        Console.WriteLine($"Infinite scroll complete after {scrollCount} scrolls");
+                        break;
+                    }
+
+                    lastHeight = currentHeight;
+
+                    // Scroll to bottom
+                    await page.EvaluateAsync("() => window.scrollTo(0, document.body.scrollHeight)");
+
+                    // Wait for new content to load
+                    await page.WaitForTimeoutAsync(scrollDelayMs);
+
+                    // Wait for any AJAX requests triggered by scroll
+                    await WaitForAjaxAsync(page, timeoutMs: timeout);
+
+                    scrollCount++;
+                }
+
+                // Scroll back to top for screenshot
+                await page.EvaluateAsync("() => window.scrollTo(0, 0)");
+                await page.WaitForTimeoutAsync(500);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Warning: Infinite scroll wait encountered error: {ex.Message}");
+            }
         }
     }
 }

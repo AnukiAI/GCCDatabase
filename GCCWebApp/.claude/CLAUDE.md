@@ -40,9 +40,15 @@ dotnet run --launch-profile https
 
 ### Database Configuration
 
-**Connection String:** `Server=(localdb)\\mssqllocaldb;Database=GCCDatabase;Trusted_Connection=true;MultipleActiveResultSets=true`
+**Development Connection String:** `Server=(localdb)\\mssqllocaldb;Database=GCCDatabase;Trusted_Connection=true;MultipleActiveResultSets=true`
 
-**Note:** Database may not be fully initialized. SqlCmd access currently fails due to authentication issues.
+**Production Connection (AccuWebHosting):**
+- Server: `68.71.129.120,1533` (port 1533)
+- Database: `gccwebap_certificates`
+- Username: `GCC_adminxyz123`
+- Connection: IP-based (domain name not configured)
+
+**Note:** SQL Server authentication is now working successfully.
 
 ## Project Structure
 
@@ -73,9 +79,7 @@ dotnet run --launch-profile https
    - Properties not initialized in constructors
    - Consider adding `required` modifier or nullable types
 
-2. **Database Access:** Authentication issues with LocalDB connection
-
-3. **Services Directory:** Currently excluded from compilation
+2. **Services Directory:** Currently excluded from compilation
 
 ### Configuration Files
 

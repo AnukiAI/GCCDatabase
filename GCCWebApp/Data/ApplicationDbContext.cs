@@ -102,6 +102,12 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<Company>(entity =>
             {
                 entity.HasKey(e => e.Id);
+
+                // Explicitly configure Name column for SQL Server compatibility
+                entity.Property(e => e.Name)
+                    .HasMaxLength(255)
+                    .IsRequired();
+
                 entity.HasIndex(e => e.Name).IsUnique();
                 
                 // Performance indexes for company searches
@@ -166,6 +172,7 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<ProductCategory>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(255).IsRequired();
                 entity.HasIndex(e => e.Name).IsUnique();
             });
 
@@ -197,6 +204,7 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<CertificationType>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(255).IsRequired();
                 entity.HasIndex(e => e.Name).IsUnique();
             });
 
@@ -302,6 +310,7 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<Role>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
                 entity.HasIndex(e => e.Name).IsUnique();
             });
 
@@ -316,6 +325,7 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<Tag>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(100).IsRequired();
                 entity.HasIndex(e => e.Name).IsUnique();
             });
 
@@ -323,6 +333,7 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<Partner>(entity =>
             {
                 entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(255).IsRequired();
                 entity.HasIndex(e => e.Name).IsUnique();
                 
                 // Performance indexes for partner searches
@@ -338,14 +349,19 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<ApiKey>(entity =>
             {
                 entity.HasKey(e => e.Id);
+
+                // Explicitly configure KeyHash for SQL Server compatibility
+                entity.Property(e => e.KeyHash)
+                    .HasMaxLength(450); // SQL Server max for indexed nvarchar columns
+
                 entity.HasIndex(e => e.KeyHash).IsUnique();
-                
+
                 // Performance indexes for API key validation
                 entity.HasIndex(e => e.IsActive);
                 entity.HasIndex(e => e.ExpiresAt);
                 entity.HasIndex(e => e.CreatedBy);
                 entity.HasIndex(e => e.CreatedAt);
-                
+
                 // Composite indexes for API authentication
                 entity.HasIndex(e => new { e.KeyHash, e.IsActive, e.ExpiresAt });
                 entity.HasIndex(e => new { e.CreatedBy, e.IsActive });

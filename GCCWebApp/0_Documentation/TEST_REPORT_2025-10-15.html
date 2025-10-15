@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Web Application - System Test Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            border-radius: 8px;
+        }
+
+        header {
+            border-bottom: 3px solid #2c5282;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #2c5282;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .meta {
+            color: #666;
+            font-size: 14px;
+        }
+
+        h2 {
+            color: #2c5282;
+            font-size: 24px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        h3 {
+            color: #4a5568;
+            font-size: 18px;
+            margin-top: 20px;
+            margin-bottom: 10px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            margin-left: 10px;
+        }
+
+        .critical { background: #fc8181; color: #742a2a; }
+        .error { background: #feb2b2; color: #742a2a; }
+        .warning { background: #fbd38d; color: #744210; }
+        .success { background: #9ae6b4; color: #22543d; }
+        .info { background: #90cdf4; color: #2c5282; }
+
+        .issue-card {
+            background: #fff;
+            border-left: 4px solid #e53e3e;
+            padding: 15px;
+            margin: 15px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .issue-card.warning {
+            border-left-color: #dd6b20;
+        }
+
+        .issue-card.info {
+            border-left-color: #3182ce;
+        }
+
+        .issue-title {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .issue-details {
+            color: #4a5568;
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        code {
+            background: #f7fafc;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #e53e3e;
+        }
+
+        pre {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            margin: 10px 0;
+            font-size: 13px;
+        }
+
+        ul, ol {
+            margin-left: 20px;
+            margin-top: 10px;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #f7fafc;
+            font-weight: 600;
+            color: #2d3748;
+        }
+
+        tr:hover {
+            background: #f7fafc;
+        }
+
+        .recommendation {
+            background: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e2e8f0;
+            text-align: center;
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .summary-card {
+            background: #f7fafc;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .summary-number {
+            font-size: 36px;
+            font-weight: 700;
+            color: #2c5282;
+        }
+
+        .summary-label {
+            color: #718096;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>GreenCircle Certified Database - System Test Report</h1>
+            <div class="meta">
+                <strong>Test Date:</strong> October 15, 2025<br>
+                <strong>Environment:</strong> Development (Windows, SQL Server LocalDB)<br>
+                <strong>Tester:</strong> Claude Code Automated Testing<br>
+                <strong>Application Version:</strong> ASP.NET Core 8.0
+            </div>
+        </header>
+
+        <section>
+            <h2>Executive Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-card">
+                    <div class="summary-number">1</div>
+                    <div class="summary-label">Critical Issue</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-number">3</div>
+                    <div class="summary-label">High Priority</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-number">5</div>
+                    <div class="summary-label">Warnings</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-number">8</div>
+                    <div class="summary-label">Test Cases Missing</div>
+                </div>
+            </div>
+
+            <p style="margin-top: 20px;">
+                <strong>Overall Status:</strong> <span class="status-badge critical">BLOCKED</span>
+            </p>
+            <p style="margin-top: 15px; color: #4a5568;">
+                The application cannot run in the current environment due to a SQL Server logon trigger blocking database access.
+                While the application builds successfully and the web server starts, no data can be loaded, rendering the
+                application non-functional. This report documents all issues found, their severity, and recommended solutions.
+            </p>
+        </section>
+
+        <section>
+            <h2>Critical Issues <span class="status-badge critical">BLOCKER</span></h2>
+
+            <div class="issue-card">
+                <div class="issue-title">
+                    #1 - SQL Server Logon Trigger Blocking Database Access
+                    <span class="status-badge critical">CRITICAL</span>
+                </div>
+                <div class="issue-details">
+                    <p><strong>Severity:</strong> Critical - Application Cannot Function</p>
+                    <p><strong>Impact:</strong> Blocks all database operations, preventing data loading</p>
+                    <p><strong>Description:</strong> SQL Server LocalDB has a logon trigger that blocks the Windows user
+                    <code>POINTSOLVE\swest</code> from accessing any database, including the master database.</p>
+
+                    <p style="margin-top: 10px;"><strong>Error Message:</strong></p>
+                    <pre>Microsoft.Data.SqlClient.SqlException (0x80131904):
+Logon failed for login 'POINTSOLVE\swest' due to trigger execution.
+Changed database context to 'master'.
+Changed language setting to us_english.
+Error Number:17892,State:1,Class:14</pre>
+
+                    <p style="margin-top: 10px;"><strong>Affected Areas:</strong></p>
+                    <ul>
+                        <li>Database initialization and seeding</li>
+                        <li>Entity Framework migrations</li>
+                        <li>All database queries and operations</li>
+                        <li>Certificate data loading</li>
+                        <li>User authentication</li>
+                    </ul>
+
+                    <p style="margin-top: 10px;"><strong>Recommended Solutions:</strong></p>
+                    <ol>
+                        <li><strong>Immediate Fix:</strong> Use SQL Server's Dedicated Administrator Connection (DAC) to connect and disable the logon trigger:
+                            <pre>sqlcmd -S "admin:(localdb)\mssqllocaldb" -Q "DISABLE TRIGGER ALL ON ALL SERVER"</pre>
+                        </li>
+                        <li><strong>Alternative:</strong> Identify and drop the specific logon trigger:
+                            <pre>-- Using DAC
+sqlcmd -S "admin:(localdb)\mssqllocaldb"
+SELECT name FROM sys.server_triggers WHERE type = 'TR';
+DROP TRIGGER [trigger_name] ON ALL SERVER;</pre>
+                        </li>
+                        <li><strong>Temporary Workaround:</strong> Use SQLite for development (requires migration regeneration)</li>
+                        <li><strong>Long-term:</strong> Recreate SQL Server LocalDB instance without triggers:
+                            <pre>sqllocaldb delete MSSQLLocalDB
+sqllocaldb create MSSQLLocalDB
+sqllocaldb start MSSQLLocalDB</pre>
+                        </li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>High Priority Issues <span class="status-badge error">HIGH</span></h2>
+
+            <div class="issue-card warning">
+                <div class="issue-title">
+                    #2 - Database Migrations Incompatible with SQLite
+                    <span class="status-badge error">HIGH</span>
+                </div>
+                <div class="issue-details">
+                    <p><strong>Severity:</strong> High - Blocks Alternative Database Strategy</p>
+                    <p><strong>Impact:</strong> Cannot use SQLite as fallback database</p>
+                    <p><strong>Description:</strong> All Entity Framework migrations were generated for SQL Server and use
+                    SQL Server-specific data types (<code>int</code>, <code>nvarchar</code>, <code>datetime2</code>, <code>bit</code>)
+                    that are incompatible with SQLite's type system.</p>
+
+                    <p style="margin-top: 10px;"><strong>Error Message:</strong></p>
+                    <pre>SQLite Error 1: 'AUTOINCREMENT is only allowed on an INTEGER PRIMARY KEY'.
+Migration uses: int NOT NULL CONSTRAINT "PK_Users" PRIMARY KEY AUTOINCREMENT
+SQLite expects: INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT</pre>
+
+                    <p style="margin-top: 10px;"><strong>Recommended Solutions:</strong></p>
+                    <ol>
+                        <li>Regenerate migrations specifically for SQLite development environment</li>
+                        <li>Use database-provider-aware migrations with conditional logic</li>
+                        <li>Maintain separate migration sets for SQL Server (production) and SQLite (development)</li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="issue-card warning">
+                <div class="issue-title">
+                    #3 - Database Does Not Exist
+                    <span class="status-badge error">HIGH</span>
+                </div>
+                <div class="issue-details">
+                    <p><strong>Severity:</strong> High - No Data Available</p>
+                    <p><strong>Impact:</strong> Cannot load any certificate data or user information</p>
+                    <p><strong>Description:</strong> The <code>GCCDatabase</code> database does not exist in SQL Server LocalDB.
+                    The database seeding process (SeedData.cs) cannot run due to Issue #1.</p>
+
+                    <p style="margin-top: 10px;"><strong>Error Message:</strong></p>
+                    <pre>Cannot open database "GCCDatabase" requested by the login. The login failed.
+Login failed for user 'POINTSOLVE\swest'.</pre>
+
+                    <p style="margin-top: 10px;"><strong>Recommended Solutions:</strong></p>
+                    <ol>
+                        <li>Fix Issue #1 first to enable database access</li>
+                        <li>Run <code>dotnet ef database update</code> to create database and apply migrations</li>
+                        <li>Verify database creation with <code>sqlcmd -S "(localdb)\mssqllocaldb" -Q "SELECT name FROM sys.databases"</code></li>
+                    </ol>
+                </div>
+            </div>
+
+            <div class="issue-card warning">
+                <div class="issue-title">
+                    #4 - Configuration Mismatch Between Development and Production
+                    <span class="status-badge error">HIGH</span>
+                </div>
+                <div class="issue-details">
+                    <p><strong>Severity:</strong> High - Configuration Inconsistency</p>
+                    <p><strong>Impact:</strong> Different database providers in different environments</p>
+                    <p><strong>Description:</strong> The application is configured to use different database providers:</p>
+                    <ul>
+                        <li><strong>Development:</strong> Initially SQLite, then changed to SQL Server LocalDB</li>
+                        <li><strong>Production:</strong> SQL Server on remote host (68.71.129.120:1533)</li>
+                        <li><strong>Design-time Factory:</strong> Hardcoded to SQL Server LocalDB</li>
+                    </ul>
+
+                    <p style="margin-top: 10px;"><strong>Files Modified:</strong></p>
+                    <ul>
+                        <li><code>appsettings.Development.json</code> - Changed from SQLite to SQL Server</li>
+                        <li><code>Data/ApplicationDbContextFactory.cs</code> - Changed from SQL Server to SQLite</li>
+                    </ul>
+
+                    <p style="margin-top: 10px;"><strong>Recommended Solutions:</strong></p>
+                    <ol>
+                        <li>Standardize on one database provider for all environments (SQL Server recommended)</li>
+                        <li>Update ApplicationDbContextFactory to read from appsettings.json</li>
+                        <li>Document database requirements clearly in CLAUDE.md</li>
+                    </ol>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Warnings & Minor Issues <span class="status-badge warning">WARNING</span></h2>
+
+            <div class="issue-card info">
+                <div class="issue-title">
+                    #5 - Nullable Reference Type Warnings (58+)
+                    <span class="status-badge warning">WARNING</span>
+                </div>
+                <div class="issue-details">
+                    <p><strong>Severity:</strong> Low - Code Quality Issue</p>
+                    <p><strong>Impact:</strong> Potential null reference exceptions at runtime</p>
+                    <p><strong>Description:</strong> 58+ warnings about nullable reference types in Models, primarily
+                    properties not initialized in constructors (CS8618).</p>
+
+                    <p style="margin-top: 10px;"><strong>Example Warnings:</strong></p>
+                    <pre>CS8618: Non-nullable property 'Name' must contain a non-null value when exiting constructor.
+CS8602: Dereference of a possibly null reference.</pre>
+
+                    <p style="margin-top: 10px;"><strong>Recommended Solutions:</strong></p>
+                    <ul>
+                        <li>Add <code>required</code> modifier to mandatory properties</li>
+                        <li>Make optional properties nullable with <code>?</code></li>
+                        <li>Initialize properties with default values in constructors</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="issue-card info">
+                <div class="issue-title">
+                    #6 - Entity Framework Value Comparer Warnings (9)
+                    <span class="status-badge warning">WARNING</span>
+                </div>
+                <div class="issue-details">
+                    <p><strong>Severity:</strong> Low - Performance/Correctness Issue</p>
+                    <p><strong>Impact:</strong> Collection properties may not track changes correctly</p>
+                    <p><strong>Description:</strong> Collection properties with value converters but no value comparers.</p>
+
+                    <p style="margin-top: 10px;"><strong>Affected Properties:</strong></p>
+                    <ul>
+                        <li>CertificateAggregateData.CertificatesByCompany</li>
+                        <li>CertificateAggregateData.CertificatesByCountry</li>
+                        <li>CertificateAggregateData.CertificatesByType</li>
+                        <li>ETLAlert.Context</li>
+                        <li>ETLConfiguration.DataSources/Destinations/Settings/Transformations</li>
+                        <li>ETLLogEntry.Properties</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="issue-card info">
+                <div class="issue-title">
+                    #7 - Decimal Precision Not Specified
+                    <span class="status-badge warning">WARNING</span>
+                </div>
+                <div class="issue-details">
+                    <p><strong>Severity:</strong> Low - Data Precision Issue</p>
+                    <p><strong>Impact:</strong> Values may be truncated</p>
+                    <p><strong>Description:</strong> <code>ApiKey.UsageCostPerRequest</code> decimal property has no specified precision/scale.</p>
+                    <p style="margin-top: 10px;"><strong>Recommended Solution:</strong></p>
+                    <pre>modelBuilder.Entity&lt;ApiKey&gt;()
+    .Property(a => a.UsageCostPerRequest)
+    .HasPrecision(18, 4);</pre>
+                </div>
+            </div>
+
+            <div class="issue-card info">
+                <div class="issue-title">
+                    #8 - HTTPS Redirection Failed
+                    <span class="status-badge warning">WARNING</span>
+                </div>
+                <div class="issue-details">
+                    <p><strong>Severity:</strong> Low - Development Issue Only</p>
+                    <p><strong>Impact:</strong> HTTP to HTTPS redirect not working in development</p>
+                    <p><strong>Description:</strong> HTTPS port cannot be determined for automatic redirection.</p>
+                    <pre>Failed to determine the https port for redirect.</pre>
+                </div>
+            </div>
+
+            <div class="issue-card info">
+                <div class="issue-title">
+                    #9 - Build File Locking Issues
+                    <span class="status-badge warning">WARNING</span>
+                </div>
+                <div class="issue-details">
+                    <p><strong>Severity:</strong> Low - Build Process Issue</p>
+                    <p><strong>Impact:</strong> Builds may fail when app is running</p>
+                    <p><strong>Description:</strong> Multiple processes locking <code>GCCWebApp.exe</code> preventing rebuild.</p>
+                    <p style="margin-top: 10px;"><strong>Recommendation:</strong> Stop all running instances before building</p>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>Application Status Tests</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Test Category</th>
+                        <th>Test</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td rowspan="3">Build & Compilation</td>
+                        <td>Project Builds</td>
+                        <td><span class="status-badge success">PASS</span></td>
+                        <td>Successful with warnings</td>
+                    </tr>
+                    <tr>
+                        <td>Dependencies Restored</td>
+                        <td><span class="status-badge success">PASS</span></td>
+                        <td>All packages restored</td>
+                    </tr>
+                    <tr>
+                        <td>No Build Errors</td>
+                        <td><span class="status-badge success">PASS</span></td>
+                        <td>58 warnings present</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="4">Application Startup</td>
+                        <td>Web Server Starts</td>
+                        <td><span class="status-badge success">PASS</span></td>
+                        <td>Listening on localhost:5101</td>
+                    </tr>
+                    <tr>
+                        <td>Configuration Loads</td>
+                        <td><span class="status-badge success">PASS</span></td>
+                        <td>All configs validated</td>
+                    </tr>
+                    <tr>
+                        <td>Middleware Pipeline</td>
+                        <td><span class="status-badge success">PASS</span></td>
+                        <td>All middleware active</td>
+                    </tr>
+                    <tr>
+                        <td>Database Connection</td>
+                        <td><span class="status-badge error">FAIL</span></td>
+                        <td>Blocked by logon trigger</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="3">HTTP Endpoints</td>
+                        <td>Root Endpoint (GET /)</td>
+                        <td><span class="status-badge success">PASS</span></td>
+                        <td>Returns HTTP 200</td>
+                    </tr>
+                    <tr>
+                        <td>Certificate Tile View</td>
+                        <td><span class="status-badge success">PASS</span></td>
+                        <td>Returns HTTP 200, No Data</td>
+                    </tr>
+                    <tr>
+                        <td>Health Check</td>
+                        <td><span class="status-badge info">NOT TESTED</span></td>
+                        <td>Requires database</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="5">Database Operations</td>
+                        <td>Database Exists</td>
+                        <td><span class="status-badge error">FAIL</span></td>
+                        <td>GCCDatabase not found</td>
+                    </tr>
+                    <tr>
+                        <td>Migrations Applied</td>
+                        <td><span class="status-badge error">FAIL</span></td>
+                        <td>Cannot access database</td>
+                    </tr>
+                    <tr>
+                        <td>Data Seeded</td>
+                        <td><span class="status-badge error">FAIL</span></td>
+                        <td>Cannot access database</td>
+                    </tr>
+                    <tr>
+                        <td>Certificate Query</td>
+                        <td><span class="status-badge error">FAIL</span></td>
+                        <td>Login failed after 5 retries</td>
+                    </tr>
+                    <tr>
+                        <td>User Authentication</td>
+                        <td><span class="status-badge info">NOT TESTED</span></td>
+                        <td>Cannot access database</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="3">API Endpoints</td>
+                        <td>GET /api/v1/certificates</td>
+                        <td><span class="status-badge info">NOT TESTED</span></td>
+                        <td>Requires database</td>
+                    </tr>
+                    <tr>
+                        <td>Authentication Required</td>
+                        <td><span class="status-badge info">NOT TESTED</span></td>
+                        <td>Cannot verify</td>
+                    </tr>
+                    <tr>
+                        <td>Rate Limiting</td>
+                        <td><span class="status-badge info">NOT TESTED</span></td>
+                        <td>Cannot verify</td>
+                    </tr>
+                    <tr>
+                        <td rowspan="2">UI Functionality</td>
+                        <td>HTML Renders</td>
+                        <td><span class="status-badge success">PASS</span></td>
+                        <td>Pages load correctly</td>
+                    </tr>
+                    <tr>
+                        <td>Certificate Tiles Display</td>
+                        <td><span class="status-badge error">FAIL</span></td>
+                        <td>No data to display</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Missing Test Cases</h2>
+            <p style="margin-bottom: 15px;">The following test scenarios require test cases to be created:</p>
+
+            <h3>1. Database Connection & Recovery</h3>
+            <ul>
+                <li>Test: SQL Server logon trigger detection and error handling</li>
+                <li>Test: Database connection retry logic with exponential backoff</li>
+                <li>Test: Fallback to in-memory database when primary database unavailable</li>
+                <li>Test: Database migration failure recovery</li>
+            </ul>
+
+            <h3>2. Configuration Validation</h3>
+            <ul>
+                <li>Test: Detection of mismatched database providers between environments</li>
+                <li>Test: Validation of connection string formats for all providers (SQL Server, SQLite, PostgreSQL, MySQL)</li>
+                <li>Test: Handling of missing or invalid JWT secrets</li>
+                <li>Test: Azure AD B2C configuration validation</li>
+            </ul>
+
+            <h3>3. Data Seeding & Initialization</h3>
+            <ul>
+                <li>Test: SeedData.InitializeAsync() with empty database</li>
+                <li>Test: SeedData.InitializeAsync() with existing data (should not duplicate)</li>
+                <li>Test: Verification of all seed data relationships (foreign keys)</li>
+                <li>Test: Partner, Company, and Product data integrity</li>
+            </ul>
+
+            <h3>4. Certificate Data Loading</h3>
+            <ul>
+                <li>Test: Certificate tile view loads with valid data</li>
+                <li>Test: Certificate filtering by company, type, status</li>
+                <li>Test: Infinite scroll implementation</li>
+                <li>Test: Autocomplete search functionality</li>
+                <li>Test: Certificate details page with all product IDs (ASIN, UPC, GTIN, EAN)</li>
+            </ul>
+
+            <h3>5. Authentication & Authorization</h3>
+            <ul>
+                <li>Test: Login with test users (admin, analyst, external, public)</li>
+                <li>Test: Role-based access control for each route</li>
+                <li>Test: JWT token generation and validation</li>
+                <li>Test: API key authentication</li>
+                <li>Test: Two-factor authentication (email/SMS)</li>
+                <li>Test: Session management and timeout</li>
+            </ul>
+
+            <h3>6. API Functionality</h3>
+            <ul>
+                <li>Test: GET /api/v1/certificates returns paginated results</li>
+                <li>Test: POST /api/v1/certificates creates new certificate (authorized users)</li>
+                <li>Test: PUT /api/v1/certificates/{id} updates certificate</li>
+                <li>Test: DELETE /api/v1/certificates/{id} soft-deletes certificate</li>
+                <li>Test: API rate limiting enforcement</li>
+                <li>Test: Partner API filtering (Amazon, Wayfair)</li>
+            </ul>
+
+            <h3>7. UI/UX Testing</h3>
+            <ul>
+                <li>Test: Mobile responsiveness on all pages</li>
+                <li>Test: Filter panel functionality</li>
+                <li>Test: Shareable URLs for filtered searches</li>
+                <li>Test: Certificate PDF download</li>
+                <li>Test: Excel export functionality</li>
+                <li>Test: Product ID manager (bulk import/export)</li>
+            </ul>
+
+            <h3>8. Error Handling & Edge Cases</h3>
+            <ul>
+                <li>Test: Invalid certificate number lookup</li>
+                <li>Test: Expired certificate display</li>
+                <li>Test: Certificate with missing product IDs</li>
+                <li>Test: Certificate with 100+ ASINs</li>
+                <li>Test: Large file upload (PDF/Excel)</li>
+                <li>Test: Concurrent user sessions</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Recommended Action Plan</h2>
+
+            <div class="recommendation">
+                <h3 style="margin-top: 0;">Priority 1: Fix Database Access (IMMEDIATE)</h3>
+                <ol>
+                    <li>Use Dedicated Administrator Connection to disable SQL Server logon trigger</li>
+                    <li>Verify database access with <code>sqlcmd</code></li>
+                    <li>Run <code>dotnet ef database update</code> to create database</li>
+                    <li>Test application startup and verify certificate data loads</li>
+                </ol>
+                <p style="margin-top: 10px;"><strong>Estimated Time:</strong> 30 minutes</p>
+            </div>
+
+            <div class="recommendation">
+                <h3 style="margin-top: 0;">Priority 2: Standardize Database Configuration</h3>
+                <ol>
+                    <li>Revert ApplicationDbContextFactory.cs to use SQL Server</li>
+                    <li>Ensure appsettings.Development.json uses SQL Server LocalDB</li>
+                    <li>Document database requirements in CLAUDE.md</li>
+                    <li>Add database provider detection tests</li>
+                </ol>
+                <p style="margin-top: 10px;"><strong>Estimated Time:</strong> 1 hour</p>
+            </div>
+
+            <div class="recommendation">
+                <h3 style="margin-top: 0;">Priority 3: Create Missing Test Cases</h3>
+                <ol>
+                    <li>Create unit tests for database connection and recovery</li>
+                    <li>Create integration tests for API endpoints</li>
+                    <li>Create E2E tests for certificate tile view and filtering</li>
+                    <li>Add test cases to existing test projects</li>
+                </ol>
+                <p style="margin-top: 10px;"><strong>Estimated Time:</strong> 2-3 days</p>
+            </div>
+
+            <div class="recommendation">
+                <h3 style="margin-top: 0;">Priority 4: Address Warnings</h3>
+                <ol>
+                    <li>Fix nullable reference type warnings in Models</li>
+                    <li>Add value comparers to collection properties</li>
+                    <li>Specify decimal precision for ApiKey.UsageCostPerRequest</li>
+                </ol>
+                <p style="margin-top: 10px;"><strong>Estimated Time:</strong> 4-6 hours</p>
+            </div>
+        </section>
+
+        <section>
+            <h2>Test Environment Information</h2>
+            <table>
+                <tr>
+                    <th>Component</th>
+                    <th>Version/Status</th>
+                </tr>
+                <tr>
+                    <td>.NET SDK</td>
+                    <td>8.0.400, 9.0.102, 9.0.203</td>
+                </tr>
+                <tr>
+                    <td>Entity Framework Core</td>
+                    <td>9.0.6</td>
+                </tr>
+                <tr>
+                    <td>SQL Server LocalDB</td>
+                    <td>15.0.4382.1 (Running, Blocked by Trigger)</td>
+                </tr>
+                <tr>
+                    <td>Operating System</td>
+                    <td>Windows (POINTSOLVE Domain)</td>
+                </tr>
+                <tr>
+                    <td>Application Port</td>
+                    <td>http://localhost:5101</td>
+                </tr>
+                <tr>
+                    <td>Database Provider</td>
+                    <td>SQL Server (LocalDB instance: MSSQLLocalDB)</td>
+                </tr>
+                <tr>
+                    <td>Authentication</td>
+                    <td>Cookie-based (development), Azure AD B2C (production)</td>
+                </tr>
+            </table>
+        </section>
+
+        <section>
+            <h2>Production Deployment Readiness</h2>
+            <p style="margin-bottom: 15px;"><strong>Status:</strong> <span class="status-badge error">NOT READY</span></p>
+
+            <h3>Blockers for Production Deployment:</h3>
+            <ul>
+                <li>Critical database access issue must be resolved and verified</li>
+                <li>Full integration testing cannot be completed</li>
+                <li>User authentication flow not tested</li>
+                <li>API endpoints not tested with real data</li>
+                <li>Certificate data loading not verified</li>
+            </ul>
+
+            <h3>Production Database Configuration:</h3>
+            <ul>
+                <li><strong>Server:</strong> 68.71.129.120:1533</li>
+                <li><strong>Database:</strong> gccwebap_certificates</li>
+                <li><strong>Username:</strong> GCC_adminxyz123</li>
+                <li><strong>Password:</strong> Q3Ez4e!gE_47KNi (verified correct in appsettings.Production.json)</li>
+                <li><strong>Connection Type:</strong> IP-based (domain name not configured)</li>
+            </ul>
+
+            <h3>Pre-Deployment Checklist:</h3>
+            <ol>
+                <li>☐ Verify production database is accessible from deployment environment</li>
+                <li>☐ Test connection with production credentials</li>
+                <li>☐ Run all migrations on production database</li>
+                <li>☐ Seed initial production data</li>
+                <li>☐ Verify all API endpoints with production data</li>
+                <li>☐ Test authentication with real user accounts</li>
+                <li>☐ Load test with expected traffic patterns</li>
+                <li>☐ Security audit completed</li>
+                <li>☐ Backup and recovery procedures tested</li>
+            </ol>
+        </section>
+
+        <footer class="footer">
+            <p>Generated by Claude Code - Automated Testing System</p>
+            <p>Report Date: October 15, 2025</p>
+            <p>For questions or clarifications, refer to project documentation in <code>0_Documentation/</code></p>
+        </footer>
+    </div>
+</body>
+</html>

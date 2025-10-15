@@ -77,25 +77,28 @@ namespace GCCWebApp.Data
                 // Relationships
                 entity.HasOne(e => e.Company)
                     .WithMany(c => c.Certificates)
-                    .HasForeignKey(e => e.CompanyId);
+                    .HasForeignKey(e => e.CompanyId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(e => e.Product)
                     .WithMany(p => p.Certificates)
-                    .HasForeignKey(e => e.ProductId);
+                    .HasForeignKey(e => e.ProductId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(e => e.CertificationType)
                     .WithMany(ct => ct.Certificates)
-                    .HasForeignKey(e => e.CertificationTypeId);
+                    .HasForeignKey(e => e.CertificationTypeId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 entity.HasOne(e => e.CreatedByUser)
                     .WithMany(u => u.CreatedCertificates)
                     .HasForeignKey(e => e.CreatedBy)
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .OnDelete(DeleteBehavior.NoAction);
 
                 entity.HasOne(e => e.UpdatedByUser)
                     .WithMany(u => u.UpdatedCertificates)
                     .HasForeignKey(e => e.UpdatedBy)
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .OnDelete(DeleteBehavior.NoAction);
             });
 
             // Company configuration
@@ -247,7 +250,7 @@ namespace GCCWebApp.Data
                 entity.HasOne(e => e.UploadedByUser)
                     .WithMany()
                     .HasForeignKey(e => e.UploadedBy)
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .OnDelete(DeleteBehavior.NoAction);
             });
 
             // Certificate product ID configuration
@@ -280,12 +283,12 @@ namespace GCCWebApp.Data
                 entity.HasOne(e => e.CreatedByUser)
                     .WithMany()
                     .HasForeignKey(e => e.CreatedBy)
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .OnDelete(DeleteBehavior.NoAction);
 
                 entity.HasOne(e => e.UpdatedByUser)
                     .WithMany()
                     .HasForeignKey(e => e.UpdatedBy)
-                    .OnDelete(DeleteBehavior.SetNull);
+                    .OnDelete(DeleteBehavior.NoAction);
             });
 
             // User configuration

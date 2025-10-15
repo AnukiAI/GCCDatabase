@@ -50,7 +50,9 @@ if (!string.IsNullOrEmpty(connectionString))
     // Detect database type from connection string
     if (connectionString.Contains("Server=tcp:") ||
         (connectionString.Contains("Server=") && (connectionString.Contains("database.windows.net") ||
-         connectionString.Contains("mssqllocaldb") || connectionString.Contains("sqlexpress"))))
+         connectionString.Contains("mssqllocaldb") || connectionString.Contains("sqlexpress") ||
+         connectionString.Contains("Integrated Security") || connectionString.Contains("Trusted_Connection") ||
+         (connectionString.Contains("Database=") && connectionString.Contains("TrustServerCertificate")))))
     {
         // SQL Server / Azure SQL Database connection string format
         builder.Services.AddDbContext<ApplicationDbContext>(options =>

@@ -102,6 +102,7 @@ namespace GCCWebApp.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<string>("KeyHash")
+                        .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<DateTime?>("LastRotatedAt")
@@ -1502,30 +1503,30 @@ namespace GCCWebApp.Migrations
                     b.HasOne("GCCWebApp.Models.CertificationType", "CertificationType")
                         .WithMany("Certificates")
                         .HasForeignKey("CertificationTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("GCCWebApp.Models.Company", "Company")
                         .WithMany("Certificates")
                         .HasForeignKey("CompanyId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("GCCWebApp.Models.User", "CreatedByUser")
                         .WithMany("CreatedCertificates")
                         .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("GCCWebApp.Models.Product", "Product")
                         .WithMany("Certificates")
                         .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("GCCWebApp.Models.User", "UpdatedByUser")
                         .WithMany("UpdatedCertificates")
                         .HasForeignKey("UpdatedBy")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("CertificationType");
 
@@ -1549,7 +1550,7 @@ namespace GCCWebApp.Migrations
                     b.HasOne("GCCWebApp.Models.User", "UploadedByUser")
                         .WithMany()
                         .HasForeignKey("UploadedBy")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Certificate");
 
@@ -1567,12 +1568,12 @@ namespace GCCWebApp.Migrations
                     b.HasOne("GCCWebApp.Models.User", "CreatedByUser")
                         .WithMany()
                         .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("GCCWebApp.Models.User", "UpdatedByUser")
                         .WithMany()
                         .HasForeignKey("UpdatedBy")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Certificate");
 

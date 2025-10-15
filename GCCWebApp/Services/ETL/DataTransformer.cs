@@ -378,9 +378,15 @@ namespace GCCWebApp.Services.ETL
                     Period = "Daily",
                     PeriodDate = group.Key,
                     TotalCertificates = group.Count(),
-                    ActiveCertificates = group.Count(c => c.TryGetValue("Status", out var status) && status?.ToString() == "active"),
+                    ActiveCertificates = group.Count(c => c.TryGetValue("Status", out var status) && status != null && status.ToString()! == "active"),
                     ExpiredCertificates = group.Count(c =>
-                        c.TryGetValue("ExpirationDate", out var expDate) && expDate != null && ParseDate(expDate.ToString() ?? string.Empty) < DateTime.UtcNow),
+                    {
+                        if (!c.TryGetValue("ExpirationDate", out var expDate) || expDate == null)
+                            return false;
+                        var expDateString = expDate.ToString()!;
+                        var parsedDate = ParseDate(expDateString);
+                        return parsedDate.HasValue && parsedDate.Value < DateTime.UtcNow;
+                    }),
                     CreatedAt = DateTime.UtcNow
                 };
 

@@ -13,9 +13,8 @@ namespace GCCWebApp.Data
         {
             var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
 
-            // Use SQL Server for design-time operations (script generation, migrations)
-            // Connection string doesn't need to be valid - just needs to be recognized as SQL Server
-            optionsBuilder.UseSqlServer("Server=(localdb)\\mssqllocaldb;Database=GCC_DesignTime;Trusted_Connection=true;MultipleActiveResultSets=true");
+            // Use SQL Server for design-time operations (migrations, database commands)
+            optionsBuilder.UseSqlServer("Server=ANUKI01;Database=GCCDatabase_Dev;User Id=GCC_DevUser;Password=DevP@ss2024!SQL;MultipleActiveResultSets=true;TrustServerCertificate=true;Encrypt=false");
 
             return new ApplicationDbContext(optionsBuilder.Options);
         }

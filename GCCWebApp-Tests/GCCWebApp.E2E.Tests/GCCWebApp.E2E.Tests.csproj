@@ -11,6 +11,9 @@
 
   <!-- xUnit test framework packages -->
   <ItemGroup Label="xUnit Test Framework">
+    <PackageReference Include="FluentAssertions" Version="8.7.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.11" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
@@ -22,15 +25,13 @@
 
   <!-- Project references -->
   <ItemGroup Label="Project References">
-    <ProjectReference Include="..\GCCWebApp\GCCWebApp.csproj" />
-    <ProjectReference Include="..\GCCWebApp.Tests.Common\GCCWebApp.Tests.Common.csproj" />
+    <ProjectReference Include="..\..\GCCWebApp\GCCWebApp.csproj" />
   </ItemGroup>
 
   <!-- Global usings -->
   <ItemGroup Label="Global Usings">
     <Using Include="Xunit" />
     <Using Include="Microsoft.Playwright" />
-    <Using Include="GCCWebApp.Tests.Common.TestUtilities" />
   </ItemGroup>
 
 </Project>

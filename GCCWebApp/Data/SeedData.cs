@@ -15,8 +15,8 @@ namespace GCCWebApp.Data
 
         public static async Task InitializeAsync(ApplicationDbContext context)
         {
-            // Ensure database is created and migrations are applied
-            await context.Database.EnsureCreatedAsync();
+            // Apply any pending migrations
+            await context.Database.MigrateAsync();
 
             // Check if data already exists
             if (await context.Companies.AnyAsync())

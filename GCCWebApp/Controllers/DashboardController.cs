@@ -285,13 +285,12 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
         public async Task<IActionResult> DownloadStat(string type)
         {
             try
             {
                 var userRole = HttpContext.Session.GetString("UserRole") ?? "Public";
-                
+
                 if (userRole != "Admin" && userRole != "Analyst")
                 {
                     return Forbid();
@@ -318,13 +317,12 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
         public async Task<IActionResult> DownloadTable(string type)
         {
             try
             {
                 var userRole = HttpContext.Session.GetString("UserRole") ?? "Public";
-                
+
                 if (userRole != "Admin" && userRole != "Analyst")
                 {
                     return Forbid();

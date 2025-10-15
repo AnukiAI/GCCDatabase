@@ -342,7 +342,7 @@ namespace GCCWebApp.Tests.Authentication
 
             // Assert
             jwtKey.Should().NotBeNullOrEmpty("JWT key should be configured");
-            jwtKey.Should().HaveMinimumLength(64, "JWT key should be at least 64 characters for HS256");
+            jwtKey!.Length.Should().BeGreaterThanOrEqualTo(64, "JWT key should be at least 64 characters for HS256");
         }
     }
 }

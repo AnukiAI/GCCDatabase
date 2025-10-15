@@ -109,6 +109,7 @@
         <h3>Key Achievements</h3>
         <ul class="checklist">
             <li>Migrated from SQLite to SQL Server (ANUKI01)</li>
+            <li>Configured SQL Server authentication for consistent environment setup</li>
             <li>Created fresh SQL Server-native migrations</li>
             <li>Resolved cascade delete constraint issues</li>
             <li>Created complete database schema (30 tables)</li>
@@ -137,30 +138,38 @@
             </tr>
             <tr>
                 <td>Authentication</td>
-                <td>Windows Authentication (Integrated Security)</td>
+                <td>SQL Server Authentication</td>
             </tr>
             <tr>
                 <td>User</td>
-                <td>POINTSOLVE\swest</td>
+                <td>GCC_DevUser</td>
+            </tr>
+            <tr>
+                <td>Password</td>
+                <td>DevP@ss2024!SQL</td>
             </tr>
             <tr>
                 <td>Connection String</td>
-                <td><code>Server=ANUKI01;Database=GCCDatabase_Dev;Integrated Security=true;MultipleActiveResultSets=true;TrustServerCertificate=true</code></td>
+                <td><code>Server=ANUKI01;Database=GCCDatabase_Dev;User Id=GCC_DevUser;Password=DevP@ss2024!SQL;MultipleActiveResultSets=true;TrustServerCertificate=true;Encrypt=false</code></td>
             </tr>
         </table>
 
         <h3>1.2 Configuration Files Updated</h3>
         <div class="info">
             <strong>appsettings.Development.json</strong>
-            <p>Updated DefaultConnection to use SQL Server on ANUKI01</p>
+            <p>Updated DefaultConnection to use SQL Server on ANUKI01 with SQL Server authentication (GCC_DevUser)</p>
         </div>
         <div class="info">
             <strong>ApplicationDbContextFactory.cs</strong>
-            <p>Updated design-time context factory to use SQL Server connection string</p>
+            <p>Updated design-time context factory to use SQL Server connection string with SQL authentication for Entity Framework migrations</p>
         </div>
         <div class="info">
             <strong>Program.cs</strong>
             <p>Enhanced database provider detection to properly identify SQL Server connections</p>
+        </div>
+        <div class="warning">
+            <strong>SQL Authentication Configured</strong>
+            <p>Development environment now uses SQL Server authentication (username/password) instead of Windows authentication, matching production configuration for consistency. Login: GCC_DevUser | Password: DevP@ss2024!SQL</p>
         </div>
     </div>
 
@@ -423,7 +432,7 @@ dotnet test
             </tr>
             <tr>
                 <td>Development</td>
-                <td><code>Server=ANUKI01;Database=GCCDatabase_Dev;Integrated Security=true;MultipleActiveResultSets=true;TrustServerCertificate=true</code></td>
+                <td><code>Server=ANUKI01;Database=GCCDatabase_Dev;User Id=GCC_DevUser;Password=DevP@ss2024!SQL;MultipleActiveResultSets=true;TrustServerCertificate=true;Encrypt=false</code></td>
             </tr>
             <tr>
                 <td>Production</td>

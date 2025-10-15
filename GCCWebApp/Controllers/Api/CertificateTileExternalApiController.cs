@@ -8,7 +8,7 @@ namespace GCCWebApp.Controllers.Api
 {
     [ApiController]
     [Route("api/CertificateTileExternal")]
-    [AllowAnonymous] // Changed to allow public access for testing, can be secured later
+    [Authorize(AuthenticationSchemes = "ApiKey")] // Requires API Key authentication for partner access
     public class CertificateTileExternalApiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

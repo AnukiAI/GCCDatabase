@@ -47,6 +47,7 @@ namespace GCCWebApp.Controllers
         /// Main certificates listing page
         /// GET: /Certificate/Certificates
         /// </summary>
+        [Authorize(Policy = "AnalystOrAdmin")]
         public async Task<IActionResult> Certificates(int page = 1, int pageSize = 10, string searchTerm = "", int? companyId = null, int? productId = null, string? partner = null)
         {
             try
@@ -285,6 +286,7 @@ namespace GCCWebApp.Controllers
         /// Get certificate details
         /// GET: /Certificate/Details/5
         /// </summary>
+        [Authorize(Policy = "AnalystOrAdmin")]
         public async Task<IActionResult> Details(int id)
         {
             try
@@ -651,6 +653,7 @@ namespace GCCWebApp.Controllers
         /// API endpoint for advanced certificate search
         /// </summary>
         [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
         public async Task<IActionResult> SearchApi(
             string? searchTerm = null,
             int? companyId = null,
@@ -732,6 +735,7 @@ namespace GCCWebApp.Controllers
         /// API endpoint for certificate statistics
         /// </summary>
         [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
         public async Task<IActionResult> Statistics()
         {
             try

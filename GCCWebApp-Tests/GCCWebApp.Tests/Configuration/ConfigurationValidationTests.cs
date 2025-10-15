@@ -87,7 +87,7 @@ namespace GCCWebApp.Tests.Configuration
 
             // Assert
             jwtKey.Should().NotBeNullOrEmpty("JWT key is required");
-            jwtKey.Should().HaveMinimumLength(64, "JWT key should be at least 64 characters for security");
+            jwtKey!.Length.Should().BeGreaterThanOrEqualTo(64, "JWT key should be at least 64 characters for security");
             jwtIssuer.Should().NotBeNullOrEmpty("JWT issuer is required");
             jwtAudience.Should().NotBeNullOrEmpty("JWT audience is required");
             jwtExpiryMinutes.Should().NotBeNullOrEmpty("JWT expiry time is required");

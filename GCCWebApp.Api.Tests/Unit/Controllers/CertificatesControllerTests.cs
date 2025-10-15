@@ -354,7 +354,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             var response = okResult!.Value as StandardPaginatedResponse<List<Certificate>>;
             
             // The PaginationParams should enforce maximum page size
-            response!.Pagination.PageSize.Should().BeLessOrEqualTo(100);
+            response!.Pagination.PageSize.Should().BeLessThanOrEqualTo(100);
         }
     }
 }

@@ -365,24 +365,61 @@ namespace GCCWebApp.Controllers.Api
 
         /// <summary>
         /// Download a certificate file
+        /// Public certificates can be downloaded without authentication
+        /// Non-public certificates require authentication
         /// </summary>
         [HttpGet("{id:int}/download")]
         [ProducesResponseType(typeof(FileResult), 200)]
         [ProducesResponseType(typeof(ApiErrorResponse), 404)]
-        public async Task<ActionResult> DownloadCertificateFile(int id, [FromQuery] string userRole = "Public")
+        [ProducesResponseType(typeof(ApiErrorResponse), 401)]
+        public async Task<ActionResult> DownloadCertificateFile(int id)
         {
             try
             {
-                _logger.LogInformation("API request to download file for certificate {CertificateId} with role {UserRole}", 
+                // Determine user role from authentication context
+                var userRole = "Public";
+                if (User.Identity?.IsAuthenticated == true)
+                {
+                    userRole = User.FindFirst("Role")?.Value ??
+                               User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value ??
+                               "Public";
+                }
+
+                _logger.LogInformation("API request to download file for certificate {CertificateId} with role {UserRole}",
                     id, userRole);
 
+                // Get certificate details first to check if authentication is required
+                var certificateDetails = await _certificateService.GetCertificateDetailsAsync(id, "Public");
+
+                if (certificateDetails == null)
+                {
+                    return NotFound(new ApiErrorResponse
+                    {
+                        Message = $"Certificate with ID {id} not found."
+                    });
+                }
+
+                // Check if certificate requires authentication (non-public)
+                // If Partner is set (Amazon, Wayfair, etc.) or status is not public, require authentication
+                var isPublicCertificate = string.IsNullOrEmpty(certificateDetails.Partner) &&
+                                         (certificateDetails.Status == "active" ||
+                                          certificateDetails.Status == "expiring_soon");
+
+                if (!isPublicCertificate && userRole == "Public")
+                {
+                    return Unauthorized(new ApiErrorResponse
+                    {
+                        Message = "Authentication required to download this certificate."
+                    });
+                }
+
                 var downloadModel = await _certificateService.GetCertificateDownloadAsync(id, userRole);
-                
+
                 if (downloadModel == null)
                 {
-                    return NotFound(new ApiErrorResponse 
-                    { 
-                        Message = $"Certificate file with ID {id} not found or not accessible." 
+                    return NotFound(new ApiErrorResponse
+                    {
+                        Message = $"Certificate file with ID {id} not found or not accessible."
                     });
                 }
 
@@ -391,19 +428,22 @@ namespace GCCWebApp.Controllers.Api
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error downloading file for certificate {CertificateId} via API", id);
-                return StatusCode(500, new ApiErrorResponse 
-                { 
-                    Message = "An internal server error occurred while downloading the file." 
+                return StatusCode(500, new ApiErrorResponse
+                {
+                    Message = "An internal server error occurred while downloading the file."
                 });
             }
         }
 
         /// <summary>
         /// Export certificates to various formats
+        /// Requires Analyst or Admin role
         /// </summary>
         [HttpPost("export")]
+        [Authorize(Policy = "AnalystOrAdmin")]
         [ProducesResponseType(typeof(FileResult), 200)]
         [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+        [ProducesResponseType(typeof(ApiErrorResponse), 401)]
         public async Task<ActionResult> ExportCertificates([FromBody] CertificateExportRequest request)
         {
             try

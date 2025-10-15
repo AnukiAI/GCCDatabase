@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.ChangeTracking;
 using GCCWebApp.Models;
 
 namespace GCCWebApp.Data
@@ -357,6 +358,10 @@ namespace GCCWebApp.Data
                 entity.Property(e => e.KeyHash)
                     .HasMaxLength(450); // SQL Server max for indexed nvarchar columns
 
+                // Configure decimal property with precision and scale
+                entity.Property(e => e.UsageCostPerRequest)
+                    .HasPrecision(18, 6); // 18 total digits, 6 after decimal point
+
                 entity.HasIndex(e => e.KeyHash).IsUnique();
 
                 // Performance indexes for API key validation
@@ -400,20 +405,41 @@ namespace GCCWebApp.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.Name);
-                entity.Property(e => e.DataSources).HasConversion(
-                    v => string.Join(',', v),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
-                entity.Property(e => e.Transformations).HasConversion(
-                    v => string.Join(',', v),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
-                entity.Property(e => e.Destinations).HasConversion(
-                    v => string.Join(',', v),
-                    v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList());
+
+                var stringListComparer = new ValueComparer<List<string>>(
+                    (c1, c2) => c1!.SequenceEqual(c2!),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.GetHashCode())),
+                    c => c.ToList());
+
+                entity.Property(e => e.DataSources)
+                    .HasConversion(
+                        v => string.Join(',', v),
+                        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
+                    .Metadata.SetValueComparer(stringListComparer);
+
+                entity.Property(e => e.Transformations)
+                    .HasConversion(
+                        v => string.Join(',', v),
+                        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
+                    .Metadata.SetValueComparer(stringListComparer);
+
+                entity.Property(e => e.Destinations)
+                    .HasConversion(
+                        v => string.Join(',', v),
+                        v => v.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList())
+                    .Metadata.SetValueComparer(stringListComparer);
+
+                var dictionaryComparer = new ValueComparer<Dictionary<string, object>>(
+                    (c1, c2) => c1.Count == c2.Count && c1.Keys.All(k => c2.ContainsKey(k) && Equals(c1[k], c2[k])),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value != null ? v.Value.GetHashCode() : 0)),
+                    c => new Dictionary<string, object>(c));
+
                 entity.Property(e => e.Settings)
                     .HasColumnType("TEXT")
                     .HasConversion(
                         v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, object>());
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, object>())
+                    .Metadata.SetValueComparer(dictionaryComparer);
             });
 
             // ETL Log Entry
@@ -422,11 +448,18 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.JobId);
                 entity.HasIndex(e => e.Timestamp);
+
+                var dictionaryComparer = new ValueComparer<Dictionary<string, object>>(
+                    (c1, c2) => c1.Count == c2.Count && c1.Keys.All(k => c2.ContainsKey(k) && Equals(c1[k], c2[k])),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value != null ? v.Value.GetHashCode() : 0)),
+                    c => new Dictionary<string, object>(c));
+
                 entity.Property(e => e.Properties)
                     .HasColumnType("TEXT")
                     .HasConversion(
                         v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, object>());
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, object>())
+                    .Metadata.SetValueComparer(dictionaryComparer);
             });
 
             // ETL Alert
@@ -435,11 +468,18 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.HasIndex(e => e.CreatedAt);
                 entity.HasIndex(e => e.IsResolved);
+
+                var dictionaryComparer = new ValueComparer<Dictionary<string, object>>(
+                    (c1, c2) => c1.Count == c2.Count && c1.Keys.All(k => c2.ContainsKey(k) && Equals(c1[k], c2[k])),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value != null ? v.Value.GetHashCode() : 0)),
+                    c => new Dictionary<string, object>(c));
+
                 entity.Property(e => e.Context)
                     .HasColumnType("TEXT")
                     .HasConversion(
                         v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, object>());
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, object>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, object>())
+                    .Metadata.SetValueComparer(dictionaryComparer);
             });
 
             // ETL Data Quality Issue
@@ -465,21 +505,32 @@ namespace GCCWebApp.Data
             {
                 entity.HasKey(e => new { e.Period, e.PeriodDate });
                 entity.HasIndex(e => e.PeriodDate);
+
+                var dictionaryIntComparer = new ValueComparer<Dictionary<string, int>>(
+                    (c1, c2) => c1!.Count == c2!.Count && c1.Keys.All(k => c2.ContainsKey(k) && c1[k] == c2[k]),
+                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value.GetHashCode())),
+                    c => new Dictionary<string, int>(c));
+
                 entity.Property(e => e.CertificatesByType)
                     .HasColumnType("TEXT")
                     .HasConversion(
                         v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>())
+                    .Metadata.SetValueComparer(dictionaryIntComparer);
+
                 entity.Property(e => e.CertificatesByCountry)
                     .HasColumnType("TEXT")
                     .HasConversion(
                         v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>())
+                    .Metadata.SetValueComparer(dictionaryIntComparer);
+
                 entity.Property(e => e.CertificatesByCompany)
                     .HasColumnType("TEXT")
                     .HasConversion(
                         v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
-                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>());
+                        v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>())
+                    .Metadata.SetValueComparer(dictionaryIntComparer);
             });
         }
     }

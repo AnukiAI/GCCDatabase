@@ -1,0 +1,70 @@
+URGENT TEST - Swap to Minimal web.config
+==========================================
+
+Problem: HTTP 500.19 on ALL requests = IIS can't read web.config
+Root Cause: IIS URL Rewrite Module likely NOT installed on AccuWebHosting
+
+TEST THIS NOW via Plesk File Manager:
+--------------------------------------
+
+1. Navigate to: httpdocs folder
+
+2. Rename current web.config:
+   web.config → web.config.FULL
+
+3. Rename minimal version:
+   web.config.minimal → web.config
+
+4. Restart IIS:
+   - Go to "Websites & Domains" → "Hosting Settings" → Click Save (forces restart)
+   - OR use IIS restart button
+
+5. Test site immediately: Browse to your site
+
+EXPECTED RESULTS:
+-----------------
+
+✅ IF SITE LOADS:
+   - Confirms URL Rewrite Module missing
+   - Site works but without HTTPS enforcement/security headers in IIS
+   - OPTIONS:
+     a) Keep minimal config and handle HTTPS in app code
+     b) Ask AccuWebHosting to install IIS URL Rewrite Module
+     c) Then restore web.config.FULL for full security
+
+❌ IF STILL HTTP 500.19:
+   - Different IIS module missing (AspNetCoreModuleV2)
+   - Check Windows Event Viewer on server
+   - Contact AccuWebHosting support
+
+✅ IF GET HTTP 500.30 INSTEAD:
+   - GOOD! IIS config now works (app is trying to start)
+   - App startup failure - check logs folder for stdout logs
+   - Most likely database connection issue
+
+32-BIT VS 64-BIT:
+----------------
+
+October 11 package was 64-bit (win-x64) and worked.
+Current package based on same 64-bit files.
+
+If you switched IIS app pool from 32-bit to 64-bit:
+- This should be COMPATIBLE with our package (it's 64-bit)
+- 64-bit IIS can run 64-bit apps (our case)
+- NOT the cause of HTTP 500.19 (that's web.config processing issue)
+
+To verify IIS app pool setting in Plesk:
+- Go to "Websites & Domains" → Click site → "Application Pool"
+- Look for "Enable 32-bit Applications" setting
+- Should be: FALSE (for 64-bit apps)
+
+ENTITY FRAMEWORK / .NET 9 CONCERNS:
+-----------------------------------
+
+✅ CONFIRMED: NOT AN ISSUE
+   - Your GCCWebApp.csproj targets net8.0
+   - All EF Core packages are 8.0.11 (NOT 9.0.x)
+   - Server has .NET 8.0.20 → COMPATIBLE
+   - The .NET 9 dependency problem from Oct 11 has been resolved
+
+DO THIS TEST NOW - It takes 2 minutes and will tell us exactly what's wrong!

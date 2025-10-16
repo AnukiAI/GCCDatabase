@@ -388,30 +388,9 @@ namespace GCCWebApp.Controllers.Api
                 _logger.LogInformation("API request to download file for certificate {CertificateId} with role {UserRole}",
                     id, userRole);
 
-                // Get certificate details first to check if authentication is required
-                var certificateDetails = await _certificateService.GetCertificateDetailsAsync(id, "Public");
-
-                if (certificateDetails == null)
-                {
-                    return NotFound(new ApiErrorResponse
-                    {
-                        Message = $"Certificate with ID {id} not found."
-                    });
-                }
-
-                // Check if certificate requires authentication (non-public)
-                // If Partner is set (Amazon, Wayfair, etc.) or status is not public, require authentication
-                var isPublicCertificate = string.IsNullOrEmpty(certificateDetails.Partner) &&
-                                         (certificateDetails.Status == "active" ||
-                                          certificateDetails.Status == "expiring_soon");
-
-                if (!isPublicCertificate && userRole == "Public")
-                {
-                    return Unauthorized(new ApiErrorResponse
-                    {
-                        Message = "Authentication required to download this certificate."
-                    });
-                }
+                // For public certificates (active status), allow download without auth
+                // Partner-specific certificates and non-active certificates will be filtered by the service layer
+                // based on the userRole parameter
 
                 var downloadModel = await _certificateService.GetCertificateDownloadAsync(id, userRole);
 

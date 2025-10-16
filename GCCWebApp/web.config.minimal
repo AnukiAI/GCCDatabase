@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
+  <!--
+    MINIMAL WEB.CONFIG FOR TROUBLESHOOTING
+
+    This is a bare-bones configuration with only essential ASP.NET Core settings.
+    Use this to test if the issue is caused by missing IIS modules.
+
+    If this works, add features back one at a time to identify the problem.
+  -->
   <location path="." inheritInChildApplications="false">
     <system.webServer>
       <handlers>
@@ -11,9 +19,14 @@
                   stdoutLogFile=".\logs\stdout"
                   hostingModel="inprocess">
         <environmentVariables>
+          <!-- CRITICAL: Set to Production to use SQL Server -->
           <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Production" />
+          <!-- Force SQL Server provider -->
+          <environmentVariable name="DatabaseProvider" value="SqlServer" />
+          <environmentVariable name="USE_SQL_SERVER" value="true" />
         </environmentVariables>
       </aspNetCore>
     </system.webServer>
   </location>
 </configuration>
+<!--ProjectGuid: 1A93CAF5-DBCF-4CA2-95C9-5CBDD9CF3138-->

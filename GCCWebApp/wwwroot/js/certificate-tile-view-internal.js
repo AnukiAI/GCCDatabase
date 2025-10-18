@@ -713,17 +713,18 @@
             showToast('Error: Certificate ID not found', 'error');
             return;
         }
-        window.location.href = `/Certificate/CertificateSingleViewInternal/${id}`;
+        window.location.href = `/Certificate/CertificateInternalView/${id}`;
     };
 
     function viewCertificate(id) {
-        window.open(`/Certificate/CertificateSingleViewInternal/${id}`, '_blank');
+        // Encode URI to handle certificate numbers with special chars like "24-0366"
+        window.open(`/Certificate/CertificateInternalView/${encodeURIComponent(id)}`, '_blank');
     }
-    
+
     function editCertificate(id) {
         window.location.href = `/Certificate/Edit/${id}`;
     }
-    
+
     window.viewCertificate = viewCertificate;
     window.editCertificate = editCertificate;
 
@@ -731,13 +732,24 @@
     async function downloadCertificate(id) {
         try {
             const response = await fetch(`/api/certificate-tiles-internal/${id}/download`);
-            
+
             if (response.ok) {
                 const blob = await response.blob();
+
+                // Extract filename from Content-Disposition header or use certificate number
+                let filename = `Certificate_${id}.pdf`; // Fallback
+                const contentDisposition = response.headers.get('Content-Disposition');
+                if (contentDisposition) {
+                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (filenameMatch && filenameMatch[1]) {
+                        filename = filenameMatch[1].replace(/['"]/g, '');
+                    }
+                }
+
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `Certificate_${id}.pdf`;
+                a.download = filename;
                 document.body.appendChild(a);
                 a.click();
                 window.URL.revokeObjectURL(url);

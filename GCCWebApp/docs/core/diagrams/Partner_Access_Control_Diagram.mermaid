@@ -1,0 +1,148 @@
+flowchart TD
+    %% Partner Organizations
+    subgraph "Partner Organizations"
+        Amazon["🛒 Amazon CPF<br/>Partner Code: AMZ"]
+        Wayfair["🏠 Wayfair<br/>Partner Code: WAY"]
+        OtherPartner["🤝 Other Partners<br/>Partner Code: XXX"]
+        NonePartner["🌐 None/Public<br/>No Partner Code"]
+    end
+
+    %% Company Access Matrix
+    subgraph "Company Access Control"
+        CompanyA["Company A<br/>Partner: Amazon"]
+        CompanyB["Company B<br/>Partner: Wayfair"]
+        CompanyC["Company C<br/>Partner: None"]
+        CompanyD["Company D<br/>Partner: Amazon + Other"]
+    end
+
+    %% Certificate Segregation
+    subgraph "Certificate Data Segregation"
+        AmazonCerts["Amazon Certificates<br/>🔒 Isolated Data"]
+        WayfairCerts["Wayfair Certificates<br/>🔒 Isolated Data"]
+        PublicCerts["Public/General Certificates<br/>🌐 Open Access"]
+        MixedCerts["Mixed Access Certificates<br/>⚡ Special Rules"]
+    end
+
+    %% User Access Levels
+    subgraph "User Access Levels"
+        AdminUsers["👨‍💼 Admin Users<br/>Access: ALL"]
+        AnalystUsers["📊 Analyst Users<br/>Access: READ ALL"]
+        AmazonUsers["🛒 Amazon Users<br/>Access: Amazon Only"]
+        WayfairUsers["🏠 Wayfair Users<br/>Access: Wayfair Only"]
+        ClientUsers["👤 Client Users<br/>Access: Assigned Only"]
+        PublicUsers["🌐 Public Users<br/>Access: Public Only"]
+    end
+
+    %% API Access Control
+    subgraph "API Access Control"
+        AmazonAPI["Amazon API Client<br/>🔑 OAuth2 + API Key"]
+        WayfairAPI["Wayfair API Client<br/>🔑 OAuth2 + API Key"]
+        NoClientAPI["❌ Clients NO API<br/>Web UI Only"]
+    end
+
+    %% Access Flow Rules
+    Amazon -->|"Manages"| CompanyA
+    Amazon -->|"Can Access"| CompanyD
+    Wayfair -->|"Manages"| CompanyB
+    OtherPartner -->|"Can Access"| CompanyD
+    NonePartner -->|"Default"| CompanyC
+
+    %% Data Access Rules
+    CompanyA -->|"All Amazon Certs"| AmazonCerts
+    CompanyB -->|"All Wayfair Certs"| WayfairCerts
+    CompanyC -->|"Public Certs"| PublicCerts
+    CompanyD -->|"Complex Rules"| MixedCerts
+
+    %% User Permission Flows
+    AdminUsers -->|"Full Control"| AmazonCerts
+    AdminUsers -->|"Full Control"| WayfairCerts
+    AdminUsers -->|"Full Control"| PublicCerts
+    AdminUsers -->|"Full Control"| MixedCerts
+
+    AnalystUsers -->|"Read Only"| AmazonCerts
+    AnalystUsers -->|"Read Only"| WayfairCerts
+    AnalystUsers -->|"Read Only"| PublicCerts
+
+    AmazonUsers -->|"Read/Write"| AmazonCerts
+    AmazonUsers -->|"❌ No Access"| WayfairCerts
+    WayfairUsers -->|"Read/Write"| WayfairCerts
+    WayfairUsers -->|"❌ No Access"| AmazonCerts
+
+    ClientUsers -->|"Filtered View"| PublicCerts
+    PublicUsers -->|"Limited View"| PublicCerts
+
+    %% API Access Flows
+    Amazon -.->|"API Access"| AmazonAPI
+    Wayfair -.->|"API Access"| WayfairAPI
+    AmazonAPI -->|"Programmatic"| AmazonCerts
+    WayfairAPI -->|"Programmatic"| WayfairCerts
+
+    %% Data Segregation Rules
+    subgraph "Segregation Rules"
+        DataSeg1["🔒 Amazon data isolated<br/>from other partners"]
+        DataSeg2["🔒 Wayfair data isolated<br/>from other partners"]
+        DataSeg3["⚡ Cross-partner access<br/>requires explicit permission"]
+        DataSeg4["🌐 Public data accessible<br/>to all authorized users"]
+    end
+
+    AmazonCerts -.-> DataSeg1
+    WayfairCerts -.-> DataSeg2
+    MixedCerts -.-> DataSeg3
+    PublicCerts -.-> DataSeg4
+
+    %% Status-Based Access Control
+    subgraph "Status-Based Access"
+        ActiveStatus["Active Certificates<br/>✅ All Users"]
+        ExpiredStatus["Expired Certificates<br/>⚠️ Limited Users"]
+        PendingStatus["Pending Certificates<br/>👨‍💼 Admin Only"]
+        ClientProgStatus["Client Progression<br/>📊 Status Tracking"]
+    end
+
+    %% Certificate Access Matrix
+    subgraph "Certificate Access Matrix"
+        ReadAccess["👀 Read Access<br/>View certificate details"]
+        WriteAccess["✏️ Write Access<br/>Create/modify certificates"]
+        ExportAccess["📤 Export Access<br/>Download/export data"]
+        AdminAccess["🔧 Admin Access<br/>Full CRUD + settings"]
+    end
+
+    %% Access Level Assignments
+    AdminUsers --> AdminAccess
+    AnalystUsers --> ReadAccess
+    AnalystUsers --> ExportAccess
+    AmazonUsers --> ReadAccess
+    AmazonUsers --> WriteAccess
+    AmazonUsers --> ExportAccess
+    WayfairUsers --> ReadAccess
+    WayfairUsers --> WriteAccess
+    ClientUsers --> ReadAccess
+    PublicUsers --> ReadAccess
+
+    %% Internal Tag Visibility Rules
+    subgraph "Internal Tag Visibility"
+        NoTagVis["❌ Public Users<br/>No internal tags"]
+        AssignedTagVis["🎯 Client Users<br/>Assigned tags only"]
+        AllTagVis["👁️ Internal Users<br/>All internal tags"]
+    end
+
+    PublicUsers --> NoTagVis
+    ClientUsers --> AssignedTagVis
+    AdminUsers --> AllTagVis
+    AnalystUsers --> AllTagVis
+
+    %% Styling
+    classDef amazon fill:#ff9900,stroke:#cc7a00,color:white
+    classDef wayfair fill:#7b68ee,stroke:#6347d9,color:white
+    classDef admin fill:#dc3545,stroke:#b02a37,color:white
+    classDef public fill:#28a745,stroke:#1e7e34,color:white
+    classDef api fill:#17a2b8,stroke:#138496,color:white
+    classDef security fill:#ffc107,stroke:#d39e00,color:black
+    classDef access fill:#6c757d,stroke:#495057,color:white
+
+    class Amazon,CompanyA,AmazonCerts,AmazonUsers,AmazonAPI amazon
+    class Wayfair,CompanyB,WayfairCerts,WayfairUsers,WayfairAPI wayfair
+    class AdminUsers,AdminAccess admin
+    class PublicUsers,PublicCerts,NonePartner,CompanyC public
+    class AmazonAPI,WayfairAPI,NoClientAPI api
+    class DataSeg1,DataSeg2,DataSeg3,DataSeg4 security
+    class ReadAccess,WriteAccess,ExportAccess,NoTagVis,AssignedTagVis,AllTagVis access

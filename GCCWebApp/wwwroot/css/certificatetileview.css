@@ -425,10 +425,10 @@
 .certificate-card .product-name {
     font-size: 22px !important;
     font-weight: 600 !important;
-    margin: 15px 0 5px 0 !important;
+    margin: 5px 0 5px 0 !important;
     color: var(--text-color) !important;
-    height: 128px !important; /* Reduced height for better layout consistency */
-    max-height: 128px !important; /* Ensure it doesn't exceed this height */
+    height: 120px !important; /* Reduced height for better layout consistency */
+    max-height: 120px !important; /* Ensure it doesn't exceed this height */
     max-width: 100% !important; /* Allow full width of container */
     width: 100% !important; /* Take full width of container */
     display: -webkit-box !important;

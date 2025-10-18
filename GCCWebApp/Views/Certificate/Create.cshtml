@@ -390,6 +390,23 @@
                 <!-- Sidebar -->
                 <div class="sidebar">
                     <div class="upload-section">
+                        <h3>Upload Certificate Image 📎</h3>
+                        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Upload a snapshot/preview of the certificate (PNG/JPG, max 5MB)</p>
+                        <div class="upload-placeholder" id="certificateImageUpload" onclick="document.getElementById('certificateImageInput').click()" style="cursor: pointer;">
+                            <div id="certificateImagePreview" style="display: none;">
+                                <img id="certificateImagePreviewImg" src="" alt="Certificate Preview" style="max-width: 100%; max-height: 300px; object-fit: contain;" />
+                            </div>
+                            <div id="certificateImagePlaceholder">
+                                Click to upload certificate image
+                            </div>
+                            <input type="file" id="certificateImageInput" name="certificateImage" accept="image/jpeg,image/jpg,image/png" style="display: none;" onchange="previewCertificateImage(this)" />
+                        </div>
+                        <input type="hidden" asp-for="CertificateImagePath" id="certificateImagePathHidden" />
+                    </div>
+
+                    <!-- Product Image Upload - NOT A REQUIREMENT (may be added later) -->
+                    <!--
+                    <div class="upload-section">
                         <h3>Upload Product Image 📎</h3>
                         <div class="upload-placeholder" id="productImageUpload">
                             (Placeholder Image)
@@ -397,6 +414,7 @@
                         </div>
                         <div id="imagePreviewContainer"></div>
                     </div>
+                    -->
 
                     <div class="tags-section">
                         <h3>Tags (Multiselect)</h3>
@@ -477,6 +495,37 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
+        // Certificate Image Preview Function
+        function previewCertificateImage(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+
+                // Validate file type
+                const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                if (!validTypes.includes(file.type)) {
+                    alert('Please select a JPG or PNG image file.');
+                    input.value = '';
+                    return;
+                }
+
+                // Validate file size (5MB max)
+                const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                if (file.size > maxSize) {
+                    alert('File size must be less than 5MB.');
+                    input.value = '';
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('certificateImagePreviewImg').src = e.target.result;
+                    document.getElementById('certificateImagePreview').style.display = 'block';
+                    document.getElementById('certificateImagePlaceholder').style.display = 'none';
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
         // Tag Management System - mockup style
         let externalTags = [];
         let internalTags = [];
@@ -555,15 +604,16 @@
 
         // File Upload Functionality - mockup style
         function initializeFileUploads() {
-            // Product Image Upload
-            const imageUploadZone = document.getElementById('productImageUpload');
-            const imageInput = document.getElementById('productImages');
+            // Product Image Upload - DISABLED (not a requirement)
+            // const imageUploadZone = document.getElementById('productImageUpload');
+            // const imageInput = document.getElementById('productImages');
 
             // PDF Upload
             const pdfUploadZone = document.getElementById('pdfUploadZone');
             const pdfInput = document.getElementById('certificatePdf');
 
-            // Image upload handlers
+            // Image upload handlers - DISABLED (not a requirement)
+            /*
             if (imageUploadZone && imageInput) {
                 imageUploadZone.addEventListener('click', () => imageInput.click());
 
@@ -586,6 +636,7 @@
                     handleImageFiles(e.target.files);
                 });
             }
+            */
 
             // PDF upload handlers
             if (pdfUploadZone && pdfInput) {
@@ -614,6 +665,8 @@
             }
         }
 
+        // Product Image handling - DISABLED (not a requirement)
+        /*
         function handleImageFiles(files) {
             const previewContainer = document.getElementById('imagePreviewContainer');
             if (!previewContainer) return;
@@ -640,6 +693,7 @@
                 }
             });
         }
+        */
 
         function handlePdfFile(file) {
             if (file && file.type === 'application/pdf' && file.size <= 10 * 1024 * 1024) {
@@ -661,9 +715,12 @@
             }
         }
 
+        // DISABLED (not a requirement)
+        /*
         function removeImagePreview(button) {
             button.parentElement.remove();
         }
+        */
 
         function removePdfPreview() {
             const previewContainer = document.getElementById('pdfPreviewContainer');

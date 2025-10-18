@@ -32,7 +32,10 @@ namespace GCCWebApp.Models
 
         public string? Ean { get; set; } // European Article Number
 
-        public string? CertificateFile { get; set; } // File path
+        public string? CertificateFile { get; set; } // PDF certificate file path
+
+        [MaxLength(500)]
+        public string? CertificateImagePath { get; set; } // Certificate preview image path (PNG/JPG)
 
         [MaxLength(100)]
         public string? Partner { get; set; } = "None"; // Partner program: Amazon, Wayfair, None

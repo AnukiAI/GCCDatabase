@@ -10,6 +10,7 @@
     --green-secondary: #447638;
     --blue-primary: #00AEEF;
     --blue-dark: #002B76;
+    --warning: #dc3545;
     --space-sm: 8px;
     --space-md: 16px;
     --space-lg: 24px;
@@ -130,14 +131,14 @@
     border: none;
     cursor: pointer;
     padding: var(--space-sm);
-    margin-left: var(--space-xs);
-    font-size: var(--font-size-base);
+    font-size: 18px;
     transition: var(--transition);
     min-height: var(--touch-target-min);
     min-width: var(--touch-target-min);
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    border-radius: var(--border-radius-sm);
 }
 
 .edit-btn {
@@ -145,8 +146,8 @@
 }
 
 .edit-btn:hover {
-    background-color: #eef;
-    border-radius: var(--border-radius-sm);
+    background-color: rgba(0, 174, 239, 0.1);
+    color: var(--blue-dark);
 }
 
 .delete-btn {
@@ -154,8 +155,8 @@
 }
 
 .delete-btn:hover {
-    background-color: #fee;
-    border-radius: var(--border-radius-sm);
+    background-color: rgba(220, 53, 69, 0.1);
+    color: #bd2130;
 }
 
 /* Search & Filter Bar */
@@ -265,6 +266,11 @@
 
 .actions-cell {
     text-align: right;
+    white-space: nowrap;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: var(--space-sm);
 }
 
 /* Form Inputs */

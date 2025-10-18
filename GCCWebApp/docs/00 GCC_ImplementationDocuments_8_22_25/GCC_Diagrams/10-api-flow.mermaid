@@ -1,0 +1,35 @@
+flowchart TD
+    A[API Request] --> B{API Key Valid?}
+    B -->|No| C[401 Unauthorized]
+    B -->|Yes| D{Rate Limit Check}
+    D -->|Exceeded| E[429 Too Many Requests]
+    D -->|OK| F[Process Request]
+    
+    F --> G{Request Type}
+    G --> H[GET Certificates]
+    G --> I[POST Certificate]
+    G --> J[PUT Certificate]
+    G --> K[DELETE Certificate]
+    
+    H --> L[Query Database]
+    I --> M[Validate Data]
+    J --> N[Validate Data]
+    K --> O[Check Permissions]
+    
+    L --> P[Return Certificate List]
+    M --> Q{Validation OK?}
+    N --> Q
+    O --> R{Delete Allowed?}
+    
+    Q -->|No| S[400 Bad Request]
+    Q -->|Yes| T[Save to Database]
+    R -->|No| U[403 Forbidden]
+    R -->|Yes| V[Delete Certificate]
+    
+    T --> W[Return Success]
+    V --> X[Return Success]
+    
+    style C fill:#ffebee
+    style E fill:#ffebee
+    style S fill:#ffebee
+    style U fill:#ffebee

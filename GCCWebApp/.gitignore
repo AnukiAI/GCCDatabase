@@ -1,0 +1,43 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/publish/
+**/publish-output/
+
+# Deployment artifacts
+*.zip
+*.tar.gz
+*.7z
+
+# Test results
+**/TestResults/
+**/*.trx
+**/*.coverage
+
+# Database files (development only)
+*.db
+*.db-shm
+*.db-wal
+
+# Logs
+*.log
+logs/
+
+# IDE
+.vs/
+.vscode/
+*.user
+*.suo
+
+# Environment files with secrets
+.env.local
+.env.production
+appsettings.Production.json
+
+# Node modules (if any)
+node_modules/
+
+# Temporary files
+*.tmp
+*.temp
+nul

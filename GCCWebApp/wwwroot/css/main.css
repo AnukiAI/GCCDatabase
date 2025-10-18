@@ -1411,8 +1411,8 @@ input, select, button, .form-input, .form-select {
     font-size: 16px;
     font-weight: 600;
     color: var(--blue-dark);
-    line-height: 1.3;
-    margin-bottom: 6px;
+    line-height: 1.2;
+    margin-bottom: 0px;
 }
 /* Table product name consistency */
 .results-table .product-name {
@@ -1423,11 +1423,9 @@ input, select, button, .form-input, .form-select {
 }
 
 .product-type {
-    font-size: 16px;
+    font-size: 18px;
     color: var(--text-secondary);
     font-style: italic;
-    padding: 2px 8px;
-    background-color: rgba(0, 174, 239, 0.08);
     display: inline-block;
     margin-bottom: 8px;
 }
@@ -1647,7 +1645,7 @@ input, select, button, .form-input, .form-select {
 .certificate-single-container {
     max-width: 100%;
     margin: 0;
-    padding: 12px;
+    padding: 24px; /* Increased from 12px */
     background-color: transparent;
     box-shadow: none;
     border-radius: 0;
@@ -1661,54 +1659,59 @@ input, select, button, .form-input, .form-select {
 }
 
     .certificate-single-card .card-header {
-        min-height: 140px;
-        padding: 16px;
+        min-height: 160px; /* Increased from 140px */
+        padding: 24px; /* Increased from 16px */
     }
 
     .certificate-single-card .card-body {
-        padding: 16px;
+        padding: 24px; /* Increased from 16px */
     }
 
 .certificate-details-grid {
     display: flex;
-    gap: 16px;
-    margin-top: 16px;
+    gap: 32px; /* Increased from 16px */
+    margin-top: 20px; /* Increased from 16px */
     flex-wrap: wrap;
 }
 
     .certificate-details-grid .details-column {
         flex: 1;
-        min-width: 280px;
+        min-width: 320px; /* Increased from 280px */
     }
 
     .certificate-details-grid .certificate-image-column {
-        flex: 0 0 320px;
-        min-width: 280px;
+        flex: 0 0 600px; /* Increased from 500px to accommodate 750px image */
+        min-width: 450px; /* Increased from 400px */
     }
 
 .certificate-single-card .detail-section {
-    margin-bottom: 16px;
-    padding: 12px;
-    background-color: rgba(255, 255, 255, 0.8);
-    border-radius: 6px;
-    border-left: 3px solid var(--blue-primary); /* Changed from green to blue */
+    margin-bottom: 18px; /* Reduced from 28px - tighter section spacing */
+    padding: 14px; /* Reduced from 18px - tighter internal padding */
+    background-color: rgba(255, 255, 255, 0.95); /* More opaque for better contrast */
+    border-radius: 8px; /* Increased from 6px */
+    border-left: 4px solid var(--blue-primary); /* Increased from 3px */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtle shadow for depth */
 }
 
 .certificate-single-card .certificate-section-title {
-    font-size: 20px;
+    font-size: 24px; /* Increased from 20px */
     font-weight: 600;
-    margin-bottom: 10px;
+    margin-bottom: 10px; /* Reduced from 14px - tighter spacing below title */
     color: var(--blue-dark);
-    border-left: 4px solid var(--blue-primary); /* Primary blue left bar */
-    padding-left: 10px;
-    padding-bottom: 4px;
+    background: linear-gradient(90deg, rgba(0, 174, 239, 0.08) 0%, transparent 100%); /* Subtle gradient background */
+    border-left: 5px solid var(--blue-primary); /* Increased from 4px */
+    padding-left: 14px; /* Increased from 10px */
+    padding-right: 14px; /* Added right padding */
+    padding-top: 8px; /* Added top padding */
+    padding-bottom: 8px; /* Increased from 6px */
+    border-radius: 4px; /* Rounded corners */
 }
 
 .certificate-single-card .certificate-field {
-    font-size: 16px;
-    margin-bottom: 6px;
+    font-size: 18px; /* Increased from 16px */
+    margin-bottom: 8px; /* Reduced from 10px - tighter field spacing */
     color: var(--text-color);
-    line-height: 1.4;
+    line-height: 1.5; /* Increased from 1.4 */
 }
 
     .certificate-single-card .certificate-field strong {
@@ -1717,41 +1720,74 @@ input, select, button, .form-input, .form-select {
     }
 
 .certificate-single-card .certificate-period {
-    font-size: 16px;
+    font-size: 18px; /* Increased from 16px */
     color: var(--text-color);
     background-color: rgba(0, 174, 239, 0.08);
-    padding: 10px;
-    border-radius: 6px;
-    line-height: 1.4;
+    padding: 10px; /* Reduced from 14px - tighter period box */
+    border-radius: 8px; /* Increased from 6px */
+    line-height: 1.5; /* Increased from 1.4 */
 }
 
 .certificate-single-card .certificate-location {
-    font-size: 16px;
+    font-size: 18px; /* Increased from 16px */
     color: var(--text-secondary);
     display: flex;
     align-items: center;
-    gap: 6px;
-    margin-top: 10px;
-    padding: 8px;
+    gap: 8px; /* Increased from 6px */
+    margin-top: 10px; /* Reduced from 12px - tighter spacing */
+    margin-bottom: 0px; /* No extra space below location */
+    padding: 10px; /* Reduced from 12px - tighter location box */
     background-color: rgba(146, 200, 62, 0.08);
-    border-radius: 6px;
+    border-radius: 8px; /* Increased from 6px */
 }
 
     .certificate-single-card .certificate-location i {
         color: var(--green-primary);
-        font-size: 16px;
+        font-size: 20px; /* Increased from 16px */
         flex-shrink: 0;
     }
 
 .certificate-single-card .certificate-tags {
     display: flex;
-    gap: 6px;
-    margin-top: 12px;
+    gap: 10px; /* Increased from 8px */
+    margin-top: 20px; /* Increased from 16px */
     flex-wrap: wrap;
 }
 
-/* SingleCertificateView - product name should NOT have fixed height */
+.certificate-single-card .certificate-tags .tag {
+    font-size: 16px; /* Increased tag font size */
+    padding: 8px 16px; /* Increased padding for larger tags */
+    font-weight: 600; /* Bolder text */
+}
+
+/* SingleCertificateView - Certificate Category LARGE */
+.certificate-single-card .certificate-category {
+    font-size: 20px !important; /* Increased from 16px */
+    font-weight: 700 !important; /* Bolder */
+    letter-spacing: 0.5px !important;
+}
+
+/* SingleCertificateView - Certificate ID LARGE */
+.certificate-single-card .certificate-id {
+    font-size: 22px !important; /* Increased from default */
+    font-weight: 700 !important; /* Bolder */
+    padding: 8px 16px !important; /* More padding */
+}
+
+/* SingleCertificateView - Company Name LARGE */
+.certificate-single-card .company-name {
+    font-size: 28px !important; /* Increased from 16px */
+    font-weight: 700 !important; /* Bolder */
+    line-height: 1.3 !important;
+    margin-top: 8px !important;
+    margin-bottom: 12px !important; /* Reduced spacing below company name */
+}
+
+/* SingleCertificateView - Product Name LARGE */
 .certificate-single-card .product-name {
+    font-size: 32px !important; /* Increased from 22px in inline style */
+    font-weight: 700 !important;
+    line-height: 1.3 !important;
     height: auto !important; /* Override tile height for SingleCertificateView */
     min-height: auto !important;
     -webkit-line-clamp: none !important; /* No line clamping */
@@ -1759,30 +1795,145 @@ input, select, button, .form-input, .form-select {
     overflow: visible !important;
     width: 100% !important; /* Full width of container */
     max-width: 100% !important; /* Ensure full width */
+    margin-bottom: 4px !important; /* Reduced spacing between product name and type */
+}
+
+/* SingleCertificateView - Product Type */
+.certificate-single-card .product-type {
+    font-size: 22px !important; /* Increased from 18px */
+    font-weight: 500 !important;
+    line-height: 1.4 !important;
+    margin-bottom: 16px !important; /* Reduced spacing after product type */
+}
+
+/* SingleCertificateView - Product Info Container - Reduced spacing */
+.certificate-single-card .product-info {
+    margin-bottom: 16px !important; /* Reduced from default */
+    padding-bottom: 0 !important;
 }
 
 .certificate-single-card .certificate-image {
     width: 100%;
-    max-width: 450px;
+    max-width: 750px; /* Increased from 650px */
     height: auto;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow);
+    border-radius: 10px; /* Increased from 8px */
+    border: 2px solid var(--blue-primary); /* Enhanced border - 2px with blue color */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Enhanced shadow for depth */
     object-fit: contain;
-    margin-bottom: 15px; /* Space for download button */
+    margin-bottom: 20px; /* Increased from 15px - Space for download button */
+    cursor: zoom-in; /* Show zoom cursor on hover */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.certificate-single-card .certificate-image:hover {
+    transform: scale(1.02); /* Slight scale on hover */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2); /* Enhanced shadow on hover */
+}
+
+/* Magnifying Glass Icon Overlay */
+.zoom-icon-overlay {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: rgba(0, 174, 239, 0.9);
+    color: white;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 20px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    z-index: 10;
+}
+
+.zoom-icon-overlay:hover {
+    background: var(--blue-dark);
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Image Zoom Modal */
+.image-zoom-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    padding-top: 60px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.95);
+    animation: fadeIn 0.3s ease;
+}
+
+.zoom-modal-content {
+    margin: auto;
+    display: block;
+    width: 90%;
+    max-width: 1200px;
+    animation: zoomIn 0.3s ease;
+}
+
+.zoom-caption {
+    margin: auto;
+    display: block;
+    width: 80%;
+    max-width: 1200px;
+    text-align: center;
+    color: #fff;
+    padding: 16px;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.zoom-close {
+    position: absolute;
+    top: 24px;
+    right: 40px;
+    color: #fff;
+    font-size: 48px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.zoom-close:hover,
+.zoom-close:focus {
+    color: var(--blue-primary);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes zoomIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
 }
 
 .certificate-download-action {
     display: flex;
     justify-content: flex-end; /* Right-align the download icon */
-    margin-top: 10px;
+    margin-top: 12px; /* Increased from 10px */
 }
 
 .certificate-download-action .action-icon {
     background: var(--blue-primary);
     color: white;
-    width: 50px;
-    height: 50px;
+    width: 60px; /* Increased from 50px */
+    height: 60px; /* Increased from 50px */
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -1790,6 +1941,7 @@ input, select, button, .form-input, .form-select {
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 2px 8px rgba(0, 174, 239, 0.3);
+    font-size: 22px; /* Added for larger icon */
 }
 
 .certificate-download-action .action-icon:hover {
@@ -1799,17 +1951,17 @@ input, select, button, .form-input, .form-select {
 }
 
 .certificate-single-card .card-actions {
-    margin-top: 16px;
-    padding-top: 16px;
+    margin-top: 20px; /* Increased from 16px */
+    padding-top: 20px; /* Increased from 16px */
     border-top: 1px solid var(--border-color);
     justify-content: flex-end;
-    gap: 12px;
+    gap: 16px; /* Increased from 12px */
 }
 
 .certificate-single-card .action-icon {
-    width: 44px;
-    height: 44px;
-    font-size: 16px;
+    width: 52px; /* Increased from 44px */
+    height: 52px; /* Increased from 44px */
+    font-size: 18px; /* Increased from 16px */
 }
 
 /* Mobile responsive adjustments for single view */
@@ -2335,6 +2487,7 @@ body.theme-option4 .certificate-card .product-name {
     font-weight: 700;
     color: var(--blue-dark);
     margin-bottom: 12px;
+    margin-top: 5px;
     line-height: 1.3;
     background: rgba(255, 255, 255, 0.9);
     padding: 10px;
@@ -2355,8 +2508,6 @@ body.theme-option4 .product-type {
     color: var(--text-secondary);
     font-style: italic;
     padding: 4px 8px;
-    background-color: rgba(0, 174, 239, 0.08);
-    border-radius: 12px;
     display: inline-block;
     margin-bottom: 8px;
 }

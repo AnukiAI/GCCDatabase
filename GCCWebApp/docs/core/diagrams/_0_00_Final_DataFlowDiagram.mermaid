@@ -1,0 +1,78 @@
+flowchart TD
+    %% External entities - simplified
+    Users[Users & Administrators]
+    ExtSystems[External Systems & API Clients]
+    
+    %% Core processes - focused on main flows
+    Auth[Authentication Layer]
+    CertMgmt[Certificate Management]
+    Search[Search & Retrieval]
+    ApiGateway[API Gateway]
+    
+    %% Main data stores - simplified
+    Database[(Central Database)]
+    Logs[(Logs & Audit)]
+    
+    %% Main flows - cleaner, focused on key paths
+    Users -->|Authentication| Auth
+    Auth -->|Access Control| Users
+    Auth -->|Access Logs| Logs
+    
+    Users -->|Create/Edit Certificates| CertMgmt
+    Users -->|Search Requests| Search
+    
+    CertMgmt -->|Store Data| Database
+    CertMgmt -->|Action Logs| Logs
+    
+    Search -->|Query| Database
+    Search -->|Results| Users
+    
+    ExtSystems -->|API Requests| ApiGateway
+    ApiGateway -->|Authentication| Auth
+    ApiGateway -->|Queries| Database
+    ApiGateway -->|Responses| ExtSystems
+    ApiGateway -->|Usage Logs| Logs
+    
+    %% Level 2 DFD for Certificate Management
+    subgraph CertProcess[Certificate Management Process]
+        direction TB
+        Creation[Certificate Creation]
+        Validation[Data Validation]
+        StatusMgmt[Status Management]
+        FileMgmt[Document Management]
+        
+        Creation --> Validation
+        Validation --> StatusMgmt
+        StatusMgmt --> FileMgmt
+    end
+    
+    %% Connect subprocess to main process
+    CertMgmt -.-> CertProcess
+    
+    %% Data flow within the database
+    subgraph DataModel[Database Structure]
+        Certificates[(Certificates)]
+        Companies[(Companies)]
+        Products[(Products)]
+        Users_DB[(Users & Permissions)]
+        
+        Certificates --- Companies
+        Certificates --- Products
+        Certificates --- Users_DB
+    end
+    
+    %% Connect database to its structure
+    Database -.-> DataModel
+    
+    %% Styling - clean and minimal
+    classDef entities fill:#4b77be,color:#fff,stroke:#36589c
+    classDef processes fill:#45b7d1,color:#fff,stroke:#2d98b2
+    classDef dataStores fill:#f5b70d,color:#fff,stroke:#d49e00
+    classDef subprocesses fill:#28a745,color:#fff,stroke:#218838
+    classDef dataModel fill:#6f42c1,color:#fff,stroke:#5e35a8
+    
+    class Users,ExtSystems entities
+    class Auth,CertMgmt,Search,ApiGateway processes
+    class Database,Logs dataStores
+    class CertProcess subprocesses
+    class DataModel,Certificates,Companies,Products,Users_DB dataModel

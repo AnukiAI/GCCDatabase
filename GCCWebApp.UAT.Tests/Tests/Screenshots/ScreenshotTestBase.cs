@@ -28,7 +28,8 @@ public abstract class ScreenshotTestBase : PageTest
 
     protected static readonly ViewportSize[] TestViewports = new[]
     {
-        new ViewportSize { Width = 1920, Height = 1080 }, // Desktop
+        new ViewportSize { Width = 1920, Height = 1080 }, // Desktop (Full HD)
+        new ViewportSize { Width = 1366, Height = 768 },  // Small Desktop (Laptop)
         new ViewportSize { Width = 768, Height = 1024 },  // Tablet
         new ViewportSize { Width = 375, Height = 812 }    // Mobile
     };

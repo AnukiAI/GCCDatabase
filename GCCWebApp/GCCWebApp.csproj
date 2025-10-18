@@ -12,6 +12,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="0_Documentation\**" />
     <Compile Remove="Documentation\**" />
     <Compile Remove="pages\**" />
     <Compile Remove="pages_old\**" />
@@ -30,6 +31,7 @@
     <Compile Remove="GCCWebApp.Tests.Common\**" />
     <Compile Remove="Scripts\MockDataGenerator.cs" />
     <Compile Remove="Scripts\DatabaseSeeder.cs" />
+    <Content Remove="0_Documentation\**" />
     <Content Remove="Documentation\**" />
     <Content Remove="pages\**" />
     <Content Remove="pages_old\**" />
@@ -46,6 +48,7 @@
     <Content Remove="GCCWebApp.Accessibility.Tests\**" />
     <Content Remove="GCCWebApp.Api.Tests\**" />
     <Content Remove="GCCWebApp.Tests.Common\**" />
+    <EmbeddedResource Remove="0_Documentation\**" />
     <EmbeddedResource Remove="Documentation\**" />
     <EmbeddedResource Remove="pages\**" />
     <EmbeddedResource Remove="pages_old\**" />
@@ -62,6 +65,7 @@
     <EmbeddedResource Remove="GCCWebApp.Accessibility.Tests\**" />
     <EmbeddedResource Remove="GCCWebApp.Api.Tests\**" />
     <EmbeddedResource Remove="GCCWebApp.Tests.Common\**" />
+    <None Remove="0_Documentation\**" />
     <None Remove="Documentation\**" />
     <None Remove="pages\**" />
     <None Remove="pages_old\**" />
@@ -81,7 +85,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Remove="0_Documentation\Configuration\Startup.cs" />
     <Compile Remove="Controllers\CertificateController - Copy %282%29.cs" />
     <Compile Remove="Controllers\CertificateController - Copy.cs" />
   </ItemGroup>
@@ -133,7 +136,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="0_Documentation\Configuration\" />
     <Folder Include="Views\Product\" />
   </ItemGroup>
 
@@ -155,6 +157,7 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.11" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="8.0.11" />
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
     <PackageReference Include="System.Text.Json" Version="9.0.0" />
     <PackageReference Include="MySql.EntityFrameworkCore" Version="8.0.5" />
     <PackageReference Include="Microsoft.Identity.Web" Version="3.10.0" />

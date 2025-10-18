@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Web Application User Flows</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/9.4.3/mermaid.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .presentation-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .navigation {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 40px;
+        }
+
+        .nav-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: rgba(255,255,255,0.3);
+            border-color: rgba(255,255,255,0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .flow-section {
+            display: none;
+            background: rgba(255,255,255,0.95);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .flow-section.active {
+            display: block;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .flow-title {
+            font-size: 2.5rem;
+            color: #4a5568;
+            text-align: center;
+            margin-bottom: 20px;
+            position: relative;
+        }
+
+        .flow-title::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100px;
+            height: 4px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 2px;
+        }
+
+        .flow-description {
+            font-size: 1.1rem;
+            color: #666;
+            text-align: center;
+            margin-bottom: 40px;
+            line-height: 1.6;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .mermaid-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        .role-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .role-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .role-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .role-card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+
+        .role-card p {
+            line-height: 1.5;
+            opacity: 0.9;
+        }
+
+        .key-features {
+            background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+            padding: 30px;
+            border-radius: 15px;
+            margin-top: 30px;
+        }
+
+        .key-features h3 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .feature-item {
+            background: rgba(255,255,255,0.7);
+            padding: 15px;
+            border-radius: 10px;
+            color: #2d3748;
+            font-weight: 500;
+        }
+
+        .security-note {
+            background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+            padding: 25px;
+            border-radius: 15px;
+            margin-top: 20px;
+            border-left: 5px solid #ff6b6b;
+        }
+
+        .security-note h4 {
+            color: #c53030;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+
+        .security-note ul {
+            color: #744210;
+            line-height: 1.6;
+        }
+
+        .security-note li {
+            margin-bottom: 8px;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .flow-title {
+                font-size: 2rem;
+            }
+            
+            .flow-section {
+                padding: 20px;
+            }
+            
+            .navigation {
+                gap: 10px;
+            }
+            
+            .nav-btn {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="presentation-container">
+        <div class="header">
+            <h1>🏢 GCC Web Application</h1>
+            <p>Interactive User Flow Visualization</p>
+        </div>
+
+        <div class="navigation">
+            <button class="nav-btn active" onclick="showFlow('overview')">Overview</button>
+            <button class="nav-btn" onclick="showFlow('auth')">Authentication</button>
+            <button class="nav-btn" onclick="showFlow('admin')">Admin Flow</button>
+            <button class="nav-btn" onclick="showFlow('analyst')">Analyst Flow</button>
+            <button class="nav-btn" onclick="showFlow('external')">External User</button>
+            <button class="nav-btn" onclick="showFlow('public')">Public User</button>
+            <button class="nav-btn" onclick="showFlow('certificate')">Certificate Mgmt</button>
+            <button class="nav-btn" onclick="showFlow('company')">Company & Product</button>
+            <button class="nav-btn" onclick="showFlow('api')">API Flow</button>
+            <button class="nav-btn" onclick="showFlow('import-export')">Data Import/Export</button>
+            <button class="nav-btn" onclick="showFlow('documents')">Document Mgmt</button>
+            <button class="nav-btn" onclick="showFlow('notifications')">Notifications</button>
+            <button class="nav-btn" onclick="showFlow('reporting')">Reporting & Analytics</button>
+            <button class="nav-btn" onclick="showFlow('backup')">Backup & Recovery</button>
+            <button class="nav-btn" onclick="showFlow('integration')">Integration</button>
+            <button class="nav-btn" onclick="showFlow('deployment')">Deployment</button>
+            <button class="nav-btn" onclick="showFlow('security')">Security & Errors</button>
+            <button class="nav-btn" onclick="showFlow('architecture')">System Architecture</button>
+        </div>
+
+        <!-- Overview Section -->
+        <div id="overview" class="flow-section active">
+            <h2 class="flow-title">System Overview</h2>
+            <p class="flow-description">
+                The GCC (Green Certification Center) Web Application is a comprehensive platform designed to manage green certifications 
+                across different user roles. This system provides role-based access control, secure authentication, and streamlined 
+                certificate management workflows.
+            </p>
+
+            <div class="role-grid">
+                <div class="role-card">
+                    <h3>👨‍💼 Admin</h3>
+                    <p>Full system access including user management, role assignment, and complete certificate operations. Admins control all aspects of the platform.</p>
+                </div>
+                <div class="role-card">
+                    <h3>📊 Analyst</h3>
+                    <p>Certificate management specialist with create, read, and update permissions. Primary users for day-to-day certificate operations.</p>
+                </div>
+                <div class="role-card">
+                    <h3>🏢 External User</h3>
+                    <p>Limited certificate viewing and reporting access. Typically partner organizations or stakeholders with specific access needs.</p>
+                </div>
+                <div class="role-card">
+                    <h3>👥 Public</h3>
+                    <p>Read-only access to public certificate information. General public users seeking certification verification.</p>
+                </div>
+            </div>
+
+            <div class="key-features">
+                <h3>🌟 Key Platform Features</h3>
+                <div class="features-grid">
+                    <div class="feature-item">🔐 Role-based Access Control</div>
+                    <div class="feature-item">🔒 Two-factor Authentication</div>
+                    <div class="feature-item">📋 Certificate CRUD Operations</div>
+                    <div class="feature-item">🏭 Company Management</div>
+                    <div class="feature-item">📦 Product Management</div>
+                    <div class="feature-item">🔍 Advanced Search & Filtering</div>
+                    <div class="feature-item">📄 Document Management</div>
+                    <div class="feature-item">📊 Audit Logging</div>
+                    <div class="feature-item">🔑 API Access Control</div>
+                </div>
+            </div>
+
+            <div class="security-note">
+                <h4>🛡️ Security Considerations</h4>
+                <ul>
+                    <li>All actions require proper authentication and authorization</li>
+                    <li>Input validation and sanitization for all user inputs</li>
+                    <li>Secure document handling and storage</li>
+                    <li>Comprehensive audit trail for all system modifications</li>
+                    <li>JWT token-based session management</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Authentication Flow -->
+        <div id="auth" class="flow-section">
+            <h2 class="flow-title">Authentication Flow</h2>
+            <p class="flow-description">
+                This diagram illustrates the complete authentication process, including two-factor authentication and role-based redirection. 
+                The system ensures secure access while providing a smooth user experience for different user types.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[User Visits Site] --> B{Authenticated?}
+                        B -->|No| C[Landing Page/Login]
+                        B -->|Yes| D[Dashboard Based on Role]
+                        
+                        C --> E[Login Form]
+                        E --> F{Credentials Valid?}
+                        F -->|No| G[Error Message]
+                        G --> E
+                        F -->|Yes| H{2FA Enabled?}
+                        H -->|Yes| I[2FA Authentication]
+                        H -->|No| J[Role-Based Redirect]
+                        I --> K{2FA Valid?}
+                        K -->|No| L[2FA Error]
+                        L --> I
+                        K -->|Yes| J
+                        
+                        J --> M{User Role}
+                        M -->|Admin| N[Admin Dashboard]
+                        M -->|Analyst| O[Certificate Management]
+                        M -->|External| P[External Certificate View]
+                        M -->|Public| Q[Public Certificate View]
+                        
+                        style A fill:#e1f5fe
+                        style N fill:#f3e5f5
+                        style O fill:#e8f5e8
+                        style P fill:#fff3e0
+                        style Q fill:#fce4ec
+                </div>
+            </div>
+        </div>
+
+        <!-- Admin User Flow -->
+        <div id="admin" class="flow-section">
+            <h2 class="flow-title">Admin User Flow</h2>
+            <p class="flow-description">
+                Administrators have comprehensive control over the entire system. This flow shows the extensive management capabilities 
+                available to admin users, from user and role management to system configuration and certificate oversight.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[Admin Login] --> B[Admin Dashboard]
+                        B --> C{Admin Actions}
+                        
+                        C --> D[User Management]
+                        C --> E[Role Management]
+                        C --> F[Certificate Management]
+                        C --> G[Product Management]
+                        C --> H[Company Management]
+                        C --> I[System Settings]
+                        
+                        D --> D1[View Users]
+                        D --> D2[Create User]
+                        D --> D3[Edit User]
+                        D --> D4[Delete User]
+                        D --> D5[Assign Roles]
+                        
+                        E --> E1[View Roles]
+                        E --> E2[Create Role]
+                        E --> E3[Edit Role]
+                        E --> E4[Assign Permissions]
+                        
+                        F --> F1[View All Certificates]
+                        F --> F2[Create Certificate]
+                        F --> F3[Edit Certificate]
+                        F --> F4[Delete Certificate]
+                        F --> F5[Import Certificates]
+                        
+                        G --> G1[View Products]
+                        G --> G2[Create Product]
+                        G --> G3[Edit Product]
+                        G --> G4[Manage Product Types]
+                        
+                        H --> H1[View Companies]
+                        H --> H2[Create Company]
+                        H --> H3[Edit Company]
+                        H --> H4[Company Management]
+                        
+                        I --> I1[Certificate Fields]
+                        I --> I2[Product Types]
+                        I --> I3[Google Analytics]
+                        I --> I4[GCC API Settings]
+                        
+                        style A fill:#f3e5f5
+                        style B fill:#f3e5f5
+                        style C fill:#f3e5f5
+                </div>
+            </div>
+        </div>
+
+        <!-- Analyst User Flow -->
+        <div id="analyst" class="flow-section">
+            <h2 class="flow-title">Analyst User Flow</h2>
+            <p class="flow-description">
+                Analysts are the primary users for certificate management operations. This workflow demonstrates their focused access to 
+                certificate-related functions, including creation, editing, searching, and reporting capabilities.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[Analyst Login] --> B[Certificate Dashboard]
+                        B --> C{Certificate Actions}
+                        
+                        C --> D[View Certificates]
+                        C --> E[Create Certificate]
+                        C --> F[Edit Certificate]
+                        C --> G[Search/Filter]
+                        C --> H[Export Data]
+                        
+                        D --> D1[Certificate List View]
+                        D --> D2[Certificate Tile View]
+                        D --> D3[Certificate Details]
+                        D --> D4[Certificate Single View]
+                        
+                        E --> E1[Enter Certificate Data]
+                        E1 --> E2[Select Company]
+                        E2 --> E3[Select Product]
+                        E3 --> E4[Add Certificate Details]
+                        E4 --> E5[Upload Documents]
+                        E5 --> E6[Save Certificate]
+                        
+                        F --> F1[Select Certificate]
+                        F1 --> F2[Modify Details]
+                        F2 --> F3[Update Documents]
+                        F3 --> F4[Save Changes]
+                        
+                        G --> G1[Search by Text]
+                        G --> G2[Filter by Company]
+                        G --> G3[Filter by Product]
+                        G --> G4[Filter by Date Range]
+                        
+                        H --> H1[Generate Reports]
+                        H --> H2[Export to CSV/Excel]
+                        
+                        style A fill:#e8f5e8
+                        style B fill:#e8f5e8
+                        style C fill:#e8f5e8
+                </div>
+            </div>
+        </div>
+
+        <!-- External User Flow -->
+        <div id="external" class="flow-section">
+            <h2 class="flow-title">External User Flow</h2>
+            <p class="flow-description">
+                External users have restricted access designed for partner organizations and stakeholders. This flow shows their limited 
+                but meaningful access to certificate information and reporting capabilities.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[External User Login] --> B[External Dashboard]
+                        B --> C{Available Actions}
+                        
+                        C --> D[View Certificates]
+                        C --> E[Search Certificates]
+                        C --> F[View Reports]
+                        
+                        D --> D1[Certificate Tile View - External]
+                        D --> D2[Certificate Details - Limited]
+                        D --> D3[Download Public Documents]
+                        
+                        E --> E1[Search by Company]
+                        E --> E2[Search by Product]
+                        E --> E3[Search by Certificate Name]
+                        E --> E4[Date Range Filter]
+                        
+                        F --> F1[View Certificate Reports]
+                        F --> F2[Export Allowed Data]
+                        
+                        D1 --> G[Certificate Information]
+                        D2 --> G
+                        D3 --> G
+                        G --> G1[Certificate Number]
+                        G --> G2[Company Name]
+                        G --> G3[Product Information]
+                        G --> G4[Certification Status]
+                        G --> G5[Valid Date Range]
+                        
+                        style A fill:#fff3e0
+                        style B fill:#fff3e0
+                        style C fill:#fff3e0
+                </div>
+            </div>
+        </div>
+
+        <!-- Public User Flow -->
+        <div id="public" class="flow-section">
+            <h2 class="flow-title">Public User Flow</h2>
+            <p class="flow-description">
+                Public users represent the general public seeking to verify certifications. This streamlined flow provides essential 
+                certificate information while maintaining security and privacy of sensitive data.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[Public User Access] --> B[Public Certificate View]
+                        B --> C{Public Actions}
+                        
+                        C --> D[Browse Certificates]
+                        C --> E[Search Certificates]
+                        C --> F[View Certificate Details]
+                        
+                        D --> D1[Public Certificate List]
+                        D --> D2[Paginated View]
+                        D --> D3[Basic Filtering]
+                        
+                        E --> E1[Search by Company]
+                        E --> E2[Search by Product]
+                        E --> E3[Basic Text Search]
+                        
+                        F --> F1[Public Certificate Information]
+                        F1 --> F2[Certificate Number]
+                        F1 --> F3[Company Name]
+                        F1 --> F4[Product Name]
+                        F1 --> F5[Certification Status]
+                        F1 --> F6[Public Documents Only]
+                        
+                        style A fill:#fce4ec
+                        style B fill:#fce4ec
+                        style C fill:#fce4ec
+                </div>
+            </div>
+        </div>
+
+        <!-- Certificate Management Workflow -->
+        <div id="certificate" class="flow-section">
+            <h2 class="flow-title">Certificate Management Workflow</h2>
+            <p class="flow-description">
+                This comprehensive workflow illustrates how different user roles interact with the certificate management system. 
+                It shows the complete lifecycle from creation to validation, with appropriate access controls at each stage.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[Certificate Request] --> B{User Role Check}
+                        
+                        B -->|Admin/Analyst| C[Full Certificate Management]
+                        B -->|External| D[Limited Certificate View]
+                        B -->|Public| E[Public Certificate View]
+                        
+                        C --> F[Create/Edit Certificate]
+                        F --> G[Enter Basic Information]
+                        G --> H[Select/Create Company]
+                        H --> I[Select/Create Product]
+                        I --> J[Add Certificate Details]
+                        J --> K[Upload Documents]
+                        K --> L[Set Permissions]
+                        L --> M[Save Certificate]
+                        
+                        M --> N{Validation}
+                        N -->|Pass| O[Certificate Saved]
+                        N -->|Fail| P[Show Errors]
+                        P --> G
+                        
+                        D --> Q[View Assigned Certificates]
+                        Q --> R[Search/Filter]
+                        R --> S[View Details]
+                        S --> T[Download Public Docs]
+                        
+                        E --> U[Browse Public Certificates]
+                        U --> V[Basic Search]
+                        V --> W[View Public Info]
+                        
+                        style C fill:#e8f5e8
+                        style D fill:#fff3e0
+                        style E fill:#fce4ec
+                </div>
+            </div>
+        </div>
+
+        <!-- Company and Product Management -->
+        <div id="company" class="flow-section">
+            <h2 class="flow-title">Company and Product Management</h2>
+            <p class="flow-description">
+                Admin users can manage the foundational elements of the certification system: companies and products. 
+                This workflow shows the creation and management of these essential entities.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[Admin Access] --> B{Management Type}
+                        
+                        B --> C[Company Management]
+                        B --> D[Product Management]
+                        
+                        C --> C1[View Companies]
+                        C --> C2[Create Company]
+                        C --> C3[Edit Company]
+                        C --> C4[Manage Company Details]
+                        
+                        C2 --> C5[Enter Company Info]
+                        C5 --> C6[Company Name]
+                        C6 --> C7[Contact Information]
+                        C7 --> C8[Address Details]
+                        C8 --> C9[Save Company]
+                        
+                        D --> D1[View Products]
+                        D --> D2[Create Product]
+                        D --> D3[Edit Product]
+                        D --> D4[Manage Product Types]
+                        
+                        D2 --> D5[Enter Product Info]
+                        D5 --> D6[Product Name]
+                        D6 --> D7[Product Category]
+                        D7 --> D8[Product Description]
+                        D8 --> D9[Save Product]
+                        
+                        D4 --> D10[Product Type Management]
+                        D10 --> D11[Create Product Type]
+                        D10 --> D12[Edit Product Type]
+                        D10 --> D13[Delete Product Type]
+                        
+                        style A fill:#f3e5f5
+                        style B fill:#f3e5f5
+                </div>
+            </div>
+        </div>
+
+        <!-- Security and Error Handling -->
+        <div id="security" class="flow-section">
+            <h2 class="flow-title">Error Handling and Security Flow</h2>
+            <p class="flow-description">
+                Security is paramount in the GCC system. This flow demonstrates the multi-layered security approach, including 
+                authentication checks, authorization validation, and comprehensive error handling.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[User Action] --> B{Authentication Check}
+                        
+                        B -->|Not Authenticated| C[Redirect to Login]
+                        B -->|Authenticated| D{Authorization Check}
+                        
+                        D -->|Authorized| E[Process Request]
+                        D -->|Not Authorized| F[Access Denied]
+                        
+                        E --> G{Validation}
+                        G -->|Valid| H[Execute Action]
+                        G -->|Invalid| I[Validation Errors]
+                        
+                        H --> J{Success}
+                        J -->|Success| K[Return Result]
+                        J -->|Error| L[Log Error]
+                        
+                        L --> M[User-Friendly Error]
+                        F --> N[Access Denied Page]
+                        I --> O[Show Validation Messages]
+                        C --> P[Login Page]
+                        
+                        style F fill:#ffebee
+                        style L fill:#ffebee
+                        style M fill:#ffebee
+                        style N fill:#ffebee
+                </div>
+            </div>
+        </div>
+
+        <!-- API Flow -->
+        <div id="api" class="flow-section">
+            <h2 class="flow-title">API Flow</h2>
+            <p class="flow-description">
+                The API flow demonstrates how external systems and developers interact with your GCC platform programmatically. 
+                This workflow shows the complete API request lifecycle, from authentication through rate limiting to data processing, 
+                ensuring secure and reliable programmatic access to certification data.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[API Request] --> B{API Key Valid?}
+                        B -->|No| C[401 Unauthorized]
+                        B -->|Yes| D{Rate Limit Check}
+                        D -->|Exceeded| E[429 Too Many Requests]
+                        D -->|OK| F[Process Request]
+                        
+                        F --> G{Request Type}
+                        G --> H[GET Certificates]
+                        G --> I[POST Certificate]
+                        G --> J[PUT Certificate]
+                        G --> K[DELETE Certificate]
+                        
+                        H --> L[Query Database]
+                        I --> M[Validate Data]
+                        J --> N[Validate Data]
+                        K --> O[Check Permissions]
+                        
+                        L --> P[Return Certificate List]
+                        M --> Q{Validation OK?}
+                        N --> Q
+                        O --> R{Delete Allowed?}
+                        
+                        Q -->|No| S[400 Bad Request]
+                        Q -->|Yes| T[Save to Database]
+                        R -->|No| U[403 Forbidden]
+                        R -->|Yes| V[Delete Certificate]
+                        
+                        T --> W[Return Success]
+                        V --> X[Return Success]
+                        
+                        style C fill:#ffebee
+                        style E fill:#ffebee
+                        style S fill:#ffebee
+                        style U fill:#ffebee
+                </div>
+            </div>
+        </div>
+
+        <!-- Data Import/Export Flow -->
+        <div id="import-export" class="flow-section">
+            <h2 class="flow-title">Data Import/Export Flow</h2>
+            <p class="flow-description">
+                This comprehensive workflow handles bulk data operations essential for enterprise certificate management. 
+                Whether importing large datasets from legacy systems or exporting detailed reports for stakeholders, 
+                this flow ensures data integrity and provides detailed feedback on every operation.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[Data Operation Request] --> B{Operation Type}
+                        
+                        B --> C[Import Certificates]
+                        B --> D[Export Certificates]
+                        B --> E[Bulk Operations]
+                        
+                        C --> C1[Upload File]
+                        C1 --> C2{File Format Valid?}
+                        C2 -->|No| C3[Format Error]
+                        C2 -->|Yes| C4[Parse Data]
+                        C4 --> C5{Data Valid?}
+                        C5 -->|No| C6[Validation Errors]
+                        C5 -->|Yes| C7[Process Records]
+                        C7 --> C8[Save to Database]
+                        C8 --> C9[Import Summary]
+                        
+                        D --> D1[Select Export Criteria]
+                        D1 --> D2[Query Database]
+                        D2 --> D3[Format Data]
+                        D3 --> D4{Export Format}
+                        D4 --> D5[CSV Export]
+                        D4 --> D6[Excel Export]
+                        D4 --> D7[PDF Report]
+                        D5 --> D8[Download File]
+                        D6 --> D8
+                        D7 --> D8
+                        
+                        E --> E1[Select Records]
+                        E1 --> E2{Bulk Operation}
+                        E2 --> E3[Bulk Update]
+                        E2 --> E4[Bulk Delete]
+                        E2 --> E5[Bulk Status Change]
+                        E3 --> E6[Validate Changes]
+                        E4 --> E7[Confirm Deletion]
+                        E5 --> E8[Update Status]
+                        E6 --> E9[Apply Changes]
+                        E7 --> E9
+                        E8 --> E9
+                        E9 --> E10[Operation Summary]
+                        
+                        style C3 fill:#ffebee
+                        style C6 fill:#ffebee
+                </div>
+            </div>
+        </div>
+
+        <!-- Document Management Flow -->
+        <div id="documents" class="flow-section">
+            <h2 class="flow-title">Document Management Flow</h2>
+            <p class="flow-description">
+                Document management represents one of the most critical aspects of certification systems. This workflow demonstrates 
+                sophisticated security measures including virus scanning, file type validation, and version control. Understanding 
+                this flow helps explain how your system maintains document integrity while providing secure access to authorized users.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[Document Operation] --> B{Operation Type}
+                        
+                        B --> C[Upload Document]
+                        B --> D[View Document]
+                        B --> E[Delete Document]
+                        B --> F[Update Document]
+                        
+                        C --> C1[Select File]
+                        C1 --> C2{File Size OK?}
+                        C2 -->|No| C3[Size Error]
+                        C2 -->|Yes| C4{File Type OK?}
+                        C4 -->|No| C5[Type Error]
+                        C4 -->|Yes| C6[Virus Scan]
+                        C6 --> C7{Safe?}
+                        C7 -->|No| C8[Security Error]
+                        C7 -->|Yes| C9[Save to Storage]
+                        C9 --> C10[Update Database]
+                        C10 --> C11[Generate Thumbnail]
+                        C11 --> C12[Document Saved]
+                        
+                        D --> D1{Permission Check}
+                        D1 -->|No Access| D2[Access Denied]
+                        D1 -->|Access OK| D3[Retrieve Document]
+                        D3 --> D4[Return Document]
+                        
+                        E --> E1{Delete Permission?}
+                        E1 -->|No| E2[Access Denied]
+                        E1 -->|Yes| E3[Confirm Delete]
+                        E3 --> E4[Remove from Storage]
+                        E4 --> E5[Update Database]
+                        E5 --> E6[Document Deleted]
+                        
+                        F --> F1{Update Permission?}
+                        F1 -->|No| F2[Access Denied]
+                        F1 -->|Yes| F3[Upload New Version]
+                        F3 --> F4[Version Control]
+                        F4 --> F5[Update Metadata]
+                        F5 --> F6[Document Updated]
+                        
+                        style C3 fill:#ffebee
+                        style C5 fill:#ffebee
+                        style C8 fill:#ffebee
+                        style D2 fill:#ffebee
+                        style E2 fill:#ffebee
+                        style F2 fill:#ffebee
+                </div>
+            </div>
+        </div>
+
+        <!-- Notification Flow -->
+        <div id="notifications" class="flow-section">
+            <h2 class="flow-title">Notification Flow</h2>
+            <p class="flow-description">
+                Effective communication is essential in certification management. This notification system ensures stakeholders 
+                receive timely, relevant information about system events, certificate expiry, security alerts, and system status. 
+                The flow demonstrates sophisticated delivery options and robust retry logic for reliable communication.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[System Event] --> B{Event Type}
+                        
+                        B --> C[User Registration]
+                        B --> D[Certificate Expiry]
+                        B --> E[Password Reset]
+                        B --> F[2FA Request]
+                        B --> G[System Alert]
+                        
+                        C --> C1[Send Welcome Email]
+                        C1 --> C2[Email Template]
+                        C2 --> C3[Send Email]
+                        
+                        D --> D1[Check Expiry Dates]
+                        D1 --> D2[Generate Alerts]
+                        D2 --> D3[Notify Stakeholders]
+                        D3 --> D4[Update Dashboard]
+                        
+                        E --> E1[Generate Reset Token]
+                        E1 --> E2[Send Reset Email]
+                        E2 --> E3[Token Expiry Timer]
+                        
+                        F --> F1[Generate 2FA Code]
+                        F1 --> F2{Delivery Method}
+                        F2 --> F3[SMS]
+                        F2 --> F4[Email]
+                        F2 --> F5[App Notification]
+                        
+                        G --> G1[Log System Event]
+                        G1 --> G2[Check Alert Rules]
+                        G2 --> G3[Send Admin Notification]
+                        
+                        C3 --> H[Delivery Status]
+                        D3 --> H
+                        E2 --> H
+                        F3 --> H
+                        F4 --> H
+                        F5 --> H
+                        G3 --> H
+                        
+                        H --> I{Delivery Success?}
+                        I -->|No| J[Retry Logic]
+                        I -->|Yes| K[Mark Delivered]
+                        J --> L[Log Error]
+                        J --> M[Alternative Delivery]
+                        
+                        style J fill:#fff3e0
+                        style L fill:#ffebee
+                </div>
+            </div>
+        </div>
+        <div id="architecture" class="flow-section">
+            <h2 class="flow-title">System Architecture User Interaction</h2>
+            <p class="flow-description">
+                This diagram illustrates how user interactions flow through the system architecture, from the user interface 
+                through various service layers to the database, showing the complete technology stack interaction.
+            </p>
+            <div class="mermaid-container">
+                <div class="mermaid">
+                    flowchart TD
+                        A[User Interface] --> B[Controller Layer]
+                        B --> C[Service Layer]
+                        C --> D[Repository Layer]
+                        D --> E[Database]
+                        
+                        B --> F{Authentication}
+                        F --> G[JWT Token Service]
+                        F --> H[2FA Service]
+                        F --> I[Email Service]
+                        
+                        C --> J[Admin Service]
+                        C --> K[Certificate Service]
+                        C --> L[Company Service]
+                        C --> M[API Key Service]
+                        
+                        B --> N{Authorization}
+                        N --> O[Role-Based Access]
+                        N --> P[Permission Checks]
+                        
+                        E --> Q[SQLite Database]
+                        Q --> R[Users & Roles]
+                        Q --> S[Certificates]
+                        Q --> T[Companies & Products]
+                        Q --> U[Audit Logs]
+                        
+                        style A fill:#e3f2fd
+                        style B fill:#f1f8e9
+                        style C fill:#fff3e0
+                        style D fill:#fce4ec
+                        style E fill:#f3e5f5
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize Mermaid with better configuration
+        mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            themeVariables: {
+                primaryColor: '#667eea',
+                primaryTextColor: '#333',
+                primaryBorderColor: '#764ba2',
+                lineColor: '#666',
+                sectionBkgColor: '#f8f9fa',
+                altSectionBkgColor: '#ffffff',
+                gridColor: '#e0e0e0',
+                tertiaryColor: '#f1f3f4'
+            },
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true,
+                curve: 'basis',
+                padding: 20
+            },
+            securityLevel: 'loose'
+        });
+
+        // Navigation functionality
+        function showFlow(flowId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.flow-section');
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Remove active class from all buttons
+            const buttons = document.querySelectorAll('.nav-btn');
+            buttons.forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // Show selected section
+            const targetSection = document.getElementById(flowId);
+            targetSection.classList.add('active');
+
+            // Add active class to clicked button
+            event.target.classList.add('active');
+
+            // Render mermaid diagrams in the active section
+            setTimeout(() => {
+                renderMermaidInSection(targetSection);
+            }, 100);
+        }
+
+        // Function to render mermaid diagrams in a specific section
+        function renderMermaidInSection(section) {
+            const mermaidElements = section.querySelectorAll('.mermaid');
+            mermaidElements.forEach((element, index) => {
+                if (!element.getAttribute('data-processed')) {
+                    try {
+                        // Create unique ID for each diagram
+                        const id = `mermaid-${Date.now()}-${index}`;
+                        element.id = id;
+                        
+                        // Get the diagram text
+                        const diagramText = element.textContent.trim();
+                        
+                        // Clear the element
+                        element.innerHTML = '';
+                        
+                        // Render the diagram
+                        mermaid.render(id + '-svg', diagramText, (svgCode) => {
+                            element.innerHTML = svgCode;
+                            element.setAttribute('data-processed', 'true');
+                        });
+                    } catch (error) {
+                        console.error('Error rendering mermaid diagram:', error);
+                        element.innerHTML = '<p style="color: #666; text-align: center; padding: 40px;">Diagram loading... Please refresh if this persists.</p>';
+                    }
+                }
+            });
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Render diagrams in the overview section (initially active)
+            setTimeout(() => {
+                const overviewSection = document.getElementById('overview');
+                if (overviewSection) {
+                    renderMermaidInSection(overviewSection);
+                }
+            }, 500);
+        });
+
+        // Make showFlow function globally available
+        window.showFlow = showFlow;
+    </script>
+</body>
+</html>

@@ -346,30 +346,36 @@ class ProductTypeManager {
     }
 
     expandAll() {
-        const expandableNodes = document.querySelectorAll('.expandable');
-        expandableNodes.forEach(node => {
-            const children = node.parentElement.querySelector('.children');
-            if (children) {
-                children.style.display = 'block';
-                const icon = node.querySelector('.node-icon i');
-                if (icon) {
-                    icon.classList.remove('fa-chevron-right');
-                    icon.classList.add('fa-chevron-down');
+        const allTreeNodes = document.querySelectorAll('.tree-node');
+        allTreeNodes.forEach(treeNode => {
+            const nodeContent = treeNode.querySelector('.node-content.expandable');
+            if (nodeContent) {
+                const children = treeNode.querySelector('.children');
+                if (children && children.style.display !== 'block') {
+                    children.style.display = 'block';
+                    const icon = nodeContent.querySelector('.node-icon i');
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-right');
+                        icon.classList.add('fa-chevron-down');
+                    }
                 }
             }
         });
     }
 
     collapseAll() {
-        const expandableNodes = document.querySelectorAll('.expandable');
-        expandableNodes.forEach(node => {
-            const children = node.parentElement.querySelector('.children');
-            if (children) {
-                children.style.display = 'none';
-                const icon = node.querySelector('.node-icon i');
-                if (icon) {
-                    icon.classList.remove('fa-chevron-down');
-                    icon.classList.add('fa-chevron-right');
+        const allTreeNodes = document.querySelectorAll('.tree-node');
+        allTreeNodes.forEach(treeNode => {
+            const nodeContent = treeNode.querySelector('.node-content.expandable');
+            if (nodeContent) {
+                const children = treeNode.querySelector('.children');
+                if (children && children.style.display !== 'none') {
+                    children.style.display = 'none';
+                    const icon = nodeContent.querySelector('.node-icon i');
+                    if (icon) {
+                        icon.classList.remove('fa-chevron-down');
+                        icon.classList.add('fa-chevron-right');
+                    }
                 }
             }
         });

@@ -1,18 +1,7 @@
 // CSF Attributes Management JavaScript
 
-// Sample data for initial display
-let csfAttributes = [
-    { id: "CSF001", name: "Biobased", certification: "greenguard", type: "boolean", description: "Product contains biobased materials", required: true },
-    { id: "CSF002", name: "Biodegradable", certification: "greenguard", type: "boolean", description: "Product is biodegradable", required: false },
-    { id: "CSF003", name: "Carbon Footprint Reduction", certification: "greenguard-gold", type: "number", description: "Percentage of carbon footprint reduction", required: true },
-    { id: "CSF004", name: "Certified Energy Savings", certification: "energy-star", type: "number", description: "Energy savings percentage", required: true },
-    { id: "CSF005", name: "Certified Environmental Facts", certification: "cradle-to-cradle", type: "text", description: "Environmental certification details", required: false },
-    { id: "CSF006", name: "Certified Sustainability Facts", certification: "greenguard", type: "text", description: "Sustainability certification details", required: false },
-    { id: "CSF007", name: "Certified Water Savings", certification: "energy-star", type: "number", description: "Water savings percentage", required: true },
-    { id: "CSF008", name: "Closed Loop Product", certification: "cradle-to-cradle", type: "boolean", description: "Product is part of closed loop system", required: false },
-    { id: "CSF009", name: "Dematerialization", certification: "greenguard", type: "text", description: "Material reduction details", required: false },
-    { id: "CSF010", name: "Greenhouse Gas (GHG) Verification", certification: "greenguard-gold", type: "boolean", description: "GHG emissions verified", required: true }
-];
+// CSF Attributes data loaded from database
+let csfAttributes = [];
 
 // DOM Elements
 let csfTable = null;
@@ -33,12 +22,37 @@ let sortColumn = 'name';
 let sortDirection = 'asc';
 let currentEditingId = null;
 
+// Function to load CSF attributes from database
+async function loadCSFAttributes() {
+    try {
+        const response = await fetch('/Admin/GetCSFAttributes');
+        const result = await response.json();
+
+        if (result.success && result.data) {
+            // Map database model to our UI model
+            csfAttributes = result.data.map(attr => ({
+                id: attr.id.toString(),
+                name: attr.name,
+                certification: 'greenguard', // Default certification type
+                type: 'text', // Default type
+                description: attr.description || '',
+                required: false
+            }));
+            populateTable(csfAttributes);
+        } else {
+            console.error('Failed to load CSF attributes:', result.message);
+        }
+    } catch (error) {
+        console.error('Error loading CSF attributes:', error);
+    }
+}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializeElements();
     initializeEventListeners();
     initializeSortableHeaders();
-    populateTable(csfAttributes);
+    loadCSFAttributes(); // Load from database instead of using hardcoded data
 });
 
 // Initialize DOM elements

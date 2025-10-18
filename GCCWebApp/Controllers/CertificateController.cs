@@ -999,6 +999,205 @@ namespace GCCWebApp.Controllers
 
         #endregion
 
+        #region Import Operations
+
+        /// <summary>
+        /// Import certificates from CSV/JSON data
+        /// POST: /Certificate/Import
+        /// </summary>
+        [HttpPost]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> Import([FromBody] List<CertificateImportDto> certificates)
+        {
+            if (certificates == null || !certificates.Any())
+            {
+                return Json(new { success = false, message = "No certificates provided" });
+            }
+
+            if (certificates.Count > 100)
+            {
+                return Json(new { success = false, message = "Maximum 100 certificates can be imported at once" });
+            }
+
+            var result = new
+            {
+                totalProcessed = 0,
+                successCount = 0,
+                failureCount = 0,
+                successful = new List<string>(),
+                failed = new List<object>()
+            };
+
+            var successfulCerts = new List<string>();
+            var failedCerts = new List<object>();
+            var userId = GetCurrentUserId();
+
+            foreach (var certDto in certificates)
+            {
+                try
+                {
+                    // Validate required fields
+                    if (string.IsNullOrEmpty(certDto.CompanyName) || string.IsNullOrEmpty(certDto.ProductName))
+                    {
+                        failedCerts.Add(new
+                        {
+                            index = certificates.IndexOf(certDto),
+                            identifier = certDto.Number ?? "Unknown",
+                            error = "Company Name and Product Name are required"
+                        });
+                        continue;
+                    }
+
+                    // Find or create company
+                    var company = await _unitOfWork.Companies.FindFirstOrDefaultAsync(c => c.Name == certDto.CompanyName);
+                    if (company == null)
+                    {
+                        company = new Company
+                        {
+                            Name = certDto.CompanyName,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        await _unitOfWork.Companies.AddAsync(company);
+                        await _unitOfWork.CompleteAsync();
+                    }
+
+                    // Find or create product
+                    var product = await _unitOfWork.Products.FindFirstOrDefaultAsync(p => p.Name == certDto.ProductName);
+                    if (product == null)
+                    {
+                        product = new Product
+                        {
+                            Name = certDto.ProductName,
+                            Description = certDto.Category ?? "",
+                            IsActive = true,
+                            CompanyId = company.Id,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        await _unitOfWork.Products.AddAsync(product);
+                        await _unitOfWork.CompleteAsync();
+                    }
+
+                    // Find certification type
+                    var certType = await _unitOfWork.CertificationTypes.FindFirstOrDefaultAsync(ct => ct.Name == (certDto.CertificationType ?? "CERTIFIED SUSTAINABILITY FACTS"));
+                    if (certType == null)
+                    {
+                        // Use first available certification type
+                        var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+                        certType = allCertTypes.FirstOrDefault();
+                        if (certType == null)
+                        {
+                            failedCerts.Add(new
+                            {
+                                index = certificates.IndexOf(certDto),
+                                identifier = certDto.Number ?? "Unknown",
+                                error = "No certification types available in database"
+                            });
+                            continue;
+                        }
+                    }
+
+                    // Parse dates
+                    DateTime effectiveDate = DateTime.UtcNow;
+                    DateTime expirationDate = DateTime.UtcNow.AddYears(1);
+
+                    if (!string.IsNullOrEmpty(certDto.EffectiveDate))
+                    {
+                        DateTime.TryParse(certDto.EffectiveDate, out effectiveDate);
+                    }
+
+                    if (!string.IsNullOrEmpty(certDto.ExpirationDate))
+                    {
+                        DateTime.TryParse(certDto.ExpirationDate, out expirationDate);
+                    }
+
+                    // Generate certificate number if not provided
+                    var certNumber = certDto.Number;
+                    if (string.IsNullOrEmpty(certNumber))
+                    {
+                        certNumber = $"IMPORT-{DateTime.Now:yyyyMMdd}-{certificates.IndexOf(certDto) + 1:D4}";
+                    }
+
+                    // Check if certificate number already exists
+                    var exists = await _certificateRepository.GetCertificateByNumberAsync(certNumber);
+                    if (exists != null)
+                    {
+                        failedCerts.Add(new
+                        {
+                            index = certificates.IndexOf(certDto),
+                            identifier = certNumber,
+                            error = $"Certificate {certNumber} already exists"
+                        });
+                        continue;
+                    }
+
+                    // Create certificate
+                    var certificate = new Certificate
+                    {
+                        Number = certNumber,
+                        CompanyId = company.Id,
+                        ProductId = product.Id,
+                        CertificationTypeId = certType.Id,
+                        Status = certDto.Status ?? "Active",
+                        Partner = "None",
+                        EffectiveDate = effectiveDate,
+                        ExpirationDate = expirationDate,
+                        Location = certDto.Location ?? "Unknown",
+                        Country = certDto.Country ?? "Unknown",
+                        CreatedBy = userId,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+
+                    await _certificateRepository.AddAsync(certificate);
+                    await _unitOfWork.CompleteAsync();
+
+                    successfulCerts.Add(certNumber);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to import certificate at index {Index}", certificates.IndexOf(certDto));
+                    failedCerts.Add(new
+                    {
+                        index = certificates.IndexOf(certDto),
+                        identifier = certDto.Number ?? "Unknown",
+                        error = "Failed to import certificate: " + ex.Message
+                    });
+                }
+            }
+
+            return Json(new
+            {
+                success = true,
+                message = $"Successfully imported {successfulCerts.Count} of {certificates.Count} certificates",
+                data = new
+                {
+                    totalProcessed = certificates.Count,
+                    successCount = successfulCerts.Count,
+                    failureCount = failedCerts.Count,
+                    successful = successfulCerts,
+                    failed = failedCerts
+                }
+            });
+        }
+
+        #endregion
+
         #endregion
     }
+}
+
+// DTO for certificate import
+public class CertificateImportDto
+{
+    public string? Number { get; set; }
+    public string CompanyName { get; set; } = string.Empty;
+    public string ProductName { get; set; } = string.Empty;
+    public string? Category { get; set; }
+    public string? CertificationType { get; set; }
+    public string? EffectiveDate { get; set; }
+    public string? ExpirationDate { get; set; }
+    public string? Location { get; set; }
+    public string? Country { get; set; }
+    public string? Status { get; set; }
 }

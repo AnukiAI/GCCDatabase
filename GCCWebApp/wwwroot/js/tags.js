@@ -1,54 +1,5 @@
-// Sample data for initial display
-let tags = [
-    {
-        id: "01",
-        name: "Sustainable Materials",
-        type: "external",
-        description: "Products made from environmentally sustainable materials"
-    },
-    {
-        id: "02",
-        name: "Energy Efficient",
-        type: "external",
-        description: "Products that consume less energy during operation"
-    },
-    {
-        id: "03",
-        name: "Recycled Content",
-        type: "external",
-        description: "Products containing recycled materials"
-    },
-    {
-        id: "04",
-        name: "VOC Compliance",
-        type: "external",
-        description: "Products meeting volatile organic compound regulations"
-    },
-    {
-        id: "05",
-        name: "Water Efficient",
-        type: "external",
-        description: "Products designed to conserve water usage"
-    },
-    {
-        id: "06",
-        name: "Carbon Neutral",
-        type: "external",
-        description: "Products with net-zero carbon emissions"
-    },
-    {
-        id: "07",
-        name: "Internal Review Required",
-        type: "internal",
-        description: "Products requiring additional internal assessment"
-    },
-    {
-        id: "08",
-        name: "Priority Certification",
-        type: "internal",
-        description: "High-priority items for certification processing"
-    }
-];
+// Tags data loaded from database
+let tags = [];
 
 // DOM Elements
 const tagTable = document.getElementById('tag-table');
@@ -407,8 +358,32 @@ window.addEventListener('click', (event) => {
     }
 });
 
+// Function to load tags from database
+async function loadTags() {
+    try {
+        const response = await fetch('/Admin/GetTags');
+        const result = await response.json();
+
+        if (result.success && result.data) {
+            // Map database model to our UI model
+            tags = result.data.map(tag => ({
+                id: tag.id.toString(),
+                name: tag.name,
+                type: tag.tagType,
+                description: tag.description || '',
+                productCount: tag.productCount || 0
+            }));
+            sortData();
+        } else {
+            console.error('Failed to load tags:', result.message);
+        }
+    } catch (error) {
+        console.error('Error loading tags:', error);
+    }
+}
+
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
     initializeSortableHeaders();
-    sortData();
+    loadTags(); // Load from database instead of using hardcoded data
 });

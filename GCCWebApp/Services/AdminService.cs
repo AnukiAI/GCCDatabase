@@ -55,6 +55,7 @@ namespace GCCWebApp.Services
         {
             return await _context.Users
                 .Include(u => u.Companies)
+                .Include(u => u.Partners)
                 .Include(u => u.Roles)
                 .Where(u => !u.IsDeleted)
                 .Select(u => new UserViewModel
@@ -65,6 +66,8 @@ namespace GCCWebApp.Services
                     Role = u.Roles.FirstOrDefault()!.Name ?? "user",
                     Status = u.IsActive ? "active" : "inactive",
                     CompanyNames = u.Companies.Select(c => c.Name).ToList(),
+                    PartnerNames = u.Partners.Select(p => p.Name).ToList(),
+                    RequirePasswordReset = u.RequirePasswordReset,
                     LastLogin = u.LastLoginAt
                 })
                 .ToListAsync();
@@ -778,6 +781,111 @@ namespace GCCWebApp.Services
                 return false;
             }
         }
+
+        // ============================================
+        // CSF Attributes (stored in Tags table with TagType = 'csf')
+        // ============================================
+
+        public async Task<List<CSFAttributeViewModel>> GetCSFAttributesAsync()
+        {
+            return await _context.Tags
+                .Where(t => t.TagType == "csf")
+                .OrderBy(t => t.Name)
+                .Select(t => new CSFAttributeViewModel
+                {
+                    Id = t.Id,
+                    Name = t.Name,
+                    Description = t.Description ?? "",
+                    IsActive = t.IsActive
+                })
+                .ToListAsync();
+        }
+
+        public async Task<CSFAttributeViewModel?> GetCSFAttributeByIdAsync(int id)
+        {
+            var attribute = await _context.Tags
+                .Where(t => t.TagType == "csf")
+                .FirstOrDefaultAsync(t => t.Id == id);
+
+            if (attribute == null) return null;
+
+            return new CSFAttributeViewModel
+            {
+                Id = attribute.Id,
+                Name = attribute.Name,
+                Description = attribute.Description ?? "",
+                IsActive = attribute.IsActive
+            };
+        }
+
+        public async Task<bool> CreateCSFAttributeAsync(CSFAttributeViewModel model)
+        {
+            try
+            {
+                var attribute = new Tag
+                {
+                    Name = model.Name,
+                    TagType = "csf",
+                    Description = model.Description,
+                    IsActive = model.IsActive
+                };
+
+                _context.Tags.Add(attribute);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdateCSFAttributeAsync(int id, CSFAttributeViewModel model)
+        {
+            try
+            {
+                var attribute = await _context.Tags
+                    .Where(t => t.TagType == "csf")
+                    .FirstOrDefaultAsync(t => t.Id == id);
+
+                if (attribute == null) return false;
+
+                attribute.Name = model.Name;
+                attribute.Description = model.Description;
+                attribute.IsActive = model.IsActive;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteCSFAttributeAsync(int id)
+        {
+            try
+            {
+                var attribute = await _context.Tags
+                    .Where(t => t.TagType == "csf")
+                    .FirstOrDefaultAsync(t => t.Id == id);
+
+                if (attribute == null) return false;
+
+                _context.Tags.Remove(attribute);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        // ============================================
+        // Tags
+        // ============================================
 
         public async Task<List<TagViewModel>> GetTagsAsync()
         {

@@ -20,6 +20,7 @@ namespace GCCWebApp.Controllers
         private readonly IPerformanceMonitoringService _performanceMonitoring;
         private readonly IStructuredLoggingService _structuredLogger;
         private readonly ApplicationDbContext _context;
+        private readonly IWebHostEnvironment _environment;
 
         public ExportController(
             ILogger<ExportController> logger,
@@ -27,7 +28,8 @@ namespace GCCWebApp.Controllers
             ICertificateRepository certificateRepository,
             IPerformanceMonitoringService performanceMonitoring,
             IStructuredLoggingService structuredLogger,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IWebHostEnvironment environment)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
@@ -35,6 +37,7 @@ namespace GCCWebApp.Controllers
             _performanceMonitoring = performanceMonitoring;
             _structuredLogger = structuredLogger;
             _context = context;
+            _environment = environment;
         }
 
         [HttpGet]
@@ -546,11 +549,26 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpPost]
-        [AllowAnonymous]
+        [Authorize(Policy = "AdminOnly")]
         public async Task<IActionResult> SeedDatabase()
         {
             try
             {
+                // SECURITY: Prevent database seeding in production
+                if (_environment.IsProduction())
+                {
+                    _logger.LogWarning("Database seeding attempted in production environment - DENIED");
+                    return StatusCode(403, new {
+                        Error = "Database seeding is not allowed in production environment",
+                        Message = "Use SQL migration scripts for production data management"
+                    });
+                }
+
+                // SECURITY: Log seeding attempt
+                _logger.LogWarning("Database seeding initiated in {Environment} environment by {User}",
+                    _environment.EnvironmentName,
+                    User.Identity?.Name ?? "Unknown");
+
                 // Simple seeding method - create some basic test data with proper relationships
                 await _context.Database.EnsureCreatedAsync();
 

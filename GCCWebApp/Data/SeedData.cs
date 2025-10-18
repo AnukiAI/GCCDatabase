@@ -772,6 +772,111 @@ namespace GCCWebApp.Data
             await context.Tags.AddRangeAsync(tags);
             await context.SaveChangesAsync();
 
+            // Seed CSF Attributes (Tags with TagType = 'csf')
+            var csfAttributes = new List<Tag>
+            {
+                // Environmental Performance CSF Attributes
+                new Tag { Name = "Global Warming Potential", TagType = "csf", Description = "CO2 equivalent emissions per functional unit", IsActive = true },
+                new Tag { Name = "Acidification Potential", TagType = "csf", Description = "SO2 equivalent emissions", IsActive = true },
+                new Tag { Name = "Eutrophication Potential", TagType = "csf", Description = "Nitrogen equivalent emissions", IsActive = true },
+                new Tag { Name = "Ozone Depletion Potential", TagType = "csf", Description = "CFC-11 equivalent emissions", IsActive = true },
+                new Tag { Name = "Smog Formation Potential", TagType = "csf", Description = "Photochemical oxidant creation potential", IsActive = true },
+
+                // Resource Use CSF Attributes
+                new Tag { Name = "Total Primary Energy", TagType = "csf", Description = "Total energy consumed in product lifecycle", IsActive = true },
+                new Tag { Name = "Renewable Energy", TagType = "csf", Description = "Percentage of energy from renewable sources", IsActive = true },
+                new Tag { Name = "Non-Renewable Energy", TagType = "csf", Description = "Percentage of energy from non-renewable sources", IsActive = true },
+                new Tag { Name = "Water Consumption", TagType = "csf", Description = "Total water consumed in manufacturing", IsActive = true },
+                new Tag { Name = "Recycled Content", TagType = "csf", Description = "Percentage of recycled materials by weight", IsActive = true },
+                new Tag { Name = "Post-Consumer Recycled Content", TagType = "csf", Description = "Percentage of post-consumer recycled content", IsActive = true },
+                new Tag { Name = "Pre-Consumer Recycled Content", TagType = "csf", Description = "Percentage of pre-consumer recycled content", IsActive = true },
+
+                // Material Composition CSF Attributes
+                new Tag { Name = "Renewable Material Content", TagType = "csf", Description = "Percentage of renewable materials", IsActive = true },
+                new Tag { Name = "Bio-Based Content", TagType = "csf", Description = "Percentage of bio-based materials", IsActive = true },
+                new Tag { Name = "Rapidly Renewable Content", TagType = "csf", Description = "Materials from sources that regenerate in 10 years or less", IsActive = true },
+                new Tag { Name = "Recycled Steel Content", TagType = "csf", Description = "Percentage of recycled steel", IsActive = true },
+                new Tag { Name = "Recycled Aluminum Content", TagType = "csf", Description = "Percentage of recycled aluminum", IsActive = true },
+
+                // End of Life CSF Attributes
+                new Tag { Name = "Recyclability", TagType = "csf", Description = "Percentage of product that can be recycled", IsActive = true },
+                new Tag { Name = "Product Take-Back Program", TagType = "csf", Description = "Manufacturer operates a take-back program", IsActive = true },
+                new Tag { Name = "Biodegradable Content", TagType = "csf", Description = "Percentage of biodegradable materials", IsActive = true },
+                new Tag { Name = "Compostability", TagType = "csf", Description = "Product meets compostability standards", IsActive = true },
+
+                // Chemical and Emissions CSF Attributes
+                new Tag { Name = "VOC Emissions", TagType = "csf", Description = "Volatile organic compound emissions level", IsActive = true },
+                new Tag { Name = "Formaldehyde Emissions", TagType = "csf", Description = "Formaldehyde emissions level", IsActive = true },
+                new Tag { Name = "Heavy Metal Content", TagType = "csf", Description = "Presence and levels of heavy metals", IsActive = true },
+                new Tag { Name = "PVC Content", TagType = "csf", Description = "Presence and percentage of PVC", IsActive = true },
+                new Tag { Name = "Phthalate Content", TagType = "csf", Description = "Presence and levels of phthalates", IsActive = true },
+                new Tag { Name = "Flame Retardant Content", TagType = "csf", Description = "Type and levels of flame retardants", IsActive = true },
+
+                // Manufacturing and Social CSF Attributes
+                new Tag { Name = "Manufacturing Location", TagType = "csf", Description = "Geographic location of manufacturing", IsActive = true },
+                new Tag { Name = "Fair Labor Certification", TagType = "csf", Description = "Fair labor practices certification", IsActive = true },
+                new Tag { Name = "Carbon Neutral Manufacturing", TagType = "csf", Description = "Manufacturing process is carbon neutral", IsActive = true },
+                new Tag { Name = "Renewable Energy in Manufacturing", TagType = "csf", Description = "Percentage renewable energy used in manufacturing", IsActive = true },
+
+                // Product Durability and Performance
+                new Tag { Name = "Product Lifespan", TagType = "csf", Description = "Expected product lifespan in years", IsActive = true },
+                new Tag { Name = "Warranty Period", TagType = "csf", Description = "Manufacturer warranty period", IsActive = true },
+                new Tag { Name = "Repairability Score", TagType = "csf", Description = "Ease of repair rating", IsActive = true },
+                new Tag { Name = "Modular Design", TagType = "csf", Description = "Product uses modular/replaceable components", IsActive = true }
+            };
+
+            await context.Tags.AddRangeAsync(csfAttributes);
+            await context.SaveChangesAsync();
+
+            // Seed CustomFields (Certificate Fields)
+            var customFields = new List<CustomField>
+            {
+                // Basic Certificate Information Fields
+                new CustomField { Name = "Certificate Holder Company Name", FieldType = "text", IsRequired = true, IsVisible = true, SortOrder = 1, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
+                new CustomField { Name = "Certificate Holder Contact Email", FieldType = "email", IsRequired = true, IsVisible = true, SortOrder = 2, DefaultValue = "", ValidationRules = "email,maxLength:255", Options = "" },
+                new CustomField { Name = "Certificate Holder Phone Number", FieldType = "phone", IsRequired = false, IsVisible = true, SortOrder = 3, DefaultValue = "", ValidationRules = "phone,maxLength:20", Options = "" },
+                new CustomField { Name = "Certificate Holder Address", FieldType = "textarea", IsRequired = false, IsVisible = true, SortOrder = 4, DefaultValue = "", ValidationRules = "maxLength:500", Options = "" },
+
+                // Product Information Fields
+                new CustomField { Name = "Product Brand Name", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 5, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
+                new CustomField { Name = "Product Model Number", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 6, DefaultValue = "", ValidationRules = "maxLength:100", Options = "" },
+                new CustomField { Name = "Product SKU", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 7, DefaultValue = "", ValidationRules = "maxLength:100", Options = "" },
+                new CustomField { Name = "Product Dimensions", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 8, DefaultValue = "", ValidationRules = "maxLength:100", Options = "" },
+                new CustomField { Name = "Product Weight", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 9, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "" },
+                new CustomField { Name = "Product Color Options", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 10, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
+
+                // Manufacturing Information Fields
+                new CustomField { Name = "Manufacturing Facility Name", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 11, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
+                new CustomField { Name = "Manufacturing Facility Location", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 12, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
+                new CustomField { Name = "Manufacturing Country", FieldType = "select", IsRequired = false, IsVisible = true, SortOrder = 13, DefaultValue = "United States", ValidationRules = "", Options = "United States,Canada,Mexico,China,India,Germany,United Kingdom,France,Italy,Japan,Other" },
+                new CustomField { Name = "Manufacturing Date", FieldType = "date", IsRequired = false, IsVisible = true, SortOrder = 14, DefaultValue = "", ValidationRules = "date", Options = "" },
+
+                // Environmental and Sustainability Fields
+                new CustomField { Name = "Environmental Impact Statement", FieldType = "textarea", IsRequired = false, IsVisible = true, SortOrder = 15, DefaultValue = "", ValidationRules = "maxLength:1000", Options = "" },
+                new CustomField { Name = "Third-Party Certifications", FieldType = "multiselect", IsRequired = false, IsVisible = true, SortOrder = 16, DefaultValue = "", ValidationRules = "", Options = "LEED,Energy Star,GREENGUARD,Cradle to Cradle,FSC,PEFC,SFI,Carbon Neutral,ISO 14001,Other" },
+                new CustomField { Name = "Carbon Footprint (kg CO2e)", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 17, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "" },
+                new CustomField { Name = "Water Usage (liters)", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 18, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "" },
+                new CustomField { Name = "Energy Consumption (kWh)", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 19, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "" },
+                new CustomField { Name = "Recycled Content Percentage", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 20, DefaultValue = "", ValidationRules = "numeric,min:0,max:100", Options = "" },
+
+                // Testing and Compliance Fields
+                new CustomField { Name = "Test Report Number", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 21, DefaultValue = "", ValidationRules = "maxLength:100", Options = "" },
+                new CustomField { Name = "Test Laboratory Name", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 22, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
+                new CustomField { Name = "Test Date", FieldType = "date", IsRequired = false, IsVisible = true, SortOrder = 23, DefaultValue = "", ValidationRules = "date", Options = "" },
+                new CustomField { Name = "Compliance Standards", FieldType = "multiselect", IsRequired = false, IsVisible = true, SortOrder = 24, DefaultValue = "", ValidationRules = "", Options = "ISO 14024,ISO 14025,ISO 14040,ASTM Standards,ANSI Standards,UL Standards,Other" },
+
+                // Additional Information Fields
+                new CustomField { Name = "Special Notes", FieldType = "textarea", IsRequired = false, IsVisible = true, SortOrder = 25, DefaultValue = "", ValidationRules = "maxLength:2000", Options = "" },
+                new CustomField { Name = "Internal Reference Number", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 26, DefaultValue = "", ValidationRules = "maxLength:100", Options = "" },
+                new CustomField { Name = "Priority Level", FieldType = "select", IsRequired = false, IsVisible = true, SortOrder = 27, DefaultValue = "Normal", ValidationRules = "", Options = "Low,Normal,High,Urgent" },
+                new CustomField { Name = "Certificate Visibility", FieldType = "select", IsRequired = false, IsVisible = true, SortOrder = 28, DefaultValue = "Public", ValidationRules = "", Options = "Public,Partner Only,Internal Only,Confidential" },
+                new CustomField { Name = "Renewal Reminder Date", FieldType = "date", IsRequired = false, IsVisible = true, SortOrder = 29, DefaultValue = "", ValidationRules = "date", Options = "" },
+                new CustomField { Name = "Assigned Analyst", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 30, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" }
+            };
+
+            await context.CustomFields.AddRangeAsync(customFields);
+            await context.SaveChangesAsync();
+
             // Seed Roles and Permissions
             var permissions = new List<Permission>
             {

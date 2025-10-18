@@ -83,30 +83,17 @@ namespace GCCWebApp.Controllers
         {
             await _performanceMonitoring.MonitorAsync("Dashboard.LoadAdminData", async () =>
             {
-                // Load comprehensive statistics for internal users - optimize with parallel execution
-                var statsTask = _certificateRepository.GetCertificateStatisticsAsync();
-                var recentCertsTask = _certificateRepository.GetPagedCertificatesAsync(1, 5);
-                var expiringCertsTask = _certificateRepository.GetCertificatesExpiringInDaysAsync(30);
-                var companiesCountTask = _unitOfWork.Companies.CountAsync();
-                var productsCountTask = _unitOfWork.Products.CountAsync();
-                var certTypesCountTask = _unitOfWork.CertificationTypes.CountAsync();
-                var certTypeBreakdownTask = _certificateRepository.GetCertificationTypeStatisticsAsync();
-                var topCompaniesTask = _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
-                var productTypeBreakdownTask = _certificateRepository.GetProductTypeStatisticsAsync(10);
-
-                // Execute all queries in parallel
-                await Task.WhenAll(statsTask, recentCertsTask, expiringCertsTask, companiesCountTask, 
-                    productsCountTask, certTypesCountTask, certTypeBreakdownTask, topCompaniesTask, productTypeBreakdownTask);
-
-                model.Statistics = await statsTask;
-                model.RecentCertificates = (await recentCertsTask).certificates;
-                model.ExpiringCertificates = await expiringCertsTask;
-                model.TotalCompanies = await companiesCountTask;
-                model.TotalProducts = await productsCountTask;
-                model.TotalCertificationTypes = await certTypesCountTask;
-                model.CertificationTypeBreakdown = await certTypeBreakdownTask;
-                model.TopCompaniesBreakdown = await topCompaniesTask;
-                model.ProductTypeBreakdown = await productTypeBreakdownTask;
+                // Load comprehensive statistics for internal users - sequential to avoid DbContext concurrency issues
+                model.Statistics = await _certificateRepository.GetCertificateStatisticsAsync();
+                var recentCerts = await _certificateRepository.GetPagedCertificatesAsync(1, 5);
+                model.RecentCertificates = recentCerts.certificates;
+                model.ExpiringCertificates = await _certificateRepository.GetCertificatesExpiringInDaysAsync(30);
+                model.TotalCompanies = await _unitOfWork.Companies.CountAsync();
+                model.TotalProducts = await _unitOfWork.Products.CountAsync();
+                model.TotalCertificationTypes = await _unitOfWork.CertificationTypes.CountAsync();
+                model.CertificationTypeBreakdown = await _certificateRepository.GetCertificationTypeStatisticsAsync();
+                model.TopCompaniesBreakdown = await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
+                model.ProductTypeBreakdown = await _certificateRepository.GetProductTypeStatisticsAsync(10);
             });
         }
 

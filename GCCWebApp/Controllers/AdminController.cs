@@ -650,17 +650,21 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetCSFAttributes()
+        public async Task<IActionResult> GetCSFAttributes()
         {
-            var attributes = new List<CSFAttributeViewModel>
+            try
             {
-                new CSFAttributeViewModel { Id = 1, Name = "Biobased", Description = "Made from renewable biological resources", IsActive = true },
-                new CSFAttributeViewModel { Id = 2, Name = "Biodegradable", Description = "Capable of being decomposed by bacteria", IsActive = true },
-                new CSFAttributeViewModel { Id = 3, Name = "Carbon Footprint Reduction", Description = "Reduces carbon emissions", IsActive = true },
-                new CSFAttributeViewModel { Id = 4, Name = "Certified Energy Savings", Description = "Verified energy efficiency improvements", IsActive = true }
-            };
-
-            return Json(new ApiResponse<List<CSFAttributeViewModel>> { Success = true, Data = attributes });
+                var attributes = await _adminService.GetCSFAttributesAsync();
+                return Json(new ApiResponse<List<CSFAttributeViewModel>> { Success = true, Data = attributes });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<CSFAttributeViewModel>>
+                {
+                    Success = false,
+                    Message = "Error retrieving CSF attributes: " + ex.Message
+                });
+            }
         }
 
         // Tags
@@ -670,18 +674,21 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetTags()
+        public async Task<IActionResult> GetTags()
         {
-            var tags = new List<TagViewModel>
+            try
             {
-                new TagViewModel { Id = 1, Name = "Biodegradable", TagType = "Internal", ProductCount = 17 },
-                new TagViewModel { Id = 2, Name = "Carbon Neutral", TagType = "External", ProductCount = 22 },
-                new TagViewModel { Id = 3, Name = "Energy Efficient", TagType = "External", ProductCount = 28 },
-                new TagViewModel { Id = 4, Name = "Post-Consumer Recycled", TagType = "External", ProductCount = 29 },
-                new TagViewModel { Id = 5, Name = "Sustainable Materials", TagType = "External", ProductCount = 42 }
-            };
-
-            return Json(new ApiResponse<List<TagViewModel>> { Success = true, Data = tags });
+                var tags = await _adminService.GetTagsAsync();
+                return Json(new ApiResponse<List<TagViewModel>> { Success = true, Data = tags });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<List<TagViewModel>>
+                {
+                    Success = false,
+                    Message = "Error retrieving tags: " + ex.Message
+                });
+            }
         }
 
         // Partners

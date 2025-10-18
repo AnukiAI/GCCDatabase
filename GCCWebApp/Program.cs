@@ -100,27 +100,36 @@ if (!string.IsNullOrEmpty(connectionString))
         });
         Console.WriteLine("Using MySQL/MariaDB database provider");
     }
-    else if (connectionString.Contains("Data Source=") && connectionString.EndsWith(".db"))
-    {
-        // SQLite connection string format
-        builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlite(connectionString));
-        Console.WriteLine("Using SQLite database provider");
-    }
     else
     {
-        // Default to SQLite for development
-        builder.Services.AddDbContext<ApplicationDbContext>(options =>
-            options.UseSqlite(connectionString));
-        Console.WriteLine("Using default SQLite database provider");
+        // FAIL-FAST: Unrecognized connection string format
+        var errorMessage = $"Invalid or unrecognized database connection string format.\n" +
+            $"Connection string: {connectionString.Substring(0, Math.Min(50, connectionString.Length))}...\n\n" +
+            $"REQUIRED: SQL Server connection string must contain:\n" +
+            $"  - 'Server=' or 'Server=tcp:'\n" +
+            $"  - 'Database='\n" +
+            $"  - Either 'Integrated Security' OR 'User Id=' and 'Password='\n\n" +
+            $"Example: Server=SERVERNAME;Database=DBNAME;User Id=USER;Password=PASS;MultipleActiveResultSets=true;TrustServerCertificate=true;Encrypt=true;\n\n" +
+            $"IMPORTANT: SQLite and other database providers are not supported in this application.\n" +
+            $"Only SQL Server is allowed for data storage.";
+
+        Console.Error.WriteLine($"❌ CRITICAL DATABASE CONFIGURATION ERROR\n{errorMessage}");
+        throw new InvalidOperationException(errorMessage);
     }
 }
 else
 {
-    // Fallback to SQLite for development
-    builder.Services.AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlite("Data Source=gcc_database.db"));
-    Console.WriteLine("Using default SQLite database provider");
+    // FAIL-FAST: No connection string configured
+    var errorMessage = "No database connection string configured.\n\n" +
+        "REQUIRED: 'DefaultConnection' must be configured in appsettings.json\n\n" +
+        "Example configuration:\n" +
+        "\"ConnectionStrings\": {\n" +
+        "  \"DefaultConnection\": \"Server=SERVERNAME;Database=DBNAME;User Id=USER;Password=PASS;MultipleActiveResultSets=true;TrustServerCertificate=true;Encrypt=true;\"\n" +
+        "}\n\n" +
+        "IMPORTANT: Only SQL Server is supported. SQLite and other database providers are not allowed.";
+
+    Console.Error.WriteLine($"❌ CRITICAL DATABASE CONFIGURATION ERROR\n{errorMessage}");
+    throw new InvalidOperationException(errorMessage);
 }
 
 // ===== AZURE AD B2C AUTHENTICATION =====
@@ -631,28 +640,29 @@ using (var scope = app.Services.CreateScope())
         }
         else if (app.Environment.IsStaging())
         {
-            // Staging: Apply migrations but minimal seeding
-            await context.Database.MigrateAsync();
+            // Staging: MANUAL MIGRATION MANAGEMENT - Do not auto-migrate
+            // Database schema must be managed via SQL scripts (00_CREATE_SCHEMA.sql, FULL_TEST_DATA_SEED.sql)
+            logger.LogInformation("🔧 Staging environment - skipping automatic migrations (manual migration management enabled)");
 
-            // Only seed essential data (roles, permissions) for staging - no test certificates
-            var hasData = await context.Companies.AnyAsync();
-            if (!hasData)
+            // Validate database connectivity
+            var canConnect = await context.Database.CanConnectAsync();
+            if (!canConnect)
             {
-                logger.LogInformation("🔄 Staging environment detected - applying essential data only");
-                // TODO: Create StagingDataSeeder for minimal essential data
-                // await StagingDataSeeder.InitializeAsync(context);
+                logger.LogCritical("🚨 CRITICAL: Staging database connection failed!");
+                throw new InvalidOperationException("Staging database is not accessible");
             }
-            logger.LogInformation("✅ Staging database migrations and essential data applied successfully");
+
+            logger.LogInformation("✅ Staging database connectivity verified");
         }
         else if (app.Environment.IsProduction())
         {
-            // Production: Only apply migrations, never seed test data
-            await context.Database.MigrateAsync();
-            logger.LogInformation("✅ Production database migrations applied successfully");
+            // Production: MANUAL MIGRATION MANAGEMENT - Do not auto-migrate
+            // Database schema must be managed via SQL scripts (00_CREATE_SCHEMA.sql, FULL_TEST_DATA_SEED.sql)
+            logger.LogInformation("🔧 Production environment - skipping automatic migrations (manual migration management enabled)");
 
-            // Validate production database state
-            var tablesExist = await context.Database.CanConnectAsync();
-            if (!tablesExist)
+            // Validate database connectivity
+            var canConnect = await context.Database.CanConnectAsync();
+            if (!canConnect)
             {
                 logger.LogCritical("🚨 CRITICAL: Production database connection failed!");
                 throw new InvalidOperationException("Production database is not accessible");
@@ -662,9 +672,15 @@ using (var scope = app.Services.CreateScope())
         }
         else
         {
-            // Unknown environment - fail safe with migrations only
-            logger.LogWarning("⚠️  Unknown environment '{Environment}' - applying migrations only", app.Environment.EnvironmentName);
-            await context.Database.MigrateAsync();
+            // Unknown environment - MANUAL MIGRATION MANAGEMENT
+            logger.LogWarning("⚠️  Unknown environment '{Environment}' - skipping automatic migrations (manual migration management enabled)", app.Environment.EnvironmentName);
+
+            // Validate database connectivity
+            var canConnect = await context.Database.CanConnectAsync();
+            if (!canConnect)
+            {
+                logger.LogWarning("⚠️  Database connection failed in unknown environment");
+            }
         }
     }
     catch (Exception ex)

@@ -415,29 +415,74 @@ document.addEventListener('DOMContentLoaded', function () {
         window.AppUtils.exportToCSV(exportData, 'certificates.csv');
     }
 
-    // Simulate certificate import
-    function importCertificates() {
-        window.AppUtils.importFromCSV((data) => {
+    // Import certificates from CSV and save to database
+    async function importCertificates() {
+        window.AppUtils.importFromCSV(async (data) => {
             console.log('Imported certificate data:', data);
 
-            // In real implementation, you would validate and save to server
-            window.AppUtils.showToast(`${data.length} certificates imported successfully`);
+            if (!data || data.length === 0) {
+                window.AppUtils.showToast('No data to import', 'error');
+                return;
+            }
 
-            // For demo, just add to local array
-            const newCertificates = data.map((item, index) => ({
-                id: `IMPORT-${Date.now()}-${index}`,
-                companyName: item['Company Name'] || 'Unknown Company',
-                productName: item['Product Name'] || 'Unknown Product',
-                category: item['Category'] || 'Unknown Category',
-                certType: item['Certification Type'] || 'CERTIFIED SUSTAINABILITY FACTS',
-                effectiveDate: item['Effective Date'] || 'TBD',
-                expirationDate: item['Expiration Date'] || 'TBD',
-                location: item['Location'] || 'Unknown',
-                country: item['Country'] || 'Unknown'
+            if (data.length > 100) {
+                window.AppUtils.showToast('Maximum 100 certificates can be imported at once', 'error');
+                return;
+            }
+
+            // Transform CSV data to match backend DTO format
+            const importDto = data.map((item) => ({
+                Number: item['Certificate Number'] || item['Number'] || '',
+                CompanyName: item['Company Name'] || '',
+                ProductName: item['Product Name'] || '',
+                Category: item['Category'] || '',
+                CertificationType: item['Certification Type'] || 'CERTIFIED SUSTAINABILITY FACTS',
+                EffectiveDate: item['Effective Date'] || '',
+                ExpirationDate: item['Expiration Date'] || '',
+                Location: item['Location'] || '',
+                Country: item['Country'] || '',
+                Status: item['Status'] || 'Active'
             }));
 
-            certificatesData = [...certificatesData, ...newCertificates];
-            updateCertificateGrid(certificatesData);
+            try {
+                // Send to backend API
+                const response = await fetch('/Certificate/Import', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(importDto)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    const { successCount, failureCount, failed } = result.data;
+
+                    // Show success message
+                    if (failureCount === 0) {
+                        window.AppUtils.showToast(`Successfully imported ${successCount} certificates`);
+                    } else {
+                        window.AppUtils.showToast(
+                            `Imported ${successCount} of ${successCount + failureCount} certificates. ${failureCount} failed.`,
+                            'warning'
+                        );
+
+                        // Log failed imports to console
+                        if (failed && failed.length > 0) {
+                            console.error('Failed imports:', failed);
+                        }
+                    }
+
+                    // Reload certificates from API to show newly imported data
+                    await loadCertificatesFromAPI();
+                } else {
+                    window.AppUtils.showToast(result.message || 'Import failed', 'error');
+                }
+            } catch (error) {
+                console.error('Error importing certificates:', error);
+                window.AppUtils.showToast('Failed to import certificates. Please try again.', 'error');
+            }
         });
     }
 

@@ -63,33 +63,8 @@
 
 @section Scripts {
     <script>
-        // Sample data for initial display
-        let companies = [
-            {
-                id: 1,
-                name: 'Acme Corporation',
-                email: 'info@acme.com',
-                url: 'https://www.acme.com'
-            },
-            {
-                id: 2,
-                name: 'Globex Industries',
-                email: 'sales@globex.com',
-                url: 'https://www.globex.com'
-            },
-            {
-                id: 3,
-                name: 'Stark Enterprises',
-                email: 'hello@stark.com',
-                url: 'https://www.stark.com'
-            },
-            {
-                id: 4,
-                name: 'Wayne Technologies',
-                email: 'contact@waynetech.com',
-                url: 'https://www.waynetech.com'
-            }
-        ];
+        // Companies array - will be loaded from database
+        let companies = [];
 
         // DOM Elements
         const companyTable = document.getElementById('company-table');
@@ -561,6 +536,32 @@
             }, 3000);
         }
 
+        // Load companies from database
+        async function loadCompanies() {
+            try {
+                const response = await fetch('/Company/GetCompanies');
+                const result = await response.json();
+
+                if (result.success && result.data) {
+                    // Map server data to match client format
+                    companies = result.data.map(c => ({
+                        id: c.id,
+                        name: c.name,
+                        email: c.email,
+                        url: c.url // Server returns 'url' property from CompanyViewModel
+                    }));
+                    console.log(`Loaded ${companies.length} companies from database`);
+                    sortData();
+                } else {
+                    console.error('Failed to load companies:', result.message);
+                    showToast('Failed to load companies: ' + (result.message || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                console.error('Error loading companies:', error);
+                showToast('Error loading companies: ' + error.message, 'error');
+            }
+        }
+
         // Event Listeners
         importBtn.addEventListener('click', importCSV);
         exportBtn.addEventListener('click', exportCSV);
@@ -570,8 +571,8 @@
             sortData();
         });
 
-        // Initialize
+        // Initialize - Load data from database
         initializeSortableHeaders();
-        sortData();
+        loadCompanies();
     </script>
 }

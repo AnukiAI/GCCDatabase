@@ -1,123 +1,37 @@
-// Sample data based on real GCC project data
-let users = [
-    {
-        id: 1,
-        name: 'Sarah Johnson',
-        company: ['assa-abloy'],
-        partners: ['amazon'],
-        email: 'sarah.johnson@assaabloy.com',
-        role: 'admin',
-        status: 'active',
-        lastLogin: '2025-07-15 09:15',
-        password: 'admin2025',
-        requirePasswordReset: false
-    },
-    {
-        id: 2,
-        name: 'Michael Chen',
-        company: ['assa-abloy-corbin', 'assa-abloy-sargent'],
-        partners: ['amazon', 'wayfair'],
-        email: 'michael.chen@assaabloy.com',
-        role: 'external-user',
-        status: 'active',
-        lastLogin: '2025-07-14 14:22',
-        password: 'external2025',
-        requirePasswordReset: false
-    },
-    {
-        id: 3,
-        name: 'Lisa Anderson',
-        company: ['greencircle-certified'],
-        partners: [],
-        email: 'lisa.anderson@greencircle.org',
-        role: 'gcc-user',
-        status: 'active',
-        lastLogin: '2025-07-15 11:05',
-        password: 'gcc2025',
-        requirePasswordReset: false
-    },
-    {
-        id: 4,
-        name: 'David Kim',
-        company: ['alcamare-intl'],
-        partners: ['amazon', 'target'],
-        email: 'david.kim@alcamare.com',
-        role: 'external-user',
-        status: 'inactive',
-        lastLogin: '2025-07-10 16:40',
-        password: 'alcamare2025',
-        requirePasswordReset: true
-    },
-    {
-        id: 5,
-        name: 'Emily Rodriguez',
-        company: ['greencircle-certified'],
-        partners: [],
-        email: 'emily.rodriguez@greencircle.org',
-        role: 'admin',
-        status: 'active',
-        lastLogin: '2025-07-15 08:50',
-        password: 'admin2025',
-        requirePasswordReset: false
-    },
-    {
-        id: 6,
-        name: 'James Wilson',
-        company: ['assa-abloy'],
-        partners: ['amazon', 'wayfair', 'walmart'],
-        email: 'james.wilson@assaabloy.com',
-        role: 'external-user',
-        status: 'active',
-        lastLogin: '2025-07-13 13:25',
-        password: 'external2025',
-        requirePasswordReset: false
-    },
-    {
-        id: 7,
-        name: 'Maria Garcia',
-        company: ['greencircle-certified'],
-        partners: [],
-        email: 'maria.garcia@greencircle.org',
-        role: 'gcc-user',
-        status: 'active',
-        lastLogin: '2025-07-15 10:30',
-        password: 'gcc2025',
-        requirePasswordReset: false
-    },
-    {
-        id: 8,
-        name: 'Robert Taylor',
-        company: ['assa-abloy-corbin'],
-        partners: ['amazon'],
-        email: 'robert.taylor@corbinrusswin.com',
-        role: 'external-user',
-        status: 'active',
-        lastLogin: '2025-07-12 15:45',
-        password: 'corbin2025',
-        requirePasswordReset: false
+// Users data loaded from database
+let users = [];
+
+// Company and Partner name lookups (will be populated from dropdowns)
+const companyNames = {};
+const partnerNames = {};
+
+// Function to load users from database
+async function loadUsers() {
+    try {
+        const response = await fetch('/Admin/GetUsers');
+        const result = await response.json();
+
+        if (result.success && result.data) {
+            // Map database model to UI model
+            users = result.data.map(user => ({
+                id: user.id,
+                name: user.name,
+                company: user.companyNames || [],
+                partners: user.partnerNames || [],
+                email: user.email,
+                role: user.role.toLowerCase(),
+                status: user.status.toLowerCase(),
+                lastLogin: user.lastLogin,
+                requirePasswordReset: user.requirePasswordReset || false
+            }));
+            applyFiltersAndSort();
+        } else {
+            console.error('Failed to load users:', result.message);
+        }
+    } catch (error) {
+        console.error('Error loading users:', error);
     }
-];
-
-// Company and Partner mappings based on real data
-const companyNames = {
-    'assa-abloy': 'ASSA ABLOY',
-    'assa-abloy-corbin': 'ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division',
-    'assa-abloy-sargent': 'ASSA ABLOY Access & Egress Hardware Group, Inc. - SARGENT Manufacturing Co.',
-    'greencircle-certified': 'GreenCircle Certified',
-    'alcamare-intl': 'Alcamare International Recycling Group',
-    'acme-corp': 'ACME Corp',
-    'tech-solutions': 'Tech Solutions',
-    'global-industries': 'Global Industries'
-};
-
-const partnerNames = {
-    'amazon': 'Amazon',
-    'wayfair': 'Wayfair',
-    'walmart': 'Walmart',
-    'target': 'Target',
-    'home-depot': 'Home Depot',
-    'lowes': 'Lowe\'s'
-};
+}
 
 // DOM Elements
 const userTable = document.getElementById('user-table');
@@ -256,7 +170,12 @@ function formatDate(dateStr) {
 // Function to format company/partner lists for display
 function formatList(array, mapping) {
     if (!array || array.length === 0) return '';
-    return array.map(item => mapping[item] || item).join(', ');
+    // If items are already full names (not slugs), just join them
+    // Otherwise use the mapping
+    return array.map(item => {
+        // If mapping exists and has the item, use it; otherwise return item as-is
+        return (mapping && mapping[item]) ? mapping[item] : item;
+    }).join(', ');
 }
 
 // Function to populate the table
@@ -814,10 +733,12 @@ window.addEventListener('click', (event) => {
     }
 });
 
-// Initialize
-initializeMultiSelect();
-initializeSortableHeaders();
-applyFiltersAndSort();
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    initializeMultiSelect();
+    initializeSortableHeaders();
+    loadUsers(); // Load users from database instead of using hardcoded data
+});
 
 // Make remove functions globally accessible
 window.removeCompany = removeCompany;

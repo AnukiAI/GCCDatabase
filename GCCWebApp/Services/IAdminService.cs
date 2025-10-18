@@ -42,7 +42,14 @@ namespace GCCWebApp.Services
         Task<bool> CreateCertificateFieldAsync(CertificateFieldViewModel model);
         Task<bool> UpdateCertificateFieldAsync(int id, CertificateFieldViewModel model);
         Task<bool> DeleteCertificateFieldAsync(int id);
-        
+
+        // CSF Attributes
+        Task<List<CSFAttributeViewModel>> GetCSFAttributesAsync();
+        Task<CSFAttributeViewModel?> GetCSFAttributeByIdAsync(int id);
+        Task<bool> CreateCSFAttributeAsync(CSFAttributeViewModel model);
+        Task<bool> UpdateCSFAttributeAsync(int id, CSFAttributeViewModel model);
+        Task<bool> DeleteCSFAttributeAsync(int id);
+
         // Tags
         Task<List<TagViewModel>> GetTagsAsync();
         Task<TagViewModel?> GetTagByIdAsync(int id);

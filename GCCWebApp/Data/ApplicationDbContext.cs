@@ -430,9 +430,9 @@ namespace GCCWebApp.Data
                     .Metadata.SetValueComparer(stringListComparer);
 
                 var dictionaryComparer = new ValueComparer<Dictionary<string, object>>(
-                    (c1, c2) => c1.Count == c2.Count && c1.Keys.All(k => c2.ContainsKey(k) && Equals(c1[k], c2[k])),
-                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value != null ? v.Value.GetHashCode() : 0)),
-                    c => new Dictionary<string, object>(c));
+                    (c1, c2) => c1 != null && c2 != null && c1.Count == c2.Count && c1.Keys.All(k => c2.ContainsKey(k) && Equals(c1[k], c2[k])),
+                    c => c != null ? c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value != null ? v.Value.GetHashCode() : 0)) : 0,
+                    c => c != null ? new Dictionary<string, object>(c) : new Dictionary<string, object>());
 
                 entity.Property(e => e.Settings)
                     .HasColumnType("TEXT")
@@ -450,9 +450,9 @@ namespace GCCWebApp.Data
                 entity.HasIndex(e => e.Timestamp);
 
                 var dictionaryComparer = new ValueComparer<Dictionary<string, object>>(
-                    (c1, c2) => c1.Count == c2.Count && c1.Keys.All(k => c2.ContainsKey(k) && Equals(c1[k], c2[k])),
-                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value != null ? v.Value.GetHashCode() : 0)),
-                    c => new Dictionary<string, object>(c));
+                    (c1, c2) => c1 != null && c2 != null && c1.Count == c2.Count && c1.Keys.All(k => c2.ContainsKey(k) && Equals(c1[k], c2[k])),
+                    c => c != null ? c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value != null ? v.Value.GetHashCode() : 0)) : 0,
+                    c => c != null ? new Dictionary<string, object>(c) : new Dictionary<string, object>());
 
                 entity.Property(e => e.Properties)
                     .HasColumnType("TEXT")
@@ -470,9 +470,9 @@ namespace GCCWebApp.Data
                 entity.HasIndex(e => e.IsResolved);
 
                 var dictionaryComparer = new ValueComparer<Dictionary<string, object>>(
-                    (c1, c2) => c1.Count == c2.Count && c1.Keys.All(k => c2.ContainsKey(k) && Equals(c1[k], c2[k])),
-                    c => c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value != null ? v.Value.GetHashCode() : 0)),
-                    c => new Dictionary<string, object>(c));
+                    (c1, c2) => c1 != null && c2 != null && c1.Count == c2.Count && c1.Keys.All(k => c2.ContainsKey(k) && Equals(c1[k], c2[k])),
+                    c => c != null ? c.Aggregate(0, (a, v) => HashCode.Combine(a, v.Key.GetHashCode(), v.Value != null ? v.Value.GetHashCode() : 0)) : 0,
+                    c => c != null ? new Dictionary<string, object>(c) : new Dictionary<string, object>());
 
                 entity.Property(e => e.Context)
                     .HasColumnType("TEXT")

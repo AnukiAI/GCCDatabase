@@ -1,72 +1,94 @@
 // Tags data loaded from database
 let tags = [];
+let currentFilter = 'all';
+let currentSearch = '';
 
 // DOM Elements
 const tagTable = document.getElementById('tag-table');
-const tagTableBody = tagTable.querySelector('tbody');
+const tagTableBody = tagTable?.querySelector('tbody');
 const tagCountElement = document.getElementById('tag-count');
 const searchInput = document.getElementById('search-input');
-const addTagBtn = document.getElementById('add-tag-btn');
-const importBtn = document.getElementById('import-btn');
-const exportBtn = document.getElementById('export-btn');
-
-const modal = document.getElementById('tag-modal');
-const modalTitle = document.getElementById('modal-title');
-const modalClose = document.querySelector('.modal-close');
-const cancelBtn = document.getElementById('cancel-btn');
-const tagForm = document.getElementById('tag-form');
-const tagIdInput = document.getElementById('tag-id');
-const tagNameInput = document.getElementById('tag-name');
-const tagTypeInput = document.getElementById('tag-type');
-const tagDescriptionInput = document.getElementById('tag-description');
+const typeFilter = document.getElementById('type-filter');
 
 // Sorting variables
 let sortColumn = 'name';
 let sortDirection = 'asc';
 
+// Get CSRF token for POST/PUT/DELETE requests
+function getAntiForgeryToken() {
+    return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+}
+
 // Function to populate the table
 function populateTable(data) {
+    if (!tagTableBody) return;
+
     tagTableBody.innerHTML = '';
+
+    if (data.length === 0) {
+        const row = document.createElement('tr');
+        row.className = 'admin-table-row';
+        const cell = document.createElement('td');
+        cell.className = 'admin-table-td admin-table-td--empty';
+        cell.colSpan = 4;
+        cell.textContent = 'No tags found';
+        cell.style.textAlign = 'center';
+        cell.style.padding = '2rem';
+        row.appendChild(cell);
+        tagTableBody.appendChild(row);
+
+        if (tagCountElement) {
+            tagCountElement.textContent = 'No tags found';
+        }
+        return;
+    }
 
     data.forEach(tag => {
         const row = document.createElement('tr');
+        row.className = 'admin-table-row';
         row.dataset.id = tag.id;
 
         // Tag name
         const nameCell = document.createElement('td');
+        nameCell.className = 'admin-table-td tag-name';
         nameCell.textContent = tag.name;
         row.appendChild(nameCell);
 
         // Tag type
         const typeCell = document.createElement('td');
+        typeCell.className = 'admin-table-td admin-table-td--hidden-mobile';
         const typeSpan = document.createElement('span');
-        typeSpan.className = `tag-type-badge ${tag.type}`;
-        typeSpan.textContent = tag.type.charAt(0).toUpperCase() + tag.type.slice(1);
+        typeSpan.className = `admin-badge admin-badge--${tag.tagType === 'external' ? 'success' : 'info'}`;
+        typeSpan.textContent = tag.tagType.charAt(0).toUpperCase() + tag.tagType.slice(1);
         typeCell.appendChild(typeSpan);
         row.appendChild(typeCell);
 
         // Description
         const descCell = document.createElement('td');
+        descCell.className = 'admin-table-td admin-table-td--hidden-mobile';
         descCell.textContent = tag.description || '';
         row.appendChild(descCell);
 
         // Actions
         const actionsCell = document.createElement('td');
+        actionsCell.className = 'admin-table-td admin-table-td--actions';
         const actionButtons = document.createElement('div');
-        actionButtons.className = 'action-buttons';
+        actionButtons.className = 'admin-action-buttons';
 
         const editButton = document.createElement('button');
-        editButton.className = 'action-btn';
+        editButton.className = 'admin-action-btn admin-action-btn--edit';
         editButton.innerHTML = '<i class="fas fa-edit"></i>';
-        editButton.title = 'Edit';
+        editButton.title = 'Edit tag';
+        editButton.setAttribute('aria-label', `Edit ${tag.name}`);
         editButton.addEventListener('click', () => openEditModal(tag));
         actionButtons.appendChild(editButton);
 
         const deleteButton = document.createElement('button');
-        deleteButton.className = 'action-btn';
+        deleteButton.className = 'admin-action-btn admin-action-btn--delete';
         deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
-        deleteButton.title = 'Delete';
-        deleteButton.addEventListener('click', () => deleteTag(tag.id));
+        deleteButton.title = 'Delete tag';
+        deleteButton.setAttribute('aria-label', `Delete ${tag.name}`);
+        deleteButton.addEventListener('click', () => deleteTag(tag.id, tag.name));
         actionButtons.appendChild(deleteButton);
 
         actionsCell.appendChild(actionButtons);
@@ -75,20 +97,15 @@ function populateTable(data) {
         tagTableBody.appendChild(row);
     });
 
-    tagCountElement.textContent = `Showing ${data.length} of ${tags.length} tags`;
-}
-
-// Function to save inline edits
-function saveInlineEdit(id, field, value) {
-    const tagIndex = tags.findIndex(t => t.id === id);
-    if (tagIndex !== -1) {
-        tags[tagIndex][field] = value;
-        sortData();
+    if (tagCountElement) {
+        tagCountElement.textContent = `Showing ${data.length} of ${tags.length} tags`;
     }
 }
 
 // Function to initialize the table sortable headers
 function initializeSortableHeaders() {
+    if (!tagTable) return;
+
     const headers = tagTable.querySelectorAll('th[data-sort]');
 
     headers.forEach(header => {
@@ -105,20 +122,12 @@ function initializeSortableHeaders() {
 
             // Update header styling
             headers.forEach(h => {
-                h.classList.remove('active-sort');
-                const icon = h.querySelector('.sort-icon');
-                if (icon) {
-                    icon.textContent = '▼';
-                    icon.style.opacity = '0.6';
-                }
+                h.classList.remove('admin-table-th--sorted-asc', 'admin-table-th--sorted-desc');
+                h.removeAttribute('aria-sort');
             });
 
-            header.classList.add('active-sort');
-            const sortIcon = header.querySelector('.sort-icon');
-            if (sortIcon) {
-                sortIcon.textContent = sortDirection === 'asc' ? '▼' : '▲';
-                sortIcon.style.opacity = '1';
-            }
+            header.classList.add(`admin-table-th--sorted-${sortDirection}`);
+            header.setAttribute('aria-sort', sortDirection === 'asc' ? 'ascending' : 'descending');
 
             // Sort the data
             sortData();
@@ -146,9 +155,7 @@ function sortData() {
 
 // Function to filter the data based on search input
 function getFilteredData() {
-    const searchTerm = searchInput.value.toLowerCase();
-    const typeFilter = document.getElementById('type-filter').value;
-
+    const searchTerm = currentSearch.toLowerCase();
     let filteredData = [...tags];
 
     // Apply search filter
@@ -156,15 +163,15 @@ function getFilteredData() {
         filteredData = filteredData.filter(tag => {
             return (
                 tag.name.toLowerCase().includes(searchTerm) ||
-                tag.type.toLowerCase().includes(searchTerm) ||
+                tag.tagType.toLowerCase().includes(searchTerm) ||
                 (tag.description && tag.description.toLowerCase().includes(searchTerm))
             );
         });
     }
 
     // Apply type filter
-    if (typeFilter && typeFilter !== 'all') {
-        filteredData = filteredData.filter(tag => tag.type === typeFilter);
+    if (currentFilter && currentFilter !== 'all') {
+        filteredData = filteredData.filter(tag => tag.tagType === currentFilter);
     }
 
     return filteredData;
@@ -172,191 +179,137 @@ function getFilteredData() {
 
 // Function to open the modal for adding a new tag
 function openAddModal() {
-    modalTitle.textContent = 'Add New Tag';
-    tagForm.reset();
-    tagIdInput.value = '';
-    modal.style.display = 'block';
+    const modal = document.getElementById('tag-modal');
+    const modalTitle = document.getElementById('modal-title');
+    const tagForm = document.getElementById('tag-form');
+    const tagIdInput = document.getElementById('tag-id');
+
+    if (modalTitle) modalTitle.textContent = 'Add New Tag';
+    if (tagForm) tagForm.reset();
+    if (tagIdInput) tagIdInput.value = '';
+
+    AdminCore.openModal('tag-modal');
 }
 
 // Function to open the modal for editing a tag
 function openEditModal(tag) {
-    modalTitle.textContent = 'Edit Tag';
-    tagIdInput.value = tag.id;
-    tagNameInput.value = tag.name;
-    tagTypeInput.value = tag.type;
-    tagDescriptionInput.value = tag.description || '';
-    modal.style.display = 'block';
-}
+    const modalTitle = document.getElementById('modal-title');
+    const tagIdInput = document.getElementById('tag-id');
+    const tagNameInput = document.getElementById('tag-name');
+    const tagTypeInput = document.getElementById('tag-type');
+    const tagDescriptionInput = document.getElementById('tag-description');
 
-// Function to close the modal
-function closeModal() {
-    modal.style.display = 'none';
+    if (modalTitle) modalTitle.textContent = 'Edit Tag';
+    if (tagIdInput) tagIdInput.value = tag.id;
+    if (tagNameInput) tagNameInput.value = tag.name;
+    if (tagTypeInput) tagTypeInput.value = tag.tagType;
+    if (tagDescriptionInput) tagDescriptionInput.value = tag.description || '';
+
+    AdminCore.openModal('tag-modal');
 }
 
 // Function to save a tag (add or update)
-function saveTag(event) {
+async function saveTag(event) {
     event.preventDefault();
 
-    const tagId = tagIdInput.value;
+    const tagIdInput = document.getElementById('tag-id');
+    const tagNameInput = document.getElementById('tag-name');
+    const tagTypeInput = document.getElementById('tag-type');
+    const tagDescriptionInput = document.getElementById('tag-description');
+    const saveBtn = document.getElementById('save-btn');
+
+    const tagId = tagIdInput?.value;
     const tagData = {
-        name: tagNameInput.value,
-        type: tagTypeInput.value,
-        description: tagDescriptionInput.value
+        name: tagNameInput?.value || '',
+        tagType: tagTypeInput?.value || '',
+        description: tagDescriptionInput?.value || ''
     };
 
-    if (tagId) {
-        // Update existing tag
-        const index = tags.findIndex(t => t.id === tagId);
-        if (index !== -1) {
-            tags[index] = {
-                ...tags[index],
-                ...tagData
-            };
-        }
-    } else {
-        // Add new tag - Create a new ID
-        const newId = generateNewId();
-        tags.push({
-            id: newId,
-            ...tagData
-        });
-    }
-
-    closeModal();
-    sortData();
-}
-
-// Function to generate a new Tag ID
-function generateNewId() {
-    // Find the highest numeric ID and increment
-    const numericIds = tags.map(tag => parseInt(tag.id));
-    const maxId = Math.max(...numericIds);
-
-    // Format with leading zero if needed
-    const newId = (maxId + 1).toString().padStart(2, '0');
-    return newId;
-}
-
-// Function to delete a tag
-function deleteTag(id) {
-    if (confirm('Are you sure you want to delete this tag?')) {
-        tags = tags.filter(tag => tag.id !== id);
-        sortData();
-    }
-}
-
-// Function to handle CSV import
-function importCSV() {
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = '.csv';
-
-    fileInput.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const contents = e.target.result;
-            const lines = contents.split('\n');
-
-            // Skip header row and process data
-            const newTags = [];
-
-            for (let i = 1; i < lines.length; i++) {
-                const line = lines[i].trim();
-                if (!line) continue;
-
-                const fields = line.split(',');
-                if (fields.length < 3) continue;
-
-                newTags.push({
-                    id: fields[0].trim(),
-                    name: fields[1].trim(),
-                    type: fields[2].trim(),
-                    products: parseInt(fields[3]) || 0
-                });
-            }
-
-            // Merge with existing data
-            const existingIds = tags.map(t => t.id);
-            const filteredNewTags = newTags.filter(t => !existingIds.includes(t.id));
-
-            tags = [...tags, ...filteredNewTags];
-            sortData();
-        };
-
-        reader.readAsText(file);
-    });
-
-    fileInput.click();
-}
-
-// Function to export to CSV
-function exportCSV() {
-    if (tags.length === 0) {
-        alert('No tags to export');
+    // Validate required fields
+    if (!tagData.name || !tagData.tagType) {
+        AdminCore.showNotification('Please fill in all required fields', 'error');
         return;
     }
 
-    // Create CSV header
-    const header = 'Tag ID,Tag Name,Tag Type,Description\n';
-    
-    // Create CSV rows - properly escape fields that contain commas or quotes
-    const rows = tags.map(tag => {
-        const id = tag.id;
-        const name = tag.name.includes(',') || tag.name.includes('"') 
-            ? `"${tag.name.replace(/"/g, '""')}"` 
-            : tag.name;
-        const type = tag.type;
-        const description = (tag.description || '').includes(',') || (tag.description || '').includes('"')
-            ? `"${(tag.description || '').replace(/"/g, '""')}"`
-            : (tag.description || '');
-        
-        return `${id},${name},${type},${description}`;
-    }).join('\n');
+    // Show loading state
+    if (saveBtn) AdminCore.showLoading(saveBtn);
 
-    const csv = header + rows;
+    try {
+        const token = getAntiForgeryToken();
+        let response;
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
+        if (tagId) {
+            // Update existing tag
+            response = await fetch(`/Admin/UpdateTag/${tagId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(tagData)
+            });
+        } else {
+            // Create new tag
+            response = await fetch('/Admin/CreateTag', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(tagData)
+            });
+        }
 
-    link.setAttribute('href', url);
-    link.setAttribute('download', `tags_${new Date().toISOString().split('T')[0]}.csv`);
-    link.style.visibility = 'hidden';
+        const result = await response.json();
 
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-}
+        if (result.success) {
+            AdminCore.showNotification(result.message || 'Tag saved successfully!', 'success');
+            AdminCore.closeModal('tag-modal');
 
-// Event Listeners
-addTagBtn.addEventListener('click', openAddModal);
-exportBtn.addEventListener('click', exportCSV);
-modalClose.addEventListener('click', closeModal);
-cancelBtn.addEventListener('click', closeModal);
-tagForm.addEventListener('submit', saveTag);
-
-searchInput.addEventListener('input', () => {
-    sortData();
-});
-
-// Add type filter listener
-const typeFilter = document.getElementById('type-filter');
-if (typeFilter) {
-    typeFilter.addEventListener('change', () => {
-        sortData();
-    });
-}
-
-// Close modal when clicking outside
-window.addEventListener('click', (event) => {
-    if (event.target === modal) {
-        closeModal();
+            // Reload tags from server
+            await loadTags();
+        } else {
+            AdminCore.showNotification(result.message || 'Failed to save tag', 'error');
+        }
+    } catch (error) {
+        console.error('Error saving tag:', error);
+        AdminCore.showNotification('An error occurred while saving the tag', 'error');
+    } finally {
+        if (saveBtn) AdminCore.hideLoading(saveBtn);
     }
-});
+}
+
+// Function to delete a tag
+async function deleteTag(id, name) {
+    if (!confirm(`Are you sure you want to delete the tag "${name}"?`)) {
+        return;
+    }
+
+    try {
+        const token = getAntiForgeryToken();
+        const response = await fetch(`/Admin/DeleteTag/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': token
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            AdminCore.showNotification(result.message || 'Tag deleted successfully!', 'success');
+
+            // Reload tags from server
+            await loadTags();
+        } else {
+            AdminCore.showNotification(result.message || 'Failed to delete tag', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting tag:', error);
+        AdminCore.showNotification('An error occurred while deleting the tag', 'error');
+    }
+}
 
 // Function to load tags from database
 async function loadTags() {
@@ -365,25 +318,179 @@ async function loadTags() {
         const result = await response.json();
 
         if (result.success && result.data) {
-            // Map database model to our UI model
-            tags = result.data.map(tag => ({
-                id: tag.id.toString(),
-                name: tag.name,
-                type: tag.tagType,
-                description: tag.description || '',
-                productCount: tag.productCount || 0
-            }));
+            tags = result.data;
             sortData();
         } else {
             console.error('Failed to load tags:', result.message);
+            AdminCore.showNotification('Failed to load tags', 'error');
         }
     } catch (error) {
         console.error('Error loading tags:', error);
+        AdminCore.showNotification('An error occurred while loading tags', 'error');
     }
 }
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+// Function to download import template
+function downloadImportTemplate() {
+    try {
+        // Create template data with example row
+        const templateData = [
+            {
+                Name: 'Sustainable',
+                TagType: 'external',
+                Description: 'Products with sustainability features'
+            }
+        ];
+
+        // Create CSV content
+        const headers = ['Name', 'TagType', 'Description'];
+        const csvContent = [
+            headers.join(','),
+            ...templateData.map(row =>
+                headers.map(header => {
+                    const value = row[header] || '';
+                    // Escape quotes and wrap in quotes if contains comma
+                    return value.includes(',') || value.includes('"')
+                        ? `"${value.replace(/"/g, '""')}"`
+                        : value;
+                }).join(',')
+            )
+        ].join('\n');
+
+        // Download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `tags_import_template_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        AdminCore.showNotification('Import template downloaded successfully', 'success');
+    } catch (error) {
+        console.error('Error downloading template:', error);
+        AdminCore.showNotification('Error downloading template. Please try again.', 'error');
+    }
+}
+
+// Function to show import modal (placeholder)
+function showImportModal() {
+    AdminCore.showNotification('Import functionality coming soon', 'info');
+}
+
+// Initialize tag management
+function initializeTagManagement() {
     initializeSortableHeaders();
-    loadTags(); // Load from database instead of using hardcoded data
+    loadTags();
+}
+
+// Event Listeners
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tag management
+    if (typeof initializeTagManagement === 'function') {
+        initializeTagManagement();
+    }
+
+    // Add Tag button
+    const addTagBtn = document.getElementById('add-tag-btn');
+    if (addTagBtn) {
+        addTagBtn.addEventListener('click', openAddModal);
+    }
+
+    // Cancel button
+    const cancelBtn = document.getElementById('cancel-btn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            AdminCore.closeModal('tag-modal');
+        });
+    }
+
+    // Form submission
+    const tagForm = document.getElementById('tag-form');
+    if (tagForm) {
+        tagForm.addEventListener('submit', saveTag);
+    }
+
+    // Search input
+    if (searchInput) {
+        let searchTimeout;
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                currentSearch = this.value;
+                sortData();
+                AdminCore.announceToScreenReader(`Searching for: ${this.value || 'all tags'}`);
+            }, 300);
+        });
+    }
+
+    // Type filter
+    if (typeFilter) {
+        typeFilter.addEventListener('change', function() {
+            currentFilter = this.value;
+            sortData();
+            AdminCore.announceToScreenReader(`Filter changed to: ${this.value === 'all' ? 'All Types' : this.value}`);
+        });
+    }
+
+    // Template button
+    const templateBtn = document.getElementById('template-btn');
+    if (templateBtn) {
+        templateBtn.addEventListener('click', downloadImportTemplate);
+    }
+
+    // Import button
+    const importBtn = document.getElementById('import-btn');
+    if (importBtn) {
+        importBtn.addEventListener('click', showImportModal);
+    }
+
+    // Export button
+    const exportBtn = document.getElementById('export-btn');
+    if (exportBtn) {
+        exportBtn.addEventListener('click', function() {
+            AdminCore.showLoading(exportBtn);
+
+            // Prepare export data
+            const exportData = tags.map(tag => ({
+                id: tag.id,
+                name: tag.name,
+                type: tag.tagType,
+                description: tag.description || ''
+            }));
+
+            const columns = [
+                { key: 'id', header: 'ID' },
+                { key: 'name', header: 'Tag Name' },
+                { key: 'type', header: 'Tag Type' },
+                { key: 'description', header: 'Description' }
+            ];
+
+            setTimeout(() => {
+                AdminCore.hideLoading(exportBtn);
+                if (typeof ExportUtils !== 'undefined' && ExportUtils.showExportModal) {
+                    ExportUtils.showExportModal(
+                        exportData,
+                        columns,
+                        'tags',
+                        (message, type) => AdminCore.showNotification(message, type)
+                    );
+                }
+            }, 500);
+        });
+    }
 });
+
+// Export functions for use in inline scripts
+window.initializeTagManagement = initializeTagManagement;
+window.refreshTagList = loadTags;
+window.handleTagSearch = function(value) {
+    currentSearch = value;
+    sortData();
+};
+window.handleTagFilter = function(value) {
+    currentFilter = value;
+    sortData();
+};

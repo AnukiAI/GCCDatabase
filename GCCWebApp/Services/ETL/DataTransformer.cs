@@ -378,7 +378,13 @@ namespace GCCWebApp.Services.ETL
                     Period = "Daily",
                     PeriodDate = group.Key,
                     TotalCertificates = group.Count(),
-                    ActiveCertificates = group.Count(c => c.TryGetValue("Status", out var status) && status?.ToString()?.Equals("active", StringComparison.OrdinalIgnoreCase) == true),
+                    ActiveCertificates = group.Count(c =>
+                    {
+                        if (!c.TryGetValue("Status", out var status) || status == null)
+                            return false;
+                        var statusString = status.ToString();
+                        return statusString?.Equals("active", StringComparison.OrdinalIgnoreCase) == true;
+                    }),
                     ExpiredCertificates = group.Count(c =>
                     {
                         if (!c.TryGetValue("ExpirationDate", out var expDate) || expDate == null)

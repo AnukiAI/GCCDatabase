@@ -1102,6 +1102,8 @@ namespace GCCWebApp.Services
                 .Include(p => p.ProductType)
                 .Include(p => p.Company)
                 .Include(p => p.Certificates)
+                .Include(p => p.ProductIdentifiers)
+                .AsSplitQuery()
                 .Select(p => new ProductViewModel
                 {
                     Id = p.Id,
@@ -1111,7 +1113,13 @@ namespace GCCWebApp.Services
                     CompanyName = p.Company != null ? p.Company.Name : "",
                     IsActive = p.IsActive,
                     CertificateCount = p.Certificates.Count(),
-                    CreatedDate = p.CreatedAt
+                    CreatedDate = p.CreatedAt,
+                    ProductIdentifiers = p.ProductIdentifiers.Select(pi => new ProductIdentifierViewModel
+                    {
+                        Id = pi.Id,
+                        IdentifierType = pi.IdentifierType,
+                        IdentifierValue = pi.IdentifierValue
+                    }).ToList()
                 })
                 .ToListAsync();
         }

@@ -4,8 +4,8 @@
 }
 
 @section Styles {
-    <link href="~/css/certificate-types.css" rel="stylesheet" />
-    <link href="~/css/admin-company-style.css" rel="stylesheet" />
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
 }
 
 @section Breadcrumbs {
@@ -20,41 +20,57 @@
 }
 
 @section PageActions {
-    <button id="export-btn" class="btn">
-        <i class="fas fa-download"></i> Export
-    </button>
-    <button id="add-certtype-btn" class="btn btn-add">
-        <i class="fas fa-plus"></i> Add New Certificate Type
-    </button>
+    <div class="admin-button-group">
+        <button id="export-btn" class="admin-btn admin-btn--secondary">
+            <i class="fas fa-download"></i> Export
+        </button>
+        <button id="add-certtype-btn" class="admin-btn admin-btn--primary">
+            <i class="fas fa-plus"></i> Add New Certificate Type
+        </button>
+    </div>
 }
 
 @Html.AntiForgeryToken()
 
 <div class="admin-container">
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <p class="admin-page-subtitle">Define and manage certificate type classifications</p>
+            </div>
+        </div>
+    </header>
 
-    <div class="search-filter-bar">
-        <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search certificate types...">
-            <i class="fas fa-search search-icon"></i>
+    <div class="admin-toolbar">
+        <div class="admin-search-section">
+            <div class="admin-search-box">
+                <label for="search-input" class="admin-sr-only">Search certificate types</label>
+                <input type="text" id="search-input" class="admin-search-input" placeholder="Search certificate types..." aria-label="Search certificate types">
+                <i class="fas fa-search admin-search-icon"></i>
+            </div>
         </div>
     </div>
 
-    <div class="table-container">
-        <table class="cert-types-table" id="cert-types-table">
-            <thead>
-                <tr>
-                    <th width="90%" data-sort="name">Certificate Type Name</th>
-                    <th width="10%" class="actions-col no-sort">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Certificate type data will be populated here -->
-            </tbody>
-        </table>
+    <div class="admin-content">
+        <div class="admin-table-container">
+            <table class="admin-table" id="cert-types-table">
+                <thead class="admin-table-header">
+                    <tr>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="90%">
+                            Certificate Type Name <i class="admin-sort-icon fas fa-sort"></i>
+                        </th>
+                        <th class="admin-table-th admin-table-th--actions" width="10%">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="admin-table-body">
+                    <!-- Certificate type data will be populated here -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div class="footer-info" id="certtypes-count">
-        Showing 0 of 0 certificate types
+    <div class="admin-footer-info">
+        <span id="certtypes-count" class="admin-count-display">Showing 0 of 0 certificate types</span>
     </div>
 </div>
 

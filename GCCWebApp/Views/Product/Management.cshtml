@@ -507,9 +507,22 @@
                 row.className = 'main-row expandable-row';
                 row.setAttribute('data-product-id', product.id);
                 
-                const totalIdentifiers = product.identifiers ? 
+                const totalIdentifiers = product.identifiers ?
                     Object.values(product.identifiers).reduce((sum, arr) => sum + arr.length, 0) : 0;
-                
+
+                // Collect all identifiers for the copy button
+                const allIdentifiers = [];
+                if (product.identifiers) {
+                    Object.keys(product.identifiers).forEach(type => {
+                        if (product.identifiers[type] && product.identifiers[type].length > 0) {
+                            product.identifiers[type].forEach(item => {
+                                allIdentifiers.push(`${type.toUpperCase()}: ${item}`);
+                            });
+                        }
+                    });
+                }
+                const allIdentifiersText = allIdentifiers.join(', ').replace(/'/g, "\\'");
+
                 row.innerHTML = `
                     <td data-label="">
                         <span class="expand-indicator" onclick="toggleRowDetails(${product.id})">▶</span>
@@ -536,10 +549,17 @@
                         </span>
                     </td>
                     <td data-label="Identifiers">
-                        <span class="product-identifiers-summary">
-                            <span class="identifier-count">${totalIdentifiers}</span>
-                            identifiers
-                        </span>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <span class="product-identifiers-summary">
+                                <span class="identifier-count">${totalIdentifiers}</span>
+                                identifiers
+                            </span>
+                            ${totalIdentifiers > 0 ? `
+                                <button class="copy-identifiers-btn" onclick="copyToClipboard('${allIdentifiersText}')" title="Copy all identifiers">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            ` : ''}
+                        </div>
                     </td>
                     <td class="actions-cell" data-label="Actions">
                         <button class="btn-edit" onclick="editProduct(${product.id})" title="Edit Product">
@@ -1210,12 +1230,15 @@
 
         function createIdentifierSections(identifiers) {
             let sections = '';
-            
+
+            // Note: "Copy All Identifiers" button moved to parent row's Identifiers column
+            // No longer displaying in the expandable detail section
+
             Object.keys(identifiers).forEach(type => {
                 if (identifiers[type] && identifiers[type].length > 0) {
                     const typeLabel = type.toUpperCase();
                     const items = identifiers[type];
-                    
+
                     sections += `
                         <div class="detail-section">
                             <div class="detail-section-title">${typeLabel} (${items.length})</div>
@@ -1233,7 +1256,7 @@
                     `;
                 }
             });
-            
+
             return sections || '<div class="detail-section"><div class="detail-section-title">No identifiers available</div></div>';
         }
 

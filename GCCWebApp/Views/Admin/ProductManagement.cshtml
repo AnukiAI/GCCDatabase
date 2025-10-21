@@ -26,11 +26,16 @@
     <header class="admin-header">
         <div class="admin-header-content">
             <div class="admin-title-section">
-                <h1 class="admin-page-title">Product Management</h1>
                 <p class="admin-page-subtitle">Manage product categories and types</p>
             </div>
             <div class="admin-actions-section">
                 <div class="admin-button-group">
+                    <button id="template-btn" class="admin-btn admin-btn--secondary" title="Download CSV template for bulk import">
+                        <i class="fas fa-file-download"></i> Template
+                    </button>
+                    <button id="import-btn" class="admin-btn admin-btn--secondary">
+                        <i class="fas fa-upload"></i> Import
+                    </button>
                     <button id="export-btn" class="admin-btn admin-btn--secondary">
                         <i class="fas fa-download"></i> Export
                     </button>
@@ -57,10 +62,11 @@
             <table id="products-table" class="admin-table">
                 <thead class="admin-table-header">
                     <tr>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="90%">
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="40%">
                             Product Name <i class="admin-sort-icon fas fa-sort"></i>
                         </th>
-                        <th class="admin-table-th admin-table-th--actions" width="10%">Actions</th>
+                        <th class="admin-table-th" width="40%">Parent Identifiers</th>
+                        <th class="admin-table-th admin-table-th--actions" width="20%">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="products-table-body" class="admin-table-body">
@@ -68,6 +74,9 @@
                     <tr id="add-row" class="admin-table-row admin-table-row--add" style="display: none;">
                         <td class="admin-table-cell" data-label="Product Name">
                             <input type="text" id="new-product-input" class="admin-input admin-input--inline" placeholder="Enter product name" aria-label="New product name">
+                        </td>
+                        <td class="admin-table-cell" data-label="Parent Identifiers">
+                            <span class="text-muted">—</span>
                         </td>
                         <td class="admin-table-cell admin-table-cell--actions" data-label="Actions">
                             <div class="admin-action-group">

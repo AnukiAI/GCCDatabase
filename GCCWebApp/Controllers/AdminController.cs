@@ -691,6 +691,90 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateTag([FromBody] TagViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid data provided",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            try
+            {
+                var success = await _adminService.CreateTagAsync(model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Tag created successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Failed to create tag" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error creating tag: " + ex.Message });
+            }
+        }
+
+        [HttpPut]
+        public async Task<IActionResult> UpdateTag(int id, [FromBody] TagViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "Invalid data provided",
+                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
+                });
+            }
+
+            try
+            {
+                var success = await _adminService.UpdateTagAsync(id, model);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Tag updated successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Tag not found or update failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error updating tag: " + ex.Message });
+            }
+        }
+
+        [HttpDelete]
+        public async Task<IActionResult> DeleteTag(int id)
+        {
+            try
+            {
+                var success = await _adminService.DeleteTagAsync(id);
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Tag deleted successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Tag not found or delete failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error deleting tag: " + ex.Message });
+            }
+        }
+
         // Partners
         public IActionResult Partners()
         {

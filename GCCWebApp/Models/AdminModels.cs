@@ -239,27 +239,36 @@ namespace GCCWebApp.Models
     public class ProductViewModel
     {
         public int Id { get; set; }
-        
+
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [StringLength(500)]
         public string Description { get; set; } = string.Empty;
-        
+
         public int? ProductTypeId { get; set; }
-        
+
         public string ProductTypeName { get; set; } = string.Empty;
-        
+
         public int? CompanyId { get; set; }
-        
+
         public string CompanyName { get; set; } = string.Empty;
-        
+
         public bool IsActive { get; set; } = true;
-        
+
         public DateTime CreatedDate { get; set; }
-        
+
         public int CertificateCount { get; set; }
+
+        public List<ProductIdentifierViewModel> ProductIdentifiers { get; set; } = new List<ProductIdentifierViewModel>();
+    }
+
+    public class ProductIdentifierViewModel
+    {
+        public int Id { get; set; }
+        public string IdentifierType { get; set; } = string.Empty;
+        public string IdentifierValue { get; set; } = string.Empty;
     }
 
     // Amazon API Models

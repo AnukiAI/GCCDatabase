@@ -21,6 +21,8 @@ class ProductManagement {
     bindEvents() {
         // Button events
         document.getElementById('add-product-btn')?.addEventListener('click', () => this.showAddProduct());
+        document.getElementById('template-btn')?.addEventListener('click', () => this.downloadImportTemplate());
+        document.getElementById('import-btn')?.addEventListener('click', () => this.showImportModal());
         document.getElementById('export-btn')?.addEventListener('click', () => this.exportProducts());
         
         // Search event
@@ -111,11 +113,11 @@ class ProductManagement {
         this.filteredProducts.forEach(product => {
             const row = document.createElement('tr');
             row.setAttribute('data-id', product.id);
-            
+
             // Product Name cell
             const nameCell = document.createElement('td');
             nameCell.setAttribute('data-label', 'Product Name');
-            
+
             if (this.currentEditingId === product.id) {
                 const input = document.createElement('input');
                 input.type = 'text';
@@ -127,9 +129,57 @@ class ProductManagement {
             } else {
                 nameCell.textContent = product.name;
             }
-            
+
             row.appendChild(nameCell);
-            
+
+            // Parent Identifiers cell
+            const identifiersCell = document.createElement('td');
+            identifiersCell.setAttribute('data-label', 'Parent Identifiers');
+            identifiersCell.className = 'product-identifiers-cell';
+
+            if (product.productIdentifiers && product.productIdentifiers.length > 0) {
+                // Create identifiers summary and copy button
+                const identifiersContainer = document.createElement('div');
+                identifiersContainer.className = 'identifiers-container';
+                identifiersContainer.style.display = 'flex';
+                identifiersContainer.style.alignItems = 'center';
+                identifiersContainer.style.gap = '8px';
+
+                // Group identifiers by type and create summary
+                const grouped = {};
+                product.productIdentifiers.forEach(pi => {
+                    if (!grouped[pi.identifierType]) {
+                        grouped[pi.identifierType] = [];
+                    }
+                    grouped[pi.identifierType].push(pi.identifierValue);
+                });
+
+                // Create summary text (e.g., "ASIN: 3, UPC: 2")
+                const summaryText = document.createElement('span');
+                summaryText.className = 'identifiers-summary';
+                summaryText.textContent = Object.keys(grouped)
+                    .map(type => `${type}: ${grouped[type].length}`)
+                    .join(', ');
+
+                // Create copy button
+                const copyBtn = document.createElement('button');
+                copyBtn.className = 'copy-identifiers-btn';
+                copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                copyBtn.title = 'Copy all identifiers';
+                copyBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.copyAllIdentifiers(product.productIdentifiers, product.name);
+                });
+
+                identifiersContainer.appendChild(summaryText);
+                identifiersContainer.appendChild(copyBtn);
+                identifiersCell.appendChild(identifiersContainer);
+            } else {
+                identifiersCell.innerHTML = '<span class="text-muted">None</span>';
+            }
+
+            row.appendChild(identifiersCell);
+
             // Actions cell
             const actionsCell = document.createElement('td');
             actionsCell.className = 'actions-cell';
@@ -434,12 +484,64 @@ class ProductManagement {
         }
     }
     
+    downloadImportTemplate() {
+        try {
+            // Create template data with example row
+            // Template matches ProductViewModel structure used by the backend API
+            const templateData = [
+                {
+                    Name: 'Sample Product',
+                    Description: 'Optional product description',
+                    ProductType: 'Building Materials',
+                    Company: 'Acme Corporation',
+                    Status: 'Active'
+                }
+            ];
+
+            // Create CSV content with headers and example row
+            const headers = ['Name', 'Description', 'ProductType', 'Company', 'Status'];
+            const csvContent = [
+                headers.join(','),
+                ...templateData.map(row =>
+                    headers.map(header => {
+                        const value = row[header] || '';
+                        // Escape quotes and wrap in quotes if contains comma
+                        return value.includes(',') || value.includes('"')
+                            ? `"${value.replace(/"/g, '""')}"`
+                            : value;
+                    }).join(',')
+                )
+            ].join('\n');
+
+            // Download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `products_import_template_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            this.showToast('Import template downloaded successfully', 'success');
+        } catch (error) {
+            console.error('Error downloading template:', error);
+            this.showToast('Error downloading template. Please try again.', 'error');
+        }
+    }
+
+    showImportModal() {
+        // TODO: Implement import functionality
+        this.showToast('Import functionality coming soon', 'info');
+    }
+
     async exportProducts() {
         if (this.filteredProducts.length === 0) {
             this.showToast('No products to export', 'warning');
             return;
         }
-        
+
         try {
             const exportData = this.filteredProducts.map(product => ({
                 ID: product.id,
@@ -451,20 +553,20 @@ class ProductManagement {
                 'Certificate Count': product.certificateCount || 0,
                 'Created Date': product.createdDate ? new Date(product.createdDate).toLocaleDateString() : ''
             }));
-            
+
             const headers = Object.keys(exportData[0]);
             const csvContent = [
                 headers.join(','),
-                ...exportData.map(row => 
+                ...exportData.map(row =>
                     headers.map(header => {
                         const value = row[header] || '';
-                        return value.includes(',') || value.includes('"') 
-                            ? `"${value.replace(/"/g, '""')}"` 
+                        return value.includes(',') || value.includes('"')
+                            ? `"${value.replace(/"/g, '""')}"`
                             : value;
                     }).join(',')
                 )
             ].join('\n');
-            
+
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
             const url = URL.createObjectURL(blob);
@@ -474,7 +576,7 @@ class ProductManagement {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
+
             this.showToast(`Exported ${exportData.length} products successfully`, 'success');
         } catch (error) {
             console.error('Error exporting products:', error);
@@ -516,6 +618,38 @@ class ProductManagement {
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ||
                      document.querySelector('meta[name="__RequestVerificationToken"]')?.content;
         return token || '';
+    }
+
+    copyAllIdentifiers(identifiers, productName) {
+        try {
+            // Create formatted text with all identifiers
+            let copyText = `Product: ${productName}\n\n`;
+
+            // Group by type
+            const grouped = {};
+            identifiers.forEach(pi => {
+                if (!grouped[pi.identifierType]) {
+                    grouped[pi.identifierType] = [];
+                }
+                grouped[pi.identifierType].push(pi.identifierValue);
+            });
+
+            // Format: Type: value1, value2, value3
+            Object.keys(grouped).forEach(type => {
+                copyText += `${type}: ${grouped[type].join(', ')}\n`;
+            });
+
+            // Copy to clipboard
+            navigator.clipboard.writeText(copyText).then(() => {
+                this.showToast(`Copied ${identifiers.length} identifiers for ${productName}`, 'success');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                this.showToast('Failed to copy identifiers. Please try again.', 'error');
+            });
+        } catch (error) {
+            console.error('Error copying identifiers:', error);
+            this.showToast('Error copying identifiers. Please try again.', 'error');
+        }
     }
 }
 

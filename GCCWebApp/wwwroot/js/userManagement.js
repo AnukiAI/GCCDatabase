@@ -22,6 +22,7 @@ class UserManagement {
     bindEvents() {
         // Button events
         document.getElementById('add-user-btn')?.addEventListener('click', () => this.showAddUserModal());
+        document.getElementById('template-btn')?.addEventListener('click', () => this.downloadImportTemplate());
         document.getElementById('export-btn')?.addEventListener('click', () => this.exportUsers());
         document.getElementById('import-btn')?.addEventListener('click', () => this.showImportModal());
         
@@ -547,6 +548,54 @@ class UserManagement {
         }
     }
     
+    downloadImportTemplate() {
+        try {
+            // Create template data with example row
+            const templateData = [
+                {
+                    Name: 'John Doe',
+                    Email: 'john.doe@example.com',
+                    Company: 'Company ID or Name',
+                    Role: 'Admin',
+                    Status: 'active',
+                    Password: 'TempPassword123!',
+                    RequirePasswordReset: 'true'
+                }
+            ];
+
+            // Create CSV content
+            const headers = ['Name', 'Email', 'Company', 'Role', 'Status', 'Password', 'RequirePasswordReset'];
+            const csvContent = [
+                headers.join(','),
+                ...templateData.map(row =>
+                    headers.map(header => {
+                        const value = row[header] || '';
+                        // Escape quotes and wrap in quotes if contains comma
+                        return value.includes(',') || value.includes('"')
+                            ? `"${value.replace(/"/g, '""')}"`
+                            : value;
+                    }).join(',')
+                )
+            ].join('\n');
+
+            // Download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', `user_import_template_${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
+            this.showNotification('Import template downloaded successfully', 'success');
+        } catch (error) {
+            console.error('Error downloading template:', error);
+            this.showNotification('Error downloading template. Please try again.', 'error');
+        }
+    }
+
     showImportModal() {
         // TODO: Implement import functionality
         this.showNotification('Import functionality coming soon', 'info');

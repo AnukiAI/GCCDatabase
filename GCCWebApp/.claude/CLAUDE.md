@@ -318,6 +318,152 @@ docker-compose up -d        # Full stack with PostgreSQL
 ❌ **DON'T**: Create new auth systems, modify 14-state workflow, push to master
 📋 **ALWAYS**: Read before edit, test changes, follow patterns, update tests
 
+## Import Template Download Feature
+
+### Overview
+All admin pages with data import functionality include a "Template" button that downloads a properly formatted CSV template file to help admins prepare import data correctly.
+
+### Implementation Pattern
+
+**Button Placement**: Template button appears to the left of the Import button in the `admin-actions-section`.
+
+**Button HTML**:
+```html
+<button id="template-btn" class="admin-btn admin-btn--secondary" title="Download CSV template for bulk import">
+    <i class="fas fa-file-download"></i> Template
+</button>
+```
+
+**JavaScript Implementation** (Class-based approach):
+```javascript
+downloadImportTemplate() {
+    try {
+        // Create template data with example row
+        const templateData = [
+            { Field1: 'Example Value 1', Field2: 'Example Value 2', ... }
+        ];
+
+        // Create CSV content with headers and example row
+        const headers = ['Field1', 'Field2', ...];
+        const csvContent = [
+            headers.join(','),
+            ...templateData.map(row =>
+                headers.map(header => {
+                    const value = row[header] || '';
+                    return value.includes(',') || value.includes('"')
+                        ? `"${value.replace(/"/g, '""')}"`
+                        : value;
+                }).join(',')
+            )
+        ].join('\n');
+
+        // Download file
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', `entity_import_template_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        this.showNotification('Import template downloaded successfully', 'success');
+    } catch (error) {
+        console.error('Error downloading template:', error);
+        this.showNotification('Error downloading template. Please try again.', 'error');
+    }
+}
+```
+
+**JavaScript Implementation** (Function-based approach for non-class modules):
+```javascript
+function downloadImportTemplate() {
+    try {
+        // ... same implementation as above, use AdminCore.showNotification() instead
+        AdminCore.showNotification('Import template downloaded successfully', 'success');
+    } catch (error) {
+        console.error('Error downloading template:', error);
+        AdminCore.showNotification('Error downloading template. Please try again.', 'error');
+    }
+}
+```
+
+**Event Binding**:
+- Class-based: `document.getElementById('template-btn')?.addEventListener('click', () => this.downloadImportTemplate());`
+- Function-based: `document.getElementById('template-btn')?.addEventListener('click', downloadImportTemplate);`
+
+### Implemented Pages
+
+| Page | View | JavaScript | Template Format |
+|------|------|------------|-----------------|
+| User Management | `Views/Admin/UserManagement.cshtml` | `wwwroot/js/userManagement.js` (class) | Name, Email, Company, Role, Status, Password, RequirePasswordReset |
+| Tag Management | `Views/Admin/Tags.cshtml` | `wwwroot/js/tags.js` (function) | Name, TagType (external/internal), Description |
+| Product Management | `Views/Admin/ProductManagement.cshtml` | `wwwroot/js/admin/productManagement.js` (class) | Name, Description, ProductType, Company, Status |
+| Company Management | `Views/Company/Index.cshtml` | Inline script in view (function) | Name, Email, Website |
+
+### Template File Naming Convention
+- Format: `{entity}_import_template_{YYYY-MM-DD}.csv`
+- Examples:
+  - `users_import_template_2025-10-18.csv`
+  - `tags_import_template_2025-10-18.csv`
+  - `products_import_template_2025-10-18.csv`
+  - `companies_import_template_2025-10-18.csv`
+
+## View Development Standards
+
+### Page Title Handling
+**CRITICAL REQUIREMENT**: Views must NOT include duplicate `<h1>` page titles.
+
+- ✅ **DO**: Use `ViewData["Title"]` to set the page title (handled by shared layout)
+- ❌ **DON'T**: Add `<h1 class="admin-page-title">` or similar title elements in views
+- The shared layout (`_Layout.cshtml`) automatically renders the page title
+- Views should only contain subtitles, content, and action buttons
+
+**Example - CORRECT:**
+```cshtml
+@{
+    ViewData["Title"] = "Tag Management";
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <p class="admin-page-subtitle">Organize content with tags and categories</p>
+            </div>
+            <div class="admin-actions-section">
+                <!-- Action buttons here -->
+            </div>
+        </div>
+    </header>
+</div>
+```
+
+**Example - INCORRECT:**
+```cshtml
+@{
+    ViewData["Title"] = "Tag Management";
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <h1 class="admin-page-title">Tag Management</h1> <!-- ❌ REMOVE THIS -->
+                <p class="admin-page-subtitle">Organize content with tags and categories</p>
+            </div>
+        </div>
+    </header>
+</div>
+```
+
+**Applies to all views:**
+- Admin views (`/Views/Admin/*.cshtml`)
+- Certificate views (`/Views/Certificate/*.cshtml`)
+- Account views (`/Views/Account/*.cshtml`)
+- All other Razor views
+
 
 ## Traceability & Requirements Mapping
 

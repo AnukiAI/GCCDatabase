@@ -169,21 +169,46 @@ RenewalInProgress → [Active|Expired|Archived|Cancelled|ClientDeclined]
 ### EPIC 3: Dashboard & Reporting
 
 #### US-006: Analytics Dashboard
-**As an** Admin/Analyst  
-**I want to** view certificate analytics  
+**As an** Admin/Analyst
+**I want to** view certificate analytics
 **So that** I can track business metrics
 
 **Acceptance Criteria:**
 - ✅ 12 statistical cards with metrics
 - ✅ 5 data tables with breakdowns
-- ✅ Export individual metrics
+- ✅ Export individual metrics with full certificate details (not just counts)
 - ✅ Export full dashboard data
 - ✅ Real-time data updates
 
 **Implementation Status:** ✅ COMPLETE
-- Controller: `Controllers/DashboardController.cs`
+- Controller: `Controllers/DashboardController.cs`, `Controllers/ExportController.cs`
 - View: `Views/Dashboard/Index.cshtml`
 - JavaScript: `wwwroot/js/dashboard.js`
+
+**IMPORTANT - Dashboard Stat Card Export Behavior:** When users click the download icon on any stat card, the system exports the SPECIFIC certificates related to that metric, not all certificates. Each stat card exports its own filtered subset:
+
+1. **Total Active Certs** (80) → Exports all 80 active certificates (Status = "Active", not expired)
+2. **# Companies with Active Certs** (10) → Exports all active certificates from those 10 companies
+3. **# Product Categories with Active Certs** (5) → Exports all active certificates in those 5 certification types
+4. **# Product Types with Active Certs** (15) → Exports all active certificates for those 15 product types
+5. **# Product Subcategories with Active Certs** (8) → Exports all active certificates in those 8 subcategories
+6. **# Products with Active Certs** (25) → Exports all active certificates for those 25 products
+7. **# Certs Published Last Month** (12) → Exports ONLY the 12 certificates published last month
+8. **# Certs Expiring This Month** (5) → Exports ONLY the 5 certificates expiring this month
+9. **# Certs Expired Last Month** (3) → Exports ONLY the 3 certificates that expired last month
+10. **# Certs Expiring Next Month** (8) → Exports ONLY the 8 certificates expiring next month
+11. **# Certs Published This Year** (45) → Exports ONLY the 45 certificates published this year
+12. **# Certs Published Last Year** (35) → Exports ONLY the 35 certificates published last year
+
+**Each export includes full certificate details**: Certificate Number, Status, Company, Product, Certification Type, Effective Date, Expiration Date, Location, Country.
+
+**Dashboard Table Export Behavior:** When users click the download icon on any data table, the system exports the SPECIFIC certificates related to that table breakdown:
+
+1. **Total Active Certs by Certification Type** → Exports all active certificates, grouped/sorted by certification type
+2. **Top 10 Companies by Active Cert Count** → Exports all active certificates for those top 10 companies
+3. **# Certs by Status** → Exports all certificates grouped by status (Active, Expired, Expiring Soon)
+4. **Top 10 Product Types by Active Cert Count** → Exports all active certificates for those top 10 product types
+5. **Top 5 Product Categories by Active Cert Count** → Exports all active certificates in those top 5 categories
 
 **Dashboard Metrics:**
 1. Active Certificates Count
@@ -229,6 +254,27 @@ The Dashboard includes three quick-action export buttons that generate CSV repor
 - Download Method: Client-side blob download via JavaScript
 - Toast Notifications: Success/Error feedback to user
 - Error Handling: 401/302 redirects for authentication, graceful failure messages
+
+#### US-006B: Dashboard Stat & Table Exports with Certificate Details
+**As an** Admin/Analyst
+**I want to** export the actual certificates related to each dashboard metric
+**So that** I can see the detailed certificate data behind each statistic, not just summary counts
+
+**Acceptance Criteria:**
+- ✅ Each stat card export returns the SPECIFIC certificates counted by that metric
+- ✅ Each table export returns ALL certificates related to that table's data
+- ✅ Date-based metrics (published last month, expiring this month) export only certificates matching those date criteria
+- ✅ Company/Product/Category metrics export all active certificates for those entities
+- ✅ Exports include complete certificate details (9 columns minimum)
+- ✅ Both Excel (.xlsx) and CSV formats supported
+- ✅ Each export is properly filtered - no duplicate or irrelevant certificates
+
+**Implementation Status:** ✅ COMPLETE (2025-10-20)
+- Controller: `Controllers/ExportController.cs`
+- Methods: `GetStatData()`, `GetTableData()`, `GenerateStatExcel()`, `GenerateStatCsv()`, `GenerateTableExcel()`, `GenerateTableCsv()`
+- Each stat card and table has its own query with appropriate filters and date ranges
+
+**CRITICAL:** This requirement ensures that clicking "Total Active Certs" (80) exports all 80 active certificates with details, while clicking "Certs Published Last Month" (12) exports ONLY those 12 certificates published last month, not all 80 active certificates.
 
 #### US-007: Export Functionality
 **As a** User
@@ -291,6 +337,38 @@ The Dashboard includes three quick-action export buttons that generate CSV repor
 - Authorization policies: `Program.cs` lines 225-252
 - Testing: ✅ GCCWebApp.RoleBasedUI.Tests, GCCWebApp.Security.Tests
 - Note: Bulk role updates not required for Phase 1; role audit trail tracked via UpdatedBy/UpdatedAt
+
+#### US-011: Import Template Download
+**As an** Admin
+**I want to** download CSV import templates for bulk data import
+**So that** I can prepare correctly formatted data files for import
+
+**Acceptance Criteria:**
+- ✅ Template button available on all admin pages with import functionality
+- ✅ Template button positioned to the left of import button
+- ✅ Downloads CSV template with correct headers and example data
+- ✅ Template includes one example row showing proper format
+- ✅ Template files named with entity type and date (e.g., `users_import_template_2025-10-18.csv`)
+- ✅ Implemented for User Management, Tags, Products, and Companies (when view exists)
+
+**Implementation Status:** ✅ COMPLETE (100%)
+- Views:
+  - `Views/Admin/UserManagement.cshtml` - Template button added
+  - `Views/Admin/Tags.cshtml` - Template button added
+  - `Views/Admin/ProductManagement.cshtml` - Template button added
+  - `Views/Company/Index.cshtml` - Template button added
+- JavaScript:
+  - `wwwroot/js/userManagement.js` - downloadImportTemplate() method (class-based)
+  - `wwwroot/js/tags.js` - downloadImportTemplate() function
+  - `wwwroot/js/admin/productManagement.js` - downloadImportTemplate() method (class-based)
+  - `Views/Company/Index.cshtml` - downloadImportTemplate() function (inline script)
+- Template Formats:
+  - **Users**: Name, Email, Company, Role, Status, Password, RequirePasswordReset
+  - **Tags**: Name, TagType (external/internal), Description
+  - **Products**: Name, Description, ProductType, Company, Status
+  - **Companies**: Name, Email, Website
+- Button Styling: `admin-btn admin-btn--secondary` or `btn` with file-download icon
+- Tooltip: "Download CSV template for bulk import"
 
 ### EPIC 5: API Integration
 
@@ -744,6 +822,14 @@ CREATE TABLE Certificates (
 - [UAT Test Cases](MANUAL_UAT_TEST_CASES.md)
 
 ### Change Log
+- **2025-10-20 (Dashboard Export Enhancement)**: **STAT CARD EXPORTS NOW INCLUDE FULL CERTIFICATE DETAILS**
+  - ✅ **Dashboard Stat Card Export Fixed**:
+    - Previously: Clicking download on "Total Active Certs" (80) only exported one row with the count
+    - Now: Exports ALL 80 certificates with full details (Number, Status, Company, Product, Certification Type, Dates, Location, Country)
+    - Applies to all 12 statistical cards on the Dashboard
+    - Both Excel and CSV formats supported
+    - Enhanced queries with proper sorting and relationships
+  - Location: Controllers/ExportController.cs (GetStatData, GenerateStatExcel, GenerateStatCsv methods)
 - **2025-10-06 (UX Enhancement)**: **LAYOUT IMPROVEMENTS & IMAGE ZOOM FEATURE**
   - ✅ **Section Spacing Increased**:
     - Section margin-bottom: 20px → 28px (40% increase)

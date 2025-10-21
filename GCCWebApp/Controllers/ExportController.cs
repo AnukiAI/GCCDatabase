@@ -46,9 +46,11 @@ namespace GCCWebApp.Controllers
         {
             try
             {
+                _logger.LogInformation("DownloadStat called - Type: {StatType}, Format: {Format}", type, format);
+
                 // Temporarily bypass authentication for testing
                 var userRole = HttpContext.Session.GetString("UserRole") ?? "Admin"; // Default to Admin for testing
-                
+
                 // Comment out authentication check for now
                 // if (userRole != "Admin" && userRole != "Analyst")
                 // {
@@ -57,22 +59,41 @@ namespace GCCWebApp.Controllers
 
                 var stats = await _certificateRepository.GetCertificateStatisticsAsync();
                 var data = await GetStatData(type, stats);
-                
+
                 if (data == null)
                 {
+                    _logger.LogWarning("GetStatData returned null for type: {StatType}", type);
                     return BadRequest("Invalid stat type");
+                }
+
+                // Extract certificate count for logging using reflection
+                var dataType = data.GetType();
+                var certificatesProperty = dataType.GetProperty("Certificates");
+                var descriptionProperty = dataType.GetProperty("Description");
+
+                if (certificatesProperty != null && descriptionProperty != null)
+                {
+                    var certificates = certificatesProperty.GetValue(data) as List<Certificate>;
+                    var description = descriptionProperty.GetValue(data) as string;
+                    if (certificates != null && description != null)
+                    {
+                        _logger.LogInformation("Exporting {Count} certificates for stat type '{StatType}' ({Description})",
+                            certificates.Count, type, description);
+                    }
                 }
 
                 if (format?.ToLower() == "excel")
                 {
                     var excelBytes = GenerateStatExcel(type, data);
                     var fileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.xlsx";
+                    _logger.LogInformation("Generated Excel file: {FileName}", fileName);
                     return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
                 }
                 else
                 {
                     var csv = GenerateStatCsv(type, data);
                     var fileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.csv";
+                    _logger.LogInformation("Generated CSV file: {FileName}", fileName);
                     return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
                 }
             }
@@ -204,46 +225,165 @@ namespace GCCWebApp.Controllers
 
         private async Task<object?> GetStatData(string type, Dictionary<string, int> stats)
         {
+            _logger.LogInformation("GetStatData called for type: {StatType}", type);
+
+            // Return actual certificate lists instead of just counts
+            var now = DateTime.UtcNow;
+            var startOfMonth = new DateTime(now.Year, now.Month, 1);
+            var endOfMonth = startOfMonth.AddMonths(1).AddDays(-1);
+            var startOfLastMonth = startOfMonth.AddMonths(-1);
+            var endOfLastMonth = startOfMonth.AddDays(-1);
+            var startOfYear = new DateTime(now.Year, 1, 1);
+            var startOfLastYear = new DateTime(now.Year - 1, 1, 1);
+            var endOfLastYear = new DateTime(now.Year - 1, 12, 31);
+
+            _logger.LogDebug("Date ranges - Now: {Now}, StartOfMonth: {StartOfMonth}, EndOfMonth: {EndOfMonth}, " +
+                "StartOfLastMonth: {StartOfLastMonth}, EndOfLastMonth: {EndOfLastMonth}",
+                now, startOfMonth, endOfMonth, startOfLastMonth, endOfLastMonth);
+
             switch (type)
             {
                 case "total-active-certs":
-                    return new { Value = stats.GetValueOrDefault("Active", 0), Description = "Total Active Certificates" };
+                    _logger.LogInformation("Querying total-active-certs: Status='active', ExpirationDate > {Now}", now);
+                    var activeCerts = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now)
+                        .OrderBy(c => c.Number)
+                        .ToListAsync();
+                    _logger.LogInformation("total-active-certs query returned {Count} certificates", activeCerts.Count);
+                    return new { Certificates = activeCerts, Description = "Total Active Certificates" };
 
                 case "companies-with-active-certs":
-                    var totalCompanies = await _unitOfWork.Companies.CountAsync();
-                    return new { Value = totalCompanies, Description = "Companies with Active Certificates" };
+                    var companyCerts = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now && c.Company != null)
+                        .OrderBy(c => c.Company!.Name)
+                        .ThenBy(c => c.Number)
+                        .ToListAsync();
+                    return new { Certificates = companyCerts, Description = "Companies with Active Certificates" };
 
                 case "product-categories-with-active-certs":
-                    var totalCertTypes = await _unitOfWork.CertificationTypes.CountAsync();
-                    return new { Value = totalCertTypes, Description = "Product Categories with Active Certificates" };
+                    var categoryCerts = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now && c.CertificationType != null)
+                        .OrderBy(c => c.CertificationType!.Name)
+                        .ThenBy(c => c.Number)
+                        .ToListAsync();
+                    return new { Certificates = categoryCerts, Description = "Product Categories with Active Certificates" };
 
                 case "product-types-with-active-certs":
-                    var totalProducts = await _unitOfWork.Products.CountAsync();
-                    return new { Value = totalProducts, Description = "Product Types with Active Certificates" };
+                    var productTypeCerts = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now && c.Product != null)
+                        .OrderBy(c => c.Product!.Name)
+                        .ThenBy(c => c.Number)
+                        .ToListAsync();
+                    return new { Certificates = productTypeCerts, Description = "Product Types with Active Certificates" };
 
                 case "product-subcategories-with-active-certs":
-                    return new { Value = stats.GetValueOrDefault("ProductSubcategories", 0), Description = "Product Subcategories with Active Certificates" };
+                    var subcategoryCerts = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .ThenInclude(p => p!.Category)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now && c.Product != null && c.Product.Category != null)
+                        .OrderBy(c => c.Product!.Category!.Name)
+                        .ThenBy(c => c.Number)
+                        .ToListAsync();
+                    return new { Certificates = subcategoryCerts, Description = "Product Subcategories with Active Certificates" };
 
                 case "products-with-active-certs":
-                    return new { Value = stats.GetValueOrDefault("ActiveProducts", 0), Description = "Products with Active Certificates" };
+                    var productCerts = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now && c.Product != null)
+                        .OrderBy(c => c.Product!.Name)
+                        .ThenBy(c => c.Number)
+                        .ToListAsync();
+                    return new { Certificates = productCerts, Description = "Products with Active Certificates" };
 
                 case "certs-published-last-month":
-                    return new { Value = stats.GetValueOrDefault("PublishedLastMonth", 0), Description = "Certificates Published Last Month" };
+                    _logger.LogInformation("Querying certs-published-last-month: CreatedAt between {Start} and {End}",
+                        startOfLastMonth, endOfLastMonth);
+                    var publishedLastMonth = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.CreatedAt >= startOfLastMonth && c.CreatedAt <= endOfLastMonth)
+                        .OrderByDescending(c => c.CreatedAt)
+                        .ThenBy(c => c.Number)
+                        .ToListAsync();
+                    _logger.LogInformation("certs-published-last-month query returned {Count} certificates", publishedLastMonth.Count);
+                    return new { Certificates = publishedLastMonth, Description = "Certificates Published Last Month" };
 
                 case "certs-expiring-this-month":
-                    return new { Value = stats.GetValueOrDefault("ExpiringThisMonth", 0), Description = "Certificates Expiring This Month" };
+                    _logger.LogInformation("Querying certs-expiring-this-month: Status='active', ExpirationDate between {Start} and {End}",
+                        startOfMonth, endOfMonth);
+                    var expiringThisMonth = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate >= startOfMonth && c.ExpirationDate <= endOfMonth)
+                        .OrderBy(c => c.ExpirationDate)
+                        .ThenBy(c => c.Number)
+                        .ToListAsync();
+                    _logger.LogInformation("certs-expiring-this-month query returned {Count} certificates", expiringThisMonth.Count);
+                    return new { Certificates = expiringThisMonth, Description = "Certificates Expiring This Month" };
 
                 case "certs-expired-last-month":
-                    return new { Value = stats.GetValueOrDefault("ExpiredLastMonth", 0), Description = "Certificates Expired Last Month" };
+                    var expiredLastMonth = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.ExpirationDate >= startOfLastMonth && c.ExpirationDate <= endOfLastMonth && c.ExpirationDate < now)
+                        .OrderBy(c => c.ExpirationDate)
+                        .ThenBy(c => c.Number)
+                        .ToListAsync();
+                    return new { Certificates = expiredLastMonth, Description = "Certificates Expired Last Month" };
 
                 case "certs-expiring-next-month":
-                    return new { Value = stats.GetValueOrDefault("ExpiringNextMonth", 0), Description = "Certificates Expiring Next Month" };
+                    var nextMonthStart = startOfMonth.AddMonths(1);
+                    var nextMonthEnd = nextMonthStart.AddMonths(1).AddDays(-1);
+                    var expiringNextMonth = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate >= nextMonthStart && c.ExpirationDate <= nextMonthEnd)
+                        .OrderBy(c => c.ExpirationDate)
+                        .ThenBy(c => c.Number)
+                        .ToListAsync();
+                    return new { Certificates = expiringNextMonth, Description = "Certificates Expiring Next Month" };
 
                 case "certs-published-this-year":
-                    return new { Value = stats.GetValueOrDefault("PublishedThisYear", 0), Description = "Certificates Published This Year" };
+                    var publishedThisYear = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.CreatedAt >= startOfYear)
+                        .OrderByDescending(c => c.CreatedAt)
+                        .ThenBy(c => c.Number)
+                        .ToListAsync();
+                    return new { Certificates = publishedThisYear, Description = "Certificates Published This Year" };
 
                 case "certs-published-last-year":
-                    return new { Value = stats.GetValueOrDefault("PublishedLastYear", 0), Description = "Certificates Published Last Year" };
+                    var publishedLastYear = await _context.Certificates
+                        .Include(c => c.Company)
+                        .Include(c => c.Product)
+                        .Include(c => c.CertificationType)
+                        .Where(c => c.CreatedAt >= startOfLastYear && c.CreatedAt <= endOfLastYear)
+                        .OrderByDescending(c => c.CreatedAt)
+                        .ThenBy(c => c.Number)
+                        .ToListAsync();
+                    return new { Certificates = publishedLastYear, Description = "Certificates Published Last Year" };
 
                 default:
                     return null;
@@ -303,9 +443,22 @@ namespace GCCWebApp.Controllers
 
         private string GenerateStatCsv(string type, dynamic data)
         {
+            // Extract certificates list from data object
+            var certificates = (List<Certificate>)data.Certificates;
+            var description = (string)data.Description;
+
             var csv = new StringBuilder();
-            csv.AppendLine("Metric,Value,Generated Date");
-            csv.AppendLine($"\"{data.Description}\",{data.Value},{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            csv.AppendLine($"Report: {description}");
+            csv.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            csv.AppendLine($"Total Certificates: {certificates.Count}");
+            csv.AppendLine();
+            csv.AppendLine("Certificate Number,Status,Company,Product,Certification Type,Effective Date,Expiration Date,Location,Country");
+
+            foreach (var cert in certificates)
+            {
+                csv.AppendLine($"\"{cert.Number}\",\"{cert.Status}\",\"{cert.Company?.Name}\",\"{cert.Product?.Name}\",\"{cert.CertificationType?.Name}\",{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},\"{cert.Location}\",\"{cert.Country}\"");
+            }
+
             return csv.ToString();
         }
 
@@ -348,29 +501,73 @@ namespace GCCWebApp.Controllers
 
         private byte[] GenerateStatExcel(string type, dynamic data)
         {
+            // Extract certificates list from data object
+            var certificates = (List<Certificate>)data.Certificates;
+            var description = (string)data.Description;
+
             using (var workbook = new XLWorkbook())
             {
-                var worksheet = workbook.Worksheets.Add("Statistics");
-                
+                var worksheet = workbook.Worksheets.Add("Certificates");
+
+                // Title
+                worksheet.Cell(1, 1).Value = description;
+                worksheet.Cell(1, 1).Style.Font.Bold = true;
+                worksheet.Cell(1, 1).Style.Font.FontSize = 14;
+                worksheet.Range(1, 1, 1, 9).Merge();
+
+                // Metadata
+                worksheet.Cell(2, 1).Value = "Generated:";
+                worksheet.Cell(2, 2).Value = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") + " UTC";
+                worksheet.Cell(3, 1).Value = "Total Certificates:";
+                worksheet.Cell(3, 2).Value = certificates.Count;
+
                 // Headers
-                worksheet.Cell(1, 1).Value = "Metric";
-                worksheet.Cell(1, 2).Value = "Value";
-                worksheet.Cell(1, 3).Value = "Generated Date";
-                
+                int headerRow = 5;
+                worksheet.Cell(headerRow, 1).Value = "Certificate Number";
+                worksheet.Cell(headerRow, 2).Value = "Status";
+                worksheet.Cell(headerRow, 3).Value = "Company";
+                worksheet.Cell(headerRow, 4).Value = "Product";
+                worksheet.Cell(headerRow, 5).Value = "Certification Type";
+                worksheet.Cell(headerRow, 6).Value = "Effective Date";
+                worksheet.Cell(headerRow, 7).Value = "Expiration Date";
+                worksheet.Cell(headerRow, 8).Value = "Location";
+                worksheet.Cell(headerRow, 9).Value = "Country";
+
                 // Style headers
-                var headerRange = worksheet.Range(1, 1, 1, 3);
+                var headerRange = worksheet.Range(headerRow, 1, headerRow, 9);
                 headerRange.Style.Font.Bold = true;
-                headerRange.Style.Fill.BackgroundColor = XLColor.LightGray;
+                headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#00AEEF");
+                headerRange.Style.Font.FontColor = XLColor.White;
                 headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-                
+                headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
                 // Data
-                worksheet.Cell(2, 1).Value = data.Description;
-                worksheet.Cell(2, 2).Value = data.Value;
-                worksheet.Cell(2, 3).Value = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss") + " UTC";
-                
+                int row = headerRow + 1;
+                foreach (var cert in certificates)
+                {
+                    worksheet.Cell(row, 1).Value = cert.Number;
+                    worksheet.Cell(row, 2).Value = cert.Status;
+                    worksheet.Cell(row, 3).Value = cert.Company?.Name ?? "";
+                    worksheet.Cell(row, 4).Value = cert.Product?.Name ?? "";
+                    worksheet.Cell(row, 5).Value = cert.CertificationType?.Name ?? "";
+                    worksheet.Cell(row, 6).Value = cert.EffectiveDate.ToString("yyyy-MM-dd");
+                    worksheet.Cell(row, 7).Value = cert.ExpirationDate.ToString("yyyy-MM-dd");
+                    worksheet.Cell(row, 8).Value = cert.Location ?? "";
+                    worksheet.Cell(row, 9).Value = cert.Country ?? "";
+                    row++;
+                }
+
+                // Add borders to data
+                if (certificates.Any())
+                {
+                    var dataRange = worksheet.Range(headerRow, 1, row - 1, 9);
+                    dataRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+                    dataRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+                }
+
                 // Auto-fit columns
                 worksheet.Columns().AdjustToContents();
-                
+
                 using (var stream = new MemoryStream())
                 {
                     workbook.SaveAs(stream);

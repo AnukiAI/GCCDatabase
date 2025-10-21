@@ -143,10 +143,12 @@ function populateTable(data) {
     // Add rows for existing certificate types first
     data.forEach(certType => {
         const row = document.createElement('tr');
+        row.className = 'admin-table-row';
         row.setAttribute('data-id', certType.id);
 
         // Certificate Type Name cell
         const nameCell = document.createElement('td');
+        nameCell.className = 'admin-table-td';
         nameCell.setAttribute('data-label', 'Certificate Type Name');
 
         // Check if this certificate type is currently being edited
@@ -165,41 +167,51 @@ function populateTable(data) {
 
         // Actions cell
         const actionsCell = document.createElement('td');
-        actionsCell.className = 'actions-cell';
+        actionsCell.className = 'admin-table-td admin-table-td--actions';
         actionsCell.setAttribute('data-label', 'Actions');
 
         if (editingId === certType.id) {
             // If editing, show save and cancel buttons
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'admin-action-buttons';
+
             const saveBtn = document.createElement('button');
-            saveBtn.className = 'btn-save';
+            saveBtn.className = 'admin-action-btn admin-action-btn--save';
             saveBtn.innerHTML = '<i class="fas fa-check"></i>';
             saveBtn.title = 'Save';
             saveBtn.addEventListener('click', () => saveCertTypeEdit(certType.id));
 
             const cancelBtn = document.createElement('button');
-            cancelBtn.className = 'btn-cancel';
+            cancelBtn.className = 'admin-action-btn admin-action-btn--cancel';
             cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
             cancelBtn.title = 'Cancel';
             cancelBtn.addEventListener('click', cancelCertTypeEdit);
 
-            actionsCell.appendChild(saveBtn);
-            actionsCell.appendChild(cancelBtn);
+            actionButtons.appendChild(saveBtn);
+            actionButtons.appendChild(cancelBtn);
+            actionsCell.appendChild(actionButtons);
         } else {
             // If not editing, show edit and delete buttons
+            const actionButtons = document.createElement('div');
+            actionButtons.className = 'admin-action-buttons';
+
             const editBtn = document.createElement('button');
-            editBtn.className = 'action-btn edit-btn';
+            editBtn.className = 'admin-action-btn admin-action-btn--edit';
             editBtn.innerHTML = '<i class="fas fa-edit"></i>';
             editBtn.title = 'Edit';
+            editBtn.setAttribute('aria-label', `Edit ${certType.name}`);
             editBtn.addEventListener('click', () => editCertType(certType.id));
 
             const deleteBtn = document.createElement('button');
-            deleteBtn.className = 'action-btn delete-btn';
-            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.className = 'admin-action-btn admin-action-btn--delete';
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
             deleteBtn.title = 'Delete';
+            deleteBtn.setAttribute('aria-label', `Delete ${certType.name}`);
             deleteBtn.addEventListener('click', () => deleteCertType(certType.id));
 
-            actionsCell.appendChild(editBtn);
-            actionsCell.appendChild(deleteBtn);
+            actionButtons.appendChild(editBtn);
+            actionButtons.appendChild(deleteBtn);
+            actionsCell.appendChild(actionButtons);
         }
 
         row.appendChild(actionsCell);
@@ -209,9 +221,10 @@ function populateTable(data) {
     // Check if we need to add a new row for adding a certificate type (at bottom)
     if (addingNew) {
         const addRow = document.createElement('tr');
-        addRow.className = 'add-row';
+        addRow.className = 'admin-table-row add-row';
 
         const inputCell = document.createElement('td');
+        inputCell.className = 'admin-table-td';
         inputCell.setAttribute('data-label', 'Certificate Type Name');
         const input = document.createElement('input');
         input.type = 'text';
@@ -220,23 +233,27 @@ function populateTable(data) {
         inputCell.appendChild(input);
 
         const actionsCell = document.createElement('td');
-        actionsCell.className = 'actions-cell';
+        actionsCell.className = 'admin-table-td admin-table-td--actions';
         actionsCell.setAttribute('data-label', 'Actions');
 
+        const actionButtons = document.createElement('div');
+        actionButtons.className = 'admin-action-buttons';
+
         const saveBtn = document.createElement('button');
-        saveBtn.className = 'btn-save';
+        saveBtn.className = 'admin-action-btn admin-action-btn--save';
         saveBtn.innerHTML = '<i class="fas fa-check"></i>';
         saveBtn.title = 'Save';
         saveBtn.addEventListener('click', saveNewCertType);
 
         const cancelBtn = document.createElement('button');
-        cancelBtn.className = 'btn-cancel';
+        cancelBtn.className = 'admin-action-btn admin-action-btn--cancel';
         cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
         cancelBtn.title = 'Cancel';
         cancelBtn.addEventListener('click', cancelAddCertType);
 
-        actionsCell.appendChild(saveBtn);
-        actionsCell.appendChild(cancelBtn);
+        actionButtons.appendChild(saveBtn);
+        actionButtons.appendChild(cancelBtn);
+        actionsCell.appendChild(actionButtons);
 
         addRow.appendChild(inputCell);
         addRow.appendChild(actionsCell);

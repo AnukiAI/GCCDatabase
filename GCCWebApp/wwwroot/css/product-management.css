@@ -282,6 +282,7 @@
 .btn {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     padding: 10px 18px;
     background: white;
     color: var(--text-color);
@@ -294,6 +295,9 @@
     text-decoration: none;
     gap: 8px;
     white-space: nowrap;
+    min-width: 123px;
+    min-height: 44px;
+    box-sizing: border-box;
 }
 
 .btn:hover {

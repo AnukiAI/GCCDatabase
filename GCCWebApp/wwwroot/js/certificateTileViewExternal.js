@@ -116,11 +116,31 @@ class CertificateTileViewExternal {
             mobileToggle.addEventListener('click', () => this.toggleMobileFilters());
         }
 
-        // Export button
-        const exportBtn = document.querySelector('.export-btn');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', () => this.showExportModal());
+        // Export buttons (top toolbar)
+        const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+        const exportAllBtn = document.getElementById('exportAllBtn');
+        const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+
+        if (exportSelectedBtn) {
+            exportSelectedBtn.addEventListener('click', () => this.exportSelected());
         }
+
+        if (exportAllBtn) {
+            exportAllBtn.addEventListener('click', () => this.exportAll());
+        }
+
+        if (downloadSelectedBtn) {
+            downloadSelectedBtn.addEventListener('click', () => this.downloadSelected());
+        }
+
+        // Bulk action buttons (appears when items selected)
+        document.querySelectorAll('[data-action="bulk-download"]').forEach(btn => {
+            btn.addEventListener('click', () => this.downloadSelected());
+        });
+
+        document.querySelectorAll('[data-action="bulk-export"]').forEach(btn => {
+            btn.addEventListener('click', () => this.exportSelected());
+        });
 
         // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
@@ -559,8 +579,8 @@ class CertificateTileViewExternal {
         // Clear existing content
         gridBody.innerHTML = '';
 
-        // Use current certificates data
-        const certificates = this.service.state.certificates || [];
+        // Use current certificates data from service
+        const certificates = this.service.certificates || [];
         if (certificates && certificates.length > 0) {
             gridBody.innerHTML = certificates.map(cert => this.createTableRow(cert)).join('');
         } else {
@@ -947,6 +967,119 @@ class CertificateTileViewExternal {
                 </div>
             `;
         }
+    }
+
+    /**
+     * Export selected certificates to CSV (opens in Excel)
+     */
+    async exportSelected() {
+        const selectedCerts = this.getSelectedCertificates();
+        if (selectedCerts.length === 0) {
+            if (typeof AdminCore !== 'undefined') {
+                AdminCore.showNotification('Please select certificates to export', 'warning');
+            } else {
+                alert('Please select certificates to export');
+            }
+            return;
+        }
+
+        try {
+            // Extract certificate IDs from selected certificates
+            const selectedIds = selectedCerts.map(cert => cert.id);
+            await this.service.exportCertificates(selectedIds);
+
+            if (typeof AdminCore !== 'undefined') {
+                AdminCore.showNotification(`Exported ${selectedCerts.length} certificate(s) to CSV`, 'success');
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            if (typeof AdminCore !== 'undefined') {
+                AdminCore.showNotification('Export failed. Please try again.', 'error');
+            } else {
+                alert('Export failed. Please try again.');
+            }
+        }
+    }
+
+    /**
+     * Export all filtered certificates to CSV (opens in Excel)
+     */
+    async exportAll() {
+        try {
+            const totalCount = this.service.totalCount || this.service.certificates.length;
+
+            // Export all (pass null to export based on current filters)
+            await this.service.exportCertificates(null);
+
+            if (typeof AdminCore !== 'undefined') {
+                AdminCore.showNotification(`Exported ${totalCount} certificate(s) to CSV`, 'success');
+            }
+        } catch (error) {
+            console.error('Export error:', error);
+            if (typeof AdminCore !== 'undefined') {
+                AdminCore.showNotification('Export failed. Please try again.', 'error');
+            } else {
+                alert('Export failed. Please try again.');
+            }
+        }
+    }
+
+    /**
+     * Download PDF certificates for selected items
+     */
+    async downloadSelected() {
+        const selectedCerts = this.getSelectedCertificates();
+        if (selectedCerts.length === 0) {
+            if (typeof AdminCore !== 'undefined') {
+                AdminCore.showNotification('Please select certificates to download', 'warning');
+            } else {
+                alert('Please select certificates to download');
+            }
+            return;
+        }
+
+        if (typeof AdminCore !== 'undefined') {
+            AdminCore.showNotification(`Downloading ${selectedCerts.length} certificate PDF(s)...`, 'info');
+        }
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const cert of selectedCerts) {
+            try {
+                await this.handleDownload(cert.id);
+                successCount++;
+                // Small delay between downloads to prevent browser blocking
+                await new Promise(resolve => setTimeout(resolve, 500));
+            } catch (error) {
+                console.error('Download error for certificate:', cert.id, error);
+                errorCount++;
+            }
+        }
+
+        if (typeof AdminCore !== 'undefined') {
+            if (errorCount === 0) {
+                AdminCore.showNotification(`Downloaded ${successCount} PDF(s) successfully`, 'success');
+            } else {
+                AdminCore.showNotification(`Downloaded ${successCount} PDF(s), ${errorCount} failed`, 'warning');
+            }
+        }
+    }
+
+    /**
+     * Get selected certificates from checkboxes
+     */
+    getSelectedCertificates() {
+        const selected = [];
+        const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+        checkboxes.forEach(checkbox => {
+            const certId = checkbox.getAttribute('data-cert-id');
+            if (certId) {
+                const cert = this.service.certificates.find(c => c.id == certId);
+                if (cert) selected.push(cert);
+            }
+        });
+        return selected;
     }
 }
 

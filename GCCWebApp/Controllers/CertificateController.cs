@@ -938,6 +938,7 @@ namespace GCCWebApp.Controllers
             string format = "csv",
             string? searchTerm = null,
             string? sort = null,
+            string? ids = null,
             [FromQuery] List<string>? certificationTypes = null,
             [FromQuery] List<string>? countries = null,
             [FromQuery] List<string>? statuses = null,
@@ -965,7 +966,17 @@ namespace GCCWebApp.Controllers
                     }
                 };
 
-                var exportData = await _certificateService.ExportCertificatesAsync(request, format);
+                // If specific IDs provided, filter to only those certificates
+                byte[] exportData;
+                if (!string.IsNullOrEmpty(ids))
+                {
+                    var certificateIds = ids.Split(',').Select(id => id.Trim()).Where(id => !string.IsNullOrEmpty(id)).ToList();
+                    exportData = await _certificateService.ExportCertificatesByIdsAsync(certificateIds, format);
+                }
+                else
+                {
+                    exportData = await _certificateService.ExportCertificatesAsync(request, format);
+                }
                 
                 if (exportData == null || exportData.Length == 0)
                 {

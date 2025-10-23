@@ -185,6 +185,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    pointer-events: none;
 }
 
 .export-modal-overlay {
@@ -194,6 +195,8 @@
     right: 0;
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
+    pointer-events: all;
+    cursor: pointer;
 }
 
 .export-modal-content {
@@ -202,7 +205,11 @@
     border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     min-width: 400px;
-    max-width: 90vw;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    pointer-events: all;
+    z-index: 1051;
 }
 
 .export-modal-header {

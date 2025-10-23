@@ -235,6 +235,56 @@ namespace GCCWebApp.Services
             }
         }
 
+        public async Task<byte[]?> ExportCertificatesByIdsAsync(List<string> certificateIds, string format)
+        {
+            try
+            {
+                if (certificateIds == null || !certificateIds.Any())
+                    return null;
+
+                // Get all certificates first using the existing method with large page size
+                var request = new CertificateListRequest
+                {
+                    Page = 1,
+                    PageSize = 10000,
+                    Sort = "",
+                    UserRole = "Public", // Get all certificates
+                    Filters = new CertificateSearchFilters
+                    {
+                        SearchTerm = "",
+                        CertificationTypes = new List<string>(),
+                        Countries = new List<string>(),
+                        Statuses = new List<string>()
+                    }
+                };
+
+                var response = await GetCertificatesAsync(request);
+                if (!response.Success || !response.Certificates.Any())
+                    return null;
+
+                // Filter to only the requested certificate IDs or numbers
+                var filteredCertificates = response.Certificates
+                    .Where(c => certificateIds.Contains(c.Id.ToString()) || certificateIds.Contains(c.CertificateNumber))
+                    .ToList();
+
+                if (!filteredCertificates.Any())
+                    return null;
+
+                return format.ToLower() switch
+                {
+                    "csv" => GenerateCsvExport(filteredCertificates),
+                    "excel" => GenerateExcelExport(filteredCertificates),
+                    "pdf" => GeneratePdfExport(filteredCertificates),
+                    _ => GenerateCsvExport(filteredCertificates)
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error exporting certificates by IDs to {Format}", format);
+                return null;
+            }
+        }
+
         public async Task<CertificateStatistics> GetCertificateStatisticsAsync(string userRole)
         {
             try

@@ -643,7 +643,7 @@
                     <!-- Construction / Building Products -->
                     <li class="filter-item filter-level-1">
                         <label>
-                            <input type="checkbox" name="product-cat" value="construction-building" checked>
+                            <input type="checkbox" name="product-cat" value="construction-building">
                             Construction / Building Products
                         </label>
                     </li>
@@ -673,7 +673,7 @@
                     </li>
                     <li class="filter-item filter-level-2">
                         <label>
-                            <input type="checkbox" name="product-cat" value="doors-hardware" checked>
+                            <input type="checkbox" name="product-cat" value="doors-hardware">
                             Doors, Door Hardware, and Accessories
                         </label>
                     </li>
@@ -1325,13 +1325,13 @@
             <div class="left-controls">
                 <div class="export-options">
                     <!-- External users can export but cannot add certificates -->
-                    <button class="btn btn-primary">
+                    <button id="exportSelectedBtn" class="btn btn-primary">
                         Export (selected) to Excel
                     </button>
-                    <button class="btn btn-primary">
+                    <button id="exportAllBtn" class="btn btn-primary">
                         Export All to Excel
                     </button>
-                    <button class="btn btn-primary">
+                    <button id="downloadSelectedBtn" class="btn btn-primary">
                         Download Selected
                     </button>
                 </div>
@@ -1481,11 +1481,15 @@
         </div>
 
 
-        <script src="~/js/certificateslist.js"></script>
+        <!-- Modern External View Scripts -->
         <script src="~/js/certificateExternalService.js"></script>
         <script src="~/js/certificateTileViewExternal.js"></script>
-        <script src="~/js/certificateTileViewExternalAdapter.js"></script>
-        <!-- Inline script block removed for CSP compliance -->
-        @* All script content moved to external files for CSP compliance *@
+        <script>
+            // Initialize the Certificate Tile View External
+            document.addEventListener('DOMContentLoaded', () => {
+                window.certificateTileViewExternal = new CertificateTileViewExternal();
+                console.log('CertificateTileViewExternal initialized successfully');
+            });
+        </script>
     </div>
 </div>

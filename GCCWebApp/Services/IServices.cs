@@ -9,6 +9,7 @@ namespace GCCWebApp.Services
         Task<CertificateDetailsViewModel> GetCertificateDetailsAsync(int id, string userRole);
         Task<CertificateDownloadModel?> GetCertificateDownloadAsync(int id, string userRole);
         Task<byte[]?> ExportCertificatesAsync(CertificateListRequest request, string format);
+    Task<byte[]?> ExportCertificatesByIdsAsync(List<string> certificateIds, string format);
         Task<CertificateStatistics> GetCertificateStatisticsAsync(string userRole);
         Task<BulkActionResult> PerformBulkActionAsync(BulkActionRequest request);
         Task<List<string>> GetSearchSuggestionsAsync(string term, string type, string userRole);

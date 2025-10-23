@@ -300,12 +300,20 @@ class CertificateExternalService {
     }
 
     /**
-     * Export certificates in specified format
+     * Export certificates in CSV format (opens in Excel)
+     * @param {Array} selectedIds - Optional array of certificate IDs to export (if null, exports all filtered)
      */
-    async exportCertificates(format = 'csv') {
+    async exportCertificates(selectedIds = null) {
         try {
             const queryString = this.buildQueryString();
-            const response = await fetch(`/Certificate/ExportCertificates?format=${format}&${queryString}`, {
+            let url = `/Certificate/ExportCertificates?format=csv&${queryString}`;
+
+            // If specific certificates are selected, add their IDs to the query
+            if (selectedIds && selectedIds.length > 0) {
+                url += `&ids=${selectedIds.join(',')}`;
+            }
+
+            const response = await fetch(url, {
                 method: 'GET'
             });
 
@@ -315,21 +323,21 @@ class CertificateExternalService {
 
             // Get the blob from response
             const blob = await response.blob();
-            
+
             // Create a temporary URL for the blob
-            const url = window.URL.createObjectURL(blob);
-            
+            const downloadUrl = window.URL.createObjectURL(blob);
+
             // Create a temporary anchor element and trigger download
             const a = document.createElement('a');
-            a.href = url;
-            a.download = `certificates-export-${new Date().toISOString().split('T')[0]}.${format}`;
+            a.href = downloadUrl;
+            a.download = `certificates-export-${new Date().toISOString().split('T')[0]}.csv`;
             document.body.appendChild(a);
             a.click();
-            
+
             // Clean up
-            window.URL.revokeObjectURL(url);
+            window.URL.revokeObjectURL(downloadUrl);
             document.body.removeChild(a);
-            
+
             return true;
         } catch (error) {
             console.error('Error exporting certificates:', error);

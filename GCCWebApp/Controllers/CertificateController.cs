@@ -92,10 +92,10 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// Certificate single view
+        /// Certificate tile view for External users (partners)
         /// GET: /Certificate/CertificateTileViewExternal
         /// </summary>
-        [AllowAnonymous]
+        [Authorize(Policy = "ExternalAccess")]
         public IActionResult CertificateTileViewExternal()
         {
             return View();

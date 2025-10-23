@@ -429,14 +429,16 @@ await AdminCore.showConfirmation({ message: 'Deleted!' }); // NO!
 ## Routes
 
 **Public**: `/Certificate/CertificateTileView` (main), `/Certificate/Details/{id}`, `/Account/Login`
+**External/Analyst/Admin**: `/Certificate/CertificateTileViewExternal` (requires ExternalAccess policy)
 **Admin/Analyst**: `/Certificate/Create`, `/Certificate/Edit/{id}`, `/Dashboard`
 **Admin Only**: `/Admin/UserManagement`, `/Admin/RoleManagement`
 
 ## API
 
-**Public**: `GET /api/v1/certificates`, `/api/CertificateTileExternal/tiles`
+**Public**: `GET /api/v1/certificates`
+**External/Analyst/Admin**: `GET /api/CertificateTileExternal/*` (requires ExternalAccess policy, cookie-based auth after 2FA)
 **Authenticated**: `POST/PUT/DELETE /api/v1/certificates/{id}`
-**Amazon**: `/api/CertificateTileExternal/*` (partner filtering)
+**Partner API**: `/api/CertificateTileExternal/*` can also accept API Key authentication for partners
 
 ## Test Credentials
 Admin: `admin@greencirclecertified.com` / `Admin123!`

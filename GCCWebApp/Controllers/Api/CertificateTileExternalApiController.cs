@@ -8,7 +8,7 @@ namespace GCCWebApp.Controllers.Api
 {
     [ApiController]
     [Route("api/CertificateTileExternal")]
-    [Authorize(AuthenticationSchemes = "ApiKey")] // Requires API Key authentication for partner access
+    [Authorize(Policy = "ExternalAccess")] // Requires External role authentication
     public class CertificateTileExternalApiController : ControllerBase
     {
         private readonly ApplicationDbContext _context;

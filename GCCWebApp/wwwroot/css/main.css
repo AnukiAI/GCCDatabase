@@ -1698,7 +1698,6 @@ input, select, button, .form-input, .form-select {
     font-weight: 600;
     margin-bottom: 10px; /* Reduced from 14px - tighter spacing below title */
     color: var(--blue-dark);
-    background: linear-gradient(90deg, rgba(0, 174, 239, 0.08) 0%, transparent 100%); /* Subtle gradient background */
     border-left: 5px solid var(--blue-primary); /* Increased from 4px */
     padding-left: 14px; /* Increased from 10px */
     padding-right: 14px; /* Added right padding */
@@ -1817,7 +1816,6 @@ input, select, button, .form-input, .form-select {
     max-width: 750px; /* Increased from 650px */
     height: auto;
     border-radius: 10px; /* Increased from 8px */
-    border: 2px solid var(--blue-primary); /* Enhanced border - 2px with blue color */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Enhanced shadow for depth */
     object-fit: contain;
     margin-bottom: 20px; /* Increased from 15px - Space for download button */

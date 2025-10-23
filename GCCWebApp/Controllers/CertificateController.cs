@@ -285,8 +285,9 @@ namespace GCCWebApp.Controllers
         /// <summary>
         /// Get certificate details
         /// GET: /Certificate/Details/5
+        /// External users can view certificate details (read-only)
         /// </summary>
-        [Authorize(Policy = "AnalystOrAdmin")]
+        [Authorize(Policy = "ExternalAccess")]
         public async Task<IActionResult> Details(int id)
         {
             try

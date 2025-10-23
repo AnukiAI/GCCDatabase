@@ -949,3 +949,4 @@ pwsh playwright.ps1 install
 - External Users do not have the same permissions as Analyst and Admin. Admin has CRUD Roles. Analyst has read write and does not have access to the Admin pages.
 - stop making random changes that aren't relevant to the defect
 - ask followup questions for clarity and focus on the issue or defect
+- review requirments and current design and determine the exact change. Include what the changes will be prior to making them to make sure we have an additional quality check

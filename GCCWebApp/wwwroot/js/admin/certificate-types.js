@@ -132,8 +132,7 @@ async function deleteCertificateTypeApi(id) {
 }
 
 function showError(message) {
-    // Simple error display - you can enhance this
-    alert(message);
+    AdminCore.showNotification(message, 'error');
 }
 
 // Function to populate the table
@@ -310,11 +309,12 @@ async function saveNewCertType() {
         if (success) {
             addingNew = false;
             await loadCertificateTypes(); // Reload data from server
+            AdminCore.showNotification('Certificate type created successfully', 'success');
         } else {
-            alert('Failed to create certificate type. Please try again.');
+            AdminCore.showNotification('Failed to create certificate type. Please try again.', 'error');
         }
     } else {
-        alert('Please enter a certificate type name.');
+        AdminCore.showNotification('Please enter a certificate type name.', 'warning');
     }
 }
 
@@ -352,11 +352,12 @@ async function saveCertTypeEdit(id) {
         if (success) {
             editingId = null;
             await loadCertificateTypes(); // Reload data from server
+            AdminCore.showNotification('Certificate type updated successfully', 'success');
         } else {
-            alert('Failed to update certificate type. Please try again.');
+            AdminCore.showNotification('Failed to update certificate type. Please try again.', 'error');
         }
     } else {
-        alert('Please enter a certificate type name.');
+        AdminCore.showNotification('Please enter a certificate type name.', 'warning');
     }
 }
 
@@ -368,28 +369,38 @@ function cancelCertTypeEdit() {
 
 // Function to delete a certificate type
 async function deleteCertType(id) {
-    if (confirm('Are you sure you want to delete this certificate type?')) {
+    const confirmed = await AdminCore.showConfirmation({
+        title: 'Delete Confirmation',
+        message: 'Are you sure you want to delete this certificate type? This action cannot be undone.',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        type: 'danger'
+    });
+
+    if (confirmed) {
         const success = await deleteCertificateTypeApi(id);
         if (success) {
             await loadCertificateTypes(); // Reload data from server
+            AdminCore.showNotification('Certificate type deleted successfully', 'success');
         } else {
-            alert('Failed to delete certificate type. Please try again.');
+            AdminCore.showNotification('Failed to delete certificate type. Please try again.', 'error');
         }
     }
 }
 
-// Export functionality
+// Export functionality - CSV only
 function exportCertificateTypes() {
     const columns = [
         { key: 'id', header: 'ID' },
         { key: 'name', header: 'Certificate Type Name' }
     ];
-    
-    ExportUtils.showExportModal(
-        filterCertTypes(), 
-        columns, 
+
+    // Direct CSV export only
+    ExportUtils.exportToCSV(
+        filterCertTypes(),
+        columns,
         'certificate_types',
-        (message, type) => alert(message)
+        (message, type) => AdminCore.showNotification(message, type)
     );
 }
 

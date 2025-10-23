@@ -346,6 +346,263 @@ const AdminCore = {
         }
     },
 
+    /**
+     * Show a confirmation modal dialog
+     * @param {Object} options - Modal configuration options
+     * @param {string} options.title - Modal title
+     * @param {string} options.message - Modal message/description
+     * @param {string} options.confirmText - Confirm button text (default: "Confirm")
+     * @param {string} options.cancelText - Cancel button text (default: "Cancel")
+     * @param {string} options.type - Modal type: 'danger', 'warning', 'info' (default: 'danger')
+     * @param {Function} options.onConfirm - Callback when confirmed
+     * @param {Function} options.onCancel - Callback when cancelled
+     * @returns {Promise} Resolves with true if confirmed, false if cancelled
+     */
+    showConfirmation(options = {}) {
+        const defaults = {
+            title: 'Confirm Action',
+            message: 'Are you sure you want to proceed?',
+            confirmText: 'Confirm',
+            cancelText: 'Cancel',
+            type: 'danger', // 'danger', 'warning', 'info'
+            onConfirm: null,
+            onCancel: null
+        };
+
+        const config = { ...defaults, ...options };
+
+        return new Promise((resolve) => {
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'admin-modal-overlay';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-labelledby', 'modal-title');
+            overlay.setAttribute('aria-describedby', 'modal-message');
+
+            // Determine button style based on type
+            const confirmBtnClass = config.type === 'danger' ? 'admin-modal-btn--danger' :
+                                   config.type === 'warning' ? 'admin-modal-btn--primary' :
+                                   'admin-modal-btn--success';
+
+            // Create modal HTML
+            overlay.innerHTML = `
+                <div class="admin-modal-dialog">
+                    <div class="admin-modal-header">
+                        <h2 id="modal-title" class="admin-modal-title">${this.escapeHtml(config.title)}</h2>
+                    </div>
+                    <div class="admin-modal-body">
+                        <p id="modal-message" class="admin-modal-message">${this.escapeHtml(config.message)}</p>
+                    </div>
+                    <div class="admin-modal-footer">
+                        <button class="admin-modal-btn admin-modal-btn--secondary" data-action="cancel">
+                            ${this.escapeHtml(config.cancelText)}
+                        </button>
+                        <button class="admin-modal-btn ${confirmBtnClass}" data-action="confirm">
+                            ${this.escapeHtml(config.confirmText)}
+                        </button>
+                    </div>
+                </div>
+            `;
+
+            // Add to document
+            document.body.appendChild(overlay);
+
+            // Handle confirmation
+            const handleConfirm = () => {
+                cleanup();
+                if (config.onConfirm) config.onConfirm();
+                resolve(true);
+            };
+
+            // Handle cancellation
+            const handleCancel = () => {
+                cleanup();
+                if (config.onCancel) config.onCancel();
+                resolve(false);
+            };
+
+            // Cleanup function
+            const cleanup = () => {
+                overlay.classList.remove('show');
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 300);
+            };
+
+            // Bind events
+            const confirmBtn = overlay.querySelector('[data-action="confirm"]');
+            const cancelBtn = overlay.querySelector('[data-action="cancel"]');
+
+            confirmBtn.addEventListener('click', handleConfirm);
+            cancelBtn.addEventListener('click', handleCancel);
+
+            // Close on overlay click
+            overlay.addEventListener('click', (e) => {
+                if (e.target === overlay) {
+                    handleCancel();
+                }
+            });
+
+            // Handle keyboard events
+            const keyHandler = (e) => {
+                if (e.key === 'Escape') {
+                    handleCancel();
+                    document.removeEventListener('keydown', keyHandler);
+                } else if (e.key === 'Enter' && e.target.tagName !== 'BUTTON') {
+                    handleConfirm();
+                    document.removeEventListener('keydown', keyHandler);
+                }
+            };
+            document.addEventListener('keydown', keyHandler);
+
+            // Show modal with animation
+            requestAnimationFrame(() => {
+                overlay.classList.add('show');
+                confirmBtn.focus();
+            });
+
+            // Announce to screen readers
+            this.announceToScreenReader(`${config.title}. ${config.message}`);
+        });
+    },
+
+    /**
+     * Show a progress modal for long-running operations
+     * @param {Object} options - Progress modal configuration
+     * @param {string} options.title - Modal title
+     * @param {string} options.message - Modal message
+     * @param {boolean} options.indeterminate - Show indeterminate progress (default: false)
+     * @param {string} options.cancelText - Cancel button text (default: "Cancel")
+     * @param {Function} options.onCancel - Callback when cancelled
+     * @returns {Object} Progress modal controller with update() and close() methods
+     */
+    showProgress(options = {}) {
+        const defaults = {
+            title: 'Processing',
+            message: 'Please wait...',
+            indeterminate: false,
+            cancelText: 'Cancel',
+            onCancel: null
+        };
+
+        const config = { ...defaults, ...options };
+
+        // Create modal overlay
+        const overlay = document.createElement('div');
+        overlay.className = 'admin-modal-overlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-labelledby', 'progress-modal-title');
+        overlay.setAttribute('aria-live', 'polite');
+
+        const progressFillClass = config.indeterminate ? 'indeterminate' : '';
+
+        // Create modal HTML
+        overlay.innerHTML = `
+            <div class="admin-modal-dialog">
+                <div class="admin-modal-header">
+                    <h2 id="progress-modal-title" class="admin-modal-title">${this.escapeHtml(config.title)}</h2>
+                </div>
+                <div class="admin-modal-body">
+                    <p class="admin-modal-message">${this.escapeHtml(config.message)}</p>
+                    <div class="admin-modal-progress">
+                        <div class="admin-modal-progress-bar">
+                            <div class="admin-modal-progress-fill ${progressFillClass}" style="width: 0%"></div>
+                        </div>
+                        <p class="admin-modal-progress-text">0%</p>
+                    </div>
+                </div>
+                <div class="admin-modal-footer admin-modal-footer--centered">
+                    <button class="admin-modal-btn admin-modal-btn--success admin-modal-btn--full" data-action="cancel">
+                        ${this.escapeHtml(config.cancelText)}
+                    </button>
+                </div>
+            </div>
+        `;
+
+        // Add to document
+        document.body.appendChild(overlay);
+
+        // Handle cancellation
+        const handleCancel = () => {
+            overlay.classList.remove('show');
+            setTimeout(() => {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            }, 300);
+            if (config.onCancel) config.onCancel();
+        };
+
+        // Bind cancel button
+        const cancelBtn = overlay.querySelector('[data-action="cancel"]');
+        cancelBtn.addEventListener('click', handleCancel);
+
+        // Show modal with animation
+        requestAnimationFrame(() => {
+            overlay.classList.add('show');
+        });
+
+        // Return controller object
+        return {
+            /**
+             * Update progress bar
+             * @param {number} percent - Progress percentage (0-100)
+             * @param {string} message - Optional status message
+             */
+            update(percent, message) {
+                const progressFill = overlay.querySelector('.admin-modal-progress-fill');
+                const progressText = overlay.querySelector('.admin-modal-progress-text');
+                const messageEl = overlay.querySelector('.admin-modal-message');
+
+                if (progressFill && !config.indeterminate) {
+                    progressFill.style.width = `${Math.min(100, Math.max(0, percent))}%`;
+                }
+
+                if (progressText && !config.indeterminate) {
+                    progressText.textContent = `${Math.round(percent)}%`;
+                }
+
+                if (message && messageEl) {
+                    messageEl.textContent = message;
+                }
+
+                // Announce progress to screen readers
+                if (percent % 25 === 0) {
+                    this.announceToScreenReader(`Progress: ${percent}%`);
+                }
+            },
+
+            /**
+             * Close the progress modal
+             */
+            close() {
+                handleCancel();
+            },
+
+            /**
+             * Get the overlay element
+             */
+            getElement() {
+                return overlay;
+            }
+        };
+    },
+
+    /**
+     * Escape HTML to prevent XSS
+     * @param {string} text - Text to escape
+     * @returns {string} Escaped HTML
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
     // Accessibility helpers
     setupAccessibility() {
         // Add ARIA labels where missing

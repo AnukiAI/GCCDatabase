@@ -71,8 +71,10 @@ document.addEventListener('DOMContentLoaded', function() {
         clearTimeout(sessionTimeout);
         sessionTimeout = setTimeout(() => {
             if (document.querySelector('#logoutForm')) {
-                alert('Your session has expired. You will be logged out.');
-                document.getElementById('logoutForm').submit();
+                AdminCore.showNotification('Your session has expired. You will be logged out.', 'warning', { duration: 0 });
+                setTimeout(() => {
+                    document.getElementById('logoutForm').submit();
+                }, 2000); // Give user time to see the message
             }
         }, SESSION_TIMEOUT);
     }

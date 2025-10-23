@@ -283,6 +283,11 @@
     color: var(--admin-success);
 }
 
+.admin-action-btn--2fa:hover {
+    background-color: var(--admin-warning-light);
+    color: var(--admin-warning-dark);
+}
+
 /* Dropdown action button */
 .admin-action-dropdown {
     position: relative;

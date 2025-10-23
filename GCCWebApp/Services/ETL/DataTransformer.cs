@@ -380,16 +380,16 @@ namespace GCCWebApp.Services.ETL
                     TotalCertificates = group.Count(),
                     ActiveCertificates = group.Count(c =>
                     {
-                        if (!c.TryGetValue("Status", out var status) || status == null)
+                        if (c is null || !c.TryGetValue("Status", out var status) || status is null)
                             return false;
-                        var statusString = status.ToString();
+                        var statusString = status!.ToString();
                         return statusString?.Equals("active", StringComparison.OrdinalIgnoreCase) == true;
                     }),
                     ExpiredCertificates = group.Count(c =>
                     {
-                        if (!c.TryGetValue("ExpirationDate", out var expDate) || expDate == null)
+                        if (c is null || !c.TryGetValue("ExpirationDate", out var expDate) || expDate is null)
                             return false;
-                        var expDateString = expDate.ToString();
+                        var expDateString = expDate!.ToString();
                         if (string.IsNullOrEmpty(expDateString))
                             return false;
                         var parsedDate = ParseDate(expDateString);

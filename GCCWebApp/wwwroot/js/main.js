@@ -548,14 +548,22 @@ window.GreenCircle = {
 //login
 
 // Add this function before the window.GreenCircle export
-function logout() {
-    if (confirm('Are you sure you want to sign out?')) {
+async function logout() {
+    const confirmed = await AdminCore.showConfirmation({
+        title: 'Sign Out',
+        message: 'Are you sure you want to sign out?',
+        confirmText: 'Sign Out',
+        cancelText: 'Stay Signed In',
+        type: 'warning'
+    });
+
+    if (confirmed) {
         // Clear any stored auth data
         localStorage.removeItem('userRole');
         localStorage.removeItem('authToken');
 
         // Show loading toast
-        showToast('Signing out...', 'info');
+        AdminCore.showNotification('Signing out...', 'info');
 
         // Redirect to login after brief delay
         setTimeout(() => {

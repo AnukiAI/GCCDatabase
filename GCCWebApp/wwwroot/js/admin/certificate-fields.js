@@ -298,7 +298,15 @@ class CertificateFieldsManager {
         const field = this.fields.find(f => f.id === id);
         if (!field) return;
 
-        if (confirm(`Are you sure you want to delete the field "${field.name}"?`)) {
+        const confirmed = await AdminCore.showConfirmation({
+            title: 'Delete Confirmation',
+            message: `Are you sure you want to delete the field "${field.name}"? This action cannot be undone.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+
+        if (confirmed) {
             await this.deleteField(id);
         }
     }
@@ -523,6 +531,7 @@ class CertificateFieldsManager {
         }
     }
 
+    // Export to CSV only
     showExportModal() {
         if (window.ExportUtils) {
             const columns = [
@@ -534,8 +543,9 @@ class CertificateFieldsManager {
                 { key: 'sortOrder', header: 'Sort Order' },
                 { key: 'notes', header: 'Notes' }
             ];
-            
-            window.ExportUtils.showExportModal(this.filteredFields, columns, 'certificate-fields', (message, type) => this.showToast(message, type));
+
+            // Direct CSV export only
+            window.ExportUtils.exportToCSV(this.filteredFields, columns, 'certificate-fields', (message, type) => this.showToast(message, type));
         } else {
             this.showToast('Export functionality not available', 'error');
         }

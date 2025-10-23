@@ -609,8 +609,16 @@ function saveUser(event) {
 }
 
 // Function to delete a user
-function deleteUser(id) {
-    if (confirm('Are you sure you want to delete this user?')) {
+async function deleteUser(id) {
+    const confirmed = await AdminCore.showConfirmation({
+        title: 'Delete Confirmation',
+        message: 'Are you sure you want to delete this user? This action cannot be undone.',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        type: 'danger'
+    });
+
+    if (confirmed) {
         users = users.filter(user => user.id !== id);
         applyFiltersAndSort();
     }

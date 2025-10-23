@@ -437,6 +437,7 @@
 .admin-dropdown {
     position: relative;
     display: inline-block;
+    z-index: 100; /* Ensure dropdown container establishes stacking context above table rows */
 }
 
 .admin-dropdown-menu {
@@ -448,7 +449,7 @@
     border: 1px solid var(--admin-border-primary);
     border-radius: var(--admin-radius-md);
     box-shadow: var(--admin-shadow-lg);
-    z-index: var(--admin-z-dropdown);
+    z-index: 1000; /* High z-index to appear above table rows */
     opacity: 0;
     visibility: hidden;
     transform: translateY(-8px);

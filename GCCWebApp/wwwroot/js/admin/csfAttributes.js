@@ -293,11 +293,19 @@ function editCSF(id) {
 }
 
 // Delete CSF attribute
-function deleteCSF(id) {
-    if (confirm('Are you sure you want to delete this CSF attribute?')) {
+async function deleteCSF(id) {
+    const confirmed = await AdminCore.showConfirmation({
+        title: 'Delete Confirmation',
+        message: 'Are you sure you want to delete this CSF attribute? This action cannot be undone.',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        type: 'danger'
+    });
+
+    if (confirmed) {
         csfAttributes = csfAttributes.filter(attr => attr.id !== id);
         filterAndSort();
-        showToast('CSF attribute deleted successfully');
+        AdminCore.showNotification('CSF attribute deleted successfully', 'success');
     }
 }
 

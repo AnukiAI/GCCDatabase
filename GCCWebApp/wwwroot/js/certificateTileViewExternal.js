@@ -656,7 +656,7 @@ class CertificateTileViewExternal {
             await this.service.downloadCertificate(certificateId);
         } catch (error) {
             console.error('Error downloading certificate:', error);
-            alert('Failed to download certificate. Please try again.');
+            AdminCore.showNotification('Failed to download certificate. Please try again.', 'error');
         }
     }
 
@@ -684,7 +684,7 @@ class CertificateTileViewExternal {
                     await this.service.exportCertificates(format);
                 } catch (error) {
                     console.error('Export error:', error);
-                    alert('Failed to export certificates. Please try again.');
+                    AdminCore.showNotification('Failed to export certificates. Please try again.', 'error');
                 }
             });
         });

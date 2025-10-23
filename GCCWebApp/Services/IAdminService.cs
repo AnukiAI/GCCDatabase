@@ -81,5 +81,6 @@ namespace GCCWebApp.Services
         // Two-Factor Authentication Management
         Task<bool> Reset2FAAsync(int userId);
         Task<bool> Disable2FAAsync(int userId);
+        Task<bool> Enable2FAAsync(int userId, string twoFactorMethod);
     }
 }

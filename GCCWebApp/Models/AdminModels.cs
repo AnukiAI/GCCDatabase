@@ -28,7 +28,11 @@ namespace GCCWebApp.Models
         public DateTime? LastLogin { get; set; }
         
         public bool RequirePasswordReset { get; set; }
-        
+
+        // 2FA Fields
+        public bool TwoFactorEnabled { get; set; }
+        public string? TwoFactorMethod { get; set; }
+
         // For display purposes
         public List<string> CompanyNames { get; set; } = new List<string>();
         public List<string> PartnerNames { get; set; } = new List<string>();
@@ -80,6 +84,7 @@ namespace GCCWebApp.Models
 
     public class PermissionViewModel
     {
+        public int Id { get; set; }
         public string Name { get; set; } = string.Empty;
         public string DisplayName { get; set; } = string.Empty;
         public string Category { get; set; } = string.Empty;

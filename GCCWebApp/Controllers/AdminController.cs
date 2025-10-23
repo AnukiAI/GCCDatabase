@@ -1112,7 +1112,7 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken] 
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Disable2FA([FromBody] UserIdRequest request)
         {
             try
@@ -1132,11 +1132,40 @@ namespace GCCWebApp.Controllers
                 return Json(new ApiResponse<object> { Success = false, Message = "Error disabling 2FA: " + ex.Message });
             }
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Enable2FA([FromBody] Enable2FARequest request)
+        {
+            try
+            {
+                var success = await _adminService.Enable2FAAsync(request.UserId, request.TwoFactorMethod ?? "TOTP");
+                if (success)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "2FA enabled successfully" });
+                }
+                else
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "User not found or 2FA enable failed" });
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Error enabling 2FA: " + ex.Message });
+            }
+        }
     }
 
     // Request model for user ID operations
     public class UserIdRequest
     {
         public int UserId { get; set; }
+    }
+
+    // Request model for enabling 2FA
+    public class Enable2FARequest
+    {
+        public int UserId { get; set; }
+        public string? TwoFactorMethod { get; set; }
     }
 }

@@ -21,13 +21,20 @@
 
 <div class="admin-container">
     <header class="admin-header">
-        <div class="buttons-area">
-            <button class="btn" onclick="testApiEndpoint()" aria-label="Test API endpoint">
-                <i class="fas fa-vial" aria-hidden="true"></i> Test API
-            </button>
-            <button class="btn btn-add" onclick="generateApiKey()" aria-label="Generate new API key">
-                <i class="fas fa-key" aria-hidden="true"></i> Generate API Key
-            </button>
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <p class="admin-page-subtitle">Manage API keys, endpoints, and integration settings</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <button class="admin-btn admin-btn--secondary" onclick="testApiEndpoint()" aria-label="Test API endpoint">
+                        <i class="fas fa-vial" aria-hidden="true"></i> Test API
+                    </button>
+                    <button class="admin-btn admin-btn--primary" onclick="generateApiKey()" aria-label="Generate new API key">
+                        <i class="fas fa-key" aria-hidden="true"></i> Generate API Key
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 

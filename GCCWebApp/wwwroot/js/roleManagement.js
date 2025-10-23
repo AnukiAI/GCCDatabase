@@ -112,7 +112,7 @@ class RoleManagement {
             <tr data-role-id="${role.id}">
                 <td>
                     <strong>${this.escapeHtml(role.name)}</strong>
-                    ${role.isSystemRole ? '<span class="badge badge-system">System</span>' : ''}
+                    ${role.isSystem ? '<span class="badge badge-system">System</span>' : ''}
                 </td>
                 <td>${this.escapeHtml(role.description || '')}</td>
                 <td>
@@ -263,7 +263,7 @@ class RoleManagement {
         document.getElementById('role-description').value = role.description || '';
 
         // Show system role warning if applicable
-        const isSystemRole = role.isSystemRole || role.name === 'Admin';
+        const isSystemRole = role.isSystem || role.name === 'Admin';
         document.getElementById('system-role-warning').style.display = isSystemRole ? 'block' : 'none';
 
         // Populate permissions
@@ -306,14 +306,15 @@ class RoleManagement {
 
             permissionsByCategory[category].forEach(perm => {
                 const isChecked = selectedPermissions.includes(perm.name) ||
-                                selectedPermissions.includes(perm.id);
+                                selectedPermissions.includes(perm.id) ||
+                                selectedPermissions.includes(perm.id.toString());
                 html += `
                     <label class="admin-checkbox-item">
                         <input type="checkbox"
                                name="permissions"
-                               value="${perm.id || perm.name}"
+                               value="${perm.id}"
                                ${isChecked ? 'checked' : ''}>
-                        <span>${this.escapeHtml(perm.name)}</span>
+                        <span>${this.escapeHtml(perm.displayName || perm.name)}</span>
                         ${perm.description ? `<small class="admin-text-muted">${this.escapeHtml(perm.description)}</small>` : ''}
                     </label>
                 `;
@@ -393,7 +394,15 @@ class RoleManagement {
             return;
         }
 
-        if (!confirm(`Are you sure you want to delete the role "${role.name}"?`)) {
+        const confirmed = await AdminCore.showConfirmation({
+            title: 'Delete Confirmation',
+            message: `Are you sure you want to delete the role "${role.name}"? This action cannot be undone.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+
+        if (!confirmed) {
             return;
         }
         

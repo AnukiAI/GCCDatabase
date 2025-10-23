@@ -420,11 +420,19 @@ class ProductTypeManager {
         this.setupModalEvents(modal);
     }
 
-    showDeleteConfirm(id, entityType) {
+    async showDeleteConfirm(id, entityType) {
         const item = this.hierarchyData.find(d => d.id == id);
         if (!item) return;
-        
-        if (confirm(`Are you sure you want to delete "${item.name}"? This action cannot be undone.`)) {
+
+        const confirmed = await AdminCore.showConfirmation({
+            title: 'Delete Confirmation',
+            message: `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+
+        if (confirmed) {
             this.deleteProductType(id);
         }
     }
@@ -751,7 +759,7 @@ function initializeExportFunctionality() {
         exportBtn.addEventListener('click', function() {
             // Use actual loaded data from productTypeManager
             if (!window.productTypeManager || !window.productTypeManager.hierarchyData || window.productTypeManager.hierarchyData.length === 0) {
-                alert('No data available to export. Please wait for data to load.');
+                AdminCore.showNotification('No data available to export. Please wait for data to load.', 'warning');
                 return;
             }
             
@@ -791,12 +799,12 @@ function initializeExportFunctionality() {
                         if (window.productTypeManager) {
                             window.productTypeManager.showNotification(message, type);
                         } else {
-                            alert(message);
+                            AdminCore.showNotification(message, type);
                         }
                     }
                 );
             } else {
-                alert('Export functionality not available');
+                AdminCore.showNotification('Export functionality not available', 'error');
             }
         });
     }

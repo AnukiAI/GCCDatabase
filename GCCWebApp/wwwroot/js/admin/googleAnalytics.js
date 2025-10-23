@@ -45,7 +45,7 @@ function saveSettings() {
 
     // Validate tracking ID format
     if (enabled && trackingId && !validateTrackingIdFormat(trackingId)) {
-        alert('Please enter a valid Google Analytics Tracking ID (e.g., G-XXXXXXXXXX)');
+        AdminCore.showNotification('Please enter a valid Google Analytics Tracking ID (e.g., G-XXXXXXXXXX)', 'error');
         return;
     }
 
@@ -232,9 +232,9 @@ function showNotification(message, type = 'info') {
 
 function exportSettings() {
     const settings = localStorage.getItem('googleAnalyticsSettings');
-    
+
     if (!settings) {
-        alert('No settings to export.');
+        AdminCore.showNotification('No settings to export.', 'warning');
         return;
     }
     

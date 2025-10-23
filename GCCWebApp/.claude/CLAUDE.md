@@ -214,10 +214,193 @@ AzureAdB2C__ClientId=[client-id]
 - Bulk CSV import/export with validation
 - Migration: `20250918212035_AddCertificateProductIds`
 
+### Data Export Requirements
+- **CSV ONLY** - All data exports must use CSV format exclusively
+- No Excel/XLSX, JSON, or PDF exports from admin pages
+- Apply to: Tags, Users, Products, Companies, Certificate Types, Certificate Fields
+- Implementation: Use `ExportUtils.exportToCSV()` directly, NOT `ExportUtils.showExportModal()`
+- Template downloads also use CSV format
+
+### Two-Factor Authentication Admin Management ⚠️ REQUIRED
+- **PRIORITY: HIGH** - Admins must be able to help users locked out by 2FA issues
+- Admin can view user's 2FA status (enabled/disabled, method, date configured)
+- Admin can reset user's 2FA (removes setup, forces reconfiguration)
+- Admin can disable user's 2FA (allows login without 2FA)
+- 2FA dropdown menu in User Management table Actions column
+- Backend endpoints already exist (`/Admin/Reset2FA`, `/Admin/Disable2FA`)
+- JavaScript methods already implemented (`userManagement.js` lines 712-838)
+- **MISSING**: UI controls in User Management view
+- **Full Requirements**: `/0_Documentation/2FA_ADMIN_MANAGEMENT_REQUIREMENTS.md`
+- Use cases: lost device, phone number change, authenticator app issues, time sync problems
+
 ### Partners & Workflow
-- Partners: Amazon, Wayfair, None (no branding in Phase 1)
+- Partners: Amazon, Wayfair, Other (core entities, NOT bulk manageable)
+- **Partners Page Actions**: ONLY Export and Add New Partner buttons
+  - ❌ **NO Template button** - Partners are core entities, not bulk imported
+  - ❌ **NO Import button** - Partners are managed individually (Amazon, Wayfair, Other)
+  - ✅ Export button - For reporting/backup purposes
+  - ✅ Add New Partner button - For individual partner creation
 - 14-state certificate lifecycle (`CertificateWorkflowService`)
 - Role-based permissions enforced
+
+### User Feedback & Alert System Standardization
+
+**CRITICAL REQUIREMENT**: All user feedback must use standardized custom components. Native browser alerts (`alert()`, `confirm()`, `prompt()`) are STRICTLY PROHIBITED throughout the entire application.
+
+#### Toast Notifications (Non-Blocking Messages)
+- **SINGLE SYSTEM ONLY** - All toast notifications must use `AdminCore.showNotification()`
+- **POSITIONING** - Fixed top-right (desktop), full-width top (mobile)
+- **COLOR-CODED** - Success: Green (#92C83E), Error: Red (#FF5252), Warning: Yellow (#FFC107), Info: Navy Blue (#002B76)
+- **AUTO-DISMISS** - Success/Info: 5s, Error/Warning: 8s, Critical: Manual (`duration: 0`)
+- **ACCESSIBILITY** - ARIA labels, screen reader support, high contrast mode, reduced motion support
+
+**When to use Toast Notifications:**
+- Form submission success/error
+- Data save confirmations
+- Background process completion
+- Non-critical warnings
+- General information messages
+
+#### Modal Confirmations (Blocking User Actions)
+- **CRITICAL REQUIREMENT** - ALL delete confirmations MUST use modal popups, NOT toast notifications
+- **REQUIRED FOR** - Delete actions, destructive operations, irreversible changes, data loss warnings
+- **NO NATIVE DIALOGS** - NEVER use `window.confirm()` or `window.alert()`
+- **CUSTOM MODALS ONLY** - Use `AdminCore.showConfirmation()` for all confirmation dialogs
+- **DELETE PATTERN** - Before deletion → Show modal confirmation, After deletion → Show toast notification for success/error
+
+**Modal Design Requirements:**
+
+1. **Delete Confirmation Modals**
+   - Title: Bold, clear action description (e.g., "Delete Confirmation")
+   - Message: Explain consequences ("This action is irreversible. Are you sure you want to delete this item?")
+   - Buttons:
+     - Delete: Red background (#FF5252), white text, left position
+     - Cancel: Green background (#92C83E), white text, right position
+   - Modal styling: White background, rounded corners, centered on screen, overlay backdrop
+
+2. **Success Modals** (after completing actions)
+   - Title: Bold success message (e.g., "Delete Successful", "Update Successful")
+   - Message: Confirm what happened ("The item was successfully deleted.")
+   - Button: Single green OK button (#92C83E), full width, centered
+   - Auto-close option: Optional 3-second auto-dismiss after display
+
+3. **Progress Modals** (file uploads, long operations)
+   - Title: Action in progress (e.g., "Uploading File")
+   - Message: Status text ("Your file is being uploaded. Please wait...")
+   - Progress bar: Visual indicator of completion (green fill #92C83E on gray background)
+   - Cancel button: Green background (#92C83E), full width, positioned below progress bar
+   - Must prevent user from navigating away during operation
+
+**Modal Component Structure:**
+```html
+<!-- Delete Confirmation Example -->
+<div class="modal-overlay">
+    <div class="modal-dialog">
+        <h2 class="modal-title">Delete Confirmation</h2>
+        <p class="modal-message">This action is irreversible. Are you sure you want to delete this item?</p>
+        <div class="modal-actions">
+            <button class="modal-btn modal-btn--danger">Delete</button>
+            <button class="modal-btn modal-btn--success">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Modal Example -->
+<div class="modal-overlay">
+    <div class="modal-dialog">
+        <h2 class="modal-title">Uploading File</h2>
+        <p class="modal-message">Your file is being uploaded. Please wait...</p>
+        <div class="progress-bar">
+            <div class="progress-fill" style="width: 60%"></div>
+        </div>
+        <button class="modal-btn modal-btn--success modal-btn--full">Cancel Upload</button>
+    </div>
+</div>
+
+<!-- Success Modal Example -->
+<div class="modal-overlay">
+    <div class="modal-dialog">
+        <h2 class="modal-title">Update Successful</h2>
+        <p class="modal-message">Your changes have been saved successfully.</p>
+        <button class="modal-btn modal-btn--success modal-btn--full">OK</button>
+    </div>
+</div>
+```
+
+**CSS Requirements:**
+- `.modal-overlay`: Semi-transparent dark backdrop (rgba(0, 0, 0, 0.5))
+- `.modal-dialog`: White background, centered, max-width 500px, padding 24px, border-radius 8px
+- `.modal-title`: Bold, 20px font size, navy blue (#002B76)
+- `.modal-message`: Regular text, 16px font size, gray (#666)
+- `.modal-btn--danger`: Red background (#FF5252), white text
+- `.modal-btn--success`: Green background (#92C83E), white text
+- `.modal-btn--full`: Full width button
+- `.progress-bar`: Gray background (#E0E0E0), height 20px, rounded corners
+- `.progress-fill`: Green background (#92C83E), animated transition
+
+**CRITICAL: When to use Modals vs Toast Notifications:**
+
+**ALWAYS Use Modals (AdminCore.showConfirmation()) for:**
+- ✅ Delete confirmations (BEFORE deleting) - User must explicitly confirm
+- ✅ Destructive actions that cannot be undone
+- ✅ Critical warnings requiring user decision
+- ✅ Security changes (disable 2FA, reset password, etc.)
+- ✅ Sign out confirmations
+- ✅ Any action requiring explicit user consent
+
+**ALWAYS Use Toast Notifications (AdminCore.showNotification()) for:**
+- ✅ Success messages AFTER actions complete (e.g., "Item deleted successfully")
+- ✅ Form validation errors (e.g., "Email is required")
+- ✅ Background task completion
+- ✅ Informational messages
+- ✅ Error messages from failed operations
+
+**Use Progress Modals (AdminCore.showProgress()) for:**
+- ✅ File uploads with percentage tracking
+- ✅ Batch operations with progress updates
+- ✅ Long-running tasks requiring user awareness
+
+**Example - Correct Delete Pattern:**
+```javascript
+// STEP 1: Show modal confirmation BEFORE delete
+const confirmed = await AdminCore.showConfirmation({
+    title: 'Delete Confirmation',
+    message: 'This action cannot be undone. Delete this item?',
+    confirmText: 'Delete',
+    type: 'danger'
+});
+
+if (!confirmed) return;
+
+// STEP 2: Perform deletion
+await deleteItem(id);
+
+// STEP 3: Show toast notification AFTER delete
+AdminCore.showNotification('Item deleted successfully', 'success');
+```
+
+**WRONG - Do NOT do this:**
+```javascript
+// ❌ WRONG: Using toast for delete confirmation
+AdminCore.showNotification('Delete this item?', 'warning'); // NO!
+
+// ❌ WRONG: Using native confirm
+if (confirm('Delete?')) { ... } // NO!
+
+// ❌ WRONG: Using modal for success message after delete
+await AdminCore.showConfirmation({ message: 'Deleted!' }); // NO!
+```
+
+**Implementation Checklist:**
+- [ ] Identify all instances of `alert()`, `confirm()`, `prompt()` in JavaScript files
+- [ ] Replace with custom modal components
+- [ ] Ensure consistent styling across all modals
+- [ ] Add keyboard navigation support (Enter, Escape)
+- [ ] Implement focus trapping within modals
+- [ ] Add ARIA labels for screen readers
+- [ ] Test on mobile devices for responsive behavior
+
+**DOCUMENTATION** - Full audit and requirements: `0_Documentation/NOTIFICATION_SYSTEM_AUDIT.md`
 
 ## Implementation Status ✅
 
@@ -314,9 +497,9 @@ docker-compose up -d        # Full stack with PostgreSQL
 
 ## Important Reminders
 
-✅ **DO**: Infinite scroll (no pagination), autocomplete search, shareable URLs, minimal edits
-❌ **DON'T**: Create new auth systems, modify 14-state workflow, push to master
-📋 **ALWAYS**: Read before edit, test changes, follow patterns, update tests
+✅ **DO**: Infinite scroll (no pagination), autocomplete search, shareable URLs, minimal edits, CSV-only exports, use `AdminCore.showConfirmation()` for delete confirmations (BEFORE action), use `AdminCore.showNotification()` for success/error messages (AFTER action)
+❌ **DON'T**: Create new auth systems, modify 14-state workflow, push to master, use Excel/JSON exports, use native `alert()`/`confirm()`/`prompt()` anywhere, use toast notifications for delete confirmations
+📋 **ALWAYS**: Read before edit, test changes, follow patterns, update tests, use CSV for all data exports, show MODAL confirmation before deletes, show TOAST notification after deletes
 
 ## Import Template Download Feature
 
@@ -326,6 +509,11 @@ All admin pages with data import functionality include a "Template" button that 
 ### Implementation Pattern
 
 **Button Placement**: Template button appears to the left of the Import button in the `admin-actions-section`.
+
+**IMPORTANT EXCEPTION - Partners Page**:
+- ❌ Partners Management page does NOT have Template or Import buttons
+- Partners are core entities (Amazon, Wayfair, Other) managed individually, NOT bulk imported
+- Only Export and Add New Partner buttons are allowed on `/Admin/Partners`
 
 **Button HTML**:
 ```html
@@ -395,12 +583,13 @@ function downloadImportTemplate() {
 
 ### Implemented Pages
 
-| Page | View | JavaScript | Template Format |
-|------|------|------------|-----------------|
-| User Management | `Views/Admin/UserManagement.cshtml` | `wwwroot/js/userManagement.js` (class) | Name, Email, Company, Role, Status, Password, RequirePasswordReset |
-| Tag Management | `Views/Admin/Tags.cshtml` | `wwwroot/js/tags.js` (function) | Name, TagType (external/internal), Description |
-| Product Management | `Views/Admin/ProductManagement.cshtml` | `wwwroot/js/admin/productManagement.js` (class) | Name, Description, ProductType, Company, Status |
-| Company Management | `Views/Company/Index.cshtml` | Inline script in view (function) | Name, Email, Website |
+| Page | View | JavaScript | Template Format | Notes |
+|------|------|------------|-----------------|-------|
+| User Management | `Views/Admin/UserManagement.cshtml` | `wwwroot/js/userManagement.js` (class) | Name, Email, Company, Role, Status, Password, RequirePasswordReset | ✅ Template + Import + Export |
+| Tag Management | `Views/Admin/Tags.cshtml` | `wwwroot/js/tags.js` (function) | Name, TagType (external/internal), Description | ✅ Template + Import + Export |
+| Product Management | `Views/Admin/ProductManagement.cshtml` | `wwwroot/js/admin/productManagement.js` (class) | Name, Description, ProductType, Company, Status | ✅ Template + Import + Export |
+| Company Management | `Views/Company/Index.cshtml` | Inline script in view (function) | Name, Email, Website | ✅ Template + Import + Export |
+| **Partners Management** | `Views/Admin/Partners.cshtml` | Inline script in view (function) | **N/A - No Template/Import** | ❌ NO Template/Import. ONLY Export + Add New |
 
 ### Template File Naming Convention
 - Format: `{entity}_import_template_{YYYY-MM-DD}.csv`
@@ -420,6 +609,14 @@ function downloadImportTemplate() {
 - The shared layout (`_Layout.cshtml`) automatically renders the page title
 - Views should only contain subtitles, content, and action buttons
 
+### Admin Page Header Structure
+**CRITICAL REQUIREMENT**: All admin pages must use the standard header structure for proper action button alignment.
+
+- ✅ **DO**: Use `.admin-header-content` wrapper with `.admin-title-section` and `.admin-actions-section`
+- ❌ **DON'T**: Use deprecated `.buttons-area` class or place buttons directly under `.admin-header`
+- Action buttons must be right-aligned with the page content area
+- Button groups should use `.admin-button-group` class with appropriate button styles (`admin-btn--primary`, `admin-btn--secondary`)
+
 **Example - CORRECT:**
 ```cshtml
 @{
@@ -433,14 +630,21 @@ function downloadImportTemplate() {
                 <p class="admin-page-subtitle">Organize content with tags and categories</p>
             </div>
             <div class="admin-actions-section">
-                <!-- Action buttons here -->
+                <div class="admin-button-group">
+                    <button class="admin-btn admin-btn--secondary">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button class="admin-btn admin-btn--primary">
+                        <i class="fas fa-plus"></i> Add New
+                    </button>
+                </div>
             </div>
         </div>
     </header>
 </div>
 ```
 
-**Example - INCORRECT:**
+**Example - INCORRECT (Duplicate Title):**
 ```cshtml
 @{
     ViewData["Title"] = "Tag Management";
@@ -453,6 +657,18 @@ function downloadImportTemplate() {
                 <h1 class="admin-page-title">Tag Management</h1> <!-- ❌ REMOVE THIS -->
                 <p class="admin-page-subtitle">Organize content with tags and categories</p>
             </div>
+        </div>
+    </header>
+</div>
+```
+
+**Example - INCORRECT (Old Header Structure):**
+```cshtml
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="buttons-area"> <!-- ❌ DEPRECATED - Use admin-header-content instead -->
+            <button class="btn">Export</button>
+            <button class="btn btn-add">Add New</button>
         </div>
     </header>
 </div>
@@ -731,3 +947,5 @@ pwsh playwright.ps1 install
 - **Constraints**: Admin user/role cannot be deleted, Phase 1 has no partner branding
 - do not include icons in the text
 - External Users do not have the same permissions as Analyst and Admin. Admin has CRUD Roles. Analyst has read write and does not have access to the Admin pages.
+- stop making random changes that aren't relevant to the defect
+- ask followup questions for clarity and focus on the issue or defect

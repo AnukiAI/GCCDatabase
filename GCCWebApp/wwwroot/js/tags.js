@@ -281,7 +281,16 @@ async function saveTag(event) {
 
 // Function to delete a tag
 async function deleteTag(id, name) {
-    if (!confirm(`Are you sure you want to delete the tag "${name}"?`)) {
+    // Use custom confirmation modal instead of native confirm()
+    const confirmed = await AdminCore.showConfirmation({
+        title: 'Delete Confirmation',
+        message: `Are you sure you want to delete the tag "${name}"? This action cannot be undone.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        type: 'danger'
+    });
+
+    if (!confirmed) {
         return;
     }
 
@@ -447,7 +456,7 @@ document.addEventListener('DOMContentLoaded', function() {
         importBtn.addEventListener('click', showImportModal);
     }
 
-    // Export button
+    // Export button - CSV only
     const exportBtn = document.getElementById('export-btn');
     if (exportBtn) {
         exportBtn.addEventListener('click', function() {
@@ -470,8 +479,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             setTimeout(() => {
                 AdminCore.hideLoading(exportBtn);
-                if (typeof ExportUtils !== 'undefined' && ExportUtils.showExportModal) {
-                    ExportUtils.showExportModal(
+                // Direct CSV export only
+                if (typeof ExportUtils !== 'undefined' && ExportUtils.exportToCSV) {
+                    ExportUtils.exportToCSV(
                         exportData,
                         columns,
                         'tags',

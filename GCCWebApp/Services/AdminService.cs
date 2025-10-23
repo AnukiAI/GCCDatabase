@@ -68,7 +68,9 @@ namespace GCCWebApp.Services
                     CompanyNames = u.Companies.Select(c => c.Name).ToList(),
                     PartnerNames = u.Partners.Select(p => p.Name).ToList(),
                     RequirePasswordReset = u.RequirePasswordReset,
-                    LastLogin = u.LastLoginAt
+                    LastLogin = u.LastLoginAt,
+                    TwoFactorEnabled = u.TwoFactorEnabled,
+                    TwoFactorMethod = u.TwoFactorMethod
                 })
                 .ToListAsync();
         }
@@ -242,7 +244,7 @@ namespace GCCWebApp.Services
                     Id = r.Id,
                     Name = r.Name,
                     Description = r.Description ?? string.Empty,
-                    Permissions = r.Permissions.Select(p => p.Codename).ToList(),
+                    Permissions = r.Permissions.Select(p => p.Id.ToString()).ToList(),
                     UserCount = r.Users.Count(),
                     IsSystem = r.IsSystem
                 })
@@ -263,7 +265,7 @@ namespace GCCWebApp.Services
                 Id = role.Id,
                 Name = role.Name,
                 Description = role.Description ?? string.Empty,
-                Permissions = role.Permissions.Select(p => p.Codename).ToList(),
+                Permissions = role.Permissions.Select(p => p.Id.ToString()).ToList(),
                 UserCount = role.Users.Count(),
                 IsSystem = role.IsSystem
             };
@@ -287,15 +289,25 @@ namespace GCCWebApp.Services
                 // Add permissions
                 if (model.Permissions.Any())
                 {
+                    // Try to parse as IDs first, fall back to codenames
+                    var permissionIds = model.Permissions
+                        .Where(p => int.TryParse(p, out _))
+                        .Select(p => int.Parse(p))
+                        .ToList();
+
+                    var permissionCodenames = model.Permissions
+                        .Where(p => !int.TryParse(p, out _))
+                        .ToList();
+
                     var permissions = await _context.Permissions
-                        .Where(p => model.Permissions.Contains(p.Codename))
+                        .Where(p => permissionIds.Contains(p.Id) || permissionCodenames.Contains(p.Codename))
                         .ToListAsync();
-                    
+
                     foreach (var permission in permissions)
                     {
                         role.Permissions.Add(permission);
                     }
-                    
+
                     await _context.SaveChangesAsync();
                 }
 
@@ -325,10 +337,20 @@ namespace GCCWebApp.Services
                 role.Permissions.Clear();
                 if (model.Permissions.Any())
                 {
+                    // Try to parse as IDs first, fall back to codenames
+                    var permissionIds = model.Permissions
+                        .Where(p => int.TryParse(p, out _))
+                        .Select(p => int.Parse(p))
+                        .ToList();
+
+                    var permissionCodenames = model.Permissions
+                        .Where(p => !int.TryParse(p, out _))
+                        .ToList();
+
                     var permissions = await _context.Permissions
-                        .Where(p => model.Permissions.Contains(p.Codename))
+                        .Where(p => permissionIds.Contains(p.Id) || permissionCodenames.Contains(p.Codename))
                         .ToListAsync();
-                    
+
                     foreach (var permission in permissions)
                     {
                         role.Permissions.Add(permission);
@@ -375,6 +397,7 @@ namespace GCCWebApp.Services
                 .Where(p => p.IsActive)
                 .Select(p => new PermissionViewModel
                 {
+                    Id = p.Id,
                     Name = p.Codename,
                     DisplayName = p.Name,
                     Category = p.Category ?? string.Empty,
@@ -1611,6 +1634,29 @@ namespace GCCWebApp.Services
 
                 // Disable 2FA
                 user.TwoFactorEnabled = false;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch
+            {
+                // Log error here in production
+                return false;
+            }
+        }
+
+        public async Task<bool> Enable2FAAsync(int userId, string twoFactorMethod)
+        {
+            try
+            {
+                var user = await _context.Users.FindAsync(userId);
+                if (user == null) return false;
+
+                // Enable 2FA with specified method
+                user.TwoFactorEnabled = true;
+                user.TwoFactorMethod = twoFactorMethod;
+                // User will need to set up 2FA on next login (secret is null until they complete setup)
+                user.TwoFactorSecret = null;
 
                 await _context.SaveChangesAsync();
                 return true;

@@ -6,6 +6,7 @@ using GCCWebApp.Models;
 using GCCWebApp.Repositories;
 using GCCWebApp.Services;
 using System.IO;
+using System.IO.Compression;
 
 namespace GCCWebApp.Controllers
 {
@@ -330,6 +331,11 @@ namespace GCCWebApp.Controllers
                 ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
                 ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
 
+                // Load tags filtered by type
+                var allTags = await _unitOfWork.Tags.GetAllAsync();
+                ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
+                ViewBag.InternalTags = allTags.Where(t => t.TagType == "internal" && t.IsActive).ToList();
+
                 return View(model);
             }
             catch (Exception ex)
@@ -370,7 +376,13 @@ namespace GCCWebApp.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "AnalystOrAdmin")]
-        public async Task<IActionResult> Create(CertificateEditViewModel model, IFormFile? certificateImage)
+        public async Task<IActionResult> Create(
+            CertificateEditViewModel model,
+            IFormFile? certificateImage,
+            IFormFile? certificatePdf,
+            string? action,
+            string? ExternalTags,
+            string? InternalTags)
         {
             try
             {
@@ -410,9 +422,25 @@ namespace GCCWebApp.Controllers
                         {
                             _logger.LogWarning("Certificate image upload failed: {Errors}", string.Join(", ", uploadResult.Errors));
                             ModelState.AddModelError("certificateImage", string.Join(", ", uploadResult.Errors));
-                            ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
-                            ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
-                            ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+                            await ReloadCreateFormDataAsync();
+                            return View(model);
+                        }
+                    }
+
+                    // Handle PDF certificate upload
+                    if (certificatePdf != null && certificatePdf.Length > 0)
+                    {
+                        var uploadResult = await _fileUploadService.UploadCertificateAsync(certificatePdf, model.Number);
+                        if (uploadResult.IsSuccess)
+                        {
+                            certificate.CertificateFile = uploadResult.FilePath;
+                            _logger.LogInformation("Certificate PDF uploaded successfully: {FilePath}", uploadResult.FilePath);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Certificate PDF upload failed: {Errors}", string.Join(", ", uploadResult.Errors));
+                            ModelState.AddModelError("certificatePdf", string.Join(", ", uploadResult.Errors));
+                            await ReloadCreateFormDataAsync();
                             return View(model);
                         }
                     }
@@ -420,29 +448,85 @@ namespace GCCWebApp.Controllers
                     await _certificateRepository.AddAsync(certificate);
                     await _unitOfWork.CompleteAsync();
 
+                    // Handle Product IDs from Product ID Manager
+                    if (model.ProductIds != null && model.ProductIds.Any())
+                    {
+                        foreach (var productId in model.ProductIds)
+                        {
+                            productId.CertificateId = certificate.Id;
+                            certificate.ProductIds.Add(productId);
+                        }
+                        await _unitOfWork.CompleteAsync();
+                        _logger.LogInformation("Added {Count} product IDs to certificate {Number}", model.ProductIds.Count, certificate.Number);
+                    }
+
+                    // Handle Tags
+                    if (!string.IsNullOrWhiteSpace(ExternalTags) || !string.IsNullOrWhiteSpace(InternalTags))
+                    {
+                        var tagIds = new List<int>();
+
+                        if (!string.IsNullOrWhiteSpace(ExternalTags))
+                        {
+                            var externalTagIds = System.Text.Json.JsonSerializer.Deserialize<List<int>>(ExternalTags);
+                            if (externalTagIds != null) tagIds.AddRange(externalTagIds);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(InternalTags))
+                        {
+                            var internalTagIds = System.Text.Json.JsonSerializer.Deserialize<List<int>>(InternalTags);
+                            if (internalTagIds != null) tagIds.AddRange(internalTagIds);
+                        }
+
+                        // Load tags and associate with certificate
+                        foreach (var tagId in tagIds)
+                        {
+                            var tag = await _unitOfWork.Tags.GetByIdAsync(tagId);
+                            if (tag != null)
+                            {
+                                certificate.Tags.Add(tag);
+                            }
+                        }
+                        await _unitOfWork.CompleteAsync();
+                        _logger.LogInformation("Added {Count} tags to certificate {Number}", tagIds.Count, certificate.Number);
+                    }
+
                     _logger.LogInformation("Certificate {Number} created by user {UserId}", certificate.Number, GetCurrentUserId());
-                    
+
+                    // Handle "Save & Add Another" action
+                    if (action == "saveAndAddAnother")
+                    {
+                        TempData["SuccessMessage"] = $"Certificate {certificate.Number} created successfully!";
+                        return RedirectToAction(nameof(Create));
+                    }
+
                     return RedirectToAction(nameof(Details), new { id = certificate.Id });
                 }
 
                 // If we got here, something failed, reload the form
-                ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
-                ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
-                ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
-
+                await ReloadCreateFormDataAsync();
                 return View(model);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating certificate");
                 ModelState.AddModelError("", "An error occurred while creating the certificate");
-                
-                ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
-                ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
-                ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
-
+                await ReloadCreateFormDataAsync();
                 return View(model);
             }
+        }
+
+        /// <summary>
+        /// Helper method to reload form data for Create view
+        /// </summary>
+        private async Task ReloadCreateFormDataAsync()
+        {
+            ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
+            ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
+            ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+
+            var allTags = await _unitOfWork.Tags.GetAllAsync();
+            ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
+            ViewBag.InternalTags = allTags.Where(t => t.TagType == "internal" && t.IsActive).ToList();
         }
 
         /// <summary>
@@ -464,6 +548,7 @@ namespace GCCWebApp.Controllers
                     Id = certificate.Id,
                     Number = certificate.Number,
                     Status = certificate.Status,
+                    Partner = certificate.Partner,
                     EffectiveDate = certificate.EffectiveDate,
                     ExpirationDate = certificate.ExpirationDate,
                     Location = certificate.Location,
@@ -472,14 +557,27 @@ namespace GCCWebApp.Controllers
                     Upc = certificate.Upc,
                     Gtin = certificate.Gtin,
                     Ean = certificate.Ean,
+                    CertificateImagePath = certificate.CertificateImagePath,
                     CompanyId = certificate.CompanyId,
                     ProductId = certificate.ProductId,
-                    CertificationTypeId = certificate.CertificationTypeId
+                    CertificationTypeId = certificate.CertificationTypeId,
+                    ProductIds = certificate.ProductIds?.ToList() ?? new List<CertificateProductId>()
                 };
 
+                // Load dropdown data
                 ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
                 ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
                 ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+
+                // Load all tags filtered by type for the dropdown
+                var allTags = await _unitOfWork.Tags.GetAllAsync();
+                ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
+                ViewBag.InternalTags = allTags.Where(t => t.TagType == "internal" && t.IsActive).ToList();
+
+                // Load existing tags for this certificate
+                var existingTags = certificate.Tags?.ToList() ?? new List<Tag>();
+                ViewBag.ExistingExternalTags = existingTags.Where(t => t.TagType == "external").Select(t => new { t.Id, t.Name }).ToList();
+                ViewBag.ExistingInternalTags = existingTags.Where(t => t.TagType == "internal").Select(t => new { t.Id, t.Name }).ToList();
 
                 return View(model);
             }
@@ -525,7 +623,13 @@ namespace GCCWebApp.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "AnalystOrAdmin")]
-        public async Task<IActionResult> Edit(int id, CertificateEditViewModel model)
+        public async Task<IActionResult> Edit(
+            int id,
+            CertificateEditViewModel model,
+            IFormFile? certificateImage,
+            IFormFile? certificatePdf,
+            string? ExternalTags,
+            string? InternalTags)
         {
             if (id != model.Id)
             {
@@ -542,9 +646,10 @@ namespace GCCWebApp.Controllers
                         return NotFound();
                     }
 
-                    // Update properties
+                    // Update basic properties
                     certificate.Number = model.Number;
                     certificate.Status = model.Status ?? "active";
+                    certificate.Partner = model.Partner;
                     certificate.EffectiveDate = model.EffectiveDate;
                     certificate.ExpirationDate = model.ExpirationDate;
                     certificate.Location = model.Location;
@@ -559,19 +664,98 @@ namespace GCCWebApp.Controllers
                     certificate.UpdatedBy = GetCurrentUserId();
                     certificate.UpdatedAt = DateTime.UtcNow;
 
+                    // Handle certificate image upload
+                    if (certificateImage != null && certificateImage.Length > 0)
+                    {
+                        var uploadResult = await _fileUploadService.UploadImageAsync(certificateImage, $"cert_{model.Number}");
+                        if (uploadResult.IsSuccess)
+                        {
+                            certificate.CertificateImagePath = uploadResult.FilePath;
+                            _logger.LogInformation("Certificate image uploaded successfully: {FilePath}", uploadResult.FilePath);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Certificate image upload failed: {Errors}", string.Join(", ", uploadResult.Errors));
+                            ModelState.AddModelError("certificateImage", string.Join(", ", uploadResult.Errors));
+                            await ReloadEditFormDataAsync(id);
+                            return View(model);
+                        }
+                    }
+
+                    // Handle PDF certificate upload
+                    if (certificatePdf != null && certificatePdf.Length > 0)
+                    {
+                        var uploadResult = await _fileUploadService.UploadCertificateAsync(certificatePdf, model.Number);
+                        if (uploadResult.IsSuccess)
+                        {
+                            certificate.CertificateFile = uploadResult.FilePath;
+                            _logger.LogInformation("Certificate PDF uploaded successfully: {FilePath}", uploadResult.FilePath);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Certificate PDF upload failed: {Errors}", string.Join(", ", uploadResult.Errors));
+                            ModelState.AddModelError("certificatePdf", string.Join(", ", uploadResult.Errors));
+                            await ReloadEditFormDataAsync(id);
+                            return View(model);
+                        }
+                    }
+
+                    // Handle Product IDs from Product ID Manager
+                    if (model.ProductIds != null && model.ProductIds.Any())
+                    {
+                        // Clear existing product IDs
+                        certificate.ProductIds.Clear();
+
+                        // Add new product IDs
+                        foreach (var productId in model.ProductIds)
+                        {
+                            productId.CertificateId = certificate.Id;
+                            certificate.ProductIds.Add(productId);
+                        }
+                    }
+
+                    // Handle Tags (External and Internal)
+                    if (!string.IsNullOrWhiteSpace(ExternalTags) || !string.IsNullOrWhiteSpace(InternalTags))
+                    {
+                        var tagIds = new List<int>();
+
+                        if (!string.IsNullOrWhiteSpace(ExternalTags))
+                        {
+                            var externalTagIds = System.Text.Json.JsonSerializer.Deserialize<List<int>>(ExternalTags);
+                            if (externalTagIds != null) tagIds.AddRange(externalTagIds);
+                        }
+
+                        if (!string.IsNullOrWhiteSpace(InternalTags))
+                        {
+                            var internalTagIds = System.Text.Json.JsonSerializer.Deserialize<List<int>>(InternalTags);
+                            if (internalTagIds != null) tagIds.AddRange(internalTagIds);
+                        }
+
+                        // Clear existing tags
+                        certificate.Tags.Clear();
+
+                        // Associate new tags with certificate
+                        foreach (var tagId in tagIds)
+                        {
+                            var tag = await _unitOfWork.Tags.GetByIdAsync(tagId);
+                            if (tag != null)
+                            {
+                                certificate.Tags.Add(tag);
+                            }
+                        }
+                    }
+
                     await _certificateRepository.UpdateAsync(certificate);
                     await _unitOfWork.CompleteAsync();
 
                     _logger.LogInformation("Certificate {Number} updated by user {UserId}", certificate.Number, GetCurrentUserId());
 
+                    TempData["SuccessMessage"] = $"Certificate {certificate.Number} updated successfully!";
                     return RedirectToAction(nameof(Details), new { id = certificate.Id });
                 }
 
                 // If we got here, something failed, reload the form
-                ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
-                ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
-                ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
-
+                await ReloadEditFormDataAsync(id);
                 return View(model);
             }
             catch (Exception ex)
@@ -579,11 +763,31 @@ namespace GCCWebApp.Controllers
                 _logger.LogError(ex, "Error updating certificate ID: {Id}", id);
                 ModelState.AddModelError("", "An error occurred while updating the certificate");
 
-                ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
-                ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
-                ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
-
+                await ReloadEditFormDataAsync(id);
                 return View(model);
+            }
+        }
+
+        /// <summary>
+        /// Helper method to reload form data for Edit view
+        /// </summary>
+        private async Task ReloadEditFormDataAsync(int certificateId)
+        {
+            ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
+            ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
+            ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+
+            var allTags = await _unitOfWork.Tags.GetAllAsync();
+            ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
+            ViewBag.InternalTags = allTags.Where(t => t.TagType == "internal" && t.IsActive).ToList();
+
+            // Load existing tags for the certificate
+            var certificate = await _certificateRepository.GetByIdAsync(certificateId);
+            if (certificate != null)
+            {
+                var existingTags = certificate.Tags?.ToList() ?? new List<Tag>();
+                ViewBag.ExistingExternalTags = existingTags.Where(t => t.TagType == "external").Select(t => new { t.Id, t.Name }).ToList();
+                ViewBag.ExistingInternalTags = existingTags.Where(t => t.TagType == "internal").Select(t => new { t.Id, t.Name }).ToList();
             }
         }
 
@@ -925,6 +1129,138 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// Download multiple selected certificates as a ZIP file
+        /// POST: /Certificate/DownloadSelectedZip
+        /// </summary>
+        /// <param name="certificateIds">List of certificate IDs to download</param>
+        /// <returns>ZIP file containing all selected certificate PDFs</returns>
+        [HttpPost]
+        [Authorize(Policy = "ExternalAccess")]
+        public async Task<IActionResult> DownloadSelectedZip([FromBody] List<int> certificateIds)
+        {
+            if (certificateIds == null || certificateIds.Count == 0)
+            {
+                return BadRequest("No certificates selected for download");
+            }
+
+            try
+            {
+                var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss");
+                var zipFileName = $"certificates_{timestamp}.zip";
+
+                using var memoryStream = new MemoryStream();
+                using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+                {
+                    int successCount = 0;
+                    int failureCount = 0;
+
+                    foreach (var certId in certificateIds)
+                    {
+                        try
+                        {
+                            var certificate = await _certificateRepository.GetByIdAsync(certId);
+                            if (certificate == null)
+                            {
+                                _logger.LogWarning("Certificate with ID {CertId} not found, skipping", certId);
+                                failureCount++;
+                                continue;
+                            }
+
+                            // Get the PDF bytes (either from uploaded file or generated)
+                            byte[] pdfBytes = null;
+                            var fileName = $"Certificate_{certificate.Number}.pdf";
+
+                            // Check if an uploaded certificate file exists
+                            if (!string.IsNullOrEmpty(certificate.CertificateFile))
+                            {
+                                var filePath = certificate.CertificateFile;
+
+                                // If it's a relative path, construct the full path
+                                if (!filePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    // Remove leading ~ or / if present
+                                    if (filePath.StartsWith("~"))
+                                    {
+                                        filePath = filePath.Substring(1);
+                                    }
+                                    if (filePath.StartsWith("/"))
+                                    {
+                                        filePath = filePath.Substring(1);
+                                    }
+
+                                    // Construct full path to wwwroot
+                                    var webRootPath = _hostingEnvironment.WebRootPath;
+                                    var fullPath = Path.Combine(webRootPath, filePath.Replace('/', Path.DirectorySeparatorChar));
+
+                                    if (System.IO.File.Exists(fullPath))
+                                    {
+                                        pdfBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
+                                    }
+                                }
+                            }
+
+                            // If no uploaded file, try to generate PDF
+                            if (pdfBytes == null)
+                            {
+                                try
+                                {
+                                    pdfBytes = await _pdfService.GenerateCertificatePdfAsync(certificate);
+                                }
+                                catch (Exception genEx)
+                                {
+                                    _logger.LogError(genEx, "Failed to generate PDF for certificate {CertNumber}", certificate.Number);
+                                    failureCount++;
+                                    continue;
+                                }
+                            }
+
+                            // Add PDF to ZIP archive
+                            if (pdfBytes != null && pdfBytes.Length > 0)
+                            {
+                                var entry = archive.CreateEntry(fileName, CompressionLevel.Optimal);
+                                using var entryStream = entry.Open();
+                                await entryStream.WriteAsync(pdfBytes, 0, pdfBytes.Length);
+                                successCount++;
+                            }
+                            else
+                            {
+                                _logger.LogWarning("No PDF content available for certificate {CertNumber}", certificate.Number);
+                                failureCount++;
+                            }
+                        }
+                        catch (Exception certEx)
+                        {
+                            _logger.LogError(certEx, "Error processing certificate ID {CertId} for ZIP download", certId);
+                            failureCount++;
+                        }
+                    }
+
+                    // Log summary
+                    _logger.LogInformation(
+                        "ZIP download completed: {SuccessCount} succeeded, {FailureCount} failed out of {TotalCount} requested",
+                        successCount, failureCount, certificateIds.Count);
+
+                    // If no certificates were successfully added, return error
+                    if (successCount == 0)
+                    {
+                        return BadRequest("None of the selected certificates have PDF files available");
+                    }
+                }
+
+                memoryStream.Position = 0;
+                var zipBytes = memoryStream.ToArray();
+
+                // Return ZIP file
+                return File(zipBytes, "application/zip", zipFileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating ZIP file for selected certificates");
+                return StatusCode(500, "Failed to create ZIP file. Please try again.");
+            }
+        }
+
         #endregion
 
         #region Export Operations
@@ -967,7 +1303,7 @@ namespace GCCWebApp.Controllers
                 };
 
                 // If specific IDs provided, filter to only those certificates
-                byte[] exportData;
+                byte[]? exportData;
                 if (!string.IsNullOrEmpty(ids))
                 {
                     var certificateIds = ids.Split(',').Select(id => id.Trim()).Where(id => !string.IsNullOrEmpty(id)).ToList();

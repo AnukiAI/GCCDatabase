@@ -168,6 +168,25 @@
     min-height: calc(100vh - 200px);
 }
 
+/* Responsive layout for larger screens */
+@media (min-width: 1600px) {
+    .main-container {
+        max-width: 1600px;
+    }
+}
+
+@media (min-width: 1920px) {
+    .main-container {
+        max-width: 1800px;
+    }
+}
+
+@media (min-width: 2560px) {
+    .main-container {
+        max-width: 2400px;
+    }
+}
+
 /* Sidebar */
 .sidebar {
     width: 300px;
@@ -961,3 +980,51 @@
     color: var(--text-muted);
     font-style: italic;
 }
+
+/* ====================================================
+   TABLE VIEW SCROLLBAR AND RESPONSIVE ENHANCEMENTS
+   ====================================================*/
+
+/* Ensure table scroll wrapper is visible and properly styled */
+.table-scroll-wrapper {
+    width: 100%;
+    overflow-x: scroll !important; /* Force scrollbar to always show */
+    overflow-y: visible;
+    margin-top: 20px;
+    margin-bottom: 20px; /* Add space below for scrollbar */
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    padding-bottom: 4px; /* Space for scrollbar */
+    scrollbar-width: auto; /* Use default scrollbar width for Firefox */
+    scrollbar-color: #555 #e0e0e0; /* Darker colors for better visibility */
+}
+
+/* Webkit scrollbar styling for better visibility */
+.table-scroll-wrapper::-webkit-scrollbar {
+    height: 16px; /* Larger scrollbar for better visibility */
+    -webkit-appearance: none;
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-track {
+    background: #e0e0e0; /* Lighter track */
+    border-radius: 4px;
+    margin: 0 8px; /* Add margin to track */
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb {
+    background: #555; /* Darker thumb for contrast */
+    border-radius: 4px;
+    border: 2px solid #e0e0e0; /* Border for definition */
+    min-width: 40px; /* Minimum thumb width */
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+    background: #333; /* Even darker on hover */
+}
+
+.table-scroll-wrapper::-webkit-scrollbar-thumb:active {
+    background: #000; /* Black when dragging */
+}
+

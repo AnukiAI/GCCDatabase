@@ -183,7 +183,7 @@
 
     /* Loading indicator styles for lazy loading */
     .loading-indicator {
-        display: none;
+        display: flex;
         justify-content: center;
         align-items: center;
         padding: 40px 20px;
@@ -194,6 +194,15 @@
         margin: 20px 0;
         border-radius: 8px;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        min-height: 100px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+    }
+
+    .loading-indicator.active {
+        opacity: 1;
+        pointer-events: auto;
     }
 
     .loading-spinner {
@@ -263,6 +272,18 @@
         margin-top: 20px;
     }
 
+    /* Responsive width for main container - expand on larger screens */
+    @@media (min-width: 1400px) {
+        .main-container {
+            max-width: 100%;
+        }
+    }
+
+    /* Full width for table view to utilize screen space */
+    #tableView {
+        width: 100%;
+    }
+
     /* Ensure table view is properly hidden by default */
     #tableView {
         display: none;
@@ -279,13 +300,45 @@
     /* Table scroll wrapper - full width with horizontal scroll */
     .table-scroll-wrapper {
         width: 100%;
-        overflow-x: auto;
+        overflow-x: scroll !important; /* Force scrollbar to always show */
         overflow-y: visible;
         margin-top: 20px;
+        margin-bottom: 20px; /* Add space below for scrollbar */
         border: 1px solid #ddd;
         border-radius: 8px;
         background: white;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding-bottom: 4px; /* Space for scrollbar */
+        /* Ensure scrollbar is always visible */
+        scrollbar-width: auto; /* Use default scrollbar width for Firefox */
+        scrollbar-color: #555 #e0e0e0; /* Darker colors for better visibility */
+    }
+
+    /* Webkit scrollbar styling for better visibility */
+    .table-scroll-wrapper::-webkit-scrollbar {
+        height: 16px; /* Larger scrollbar for better visibility */
+        -webkit-appearance: none;
+    }
+
+    .table-scroll-wrapper::-webkit-scrollbar-track {
+        background: #e0e0e0; /* Lighter track */
+        border-radius: 4px;
+        margin: 0 8px; /* Add margin to track */
+    }
+
+    .table-scroll-wrapper::-webkit-scrollbar-thumb {
+        background: #555; /* Darker thumb for contrast */
+        border-radius: 4px;
+        border: 2px solid #e0e0e0; /* Border for definition */
+        min-width: 40px; /* Minimum thumb width */
+    }
+
+    .table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #333; /* Even darker on hover */
+    }
+
+    .table-scroll-wrapper::-webkit-scrollbar-thumb:active {
+        background: #000; /* Black when dragging */
     }
 
     /* Table grid container */
@@ -1325,13 +1378,14 @@
             <div class="left-controls">
                 <div class="export-options">
                     <!-- External users can export but cannot add certificates -->
-                    <button id="exportSelectedBtn" class="btn btn-primary">
+                    <!-- These buttons are only enabled in table view -->
+                    <button id="exportSelectedBtn" class="btn btn-primary" disabled style="opacity: 0.5; cursor: not-allowed;" title="Switch to table view to export selected certificates">
                         Export (selected) to Excel
                     </button>
-                    <button id="exportAllBtn" class="btn btn-primary">
+                    <button id="exportAllBtn" class="btn btn-primary" disabled style="opacity: 0.5; cursor: not-allowed;" title="Switch to table view to export all certificates">
                         Export All to Excel
                     </button>
-                    <button id="downloadSelectedBtn" class="btn btn-primary">
+                    <button id="downloadSelectedBtn" class="btn btn-primary" disabled style="opacity: 0.5; cursor: not-allowed;" title="Switch to table view to download selected certificates">
                         Download Selected
                     </button>
                 </div>
@@ -1356,7 +1410,7 @@
         </div>
 
         <!-- LOADING INDICATOR FOR LAZY LOADING -->
-        <div id="loadingIndicator" class="loading-indicator" style="display: none;">
+        <div id="loadingIndicator" class="loading-indicator">
             <div class="loading-spinner"></div>
             <div class="loading-text">Loading more certificates...</div>
         </div>

@@ -30,6 +30,22 @@ This document contains a comprehensive analysis of the wireframes and user stori
 - **Audit trail** for all certificate changes
 - **Bulk operations** for certificate management
 
+#### 2.1 Certificate Table View - External Users
+- **View Mode Toggle**: Users can switch between Tile View (default) and Table/List View
+- **Bulk Action Buttons**: Export and Download buttons are **only enabled in Table View**
+  - `Export (selected) to Excel` - Disabled in Tile View, enabled in Table View
+  - `Export All to Excel` - Disabled in Tile View, enabled in Table View
+  - `Download Selected` - Disabled in Tile View, enabled in Table View
+- **Select All Checkbox**: Located in table header, selects/deselects all visible row checkboxes
+  - Clicking Select All checkbox toggles all row checkboxes
+  - Individual row checkbox changes update Select All state:
+    - Checked: All rows selected
+    - Unchecked: No rows selected
+    - Indeterminate: Some rows selected
+- **Row Selection**: Each table row has a checkbox for individual certificate selection
+- **Bulk Actions Bar**: Appears when one or more certificates are selected, displays count
+- **CSV Export Format**: All exports generate CSV files (opens in Excel)
+
 ### 3. Product Hierarchy Management
 - **Three-tier hierarchy**: Category → Type → Subcategory
 - **Dynamic product type management** by Admin users

@@ -142,6 +142,19 @@ class CertificateTileViewExternal {
             btn.addEventListener('click', () => this.exportSelected());
         });
 
+        // Select all checkbox in table view
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', (e) => this.handleSelectAll(e.target.checked));
+        }
+
+        // Individual row checkboxes
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('row-checkbox')) {
+                this.handleRowCheckboxChange();
+            }
+        });
+
         // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.sort-dropdown')) {
@@ -151,6 +164,9 @@ class CertificateTileViewExternal {
                 this.closeAutocomplete();
             }
         });
+
+        // Initialize button states (disabled by default since tile view is active)
+        this.toggleBulkActionButtons(false);
     }
 
     /**
@@ -292,7 +308,7 @@ class CertificateTileViewExternal {
         try {
             const loadingIndicator = document.getElementById('loadingIndicator');
             if (loadingIndicator) {
-                loadingIndicator.style.display = 'flex';
+                loadingIndicator.classList.add('active');
             }
 
             const result = await this.service.loadMore();
@@ -304,7 +320,7 @@ class CertificateTileViewExternal {
         } finally {
             const loadingIndicator = document.getElementById('loadingIndicator');
             if (loadingIndicator) {
-                loadingIndicator.style.display = 'none';
+                loadingIndicator.classList.remove('active');
             }
         }
     }
@@ -556,6 +572,9 @@ class CertificateTileViewExternal {
             tableView.style.display = 'block';
             this.populateTableView();
         }
+
+        // Enable export and download buttons (only work in table view)
+        this.toggleBulkActionButtons(true);
     }
 
     /**
@@ -567,6 +586,82 @@ class CertificateTileViewExternal {
 
         if (tableView) tableView.style.display = 'none';
         if (tileView) tileView.style.display = 'grid';
+
+        // Disable export and download buttons (only work in table view)
+        this.toggleBulkActionButtons(false);
+    }
+
+    /**
+     * Enable/disable bulk action buttons based on view mode
+     */
+    toggleBulkActionButtons(enabled) {
+        const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+        const exportAllBtn = document.getElementById('exportAllBtn');
+        const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+
+        if (exportSelectedBtn) {
+            exportSelectedBtn.disabled = !enabled;
+            exportSelectedBtn.style.opacity = enabled ? '1' : '0.5';
+            exportSelectedBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+        }
+
+        if (exportAllBtn) {
+            exportAllBtn.disabled = !enabled;
+            exportAllBtn.style.opacity = enabled ? '1' : '0.5';
+            exportAllBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+        }
+
+        if (downloadSelectedBtn) {
+            downloadSelectedBtn.disabled = !enabled;
+            downloadSelectedBtn.style.opacity = enabled ? '1' : '0.5';
+            downloadSelectedBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
+        }
+    }
+
+    /**
+     * Handle select all checkbox in table view
+     */
+    handleSelectAll(checked) {
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        rowCheckboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+        });
+        this.updateBulkActionsBar();
+    }
+
+    /**
+     * Handle individual row checkbox change
+     */
+    handleRowCheckboxChange() {
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        const checkedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        const selectAllCheckbox = document.getElementById('selectAll');
+
+        // Update select all checkbox state
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = rowCheckboxes.length > 0 && rowCheckboxes.length === checkedCheckboxes.length;
+            selectAllCheckbox.indeterminate = checkedCheckboxes.length > 0 && checkedCheckboxes.length < rowCheckboxes.length;
+        }
+
+        this.updateBulkActionsBar();
+    }
+
+    /**
+     * Update bulk actions bar visibility based on selected items
+     */
+    updateBulkActionsBar() {
+        const checkedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        const bulkActionsBar = document.getElementById('bulkActionsBar');
+        const selectedCountSpan = document.getElementById('selectedCount');
+
+        if (bulkActionsBar && selectedCountSpan) {
+            if (checkedCheckboxes.length > 0) {
+                bulkActionsBar.style.display = 'flex';
+                selectedCountSpan.textContent = `${checkedCheckboxes.length} certificate${checkedCheckboxes.length !== 1 ? 's' : ''} selected`;
+            } else {
+                bulkActionsBar.style.display = 'none';
+            }
+        }
     }
 
     /**
@@ -1025,7 +1120,7 @@ class CertificateTileViewExternal {
     }
 
     /**
-     * Download PDF certificates for selected items
+     * Download PDF certificates for selected items as ZIP file
      */
     async downloadSelected() {
         const selectedCerts = this.getSelectedCertificates();
@@ -1038,30 +1133,66 @@ class CertificateTileViewExternal {
             return;
         }
 
-        if (typeof AdminCore !== 'undefined') {
-            AdminCore.showNotification(`Downloading ${selectedCerts.length} certificate PDF(s)...`, 'info');
-        }
-
-        let successCount = 0;
-        let errorCount = 0;
-
-        for (const cert of selectedCerts) {
-            try {
-                await this.handleDownload(cert.id);
-                successCount++;
-                // Small delay between downloads to prevent browser blocking
-                await new Promise(resolve => setTimeout(resolve, 500));
-            } catch (error) {
-                console.error('Download error for certificate:', cert.id, error);
-                errorCount++;
+        try {
+            // Show progress notification
+            if (typeof AdminCore !== 'undefined') {
+                AdminCore.showNotification(`Preparing ZIP file with ${selectedCerts.length} certificate(s)...`, 'info');
             }
-        }
 
-        if (typeof AdminCore !== 'undefined') {
-            if (errorCount === 0) {
-                AdminCore.showNotification(`Downloaded ${successCount} PDF(s) successfully`, 'success');
+            // Extract certificate IDs
+            const certificateIds = selectedCerts.map(cert => cert.id);
+
+            // Call the backend ZIP endpoint
+            const response = await fetch('/Certificate/DownloadSelectedZip', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/zip'
+                },
+                body: JSON.stringify(certificateIds)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP error! status: ${response.status}`);
+            }
+
+            // Get the ZIP file blob
+            const blob = await response.blob();
+
+            // Create a download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Get filename from Content-Disposition header or use default
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `certificates_${new Date().toISOString().split('T')[0]}.zip`;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            // Show success notification
+            if (typeof AdminCore !== 'undefined') {
+                AdminCore.showNotification(`Successfully downloaded ${selectedCerts.length} certificate(s) as ZIP`, 'success');
+            }
+        } catch (error) {
+            console.error('ZIP download error:', error);
+            if (typeof AdminCore !== 'undefined') {
+                AdminCore.showNotification(`Failed to download certificates: ${error.message}`, 'error');
             } else {
-                AdminCore.showNotification(`Downloaded ${successCount} PDF(s), ${errorCount} failed`, 'warning');
+                alert(`Failed to download certificates: ${error.message}`);
             }
         }
     }

@@ -985,7 +985,7 @@
         }
     }
 
-    // Handle download selected certificates as PDFs
+    // Handle download selected certificates as ZIP file
     async function handleDownloadSelected() {
         const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
 
@@ -994,23 +994,57 @@
             return;
         }
 
-        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.certId);
-        showToast(`Downloading ${selectedIds.length} certificate(s)...`, 'info');
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.dataset.certId));
+        showToast(`Preparing ZIP file with ${selectedIds.length} certificate(s)...`, 'info');
 
-        // Download each certificate sequentially to avoid overwhelming the server
-        let successCount = 0;
-        for (const id of selectedIds) {
-            try {
-                await downloadCertificate(id);
-                successCount++;
-                // Small delay between downloads
-                await new Promise(resolve => setTimeout(resolve, 500));
-            } catch (error) {
-                console.error(`Error downloading certificate ${id}:`, error);
+        try {
+            // Call the backend ZIP endpoint
+            const response = await fetch('/Certificate/DownloadSelectedZip', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/zip'
+                },
+                body: JSON.stringify(selectedIds)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP error! status: ${response.status}`);
             }
-        }
 
-        showToast(`Downloaded ${successCount} of ${selectedIds.length} certificate(s)`, 'success');
+            // Get the ZIP file blob
+            const blob = await response.blob();
+
+            // Create a download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Get filename from Content-Disposition header or use default
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `certificates_${new Date().toISOString().split('T')[0]}.zip`;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            // Show success notification
+            showToast(`Successfully downloaded ${selectedIds.length} certificate(s) as ZIP`, 'success');
+        } catch (error) {
+            console.error('ZIP download error:', error);
+            showToast(`Failed to download certificates: ${error.message}`, 'error');
+        }
     }
 
     function handleViewTypeChange(viewType) {

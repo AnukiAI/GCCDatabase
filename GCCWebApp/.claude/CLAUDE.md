@@ -207,6 +207,17 @@ AzureAdB2C__ClientId=[client-id]
 - Autocomplete search with categorized suggestions ✅
 - Unique/shareable URLs for filtered searches ✅
 - Download certificates directly from tiles
+- **BULK DOWNLOAD AS ZIP** ⚠️ REQUIRED - Download multiple selected certificates as single ZIP file
+  - **PRIORITY: HIGH** - Replaces current one-by-one download approach
+  - Applies to both External (`/Certificate/CertificateTileViewExternal`) and Internal (`/Certificate/CertificateTileViewInternal`) views
+  - "Download Selected" button in table/list view creates ZIP archive of all selected certificate PDFs
+  - Only includes certificates with uploaded PDF files (skips those without)
+  - ZIP naming: `certificates_YYYY-MM-DD_HHmmss.zip`
+  - Shows progress modal during ZIP creation
+  - Provides appropriate user feedback (success/warning/error notifications)
+  - **Full Requirements**: `/0_Documentation/BULK_CERTIFICATE_DOWNLOAD_REQUIREMENT.md`
+  - Backend: New endpoint `/Certificate/DownloadSelectedZip` using `System.IO.Compression.ZipArchive`
+  - Frontend: Update `certificateTileViewExternal.js:1125` and `certificate-tile-view-internal.js`
 
 ### Product ID Management ✅
 - Multiple ASINs per certificate (100s supported)
@@ -952,3 +963,5 @@ pwsh playwright.ps1 install
 - stop making random changes that aren't relevant to the defect
 - ask followup questions for clarity and focus on the issue or defect
 - review requirments and current design and determine the exact change. Include what the changes will be prior to making them to make sure we have an additional quality check
+- always clean rebuild and run the project after an improvement is done. If the build fails, kill the process and resolve errors and warnings
+- download selected on http://localhost:5101/Certificate/CertificateTileViewExternal and http://localhost:5101/Certificate/CertificateTileViewInternal need the ability to download all certificates from the table. I'm thinking a zip file that includes the certificates that have been uploaded by analyst and admin. Add this as a requirement.

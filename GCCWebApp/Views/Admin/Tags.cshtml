@@ -27,17 +27,17 @@
             </div>
             <div class="admin-actions-section">
                 <div class="admin-button-group">
-                    <button id="template-btn" class="admin-btn admin-btn--secondary" title="Download CSV template for bulk import">
-                        <i class="fas fa-file-download"></i> Template
+                    <button id="template-btn" class="admin-btn admin-btn--secondary" aria-label="Download CSV template for bulk tag import">
+                        <i class="fas fa-file-download" aria-hidden="true"></i> Template
                     </button>
-                    <button id="import-btn" class="admin-btn admin-btn--secondary">
-                        <i class="fas fa-upload"></i> Import
+                    <button id="import-btn" class="admin-btn admin-btn--secondary" aria-label="Import tags from CSV file">
+                        <i class="fas fa-upload" aria-hidden="true"></i> Import
                     </button>
-                    <button id="export-btn" class="admin-btn admin-btn--secondary">
-                        <i class="fas fa-download"></i> Export
+                    <button id="export-btn" class="admin-btn admin-btn--secondary" aria-label="Export tags to CSV file">
+                        <i class="fas fa-download" aria-hidden="true"></i> Export
                     </button>
-                    <button id="add-tag-btn" class="admin-btn admin-btn--primary">
-                        <i class="fas fa-plus"></i> Add New Tag
+                    <button id="add-tag-btn" class="admin-btn admin-btn--primary" aria-label="Add a new tag">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Tag
                     </button>
                 </div>
             </div>
@@ -109,13 +109,13 @@
 
                 <div class="admin-form-group">
                     <label for="tag-name" class="admin-label admin-label--required">Tag Name</label>
-                    <input type="text" id="tag-name" class="admin-input" required aria-describedby="tag-name-help">
+                    <input type="text" id="tag-name" class="admin-input" required aria-required="true" aria-describedby="tag-name-help">
                     <span id="tag-name-help" class="admin-form-help">Enter a unique, descriptive name for this tag</span>
                 </div>
 
                 <div class="admin-form-group">
                     <label for="tag-type" class="admin-label admin-label--required">Tag Type</label>
-                    <select id="tag-type" class="admin-select" required aria-describedby="tag-type-help">
+                    <select id="tag-type" class="admin-select" required aria-required="true" aria-describedby="tag-type-help">
                         <option value="">Select a type</option>
                         <option value="external">External</option>
                         <option value="internal">Internal</option>
@@ -244,9 +244,18 @@
                         const tagId = row.dataset.id;
                         const tagName = row.querySelector('.tag-name')?.textContent || 'this tag';
 
-                        if (confirm(`Are you sure you want to delete the tag "${tagName}"?`)) {
-                            deleteTag(tagId);
-                        }
+                        // Use AdminCore.showConfirmation instead of native confirm
+                        AdminCore.showConfirmation({
+                            title: 'Delete Confirmation',
+                            message: `Are you sure you want to delete the tag "${tagName}"? This action cannot be undone.`,
+                            confirmText: 'Delete',
+                            cancelText: 'Cancel',
+                            type: 'danger'
+                        }).then(confirmed => {
+                            if (confirmed) {
+                                deleteTag(tagId);
+                            }
+                        });
                     }
                 }
             });
@@ -294,12 +303,9 @@
 
                     setTimeout(() => {
                         AdminCore.hideLoading(exportBtn);
-                        ExportUtils.showExportModal(
-                            sampleData,
-                            columns,
-                            'tags',
-                            (message, type) => AdminCore.showNotification(message, type)
-                        );
+                        // Direct CSV export - no modal popup required
+                        ExportUtils.exportToCSV(sampleData, columns, 'tags');
+                        AdminCore.showNotification('Tags exported to CSV successfully!', 'success');
                     }, 1000);
                 });
             }

@@ -147,6 +147,9 @@ const AdminCore = {
         // Limit number of notifications
         this.enforceNotificationLimit();
 
+        // Announce to screen readers
+        this.announceToScreenReader(`${config.title}: ${message}`);
+
         return notification;
     },
 
@@ -540,6 +543,15 @@ const AdminCore = {
         // Bind cancel button
         const cancelBtn = overlay.querySelector('[data-action="cancel"]');
         cancelBtn.addEventListener('click', handleCancel);
+
+        // Handle keyboard events
+        const keyHandler = (e) => {
+            if (e.key === 'Escape') {
+                handleCancel();
+                document.removeEventListener('keydown', keyHandler);
+            }
+        };
+        document.addEventListener('keydown', keyHandler);
 
         // Show modal with animation
         requestAnimationFrame(() => {

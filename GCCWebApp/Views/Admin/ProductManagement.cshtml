@@ -30,17 +30,17 @@
             </div>
             <div class="admin-actions-section">
                 <div class="admin-button-group">
-                    <button id="template-btn" class="admin-btn admin-btn--secondary" title="Download CSV template for bulk import">
-                        <i class="fas fa-file-download"></i> Template
+                    <button id="template-btn" class="admin-btn admin-btn--secondary" aria-label="Download CSV template for bulk product import">
+                        <i class="fas fa-file-download" aria-hidden="true"></i> Template
                     </button>
-                    <button id="import-btn" class="admin-btn admin-btn--secondary">
-                        <i class="fas fa-upload"></i> Import
+                    <button id="import-btn" class="admin-btn admin-btn--secondary" aria-label="Import products from CSV file">
+                        <i class="fas fa-upload" aria-hidden="true"></i> Import
                     </button>
-                    <button id="export-btn" class="admin-btn admin-btn--secondary">
-                        <i class="fas fa-download"></i> Export
+                    <button id="export-btn" class="admin-btn admin-btn--secondary" aria-label="Export products to CSV file">
+                        <i class="fas fa-download" aria-hidden="true"></i> Export
                     </button>
-                    <button id="add-product-btn" class="admin-btn admin-btn--primary">
-                        <i class="fas fa-plus"></i> Add New Product
+                    <button id="add-product-btn" class="admin-btn admin-btn--primary" aria-label="Add a new product">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Product
                     </button>
                 </div>
             </div>
@@ -209,9 +209,18 @@
                         const productId = row.dataset.id;
                         const productName = row.querySelector('.product-name')?.textContent || 'this product';
 
-                        if (confirm(`Are you sure you want to delete "${productName}"?`)) {
-                            deleteProduct(productId, row);
-                        }
+                        // Use AdminCore.showConfirmation instead of native confirm
+                        AdminCore.showConfirmation({
+                            title: 'Delete Confirmation',
+                            message: `Are you sure you want to delete "${productName}"? This action cannot be undone.`,
+                            confirmText: 'Delete',
+                            cancelText: 'Cancel',
+                            type: 'danger'
+                        }).then(confirmed => {
+                            if (confirmed) {
+                                deleteProduct(productId, row);
+                            }
+                        });
                     }
                 }
             });

@@ -193,3 +193,56 @@
 </div>
 
 <script src="~/js/certificates.js"></script>
+<script>
+    // Make certificate action functions available globally for this page
+    window.editCertificate = function(certificateId) {
+        if (!certificateId) {
+            console.error('Certificate ID is missing');
+            return;
+        }
+        window.location.href = `/Certificate/Edit/${certificateId}`;
+    };
+
+    window.deleteCertificate = function(certificateId) {
+        if (!certificateId) {
+            console.error('Certificate ID is missing');
+            return;
+        }
+
+        if (confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
+            // Submit delete request
+            fetch(`/Certificate/Delete/${certificateId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Certificate deleted successfully');
+                    window.location.href = '/Certificate/CertificateTileViewInternal';
+                } else {
+                    alert('Failed to delete certificate');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting certificate:', error);
+                alert('An error occurred while deleting the certificate');
+            });
+        }
+    };
+
+    window.downloadCertificate = function(certificateId) {
+        if (!certificateId) {
+            console.error('Certificate ID is missing');
+            return;
+        }
+        try {
+            window.open(`/Certificate/Download/${certificateId}`, '_blank');
+            console.log('Certificate download started');
+        } catch (error) {
+            console.error('Error downloading certificate:', error);
+        }
+    };
+</script>

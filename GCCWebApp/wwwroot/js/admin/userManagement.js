@@ -258,7 +258,14 @@ function populateTable(data) {
     });
 
     // Update the user count
-    userCountElement.textContent = `Showing ${visibleCount} of ${users.length} users`;
+    const countText = `Showing ${visibleCount} of ${users.length} users`;
+    userCountElement.textContent = countText;
+
+    // Announce table updates to screen readers
+    const announcement = document.getElementById('tableAnnouncement');
+    if (announcement) {
+        announcement.textContent = `Table updated. ${countText}.`;
+    }
 }
 
 // Function to make a cell editable
@@ -547,7 +554,7 @@ function closeModal() {
 }
 
 // Function to save a user (add or update)
-function saveUser(event) {
+async function saveUser(event) {
     event.preventDefault();
 
     const userId = userIdInput.value;
@@ -572,40 +579,68 @@ function saveUser(event) {
         userData.password = userPasswordInput.value;
     }
 
-    if (userId) {
-        // Update existing user
-        const index = users.findIndex(u => u.id.toString() === userId);
-        if (index !== -1) {
-            // Keep the password if not changed
-            if (!userData.password) {
-                userData.password = users[index].password;
+    try {
+        // Get anti-forgery token
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+        if (userId) {
+            // Update existing user
+            const response = await fetch(`/Admin/UpdateUser?id=${userId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token || ''
+                },
+                body: JSON.stringify(userData)
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Update local array
+                const index = users.findIndex(u => u.id.toString() === userId);
+                if (index !== -1) {
+                    // Keep the lastLogin
+                    userData.lastLogin = users[index].lastLogin;
+                    users[index] = {
+                        ...users[index],
+                        ...userData,
+                        id: parseInt(userId)
+                    };
+                }
+                closeModal();
+                applyFiltersAndSort();
+                AdminCore.showNotification('User updated successfully', 'success');
+            } else {
+                AdminCore.showNotification('Error: ' + (result.message || 'Failed to update user'), 'error');
             }
+        } else {
+            // Create new user
+            const response = await fetch('/Admin/CreateUser', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token || ''
+                },
+                body: JSON.stringify(userData)
+            });
 
-            // Keep the lastLogin
-            userData.lastLogin = users[index].lastLogin;
+            const result = await response.json();
 
-            users[index] = {
-                ...users[index],
-                ...userData
-            };
+            if (result.success) {
+                // Reload users from database to get the new user with correct ID
+                await loadUsers();
+                closeModal();
+                applyFiltersAndSort();
+                AdminCore.showNotification('User created successfully', 'success');
+            } else {
+                AdminCore.showNotification('Error: ' + (result.message || 'Failed to create user'), 'error');
+            }
         }
-    } else {
-        // Add new user
-        const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
-
-        // Set current date as lastLogin
-        const now = new Date();
-        const lastLogin = now.toISOString().slice(0, 16).replace('T', ' ');
-
-        users.push({
-            id: newId,
-            lastLogin: lastLogin,
-            ...userData
-        });
+    } catch (error) {
+        console.error('Error saving user:', error);
+        AdminCore.showNotification('Error saving user: ' + error.message, 'error');
     }
-
-    closeModal();
-    applyFiltersAndSort();
 }
 
 // Function to delete a user
@@ -618,9 +653,30 @@ async function deleteUser(id) {
         type: 'danger'
     });
 
-    if (confirmed) {
-        users = users.filter(user => user.id !== id);
-        applyFiltersAndSort();
+    if (!confirmed) return;
+
+    try {
+        // Delete from database
+        const response = await fetch(`/Admin/DeleteUser?id=${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Remove from local array only if database delete succeeded
+            users = users.filter(user => user.id !== id);
+            applyFiltersAndSort();
+            AdminCore.showNotification('User deleted successfully', 'success');
+        } else {
+            AdminCore.showNotification('Error: ' + (result.message || 'Failed to delete user'), 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        AdminCore.showNotification('Error deleting user: ' + error.message, 'error');
     }
 }
 

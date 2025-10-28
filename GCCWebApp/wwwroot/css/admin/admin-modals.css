@@ -25,7 +25,7 @@
 }
 
 .admin-modal-overlay {
-    position: absolute;
+    position: fixed; /* Fixed positioning keeps modal centered on viewport, not page */
     top: 0;
     left: 0;
     right: 0;
@@ -33,6 +33,9 @@
     background-color: rgba(0, 43, 118, 0.7);
     backdrop-filter: blur(2px);
     z-index: var(--admin-z-modal-backdrop);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     opacity: 0;
     transition: opacity var(--admin-transition-normal);
 }
@@ -438,6 +441,20 @@
     position: relative;
     display: inline-block;
     z-index: 100; /* Ensure dropdown container establishes stacking context above table rows */
+}
+
+/* Ensure table cells don't clip dropdown menus */
+.admin-table-cell--actions,
+.admin-action-buttons {
+    position: relative;
+    overflow: visible !important;
+}
+
+/* Increase z-index of table row when dropdown is open */
+.admin-table-row:has(.admin-dropdown-menu--show),
+.admin-table-row.dropdown-open {
+    position: relative;
+    z-index: 200;
 }
 
 .admin-dropdown-menu {

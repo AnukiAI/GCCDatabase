@@ -1,5 +1,5 @@
 @{
-    // ViewData["Title"] = "Certificate Tile View";
+    ViewData["Title"] = "Certificate Tile View";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 <link rel="stylesheet" href="~/css/certificatetileview.css" />
@@ -223,6 +223,95 @@
     @@keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
+    }
+
+    /* Bulk Actions Bar Styling */
+    .bulk-actions-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+        background-color: #f8f9fa;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-bottom: 16px;
+    }
+
+    .bulk-actions-left {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .bulk-actions-right {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .selected-count {
+        font-size: 16px;
+        font-weight: 500;
+        color: #333;
+    }
+
+    /* Clear Selection Button - Cohesive Design */
+    .clear-selection-btn {
+        background-color: #fff;
+        color: #666;
+        border: 1px solid #ddd;
+        padding: 6px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 400;
+        transition: all 0.2s ease;
+    }
+
+    .clear-selection-btn:hover {
+        background-color: #f8f9fa;
+        border-color: #999;
+        color: #333;
+    }
+
+    .clear-selection-btn:active {
+        background-color: #e9ecef;
+    }
+
+    /* Bulk Action Buttons - Match Main Button Style */
+    .bulk-action-btn {
+        background-color: #00AEEF;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .bulk-action-btn:hover {
+        background-color: #0095d8;
+    }
+
+    .bulk-action-btn:active {
+        transform: translateY(1px);
+    }
+
+    .bulk-action-btn i {
+        font-size: 14px;
+    }
+
+    /* Disabled button state for Download Selected in tile view */
+    .btn:disabled,
+    .btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
     }
 
     /* Hide add certificate button and edit icons for external users */
@@ -467,125 +556,9 @@
             </div>
             <div class="filter-content" id="cert-type-content">
                 <ul class="filter-tree">
+                    <!-- Certification types will be dynamically populated from the database via JavaScript -->
                     <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="biobased">
-                            Biobased
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="certified-energy-savings">
-                            Certified Energy Savings
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="certified-environmental-facts">
-                            Certified Environmental Facts
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="certified-sustainability-facts">
-                            Certified Sustainability Facts
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="certified-water-savings">
-                            Certified Water Savings
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="closed-loop-product">
-                            Closed Loop Product
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="dematerialization">
-                            Dematerialization
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="ghg-verification">
-                            Greenhouse Gas (GHG) Verification
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="greencircle-audited">
-                            GreenCircle Audited
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="lca-optimized">
-                            Life Cycle Assessment (LCA) Optimized
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="manufacturer-inventory-verification">
-                            Manufacturer Inventory Verification
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="recyclable-material">
-                            Recyclable Material
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="recycled-content">
-                            Recycled Content
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="renewable-resource-content">
-                            Renewable Resource Content
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="sustainable-energy-practices">
-                            Sustainable Energy Practices
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="sustainable-manufacturing-practices">
-                            Sustainable Manufacturing Practices
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="waste-diversion-landfill">
-                            Waste Diversion from Landfill
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="waste-system-audit">
-                            Waste System Audit
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="vantage-vinyl-verified">
-                            +Vantage Vinyl® Verified
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-type" value="preloved">
-                            Preloved
-                        </label>
+                        <span style="color: #999; font-style: italic;">Loading certification types...</span>
                     </li>
                 </ul>
             </div>
@@ -599,30 +572,9 @@
             </div>
             <div class="filter-content" id="product-cat-content">
                 <ul class="filter-tree">
-                    <!-- Chemicals and Raw Materials -->
-                    <li class="filter-item filter-level-1">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="chemicals-raw-materials">
-                            Chemicals and Raw Materials
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="additives">
-                            Additives
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="metal-alloys">
-                            Metal Alloys
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="minerals">
-                            Minerals
-                        </label>
+                    <!-- Product categories will be dynamically populated from the database via JavaScript -->
+                    <li class="filter-item">
+                        <span style="color: #999; font-style: italic;">Loading categories...</span>
                     </li>
                     <li class="filter-item filter-level-2">
                         <label>
@@ -980,65 +932,9 @@
             </div>
             <div class="filter-content" id="company-content">
                 <ul class="filter-tree">
+                    <!-- Companies will be dynamically populated from the database via JavaScript -->
                     <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="company" value="alcamare">
-                            Alcamare International Recycling Group
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="company" value="assa-abloy">
-                            ASSA ABLOY
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="company" value="assa-abloy-corbin">
-                            ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="company" value="assa-abloy-sargent">
-                            ASSA ABLOY Access & Egress Hardware Group, Inc. - SARGENT Manufacturing Co. Division
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="company" value="certainteed">
-                            CertainTeed Insulation Group
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="company" value="charter">
-                            Charter Next Generation
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="company" value="domtar">
-                            Domtar Corporation
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="company" value="gaf">
-                            GAF
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="company" value="mapei">
-                            MAPEI
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="company" value="superior-essex">
-                            Superior Essex®
-                        </label>
+                        <span style="color: #999; font-style: italic;">Loading companies...</span>
                     </li>
                 </ul>
             </div>
@@ -1052,179 +948,9 @@
             </div>
             <div class="filter-content" id="countries-content">
                 <ul class="filter-tree">
+                    <!-- Countries will be dynamically populated from the database via JavaScript -->
                     <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="united-states">
-                            United States
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="belgium">
-                            Belgium
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="canada">
-                            Canada
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="china">
-                            China
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="colombia">
-                            Colombia
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="dominican-republic">
-                            Dominican Republic
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="el-salvador">
-                            El Salvador
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="france">
-                            France
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="germany">
-                            Germany
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="hungary">
-                            Hungary
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="indonesia">
-                            Indonesia
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="mexico">
-                            Mexico
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="netherlands">
-                            Netherlands
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="pakistan">
-                            Pakistan
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="poland">
-                            Poland
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="saudi-arabia">
-                            Saudi Arabia
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="singapore">
-                            Singapore
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="south-korea">
-                            South Korea
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="spain">
-                            Spain
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="switzerland">
-                            Switzerland
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="countries" value="united-kingdom">
-                            United Kingdom
-                        </label>
-                    </li>
-                </ul>
-            </div>
-        </div>
-
-        <!-- Certificate Tags Filter -->
-        <div class="filter-panel">
-            <div class="filter-header" data-filter="cert-tags">
-                <span>Certificate Tags</span>
-                <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="filter-content" id="cert-tags-content">
-                <ul class="filter-tree">
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-tags" value="energy-savings">
-                            Energy Savings
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-tags" value="environmental-facts">
-                            Environmental Facts
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-tags" value="greencircle-audited">
-                            GreenCircle Audited
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-tags" value="lca-optimized">
-                            LCA Optimized
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-tags" value="material-ingredient">
-                            Material Ingredient
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="cert-tags" value="recycled-content">
-                            Recycled Content
-                        </label>
+                        <span style="color: #999; font-style: italic;">Loading countries...</span>
                     </li>
                 </ul>
             </div>
@@ -1238,17 +964,9 @@
             </div>
             <div class="filter-content" id="additional-content">
                 <ul class="filter-tree">
+                    <!-- Additional tags will be dynamically populated from the database via JavaScript -->
                     <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="additional" value="apr">
-                            APR
-                        </label>
-                    </li>
-                    <li class="filter-item">
-                        <label>
-                            <input type="checkbox" name="additional" value="leed">
-                            LEED
-                        </label>
+                        <span style="color: #999; font-style: italic;">Loading additional tags...</span>
                     </li>
                 </ul>
             </div>
@@ -1378,15 +1096,8 @@
             <div class="left-controls">
                 <div class="export-options">
                     <!-- External users can export but cannot add certificates -->
-                    <!-- These buttons are only enabled in table view -->
-                    <button id="exportSelectedBtn" class="btn btn-primary" disabled style="opacity: 0.5; cursor: not-allowed;" title="Switch to table view to export selected certificates">
-                        Export (selected) to Excel
-                    </button>
-                    <button id="exportAllBtn" class="btn btn-primary" disabled style="opacity: 0.5; cursor: not-allowed;" title="Switch to table view to export all certificates">
-                        Export All to Excel
-                    </button>
-                    <button id="downloadSelectedBtn" class="btn btn-primary" disabled style="opacity: 0.5; cursor: not-allowed;" title="Switch to table view to download selected certificates">
-                        Download Selected
+                    <button id="exportAllBtn" class="btn btn-primary">
+                        <i class="fas fa-file-excel"></i> Export All to Excel
                     </button>
                 </div>
             </div>

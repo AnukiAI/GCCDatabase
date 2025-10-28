@@ -129,7 +129,7 @@
                 margin-bottom: 6px;
                 font-weight: 600;
                 color: #374151;
-                font-size: 14px;
+                font-size: 16px;
             }
             
         .form-group.checkbox-group {
@@ -176,7 +176,7 @@
         .link {
             color: #5F5F5F !important;
             text-align: right;
-            font-size: 0.9rem;
+            font-size: 16px;
             display: block;
             cursor: pointer;
             margin-top: 0.5rem;
@@ -229,7 +229,7 @@
             .forgot-password a {
                 color: #0078d4;
                 text-decoration: none;
-                font-size: 14px;
+                font-size: 16px;
                 font-weight: 500;
             }
 
@@ -293,12 +293,12 @@
             .security-notice strong {
                 display: block;
                 color: #0284c7;
-                font-size: 14px;
+                font-size: 16px;
                 margin-bottom: 2px;
             }
 
             .security-notice p {
-                font-size: 12px;
+                font-size: 14px; /* KEEP 14px - this is secondary/helper text */
                 color: #0369a1;
                 margin: 0;
                 line-height: 1.3;
@@ -309,7 +309,7 @@
             margin: 30px 0;
             position: relative;
             color: #6b7280;
-            font-size: 14px;
+            font-size: 16px;
         }
 
             .divider::before {
@@ -475,13 +475,16 @@
                 <form asp-controller="Account" asp-action="Login" asp-route-returnUrl="@ViewData["ReturnUrl"]" method="post">
                     @Html.AntiForgeryToken()
                     <div class="form-group">
-                       <input asp-for="Email" type="email" id="Email" name="Email" class="form-control" placeholder="Enter your email" required />
-                       <span asp-validation-for="Email" class="text-danger"></span>
+                       <label for="Email" class="form-label">Email Address <span class="text-danger" aria-label="required">*</span></label>
+                       <input asp-for="Email" type="email" id="Email" name="Email" class="form-control" placeholder="Enter your email" required aria-required="true" aria-describedby="email-help" />
+                       <small id="email-help" class="form-text text-muted">We'll never share your email with anyone else.</small>
+                       <span asp-validation-for="Email" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group">
-                        <input asp-for="Password" type="password" id="Password" name="Password" class="form-control" placeholder="Enter your password" required />
-                        <span asp-validation-for="Password" class="text-danger"></span>
+                        <label for="Password" class="form-label">Password <span class="text-danger" aria-label="required">*</span></label>
+                        <input asp-for="Password" type="password" id="Password" name="Password" class="form-control" placeholder="Enter your password" required aria-required="true" />
+                        <span asp-validation-for="Password" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group checkbox-group">
@@ -489,7 +492,7 @@
                         <label asp-for="RememberMe">Remember me</label>
                     </div>
 
-                    <button type="submit" class="btn-lime">Login</button>
+                    <button type="submit" class="btn-lime" aria-label="Login to your account">Login</button>
 
                     <div class="link">
                         <a asp-controller="Account" asp-action="ForgotPassword">Forgot Password</a>

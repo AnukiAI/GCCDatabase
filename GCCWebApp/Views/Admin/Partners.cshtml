@@ -5,6 +5,8 @@
 }
 
 @section Styles {
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
     <link href="~/css/partners.css" rel="stylesheet" />
     <link href="~/css/admin-company-style.css" rel="stylesheet" />
 }
@@ -22,13 +24,20 @@
 
 <div class="admin-container">
     <header class="admin-header">
-        <div class="buttons-area">
-            <button id="partners-export-btn" class="btn">
-                <i class="fas fa-download"></i> Export
-            </button>
-            <button id="partners-add-btn" class="btn btn-add">
-                <i class="fas fa-plus"></i> Add New Partner
-            </button>
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <p class="admin-page-subtitle">Manage partner organizations</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <button id="partners-export-btn" class="admin-btn admin-btn--secondary" aria-label="Export partners to CSV file">
+                        <i class="fas fa-download" aria-hidden="true"></i> Export
+                    </button>
+                    <button id="partners-add-btn" class="admin-btn admin-btn--primary" aria-label="Add a new partner">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Partner
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -84,6 +93,7 @@
 <div id="partners-toast" class="partners-toast"></div>
 
 @section Scripts {
+    <script src="~/js/admin/admin-core.js"></script>
     <script>
         // Initialize partners management
         let partnersData = [];
@@ -508,45 +518,56 @@
             row.classList.remove('partners-edit-row');
         }
 
-        function deletePartner(id) {
+        async function deletePartner(id) {
             const partner = partnersData.find(p => p.id === id);
             if (!partner) return;
 
-            if (confirm(`Are you sure you want to delete "${partner.name}"?`)) {
-                // Get antiforgery token
-                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            // Use AdminCore.showConfirmation instead of native confirm
+            const confirmed = await AdminCore.showConfirmation({
+                title: 'Delete Confirmation',
+                message: `Are you sure you want to delete "${partner.name}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                type: 'danger'
+            });
 
-                // Make AJAX call to delete partner
-                fetch(`/Admin/DeletePartner/${id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    '__RequestVerificationToken': token
-                    }
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(result => {
-                    if (result.success) {
-                        // Remove from local data and refresh display
-                        partnersData = partnersData.filter(partner => partner.id !== id);
-                        sortPartnersData();
-                        showPartnersToast('Partner deleted successfully', 'success');
-                    } else {
-                        throw new Error(result.message || 'Failed to delete partner');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error deleting partner:', error);
-                    showPartnersToast('Error deleting partner: ' + error.message, 'error');
-                });
+            if (!confirmed) {
+                return;
             }
+
+            // Get antiforgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+            // Make AJAX call to delete partner
+            fetch(`/Admin/DeletePartner/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                '__RequestVerificationToken': token
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (result.success) {
+                    // Remove from local data and refresh display
+                    partnersData = partnersData.filter(partner => partner.id !== id);
+                    sortPartnersData();
+                    showPartnersToast('Partner deleted successfully', 'success');
+                } else {
+                    throw new Error(result.message || 'Failed to delete partner');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting partner:', error);
+                showPartnersToast('Error deleting partner: ' + error.message, 'error');
+            });
         }
 
         function exportPartners() {

@@ -18,9 +18,16 @@ namespace GCCWebApp.Data
             // Apply any pending migrations
             await context.Database.MigrateAsync();
 
-            // Check if data already exists
-            if (await context.Companies.AnyAsync())
+            // Check if core data already exists (skip main seeding if so)
+            var hasCompanies = await context.Companies.AnyAsync();
+
+            if (hasCompanies)
             {
+                // Even if main data exists, check if CustomFields need seeding
+                if (!await context.CustomFields.AnyAsync())
+                {
+                    await SeedCustomFieldsAsync(context);
+                }
                 return; // Database has been seeded
             }
 
@@ -829,53 +836,7 @@ namespace GCCWebApp.Data
             await context.SaveChangesAsync();
 
             // Seed CustomFields (Certificate Fields)
-            var customFields = new List<CustomField>
-            {
-                // Basic Certificate Information Fields
-                new CustomField { Name = "Certificate Holder Company Name", FieldType = "text", IsRequired = true, IsVisible = true, SortOrder = 1, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
-                new CustomField { Name = "Certificate Holder Contact Email", FieldType = "email", IsRequired = true, IsVisible = true, SortOrder = 2, DefaultValue = "", ValidationRules = "email,maxLength:255", Options = "" },
-                new CustomField { Name = "Certificate Holder Phone Number", FieldType = "phone", IsRequired = false, IsVisible = true, SortOrder = 3, DefaultValue = "", ValidationRules = "phone,maxLength:20", Options = "" },
-                new CustomField { Name = "Certificate Holder Address", FieldType = "textarea", IsRequired = false, IsVisible = true, SortOrder = 4, DefaultValue = "", ValidationRules = "maxLength:500", Options = "" },
-
-                // Product Information Fields
-                new CustomField { Name = "Product Brand Name", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 5, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
-                new CustomField { Name = "Product Model Number", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 6, DefaultValue = "", ValidationRules = "maxLength:100", Options = "" },
-                new CustomField { Name = "Product SKU", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 7, DefaultValue = "", ValidationRules = "maxLength:100", Options = "" },
-                new CustomField { Name = "Product Dimensions", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 8, DefaultValue = "", ValidationRules = "maxLength:100", Options = "" },
-                new CustomField { Name = "Product Weight", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 9, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "" },
-                new CustomField { Name = "Product Color Options", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 10, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
-
-                // Manufacturing Information Fields
-                new CustomField { Name = "Manufacturing Facility Name", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 11, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
-                new CustomField { Name = "Manufacturing Facility Location", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 12, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
-                new CustomField { Name = "Manufacturing Country", FieldType = "select", IsRequired = false, IsVisible = true, SortOrder = 13, DefaultValue = "United States", ValidationRules = "", Options = "United States,Canada,Mexico,China,India,Germany,United Kingdom,France,Italy,Japan,Other" },
-                new CustomField { Name = "Manufacturing Date", FieldType = "date", IsRequired = false, IsVisible = true, SortOrder = 14, DefaultValue = "", ValidationRules = "date", Options = "" },
-
-                // Environmental and Sustainability Fields
-                new CustomField { Name = "Environmental Impact Statement", FieldType = "textarea", IsRequired = false, IsVisible = true, SortOrder = 15, DefaultValue = "", ValidationRules = "maxLength:1000", Options = "" },
-                new CustomField { Name = "Third-Party Certifications", FieldType = "multiselect", IsRequired = false, IsVisible = true, SortOrder = 16, DefaultValue = "", ValidationRules = "", Options = "LEED,Energy Star,GREENGUARD,Cradle to Cradle,FSC,PEFC,SFI,Carbon Neutral,ISO 14001,Other" },
-                new CustomField { Name = "Carbon Footprint (kg CO2e)", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 17, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "" },
-                new CustomField { Name = "Water Usage (liters)", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 18, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "" },
-                new CustomField { Name = "Energy Consumption (kWh)", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 19, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "" },
-                new CustomField { Name = "Recycled Content Percentage", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 20, DefaultValue = "", ValidationRules = "numeric,min:0,max:100", Options = "" },
-
-                // Testing and Compliance Fields
-                new CustomField { Name = "Test Report Number", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 21, DefaultValue = "", ValidationRules = "maxLength:100", Options = "" },
-                new CustomField { Name = "Test Laboratory Name", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 22, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" },
-                new CustomField { Name = "Test Date", FieldType = "date", IsRequired = false, IsVisible = true, SortOrder = 23, DefaultValue = "", ValidationRules = "date", Options = "" },
-                new CustomField { Name = "Compliance Standards", FieldType = "multiselect", IsRequired = false, IsVisible = true, SortOrder = 24, DefaultValue = "", ValidationRules = "", Options = "ISO 14024,ISO 14025,ISO 14040,ASTM Standards,ANSI Standards,UL Standards,Other" },
-
-                // Additional Information Fields
-                new CustomField { Name = "Special Notes", FieldType = "textarea", IsRequired = false, IsVisible = true, SortOrder = 25, DefaultValue = "", ValidationRules = "maxLength:2000", Options = "" },
-                new CustomField { Name = "Internal Reference Number", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 26, DefaultValue = "", ValidationRules = "maxLength:100", Options = "" },
-                new CustomField { Name = "Priority Level", FieldType = "select", IsRequired = false, IsVisible = true, SortOrder = 27, DefaultValue = "Normal", ValidationRules = "", Options = "Low,Normal,High,Urgent" },
-                new CustomField { Name = "Certificate Visibility", FieldType = "select", IsRequired = false, IsVisible = true, SortOrder = 28, DefaultValue = "Public", ValidationRules = "", Options = "Public,Partner Only,Internal Only,Confidential" },
-                new CustomField { Name = "Renewal Reminder Date", FieldType = "date", IsRequired = false, IsVisible = true, SortOrder = 29, DefaultValue = "", ValidationRules = "date", Options = "" },
-                new CustomField { Name = "Assigned Analyst", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 30, DefaultValue = "", ValidationRules = "maxLength:255", Options = "" }
-            };
-
-            await context.CustomFields.AddRangeAsync(customFields);
-            await context.SaveChangesAsync();
+            await SeedCustomFieldsAsync(context);
 
             // Seed Roles and Permissions
             var permissions = new List<Permission>
@@ -1235,6 +1196,65 @@ namespace GCCWebApp.Data
             };
 
             await context.ApiKeys.AddRangeAsync(apiKeys);
+            await context.SaveChangesAsync();
+        }
+
+        private static async Task SeedCustomFieldsAsync(ApplicationDbContext context)
+        {
+            // Get the first certification type to associate with custom fields
+            var defaultCertType = await context.CertificationTypes.FirstOrDefaultAsync();
+            if (defaultCertType == null)
+            {
+                throw new InvalidOperationException("Cannot seed custom fields: No certification types exist in database");
+            }
+
+            // Seed CustomFields (Certificate Fields)
+            var customFields = new List<CustomField>
+            {
+                // Basic Certificate Information Fields
+                new CustomField { Name = "Certificate Holder Company Name", FieldType = "text", IsRequired = true, IsVisible = true, SortOrder = 1, DefaultValue = "", ValidationRules = "maxLength:255", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Certificate Holder Contact Email", FieldType = "email", IsRequired = true, IsVisible = true, SortOrder = 2, DefaultValue = "", ValidationRules = "email,maxLength:255", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Certificate Holder Phone Number", FieldType = "phone", IsRequired = false, IsVisible = true, SortOrder = 3, DefaultValue = "", ValidationRules = "phone,maxLength:20", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Certificate Holder Address", FieldType = "textarea", IsRequired = false, IsVisible = true, SortOrder = 4, DefaultValue = "", ValidationRules = "maxLength:500", Options = "", CertificateTypeId = defaultCertType.Id },
+
+                // Product Information Fields
+                new CustomField { Name = "Product Brand Name", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 5, DefaultValue = "", ValidationRules = "maxLength:255", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Product Model Number", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 6, DefaultValue = "", ValidationRules = "maxLength:100", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Product SKU", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 7, DefaultValue = "", ValidationRules = "maxLength:100", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Product Dimensions", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 8, DefaultValue = "", ValidationRules = "maxLength:100", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Product Weight", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 9, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Product Color Options", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 10, DefaultValue = "", ValidationRules = "maxLength:255", Options = "", CertificateTypeId = defaultCertType.Id },
+
+                // Manufacturing Information Fields
+                new CustomField { Name = "Manufacturing Facility Name", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 11, DefaultValue = "", ValidationRules = "maxLength:255", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Manufacturing Facility Location", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 12, DefaultValue = "", ValidationRules = "maxLength:255", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Manufacturing Country", FieldType = "select", IsRequired = false, IsVisible = true, SortOrder = 13, DefaultValue = "United States", ValidationRules = "", Options = "United States,Canada,Mexico,China,India,Germany,United Kingdom,France,Italy,Japan,Other", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Manufacturing Date", FieldType = "date", IsRequired = false, IsVisible = true, SortOrder = 14, DefaultValue = "", ValidationRules = "date", Options = "", CertificateTypeId = defaultCertType.Id },
+
+                // Environmental and Sustainability Fields
+                new CustomField { Name = "Environmental Impact Statement", FieldType = "textarea", IsRequired = false, IsVisible = true, SortOrder = 15, DefaultValue = "", ValidationRules = "maxLength:1000", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Third-Party Certifications", FieldType = "multiselect", IsRequired = false, IsVisible = true, SortOrder = 16, DefaultValue = "", ValidationRules = "", Options = "LEED,Energy Star,GREENGUARD,Cradle to Cradle,FSC,PEFC,SFI,Carbon Neutral,ISO 14001,Other", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Carbon Footprint (kg CO2e)", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 17, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Water Usage (liters)", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 18, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Energy Consumption (kWh)", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 19, DefaultValue = "", ValidationRules = "numeric,min:0", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Recycled Content Percentage", FieldType = "number", IsRequired = false, IsVisible = true, SortOrder = 20, DefaultValue = "", ValidationRules = "numeric,min:0,max:100", Options = "", CertificateTypeId = defaultCertType.Id },
+
+                // Testing and Compliance Fields
+                new CustomField { Name = "Test Report Number", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 21, DefaultValue = "", ValidationRules = "maxLength:100", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Test Laboratory Name", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 22, DefaultValue = "", ValidationRules = "maxLength:255", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Test Date", FieldType = "date", IsRequired = false, IsVisible = true, SortOrder = 23, DefaultValue = "", ValidationRules = "date", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Compliance Standards", FieldType = "multiselect", IsRequired = false, IsVisible = true, SortOrder = 24, DefaultValue = "", ValidationRules = "", Options = "ISO 14024,ISO 14025,ISO 14040,ASTM Standards,ANSI Standards,UL Standards,Other", CertificateTypeId = defaultCertType.Id },
+
+                // Additional Information Fields
+                new CustomField { Name = "Special Notes", FieldType = "textarea", IsRequired = false, IsVisible = true, SortOrder = 25, DefaultValue = "", ValidationRules = "maxLength:2000", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Internal Reference Number", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 26, DefaultValue = "", ValidationRules = "maxLength:100", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Priority Level", FieldType = "select", IsRequired = false, IsVisible = true, SortOrder = 27, DefaultValue = "Normal", ValidationRules = "", Options = "Low,Normal,High,Urgent", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Certificate Visibility", FieldType = "select", IsRequired = false, IsVisible = true, SortOrder = 28, DefaultValue = "Public", ValidationRules = "", Options = "Public,Partner Only,Internal Only,Confidential", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Renewal Reminder Date", FieldType = "date", IsRequired = false, IsVisible = true, SortOrder = 29, DefaultValue = "", ValidationRules = "date", Options = "", CertificateTypeId = defaultCertType.Id },
+                new CustomField { Name = "Assigned Analyst", FieldType = "text", IsRequired = false, IsVisible = true, SortOrder = 30, DefaultValue = "", ValidationRules = "maxLength:255", Options = "", CertificateTypeId = defaultCertType.Id }
+            };
+
+            await context.CustomFields.AddRangeAsync(customFields);
             await context.SaveChangesAsync();
         }
     }

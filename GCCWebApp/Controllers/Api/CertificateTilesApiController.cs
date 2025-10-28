@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Repositories;
 using GCCWebApp.Services;
@@ -14,17 +16,20 @@ namespace GCCWebApp.Controllers.Api
         private readonly ICertificateRepository _certificateRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICertificatePdfService _pdfService;
+        private readonly ApplicationDbContext _context;
 
         public CertificateTilesApiController(
             ILogger<CertificateTilesApiController> logger,
             ICertificateRepository certificateRepository,
             IUnitOfWork unitOfWork,
-            ICertificatePdfService pdfService)
+            ICertificatePdfService pdfService,
+            ApplicationDbContext context)
         {
             _logger = logger;
             _certificateRepository = certificateRepository;
             _unitOfWork = unitOfWork;
             _pdfService = pdfService;
+            _context = context;
         }
 
         /// <summary>
@@ -176,31 +181,48 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
-                var certificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
-                var companies = await _unitOfWork.Companies.GetAllAsync();
-                var countries = await _certificateRepository.GetDistinctCountriesAsync();
+                // Base query for active certificates (public view shows only active/expiring/renewal certificates)
+                var baseQuery = _context.Certificates
+                    .Where(c => c.Status == "active" || c.Status == "expiring_soon" || c.Status == "renewal_in_progress");
 
-                var response = new
+                var filters = new
                 {
-                    certificationTypes = certificationTypes
-                        .Where(ct => ct.IsActive)
-                        .Select(ct => ct.Name)
+                    certificationTypes = await baseQuery
+                        .Select(c => c.CertificationType.Name)
+                        .Distinct()
                         .OrderBy(name => name)
-                        .ToList(),
-                    
-                    companies = companies
-                        .Where(c => c.IsActive)
-                        .Select(c => new { id = c.Id, name = c.Name })
+                        .ToListAsync(),
+
+                    companies = await baseQuery
+                        .Select(c => new { id = c.Company.Id, name = c.Company.Name })
+                        .Distinct()
                         .OrderBy(c => c.name)
-                        .ToList(),
-                    
-                    countries = countries
+                        .ToListAsync(),
+
+                    countries = await baseQuery
+                        .Select(c => c.Country)
                         .Where(c => !string.IsNullOrEmpty(c))
+                        .Distinct()
                         .OrderBy(c => c)
-                        .ToList()
+                        .ToListAsync(),
+
+                    productCategories = await baseQuery
+                        .Select(c => c.Product.Category.Name)
+                        .Distinct()
+                        .OrderBy(name => name)
+                        .ToListAsync(),
+
+                    // Only external tags (APR, LEED, etc.) for the Additional filter
+                    additionalTags = await baseQuery
+                        .SelectMany(c => c.Tags)
+                        .Where(t => t.IsActive && t.TagType == "external")
+                        .Select(t => t.Name)
+                        .Distinct()
+                        .OrderBy(name => name)
+                        .ToListAsync()
                 };
 
-                return Ok(response);
+                return Ok(filters);
             }
             catch (Exception ex)
             {

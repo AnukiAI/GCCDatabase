@@ -4,6 +4,8 @@
 }
 
 @section Styles {
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
     <link href="~/css/company-management.css" rel="stylesheet" />
 }
 
@@ -17,22 +19,28 @@
 }
 
 <div class="admin-container">
+    @Html.AntiForgeryToken()
     <header class="admin-header">
-        <div class="title-area">
-        </div>
-        <div class="buttons-area">
-            <button id="template-btn" class="btn" title="Download CSV template for bulk import">
-                <i class="fas fa-file-download"></i> Template
-            </button>
-            <button id="import-btn" class="btn">
-                <i class="fas fa-upload"></i> Import
-            </button>
-            <button id="export-btn" class="btn">
-                <i class="fas fa-download"></i> Export
-            </button>
-            <button id="add-company-btn" class="btn btn-add">
-                <i class="fas fa-plus"></i> Add New Company
-            </button>
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <p class="admin-page-subtitle">Manage company information and contacts</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <button id="template-btn" class="admin-btn admin-btn--secondary" title="Download CSV template for bulk import" aria-label="Download CSV template for bulk company import">
+                        <i class="fas fa-file-download" aria-hidden="true"></i> Template
+                    </button>
+                    <button id="import-btn" class="admin-btn admin-btn--secondary" aria-label="Import companies from CSV file">
+                        <i class="fas fa-upload" aria-hidden="true"></i> Import
+                    </button>
+                    <button id="export-btn" class="admin-btn admin-btn--secondary" aria-label="Export companies to CSV file">
+                        <i class="fas fa-download" aria-hidden="true"></i> Export
+                    </button>
+                    <button id="add-company-btn" class="admin-btn admin-btn--primary" aria-label="Add a new company">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Company
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -65,6 +73,7 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/admin/admin-core.js"></script>
     <script>
         // Companies array - will be loaded from database
         let companies = [];
@@ -259,7 +268,7 @@
         }
 
         // Save new company
-        function saveNewCompany() {
+        async function saveNewCompany() {
             const nameInput = document.getElementById('new-company-name');
             const emailInput = document.getElementById('new-company-email');
             const urlInput = document.getElementById('new-company-url');
@@ -270,7 +279,7 @@
 
             // Basic validation
             if (!name) {
-                showToast('Company name cannot be empty', 'error');
+                AdminCore.showNotification('Company name cannot be empty', 'error');
                 if (nameInput) nameInput.focus();
                 return;
             }
@@ -280,22 +289,53 @@
                 url = 'https://' + url;
             }
 
-            // Add to local data
-            const newId = companies.length > 0 ? Math.max(...companies.map(c => c.id)) + 1 : 1;
-            const newCompany = { id: newId, name: name, email: email, url: url };
+            try {
+                // Get anti-forgery token
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
-            companies.push(newCompany);
+                // Save to database
+                const response = await fetch('/Company/SaveCompany', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token || ''
+                    },
+                    body: JSON.stringify({
+                        id: 0,
+                        name: name,
+                        email: email,
+                        url: url
+                    })
+                });
 
-            // Reset add row
-            if (nameInput) nameInput.value = '';
-            if (emailInput) emailInput.value = '';
-            if (urlInput) urlInput.value = '';
-            const addRow = document.getElementById('company-add-row');
-            if (addRow) addRow.classList.remove('active');
+                const result = await response.json();
 
-            // Refresh table
-            sortData();
-            showToast('Company added successfully');
+                if (result.success && result.data) {
+                    // Add the new company with the ID from database
+                    companies.push({
+                        id: result.data.id,
+                        name: result.data.name,
+                        email: result.data.email,
+                        url: result.data.url
+                    });
+
+                    // Reset add row
+                    if (nameInput) nameInput.value = '';
+                    if (emailInput) emailInput.value = '';
+                    if (urlInput) urlInput.value = '';
+                    const addRow = document.getElementById('company-add-row');
+                    if (addRow) addRow.classList.remove('active');
+
+                    // Refresh table
+                    sortData();
+                    AdminCore.showNotification('Company added successfully', 'success');
+                } else {
+                    AdminCore.showNotification('Error: ' + (result.message || 'Failed to save company'), 'error');
+                }
+            } catch (error) {
+                console.error('Error saving company:', error);
+                AdminCore.showNotification('Error saving company: ' + error.message, 'error');
+            }
         }
 
         // Cancel adding new company
@@ -333,7 +373,7 @@
         }
 
         // Save company
-        function saveCompany(id) {
+        async function saveCompany(id) {
             const row = document.querySelector(`tr[data-id="${id}"]`);
             if (!row) return;
 
@@ -346,7 +386,7 @@
             let newUrl = urlInput ? urlInput.value.trim() : '';
 
             if (!newName) {
-                showToast('Company name cannot be empty', 'error');
+                AdminCore.showNotification('Company name cannot be empty', 'error');
                 if (nameInput) nameInput.focus();
                 return;
             }
@@ -356,33 +396,62 @@
                 newUrl = 'https://' + newUrl;
             }
 
-            // Update local data
-            const companyIndex = companies.findIndex(c => c.id === id);
-            if (companyIndex !== -1) {
-                companies[companyIndex].name = newName;
-                companies[companyIndex].email = newEmail;
-                companies[companyIndex].url = newUrl;
-            }
+            try {
+                // Get anti-forgery token
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
 
-            // Update display
-            const nameSpan = row.querySelector('.company-name');
-            const emailSpan = row.querySelector('.company-email');
-            const urlSpan = row.querySelector('.company-url');
+                // Update in database
+                const response = await fetch('/Company/SaveCompany', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token || ''
+                    },
+                    body: JSON.stringify({
+                        id: id,
+                        name: newName,
+                        email: newEmail,
+                        url: newUrl
+                    })
+                });
 
-            if (nameSpan) nameSpan.textContent = newName;
-            if (emailSpan) emailSpan.textContent = newEmail;
-            if (urlSpan) {
-                if (newUrl) {
-                    urlSpan.innerHTML = `<a href="${newUrl}" target="_blank" class="url-link">${newUrl}</a>`;
+                const result = await response.json();
+
+                if (result.success) {
+                    // Update local data
+                    const companyIndex = companies.findIndex(c => c.id === id);
+                    if (companyIndex !== -1) {
+                        companies[companyIndex].name = newName;
+                        companies[companyIndex].email = newEmail;
+                        companies[companyIndex].url = newUrl;
+                    }
+
+                    // Update display
+                    const nameSpan = row.querySelector('.company-name');
+                    const emailSpan = row.querySelector('.company-email');
+                    const urlSpan = row.querySelector('.company-url');
+
+                    if (nameSpan) nameSpan.textContent = newName;
+                    if (emailSpan) emailSpan.textContent = newEmail;
+                    if (urlSpan) {
+                        if (newUrl) {
+                            urlSpan.innerHTML = `<a href="${newUrl}" target="_blank" class="url-link">${newUrl}</a>`;
+                        } else {
+                            urlSpan.innerHTML = '';
+                        }
+                    }
+
+                    // Remove edit class
+                    row.classList.remove('company-edit-row');
+                    currentEditingId = null;
+                    AdminCore.showNotification('Company updated successfully', 'success');
                 } else {
-                    urlSpan.innerHTML = '';
+                    AdminCore.showNotification('Error: ' + (result.message || 'Failed to update company'), 'error');
                 }
+            } catch (error) {
+                console.error('Error updating company:', error);
+                AdminCore.showNotification('Error updating company: ' + error.message, 'error');
             }
-
-            // Remove edit class
-            row.classList.remove('company-edit-row');
-            currentEditingId = null;
-            showToast('Company updated successfully');
         }
 
         // Cancel edit
@@ -409,11 +478,40 @@
         }
 
         // Delete company
-        function deleteCompany(id) {
-            if (confirm('Are you sure you want to delete this company?')) {
-                companies = companies.filter(company => company.id !== id);
-                sortData();
-                showToast('Company deleted successfully');
+        async function deleteCompany(id) {
+            const company = companies.find(c => c.id === id);
+            const confirmed = await AdminCore.showConfirmation({
+                title: 'Delete Confirmation',
+                message: `Are you sure you want to delete "${company?.name}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                type: 'danger'
+            });
+
+            if (!confirmed) return;
+
+            try {
+                // Delete from database
+                const response = await fetch(`/Company/DeleteCompany?id=${id}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    // Remove from local array only if database delete succeeded
+                    companies = companies.filter(company => company.id !== id);
+                    sortData();
+                    AdminCore.showNotification('Company deleted successfully', 'success');
+                } else {
+                    AdminCore.showNotification('Error: ' + (result.message || 'Failed to delete company'), 'error');
+                }
+            } catch (error) {
+                console.error('Error deleting company:', error);
+                AdminCore.showNotification('Error deleting company: ' + error.message, 'error');
             }
         }
 
@@ -483,10 +581,10 @@
                 link.click();
                 document.body.removeChild(link);
 
-                showToast('Import template downloaded successfully');
+                AdminCore.showNotification('Import template downloaded successfully', 'success');
             } catch (error) {
                 console.error('Error downloading template:', error);
-                showToast('Error downloading template. Please try again.', 'error');
+                AdminCore.showNotification('Error downloading template. Please try again.', 'error');
             }
         }
 
@@ -527,7 +625,7 @@
 
                     companies = [...companies, ...newCompanies];
                     sortData();
-                    showToast(`Imported ${newCompanies.length} companies successfully`);
+                    AdminCore.showNotification(`Imported ${newCompanies.length} companies successfully`, 'success');
                 };
 
                 reader.readAsText(file);
@@ -561,27 +659,8 @@
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
-            showToast('Companies exported successfully');
-        }
 
-        // Show toast notification
-        function showToast(message, type = 'success') {
-            // Create toast element if it doesn't exist
-            let toast = document.getElementById('company-toast');
-            if (!toast) {
-                toast = document.createElement('div');
-                toast.id = 'company-toast';
-                toast.className = 'company-toast';
-                document.body.appendChild(toast);
-            }
-
-            toast.textContent = message;
-            toast.className = `company-toast ${type} show`;
-
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+            AdminCore.showNotification('Companies exported successfully', 'success');
         }
 
         // Load companies from database
@@ -602,11 +681,11 @@
                     sortData();
                 } else {
                     console.error('Failed to load companies:', result.message);
-                    showToast('Failed to load companies: ' + (result.message || 'Unknown error'), 'error');
+                    AdminCore.showNotification('Failed to load companies: ' + (result.message || 'Unknown error'), 'error');
                 }
             } catch (error) {
                 console.error('Error loading companies:', error);
-                showToast('Error loading companies: ' + error.message, 'error');
+                AdminCore.showNotification('Error loading companies: ' + error.message, 'error');
             }
         }
 

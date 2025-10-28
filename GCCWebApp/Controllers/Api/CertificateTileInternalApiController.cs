@@ -289,14 +289,52 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
+                // Get hierarchical product categories
+                var productCategoriesHierarchy = await _context.Set<ProductCategory>()
+                    .Where(pc => pc.IsActive)
+                    .Include(pc => pc.ProductTypes.Where(pt => pt.IsActive))
+                        .ThenInclude(pt => pt.ProductSubcategories.Where(ps => ps.IsActive))
+                    .OrderBy(pc => pc.SortOrder).ThenBy(pc => pc.Name)
+                    .Select(pc => new
+                    {
+                        id = pc.Id,
+                        name = pc.Name,
+                        level = 1,
+                        types = pc.ProductTypes
+                            .OrderBy(pt => pt.SortOrder).ThenBy(pt => pt.Name)
+                            .Select(pt => new
+                            {
+                                id = pt.Id,
+                                name = pt.Name,
+                                level = 2,
+                                subcategories = pt.ProductSubcategories
+                                    .OrderBy(ps => ps.SortOrder).ThenBy(ps => ps.Name)
+                                    .Select(ps => new
+                                    {
+                                        id = ps.Id,
+                                        name = ps.Name,
+                                        level = 3
+                                    }).ToList()
+                            }).ToList()
+                    })
+                    .ToListAsync();
+
                 var filters = new
                 {
                     certificationTypes = await _context.CertificationTypes
                         .Where(ct => ct.IsActive)
-                        .OrderBy(ct => ct.Name)
-                        .Select(ct => ct.Name)
+                        .Select(ct => new {
+                            name = ct.Name,
+                            certificateCount = ct.Certificates.Count()
+                        })
+                        .Where(ct => ct.certificateCount > 0)
+                        .OrderBy(ct => ct.name)
+                        .Select(ct => ct.name)
                         .ToListAsync(),
 
+                    productCategoriesHierarchy,
+
+                    // Keep flat list for backward compatibility
                     productCategories = await _context.Set<ProductCategory>()
                         .Where(pc => pc.IsActive)
                         .OrderBy(pc => pc.Name)
@@ -311,15 +349,26 @@ namespace GCCWebApp.Controllers.Api
 
                     companies = await _context.Companies
                         .Where(c => c.IsActive && !c.IsDeleted)
-                        .OrderBy(c => c.Name)
-                        .Select(c => new { id = c.Id, name = c.Name })
+                        .Select(c => new {
+                            id = c.Id,
+                            name = c.Name,
+                            certificateCount = c.Certificates.Count()
+                        })
+                        .Where(c => c.certificateCount > 0)
+                        .OrderBy(c => c.name)
+                        .Select(c => new { c.id, c.name })
                         .ToListAsync(),
 
                     countries = await _context.Certificates
-                        .Select(c => c.Country)
-                        .Where(c => !string.IsNullOrEmpty(c))
-                        .Distinct()
-                        .OrderBy(c => c)
+                        .Where(c => !string.IsNullOrEmpty(c.Country))
+                        .GroupBy(c => c.Country)
+                        .Select(g => new {
+                            name = g.Key!,
+                            count = g.Count()
+                        })
+                        .Where(c => c.count > 0)
+                        .OrderBy(c => c.name)
+                        .Select(c => c.name)
                         .ToListAsync(),
 
                     tags = await _context.Tags
@@ -330,11 +379,17 @@ namespace GCCWebApp.Controllers.Api
 
                     // Internal-specific filters
                     statuses = Enum.GetNames(typeof(CertificateStatus)).ToList(),
-                    
+
                     partners = await _context.Certificates
                         .Select(c => c.Partner ?? "None")
                         .Distinct()
                         .OrderBy(p => p)
+                        .ToListAsync(),
+
+                    additionalTags = await _context.Tags
+                        .Where(t => t.IsActive && t.TagType == "external")
+                        .OrderBy(t => t.Name)
+                        .Select(t => t.Name)
                         .ToListAsync()
                 };
 

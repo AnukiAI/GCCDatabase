@@ -1090,6 +1090,73 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// View certificate file for inline display (preview)
+        /// GET: /Certificate/ViewCertificateFile/5
+        /// </summary>
+        [AllowAnonymous]
+        public async Task<IActionResult> ViewCertificateFile(int id)
+        {
+            try
+            {
+                var certificate = await _certificateRepository.GetByIdAsync(id);
+                if (certificate == null)
+                {
+                    return NotFound();
+                }
+
+                // Check if an uploaded certificate file exists
+                if (!string.IsNullOrEmpty(certificate.CertificateFile))
+                {
+                    var filePath = certificate.CertificateFile;
+
+                    // If it's a relative path, construct the full path
+                    if (!filePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // Remove leading ~ if present
+                        if (filePath.StartsWith("~"))
+                        {
+                            filePath = filePath.Substring(1);
+                        }
+
+                        // Remove leading / if present
+                        if (filePath.StartsWith("/"))
+                        {
+                            filePath = filePath.Substring(1);
+                        }
+
+                        // Construct full path to wwwroot
+                        var webRootPath = _hostingEnvironment.WebRootPath;
+                        var fullPath = Path.Combine(webRootPath, filePath.Replace('/', Path.DirectorySeparatorChar));
+
+                        if (System.IO.File.Exists(fullPath))
+                        {
+                            var fileBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
+                            var contentType = GetContentType(fullPath);
+
+                            // Return file for inline display (not as attachment)
+                            return File(fileBytes, contentType);
+                        }
+                    }
+                }
+
+                // If no uploaded file, return placeholder image
+                var placeholderPath = Path.Combine(_hostingEnvironment.WebRootPath, "img", "certpreview.png");
+                if (System.IO.File.Exists(placeholderPath))
+                {
+                    var placeholderBytes = await System.IO.File.ReadAllBytesAsync(placeholderPath);
+                    return File(placeholderBytes, "image/png");
+                }
+
+                return NotFound();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error viewing certificate file for ID: {Id}", id);
+                return BadRequest("Failed to load certificate file");
+            }
+        }
+
         private string GetContentType(string path)
         {
             var extension = Path.GetExtension(path).ToLowerInvariant();

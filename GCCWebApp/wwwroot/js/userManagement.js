@@ -756,17 +756,27 @@ class UserManagement {
         }
 
         const allDropdowns = document.querySelectorAll('.admin-dropdown-menu');
+        const allRows = document.querySelectorAll('.admin-table-row');
 
-        // Close all other dropdowns
+        // Close all other dropdowns and remove elevated class from all rows
         allDropdowns.forEach(menu => {
             if (menu !== dropdown) {
                 menu.classList.remove('admin-dropdown-menu--show');
             }
         });
+        allRows.forEach(row => {
+            row.classList.remove('dropdown-open');
+        });
 
         // Toggle current dropdown
         dropdown.classList.toggle('admin-dropdown-menu--show');
         console.log('Dropdown show class:', dropdown.classList.contains('admin-dropdown-menu--show'));
+
+        // Add elevated class to parent row for proper z-index stacking
+        const parentRow = dropdown.closest('.admin-table-row');
+        if (parentRow && dropdown.classList.contains('admin-dropdown-menu--show')) {
+            parentRow.classList.add('dropdown-open');
+        }
 
         // Close dropdown when clicking outside
         if (dropdown.classList.contains('admin-dropdown-menu--show')) {
@@ -778,6 +788,10 @@ class UserManagement {
         if (!event.target.closest('.admin-dropdown')) {
             document.querySelectorAll('.admin-dropdown-menu').forEach(menu => {
                 menu.classList.remove('admin-dropdown-menu--show');
+            });
+            // Remove elevated class from all rows
+            document.querySelectorAll('.admin-table-row').forEach(row => {
+                row.classList.remove('dropdown-open');
             });
         }
     }

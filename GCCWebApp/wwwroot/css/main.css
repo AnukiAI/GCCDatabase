@@ -46,6 +46,15 @@ Small Mobile (≤480px): Ultra-compact, touch-optimized
     --warning: #ff5252;
     --success: #92C83E;
     --header-color: #FCFDEB;
+
+    /* GCC Brand Colors - Admin Component Support */
+    --gcc-green-primary: #92C83E;      /* Light green - PRIMARY brand color */
+    --gcc-green-secondary: #447638;    /* Dark green - SECONDARY shade */
+    --gcc-blue-primary: #00AEEF;       /* Primary blue */
+    --gcc-blue-dark: #002B76;          /* Navy blue */
+    --admin-warning: #FFC107;          /* Warning yellow */
+    --admin-danger: #FF5252;           /* Error red */
+    --admin-success: #92C83E;          /* Success green */
     /* Layout */
     --border-radius-sm: 4px;
     --border-radius-md: 8px;
@@ -1666,6 +1675,11 @@ input, select, button, .form-input, .form-select {
     .certificate-single-card .card-body {
         padding: 24px; /* Increased from 16px */
     }
+
+/* Override gradient background for certificate single view */
+body.theme-option4 .certificate-single-card .card-body {
+    background: white;
+}
 
 .certificate-details-grid {
     display: flex;

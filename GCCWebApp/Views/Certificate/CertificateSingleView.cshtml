@@ -147,67 +147,32 @@
                         <div class="tag external">@GetCertificationTypeTag()</div>
                     </div>
                 </div>
-                <!-- Right Column: Certificate Image -->
+                <!-- Right Column: Certificate Image/PDF Preview -->
                 <div class="certificate-image-column">
                     @{
+                        // Use direct path to uploaded certificate image
                         string certificateImageSrc;
-                        // First check for CertificateImagePath (new field for uploaded certificate images)
                         if (!string.IsNullOrEmpty(Model.Certificate?.CertificateImagePath))
                         {
-                            // If it's a URL, use it directly
-                            if (Model.Certificate.CertificateImagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-                            {
-                                certificateImageSrc = Model.Certificate.CertificateImagePath;
-                            }
-                            // If it starts with ~, convert to URL
-                            else if (Model.Certificate.CertificateImagePath.StartsWith("~"))
-                            {
-                                certificateImageSrc = Url.Content(Model.Certificate.CertificateImagePath);
-                            }
-                            // If it starts with /, it's already root-relative
-                            else if (Model.Certificate.CertificateImagePath.StartsWith("/"))
-                            {
-                                certificateImageSrc = Model.Certificate.CertificateImagePath;
-                            }
-                            // Otherwise, assume it's in uploads folder
-                            else
-                            {
-                                certificateImageSrc = $"/uploads/{Model.Certificate.CertificateImagePath}";
-                            }
+                            certificateImageSrc = Model.Certificate.CertificateImagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                                ? Model.Certificate.CertificateImagePath
+                                : Model.Certificate.CertificateImagePath.StartsWith("/")
+                                    ? Model.Certificate.CertificateImagePath
+                                    : $"/uploads/{Model.Certificate.CertificateImagePath}";
                         }
-                        // Fallback to CertificateFile for backward compatibility
                         else if (!string.IsNullOrEmpty(Model.Certificate?.CertificateFile))
                         {
-                            // If it's a URL, use it directly
-                            if (Model.Certificate.CertificateFile.StartsWith("http", StringComparison.OrdinalIgnoreCase))
-                            {
-                                certificateImageSrc = Model.Certificate.CertificateFile;
-                            }
-                            // If it starts with ~, convert to URL
-                            else if (Model.Certificate.CertificateFile.StartsWith("~"))
-                            {
-                                certificateImageSrc = Url.Content(Model.Certificate.CertificateFile);
-                            }
-                            // If it starts with /, it's already root-relative
-                            else if (Model.Certificate.CertificateFile.StartsWith("/"))
-                            {
-                                certificateImageSrc = Model.Certificate.CertificateFile;
-                            }
-                            // Otherwise, assume it's in uploads folder
-                            else
-                            {
-                                certificateImageSrc = $"/uploads/{Model.Certificate.CertificateFile}";
-                            }
+                            certificateImageSrc = Model.Certificate.CertificateFile.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                                ? Model.Certificate.CertificateFile
+                                : Model.Certificate.CertificateFile.StartsWith("/")
+                                    ? Model.Certificate.CertificateFile
+                                    : $"/uploads/{Model.Certificate.CertificateFile}";
                         }
                         else
                         {
-                            // Fallback to default preview image
                             certificateImageSrc = Url.Content("~/img/certpreview.png");
                         }
-
-                        var altText = !string.IsNullOrEmpty(Model.Certificate?.CertificateFile)
-                            ? $"Certificate {GetFormattedCertificateNumber()}"
-                            : "Certificate Preview Placeholder";
+                        var altText = $"Certificate {GetFormattedCertificateNumber()}";
                     }
                     <div class="certificate-image-container" style="position: relative;">
                         <img src="@certificateImageSrc" alt="@altText" class="certificate-image" onerror="this.src='@Url.Content("~/img/certpreview.png")';this.onerror=null;" onclick="openImageZoom('@certificateImageSrc')" />

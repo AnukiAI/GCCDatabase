@@ -48,12 +48,17 @@
         <form asp-action="Create" method="post" enctype="multipart/form-data" class="needs-validation" novalidate id="certificateCreateForm">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
 
+            <div class="form-section-header">
+                <i class="fas fa-file-certificate"></i>
+                <span>Certificate Information</span>
+            </div>
+
             <div class="form-grid">
                 <div class="main-form">
                     <!-- Company Section -->
                     <div class="form-group">
-                        <label asp-for="CompanyId">Company <span class="text-danger">*</span></label>
-                        <select asp-for="CompanyId" required>
+                        <label asp-for="CompanyId">Company <span class="text-danger" aria-label="required">*</span></label>
+                        <select asp-for="CompanyId" required aria-required="true" aria-describedby="company-help">
                             <option value="">Select a company...</option>
                             @if (ViewBag.Companies != null)
                             {
@@ -63,18 +68,18 @@
                                 }
                             }
                         </select>
-                        <span asp-validation-for="CompanyId" class="text-danger"></span>
+                        <span asp-validation-for="CompanyId" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="Number">Certification # <span class="text-danger">*</span></label>
-                        <input asp-for="Number" placeholder="XX-XXXX" required maxlength="7" />
-                        <span asp-validation-for="Number" class="text-danger"></span>
+                        <label asp-for="Number">Certification # <span class="text-danger" aria-label="required">*</span></label>
+                        <input asp-for="Number" placeholder="XX-XXXX" required maxlength="7" aria-required="true" />
+                        <span asp-validation-for="Number" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="CertificationTypeId">Certification Type <span class="text-danger">*</span></label>
-                        <select asp-for="CertificationTypeId" required>
+                        <label asp-for="CertificationTypeId">Certification Type <span class="text-danger" aria-label="required">*</span></label>
+                        <select asp-for="CertificationTypeId" required aria-required="true">
                             <option value="">Select type...</option>
                             @if (ViewBag.CertificationTypes != null)
                             {
@@ -84,12 +89,12 @@
                                 }
                             }
                         </select>
-                        <span asp-validation-for="CertificationTypeId" class="text-danger"></span>
+                        <span asp-validation-for="CertificationTypeId" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="ProductId">Product Name <span class="text-danger">*</span></label>
-                        <select asp-for="ProductId" required>
+                        <label asp-for="ProductId">Product Name <span class="text-danger" aria-label="required">*</span></label>
+                        <select asp-for="ProductId" required aria-required="true">
                             <option value="">Select a product...</option>
                             @if (ViewBag.Products != null)
                             {
@@ -99,24 +104,24 @@
                                 }
                             }
                         </select>
-                        <span asp-validation-for="ProductId" class="text-danger"></span>
+                        <span asp-validation-for="ProductId" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="EffectiveDate">Effective Date <span class="text-danger">*</span></label>
-                        <input asp-for="EffectiveDate" type="date" required />
-                        <span asp-validation-for="EffectiveDate" class="text-danger"></span>
+                        <label asp-for="EffectiveDate">Effective Date <span class="text-danger" aria-label="required">*</span></label>
+                        <input asp-for="EffectiveDate" type="date" required aria-required="true" />
+                        <span asp-validation-for="EffectiveDate" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="ExpirationDate">Expiration Date <span class="text-danger">*</span></label>
-                        <input asp-for="ExpirationDate" type="date" required />
-                        <span asp-validation-for="ExpirationDate" class="text-danger"></span>
+                        <label asp-for="ExpirationDate">Expiration Date <span class="text-danger" aria-label="required">*</span></label>
+                        <input asp-for="ExpirationDate" type="date" required aria-required="true" />
+                        <span asp-validation-for="ExpirationDate" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="Status">Status <span class="text-danger">*</span></label>
-                        <select asp-for="Status" required>
+                        <label asp-for="Status">Status <span class="text-danger" aria-label="required">*</span></label>
+                        <select asp-for="Status" required aria-required="true">
                             <option value="">Select status...</option>
                             <option value="Draft">Draft</option>
                             <option value="Client Approved - Not Paid">Client Approved - Not Paid</option>
@@ -125,7 +130,7 @@
                             <option value="Hold">Hold</option>
                             <option value="Active" selected>Active</option>
                         </select>
-                        <span asp-validation-for="Status" class="text-danger"></span>
+                        <span asp-validation-for="Status" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group">
@@ -136,13 +141,13 @@
                             <option value="Wayfair">Wayfair</option>
                             <option value="Other">Other</option>
                         </select>
-                        <span asp-validation-for="Partner" class="text-danger"></span>
+                        <span asp-validation-for="Partner" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group">
                         <label asp-for="Location">Location</label>
                         <input asp-for="Location" placeholder="City, State" maxlength="175" />
-                        <span asp-validation-for="Location" class="text-danger"></span>
+                        <span asp-validation-for="Location" class="text-danger" role="alert"></span>
                     </div>
 
                     <div class="form-group">
@@ -155,33 +160,40 @@
                             <option value="United Kingdom">United Kingdom</option>
                             <option value="Germany">Germany</option>
                         </select>
-                        <span asp-validation-for="Country" class="text-danger"></span>
+                        <span asp-validation-for="Country" class="text-danger" role="alert"></span>
                     </div>
                 </div>
 
                 <!-- Sidebar -->
                 <div class="sidebar">
-                    <div class="upload-section">
-                        <h3>Upload Certificate Image</h3>
-                        <p style="font-size: 13px; color: #666; margin-bottom: 12px;">Upload a snapshot/preview of the certificate (PNG/JPG, max 5MB)</p>
-                        <div class="upload-placeholder" id="certificateImageUpload" onclick="document.getElementById('certificateImage').click()" style="cursor: pointer;">
+                    <div class="upload-section card-style">
+                        <div class="section-icon">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        <h3 id="certificate-image-label">Certificate Preview Image</h3>
+                        <p id="certificate-image-help">Upload a preview snapshot (PNG/JPG, max 5MB)</p>
+                        <div class="upload-placeholder" id="certificateImageUpload" role="button" tabindex="0" aria-labelledby="certificate-image-label" aria-describedby="certificate-image-help" onclick="document.getElementById('certificateImage').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificateImage').click();}">
                             <div id="certificateImagePreview" style="display: none;">
-                                <img id="certificateImagePreviewImg" src="" alt="Certificate Preview" style="max-width: 100%; max-height: 300px; object-fit: contain;" />
+                                <img id="certificateImagePreviewImg" src="" alt="Certificate Preview" style="max-width: 100%; max-height: 250px; object-fit: contain; border-radius: 8px;" />
                             </div>
                             <div id="certificateImagePlaceholder">
-                                Click to upload certificate image
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: var(--blue-primary); margin-bottom: 8px;"></i>
+                                <div style="font-size: 14px; color: var(--text-secondary);">Click to upload image</div>
                             </div>
                         </div>
-                        <input type="file" id="certificateImage" name="certificateImage" accept="image/jpeg,image/jpg,image/png" style="display: none;" />
+                        <input type="file" id="certificateImage" name="certificateImage" accept="image/jpeg,image/jpg,image/png" aria-labelledby="certificate-image-label" aria-describedby="certificate-image-help" style="display: none;" />
                         <input type="hidden" asp-for="CertificateImagePath" id="certificateImagePathHidden" />
                     </div>
 
-                    <div class="tags-section">
-                        <h3>Tags (Multiselect)</h3>
+                    <div class="tags-section card-style">
+                        <div class="section-icon">
+                            <i class="fas fa-tags"></i>
+                        </div>
+                        <h3>Certificate Tags</h3>
 
                         <div class="tags-group">
-                            <label>External Tags</label>
-                            <select id="externalTagSelect">
+                            <label for="externalTagSelect">External Tags</label>
+                            <select id="externalTagSelect" aria-label="Select external tags for this certificate">
                                 <option value="">Select...</option>
                                 @if (ViewBag.ExternalTags != null)
                                 {
@@ -191,15 +203,15 @@
                                     }
                                 }
                             </select>
-                            <div class="tags-container" id="externalTagsContainer">
+                            <div class="tags-container" id="externalTagsContainer" aria-live="polite" aria-label="Selected external tags">
                                 <!-- External tags will be added dynamically -->
                             </div>
                             <input type="hidden" name="ExternalTags" id="externalTagsHidden" />
                         </div>
 
                         <div class="tags-group">
-                            <label>Internal Tags</label>
-                            <select id="internalTagSelect">
+                            <label for="internalTagSelect">Internal Tags</label>
+                            <select id="internalTagSelect" aria-label="Select internal tags for this certificate">
                                 <option value="">Select...</option>
                                 @if (ViewBag.InternalTags != null)
                                 {
@@ -209,7 +221,7 @@
                                     }
                                 }
                             </select>
-                            <div class="tags-container" id="internalTagsContainer">
+                            <div class="tags-container" id="internalTagsContainer" aria-live="polite" aria-label="Selected internal tags">
                                 <!-- Internal tags will be added dynamically -->
                             </div>
                             <input type="hidden" name="InternalTags" id="internalTagsHidden" />
@@ -219,22 +231,30 @@
             </div>
 
             <!-- Certificate PDF Upload Section -->
-            <div class="certificate-section">
-                <h3>Certificate PDF</h3>
+            <div class="certificate-section card-style">
+                <div class="form-section-header">
+                    <i class="fas fa-file-pdf"></i>
+                    <span>Certificate PDF Document</span>
+                </div>
                 <div class="form-group">
-                    <label>Upload PDF Certificate <span class="text-danger">*</span></label>
-                    <div class="pdf-upload" id="pdfUploadZone">
-                        <div class="pdf-upload-text">Drag and drop your certificate PDF here or click to select</div>
+                    <label for="certificatePdf">Upload PDF Certificate <span class="text-danger" aria-label="required">*</span></label>
+                    <div class="pdf-upload" id="pdfUploadZone" role="button" tabindex="0" aria-label="Upload PDF certificate file. You can drag and drop a file here or press Enter to select a file." onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificatePdf').click();}">
+                        <i class="fas fa-file-pdf" style="font-size: 48px; color: var(--warning); margin-bottom: 12px;"></i>
+                        <div class="pdf-upload-text">Drag and drop PDF here or click to select</div>
+                        <small style="color: var(--text-secondary); font-size: 13px;">Maximum file size: 10MB</small>
                     </div>
-                    <input type="file" id="certificatePdf" name="certificatePdf" accept="application/pdf" style="display: none;" required />
-                    <div id="pdfPreviewContainer"></div>
+                    <input type="file" id="certificatePdf" name="certificatePdf" accept="application/pdf" style="display: none;" required aria-required="true" aria-describedby="pdf-help" />
+                    <div id="pdfPreviewContainer" aria-live="polite"></div>
                 </div>
             </div>
 
             <!-- Product ID Manager -->
-            <div class="product-manager">
-                <h3>Product ID Manager</h3>
-                <p class="text-muted small">Manage ASINs, UPCs, GTINs, and other product identifiers</p>
+            <div class="product-manager card-style">
+                <div class="form-section-header">
+                    <i class="fas fa-barcode"></i>
+                    <span>Product Identifiers</span>
+                </div>
+                <p class="section-description">Manage ASINs, UPCs, GTINs, and other product identifiers</p>
                 @{
                     ViewData["CertificateId"] = 0; // New certificate, no ID yet
                     ViewData["IsReadOnly"] = false;
@@ -243,17 +263,17 @@
             </div>
 
             <div class="action-buttons">
-                <button type="submit" name="action" value="save" class="btn btn-primary">
-                    <i class="fas fa-save"></i> Save
+                <button type="submit" name="action" value="save" class="btn btn-primary" aria-label="Save certificate">
+                    <i class="fas fa-save" aria-hidden="true"></i> Save
                 </button>
-                <button type="submit" name="action" value="saveAndAddAnother" class="btn btn-primary">
-                    <i class="fas fa-plus"></i> Save & Add Another
+                <button type="submit" name="action" value="saveAndAddAnother" class="btn btn-primary" aria-label="Save certificate and add another">
+                    <i class="fas fa-plus" aria-hidden="true"></i> Save & Add Another
                 </button>
-                <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="btn btn-outline">
-                    <i class="fas fa-times"></i> Cancel
+                <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="btn btn-outline" aria-label="Cancel and return to certificate management">
+                    <i class="fas fa-times" aria-hidden="true"></i> Cancel
                 </a>
-                <button type="reset" class="btn btn-outline">
-                    <i class="fas fa-undo"></i> Reset Form
+                <button type="reset" class="btn btn-outline" aria-label="Reset form to default values">
+                    <i class="fas fa-undo" aria-hidden="true"></i> Reset Form
                 </button>
             </div>
         </form>

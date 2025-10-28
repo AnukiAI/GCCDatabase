@@ -28,17 +28,17 @@
             </div>
             <div class="admin-actions-section">
                 <div class="admin-button-group">
-                    <button id="template-btn" class="admin-btn admin-btn--secondary" title="Download CSV template for bulk import">
-                        <i class="fas fa-file-download"></i> Template
+                    <button id="template-btn" class="admin-btn admin-btn--secondary" aria-label="Download CSV template for bulk user import">
+                        <i class="fas fa-file-download" aria-hidden="true"></i> Template
                     </button>
-                    <button id="import-btn" class="admin-btn admin-btn--secondary">
-                        <i class="fas fa-upload"></i> Import
+                    <button id="import-btn" class="admin-btn admin-btn--secondary" aria-label="Import users from CSV file">
+                        <i class="fas fa-upload" aria-hidden="true"></i> Import
                     </button>
-                    <button id="export-btn" class="admin-btn admin-btn--secondary">
-                        <i class="fas fa-download"></i> Export
+                    <button id="export-btn" class="admin-btn admin-btn--secondary" aria-label="Export users to CSV file">
+                        <i class="fas fa-download" aria-hidden="true"></i> Export
                     </button>
-                    <button id="add-user-btn" class="admin-btn admin-btn--primary">
-                        <i class="fas fa-plus"></i> Add New User
+                    <button id="add-user-btn" class="admin-btn admin-btn--primary" aria-label="Add a new user account">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add New User
                     </button>
                 </div>
             </div>
@@ -81,6 +81,9 @@
     </div>
 
     <div class="admin-content">
+        <!-- Screen reader announcements for table updates -->
+        <div class="sr-only" aria-live="polite" aria-atomic="true" id="tableAnnouncement"></div>
+
         <div class="admin-table-container">
             <table id="user-table" class="admin-table">
                 <thead class="admin-table-header">
@@ -114,7 +117,7 @@
     </div>
 
     <div class="admin-footer-info">
-        <span id="user-count" class="admin-count-display">Showing 0 of 0 users</span>
+        <span id="user-count" class="admin-count-display" aria-live="polite" aria-atomic="true">Showing 0 of 0 users</span>
     </div>
 </div>
 
@@ -134,25 +137,25 @@
 
                 <div class="admin-form-group">
                     <label for="user-name" class="admin-label admin-label--required">Name</label>
-                    <input type="text" id="user-name" class="admin-input" required>
+                    <input type="text" id="user-name" class="admin-input" required aria-required="true">
                 </div>
 
                 <div class="admin-form-group">
                     <label for="user-company" class="admin-label">Company</label>
-                    <select id="user-company" class="admin-select" multiple size="4">
+                    <select id="user-company" class="admin-select" multiple size="4" aria-describedby="company-help">
                         <!-- Options will be populated by JavaScript -->
                     </select>
-                    <span class="admin-form-help">Hold Ctrl/Cmd to select multiple companies</span>
+                    <span class="admin-form-help" id="company-help">Hold Ctrl/Cmd to select multiple companies</span>
                 </div>
 
                 <div class="admin-form-group">
                     <label for="user-email" class="admin-label admin-label--required">Email</label>
-                    <input type="email" id="user-email" class="admin-input" required>
+                    <input type="email" id="user-email" class="admin-input" required aria-required="true">
                 </div>
 
                 <div class="admin-form-group">
                     <label for="user-role" class="admin-label admin-label--required">Role</label>
-                    <select id="user-role" class="admin-select" required>
+                    <select id="user-role" class="admin-select" required aria-required="true">
                         <option value="">Select a role</option>
                         <option value="Admin">Admin</option>
                         <option value="Analyst">Analyst</option>
@@ -163,7 +166,7 @@
 
                 <div class="admin-form-group">
                     <label for="user-status" class="admin-label admin-label--required">Status</label>
-                    <select id="user-status" class="admin-select" required>
+                    <select id="user-status" class="admin-select" required aria-required="true">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>
@@ -171,12 +174,12 @@
 
                 <div class="admin-form-group" id="password-group">
                     <label for="user-password" class="admin-label">Password</label>
-                    <input type="password" id="user-password" class="admin-input">
+                    <input type="password" id="user-password" class="admin-input" aria-describedby="password-help">
                     <span class="admin-form-help" id="password-help">Leave blank to keep current password</span>
                 </div>
 
                 <div class="admin-form-group">
-                    <label class="admin-checkbox-label">
+                    <label for="require-password-reset" class="admin-checkbox-label">
                         <input type="checkbox" id="require-password-reset" class="admin-checkbox">
                         <span class="admin-checkbox-text">Require password reset on next login</span>
                     </label>

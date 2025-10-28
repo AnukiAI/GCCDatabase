@@ -37,11 +37,13 @@
 
                 confirmBtn.addEventListener('click', () => {
                     modal.remove();
+                    document.removeEventListener('keydown', keyHandler);
                     resolve(true);
                 });
 
                 cancelBtn.addEventListener('click', () => {
                     modal.remove();
+                    document.removeEventListener('keydown', keyHandler);
                     resolve(false);
                 });
 
@@ -49,9 +51,20 @@
                 modal.addEventListener('click', (e) => {
                     if (e.target === modal) {
                         modal.remove();
+                        document.removeEventListener('keydown', keyHandler);
                         resolve(false);
                     }
                 });
+
+                // Handle keyboard events (Escape key to close)
+                const keyHandler = (e) => {
+                    if (e.key === 'Escape') {
+                        modal.remove();
+                        document.removeEventListener('keydown', keyHandler);
+                        resolve(false);
+                    }
+                };
+                document.addEventListener('keydown', keyHandler);
             });
         },
 

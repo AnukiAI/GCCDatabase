@@ -244,7 +244,7 @@ namespace GCCWebApp.Services
                     Id = r.Id,
                     Name = r.Name,
                     Description = r.Description ?? string.Empty,
-                    Permissions = r.Permissions.Select(p => p.Id.ToString()).ToList(),
+                    Permissions = r.Permissions.Select(p => p.Name).ToList(),
                     UserCount = r.Users.Count(),
                     IsSystem = r.IsSystem
                 })
@@ -265,7 +265,7 @@ namespace GCCWebApp.Services
                 Id = role.Id,
                 Name = role.Name,
                 Description = role.Description ?? string.Empty,
-                Permissions = role.Permissions.Select(p => p.Id.ToString()).ToList(),
+                Permissions = role.Permissions.Select(p => p.Name).ToList(),
                 UserCount = role.Users.Count(),
                 IsSystem = role.IsSystem
             };

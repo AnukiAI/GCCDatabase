@@ -595,27 +595,9 @@ class CertificateTileViewExternal {
      * Enable/disable bulk action buttons based on view mode
      */
     toggleBulkActionButtons(enabled) {
-        const exportSelectedBtn = document.getElementById('exportSelectedBtn');
-        const exportAllBtn = document.getElementById('exportAllBtn');
-        const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
-
-        if (exportSelectedBtn) {
-            exportSelectedBtn.disabled = !enabled;
-            exportSelectedBtn.style.opacity = enabled ? '1' : '0.5';
-            exportSelectedBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
-        }
-
-        if (exportAllBtn) {
-            exportAllBtn.disabled = !enabled;
-            exportAllBtn.style.opacity = enabled ? '1' : '0.5';
-            exportAllBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
-        }
-
-        if (downloadSelectedBtn) {
-            downloadSelectedBtn.disabled = !enabled;
-            downloadSelectedBtn.style.opacity = enabled ? '1' : '0.5';
-            downloadSelectedBtn.style.cursor = enabled ? 'pointer' : 'not-allowed';
-        }
+        // Export All button in top controls is always enabled - no need to toggle it
+        // Selection-based buttons (Export Selected, Download Selected) are only in bulk actions bar
+        // which automatically shows/hides based on selection state in table view
     }
 
     /**
@@ -1070,11 +1052,7 @@ class CertificateTileViewExternal {
     async exportSelected() {
         const selectedCerts = this.getSelectedCertificates();
         if (selectedCerts.length === 0) {
-            if (typeof AdminCore !== 'undefined') {
-                AdminCore.showNotification('Please select certificates to export', 'warning');
-            } else {
-                alert('Please select certificates to export');
-            }
+            AdminCore.showNotification('Please select certificates to export', 'warning');
             return;
         }
 
@@ -1083,16 +1061,10 @@ class CertificateTileViewExternal {
             const selectedIds = selectedCerts.map(cert => cert.id);
             await this.service.exportCertificates(selectedIds);
 
-            if (typeof AdminCore !== 'undefined') {
-                AdminCore.showNotification(`Exported ${selectedCerts.length} certificate(s) to CSV`, 'success');
-            }
+            AdminCore.showNotification(`Exported ${selectedCerts.length} certificate(s) to CSV`, 'success');
         } catch (error) {
             console.error('Export error:', error);
-            if (typeof AdminCore !== 'undefined') {
-                AdminCore.showNotification('Export failed. Please try again.', 'error');
-            } else {
-                alert('Export failed. Please try again.');
-            }
+            AdminCore.showNotification('Export failed. Please try again.', 'error');
         }
     }
 
@@ -1106,16 +1078,10 @@ class CertificateTileViewExternal {
             // Export all (pass null to export based on current filters)
             await this.service.exportCertificates(null);
 
-            if (typeof AdminCore !== 'undefined') {
-                AdminCore.showNotification(`Exported ${totalCount} certificate(s) to CSV`, 'success');
-            }
+            AdminCore.showNotification(`Exported ${totalCount} certificate(s) to CSV`, 'success');
         } catch (error) {
             console.error('Export error:', error);
-            if (typeof AdminCore !== 'undefined') {
-                AdminCore.showNotification('Export failed. Please try again.', 'error');
-            } else {
-                alert('Export failed. Please try again.');
-            }
+            AdminCore.showNotification('Export failed. Please try again.', 'error');
         }
     }
 
@@ -1125,19 +1091,13 @@ class CertificateTileViewExternal {
     async downloadSelected() {
         const selectedCerts = this.getSelectedCertificates();
         if (selectedCerts.length === 0) {
-            if (typeof AdminCore !== 'undefined') {
-                AdminCore.showNotification('Please select certificates to download', 'warning');
-            } else {
-                alert('Please select certificates to download');
-            }
+            AdminCore.showNotification('Please select certificates to download', 'warning');
             return;
         }
 
         try {
             // Show progress notification
-            if (typeof AdminCore !== 'undefined') {
-                AdminCore.showNotification(`Preparing ZIP file with ${selectedCerts.length} certificate(s)...`, 'info');
-            }
+            AdminCore.showNotification(`Preparing ZIP file with ${selectedCerts.length} certificate(s)...`, 'info');
 
             // Extract certificate IDs
             const certificateIds = selectedCerts.map(cert => cert.id);
@@ -1184,16 +1144,10 @@ class CertificateTileViewExternal {
             document.body.removeChild(a);
 
             // Show success notification
-            if (typeof AdminCore !== 'undefined') {
-                AdminCore.showNotification(`Successfully downloaded ${selectedCerts.length} certificate(s) as ZIP`, 'success');
-            }
+            AdminCore.showNotification(`Successfully downloaded ${selectedCerts.length} certificate(s) as ZIP`, 'success');
         } catch (error) {
             console.error('ZIP download error:', error);
-            if (typeof AdminCore !== 'undefined') {
-                AdminCore.showNotification(`Failed to download certificates: ${error.message}`, 'error');
-            } else {
-                alert(`Failed to download certificates: ${error.message}`);
-            }
+            AdminCore.showNotification(`Failed to download certificates: ${error.message}`, 'error');
         }
     }
 

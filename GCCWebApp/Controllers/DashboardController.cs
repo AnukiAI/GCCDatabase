@@ -384,29 +384,37 @@ namespace GCCWebApp.Controllers
 
         private async Task<object?> GetTableData(string type)
         {
+            // Get all active certificates - we'll filter in memory based on table type
+            var allCerts = await _certificateRepository.GetActiveCertificatesAsync();
+            var certsList = allCerts.ToList();
+
             switch (type)
             {
                 case "cert-types":
-                    return await _certificateRepository.GetCertificationTypeStatisticsAsync();
+                    // Return all active certificates (they'll be grouped by cert type in the export)
+                    return certsList;
 
                 case "top-companies":
-                    return await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
+                    // Get top 10 companies and filter certificates
+                    var topCompaniesStats = await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
+                    var topCompanyIds = topCompaniesStats.Select(c => c.Name).ToList();
+                    return certsList.Where(c => c.Company != null && topCompanyIds.Contains(c.Company.Name)).ToList();
 
                 case "cert-status":
-                    var stats = await _certificateRepository.GetCertificateStatisticsAsync();
-                    return new[]
-                    {
-                        new { Name = "Active", Count = stats.GetValueOrDefault("Active", 0) },
-                        new { Name = "Expired", Count = stats.GetValueOrDefault("Expired", 0) },
-                        new { Name = "Expiring Soon", Count = stats.GetValueOrDefault("ExpiringSoon", 0) }
-                    };
+                    // Return all active certificates (status shown in CSV)
+                    return certsList;
 
                 case "product-types":
-                    return await _certificateRepository.GetProductTypeStatisticsAsync(10);
+                    // Get top 10 product types and filter certificates
+                    var productTypeStats = await _certificateRepository.GetProductTypeStatisticsAsync(10);
+                    var topProductNames = productTypeStats.Select(p => p.Name).ToList();
+                    return certsList.Where(c => c.Product != null && topProductNames.Contains(c.Product.Name)).ToList();
 
                 case "product-categories":
-                    var certTypes = await _certificateRepository.GetCertificationTypeStatisticsAsync();
-                    return certTypes.Take(5);
+                    // Get top 5 certification types and filter certificates
+                    var certTypeStats = await _certificateRepository.GetCertificationTypeStatisticsAsync();
+                    var top5CertTypes = certTypeStats.Take(5).Select(ct => ct.Name).ToList();
+                    return certsList.Where(c => c.CertificationType != null && top5CertTypes.Contains(c.CertificationType.Name)).ToList();
 
                 default:
                     return null;
@@ -424,38 +432,44 @@ namespace GCCWebApp.Controllers
         private string GenerateTableCsv(string type, dynamic data)
         {
             var csv = new StringBuilder();
-            
-            switch (type)
-            {
-                case "cert-types":
-                case "top-companies":
-                case "product-types":
-                case "product-categories":
-                    csv.AppendLine("Name,Count");
-                    if (data != null)
-                    {
-                        foreach (var item in data)
-                        {
-                            csv.AppendLine($"\"{item.Name}\",{item.Count}");
-                        }
-                    }
-                    break;
 
-                case "cert-status":
-                    csv.AppendLine("Status,Count");
-                    if (data != null)
-                    {
-                        foreach (var item in data)
-                        {
-                            csv.AppendLine($"\"{item.Name}\",{item.Count}");
-                        }
-                    }
-                    break;
+            // Header row with full certificate details
+            csv.AppendLine("Certificate Number,Company Name,Product Name,Certification Type,Effective Date,Expiration Date,Status,Certificate PDF URL");
+
+            if (data != null)
+            {
+                IEnumerable<Certificate> certificates = data;
+
+                foreach (var cert in certificates)
+                {
+                    var certificateNumber = EscapeCsvValue(cert.Number ?? "N/A");
+                    var companyName = EscapeCsvValue(cert.Company?.Name ?? "N/A");
+                    var productName = EscapeCsvValue(cert.Product?.Name ?? "N/A");
+                    var certificationType = EscapeCsvValue(cert.CertificationType?.Name ?? "N/A");
+                    var effectiveDate = cert.EffectiveDate.ToString("yyyy-MM-dd");
+                    var expirationDate = cert.ExpirationDate.ToString("yyyy-MM-dd");
+                    var status = EscapeCsvValue(cert.Status ?? "N/A");
+                    var pdfUrl = !string.IsNullOrEmpty(cert.CertificateFile) ? $"/uploads/certificates/{cert.CertificateFile}" : "N/A";
+
+                    csv.AppendLine($"{certificateNumber},{companyName},{productName},{certificationType},{effectiveDate},{expirationDate},{status},{pdfUrl}");
+                }
             }
 
-            csv.AppendLine();
-            csv.AppendLine($"Generated on: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             return csv.ToString();
+        }
+
+        private string EscapeCsvValue(string value)
+        {
+            if (string.IsNullOrEmpty(value))
+                return "\"\"";
+
+            // Escape quotes and wrap in quotes if contains comma, quote, or newline
+            if (value.Contains(",") || value.Contains("\"") || value.Contains("\n") || value.Contains("\r"))
+            {
+                return $"\"{value.Replace("\"", "\"\"")}\"";
+            }
+
+            return $"\"{value}\"";
         }
     }
 }

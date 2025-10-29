@@ -319,18 +319,35 @@ namespace GCCWebApp.Controllers.Api
                     })
                     .ToListAsync();
 
+                // Get unique certification type IDs from certificates
+                var certTypeIds = await _context.Certificates
+                    .Select(c => c.CertificationTypeId)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Get certification types with their hierarchical structure
+                var allCertTypes = await _context.CertificationTypes
+                    .Where(ct => certTypeIds.Contains(ct.Id) || (ct.Children.Any(child => certTypeIds.Contains(child.Id))))
+                    .OrderBy(ct => ct.SortOrder)
+                    .Select(ct => new { ct.Id, ct.Name, ct.Level, ct.ParentId, ct.SortOrder })
+                    .ToListAsync();
+
+                // Build hierarchical list (parent followed by children)
+                var hierarchicalCertTypes = new List<dynamic>();
+                foreach (var certType in allCertTypes.Where(ct => ct.ParentId == null))
+                {
+                    hierarchicalCertTypes.Add(new { name = certType.Name, level = certType.Level });
+                    // Add children immediately after parent
+                    var children = allCertTypes.Where(ct => ct.ParentId == certType.Id).OrderBy(ct => ct.SortOrder);
+                    foreach (var child in children)
+                    {
+                        hierarchicalCertTypes.Add(new { name = child.Name, level = child.Level });
+                    }
+                }
+
                 var filters = new
                 {
-                    certificationTypes = await _context.CertificationTypes
-                        .Where(ct => ct.IsActive)
-                        .Select(ct => new {
-                            name = ct.Name,
-                            certificateCount = ct.Certificates.Count()
-                        })
-                        .Where(ct => ct.certificateCount > 0)
-                        .OrderBy(ct => ct.name)
-                        .Select(ct => ct.name)
-                        .ToListAsync(),
+                    certificationTypes = hierarchicalCertTypes,
 
                     productCategoriesHierarchy,
 
@@ -352,7 +369,10 @@ namespace GCCWebApp.Controllers.Api
                         .Select(c => new {
                             id = c.Id,
                             name = c.Name,
-                            certificateCount = c.Certificates.Count()
+                            certificateCount = c.Certificates.Count(cert =>
+                                cert.Status == "active" ||
+                                cert.Status == "expiring_soon" ||
+                                cert.Status == "renewal_in_progress")
                         })
                         .Where(c => c.certificateCount > 0)
                         .OrderBy(c => c.name)
@@ -360,15 +380,11 @@ namespace GCCWebApp.Controllers.Api
                         .ToListAsync(),
 
                     countries = await _context.Certificates
+                        .Where(c => c.Status == "active" || c.Status == "expiring_soon" || c.Status == "renewal_in_progress")
                         .Where(c => !string.IsNullOrEmpty(c.Country))
-                        .GroupBy(c => c.Country)
-                        .Select(g => new {
-                            name = g.Key!,
-                            count = g.Count()
-                        })
-                        .Where(c => c.count > 0)
-                        .OrderBy(c => c.name)
-                        .Select(c => c.name)
+                        .Select(c => c.Country!)
+                        .Distinct()
+                        .OrderBy(c => c)
                         .ToListAsync(),
 
                     tags = await _context.Tags

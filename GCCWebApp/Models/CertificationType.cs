@@ -19,8 +19,28 @@ namespace GCCWebApp.Models
 
         public int SortOrder { get; set; } = 0;
 
+        /// <summary>
+        /// Hierarchy level for display (1 = parent, 2 = child/indented)
+        /// </summary>
+        public int Level { get; set; } = 1;
+
+        /// <summary>
+        /// Parent certification type ID for hierarchical relationships (null for top-level types)
+        /// </summary>
+        public int? ParentId { get; set; }
+
         // Navigation properties
         public ICollection<Certificate> Certificates { get; set; } = new List<Certificate>();
         public ICollection<CustomField> CustomFields { get; set; } = new List<CustomField>();
+
+        /// <summary>
+        /// Parent certification type (for hierarchical display)
+        /// </summary>
+        public CertificationType? Parent { get; set; }
+
+        /// <summary>
+        /// Child certification types (sub-types)
+        /// </summary>
+        public ICollection<CertificationType> Children { get; set; } = new List<CertificationType>();
     }
 }

@@ -17,9 +17,9 @@
     --gcc-blue-secondary: #0095d8;
 
     /* Admin UI Color System */
-    --admin-primary: var(--gcc-blue-primary);
-    --admin-primary-hover: var(--gcc-blue-secondary);
-    --admin-primary-light: var(--gcc-blue-light);
+    --admin-primary: var(--gcc-green-secondary);
+    --admin-primary-hover: var(--gcc-green-primary);
+    --admin-primary-light: var(--gcc-green-light);
 
     --admin-success: var(--gcc-green-secondary);
     --admin-success-light: var(--gcc-green-light);

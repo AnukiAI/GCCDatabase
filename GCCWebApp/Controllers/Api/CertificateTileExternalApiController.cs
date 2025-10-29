@@ -324,13 +324,35 @@ namespace GCCWebApp.Controllers.Api
                     })
                     .ToListAsync();
 
+                // Get unique certification type IDs from active certificates
+                var certTypeIds = await baseQuery
+                    .Select(c => c.CertificationTypeId)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Get certification types with their hierarchical structure
+                var allCertTypes = await _context.CertificationTypes
+                    .Where(ct => certTypeIds.Contains(ct.Id) || (ct.Children.Any(child => certTypeIds.Contains(child.Id))))
+                    .OrderBy(ct => ct.SortOrder)
+                    .Select(ct => new { ct.Id, ct.Name, ct.Level, ct.ParentId, ct.SortOrder })
+                    .ToListAsync();
+
+                // Build hierarchical list (parent followed by children)
+                var hierarchicalCertTypes = new List<dynamic>();
+                foreach (var certType in allCertTypes.Where(ct => ct.ParentId == null))
+                {
+                    hierarchicalCertTypes.Add(new { name = certType.Name, level = certType.Level });
+                    // Add children immediately after parent
+                    var children = allCertTypes.Where(ct => ct.ParentId == certType.Id).OrderBy(ct => ct.SortOrder);
+                    foreach (var child in children)
+                    {
+                        hierarchicalCertTypes.Add(new { name = child.Name, level = child.Level });
+                    }
+                }
+
                 var filters = new
                 {
-                    certificationTypes = await baseQuery
-                        .Select(c => c.CertificationType.Name)
-                        .Distinct()
-                        .OrderBy(name => name)
-                        .ToListAsync(),
+                    certificationTypes = hierarchicalCertTypes,
 
                     productCategoriesHierarchy,
 

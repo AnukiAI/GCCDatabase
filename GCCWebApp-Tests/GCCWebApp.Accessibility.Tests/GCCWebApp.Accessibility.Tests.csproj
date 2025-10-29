@@ -9,12 +9,15 @@
     <Description>Accessibility tests for GCC Web Application ensuring WCAG 2.1 compliance</Description>
   </PropertyGroup>
 
-  <!-- xUnit test framework packages -->
-  <ItemGroup Label="xUnit Test Framework">
+  <!-- Test framework packages (Mixed xUnit and NUnit) -->
+  <ItemGroup Label="Test Frameworks">
     <PackageReference Include="FluentAssertions" Version="8.7.1" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.11" />
     <PackageReference Include="xunit" Version="2.9.2" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+    <PackageReference Include="NUnit" Version="4.2.2" />
+    <PackageReference Include="NUnit3TestAdapter" Version="4.6.0" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
   </ItemGroup>
 
   <!-- Accessibility testing specific packages -->
@@ -30,11 +33,9 @@
     <ProjectReference Include="..\..\GCCWebApp\GCCWebApp.csproj" />
   </ItemGroup>
 
-  <!-- Global usings -->
+  <!-- Global usings (Test frameworks NOT included to avoid ambiguity) -->
   <ItemGroup Label="Global Usings">
-    <Using Include="Xunit" />
     <Using Include="Microsoft.Playwright" />
-    <Using Include="Microsoft.Playwright.NUnit" />
     <Using Include="Deque.AxeCore.Playwright" />
     <Using Include="Deque.AxeCore.Commons" />
   </ItemGroup>

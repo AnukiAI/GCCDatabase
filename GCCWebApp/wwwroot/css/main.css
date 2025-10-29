@@ -1069,8 +1069,14 @@ table thead {
 }
 
 .filter-tree .filter-item {
-    margin: 0 0 1px 0 !important; /* Minimal bottom margin for spacing */
-    padding: 0 !important;
+    margin-top: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 1px !important;
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: 0 !important;
+    /* padding-left is controlled by filter-level classes */
     font-size: 16px;
     line-height: 1.2 !important;
 }
@@ -1091,15 +1097,15 @@ table thead {
     }
 
 .filter-level-1 {
-    margin-left: 0;
+    padding-left: 0 !important;
 }
 
 .filter-level-2 {
-    margin-left: 20px;
+    padding-left: 30px !important;
 }
 
 .filter-level-3 {
-    margin-left: 40px;
+    padding-left: 60px !important;
 }
 
 /* Add to your CSS */

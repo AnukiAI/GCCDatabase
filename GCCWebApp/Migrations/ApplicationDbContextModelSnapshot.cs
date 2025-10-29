@@ -156,7 +156,8 @@ namespace GCCWebApp.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal?>("UsageCostPerRequest")
-                        .HasColumnType("decimal(18,2)");
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)");
 
                     b.Property<string>("UserAgent")
                         .HasColumnType("nvarchar(max)");
@@ -543,10 +544,16 @@ namespace GCCWebApp.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<int>("Level")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int");
 
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
@@ -555,6 +562,8 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("ParentId");
 
                     b.ToTable("CertificationTypes");
                 });
@@ -1582,6 +1591,15 @@ namespace GCCWebApp.Migrations
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.CertificationType", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.CertificationType", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId");
+
+                    b.Navigation("Parent");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.CustomField", b =>
                 {
                     b.HasOne("GCCWebApp.Models.CertificationType", "CertificationType")
@@ -1752,6 +1770,8 @@ namespace GCCWebApp.Migrations
             modelBuilder.Entity("GCCWebApp.Models.CertificationType", b =>
                 {
                     b.Navigation("Certificates");
+
+                    b.Navigation("Children");
 
                     b.Navigation("CustomFields");
                 });

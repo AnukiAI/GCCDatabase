@@ -45,14 +45,31 @@ namespace GCCWebApp.Data
             await context.ProductCategories.AddRangeAsync(categories);
             await context.SaveChangesAsync();
 
-            // Seed CertificationTypes (based on mockups)
+            // Seed CertificationTypes (complete list of GreenCircle certification types with hierarchy levels)
             var certTypes = new List<CertificationType>
             {
-                new CertificationType { Name = "Certified Environmental Facts", AmazonCode = "CEF", Description = "Environmental impact certification", IsActive = true, SortOrder = 1 },
-                new CertificationType { Name = "Certified Sustainability Facts", AmazonCode = "CSF", Description = "Comprehensive sustainability certification", IsActive = true, SortOrder = 2 },
-                new CertificationType { Name = "Recycled Content", AmazonCode = "RC", Description = "Recycled content certification", IsActive = true, SortOrder = 3 },
-                new CertificationType { Name = "Energy Savings", AmazonCode = "ES", Description = "Energy efficiency certification", IsActive = true, SortOrder = 4 },
-                new CertificationType { Name = "Material Ingredient Reporting", AmazonCode = "MIR", Description = "Material composition reporting", IsActive = true, SortOrder = 5 }
+                new CertificationType { Name = "Biobased", AmazonCode = "BB", Description = "Products derived from renewable biological resources", IsActive = true, SortOrder = 1, Level = 1 },
+                new CertificationType { Name = "Biodegradable", AmazonCode = "BD", Description = "Products that break down naturally in the environment", IsActive = true, SortOrder = 2, Level = 1 },
+                new CertificationType { Name = "Carbon Footprint Reduction", AmazonCode = "CFR", Description = "Products with reduced carbon emissions", IsActive = true, SortOrder = 3, Level = 1 },
+                new CertificationType { Name = "Certified Energy Savings", AmazonCode = "CES", Description = "Energy efficiency certification", IsActive = true, SortOrder = 4, Level = 1 },
+                new CertificationType { Name = "Certified Environmental Facts", AmazonCode = "CEF", Description = "Environmental impact certification", IsActive = true, SortOrder = 5, Level = 1 },
+                new CertificationType { Name = "Certified Sustainability Facts", AmazonCode = "CSF", Description = "Comprehensive sustainability certification", IsActive = true, SortOrder = 6, Level = 1 },
+                new CertificationType { Name = "Certified Water Savings", AmazonCode = "CWS", Description = "Water conservation certification", IsActive = true, SortOrder = 7, Level = 1 },
+                new CertificationType { Name = "Closed Loop Product", AmazonCode = "CLP", Description = "Products designed for circular economy", IsActive = true, SortOrder = 8, Level = 1 },
+                new CertificationType { Name = "Dematerialization", AmazonCode = "DM", Description = "Products with reduced material usage", IsActive = true, SortOrder = 9, Level = 1 },
+                new CertificationType { Name = "Greenhouse Gas (GHG) Verification", AmazonCode = "GHG", Description = "Verified greenhouse gas reduction", IsActive = true, SortOrder = 10, Level = 1 },
+                new CertificationType { Name = "GreenCircle Audited", AmazonCode = "GCA", Description = "Third-party audited certification", IsActive = true, SortOrder = 11, Level = 1 },
+                new CertificationType { Name = "Life Cycle Assessment (LCA) Optimized", AmazonCode = "LCA", Description = "Optimized environmental impact across product lifecycle", IsActive = true, SortOrder = 12, Level = 1 },
+                new CertificationType { Name = "Manufacturer Inventory Verification", AmazonCode = "MIV", Description = "Verified manufacturer inventory practices", IsActive = true, SortOrder = 13, Level = 1 },
+                new CertificationType { Name = "Recyclable Material", AmazonCode = "RM", Description = "Products made from recyclable materials", IsActive = true, SortOrder = 14, Level = 1 },
+                new CertificationType { Name = "Recycled Content", AmazonCode = "RC", Description = "Products containing recycled materials", IsActive = true, SortOrder = 15, Level = 1 },
+                new CertificationType { Name = "Renewable Resource Content", AmazonCode = "RRC", Description = "Products from renewable resources", IsActive = true, SortOrder = 16, Level = 1 },
+                new CertificationType { Name = "Sustainable Energy Practices", AmazonCode = "SEP", Description = "Sustainable energy manufacturing practices", IsActive = true, SortOrder = 17, Level = 1 },
+                new CertificationType { Name = "Sustainable Manufacturing Practices", AmazonCode = "SMP", Description = "Environmentally responsible manufacturing", IsActive = true, SortOrder = 18, Level = 1 },
+                new CertificationType { Name = "Waste Diversion from Landfill", AmazonCode = "WDL", Description = "Waste reduction and diversion practices", IsActive = true, SortOrder = 19, Level = 1 },
+                new CertificationType { Name = "Waste System Audit", AmazonCode = "WSA", Description = "Audited waste management systems", IsActive = true, SortOrder = 20, Level = 1 },
+                new CertificationType { Name = "+Vantage Vinyl™ Verified", AmazonCode = "VVV", Description = "Verified Vantage Vinyl certification", IsActive = true, SortOrder = 21, Level = 1 },
+                new CertificationType { Name = "Preloved", AmazonCode = "PL", Description = "Refurbished or pre-owned sustainable products", IsActive = true, SortOrder = 22, Level = 1 }
             };
 
             await context.CertificationTypes.AddRangeAsync(certTypes);
@@ -69,24 +86,16 @@ namespace GCCWebApp.Data
             await context.Partners.AddRangeAsync(partners);
             await context.SaveChangesAsync();
 
-            // Seed Companies (based on mockups and real data)
+            // Seed Companies (only real companies from live database)
             var companies = new List<Company>
             {
                 new Company { Name = "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division", ContactInfo = "sustainability@assaabloy.com", Location = "Berlin, CT", Country = "United States", IsActive = true },
-                new Company { Name = "Green Products Inc. - Environmental Division", ContactInfo = "contact@greenproducts.com", Location = "Portland, OR", Country = "United States", IsActive = true },
-                new Company { Name = "Acme Corporation", ContactInfo = "info@acme.com", Location = "New York, NY", Country = "United States", IsActive = true, Website = "https://www.acme.com" },
-                new Company { Name = "Globex Industries", ContactInfo = "sales@globex.com", Location = "Chicago, IL", Country = "United States", IsActive = true, Website = "https://www.globex.com" },
-                new Company { Name = "Stark Enterprises", ContactInfo = "hello@stark.com", Location = "Malibu, CA", Country = "United States", IsActive = true, Website = "https://www.stark.com" },
-                new Company { Name = "Wayne Technologies", ContactInfo = "contact@waynetech.com", Location = "Gotham, NY", Country = "United States", IsActive = true, Website = "https://www.waynetech.com" },
-                new Company { Name = "EcoFlex Manufacturing", ContactInfo = "info@ecoflex.com", Location = "Austin, TX", Country = "United States", IsActive = true },
                 new Company { Name = "GAF Materials Corporation", ContactInfo = "green@gaf.com", Location = "Cedar City, UT", Country = "United States", IsActive = true },
                 new Company { Name = "3M Company", ContactInfo = "sustainability@3m.com", Location = "St. Paul, MN", Country = "United States", IsActive = true },
                 new Company { Name = "Shaw Industries Group", ContactInfo = "green@shawinc.com", Location = "Dalton, GA", Country = "United States", IsActive = true },
                 new Company { Name = "Mohawk Industries", ContactInfo = "sustainability@mohawkind.com", Location = "Calhoun, GA", Country = "United States", IsActive = true },
                 new Company { Name = "Armstrong World Industries", ContactInfo = "green@armstrong.com", Location = "Lancaster, PA", Country = "United States", IsActive = true },
                 new Company { Name = "Owens Corning", ContactInfo = "sustainability@owenscorning.com", Location = "Toledo, OH", Country = "United States", IsActive = true },
-                
-                // Additional realistic companies for more comprehensive testing
                 new Company { Name = "CertainTeed Corporation", ContactInfo = "sustainability@certainteed.com", Location = "Malvern, PA", Country = "United States", IsActive = true },
                 new Company { Name = "Johns Manville", ContactInfo = "environmental@jm.com", Location = "Denver, CO", Country = "United States", IsActive = true },
                 new Company { Name = "Kingspan Insulation", ContactInfo = "green@kingspan.com", Location = "Atlanta, GA", Country = "United States", IsActive = true },
@@ -160,50 +169,46 @@ namespace GCCWebApp.Data
             await context.ProductTypes.AddRangeAsync(productSubTypes);
             await context.SaveChangesAsync();
 
-            // Seed Products (based on mockups)
+            // Seed Products (based on mockups - only products for real companies)
             var products = new List<Product>
             {
+                // ASSA ABLOY Products
                 new Product { Name = "900ET Exit Device Trim with EcoFlex®", Description = "Exit device trim with sustainable EcoFlex technology", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[0].Id, IsActive = true },
                 new Product { Name = "Standard Exit Device - Model 9800", Description = "Commercial grade exit device", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[0].Id, IsActive = true },
                 new Product { Name = "Heavy-Duty Exit Hardware - Series 2000", Description = "Heavy-duty commercial exit hardware", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[0].Id, IsActive = true },
                 new Product { Name = "Commercial Door Closer - DC300", Description = "Commercial grade door closing mechanism", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[0].Id, IsActive = true },
                 new Product { Name = "Security Exit Device - EX700", Description = "High-security exit device system", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[0].Id, IsActive = true },
-                new Product { Name = "Reusable Water Bottle - Stainless Steel", Description = "Eco-friendly stainless steel water bottle", CategoryId = categories[5].Id, CompanyId = companies[1].Id, IsActive = true },
-                new Product { Name = "Bamboo Coffee Cup with Lid", Description = "Sustainable bamboo coffee cup", CategoryId = categories[5].Id, CompanyId = companies[1].Id, IsActive = true },
-                new Product { Name = "Glass Storage Container Set", Description = "Reusable glass storage containers", CategoryId = categories[5].Id, CompanyId = companies[1].Id, IsActive = true },
-                new Product { Name = "Organic Cotton Tote Bag", Description = "Sustainable organic cotton tote bag", CategoryId = categories[4].Id, CompanyId = companies[1].Id, IsActive = true },
-                new Product { Name = "10Gain XP Category 6A Cable", Description = "High-performance network cable", CategoryId = categories[1].Id, ProductTypeId = productTypes[5].Id, CompanyId = companies[3].Id, IsActive = true },
+
+                // Products for various companies
+                new Product { Name = "Shaw Contract Carpet Tile", Description = "Commercial carpet tile with recycled content", CategoryId = categories[4].Id, ProductTypeId = productTypes[3].Id, CompanyId = companies[3].Id, IsActive = true },
+                new Product { Name = "Mohawk Hardwood Flooring", Description = "Sustainable hardwood flooring", CategoryId = categories[0].Id, ProductTypeId = productTypes[2].Id, CompanyId = companies[4].Id, IsActive = true },
                 new Product { Name = "Carbon Negative Carpet Tile", Description = "Sustainable carpet tiles", CategoryId = categories[4].Id, ProductTypeId = productTypes[3].Id, CompanyId = companies[4].Id, IsActive = true },
-                new Product { Name = "3M VHB Tape", Description = "Very High Bond structural glazing tape", CategoryId = categories[0].Id, CompanyId = companies[5].Id, IsActive = true },
-                new Product { Name = "Shaw Contract Carpet Tile", Description = "Commercial carpet tile with recycled content", CategoryId = categories[4].Id, ProductTypeId = productTypes[3].Id, CompanyId = companies[6].Id, IsActive = true },
-                new Product { Name = "Mohawk Hardwood Flooring", Description = "Sustainable hardwood flooring", CategoryId = categories[0].Id, ProductTypeId = productTypes[2].Id, CompanyId = companies[7].Id, IsActive = true },
-                new Product { Name = "Armstrong Ceiling Tiles", Description = "Mineral fiber ceiling tiles", CategoryId = categories[0].Id, CompanyId = companies[8].Id, IsActive = true },
-                new Product { Name = "Owens Corning Fiberglas Insulation", Description = "Pink fiberglass insulation batts", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[9].Id, IsActive = true },
-                new Product { Name = "LED Light Fixtures", Description = "Energy-efficient LED lighting", CategoryId = categories[1].Id, ProductTypeId = productTypes[6].Id, CompanyId = companies[5].Id, IsActive = true },
-                new Product { Name = "Office Chair", Description = "Ergonomic office seating", CategoryId = categories[5].Id, ProductTypeId = productTypes[7].Id, CompanyId = companies[6].Id, IsActive = true },
-                
+                new Product { Name = "Armstrong Ceiling Tiles", Description = "Mineral fiber ceiling tiles", CategoryId = categories[0].Id, CompanyId = companies[5].Id, IsActive = true },
+                new Product { Name = "Owens Corning Fiberglas Insulation", Description = "Pink fiberglass insulation batts", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[6].Id, IsActive = true },
+                new Product { Name = "3M VHB Tape", Description = "Very High Bond structural glazing tape", CategoryId = categories[0].Id, CompanyId = companies[2].Id, IsActive = true },
+                new Product { Name = "LED Light Fixtures", Description = "Energy-efficient LED lighting", CategoryId = categories[1].Id, ProductTypeId = productTypes[6].Id, CompanyId = companies[20].Id, IsActive = true },
+                new Product { Name = "Office Chair", Description = "Ergonomic office seating", CategoryId = categories[5].Id, ProductTypeId = productTypes[7].Id, CompanyId = companies[11].Id, IsActive = true },
+
                 // Additional realistic products for comprehensive testing
-                new Product { Name = "CertainTeed Fiber Glass Insulation", Description = "Sustainable fiberglass insulation with recycled content", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[10].Id, IsActive = true },
-                new Product { Name = "Johns Manville Mineral Wool Insulation", Description = "Fire-resistant mineral wool insulation", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[11].Id, IsActive = true },
-                new Product { Name = "Kingspan Kooltherm K5 External Wall Board", Description = "High-performance insulation board", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[12].Id, IsActive = true },
-                new Product { Name = "Hunter Douglas Architectural Window Treatments", Description = "Energy-efficient window coverings", CategoryId = categories[0].Id, CompanyId = companies[13].Id, IsActive = true },
-                new Product { Name = "Steelcase Think Ergonomic Office Chair", Description = "Sustainable office seating with recycled materials", CategoryId = categories[5].Id, ProductTypeId = productTypes[7].Id, CompanyId = companies[14].Id, IsActive = true },
-                new Product { Name = "Herman Miller Aeron Chair", Description = "Iconic ergonomic chair with sustainable design", CategoryId = categories[5].Id, ProductTypeId = productTypes[7].Id, CompanyId = companies[15].Id, IsActive = true },
-                new Product { Name = "Knoll ReGeneration Chair", Description = "Made from recycled materials", CategoryId = categories[5].Id, ProductTypeId = productTypes[7].Id, CompanyId = companies[16].Id, IsActive = true },
-                new Product { Name = "Teknion District Chair", Description = "Sustainable office seating solution", CategoryId = categories[5].Id, ProductTypeId = productTypes[7].Id, CompanyId = companies[17].Id, IsActive = true },
-                new Product { Name = "Forbo Marmoleum Flooring", Description = "Natural linoleum flooring with low environmental impact", CategoryId = categories[0].Id, ProductTypeId = productTypes[2].Id, CompanyId = companies[18].Id, IsActive = true },
-                new Product { Name = "Tarkett iQ Surface Flooring", Description = "Sustainable homogeneous vinyl flooring", CategoryId = categories[0].Id, ProductTypeId = productTypes[2].Id, CompanyId = companies[19].Id, IsActive = true },
-                new Product { Name = "Milliken Modular Carpet", Description = "Carbon neutral carpet tiles", CategoryId = categories[4].Id, ProductTypeId = productTypes[3].Id, CompanyId = companies[20].Id, IsActive = true },
-                new Product { Name = "USG Sheetrock Brand Gypsum Panels", Description = "Sustainable drywall with recycled content", CategoryId = categories[0].Id, CompanyId = companies[21].Id, IsActive = true },
-                new Product { Name = "Lutron Caseta Smart Dimmer Switch", Description = "Energy-saving smart lighting control", CategoryId = categories[1].Id, ProductTypeId = productTypes[6].Id, CompanyId = companies[22].Id, IsActive = true },
-                new Product { Name = "Philips LED Tube Light", Description = "Energy-efficient LED lighting solution", CategoryId = categories[1].Id, ProductTypeId = productTypes[6].Id, CompanyId = companies[23].Id, IsActive = true },
-                new Product { Name = "Cree LED High Bay Fixture", Description = "Industrial LED lighting with smart controls", CategoryId = categories[1].Id, ProductTypeId = productTypes[6].Id, CompanyId = companies[24].Id, IsActive = true },
-                new Product { Name = "Interface Net-Works Carpet Tiles", Description = "Made from recycled fishing nets", CategoryId = categories[4].Id, ProductTypeId = productTypes[3].Id, CompanyId = companies[4].Id, IsActive = true },
-                new Product { Name = "3M Scotchshield Ultra Safety & Security Window Film", Description = "Window protection film", CategoryId = categories[0].Id, CompanyId = companies[5].Id, IsActive = true },
-                new Product { Name = "Shaw EcoWorx Carpet Backing", Description = "Recyclable carpet backing system", CategoryId = categories[4].Id, ProductTypeId = productTypes[3].Id, CompanyId = companies[6].Id, IsActive = true },
-                new Product { Name = "Armstrong Clean Room Ceiling Panels", Description = "Specialized ceiling tiles for clean environments", CategoryId = categories[0].Id, CompanyId = companies[8].Id, IsActive = true },
-                new Product { Name = "GAF TPO Roofing Membrane", Description = "Single-ply roofing membrane", CategoryId = categories[0].Id, CompanyId = companies[1].Id, IsActive = true },
-                new Product { Name = "Superior Essex PowerWise Cable", Description = "Energy-efficient data center cable", CategoryId = categories[1].Id, ProductTypeId = productTypes[5].Id, CompanyId = companies[3].Id, IsActive = true }
+                new Product { Name = "CertainTeed Fiber Glass Insulation", Description = "Sustainable fiberglass insulation with recycled content", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[7].Id, IsActive = true },
+                new Product { Name = "Johns Manville Mineral Wool Insulation", Description = "Fire-resistant mineral wool insulation", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[8].Id, IsActive = true },
+                new Product { Name = "Kingspan Kooltherm K5 External Wall Board", Description = "High-performance insulation board", CategoryId = categories[0].Id, ProductTypeId = productTypes[0].Id, CompanyId = companies[9].Id, IsActive = true },
+                new Product { Name = "Hunter Douglas Architectural Window Treatments", Description = "Energy-efficient window coverings", CategoryId = categories[0].Id, CompanyId = companies[10].Id, IsActive = true },
+                new Product { Name = "Steelcase Think Ergonomic Office Chair", Description = "Sustainable office seating with recycled materials", CategoryId = categories[5].Id, ProductTypeId = productTypes[7].Id, CompanyId = companies[11].Id, IsActive = true },
+                new Product { Name = "Herman Miller Aeron Chair", Description = "Iconic ergonomic chair with sustainable design", CategoryId = categories[5].Id, ProductTypeId = productTypes[7].Id, CompanyId = companies[12].Id, IsActive = true },
+                new Product { Name = "Knoll ReGeneration Chair", Description = "Made from recycled materials", CategoryId = categories[5].Id, ProductTypeId = productTypes[7].Id, CompanyId = companies[13].Id, IsActive = true },
+                new Product { Name = "Teknion District Chair", Description = "Sustainable office seating solution", CategoryId = categories[5].Id, ProductTypeId = productTypes[7].Id, CompanyId = companies[14].Id, IsActive = true },
+                new Product { Name = "Forbo Marmoleum Flooring", Description = "Natural linoleum flooring with low environmental impact", CategoryId = categories[0].Id, ProductTypeId = productTypes[2].Id, CompanyId = companies[15].Id, IsActive = true },
+                new Product { Name = "Tarkett iQ Surface Flooring", Description = "Sustainable homogeneous vinyl flooring", CategoryId = categories[0].Id, ProductTypeId = productTypes[2].Id, CompanyId = companies[16].Id, IsActive = true },
+                new Product { Name = "Milliken Modular Carpet", Description = "Carbon neutral carpet tiles", CategoryId = categories[4].Id, ProductTypeId = productTypes[3].Id, CompanyId = companies[17].Id, IsActive = true },
+                new Product { Name = "USG Sheetrock Brand Gypsum Panels", Description = "Sustainable drywall with recycled content", CategoryId = categories[0].Id, CompanyId = companies[18].Id, IsActive = true },
+                new Product { Name = "Lutron Caseta Smart Dimmer Switch", Description = "Energy-saving smart lighting control", CategoryId = categories[1].Id, ProductTypeId = productTypes[6].Id, CompanyId = companies[19].Id, IsActive = true },
+                new Product { Name = "Philips LED Tube Light", Description = "Energy-efficient LED lighting solution", CategoryId = categories[1].Id, ProductTypeId = productTypes[6].Id, CompanyId = companies[20].Id, IsActive = true },
+                new Product { Name = "Cree LED High Bay Fixture", Description = "Industrial LED lighting with smart controls", CategoryId = categories[1].Id, ProductTypeId = productTypes[6].Id, CompanyId = companies[21].Id, IsActive = true },
+                new Product { Name = "3M Scotchshield Ultra Safety & Security Window Film", Description = "Window protection film", CategoryId = categories[0].Id, CompanyId = companies[2].Id, IsActive = true },
+                new Product { Name = "Shaw EcoWorx Carpet Backing", Description = "Recyclable carpet backing system", CategoryId = categories[4].Id, ProductTypeId = productTypes[3].Id, CompanyId = companies[3].Id, IsActive = true },
+                new Product { Name = "Armstrong Clean Room Ceiling Panels", Description = "Specialized ceiling tiles for clean environments", CategoryId = categories[0].Id, CompanyId = companies[5].Id, IsActive = true },
+                new Product { Name = "GAF TPO Roofing Membrane", Description = "Single-ply roofing membrane", CategoryId = categories[0].Id, CompanyId = companies[1].Id, IsActive = true }
             };
 
             await context.Products.AddRangeAsync(products);
@@ -745,25 +750,25 @@ namespace GCCWebApp.Data
             // Seed Tags with comprehensive examples
             var tags = new List<Tag>
             {
-                new Tag { Name = "Environmental Facts", TagType = "external", Description = "Environmental impact data", IsActive = true },
-                new Tag { Name = "Recycled Content", TagType = "external", Description = "Contains recycled materials", IsActive = true },
-                new Tag { Name = "Carbon Neutral", TagType = "external", Description = "Carbon neutral product", IsActive = true },
+                // External tags (visible in public "Additional" filter) - ONLY APR and LEED per requirements
+                new Tag { Name = "APR", TagType = "external", Description = "APR Environmental Product Declaration", IsActive = true },
+                new Tag { Name = "LEED", TagType = "external", Description = "Contributes to LEED certification", IsActive = true },
+
+                // Internal tags (not visible in public filters)
                 new Tag { Name = "High Priority Client", TagType = "internal", Description = "Important client certification", IsActive = true },
                 new Tag { Name = "Q4 Review", TagType = "internal", Description = "Scheduled for quarterly review", IsActive = true },
-                
-                // Additional realistic tags for comprehensive testing
-                new Tag { Name = "Energy Star", TagType = "external", Description = "Energy Star certified product", IsActive = true },
-                new Tag { Name = "LEED Points", TagType = "external", Description = "Contributes to LEED certification", IsActive = true },
-                new Tag { Name = "Cradle to Cradle", TagType = "external", Description = "Cradle to Cradle certified", IsActive = true },
-                new Tag { Name = "Forest Stewardship Council", TagType = "external", Description = "FSC certified materials", IsActive = true },
-                new Tag { Name = "GREENGUARD", TagType = "external", Description = "Low chemical emissions", IsActive = true },
-                new Tag { Name = "Bio-Based", TagType = "external", Description = "Made from renewable biological resources", IsActive = true },
-                new Tag { Name = "Renewable Energy", TagType = "external", Description = "Manufactured using renewable energy", IsActive = true },
-                new Tag { Name = "Circular Economy", TagType = "external", Description = "Designed for circular economy principles", IsActive = true },
-                new Tag { Name = "Water Stewardship", TagType = "external", Description = "Responsible water usage in manufacturing", IsActive = true },
-                new Tag { Name = "Fair Trade", TagType = "external", Description = "Fair trade certified materials", IsActive = true },
-                
-                // Internal operation tags
+                new Tag { Name = "Environmental Facts", TagType = "internal", Description = "Environmental impact data", IsActive = true },
+                new Tag { Name = "Recycled Content", TagType = "internal", Description = "Contains recycled materials", IsActive = true },
+                new Tag { Name = "Carbon Neutral", TagType = "internal", Description = "Carbon neutral product", IsActive = true },
+                new Tag { Name = "Energy Star", TagType = "internal", Description = "Energy Star certified product", IsActive = true },
+                new Tag { Name = "Cradle to Cradle", TagType = "internal", Description = "Cradle to Cradle certified", IsActive = true },
+                new Tag { Name = "Forest Stewardship Council", TagType = "internal", Description = "FSC certified materials", IsActive = true },
+                new Tag { Name = "GREENGUARD", TagType = "internal", Description = "Low chemical emissions", IsActive = true },
+                new Tag { Name = "Bio-Based", TagType = "internal", Description = "Made from renewable biological resources", IsActive = true },
+                new Tag { Name = "Renewable Energy", TagType = "internal", Description = "Manufactured using renewable energy", IsActive = true },
+                new Tag { Name = "Circular Economy", TagType = "internal", Description = "Designed for circular economy principles", IsActive = true },
+                new Tag { Name = "Water Stewardship", TagType = "internal", Description = "Responsible water usage in manufacturing", IsActive = true },
+                new Tag { Name = "Fair Trade", TagType = "internal", Description = "Fair trade certified materials", IsActive = true },
                 new Tag { Name = "Urgent Review", TagType = "internal", Description = "Requires immediate attention", IsActive = true },
                 new Tag { Name = "Annual Audit", TagType = "internal", Description = "Scheduled for annual audit", IsActive = true },
                 new Tag { Name = "Customer Request", TagType = "internal", Description = "Generated from customer inquiry", IsActive = true },

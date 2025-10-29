@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using Assert = NUnit.Framework.Assert;
 using System;
 using System.IO;
 using System.Linq;

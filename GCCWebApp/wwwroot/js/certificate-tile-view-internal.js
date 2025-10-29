@@ -56,14 +56,17 @@
         // Populate certification types
         const certTypeList = document.querySelector('#cert-type-content ul');
         if (certTypeList && state.filterOptions.certificationTypes) {
-            certTypeList.innerHTML = state.filterOptions.certificationTypes.map(type => `
-                <li class="filter-item filter-level-1">
+            certTypeList.innerHTML = state.filterOptions.certificationTypes.map(type => {
+                const typeName = typeof type === 'string' ? type : type.name;
+                const typeLevel = typeof type === 'string' ? 1 : (type.level || 1);
+                return `
+                <li class="filter-item filter-level-${typeLevel}">
                     <label>
-                        <input type="checkbox" name="cert-type" value="${escapeHtml(type)}">
-                        ${escapeHtml(type)}
+                        <input type="checkbox" name="cert-type" value="${escapeHtml(typeName)}">
+                        ${escapeHtml(typeName)}
                     </label>
                 </li>
-            `).join('');
+            `}).join('');
         }
 
         // Populate hierarchical product categories

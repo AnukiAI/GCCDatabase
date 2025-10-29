@@ -189,7 +189,7 @@
 
 /* Sidebar */
 .sidebar {
-    width: 300px;
+    width: 350px;
     background-color: var(--white);
     border-right: 1px solid var(--border-color);
     padding: 20px;
@@ -249,7 +249,10 @@
 .filter-item {
     margin-bottom: 8px !important; /* Improved spacing between items */
     font-size: 16px;
-    padding: 4px 0 !important; /* Better vertical padding for readability */
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    padding-right: 0 !important;
+    /* padding-left is controlled by filter-level classes */
     line-height: 1.4 !important;
 }
 
@@ -278,15 +281,15 @@
     }
 
 .filter-level-1 {
-    margin-left: 0;
+    padding-left: 0 !important;
 }
 
 .filter-level-2 {
-    margin-left: 20px;
+    padding-left: 30px !important;
 }
 
 .filter-level-3 {
-    margin-left: 40px;
+    padding-left: 60px !important;
 }
 
 /* Main Content 

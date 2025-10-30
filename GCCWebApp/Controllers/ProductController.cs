@@ -46,15 +46,40 @@ namespace GCCWebApp.Controllers
             {
                 var userRole = GetCurrentUserRole();
                 var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
-                
-                var productsQuery = _context.Products.AsQueryable();
+                var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+
+                var productsQuery = _context.Products
+                    .Include(p => p.Certificates)
+                    .AsQueryable();
                 var companiesQuery = _context.Companies.AsQueryable();
 
                 // Apply filtering for External users
-                if (userRole == "External" && userCompanyIds.Any())
+                if (userRole == "External")
                 {
-                    productsQuery = productsQuery.Where(p => p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value));
-                    companiesQuery = companiesQuery.Where(c => userCompanyIds.Contains(c.Id));
+                    bool hasCompanies = userCompanyIds.Any();
+                    bool hasPartners = userPartnerNames.Any();
+
+                    if (hasCompanies && hasPartners)
+                    {
+                        productsQuery = productsQuery.Where(p =>
+                            (p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value)) ||
+                            p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None"))
+                        );
+                        companiesQuery = companiesQuery.Where(c => userCompanyIds.Contains(c.Id));
+                    }
+                    else if (hasCompanies)
+                    {
+                        productsQuery = productsQuery.Where(p => p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value));
+                        companiesQuery = companiesQuery.Where(c => userCompanyIds.Contains(c.Id));
+                    }
+                    else if (hasPartners)
+                    {
+                        productsQuery = productsQuery.Where(p => p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None")));
+                    }
+                    else
+                    {
+                        productsQuery = productsQuery.Where(p => false);
+                    }
                 }
 
                 var totalProducts = await productsQuery.CountAsync();
@@ -113,7 +138,8 @@ namespace GCCWebApp.Controllers
             {
                 var userRole = GetCurrentUserRole();
                 var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
-                
+                var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+
                 var query = _context.Products
                     .Include(p => p.Category)
                     .Include(p => p.ProductType)
@@ -125,14 +151,31 @@ namespace GCCWebApp.Controllers
                 // Apply filtering based on user role
                 if (userRole == "External")
                 {
-                    // External users can only see products from their associated companies
-                    if (userCompanyIds.Any())
+                    // External users can see products based on their associated companies OR partners
+                    bool hasCompanies = userCompanyIds.Any();
+                    bool hasPartners = userPartnerNames.Any();
+
+                    if (hasCompanies && hasPartners)
                     {
+                        // Show products from their companies OR products with certificates matching their partners
+                        query = query.Where(p =>
+                            (p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value)) ||
+                            p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None"))
+                        );
+                    }
+                    else if (hasCompanies)
+                    {
+                        // Only company filtering
                         query = query.Where(p => p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value));
+                    }
+                    else if (hasPartners)
+                    {
+                        // Only partner filtering - show products with certificates matching their partners
+                        query = query.Where(p => p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None")));
                     }
                     else
                     {
-                        // If no companies associated, return empty result
+                        // If no companies or partners associated, return empty result
                         query = query.Where(p => false);
                     }
                 }
@@ -421,6 +464,26 @@ namespace GCCWebApp.Controllers
             }
 
             return new List<int>();
+        }
+
+        private async Task<List<string>> GetCurrentUserPartnerNamesAsync()
+        {
+            var userEmail = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+            if (string.IsNullOrEmpty(userEmail))
+                return new List<string>();
+
+            // Find user and their associated partners
+            var user = await _context.Users
+                .Include(u => u.Partners)
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            if (user?.Partners != null && user.Partners.Any())
+            {
+                return user.Partners.Select(p => p.Name).ToList();
+            }
+
+            return new List<string>();
         }
 
         /// <summary>

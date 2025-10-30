@@ -534,6 +534,26 @@ The Dashboard includes three quick-action export buttons that generate CSV repor
 
 **Automation:** ✅ `GCCWebApp.RoleBasedUI.Tests`
 
+#### TC-006B: Product Management Actions Column Visibility
+**Preconditions:** Users with different roles, products exist in database
+**Steps:**
+1. Login as External user
+2. Navigate to /Product/Management
+3. Inspect page for Actions column header and cells
+4. Logout and login as Admin
+5. Navigate to /Product/Management
+6. Verify Actions column is visible
+
+**Expected Result:**
+- External users: Actions column header hidden, Actions cells hidden, Edit/Delete buttons hidden
+- Admin users: Actions column header visible, Actions cells visible, Edit/Delete buttons visible
+- Analyst users: Actions column header visible, Actions cells visible, Edit/Delete buttons visible
+
+**Automation:** ✅ `GCCWebApp.UAT.Tests/Tests/Product/ProductManagementTests.cs`
+- `ExternalUser_CannotSeeActionsColumn()` - Lines 423-450
+- `AdminUser_CanSeeActionsColumn()` - Lines 452-487
+- `AnalystUser_CanSeeActionsColumn()` - Lines 489-524
+
 #### TC-007: Two-Factor Authentication
 **Preconditions:** User with 2FA enabled
 **Steps:**

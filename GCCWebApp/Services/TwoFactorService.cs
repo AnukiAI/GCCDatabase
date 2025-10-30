@@ -61,8 +61,7 @@ namespace GCCWebApp.Services
             var cacheOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = expiry,
-                Priority = CacheItemPriority.High,
-                Size = 1 // Required when SizeLimit is set
+                Priority = CacheItemPriority.High
             };
 
             _cache.Set(cacheKey, new TwoFactorData 
@@ -106,8 +105,7 @@ namespace GCCWebApp.Services
             // Increment attempts
             var attemptsCacheOptions = new MemoryCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                Size = 1 // Required when SizeLimit is set
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
             };
             _cache.Set(attemptsKey, attempts + 1, attemptsCacheOptions);
 
@@ -194,8 +192,7 @@ namespace GCCWebApp.Services
             // Set resend rate limit (60 seconds)
             var resendCacheOptions = new MemoryCacheEntryOptions
             {
-                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60),
-                Size = 1 // Required when SizeLimit is set
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60)
             };
             _cache.Set(resendKey, true, resendCacheOptions);
             

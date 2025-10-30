@@ -408,15 +408,118 @@ public class ProductManagementTests : BaseTest
     public async Task NonAdmin_CannotAccessProductManagement()
     {
         await LoginAsRole("External");
-        
+
         var response = await Page.GotoAsync(BaseUrl + "/Product/Management");
         await TakeScreenshot("non_admin_product_management_blocked");
-        
+
         var is403Or401 = response?.Status == 403 || response?.Status == 401;
         var hasUnauthorizedContent = await Page.IsVisibleAsync("text=Unauthorized, text=Access Denied, text=Forbidden");
         var redirectedToLogin = Page.Url.Contains("/Account/Login") || Page.Url.Contains("/login");
-        
-        Assert.That(is403Or401 || hasUnauthorizedContent || redirectedToLogin, Is.True, 
+
+        Assert.That(is403Or401 || hasUnauthorizedContent || redirectedToLogin, Is.True,
             "Non-admin users should not access product management");
+    }
+
+    [Test]
+    public async Task ExternalUser_CannotSeeActionsColumn()
+    {
+        await LoginAsRole("External");
+        await NavigateToPage("/Product/Management");
+
+        await Page.WaitForSelectorAsync("body");
+        await TakeScreenshot("external_user_product_management");
+
+        // Wait for table to load
+        await Page.WaitForSelectorAsync("table", new() { Timeout = 5000 }).ConfigureAwait(false);
+
+        // Check if Actions column header is hidden
+        var actionsHeaderVisible = await Page.IsVisibleAsync("th.actions-col");
+        Assert.That(actionsHeaderVisible, Is.False,
+            "Actions column header should be hidden for External users");
+
+        // Check if Actions column cells are hidden
+        var actionsCellsVisible = await Page.IsVisibleAsync("td.actions-cell");
+        Assert.That(actionsCellsVisible, Is.False,
+            "Actions column cells should be hidden for External users");
+
+        // Verify Edit and Delete buttons are not visible
+        var editButtonVisible = await Page.IsVisibleAsync(".btn-edit");
+        var deleteButtonVisible = await Page.IsVisibleAsync(".btn-delete");
+        Assert.That(editButtonVisible, Is.False, "Edit buttons should be hidden for External users");
+        Assert.That(deleteButtonVisible, Is.False, "Delete buttons should be hidden for External users");
+    }
+
+    [Test]
+    public async Task AdminUser_CanSeeActionsColumn()
+    {
+        await LoginAsRole("Admin");
+        await NavigateToPage("/Product/Management");
+
+        await Page.WaitForSelectorAsync("body");
+        await TakeScreenshot("admin_user_product_management_with_actions");
+
+        // Wait for table to load
+        await Page.WaitForSelectorAsync("table", new() { Timeout = 5000 }).ConfigureAwait(false);
+
+        // Check if Actions column header is visible
+        var actionsHeaderVisible = await Page.IsVisibleAsync("th.actions-col");
+        Assert.That(actionsHeaderVisible, Is.True,
+            "Actions column header should be visible for Admin users");
+
+        // Load products to ensure table rows are populated
+        var loadButton = await Page.QuerySelectorAsync("button:has-text('Load'), button:has-text('Get Products'), .load-products");
+        if (loadButton != null)
+        {
+            await loadButton.ClickAsync();
+            await Page.WaitForTimeoutAsync(2000);
+        }
+
+        // Check if Actions column cells are visible
+        var actionsCellsVisible = await Page.IsVisibleAsync("td.actions-cell");
+        Assert.That(actionsCellsVisible, Is.True,
+            "Actions column cells should be visible for Admin users");
+
+        // Verify Edit and Delete buttons are visible
+        var editButtonVisible = await Page.IsVisibleAsync(".btn-edit");
+        var deleteButtonVisible = await Page.IsVisibleAsync(".btn-delete");
+        Assert.That(editButtonVisible, Is.True, "Edit buttons should be visible for Admin users");
+        Assert.That(deleteButtonVisible, Is.True, "Delete buttons should be visible for Admin users");
+    }
+
+    [Test]
+    public async Task AnalystUser_CanSeeActionsColumn()
+    {
+        await LoginAsRole("Analyst");
+        await NavigateToPage("/Product/Management");
+
+        await Page.WaitForSelectorAsync("body");
+        await TakeScreenshot("analyst_user_product_management_with_actions");
+
+        // Wait for table to load
+        await Page.WaitForSelectorAsync("table", new() { Timeout = 5000 }).ConfigureAwait(false);
+
+        // Check if Actions column header is visible
+        var actionsHeaderVisible = await Page.IsVisibleAsync("th.actions-col");
+        Assert.That(actionsHeaderVisible, Is.True,
+            "Actions column header should be visible for Analyst users");
+
+        // Load products to ensure table rows are populated
+        var loadButton = await Page.QuerySelectorAsync("button:has-text('Load'), button:has-text('Get Products'), .load-products");
+        if (loadButton != null)
+        {
+            await loadButton.ClickAsync();
+            await Page.WaitForTimeoutAsync(2000);
+        }
+
+        // Check if Actions column cells are visible
+        var actionsCellsVisible = await Page.IsVisibleAsync("td.actions-cell");
+        Assert.That(actionsCellsVisible, Is.True,
+            "Actions column cells should be visible for Analyst users");
+
+        // Verify Edit and Delete buttons are visible
+        var editButtonVisible = await Page.IsVisibleAsync(".btn-edit");
+        var deleteButtonVisible = await Page.IsVisibleAsync(".btn-delete");
+        Assert.That(editButtonVisible, Is.True, "Edit buttons should be visible for Analyst users");
+        Assert.That(deleteButtonVisible, Is.True, "Delete buttons should be visible for Analyst users");
     }
 }

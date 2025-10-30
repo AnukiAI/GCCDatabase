@@ -10,6 +10,7 @@ using GCCWebApp.Services.Performance;
 using GCCWebApp.Services.Security;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using System.Text;
 
 namespace GCCWebApp.Tests.Controllers
@@ -52,6 +53,15 @@ namespace GCCWebApp.Tests.Controllers
                 _context,
                 _environmentMock.Object
             );
+
+            // Mock HttpContext and Session
+            var mockHttpContext = new Mock<HttpContext>();
+            var mockSession = new Mock<ISession>();
+            mockHttpContext.Setup(c => c.Session).Returns(mockSession.Object);
+            _controller.ControllerContext = new ControllerContext
+            {
+                HttpContext = mockHttpContext.Object
+            };
 
             SeedTestData();
         }
@@ -104,51 +114,71 @@ namespace GCCWebApp.Tests.Controllers
             {
                 // 5 Active certificates expiring this month
                 new Certificate { Id = 1, Number = "CERT-001", Status = "Active", CompanyId = 1, ProductId = 1, CertificationTypeId = 1,
-                    EffectiveDate = now.AddMonths(-6), ExpirationDate = now.AddDays(15), Country = "USA", Location = "New York" },
+                    EffectiveDate = now.AddMonths(-6), ExpirationDate = now.AddDays(15), Country = "USA", Location = "New York",
+                    Company = companies[0], Product = products[0], CertificationType = certTypes[0] },
                 new Certificate { Id = 2, Number = "CERT-002", Status = "Active", CompanyId = 1, ProductId = 1, CertificationTypeId = 1,
-                    EffectiveDate = now.AddMonths(-6), ExpirationDate = now.AddDays(20), Country = "USA", Location = "New York" },
+                    EffectiveDate = now.AddMonths(-6), ExpirationDate = now.AddDays(20), Country = "USA", Location = "New York",
+                    Company = companies[0], Product = products[0], CertificationType = certTypes[0] },
                 new Certificate { Id = 3, Number = "CERT-003", Status = "Active", CompanyId = 2, ProductId = 2, CertificationTypeId = 2,
-                    EffectiveDate = now.AddMonths(-6), ExpirationDate = now.AddDays(10), Country = "Canada", Location = "Toronto" },
+                    EffectiveDate = now.AddMonths(-6), ExpirationDate = now.AddDays(10), Country = "Canada", Location = "Toronto",
+                    Company = companies[1], Product = products[1], CertificationType = certTypes[1] },
                 new Certificate { Id = 4, Number = "CERT-004", Status = "Active", CompanyId = 2, ProductId = 2, CertificationTypeId = 2,
-                    EffectiveDate = now.AddMonths(-6), ExpirationDate = now.AddDays(25), Country = "Canada", Location = "Toronto" },
+                    EffectiveDate = now.AddMonths(-6), ExpirationDate = now.AddDays(25), Country = "Canada", Location = "Toronto",
+                    Company = companies[1], Product = products[1], CertificationType = certTypes[1] },
                 new Certificate { Id = 5, Number = "CERT-005", Status = "Active", CompanyId = 3, ProductId = 3, CertificationTypeId = 1,
-                    EffectiveDate = now.AddMonths(-6), ExpirationDate = now.AddDays(5), Country = "USA", Location = "Chicago" },
+                    EffectiveDate = now.AddMonths(-6), ExpirationDate = now.AddDays(5), Country = "USA", Location = "Chicago",
+                    Company = companies[2], Product = products[2], CertificationType = certTypes[0] },
 
                 // 10 Active certificates NOT expiring this month
                 new Certificate { Id = 6, Number = "CERT-006", Status = "Active", CompanyId = 1, ProductId = 1, CertificationTypeId = 1,
-                    EffectiveDate = now.AddMonths(-3), ExpirationDate = now.AddMonths(6), Country = "USA", Location = "New York" },
+                    EffectiveDate = now.AddMonths(-3), ExpirationDate = now.AddMonths(6), Country = "USA", Location = "New York",
+                    Company = companies[0], Product = products[0], CertificationType = certTypes[0] },
                 new Certificate { Id = 7, Number = "CERT-007", Status = "Active", CompanyId = 1, ProductId = 1, CertificationTypeId = 1,
-                    EffectiveDate = now.AddMonths(-3), ExpirationDate = now.AddMonths(6), Country = "USA", Location = "New York" },
+                    EffectiveDate = now.AddMonths(-3), ExpirationDate = now.AddMonths(6), Country = "USA", Location = "New York",
+                    Company = companies[0], Product = products[0], CertificationType = certTypes[0] },
                 new Certificate { Id = 8, Number = "CERT-008", Status = "Active", CompanyId = 2, ProductId = 2, CertificationTypeId = 2,
-                    EffectiveDate = now.AddMonths(-3), ExpirationDate = now.AddMonths(8), Country = "Canada", Location = "Toronto" },
+                    EffectiveDate = now.AddMonths(-3), ExpirationDate = now.AddMonths(8), Country = "Canada", Location = "Toronto",
+                    Company = companies[1], Product = products[1], CertificationType = certTypes[1] },
                 new Certificate { Id = 9, Number = "CERT-009", Status = "Active", CompanyId = 2, ProductId = 2, CertificationTypeId = 2,
-                    EffectiveDate = now.AddMonths(-3), ExpirationDate = now.AddMonths(8), Country = "Canada", Location = "Toronto" },
+                    EffectiveDate = now.AddMonths(-3), ExpirationDate = now.AddMonths(8), Country = "Canada", Location = "Toronto",
+                    Company = companies[1], Product = products[1], CertificationType = certTypes[1] },
                 new Certificate { Id = 10, Number = "CERT-010", Status = "Active", CompanyId = 3, ProductId = 3, CertificationTypeId = 1,
-                    EffectiveDate = now.AddMonths(-3), ExpirationDate = now.AddMonths(9), Country = "USA", Location = "Chicago" },
+                    EffectiveDate = now.AddMonths(-3), ExpirationDate = now.AddMonths(9), Country = "USA", Location = "Chicago",
+                    Company = companies[2], Product = products[2], CertificationType = certTypes[0] },
                 new Certificate { Id = 11, Number = "CERT-011", Status = "Active", CompanyId = 1, ProductId = 1, CertificationTypeId = 1,
-                    EffectiveDate = now.AddMonths(-2), ExpirationDate = now.AddMonths(10), Country = "USA", Location = "New York" },
+                    EffectiveDate = now.AddMonths(-2), ExpirationDate = now.AddMonths(10), Country = "USA", Location = "New York",
+                    Company = companies[0], Product = products[0], CertificationType = certTypes[0] },
                 new Certificate { Id = 12, Number = "CERT-012", Status = "Active", CompanyId = 2, ProductId = 2, CertificationTypeId = 2,
-                    EffectiveDate = now.AddMonths(-2), ExpirationDate = now.AddMonths(12), Country = "Canada", Location = "Toronto" },
+                    EffectiveDate = now.AddMonths(-2), ExpirationDate = now.AddMonths(12), Country = "Canada", Location = "Toronto",
+                    Company = companies[1], Product = products[1], CertificationType = certTypes[1] },
                 new Certificate { Id = 13, Number = "CERT-013", Status = "Active", CompanyId = 3, ProductId = 3, CertificationTypeId = 1,
-                    EffectiveDate = now.AddMonths(-2), ExpirationDate = now.AddYears(1), Country = "USA", Location = "Chicago" },
+                    EffectiveDate = now.AddMonths(-2), ExpirationDate = now.AddYears(1), Country = "USA", Location = "Chicago",
+                    Company = companies[2], Product = products[2], CertificationType = certTypes[0] },
                 new Certificate { Id = 14, Number = "CERT-014", Status = "Active", CompanyId = 1, ProductId = 1, CertificationTypeId = 2,
-                    EffectiveDate = now.AddMonths(-1), ExpirationDate = now.AddMonths(11), Country = "USA", Location = "New York" },
+                    EffectiveDate = now.AddMonths(-1), ExpirationDate = now.AddMonths(11), Country = "USA", Location = "New York",
+                    Company = companies[0], Product = products[0], CertificationType = certTypes[1] },
                 new Certificate { Id = 15, Number = "CERT-015", Status = "Active", CompanyId = 2, ProductId = 2, CertificationTypeId = 1,
-                    EffectiveDate = now.AddMonths(-1), ExpirationDate = now.AddYears(1), Country = "Canada", Location = "Toronto" },
+                    EffectiveDate = now.AddMonths(-1), ExpirationDate = now.AddYears(1), Country = "Canada", Location = "Toronto",
+                    Company = companies[1], Product = products[1], CertificationType = certTypes[0] },
 
                 // 3 certificates published last month
                 new Certificate { Id = 16, Number = "CERT-016", Status = "Active", CompanyId = 1, ProductId = 1, CertificationTypeId = 1,
-                    EffectiveDate = lastMonth.AddDays(5), ExpirationDate = now.AddYears(1), Country = "USA", Location = "New York" },
+                    EffectiveDate = lastMonth.AddDays(5), ExpirationDate = now.AddYears(1), Country = "USA", Location = "New York", CreatedAt = lastMonth.AddDays(5),
+                    Company = companies[0], Product = products[0], CertificationType = certTypes[0] },
                 new Certificate { Id = 17, Number = "CERT-017", Status = "Active", CompanyId = 2, ProductId = 2, CertificationTypeId = 2,
-                    EffectiveDate = lastMonth.AddDays(10), ExpirationDate = now.AddYears(1), Country = "Canada", Location = "Toronto" },
+                    EffectiveDate = lastMonth.AddDays(10), ExpirationDate = now.AddYears(1), Country = "Canada", Location = "Toronto", CreatedAt = lastMonth.AddDays(10),
+                    Company = companies[1], Product = products[1], CertificationType = certTypes[1] },
                 new Certificate { Id = 18, Number = "CERT-018", Status = "Active", CompanyId = 3, ProductId = 3, CertificationTypeId = 1,
-                    EffectiveDate = lastMonth.AddDays(15), ExpirationDate = now.AddYears(1), Country = "USA", Location = "Chicago" },
+                    EffectiveDate = lastMonth.AddDays(15), ExpirationDate = now.AddYears(1), Country = "USA", Location = "Chicago", CreatedAt = lastMonth.AddDays(15),
+                    Company = companies[2], Product = products[2], CertificationType = certTypes[0] },
 
                 // 2 expired certificates
                 new Certificate { Id = 19, Number = "CERT-019", Status = "Expired", CompanyId = 1, ProductId = 1, CertificationTypeId = 1,
-                    EffectiveDate = now.AddYears(-2), ExpirationDate = now.AddDays(-30), Country = "USA", Location = "New York" },
+                    EffectiveDate = now.AddYears(-2), ExpirationDate = now.AddDays(-30), Country = "USA", Location = "New York",
+                    Company = companies[0], Product = products[0], CertificationType = certTypes[0] },
                 new Certificate { Id = 20, Number = "CERT-020", Status = "Expired", CompanyId = 2, ProductId = 2, CertificationTypeId = 2,
-                    EffectiveDate = now.AddYears(-2), ExpirationDate = now.AddDays(-60), Country = "Canada", Location = "Toronto" }
+                    EffectiveDate = now.AddYears(-2), ExpirationDate = now.AddDays(-60), Country = "Canada", Location = "Toronto",
+                    Company = companies[1], Product = products[1], CertificationType = certTypes[1] }
             };
 
             _context.Certificates.AddRange(certificates);

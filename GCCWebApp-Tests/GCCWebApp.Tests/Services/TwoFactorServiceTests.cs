@@ -7,14 +7,6 @@ using GCCWebApp.Services;
 
 namespace GCCWebApp.Tests.Services
 {
-    // Define TwoFactorData class for testing since it's in EnhancedTwoFactorService
-    public class TwoFactorData
-    {
-        public string Code { get; set; } = string.Empty;
-        public DateTime CreatedAt { get; set; }
-        public int Attempts { get; set; }
-    }
-    
     public class TwoFactorServiceTests
     {
         private readonly Mock<ILogger<TwoFactorService>> _loggerMock;
@@ -212,8 +204,7 @@ namespace GCCWebApp.Tests.Services
             var cacheOptions = new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5),
-                Priority = CacheItemPriority.High,
-                Size = 1
+                Priority = CacheItemPriority.High
             };
             _memoryCache.Set(cacheKey, expiredData, cacheOptions);
 

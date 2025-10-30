@@ -1,14 +1,22 @@
 @{
-    ViewData["Title"] = "Certificate Tile View";
+    ViewData["Title"] = "Certificate Management";
     Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-external-show role-analyst-show role-admin-show">
+        <a href="/">Home</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Certificate Management</span>
+    </span>
 }
 <link rel="stylesheet" href="~/css/certificatetileview.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     /* Fix for the Actions column white block */
     .certificates-table th.actions-column {
-        min-width: 140px !important;
-        width: 140px !important;
+        min-width: 160px !important;
+        width: 160px !important;
         background: #f8f9fa !important;
         text-align: center;
         padding: 12px 8px;
@@ -101,32 +109,7 @@
         margin-right: 5px;
     }
 
-    /* Button styling to ensure visibility */
-    .btn {
-        padding: 8px 16px;
-        border-radius: 6px;
-        font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
-        font-size: 16px;
-        font-weight: 500;
-        cursor: pointer;
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        transition: all 0.2s;
-        border: none;
-        text-decoration: none;
-    }
-
-    .btn-primary {
-        background-color: #00AEEF;
-        color: white;
-    }
-
-    .btn-primary:hover {
-        background-color: #0095d8;
-    }
-
-    /* Action button styling - External users have limited actions (no edit) */
+    /* Action button styling - Download and View only */
     .action-icon.download {
         color: #28a745;
     }
@@ -182,33 +165,25 @@
         background-color: #d1ecf1;
     }
 
-    /* Edit button styles - for layout consistency (external users don't see edit buttons) */
-    .action-icon.edit {
-        color: #007bff;
-    }
-
-    .action-icon.edit:hover {
-        color: #0056b3;
-        background-color: #e3f2fd;
-    }
-
-    .action-btn.edit,
-    .action-btn.edit-btn {
-        color: #007bff;
-    }
-
-    .action-btn.edit:hover,
-    .action-btn.edit-btn:hover {
-        color: #0056b3;
-        background-color: #e3f2fd;
-    }
-
     /* Action buttons container in grid */
     .action-buttons {
         display: flex;
         align-items: center;
         justify-content: center;
         gap: 4px;
+    }
+
+    /* Hierarchical filter indentation */
+    .filter-item.filter-level-1 {
+        padding-left: 0;
+    }
+
+    .filter-item.filter-level-2 {
+        padding-left: 20px;
+    }
+
+    .filter-item.filter-level-3 {
+        padding-left: 40px;
     }
 
     /* Loading indicator styles for lazy loading */
@@ -338,79 +313,6 @@
         pointer-events: none;
     }
 
-    /* Hide add certificate button and edit icons for external users */
-    .btn.btn-add,
-    .action-icon.edit {
-        display: none !important;
-    }
-
-    /* Ensure filter item alignment consistency - only override what's necessary */
-    .filter-item label {
-        display: flex !important;
-        align-items: center !important;
-    }
-
-    .filter-item label:hover {
-        color: #00AEEF;
-    }
-
-    .filter-item input[type="checkbox"] {
-        margin-right: 8px !important;
-        accent-color: #00AEEF;
-        width: 16px;
-        height: 16px;
-        flex-shrink: 0;
-    }
-
-    /* Fix product name width for external view */
-    .certificate-card .product-name {
-        max-width: 100% !important;
-        width: 100% !important;
-        word-wrap: break-word !important;
-        word-break: break-word !important;
-        white-space: normal !important;
-    }
-
-    /* Ensure main content layout consistency */
-    .main-content {
-        flex: 1;
-        padding: 20px;
-    }
-
-    /* Ensure proper certificate grid display */
-    .certificates-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-        gap: 20px;
-        margin-top: 20px;
-    }
-
-    /* Responsive width for main container - expand on larger screens */
-    @@media (min-width: 1400px) {
-        .main-container {
-            max-width: 100%;
-        }
-    }
-
-    /* Full width for table view to utilize screen space */
-    #tableView {
-        width: 100%;
-    }
-
-    /* Ensure table view is properly hidden by default */
-    #tableView {
-        display: none;
-    }
-
-    /* Full width table view */
-    .main-content {
-        flex: 1;
-        padding: 20px;
-        min-width: 0;
-        width: 100%;
-        max-width: 100vw; /* Allow full viewport width */
-    }
-
     /* Table scroll wrapper - full width with horizontal scroll */
     .table-scroll-wrapper {
         width: 100%;
@@ -461,12 +363,12 @@
         width: max-content;
     }
 
-    /* Grid layout for table - External view (no Internal Tag column) */
+    /* Grid layout for table - External view (no Internal Tag column, 2 action buttons) */
     .table-grid {
         display: grid;
         grid-template-columns:
             40px      /* Select checkbox */
-            100px     /* Actions (no edit button) */
+            160px     /* Actions (Download + View) */
             120px     /* Certificate # */
             180px     /* Certification Type */
             150px     /* CSF Attributes */
@@ -575,7 +477,7 @@
 </style>
 
 <!-- Main Container -->
-<div class="main-container" style="max-width: 100%; width: 100%;">
+<div class="main-container" style="width: 100%;">
     <!-- Sidebar (Filters) -->
     <div class="sidebar">
         <button class="mobile-filter-toggle" style="display: none;">
@@ -621,350 +523,6 @@
                     <!-- Product categories will be dynamically populated from the database via JavaScript -->
                     <li class="filter-item">
                         <span style="color: #999; font-style: italic;">Loading categories...</span>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="plastics">
-                            Plastics
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-3">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="hdpe">
-                            HDPE
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-3">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="ldpe">
-                            LDPE
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-3">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="lldpe">
-                            LLDPE
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-3">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="pet">
-                            PET
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-3">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="pp">
-                            PP
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-3">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="pvc">
-                            PVC
-                        </label>
-                    </li>
-
-                    <!-- Clothing, Apparel, and Fabrics -->
-                    <li class="filter-item filter-level-1">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="clothing-apparel-fabrics">
-                            Clothing, Apparel, and Fabrics
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="apparel">
-                            Apparel
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="bags-accessories">
-                            Bags and Accessories
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="jewelry">
-                            Jewelry
-                        </label>
-                    </li>
-
-                    <!-- Construction / Building Products -->
-                    <li class="filter-item filter-level-1">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="construction-building">
-                            Construction / Building Products
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="adhesives-sealants">
-                            Adhesives and Sealants
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="ceramics-tile">
-                            Ceramics and Tile
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="coatings">
-                            Coatings
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="concrete-materials">
-                            Concrete and Concrete Materials
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="doors-hardware">
-                            Doors, Door Hardware, and Accessories
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="fiberglass-mats">
-                            Fiberglass Mats
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="flooring">
-                            Flooring
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="grout-mortar">
-                            Grout and Mortar
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="hvac">
-                            HVAC
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="insulation">
-                            Insulation
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="moisture-control">
-                            Moisture Control
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="plumbing-accessories">
-                            Plumbing and Accessories
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="roofing">
-                            Roofing
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="wallcoverings">
-                            Wallcoverings and Interior Wall Finishes
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="windows-accessories">
-                            Windows, Parts, and Accessories
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="wiring-cable">
-                            Wiring and Cable
-                        </label>
-                    </li>
-
-                    <!-- Consumer Products -->
-                    <li class="filter-item filter-level-1">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="consumer-products">
-                            Consumer Products
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="appliances">
-                            Appliances
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="baby-products">
-                            Baby Products
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="cleaning-supplies">
-                            Cleaning Supplies
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="furniture">
-                            Furniture
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="health-beauty">
-                            Health and Beauty
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="home-goods">
-                            Home Goods
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="office-supplies">
-                            Office Supplies (non-electronic)
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="ppe">
-                            Personal Protective Equipment
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="pet-products">
-                            Pet Products
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="security">
-                            Security
-                        </label>
-                    </li>
-
-                    <!-- Electronics, Computers, and Accessories -->
-                    <li class="filter-item filter-level-1">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="electronics">
-                            Electronics, Computers, and Accessories
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="card-reader">
-                            Card Reader
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="electronic-accessories">
-                            Electronic Accessories
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="microelectronics">
-                            Microelectronics
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="printers-cartridges">
-                            Printers and Printer Cartridges
-                        </label>
-                    </li>
-
-                    <!-- Food and Beverage -->
-                    <li class="filter-item filter-level-1">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="food-beverage">
-                            Food and Beverage
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="animal-products">
-                            Animal Products
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="beverages">
-                            Beverages
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="food">
-                            Food
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="fragrance-flavor">
-                            Fragrance and Flavor
-                        </label>
-                    </li>
-
-                    <!-- Healthcare and Pharmaceutical -->
-                    <li class="filter-item filter-level-1">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="healthcare-pharmaceutical">
-                            Healthcare and Pharmaceutical
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="medical-devices">
-                            Medical Devices
-                        </label>
-                    </li>
-
-                    <!-- Packaging -->
-                    <li class="filter-item filter-level-1">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="packaging">
-                            Packaging
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="paper">
-                            Paper
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="plastic-packaging">
-                            Plastic
-                        </label>
-                    </li>
-                    <li class="filter-item filter-level-2">
-                        <label>
-                            <input type="checkbox" name="product-cat" value="other-packaging">
-                            Other
-                        </label>
                     </li>
                 </ul>
             </div>
@@ -1141,11 +699,10 @@
         <div class="results-controls">
             <div class="left-controls">
                 <div class="export-options">
-                    <!-- External users can export and download selected certificates but cannot add certificates -->
                     <button class="btn btn-primary" id="downloadSelectedBtn" disabled title="Select certificates in table view to download">
                         <i class="fas fa-download"></i> Download Selected
                     </button>
-                    <button id="exportAllBtn" class="btn btn-primary">
+                    <button class="btn btn-primary" id="exportAllBtn">
                         <i class="fas fa-file-excel"></i> Export All to Excel
                     </button>
                 </div>
@@ -1195,7 +752,7 @@
                             <div class="grid-header-cell select-cell">
                                 <input type="checkbox" id="selectAll" title="Select all visible rows">
                             </div>
-                            <div class="grid-header-cell actions-column" style="min-width: 140px;">
+                            <div class="grid-header-cell actions-column" style="min-width: 160px;">
                                 Actions
                             </div>
                             <div class="grid-header-cell" data-sort-column="certificate">
@@ -1258,7 +815,7 @@
                                 External Tag
                                 <i class="fas fa-sort sort-indicator"></i>
                             </div>
-                            <!-- Internal Tag column removed for External users -->
+                            <!-- Internal Tag column omitted for External users -->
                             <div class="grid-header-cell" data-sort-column="asin">
                                 ASIN
                                 <i class="fas fa-sort sort-indicator"></i>

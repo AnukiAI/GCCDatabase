@@ -53,13 +53,9 @@ namespace GCCWebApp.Tests
             // Act
             var response = await _client.GetAsync($"/Certificate/Certificates?searchTerm={Uri.EscapeDataString(maliciousInput)}");
 
-            // Assert
-            response.StatusCode.Should().NotBe(HttpStatusCode.InternalServerError);
-            response.IsSuccessStatusCode.Should().BeTrue();
-            
-            var content = await response.Content.ReadAsStringAsync();
-            content.Should().NotContain("SQL");
-            content.Should().NotContain("error");
+            // Assert - Security middleware should block SQL injection attempts with BadRequest
+            response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
+                "malicious SQL injection attempts should be blocked by security middleware");
         }
 
         [Theory]
@@ -72,14 +68,9 @@ namespace GCCWebApp.Tests
             // Act
             var response = await _client.GetAsync($"/Certificate/Certificates?searchTerm={Uri.EscapeDataString(maliciousInput)}");
 
-            // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
-            
-            var content = await response.Content.ReadAsStringAsync();
-            content.Should().NotContain("<script>");
-            content.Should().NotContain("javascript:");
-            content.Should().NotContain("onerror=");
-            content.Should().NotContain("onload=");
+            // Assert - Security middleware should block XSS attempts with BadRequest
+            response.StatusCode.Should().Be(HttpStatusCode.BadRequest,
+                "malicious XSS attempts should be blocked by security middleware");
         }
 
         #endregion

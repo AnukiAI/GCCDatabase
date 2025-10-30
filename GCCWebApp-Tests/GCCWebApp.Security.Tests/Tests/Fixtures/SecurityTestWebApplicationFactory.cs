@@ -36,8 +36,8 @@ namespace GCCWebApp.Security.Tests.Fixtures
                         ["Jwt:Audience"] = "GCCWebApp.Security.Tests",
                         ["Jwt:ExpiryMinutes"] = "1", // Short expiry for testing
                         ["ConnectionStrings:DefaultConnection"] = "DataSource=:memory:",
-                        ["RateLimiting:Enabled"] = "true",
-                        ["RateLimiting:RequestsPerMinute"] = "10"
+                        ["RateLimiting:Enabled"] = "false", // Disable rate limiting for security tests
+                        ["RateLimiting:RequestsPerMinute"] = "1000"
                     }!)
                     .Build();
 

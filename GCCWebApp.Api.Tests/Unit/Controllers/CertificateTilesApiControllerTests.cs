@@ -4,6 +4,7 @@ using Moq;
 using Xunit;
 using FluentAssertions;
 using GCCWebApp.Controllers.Api;
+using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Repositories;
 using GCCWebApp.Services;
@@ -17,6 +18,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
         private readonly Mock<ICertificateRepository> _certificateRepositoryMock;
         private readonly Mock<IUnitOfWork> _unitOfWorkMock;
         private readonly Mock<ICertificatePdfService> _pdfServiceMock;
+        private readonly ApplicationDbContext _context;
         private readonly CertificateTilesApiController _controller;
 
         public CertificateTilesApiControllerTests()
@@ -26,16 +28,20 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             _unitOfWorkMock = new Mock<IUnitOfWork>();
             _pdfServiceMock = new Mock<ICertificatePdfService>();
 
+            // Create in-memory database for testing
+            _context = TestDbContextFactory.CreateInMemoryContext();
+
             _controller = new CertificateTilesApiController(
                 _loggerMock.Object,
                 _certificateRepositoryMock.Object,
                 _unitOfWorkMock.Object,
-                _pdfServiceMock.Object);
+                _pdfServiceMock.Object,
+                _context);
         }
 
         public void Dispose()
         {
-            // Cleanup if needed
+            _context?.Dispose();
         }
 
         [Fact]

@@ -118,6 +118,33 @@ AzureAdB2C__ClientId=[client-id]
 - Apply to: Tags, Users, Products, Companies, Certificate Types, Certificate Fields
 - Use `ExportUtils.exportToCSV()` directly, NOT `ExportUtils.showExportModal()`
 
+### External User Data Filtering ✅ **NEW**
+- **REQUIREMENT**: External role users see ONLY their associated data
+- **Product Management Page** (`/Product/Management`):
+  - External users with **Companies**: Show products where `Product.CompanyId` matches user's company IDs
+  - External users with **Partners**: Show products with certificates where `Certificate.Partner` matches user's partner names
+  - External users with **BOTH**: Show products matching EITHER company OR partner (OR logic)
+  - External users with **NEITHER**: Show no products (empty result)
+- **Implementation**: `ProductController.cs` lines 426-444 (helper method), lines 114-157 (GetProducts filtering)
+- **User Association**: Many-to-many relationships
+  - `User.Companies` collection (ICollection<Company>)
+  - `User.Partners` collection (ICollection<Partner>)
+- **Partner Matching**: Certificate Partner field values: "Amazon", "Wayfair", "None"
+- **Admin/Analyst**: No filtering - see all products regardless of associations
+
+### External User Access Restrictions ✅
+- **REQUIREMENT**: External role users have restricted access to sensitive fields and operations
+- **Internal Tags**:
+  - External users **CANNOT view** internal tags on certificates
+  - External users **CANNOT add or edit** internal tags
+  - Internal Tag column hidden in External Certificate Tile View table
+  - Admin/Analyst users have full access to internal tags
+- **Add/Edit Operations**:
+  - "Add Certificate" button hidden for External users (CSS: `display: none`)
+  - Edit action buttons hidden in certificate views for External users
+  - External users can only view and download certificates they have access to
+- **Implementation**: Role-based UI hiding via CSS classes and backend authorization checks
+
 ### Two-Factor Authentication Admin Management ⚠️ REQUIRED
 - **PRIORITY: HIGH** - Admins help users locked out by 2FA
 - Admin can view 2FA status, reset 2FA, disable 2FA
@@ -419,6 +446,7 @@ pwsh playwright.ps1 install
 - **Constraints**: Admin user/role cannot be deleted, Phase 1 has no partner branding
 - Do not include icons in text
 - External Users ≠ Analyst/Admin permissions. Admin has CRUD Roles. Analyst has read/write but NO Admin page access.
+- **Product Management Actions Column**: Actions column (Edit/Delete buttons) only visible to Admin and Analyst roles. External users see NO Actions column to avoid confusing empty column.
 - Stop making random changes unrelated to the defect
 - Ask followup questions for clarity and focus on the issue
 - Review requirements and current design, determine exact change, include what changes will be made for quality check

@@ -112,11 +112,15 @@ namespace GCCWebApp.Tests.Controllers
         private void SetupMockSession()
         {
             var mockSession = new Mock<ISession>();
-            mockSession.Setup(x => x.GetString("UserRole")).Returns("Admin");
-            
+
+            // Mock TryGetValue instead of GetString (extension method)
+            byte[]? roleBytes = Encoding.UTF8.GetBytes("Admin");
+            mockSession.Setup(x => x.TryGetValue("UserRole", out roleBytes))
+                .Returns(true);
+
             var mockHttpContext = new Mock<HttpContext>();
             mockHttpContext.Setup(x => x.Session).Returns(mockSession.Object);
-            
+
             _controller.ControllerContext = new ControllerContext()
             {
                 HttpContext = mockHttpContext.Object
@@ -317,11 +321,15 @@ namespace GCCWebApp.Tests.Controllers
         {
             // Arrange
             var mockSession = new Mock<ISession>();
-            mockSession.Setup(x => x.GetString("UserRole")).Returns("User"); // Non-admin role
-            
+
+            // Mock TryGetValue instead of GetString (extension method)
+            byte[]? roleBytes = Encoding.UTF8.GetBytes("User"); // Non-admin role
+            mockSession.Setup(x => x.TryGetValue("UserRole", out roleBytes))
+                .Returns(true);
+
             var mockHttpContext = new Mock<HttpContext>();
             mockHttpContext.Setup(x => x.Session).Returns(mockSession.Object);
-            
+
             _controller.ControllerContext.HttpContext = mockHttpContext.Object;
 
             // Act
@@ -462,22 +470,26 @@ namespace GCCWebApp.Tests.Controllers
         {
             // Arrange
             var mockSession = new Mock<ISession>();
-            mockSession.Setup(x => x.GetString("UserRole")).Returns("User"); // Not Analyst or Admin
-            
+
+            // Mock TryGetValue instead of GetString (extension method)
+            byte[]? roleBytes = Encoding.UTF8.GetBytes("User"); // Not Analyst or Admin
+            mockSession.Setup(x => x.TryGetValue("UserRole", out roleBytes))
+                .Returns(true);
+
             var mockHttpContext = new Mock<HttpContext>();
             mockHttpContext.Setup(x => x.Session).Returns(mockSession.Object);
-            
+
             _controller.ControllerContext.HttpContext = mockHttpContext.Object;
 
             // This test would need proper authorization setup to work fully
             // For now, we're testing the helper method logic
             var document = new CertificateDocument { IsPublic = false };
-            
+
             // Use reflection to test private method
-            var method = typeof(DocumentController).GetMethod("CanUserAccessDocument", 
+            var method = typeof(DocumentController).GetMethod("CanUserAccessDocument",
                 System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var canAccess = (bool)method!.Invoke(_controller, new object[] { document })!;
-            
+
             canAccess.Should().BeFalse();
         }
 

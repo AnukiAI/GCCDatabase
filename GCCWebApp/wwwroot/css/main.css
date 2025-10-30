@@ -2208,7 +2208,13 @@ body.theme-option4 .certificate-single-card .card-body {
 
 /* ===== 19. ROLE-BASED VISIBILITY SYSTEM ===== */
 .role-element {
-    display: none;
+    display: none !important;
+}
+
+/* Explicitly hide analyst/admin elements for external users */
+.role-external .role-analyst-show,
+.role-external .role-admin-show {
+    display: none !important;
 }
 
 .role-public .role-public-show {
@@ -2256,6 +2262,35 @@ body.theme-option4 .certificate-single-card .card-body {
 .role-analyst .role-analyst-show.nav-item,
 .role-admin .role-admin-show.nav-item {
     display: list-item;
+}
+
+/* Override for table cells and headers */
+.role-public .role-public-show.actions-cell,
+.role-public .role-public-show.actions-col,
+.role-public th.role-public-show,
+.role-public td.role-public-show {
+    display: table-cell !important;
+}
+
+.role-external .role-external-show.actions-cell,
+.role-external .role-external-show.actions-col,
+.role-external th.role-external-show,
+.role-external td.role-external-show {
+    display: table-cell !important;
+}
+
+.role-analyst .role-analyst-show.actions-cell,
+.role-analyst .role-analyst-show.actions-col,
+.role-analyst th.role-analyst-show,
+.role-analyst td.role-analyst-show {
+    display: table-cell !important;
+}
+
+.role-admin .role-admin-show.actions-cell,
+.role-admin .role-admin-show.actions-col,
+.role-admin th.role-admin-show,
+.role-admin td.role-admin-show {
+    display: table-cell !important;
 }
 
 /* Maintain nav bar formatting for public users with no visible items */

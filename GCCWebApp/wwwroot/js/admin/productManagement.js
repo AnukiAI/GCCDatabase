@@ -182,7 +182,7 @@ class ProductManagement {
 
             // Actions cell
             const actionsCell = document.createElement('td');
-            actionsCell.className = 'actions-cell';
+            actionsCell.className = 'actions-cell role-element role-analyst-show role-admin-show';
             actionsCell.setAttribute('data-label', 'Actions');
             
             if (this.currentEditingId === product.id) {

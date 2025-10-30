@@ -81,8 +81,8 @@ public class SecurityHeadersMiddleware
         // X-Content-Type-Options
         response.Headers.Append("X-Content-Type-Options", "nosniff");
 
-        // X-XSS-Protection
-        response.Headers.Append("X-XSS-Protection", "1; mode=block");
+        // X-XSS-Protection (modern approach: disable and rely on CSP)
+        response.Headers.Append("X-XSS-Protection", "0");
 
         // Referrer Policy
         response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
@@ -104,9 +104,11 @@ public class SecurityHeadersMiddleware
         // Cross-Origin Opener Policy
         response.Headers.Append("Cross-Origin-Opener-Policy", "same-origin");
 
-        // Server header removal
+        // X-Permitted-Cross-Domain-Policies
+        response.Headers.Append("X-Permitted-Cross-Domain-Policies", "none");
+
+        // Server header removal (completely remove for security)
         response.Headers.Remove("Server");
-        response.Headers.Append("Server", "GCC-WebApp");
 
         // X-Powered-By header removal (if exists)
         response.Headers.Remove("X-Powered-By");

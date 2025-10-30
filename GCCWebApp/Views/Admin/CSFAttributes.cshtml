@@ -23,7 +23,6 @@
     <header class="admin-header">
         <div class="admin-header-content">
             <div class="admin-title-section">
-                <p class="admin-page-subtitle">Manage certification-specific field attributes and validation</p>
             </div>
             <div class="admin-actions-section">
                 <div class="admin-button-group">
@@ -40,16 +39,8 @@
 
     <div class="search-filter-bar">
         <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search CSF attributes...">
+            <input type="text" id="search-input" placeholder="Search">
             <i class="fas fa-search search-icon"></i>
-        </div>
-        <div class="filters">
-            <select id="certification-filter" class="filter-select">
-                <option value="all">All Certifications</option>
-                <option value="greenguard">GREENGUARD</option>
-                <option value="greenguard-gold">GREENGUARD Gold</option>
-                <option value="cradle-to-cradle">Cradle to Cradle</option>
-            </select>
         </div>
     </div>
 
@@ -57,10 +48,9 @@
         <table id="csf-table">
             <thead>
                 <tr>
-                    <th width="25%" data-sort="name">Attribute Name <span class="sort-icon">▼</span></th>
-                    <th width="20%" data-sort="certification">Certification Type <span class="sort-icon">▼</span></th>
-                    <th width="15%" data-sort="type">Data Type <span class="sort-icon">▼</span></th>
-                    <th width="30%" data-sort="description">Description <span class="sort-icon">▼</span></th>
+                    <th width="30%" data-sort="name">Attribute Name <span class="sort-icon">▼</span></th>
+                    <th width="50%" data-sort="description">Description <span class="sort-icon">▼</span></th>
+                    <th width="10%" data-sort="isActive">Active <span class="sort-icon">▼</span></th>
                     <th width="10%" class="actions-col">Actions</th>
                 </tr>
             </thead>
@@ -71,26 +61,10 @@
                         <input type="text" id="new-csf-name" class="csf-edit-input" placeholder="Enter attribute name" required>
                     </td>
                     <td>
-                        <select id="new-csf-certification" class="csf-edit-select" required>
-                            <option value="">Select certification</option>
-                            <option value="greenguard">GREENGUARD</option>
-                            <option value="greenguard-gold">GREENGUARD Gold</option>
-                            <option value="cradle-to-cradle">Cradle to Cradle</option>
-                            <option value="energy-star">ENERGY STAR</option>
-                        </select>
+                        <input type="text" id="new-csf-description" class="csf-edit-input" placeholder="Enter description">
                     </td>
                     <td>
-                        <select id="new-csf-type" class="csf-edit-select" required>
-                            <option value="">Select type</option>
-                            <option value="text">Text</option>
-                            <option value="number">Number</option>
-                            <option value="boolean">Boolean</option>
-                            <option value="date">Date</option>
-                            <option value="dropdown">Dropdown</option>
-                        </select>
-                    </td>
-                    <td>
-                        <input type="text" id="new-csf-description" class="csf-edit-input" placeholder="Optional description">
+                        <input type="checkbox" id="new-csf-active" checked>
                     </td>
                     <td>
                         <div class="csf-add-actions" style="display: flex; gap: 5px;">

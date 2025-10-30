@@ -496,8 +496,20 @@ if (!app.Environment.IsDevelopment())
     app.UseIpRateLimiting();
 }
 
-// Static files
-app.UseStaticFiles();
+// Static files with cache control headers
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Cache static files for 7 days in production, 0 in development
+        // asp-append-version will handle cache busting when files change
+        var cacheDuration = app.Environment.IsProduction() ? 604800 : 0;
+        ctx.Context.Response.Headers.Append("Cache-Control", $"public,max-age={cacheDuration}");
+
+        // Add ETag for better caching validation
+        ctx.Context.Response.Headers.Append("ETag", $"\"{DateTime.UtcNow.Ticks}\"");
+    }
+});
 
 // Routing
 app.UseRouting();

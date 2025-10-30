@@ -33,17 +33,17 @@ async function loadCSFAttributes() {
             csfAttributes = result.data.map(attr => ({
                 id: attr.id.toString(),
                 name: attr.name,
-                certification: 'greenguard', // Default certification type
-                type: 'text', // Default type
                 description: attr.description || '',
-                required: false
+                isActive: attr.isActive
             }));
             populateTable(csfAttributes);
         } else {
             console.error('Failed to load CSF attributes:', result.message);
+            AdminCore.showNotification('Failed to load CSF attributes', 'error');
         }
     } catch (error) {
         console.error('Error loading CSF attributes:', error);
+        AdminCore.showNotification('Error loading CSF attributes: ' + error.message, 'error');
     }
 }
 
@@ -61,7 +61,6 @@ function initializeElements() {
     csfTableBody = csfTable.querySelector('tbody');
     csfCountElement = document.getElementById('csf-count');
     searchInput = document.getElementById('search-input');
-    certificationFilter = document.getElementById('certification-filter');
     addCsfBtn = document.getElementById('add-csf-btn');
     exportBtn = document.getElementById('export-btn');
     modal = document.getElementById('csf-modal');
@@ -76,43 +75,42 @@ function initializeEventListeners() {
     addCsfBtn.addEventListener('click', showAddCsfRow);
     exportBtn.addEventListener('click', exportCSV);
     searchInput.addEventListener('input', () => filterAndSort());
-    certificationFilter.addEventListener('change', () => filterAndSort());
 }
 
 // Function to populate the table
 function populateTable(data) {
+    // Clear existing rows except the add row
+    const addRow = document.getElementById('csf-add-row');
     csfTableBody.innerHTML = '';
-    
+    if (addRow) {
+        csfTableBody.appendChild(addRow);
+    }
+
     data.forEach(attribute => {
         const row = document.createElement('tr');
         row.setAttribute('data-id', attribute.id);
-        
+
         // Attribute Name
         const nameCell = document.createElement('td');
         nameCell.textContent = attribute.name;
-        if (attribute.required) {
-            nameCell.innerHTML += ' <span style="color: red;">*</span>';
-        }
         row.appendChild(nameCell);
-        
-        // Certification Type
-        const certCell = document.createElement('td');
-        certCell.textContent = formatCertification(attribute.certification);
-        row.appendChild(certCell);
-        
-        // Data Type
-        const typeCell = document.createElement('td');
-        typeCell.textContent = capitalizeFirst(attribute.type);
-        row.appendChild(typeCell);
-        
+
         // Description
         const descCell = document.createElement('td');
         descCell.textContent = attribute.description || '-';
         row.appendChild(descCell);
-        
+
+        // Active Status
+        const activeCell = document.createElement('td');
+        const activeIcon = attribute.isActive ?
+            '<i class="fas fa-check-circle" style="color: #92C83E;"></i>' :
+            '<i class="fas fa-times-circle" style="color: #FF5252;"></i>';
+        activeCell.innerHTML = activeIcon;
+        row.appendChild(activeCell);
+
         // Actions
         const actionsCell = document.createElement('td');
-        
+
         // Edit button
         const editButton = document.createElement('button');
         editButton.className = 'btn-edit';
@@ -120,7 +118,7 @@ function populateTable(data) {
         editButton.title = 'Edit';
         editButton.addEventListener('click', () => editCSF(attribute.id));
         actionsCell.appendChild(editButton);
-        
+
         // Delete button
         const deleteButton = document.createElement('button');
         deleteButton.className = 'btn-delete';
@@ -128,11 +126,11 @@ function populateTable(data) {
         deleteButton.title = 'Delete';
         deleteButton.addEventListener('click', () => deleteCSF(attribute.id));
         actionsCell.appendChild(deleteButton);
-        
+
         row.appendChild(actionsCell);
         csfTableBody.appendChild(row);
     });
-    
+
     // Update count
     const totalCount = csfAttributes.length;
     const visibleCount = data.length;
@@ -196,34 +194,28 @@ function initializeSortableHeaders() {
 // Filter and sort data
 function filterAndSort() {
     let filteredData = [...csfAttributes];
-    
+
     // Apply search filter
     const searchTerm = searchInput.value.toLowerCase();
     if (searchTerm) {
-        filteredData = filteredData.filter(attr => 
+        filteredData = filteredData.filter(attr =>
             attr.name.toLowerCase().includes(searchTerm) ||
-            attr.description.toLowerCase().includes(searchTerm)
+            (attr.description && attr.description.toLowerCase().includes(searchTerm))
         );
     }
-    
-    // Apply certification filter
-    const certFilter = certificationFilter.value;
-    if (certFilter !== 'all') {
-        filteredData = filteredData.filter(attr => attr.certification === certFilter);
-    }
-    
+
     // Sort data
     filteredData.sort((a, b) => {
-        let valueA = a[sortColumn] ? a[sortColumn].toString().toLowerCase() : '';
-        let valueB = b[sortColumn] ? b[sortColumn].toString().toLowerCase() : '';
-        
+        let valueA = a[sortColumn] !== undefined && a[sortColumn] !== null ? a[sortColumn].toString().toLowerCase() : '';
+        let valueB = b[sortColumn] !== undefined && b[sortColumn] !== null ? b[sortColumn].toString().toLowerCase() : '';
+
         if (sortDirection === 'asc') {
             return valueA.localeCompare(valueB);
         } else {
             return valueB.localeCompare(valueA);
         }
     });
-    
+
     populateTable(filteredData);
 }
 
@@ -311,33 +303,31 @@ async function deleteCSF(id) {
 
 // Export to CSV
 function exportCSV() {
-    const headers = ['Attribute Name', 'Certification Type', 'Data Type', 'Description', 'Required'];
+    const headers = ['Attribute Name', 'Description', 'Active'];
     const rows = csfAttributes.map(attr => [
         attr.name,
-        formatCertification(attr.certification),
-        capitalizeFirst(attr.type),
         attr.description || '',
-        attr.required ? 'Yes' : 'No'
+        attr.isActive ? 'Yes' : 'No'
     ]);
-    
+
     const csvContent = [
         headers.join(','),
         ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
     ].join('\n');
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    
+
     link.setAttribute('href', url);
-    link.setAttribute('download', 'csf_attributes.csv');
+    link.setAttribute('download', `csf_attributes_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
-    showToast('CSF attributes exported successfully');
+
+    AdminCore.showNotification('CSF attributes exported successfully', 'success');
 }
 
 // Show toast notification
@@ -379,68 +369,66 @@ function showAddCsfRow() {
 
 function saveNewCsfAttribute() {
     const nameInput = document.getElementById('new-csf-name');
-    const certificationSelect = document.getElementById('new-csf-certification');
-    const typeSelect = document.getElementById('new-csf-type');
     const descriptionInput = document.getElementById('new-csf-description');
-    
+    const activeCheckbox = document.getElementById('new-csf-active');
+
     const formData = {
         'new-csf-name': nameInput ? nameInput.value.trim() : '',
-        'new-csf-certification': certificationSelect ? certificationSelect.value : '',
-        'new-csf-type': typeSelect ? typeSelect.value : '',
         'new-csf-description': descriptionInput ? descriptionInput.value.trim() : ''
     };
-    
+
     // Define validation rules
     const validationRules = {
         'new-csf-name': [
             'required',
             { type: 'length', params: FieldLimits.attributeName },
-            'alphanumeric',
             { type: 'unique', params: csfAttributes.map(attr => attr.name) }
         ],
-        'new-csf-certification': ['required'],
-        'new-csf-type': ['required'],
         'new-csf-description': [
             { type: 'length', params: FieldLimits.description }
         ]
     };
-    
+
     // Clear previous validation errors
-    clearValidationErrors();
-    
-    // Validate the form
-    const validation = validateForm(formData, validationRules);
-    
-    if (!validation.valid) {
-        showValidationErrors(validation.errors);
-        // Focus on first error field
-        const firstErrorField = document.getElementById(validation.errors[0].field);
-        if (firstErrorField) firstErrorField.focus();
-        return;
+    if (typeof clearValidationErrors === 'function') {
+        clearValidationErrors();
     }
-    
+
+    // Validate the form
+    if (typeof validateForm === 'function') {
+        const validation = validateForm(formData, validationRules);
+
+        if (!validation.valid) {
+            if (typeof showValidationErrors === 'function') {
+                showValidationErrors(validation.errors);
+            }
+            // Focus on first error field
+            const firstErrorField = document.getElementById(validation.errors[0].field);
+            if (firstErrorField) firstErrorField.focus();
+            return;
+        }
+    }
+
     // Generate new ID
     const newId = generateNewCsfId();
     const newAttribute = {
         id: newId,
         name: formData['new-csf-name'],
-        certification: formData['new-csf-certification'],
-        type: formData['new-csf-type'],
         description: formData['new-csf-description'],
-        required: false // Default to not required
+        isActive: activeCheckbox ? activeCheckbox.checked : true
     };
-    
+
     // Add to data
     csfAttributes.push(newAttribute);
-    
+
     // Clear form and hide row
     clearAddCsfForm();
     const addRow = document.getElementById('csf-add-row');
     if (addRow) addRow.classList.remove('active');
-    
+
     // Refresh table
     filterAndSort();
-    showToast('CSF attribute added successfully');
+    AdminCore.showNotification('CSF attribute added successfully', 'success');
 }
 
 function cancelAddCsfAttribute() {
@@ -451,14 +439,12 @@ function cancelAddCsfAttribute() {
 
 function clearAddCsfForm() {
     const nameInput = document.getElementById('new-csf-name');
-    const certificationSelect = document.getElementById('new-csf-certification');
-    const typeSelect = document.getElementById('new-csf-type');
     const descriptionInput = document.getElementById('new-csf-description');
-    
+    const activeCheckbox = document.getElementById('new-csf-active');
+
     if (nameInput) nameInput.value = '';
-    if (certificationSelect) certificationSelect.value = '';
-    if (typeSelect) typeSelect.value = '';
     if (descriptionInput) descriptionInput.value = '';
+    if (activeCheckbox) activeCheckbox.checked = true;
 }
 
 function generateNewCsfId() {

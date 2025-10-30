@@ -29,16 +29,16 @@
             <p class="subtitle"></p>
         </div>
         <div class="buttons-area">
-            <button id="template-btn" class="btn" onclick="downloadImportTemplate()" title="Download CSV template for bulk import">
+            <button id="template-btn" class="btn role-element role-analyst-show role-admin-show" onclick="downloadImportTemplate()" title="Download CSV template for bulk import">
                 <i class="fas fa-file-download"></i> Template
             </button>
-            <button id="import-btn" class="btn">
+            <button id="import-btn" class="btn role-element role-analyst-show role-admin-show">
                 <i class="fas fa-upload"></i> Import
             </button>
             <button id="export-btn" class="btn">
                 <i class="fas fa-download"></i> Export
             </button>
-            <button id="add-product-btn" class="btn btn-add">
+            <button id="add-product-btn" class="btn btn-add role-element role-analyst-show role-admin-show">
                 <i class="fas fa-plus"></i> Add New Product
             </button>
         </div>
@@ -101,7 +101,7 @@
                     <th width="10%" data-sort="status">Status <span class="sort-icon">▼</span></th>
                     <th width="10%" data-sort="certificates">Certificates <span class="sort-icon">▼</span></th>
                     <th width="10%" data-sort="identifiers">Identifiers <span class="sort-icon">▼</span></th>
-                    <th class="actions-col">Actions</th>
+                    <th width="15%" class="actions-col role-element role-analyst-show role-admin-show">Actions</th>
                 </tr>
             </thead>
             <tbody>
@@ -205,6 +205,7 @@
 </div>
 
 @section Scripts {
+    <script src="~/js/admin/admin-core.js"></script>
     <script>
         // Sample data for initial display
         let products = [
@@ -561,14 +562,11 @@
                             ` : ''}
                         </div>
                     </td>
-                    <td class="actions-cell" data-label="Actions">
-                        <button class="btn-edit" onclick="editProduct(${product.id})" title="Edit Product">
+                    <td class="actions-cell role-element role-analyst-show role-admin-show" data-label="Actions">
+                        <button class="btn-edit role-element role-analyst-show role-admin-show" onclick="editProduct(${product.id})" title="Edit Product">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn-view" onclick="viewProduct(${product.id})" title="View Details">
-                            <i class="fas fa-eye"></i>
-                        </button>
-                        <button class="btn-delete" onclick="deleteProduct(${product.id})" title="Delete Product">
+                        <button class="btn-delete role-element role-analyst-show role-admin-show" onclick="deleteProduct(${product.id})" title="Delete Product">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </td>
@@ -640,15 +638,20 @@
             productModal.style.display = 'block';
         }
 
-        function viewProduct(id) {
-            const product = products.find(p => p.id === id);
-            if (!product) return;
-            
-            alert(`Product Details:\n\nName: ${product.name}\nCompany: ${product.company}\nCategory: ${product.category}\nType: ${product.type}\nStatus: ${product.status}\nCertificates: ${product.certificates}\n\nDescription: ${product.description || 'N/A'}`);
-        }
 
         async function deleteProduct(id) {
-            if (confirm('Are you sure you want to delete this product?')) {
+            const product = products.find(p => p.id === id);
+            const productName = product ? product.name : 'this product';
+
+            const confirmed = await AdminCore.showConfirmation({
+                title: 'Delete Confirmation',
+                message: `Are you sure you want to delete "${productName}"? This action cannot be undone.`,
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                type: 'danger'
+            });
+
+            if (confirmed) {
                 try {
                     const response = await fetch(`/Product/DeleteProduct?id=${id}`, {
                         method: 'DELETE'
@@ -659,17 +662,16 @@
                         if (result.success) {
                             await loadProducts();
                             populateTable();
-                            showNotification(result.message || 'Product deleted successfully', 'success');
-                            showToast(result.message || 'Product deleted successfully');
+                            AdminCore.showNotification(result.message || 'Product deleted successfully', 'success');
                         } else {
-                            showToast(result.message || 'Error deleting product', 'error');
+                            AdminCore.showNotification(result.message || 'Error deleting product', 'error');
                         }
                     } else {
-                        showToast('Error deleting product', 'error');
+                        AdminCore.showNotification('Error deleting product', 'error');
                     }
                 } catch (error) {
                     console.error('Error deleting product:', error);
-                    showToast('Error deleting product', 'error');
+                    AdminCore.showNotification('Error deleting product', 'error');
                 }
             }
         }

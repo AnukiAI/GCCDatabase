@@ -370,6 +370,42 @@ The Dashboard includes three quick-action export buttons that generate CSV repor
 - Button Styling: `admin-btn admin-btn--secondary` or `btn` with file-download icon
 - Tooltip: "Download CSV template for bulk import"
 
+#### US-012: Product Management Role-Based Access
+**As a** System Administrator
+**I want to** restrict product management operations to Admin and Analyst roles only
+**So that** unauthorized users cannot modify product data
+
+**Acceptance Criteria:**
+- ✅ Edit button only visible to Admin and Analyst users
+- ✅ Delete button only visible to Admin and Analyst users
+- ✅ Add New Product button only visible to Admin and Analyst users
+- ✅ Template and Import buttons only visible to Admin and Analyst users
+- ✅ Export button visible to all authenticated users (read-only operation)
+- ✅ View button removed (redundant functionality - uses prohibited native alert())
+- ✅ Delete confirmation uses AdminCore.showConfirmation() modal (not native confirm())
+- ✅ Delete success/error uses AdminCore.showNotification() toast (not native alert())
+- ✅ All user feedback follows Master Design Guide (no native browser dialogs)
+- ✅ Actions column header hidden for External users (entire column visibility role-restricted)
+
+**Implementation Status:** ✅ COMPLETE (100% - 2025-10-29)
+- Location: `Views/Product/Management.cshtml`
+- Role Classes Applied:
+  - Header buttons (Template, Import, Add New): `role-element role-analyst-show role-admin-show`
+  - Table action buttons (Edit, Delete): `role-element role-analyst-show role-admin-show`
+  - Export button: Accessible to all (no role restriction)
+- Removed Components:
+  - View button with eye icon (`fas fa-eye`) - Lines 568-570 removed
+  - viewProduct() function using native alert() - Lines 643-648 removed
+- Enhanced Components:
+  - deleteProduct() now uses AdminCore.showConfirmation() for confirmation modal
+  - deleteProduct() now uses AdminCore.showNotification() for success/error feedback
+  - Added admin-core.js script reference for modal and toast functionality
+- Design Standards Compliance:
+  - ✅ No native alert(), confirm(), or prompt() dialogs
+  - ✅ BEFORE delete: Modal confirmation with danger type
+  - ✅ AFTER delete: Toast notification with success/error type
+  - ✅ Follows correct delete pattern per CLAUDE.md guidelines
+
 ### EPIC 5: API Integration
 
 #### US-010: RESTful API
@@ -822,6 +858,26 @@ CREATE TABLE Certificates (
 - [UAT Test Cases](MANUAL_UAT_TEST_CASES.md)
 
 ### Change Log
+- **2025-10-29 (Product Management Enhancement)**: **ROLE-BASED ACCESS & UI STANDARDS COMPLIANCE**
+  - ✅ **Product Management Role-Based Access Implemented** (US-012):
+    - Edit, Delete, Add New, Template, and Import buttons now restricted to Admin and Analyst roles only
+    - Export button remains accessible to all users (read-only operation)
+    - Role visibility controlled via `role-element role-analyst-show role-admin-show` CSS classes
+  - ✅ **Removed Prohibited UI Elements**:
+    - View button with eye icon removed (redundant and used native alert())
+    - viewProduct() function removed (violated native dialog prohibition)
+  - ✅ **User Feedback Standards Compliance**:
+    - Delete confirmation now uses AdminCore.showConfirmation() modal (BEFORE delete)
+    - Delete success/error now uses AdminCore.showNotification() toast (AFTER delete)
+    - All user feedback follows Master Design Guide patterns
+    - No native browser dialogs (alert/confirm/prompt) anywhere in Product Management
+  - ✅ **Actions Column Visibility**:
+    - Actions column header now hidden for External users (`<th class="actions-col">` at line 104)
+    - Actions column cells now hidden for External users (`<td class="actions-cell">` at line 565)
+    - Entire Actions column only visible to Admin and Analyst roles
+  - Location: Views/Product/Management.cshtml (lines 32-43, 104, 565-573, 642-677)
+  - Added: admin-core.js script reference for modal and toast functionality
+  - Testing: Manual verification in browser at /Product/Management
 - **2025-10-20 (Dashboard Export Enhancement)**: **STAT CARD EXPORTS NOW INCLUDE FULL CERTIFICATE DETAILS**
   - ✅ **Dashboard Stat Card Export Fixed**:
     - Previously: Clicking download on "Total Active Certs" (80) only exported one row with the count

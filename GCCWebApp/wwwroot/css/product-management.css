@@ -537,16 +537,25 @@
 .actions-cell {
     text-align: center;
     white-space: nowrap;
+    width: 15%;
+    max-width: 150px;
+    padding: 8px 4px !important;
+}
+
+.actions-col {
+    width: 15%;
+    min-width: 120px;
+    text-align: center;
 }
 
 .btn-edit, .btn-view, .btn-delete {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 8px;
-    margin: 0 2px;
-    border-radius: 6px;
-    font-size: 0.9rem;
+    padding: 6px;
+    margin: 0 1px;
+    border-radius: 4px;
+    font-size: 0.85rem;
     transition: all 0.3s ease;
     display: inline-flex;
     align-items: center;

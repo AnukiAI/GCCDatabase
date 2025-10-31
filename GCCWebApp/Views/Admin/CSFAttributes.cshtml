@@ -4,8 +4,93 @@
 }
 
 @section Styles {
-    <link href="~/css/csf-attributes.css" rel="stylesheet" />
-    <link href="~/css/admin-company-style.css" rel="stylesheet" />
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
+    <style>
+        /* CSF Attributes table-specific styles */
+        .csf-add-row {
+            display: none;
+            background-color: #f8f9fa;
+        }
+
+        .csf-add-row.active {
+            display: table-row;
+        }
+
+        .csf-edit-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #00AEEF;
+            border-radius: 4px;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            box-sizing: border-box;
+        }
+
+        .csf-btn-save,
+        .csf-btn-cancel {
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .csf-btn-save {
+            background-color: #447638;
+            color: white;
+        }
+
+        .csf-btn-save:hover {
+            background-color: #92C83E;
+        }
+
+        .csf-btn-cancel {
+            background-color: #f8f9fa;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .csf-btn-cancel:hover {
+            background-color: #e2e6ea;
+        }
+
+        .edit-row {
+            background-color: rgba(0, 174, 239, 0.05);
+        }
+
+        .edit-row .view-mode {
+            display: none;
+        }
+
+        .edit-mode {
+            display: none;
+        }
+
+        .edit-row .edit-mode {
+            display: block;
+        }
+
+        .edit-row .action-buttons {
+            display: none;
+        }
+
+        .edit-actions {
+            display: none;
+        }
+
+        .edit-row .edit-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        /* Ensure footer count is right-aligned */
+        .footer-info {
+            text-align: right !important;
+            display: block !important;
+        }
+    </style>
 }
 
 @section Breadcrumbs {
@@ -89,6 +174,7 @@
 
 
 @section Scripts {
+    <script src="~/js/admin/admin-core.js"></script>
     <script src="~/js/admin/exportUtils.js"></script>
     <script src="~/js/validation.js"></script>
     <script src="~/js/admin/csfAttributes.js"></script>

@@ -98,6 +98,18 @@ AzureAdB2C__ClientId=[client-id]
   - Auto-updates when database changes
   - **Exception**: Product Categories in External view (~370 lines, deferred)
   - API: `CertificateTilesApiController.cs:180-232`, `CertificateTileInternalApiController.cs:324-333`, `CertificateTileExternalApiController.cs:278-395`
+- **DESIGN CONSISTENCY** ✅ - External and Internal views visually identical (2025-10-30)
+  - Filter panel checkboxes properly aligned with labels (10px spacing)
+  - Custom styled thin scrollbars (8px width) in filter content areas
+  - No visual barriers between checkboxes and text
+  - Table grid layout with professional spacing (14px/10px padding)
+  - Zebra striping for table rows (alternating #fff/#fafafa)
+  - Typography: Monospace for certificate numbers and dates
+  - Sticky table headers during vertical scrolling
+  - Status badges with color coding (Active: green, Draft: yellow, Expired: red)
+  - 52px minimum row height for comfortable reading
+  - Smooth hover effects (0.2s transition) with proper color contrast
+  - CSS: `wwwroot/css/certificatetileview.css` (unified styling)
 - **BULK DOWNLOAD AS ZIP** ⚠️ REQUIRED
   - **PRIORITY: HIGH** - Download multiple certificates as single ZIP
   - Applies to External & Internal views
@@ -131,6 +143,11 @@ AzureAdB2C__ClientId=[client-id]
   - `User.Partners` collection (ICollection<Partner>)
 - **Partner Matching**: Certificate Partner field values: "Amazon", "Wayfair", "None"
 - **Admin/Analyst**: No filtering - see all products regardless of associations
+- **Dropdown Filtering**: See US-013 in requirements.md
+  - **Companies**: FILTERED - External users see only their associated companies
+  - **Categories**: UNFILTERED - All users see all active categories
+  - **Product Types**: UNFILTERED - All users see all active product types
+  - **Rationale**: Companies filtered for security; Categories/Types unfiltered for usability (External can't create/edit anyway)
 
 ### External User Access Restrictions ✅
 - **REQUIREMENT**: External role users have restricted access to sensitive fields and operations

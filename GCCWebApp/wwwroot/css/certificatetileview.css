@@ -238,6 +238,28 @@
     border-top: 1px solid var(--border-color);
     max-height: 250px;
     overflow-y: auto;
+    /* Ensure scrollbar doesn't interfere with content alignment */
+    scrollbar-width: thin;
+    scrollbar-color: #999 #f0f0f0;
+}
+
+/* Webkit scrollbar styling for filter content */
+.filter-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+.filter-content::-webkit-scrollbar-track {
+    background: #f0f0f0;
+    border-radius: 4px;
+}
+
+.filter-content::-webkit-scrollbar-thumb {
+    background: #999;
+    border-radius: 4px;
+}
+
+.filter-content::-webkit-scrollbar-thumb:hover {
+    background: #666;
 }
 
 .filter-tree {
@@ -251,7 +273,7 @@
     font-size: 16px;
     padding-top: 4px !important;
     padding-bottom: 4px !important;
-    padding-right: 0 !important;
+    padding-right: 8px !important; /* Add right padding to prevent checkbox/text from touching scrollbar */
     /* padding-left is controlled by filter-level classes */
     line-height: 1.4 !important;
 }
@@ -264,6 +286,7 @@
         padding: 4px 0 !important; /* Better padding for improved clickability */
         margin: 0 !important; /* Override any external label margins */
         line-height: 1.4 !important;
+        width: 100%; /* Ensure label takes full width */
     }
 
         .filter-item label:hover {
@@ -271,13 +294,21 @@
         }
 
     .filter-item input[type="checkbox"] {
-        margin: 0 8px 0 0 !important; /* Improved spacing between checkbox and label */
+        margin: 0 10px 0 0 !important; /* Increased spacing between checkbox and label for better clarity */
         padding: 0 !important;
         accent-color: var(--blue-primary);
         vertical-align: middle !important;
         line-height: 1 !important;
         width: 16px;
         height: 16px;
+        flex-shrink: 0; /* Prevent checkbox from shrinking */
+        position: relative; /* Ensure checkbox stays in place */
+    }
+
+    .filter-item label span {
+        flex: 1; /* Allow label text to take remaining space */
+        word-wrap: break-word;
+        overflow-wrap: break-word;
     }
 
 .filter-level-1 {
@@ -1029,5 +1060,484 @@
 
 .table-scroll-wrapper::-webkit-scrollbar-thumb:active {
     background: #000; /* Black when dragging */
+}
+
+/* ====================================================
+   COMMON CERTIFICATE TILE VIEW STYLES
+   (Shared between External and Internal views)
+   ====================================================*/
+
+/* Fix for the Actions column */
+.certificates-table th.actions-column {
+    min-width: 160px !important;
+    width: 160px !important;
+    background: #f8f9fa !important;
+    text-align: center;
+    padding: 12px 8px;
+}
+
+/* Ensure consistent header styling */
+.certificates-table thead th {
+    background: #f8f9fa !important;
+    border-right: 1px solid #eee;
+    white-space: nowrap;
+}
+
+/* Remove any potential white blocks */
+.certificates-table th {
+    background: #f8f9fa !important;
+}
+
+/* Results controls alignment */
+.results-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding: 10px 0;
+    min-width: 0;
+    gap: 20px;
+}
+
+.left-controls {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: 0;
+    flex: 1;
+}
+
+.export-options {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    min-width: 0;
+}
+
+.export-options .btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-width: auto;
+    padding: 8px 12px;
+    font-size: 14px;
+}
+
+.right-controls {
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    align-self: flex-start;
+}
+
+.view-toggle-container {
+    margin-left: auto;
+}
+
+.view-toggle {
+    display: flex;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.toggle-btn {
+    padding: 8px 12px;
+    border: none;
+    background: #f8f9fa;
+    cursor: pointer;
+    font-size: 16px; /* Minimum font size for accessibility */
+    transition: background-color 0.2s;
+}
+
+.toggle-btn:hover {
+    background: #e9ecef;
+}
+
+.toggle-btn.active {
+    background: #007bff;
+    color: white;
+}
+
+.toggle-btn i {
+    margin-right: 5px;
+}
+
+/* Action button styling - shared for Download and View */
+.action-icon.download {
+    color: #28a745;
+}
+
+.action-icon.download:hover {
+    color: #1e7e34;
+    background-color: #d4edda;
+}
+
+.action-icon.view {
+    color: #17a2b8;
+}
+
+.action-icon.view:hover {
+    color: #117a8b;
+    background-color: #d1ecf1;
+}
+
+/* Action buttons in table view */
+.action-btn {
+    border: none;
+    background: transparent;
+    padding: 6px 8px;
+    margin: 0 3px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.action-btn.download,
+.action-btn.download-btn {
+    color: #28a745;
+}
+
+.action-btn.download:hover,
+.action-btn.download-btn:hover {
+    color: #1e7e34;
+    background-color: #d4edda;
+}
+
+.action-btn.view,
+.action-btn.view-btn {
+    color: #17a2b8;
+}
+
+.action-btn.view:hover,
+.action-btn.view-btn:hover {
+    color: #117a8b;
+    background-color: #d1ecf1;
+}
+
+/* Action buttons container in grid */
+.action-buttons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+/* Hierarchical filter indentation */
+.filter-item.filter-level-1 {
+    padding-left: 0;
+}
+
+.filter-item.filter-level-2 {
+    padding-left: 20px;
+}
+
+.filter-item.filter-level-3 {
+    padding-left: 40px;
+}
+
+/* Loading indicator styles for lazy loading */
+.loading-indicator {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px 20px;
+    text-align: center;
+    font-size: 16px; /* Minimum font size for accessibility */
+    color: #666;
+    background-color: #f8f9fa;
+    margin: 20px 0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    min-height: 100px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.loading-indicator.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.loading-text {
+    font-weight: 500;
+    font-size: 16px; /* Minimum font size for accessibility */
+}
+
+/* Bulk Actions Bar Styling - Compact */
+.bulk-actions-bar {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    padding: 8px 12px;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 12px;
+}
+
+.bulk-actions-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.selected-count {
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+}
+
+/* Clear Selection Button - Cohesive Design */
+.clear-selection-btn {
+    background-color: #fff;
+    color: #666;
+    border: 1px solid #ddd;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 400;
+    transition: all 0.2s ease;
+}
+
+.clear-selection-btn:hover {
+    background-color: #f8f9fa;
+    border-color: #999;
+    color: #333;
+}
+
+.clear-selection-btn:active {
+    background-color: #e9ecef;
+}
+
+/* Bulk Action Buttons - Match Main Button Style */
+.bulk-action-btn {
+    background-color: #00AEEF;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.bulk-action-btn:hover {
+    background-color: #0095d8;
+}
+
+.bulk-action-btn:active {
+    transform: translateY(1px);
+}
+
+.bulk-action-btn i {
+    font-size: 14px;
+}
+
+/* Disabled button state for Download Selected in tile view */
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* Table grid container */
+.table-grid-container {
+    min-width: 100%;
+    width: max-content;
+}
+
+/* Header cell styling */
+.grid-header-cell {
+    background: #f8f9fa !important;
+    padding: 14px 10px;
+    font-weight: 600;
+    font-size: 16px;
+    color: #333;
+    border-bottom: 2px solid #dee2e6;
+    border-right: 1px solid #ddd;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 48px;
+    box-sizing: border-box;
+}
+
+.grid-header-cell:last-child {
+    border-right: none;
+}
+
+/* Sort indicator styling */
+.grid-header-cell .sort-indicator {
+    margin-left: 8px;
+    font-size: 14px;
+    color: #999;
+}
+
+.grid-header-cell[data-sort-active="true"] .sort-indicator {
+    color: #007bff;
+}
+
+/* Body row styling */
+.grid-body {
+    display: contents;
+}
+
+.grid-row {
+    display: contents;
+}
+
+.grid-cell {
+    padding: 12px 10px;
+    border-bottom: 1px solid #eee;
+    border-right: 1px solid #ddd;
+    background: white;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    min-height: 52px;
+    cursor: default;
+    box-sizing: border-box;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.grid-cell:last-child {
+    border-right: none;
+}
+
+.grid-row:hover .grid-cell {
+    background: #f8f9fa;
+    transition: background-color 0.2s ease;
+}
+
+/* Zebra striping for better readability */
+.grid-row:nth-child(even) .grid-cell {
+    background: #fafafa;
+}
+
+.grid-row:nth-child(even):hover .grid-cell {
+    background: #f0f0f0;
+}
+
+/* Ensure row cells are not clickable - only action buttons should be clickable */
+.grid-row {
+    cursor: default;
+}
+
+.grid-row .grid-cell {
+    pointer-events: auto;
+}
+
+/* Action buttons should be clickable */
+.grid-cell.actions-column,
+.grid-cell.actions-column * {
+    cursor: pointer;
+    pointer-events: auto;
+}
+
+.grid-cell.select-cell {
+    cursor: pointer;
+}
+
+/* Select cell */
+.select-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Actions column */
+.actions-column {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+/* Main content width */
+.main-content {
+    flex: 1;
+    padding: 20px;
+    min-width: 0;
+    width: 100%;
+    max-width: 100vw; /* Allow full viewport width */
+}
+
+/* Table scroll wrapper width calculation */
+.table-scroll-wrapper {
+    max-width: calc(100vw - 360px); /* Account for sidebar width ~340px plus padding */
+}
+
+/* Improved table grid header styling */
+.table-grid .grid-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: #f8f9fa;
+    display: contents;
+}
+
+/* Ensure action column buttons are properly spaced */
+.actions-column .action-btn {
+    margin: 0 2px;
+}
+
+/* Improve cell text alignment for specific columns */
+.grid-cell[data-column="status"],
+.grid-cell[data-column="effectiveDate"],
+.grid-cell[data-column="expirationDate"] {
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+}
+
+.grid-cell[data-column="certificateNumber"] {
+    font-family: 'Courier New', monospace;
+    font-weight: 600;
+    color: #007bff;
+}
+
+/* Improve visual hierarchy for company and product names */
+.grid-cell[data-column="company"],
+.grid-cell[data-column="productName"] {
+    font-weight: 500;
+}
+
+/* Status badges in table cells */
+.grid-cell .status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.grid-cell .status-badge.active {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.grid-cell .status-badge.draft {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.grid-cell .status-badge.expired {
+    background-color: #f8d7da;
+    color: #721c24;
 }
 

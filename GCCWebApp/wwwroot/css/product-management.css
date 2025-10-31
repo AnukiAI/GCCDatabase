@@ -222,9 +222,10 @@
     align-items: center;
     background: var(--blue-primary);
     color: white;
-    padding: 4px 8px;
-    border-radius: 16px;
+    padding: 2px 8px;
+    border-radius: 12px;
     font-size: 0.75rem;
+    line-height: 1.5;
     gap: 4px;
     white-space: nowrap;
 }

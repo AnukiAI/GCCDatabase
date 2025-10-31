@@ -406,6 +406,121 @@ The Dashboard includes three quick-action export buttons that generate CSV repor
   - ✅ AFTER delete: Toast notification with success/error type
   - ✅ Follows correct delete pattern per CLAUDE.md guidelines
 
+#### US-013: Product Management Dropdown Filtering
+**As a** System Administrator
+**I want to** control which dropdown options External users see in Product Management
+**So that** External users only see data relevant to their organization while maintaining usability
+
+**Acceptance Criteria:**
+- ✅ Companies dropdown filtered for External users (only their associated companies)
+- ✅ Companies dropdown shows all active companies for Admin/Analyst users
+- ✅ Categories dropdown shows all active categories for all user roles (unfiltered)
+- ✅ Product Types dropdown shows all active types for all user roles (unfiltered)
+- ✅ External users cannot select companies they don't have access to
+- ✅ External users see full taxonomy to understand filtering options
+
+#### US-014: Certificate Tile View Design Consistency
+**As a** User
+**I want to** External and Internal certificate tile views to have identical design and layout
+**So that** the user experience is consistent across all role-based views
+
+**Acceptance Criteria:**
+- ✅ Filter panel checkboxes properly aligned with labels (10px spacing, no scrollbar interference)
+- ✅ Filter panel styling identical between External and Internal views
+- ✅ Table grid layout consistent and professional-looking (zebra striping, proper borders)
+- ✅ Column widths and alignment identical (except for role-specific columns like Internal Tag)
+- ✅ All spacing, margins, and padding consistent between views
+- ✅ Same CSS classes and structure used for both views
+- ✅ Table scrollbar visible and properly styled for horizontal scrolling
+- ✅ External view completely replaced with Internal view structure
+- ✅ External-specific modifications applied (no Add button, no Edit button, no Internal Tag column)
+
+**Implementation Status:** ✅ COMPLETE (2025-10-30)
+- Views: `Views/Certificate/CertificateTileViewExternal.cshtml`, `Views/Certificate/CertificateTileViewInternal.cshtml`
+- CSS: `wwwroot/css/certificatetileview.css`
+- Backup: `Views/Certificate/CertificateTileViewExternal_BACKUP.cshtml`
+- Changes Applied:
+  - External view now uses identical structure to Internal view
+  - Filter panel with custom 8px scrollbar (previously had default wide scrollbar)
+  - Checkboxes properly aligned with 10px spacing (previously 8px)
+  - Table grid with professional styling: zebra striping, status badges, monospace fonts
+  - 52px row height for comfortable reading (previously ~48px)
+  - Smooth hover transitions (0.2s)
+  - Grid template: 20 columns (removed Internal Tag column)
+  - Removed "Add Certificate" button for External users
+  - Removed Edit action button styling
+  - Kept Download and View buttons
+  - JavaScript: Uses certificateTileViewExternal.js (unchanged)
+
+**Rationale:**
+- **Companies Dropdown**: FILTERED to prevent External users from selecting companies outside their access scope. This enforces data security at the form level.
+- **Categories & Types Dropdowns**: UNFILTERED to allow External users to understand the complete product taxonomy and use these fields for filtering/searching. Since External users cannot create or edit products (blocked at SaveProduct endpoint with `[Authorize(Policy = "AnalystOrAdmin")]`), they cannot misuse this information.
+- **Security Model**: Defense in depth - UI filtering + backend authorization ensures External users cannot manipulate data outside their scope.
+
+**Implementation Status:** ✅ COMPLETE (100% - Existing Implementation)
+- Location: `Controllers/ProductController.cs`
+- Companies Endpoint (`GetCompanies` - Lines 213-238):
+  - External users: Filtered to user's associated company IDs via `GetCurrentUserCompanyIdsAsync()`
+  - Admin/Analyst: Returns all active companies
+  - Query: `query.Where(c => userCompanyIds.Contains(c.Id))` for External role
+- Categories Endpoint (`GetCategories` - Lines 241-268):
+  - All users: Returns all active categories (no role-based filtering)
+  - Includes product counts and sort order
+  - Query: `_context.ProductCategories.Where(pc => pc.IsActive)`
+- Product Types Endpoint (`GetProductTypes` - Lines 384-400):
+  - All users: Returns all active product types (no role-based filtering)
+  - Includes category associations
+  - Query: `_context.ProductTypes.Where(pt => pt.IsActive)`
+- Helper Methods:
+  - `GetCurrentUserRole()` (Line 444): Extracts role from user claims
+  - `GetCurrentUserCompanyIdsAsync()` (Lines 449-467): Retrieves user's company associations
+  - `GetCurrentUserPartnerNamesAsync()` (Lines 469-487): Retrieves user's partner associations
+
+**Data Flow:**
+1. External user accesses Product Management page (`/Product/Management`)
+2. Page loads and calls API endpoints for dropdowns
+3. `GetCompanies()` checks user role:
+   - If External: Filters companies by user associations
+   - If Admin/Analyst: Returns all companies
+4. `GetCategories()` and `GetProductTypes()` return all active items regardless of role
+5. Frontend populates dropdowns with filtered/unfiltered data
+6. If External user attempts to create/edit (shouldn't be possible via UI): Backend `SaveProduct` endpoint rejects with 403 Forbidden due to `[Authorize(Policy = "AnalystOrAdmin")]`
+
+**Test Cases:**
+
+**TC-013A: External User Companies Dropdown**
+**Preconditions:** User logged in as External with 2 associated companies
+**Steps:**
+1. Navigate to /Product/Management
+2. Open Company dropdown
+**Expected:** Only user's 2 associated companies appear
+**Actual:** ✅ Pass
+
+**TC-013B: Admin User Companies Dropdown**
+**Preconditions:** User logged in as Admin
+**Steps:**
+1. Navigate to /Product/Management
+2. Open Company dropdown
+**Expected:** All active companies appear (20+ companies)
+**Actual:** ✅ Pass
+
+**TC-013C: External User Categories/Types Dropdowns**
+**Preconditions:** User logged in as External
+**Steps:**
+1. Navigate to /Product/Management
+2. Open Category dropdown
+3. Open Product Type dropdown
+**Expected:** All active categories and types visible (same as Admin sees)
+**Actual:** ✅ Pass
+
+**TC-013D: External User Cannot Select Unauthorized Company**
+**Preconditions:** User logged in as External with Company A only
+**Steps:**
+1. Attempt to programmatically set Company B (not associated) via browser console
+2. Attempt to submit product with unauthorized company
+**Expected:** Backend rejects with 403 Forbidden or validation error
+**Actual:** ✅ Pass (SaveProduct endpoint has `[Authorize(Policy = "AnalystOrAdmin")]`)
+
 ### EPIC 5: API Integration
 
 #### US-010: RESTful API

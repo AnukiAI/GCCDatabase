@@ -1,0 +1,2015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - Requirements & User Stories</title>
+    <style>
+        /* Root variables for consistent theming */
+        :root {
+            --primary-color: #002B76;
+            --secondary-color: #92C83E;
+            --accent-color: #0066CC;
+            --text-color: #333333;
+            --light-bg: #F8F9FA;
+            --border-color: #DDDDDD;
+            --success-color: #28A745;
+            --warning-color: #FFC107;
+            --info-color: #17A2B8;
+        }
+
+        /* Print-friendly base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: var(--text-color);
+            background: white;
+            font-size: 11pt;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 60px;
+        }
+
+        /* Header and Title Page */
+        .title-page {
+            text-align: center;
+            padding: 100px 0;
+            page-break-after: always;
+            border-bottom: 4px solid var(--primary-color);
+            margin-bottom: 40px;
+        }
+
+        .title-page h1 {
+            font-size: 36pt;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+
+        .title-page .subtitle {
+            font-size: 18pt;
+            color: var(--text-color);
+            margin-bottom: 40px;
+        }
+
+        .title-page .meta-info {
+            font-size: 12pt;
+            color: #666;
+            margin-top: 60px;
+        }
+
+        .title-page .status-badge {
+            display: inline-block;
+            padding: 12px 30px;
+            background: var(--success-color);
+            color: white;
+            border-radius: 25px;
+            font-size: 14pt;
+            font-weight: 600;
+            margin-top: 30px;
+        }
+
+        /* Table of Contents */
+        .toc {
+            page-break-after: always;
+            margin-bottom: 40px;
+        }
+
+        .toc h2 {
+            font-size: 24pt;
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--secondary-color);
+            padding-bottom: 10px;
+            margin-bottom: 30px;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .toc ul li {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .toc ul li a {
+            color: var(--accent-color);
+            text-decoration: none;
+            font-size: 12pt;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .toc ul li a:hover {
+            color: var(--primary-color);
+        }
+
+        .toc ul ul {
+            padding-left: 25px;
+            margin-top: 5px;
+        }
+
+        /* Section Headers */
+        h1 {
+            font-size: 28pt;
+            color: var(--primary-color);
+            border-left: 6px solid var(--secondary-color);
+            padding-left: 20px;
+            margin: 40px 0 20px 0;
+            page-break-after: avoid;
+        }
+
+        h2 {
+            font-size: 20pt;
+            color: var(--primary-color);
+            border-left: 4px solid var(--accent-color);
+            padding-left: 15px;
+            margin: 30px 0 15px 0;
+            page-break-after: avoid;
+        }
+
+        h3 {
+            font-size: 16pt;
+            color: var(--primary-color);
+            margin: 25px 0 12px 0;
+            page-break-after: avoid;
+        }
+
+        h4 {
+            font-size: 13pt;
+            color: var(--text-color);
+            margin: 20px 0 10px 0;
+            font-weight: 600;
+            page-break-after: avoid;
+        }
+
+        /* Paragraphs and Text */
+        p {
+            margin: 10px 0;
+            text-align: justify;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 10px 0 10px 30px;
+        }
+
+        li {
+            margin: 5px 0;
+        }
+
+        /* Status Badges */
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 9pt;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .status.complete {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .status.partial {
+            background: var(--warning-color);
+            color: #333;
+        }
+
+        .status.pending {
+            background: var(--info-color);
+            color: white;
+        }
+
+        /* User Story Boxes */
+        .user-story {
+            background: var(--light-bg);
+            border-left: 5px solid var(--secondary-color);
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            page-break-inside: avoid;
+        }
+
+        .user-story h4 {
+            color: var(--primary-color);
+            margin-top: 0;
+            font-size: 14pt;
+        }
+
+        .user-story .story-text {
+            font-style: italic;
+            color: #555;
+            margin: 10px 0;
+            line-height: 1.8;
+        }
+
+        .user-story .criteria-list {
+            margin-top: 15px;
+        }
+
+        .user-story .criteria-list h5 {
+            font-size: 11pt;
+            color: var(--primary-color);
+            margin-bottom: 8px;
+        }
+
+        .user-story .implementation {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid var(--border-color);
+            font-size: 10pt;
+            color: #666;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            page-break-inside: auto;
+            font-size: 10pt;
+        }
+
+        thead {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 10px 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        tbody tr:nth-child(even) {
+            background: var(--light-bg);
+        }
+
+        tbody tr:hover {
+            background: #E8F4F8;
+        }
+
+        /* Code blocks */
+        code {
+            background: #F4F4F4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+            color: #C7254E;
+        }
+
+        pre {
+            background: #F8F9FA;
+            padding: 15px;
+            border-left: 4px solid var(--accent-color);
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 15px 0;
+            page-break-inside: avoid;
+        }
+
+        pre code {
+            background: none;
+            color: var(--text-color);
+            padding: 0;
+            font-size: 9pt;
+            line-height: 1.4;
+        }
+
+        /* Info boxes */
+        .info-box {
+            background: #E7F3FF;
+            border: 1px solid #B3D9FF;
+            border-left: 5px solid var(--info-color);
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            page-break-inside: avoid;
+        }
+
+        .info-box strong {
+            color: var(--info-color);
+        }
+
+        .warning-box {
+            background: #FFF8E1;
+            border: 1px solid #FFE082;
+            border-left: 5px solid var(--warning-color);
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            page-break-inside: avoid;
+        }
+
+        .success-box {
+            background: #E8F5E9;
+            border: 1px solid #A5D6A7;
+            border-left: 5px solid var(--success-color);
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            page-break-inside: avoid;
+        }
+
+        /* Progress indicators */
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background: #E0E0E0;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success-color), var(--secondary-color));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 11pt;
+        }
+
+        /* Footer for print */
+        .page-footer {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+            font-size: 9pt;
+            color: #999;
+            border-top: 1px solid var(--border-color);
+            padding-top: 10px;
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body {
+                padding: 20px;
+                font-size: 10pt;
+            }
+
+            .title-page, .toc, h1, .user-story {
+                page-break-inside: avoid;
+            }
+
+            h1, h2, h3 {
+                page-break-after: avoid;
+            }
+
+            a {
+                text-decoration: none;
+                color: var(--text-color);
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+
+        /* Responsive for screen viewing */
+        @media screen and (max-width: 768px) {
+            body {
+                padding: 20px;
+            }
+
+            .title-page h1 {
+                font-size: 24pt;
+            }
+
+            table {
+                font-size: 9pt;
+            }
+        }
+
+        /* Checkmark styling */
+        .checkmark {
+            color: var(--success-color);
+            font-weight: bold;
+        }
+
+        .crossmark {
+            color: #DC3545;
+            font-weight: bold;
+        }
+
+        /* Section divider */
+        .section-divider {
+            border: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            margin: 40px 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Title Page -->
+    <div class="title-page">
+        <h1>GCC Database Solution</h1>
+        <div class="subtitle">Requirements & User Stories</div>
+        <div class="subtitle" style="font-size: 14pt; color: #666;">Comprehensive System Requirements Document</div>
+        <div class="status-badge" style="background: var(--warning-color); color: #333;">⚙ IN TESTING</div>
+        <div class="meta-info">
+            <p><strong>Version:</strong> 1.0</p>
+            <p><strong>Last Updated:</strong> October 31, 2025</p>
+            <p><strong>Status:</strong> 100% Complete - Currently in Testing Phase</p>
+            <p><strong>Document Type:</strong> Business Requirements & Technical Specifications</p>
+        </div>
+    </div>
+
+    <!-- Table of Contents -->
+    <div class="toc">
+        <h2>Table of Contents</h2>
+        <ul>
+            <li><a href="#overview"><span>1. Project Overview</span><span>Page 3</span></a></li>
+            <li><a href="#user-stories"><span>2. User Stories & Requirements</span><span>Page 4</span></a>
+                <ul>
+                    <li><a href="#epic1"><span>EPIC 1: Certificate Management</span></a></li>
+                    <li><a href="#epic2"><span>EPIC 2: Partner Integration</span></a></li>
+                    <li><a href="#epic3"><span>EPIC 3: Dashboard & Reporting</span></a></li>
+                    <li><a href="#epic4"><span>EPIC 4: User Management</span></a></li>
+                    <li><a href="#epic5"><span>EPIC 5: API Integration</span></a></li>
+                </ul>
+            </li>
+            <li><a href="#test-cases"><span>3. Test Cases & Acceptance Criteria</span><span>Page 15</span></a></li>
+            <li><a href="#progress"><span>4. Progress Tracking & Status</span><span>Page 20</span></a></li>
+            <li><a href="#technical"><span>5. Technical Specifications</span><span>Page 22</span></a></li>
+            <li><a href="#appendix"><span>6. Appendix & References</span><span>Page 25</span></a></li>
+        </ul>
+    </div>
+
+    <!-- Project Overview -->
+    <h1 id="overview">1. Project Overview</h1>
+
+    <h2>Vision Statement</h2>
+    <p>Build a comprehensive certificate management system for Green Circle Certified (GCC) that enables efficient certificate lifecycle management, partner integration, and public certificate verification.</p>
+
+    <h2>Key Business Objectives</h2>
+    <div class="success-box">
+        <ul>
+            <li><strong>Certificate Management:</strong> Complete lifecycle from application to expiration with 14-state workflow</li>
+            <li><strong>Partner Integration:</strong> Dedicated support for Amazon, Wayfair, and other strategic partners</li>
+            <li><strong>Public Access:</strong> Public-facing certificate verification database with advanced search capabilities</li>
+            <li><strong>Reporting:</strong> Comprehensive analytics dashboard with 12 statistical cards and 5 data tables</li>
+            <li><strong>Security:</strong> Enterprise-grade role-based access control with Azure AD B2C integration</li>
+        </ul>
+    </div>
+
+    <h2>User Roles & Permissions</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Role</th>
+                <th>Access Level</th>
+                <th>Key Capabilities</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Admin</strong></td>
+                <td>Full System Access</td>
+                <td>User management, all certificate operations, system configuration</td>
+            </tr>
+            <tr>
+                <td><strong>Analyst</strong></td>
+                <td>Extended Access</td>
+                <td>Certificate management, reporting, no user management</td>
+            </tr>
+            <tr>
+                <td><strong>External</strong></td>
+                <td>Partner Access</td>
+                <td>Limited to partner certificates, filtered data views</td>
+            </tr>
+            <tr>
+                <td><strong>Internal</strong></td>
+                <td>GCC Staff</td>
+                <td>Extended viewing permissions, internal tags access</td>
+            </tr>
+            <tr>
+                <td><strong>Public</strong></td>
+                <td>Read-Only</td>
+                <td>Public certificate data viewing only</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr class="section-divider">
+
+    <!-- User Stories -->
+    <h1 id="user-stories">2. User Stories & Requirements</h1>
+
+    <h2 id="epic1">EPIC 1: Certificate Management</h2>
+
+    <div class="user-story">
+        <h4>US-001: Certificate Creation <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As an</strong> Admin/Analyst<br>
+            <strong>I want to</strong> create new certificates<br>
+            <strong>So that</strong> I can issue certifications to companies
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> Can create certificate with all required fields</li>
+                <li><span class="checkmark">✓</span> 14-state lifecycle workflow enforced</li>
+                <li><span class="checkmark">✓</span> Partner assignment (Amazon/Wayfair/None)</li>
+                <li><span class="checkmark">✓</span> Validation for all required fields</li>
+                <li><span class="checkmark">✓</span> Audit trail created (CreatedBy, CreatedAt)</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Implementation:</strong> Controllers/CertificateController.cs, Views/Certificate/Create.cshtml, Services/CertificateService.cs
+        </div>
+    </div>
+
+    <div class="user-story">
+        <h4>US-002: Certificate Search & Filter <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As a</strong> Public User<br>
+            <strong>I want to</strong> search and filter certificates<br>
+            <strong>So that</strong> I can find specific certifications
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> Search by certificate number, company, product</li>
+                <li><span class="checkmark">✓</span> Filter by status, partner, date range</li>
+                <li><span class="checkmark">✓</span> Autocomplete suggestions in search with categorized results</li>
+                <li><span class="checkmark">✓</span> Unique URL for search results (URL parameters)</li>
+                <li><span class="checkmark">✓</span> Export search results (CSV/PDF)</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Implementation:</strong> Services/FilterService.cs, wwwroot/js/certificate-tile-view.js (autocomplete), setupUrlParameters() function<br>
+            <strong>Testing:</strong> Verified in GCCWebApp.UAT.Tests
+        </div>
+    </div>
+
+    <div class="user-story">
+        <h4>US-003: Certificate Tile View <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As a</strong> Public User<br>
+            <strong>I want to</strong> view certificates in a tile layout<br>
+            <strong>So that</strong> I can browse certificates visually
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> Infinite scroll for performance (lazy loading implemented)</li>
+                <li><span class="checkmark">✓</span> Display all public fields on tiles</li>
+                <li><span class="checkmark">✓</span> Click tile to view details (opens in new tab)</li>
+                <li><span class="checkmark">✓</span> Sort by multiple columns</li>
+                <li><span class="checkmark">✓</span> Clear filters option</li>
+                <li><span class="checkmark">✓</span> Download certificate from tile</li>
+                <li><span class="checkmark">✓</span> Certificate preview displays uploaded certificate image/snapshot</li>
+                <li><span class="checkmark">✓</span> Professional design with zebra striping, status badges, monospace fonts</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Implementation:</strong> Views/Certificate/CertificateTileView.cshtml, wwwroot/js/certificate-tile-view.js, Services/FileUploadService.cs<br>
+            <strong>Image Service:</strong> SixLabors.ImageSharp 3.1.11 with validation and auto-resizing<br>
+            <strong>Testing:</strong> InfiniteScrollPerformanceTests.cs, FileUploadServiceTests.cs
+        </div>
+    </div>
+
+    <div class="info-box">
+        <strong>Certificate Image Upload (Completed 2025-10-06):</strong><br>
+        Admin/Analyst users can upload certificate images (PNG, JPG, JPEG up to 5MB) during Create/Edit operations. Images are displayed in tile views and single certificate view, replacing placeholder images. The system includes dimension validation (100x100 to 4000x4000 pixels), corruption detection, and automatic resizing for images larger than 2000px.
+    </div>
+
+    <div class="user-story">
+        <h4>US-004: Certificate Lifecycle Management <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As an</strong> Admin/Analyst<br>
+            <strong>I want to</strong> manage certificate status transitions<br>
+            <strong>So that</strong> certificates follow proper workflow
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> 14 status states implemented</li>
+                <li><span class="checkmark">✓</span> Role-based transition permissions</li>
+                <li><span class="checkmark">✓</span> Automated expiration checking</li>
+                <li><span class="checkmark">✓</span> Status history tracking</li>
+                <li><span class="checkmark">✓</span> Email notifications on status change</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Implementation:</strong> Services/CertificateWorkflowService.cs, Models/CertificateStatus.cs
+        </div>
+    </div>
+
+    <div class="info-box">
+        <strong>Certificate Status Workflow:</strong><br>
+        <code>Draft → ApplicationSubmitted → UnderReview → TechnicalReview → ComplianceVerification → FinalApproval → Active → ExpiringSoon → RenewalInProgress → [Active|Expired|Archived|Cancelled|ClientDeclined]</code>
+    </div>
+
+    <h2 id="epic2">EPIC 2: Partner Integration</h2>
+
+    <div class="user-story">
+        <h4>US-005: Partner-Specific Certificates <span class="status partial">⚠ PARTIAL (80%)</span></h4>
+        <div class="story-text">
+            <strong>As a</strong> Partner (Amazon/Wayfair)<br>
+            <strong>I want to</strong> view only my certificates<br>
+            <strong>So that</strong> I can manage my certifications
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> Partner field in certificate model</li>
+                <li><span class="checkmark">✓</span> Filter certificates by partner</li>
+                <li><span class="checkmark">✓</span> Partner-specific dashboard</li>
+                <li><span class="checkmark">✓</span> Bulk export for partner</li>
+                <li><span class="crossmark">⚠</span> Partner-specific branding (deferred to Phase 2)</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Migration:</strong> 20250827182202_AddPartnerFieldToCertificate<br>
+            <strong>Note:</strong> Partner-specific branding explicitly excluded from Phase 1
+        </div>
+    </div>
+
+    <h2 id="epic3">EPIC 3: Dashboard & Reporting</h2>
+
+    <div class="user-story">
+        <h4>US-006: Analytics Dashboard <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As an</strong> Admin/Analyst<br>
+            <strong>I want to</strong> view certificate analytics<br>
+            <strong>So that</strong> I can track business metrics
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> 12 statistical cards with metrics</li>
+                <li><span class="checkmark">✓</span> 5 data tables with breakdowns</li>
+                <li><span class="checkmark">✓</span> Export individual metrics with full certificate details</li>
+                <li><span class="checkmark">✓</span> Export full dashboard data</li>
+                <li><span class="checkmark">✓</span> Real-time data updates</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Implementation:</strong> Controllers/DashboardController.cs, Controllers/ExportController.cs, Views/Dashboard/Index.cshtml, wwwroot/js/dashboard.js
+        </div>
+    </div>
+
+    <h3>Dashboard Metrics Overview</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Description</th>
+                <th>Export Behavior</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Total Active Certs</td>
+                <td>Count of active certificates</td>
+                <td>Exports ALL active certificates with full details</td>
+            </tr>
+            <tr>
+                <td>Companies with Active Certs</td>
+                <td>Count of companies</td>
+                <td>Exports all active certificates from those companies</td>
+            </tr>
+            <tr>
+                <td>Certs Published Last Month</td>
+                <td>Monthly publication count</td>
+                <td>Exports ONLY certificates published last month</td>
+            </tr>
+            <tr>
+                <td>Certs Expiring This Month</td>
+                <td>Expiration tracking</td>
+                <td>Exports ONLY certificates expiring this month</td>
+            </tr>
+            <tr>
+                <td>Certs by Product Category</td>
+                <td>Category distribution</td>
+                <td>Exports all active certificates in those categories</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="info-box">
+        <strong>Dashboard Export Enhancement (Completed 2025-10-20):</strong><br>
+        All dashboard stat card and table exports now include the SPECIFIC certificates related to that metric, not just summary counts. For example, clicking "Total Active Certs (80)" exports all 80 active certificates with 9 columns of details, while "Certs Published Last Month (12)" exports only those 12 certificates.
+    </div>
+
+    <div class="user-story">
+        <h4>US-007: Export Functionality <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As a</strong> User<br>
+            <strong>I want to</strong> export certificate data<br>
+            <strong>So that</strong> I can use it externally
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> Export to CSV format</li>
+                <li><span class="checkmark">✓</span> Export to PDF format</li>
+                <li><span class="checkmark">✓</span> Bulk export capabilities</li>
+                <li><span class="checkmark">✓</span> Filtered export (export search results)</li>
+                <li><span class="checkmark">✓</span> Excel export with formatting (ClosedXML)</li>
+                <li><span class="checkmark">✓</span> Download uploaded certificate files when available</li>
+                <li><span class="checkmark">✓</span> Dashboard CSV export reports (3 quick-action buttons)</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>PDF:</strong> Services/CertificatePdfService.cs<br>
+            <strong>CSV:</strong> wwwroot/js/dashboard.js<br>
+            <strong>Excel:</strong> ClosedXML library v0.104.1<br>
+            <strong>Testing:</strong> Verified in GCCWebApp.Tests, GCCWebApp.UAT.Tests
+        </div>
+    </div>
+
+    <h2 id="epic4">EPIC 4: User Management</h2>
+
+    <div class="user-story">
+        <h4>US-008: User Authentication <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As a</strong> User<br>
+            <strong>I want to</strong> securely log into the system<br>
+            <strong>So that</strong> I can access my authorized features
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> Azure AD B2C integration</li>
+                <li><span class="checkmark">✓</span> Cookie auth fallback</li>
+                <li><span class="checkmark">✓</span> Two-factor authentication</li>
+                <li><span class="checkmark">✓</span> Password reset functionality</li>
+                <li><span class="checkmark">✓</span> Session management</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Implementation:</strong> Controllers/AccountController.cs, Services/TwoFactorService.cs
+        </div>
+    </div>
+
+    <div class="user-story">
+        <h4>US-009: Role Management <span class="status complete">✓ COMPLETE (90%)</span></h4>
+        <div class="story-text">
+            <strong>As an</strong> Admin<br>
+            <strong>I want to</strong> manage user roles<br>
+            <strong>So that</strong> I can control system access
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> 5 role types defined (Admin, Analyst, External, Internal, Public)</li>
+                <li><span class="checkmark">✓</span> Role assignment UI</li>
+                <li><span class="checkmark">✓</span> Policy-based authorization</li>
+                <li><span class="checkmark">✓</span> Individual role updates via Admin panel</li>
+                <li><span class="checkmark">✓</span> Role validation and enforcement</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Views:</strong> Views/Admin/UserManagement.cshtml, Views/Admin/RoleManagement.cshtml<br>
+            <strong>Policies:</strong> Program.cs lines 225-252<br>
+            <strong>Testing:</strong> GCCWebApp.RoleBasedUI.Tests, GCCWebApp.Security.Tests<br>
+            <strong>Note:</strong> Bulk role updates not required for Phase 1
+        </div>
+    </div>
+
+    <div class="user-story">
+        <h4>US-011: Import Template Download <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As an</strong> Admin<br>
+            <strong>I want to</strong> download CSV import templates for bulk data import<br>
+            <strong>So that</strong> I can prepare correctly formatted data files
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> Template button on all admin pages with import</li>
+                <li><span class="checkmark">✓</span> Positioned left of import button</li>
+                <li><span class="checkmark">✓</span> Downloads CSV with correct headers and example data</li>
+                <li><span class="checkmark">✓</span> Files named with entity type and date</li>
+                <li><span class="checkmark">✓</span> Implemented for Users, Tags, Products, Companies</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Views:</strong> UserManagement.cshtml, Tags.cshtml, ProductManagement.cshtml, Company/Index.cshtml<br>
+            <strong>JavaScript:</strong> userManagement.js, tags.js, productManagement.js (downloadImportTemplate methods)
+        </div>
+    </div>
+
+    <div class="user-story">
+        <h4>US-012: Product Management Role-Based Access <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As a</strong> System Administrator<br>
+            <strong>I want to</strong> restrict product management operations to Admin and Analyst only<br>
+            <strong>So that</strong> unauthorized users cannot modify product data
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> Edit/Delete buttons only visible to Admin and Analyst</li>
+                <li><span class="checkmark">✓</span> Add New Product button restricted to Admin/Analyst</li>
+                <li><span class="checkmark">✓</span> Template/Import buttons restricted to Admin/Analyst</li>
+                <li><span class="checkmark">✓</span> Export button visible to all authenticated users</li>
+                <li><span class="checkmark">✓</span> View button removed (used prohibited native alert)</li>
+                <li><span class="checkmark">✓</span> Delete uses AdminCore.showConfirmation() modal</li>
+                <li><span class="checkmark">✓</span> Actions column hidden for External users</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Location:</strong> Views/Product/Management.cshtml<br>
+            <strong>Updated:</strong> 2025-10-29 - Full compliance with Master Design Guide
+        </div>
+    </div>
+
+    <div class="user-story">
+        <h4>US-013: Product Management Dropdown Filtering <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As a</strong> System Administrator<br>
+            <strong>I want to</strong> control which dropdown options External users see<br>
+            <strong>So that</strong> External users only see relevant data while maintaining usability
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> Companies dropdown filtered for External (only their companies)</li>
+                <li><span class="checkmark">✓</span> Companies dropdown shows all for Admin/Analyst</li>
+                <li><span class="checkmark">✓</span> Categories dropdown unfiltered for all roles</li>
+                <li><span class="checkmark">✓</span> Product Types dropdown unfiltered for all roles</li>
+                <li><span class="checkmark">✓</span> External cannot select unauthorized companies</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Location:</strong> Controllers/ProductController.cs (GetCompanies, GetCategories, GetProductTypes)<br>
+            <strong>Rationale:</strong> Companies filtered for security; Categories/Types unfiltered for usability
+        </div>
+    </div>
+
+    <div class="user-story">
+        <h4>US-014: Certificate Tile View Design Consistency <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As a</strong> User<br>
+            <strong>I want to</strong> External and Internal views to have identical design<br>
+            <strong>So that</strong> user experience is consistent across role-based views
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> Filter panel checkboxes properly aligned (10px spacing)</li>
+                <li><span class="checkmark">✓</span> Custom thin scrollbars (8px width)</li>
+                <li><span class="checkmark">✓</span> Table grid with zebra striping and status badges</li>
+                <li><span class="checkmark">✓</span> Column widths and alignment identical</li>
+                <li><span class="checkmark">✓</span> Same CSS classes and structure for both views</li>
+                <li><span class="checkmark">✓</span> Professional spacing and typography throughout</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Views:</strong> CertificateTileViewExternal.cshtml, CertificateTileViewInternal.cshtml<br>
+            <strong>CSS:</strong> wwwroot/css/certificatetileview.css<br>
+            <strong>Updated:</strong> 2025-10-30 - External view now uses identical Internal structure
+        </div>
+    </div>
+
+    <h2 id="epic5">EPIC 5: API Integration</h2>
+
+    <div class="user-story">
+        <h4>US-010: RESTful API <span class="status complete">✓ COMPLETE</span></h4>
+        <div class="story-text">
+            <strong>As a</strong> Third-party System<br>
+            <strong>I want to</strong> access certificate data via API<br>
+            <strong>So that</strong> I can integrate with GCC
+        </div>
+        <div class="criteria-list">
+            <h5>Acceptance Criteria:</h5>
+            <ul>
+                <li><span class="checkmark">✓</span> Versioned API endpoints (v1)</li>
+                <li><span class="checkmark">✓</span> JWT authentication</li>
+                <li><span class="checkmark">✓</span> API key management</li>
+                <li><span class="checkmark">✓</span> Rate limiting (60/min, 1000/hr, 5000/day)</li>
+                <li><span class="checkmark">✓</span> OpenAPI documentation (Swagger)</li>
+            </ul>
+        </div>
+        <div class="implementation">
+            <strong>Controllers:</strong> Controllers/Api/v1/<br>
+            <strong>Middleware:</strong> Rate limiting configured<br>
+            <strong>Documentation:</strong> http://localhost:5101/swagger
+        </div>
+    </div>
+
+    <h3>API Endpoints</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Endpoint</th>
+                <th>Method</th>
+                <th>Description</th>
+                <th>Authentication</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>/api/v1/certificates</td>
+                <td>GET</td>
+                <td>List certificates with pagination</td>
+                <td>JWT or API Key</td>
+            </tr>
+            <tr>
+                <td>/api/v1/certificates/{id}</td>
+                <td>GET</td>
+                <td>Get certificate details</td>
+                <td>JWT or API Key</td>
+            </tr>
+            <tr>
+                <td>/api/v1/certificates</td>
+                <td>POST</td>
+                <td>Create new certificate</td>
+                <td>JWT (Admin/Analyst)</td>
+            </tr>
+            <tr>
+                <td>/api/v1/certificates/{id}</td>
+                <td>PUT</td>
+                <td>Update certificate</td>
+                <td>JWT (Admin/Analyst)</td>
+            </tr>
+            <tr>
+                <td>/api/v1/certificates/{id}</td>
+                <td>DELETE</td>
+                <td>Delete certificate</td>
+                <td>JWT (Admin only)</td>
+            </tr>
+            <tr>
+                <td>/api/v1/products</td>
+                <td>GET</td>
+                <td>List products</td>
+                <td>JWT or API Key</td>
+            </tr>
+            <tr>
+                <td>/api/v1/apikeys</td>
+                <td>GET</td>
+                <td>Manage API keys</td>
+                <td>JWT (Admin only)</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <hr class="section-divider">
+
+    <!-- Test Cases -->
+    <h1 id="test-cases">3. Test Cases & Acceptance Criteria</h1>
+
+    <h2>Certificate Management Test Cases</h2>
+
+    <h3>TC-001: Create Certificate - Happy Path</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> User logged in as Admin<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Navigate to /Certificate/Create</li>
+            <li>Fill all required fields (Company, Product, Certification Type, Dates)</li>
+            <li>Select Partner (Amazon/Wayfair/None)</li>
+            <li>Click Submit</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>Certificate created successfully with generated certificate number</li>
+            <li>Redirect to certificate details page</li>
+            <li>Audit trail shows creation timestamp and user</li>
+            <li>Status set to "Draft" by default</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.Tests/Controllers/CertificateControllerTests.cs
+    </div>
+
+    <h3>TC-002: Search Certificates</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> Multiple certificates exist in database<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Navigate to /Certificate/CertificateTileView</li>
+            <li>Enter search term "Amazon" in search box</li>
+            <li>Apply filters (Active status, Date range)</li>
+            <li>Click Search or press Enter</li>
+            <li>Click on a certificate tile</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>Only Amazon active certificates shown in specified date range</li>
+            <li>Results count displayed accurately</li>
+            <li>Export button available for filtered results</li>
+            <li>Certificate details open in new tab when tile clicked</li>
+            <li>URL contains search parameters for sharing</li>
+        </ul>
+        <strong>Automation:</strong> ⚠ Partial - GCCWebApp.UAT.Tests
+    </div>
+
+    <h3>TC-003: Certificate Status Workflow</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> Certificate exists in Draft status<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Open certificate details as Admin</li>
+            <li>Change status from "Draft" to "ApplicationSubmitted"</li>
+            <li>Save changes</li>
+            <li>Attempt to transition to "Active" (should be blocked)</li>
+            <li>Follow proper workflow transitions</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>Valid status transitions allowed (Draft → ApplicationSubmitted)</li>
+            <li>Invalid transitions blocked with error message</li>
+            <li>Status history record created with timestamp and user</li>
+            <li>Email notification sent to relevant parties</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.Tests/Services/CertificateWorkflowServiceTests.cs
+    </div>
+
+    <h3>TC-004: Certificate Export - PDF</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> Valid certificate exists with or without uploaded file<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Navigate to certificate details page</li>
+            <li>Click "Download PDF" button</li>
+            <li>Verify downloaded file in browser downloads</li>
+            <li>Open PDF and verify content</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>If certificate has uploaded file: Downloads the original uploaded certificate file</li>
+            <li>If no uploaded file: Downloads dynamically generated PDF with certificate data</li>
+            <li>Generated PDFs have proper formatting with GCC branding</li>
+            <li>File downloads with correct MIME type (application/pdf)</li>
+            <li>All certificate fields displayed correctly</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.Tests/Services/CertificatePdfServiceTests.cs<br>
+        <strong>Updated:</strong> 2025-09-28 - Added uploaded file download support
+    </div>
+
+    <h2>User Management Test Cases</h2>
+
+    <h3>TC-005: User Login - Azure AD B2C</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> Valid Azure AD B2C account configured<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Navigate to /Account/Login</li>
+            <li>Click "Sign in with Azure" button</li>
+            <li>Enter Microsoft credentials</li>
+            <li>Complete MFA if required (email/SMS code)</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>User authenticated successfully via Azure AD B2C</li>
+            <li>Correct role assigned based on Azure group membership</li>
+            <li>Redirect to dashboard or originally requested page</li>
+            <li>Session cookie created with appropriate expiration</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.Security.Tests
+    </div>
+
+    <h3>TC-006: Role-Based Access Control</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> User accounts with different roles exist<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Login as External user</li>
+            <li>Attempt to access /Admin/UserManagement</li>
+            <li>Verify access denied with 403 Forbidden</li>
+            <li>Access /Certificate/Certificates (should succeed)</li>
+            <li>Verify only partner-specific certificates visible</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>Admin pages blocked for External users</li>
+            <li>Certificate pages accessible based on partner association</li>
+            <li>Proper error messages displayed (not raw error pages)</li>
+            <li>Navigation menu shows only authorized sections</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.RoleBasedUI.Tests
+    </div>
+
+    <h3>TC-006B: Product Management Actions Column Visibility</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> Users with different roles, products in database<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Login as External user</li>
+            <li>Navigate to /Product/Management</li>
+            <li>Inspect page for Actions column header and cells</li>
+            <li>Logout and login as Admin</li>
+            <li>Navigate to /Product/Management</li>
+            <li>Verify Actions column is visible with Edit/Delete buttons</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li><strong>External users:</strong> Actions column header hidden, cells hidden, no Edit/Delete buttons</li>
+            <li><strong>Admin users:</strong> Actions column visible with Edit/Delete buttons</li>
+            <li><strong>Analyst users:</strong> Actions column visible with Edit/Delete buttons</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.UAT.Tests/Tests/Product/ProductManagementTests.cs
+    </div>
+
+    <h3>TC-007: Two-Factor Authentication</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> User with 2FA enabled in system<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Login with username/password</li>
+            <li>Wait for 2FA code prompt</li>
+            <li>Enter valid 6-digit code from authenticator app</li>
+            <li>Verify access granted to dashboard</li>
+            <li>Test with invalid code (should be rejected)</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>2FA prompt appears after successful password validation</li>
+            <li>Valid code grants full access to system</li>
+            <li>Invalid code rejected with clear error message</li>
+            <li>Maximum 3 attempts before account lockout</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.Security.Tests/TwoFactorAuthTests.cs
+    </div>
+
+    <h2>API Test Cases</h2>
+
+    <h3>TC-008: API Authentication</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> Valid API key generated<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Send GET request to /api/v1/certificates</li>
+            <li>Include API key in X-API-Key header</li>
+            <li>Verify successful response with JSON data</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>200 OK response code</li>
+            <li>JSON array of certificates returned</li>
+            <li>Proper pagination metadata included</li>
+            <li>Response time under 500ms</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.Api.Tests
+    </div>
+
+    <h3>TC-009: API Rate Limiting</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> API key configured with standard rate limits<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Send 100 GET requests to /api/v1/certificates in 1 minute</li>
+            <li>Send 101st request immediately</li>
+            <li>Verify 429 Too Many Requests response</li>
+            <li>Check Retry-After header for wait time</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>First 100 requests succeed with 200 OK</li>
+            <li>101st request returns 429 Too Many Requests</li>
+            <li>Retry-After header present with seconds to wait</li>
+            <li>Rate limit resets after specified time window</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.Api.Tests/RateLimitingTests.cs
+    </div>
+
+    <h2>Performance Test Cases</h2>
+
+    <h3>TC-010: Large Dataset Loading</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> Database seeded with 10,000+ certificates<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Navigate to certificate tile view</li>
+            <li>Measure initial page load time</li>
+            <li>Scroll down to trigger lazy load</li>
+            <li>Measure additional batch load time</li>
+            <li>Apply filters and measure response</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>Initial page load completes in under 2 seconds</li>
+            <li>Lazy load requests complete in under 500ms</li>
+            <li>No UI freezing or lag during scrolling</li>
+            <li>Filter application responds within 1 second</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.Performance.Tests
+    </div>
+
+    <h3>TC-011: Concurrent User Load</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> Load testing environment configured<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Simulate 100 concurrent users browsing certificates</li>
+            <li>Each user performs search, filter, and export operations</li>
+            <li>Monitor server response times and error rates</li>
+            <li>Check database connection pool usage</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>Average response time under 1 second</li>
+            <li>95th percentile response time under 2 seconds</li>
+            <li>Zero errors or timeouts during test</li>
+            <li>Database connections remain stable (no leaks)</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.Performance.Tests/LoadTests.cs
+    </div>
+
+    <h2>Dashboard Test Cases</h2>
+
+    <h3>TC-012: Dashboard Metrics Accuracy</h3>
+    <div class="info-box">
+        <strong>Preconditions:</strong> Known dataset with verified counts in database<br>
+        <strong>Steps:</strong>
+        <ol>
+            <li>Navigate to /Dashboard as Admin</li>
+            <li>Verify each of 12 statistical card values</li>
+            <li>Click export on each stat card</li>
+            <li>Verify exported data matches displayed counts</li>
+            <li>Compare with direct database queries</li>
+        </ol>
+        <strong>Expected Result:</strong>
+        <ul>
+            <li>All 12 metrics match database query results</li>
+            <li>Exported data contains correct certificate details</li>
+            <li>Real-time updates work when data changes</li>
+            <li>Date-based metrics (last month, this year) calculate correctly</li>
+        </ul>
+        <strong>Automation:</strong> ✓ GCCWebApp.Tests/Controllers/DashboardControllerTests.cs
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- Progress Tracking -->
+    <h1 id="progress">4. Progress Tracking & Status</h1>
+
+    <h2>Overall Feature Development</h2>
+    <div class="progress-bar">
+        <div class="progress-fill" style="width: 100%;">100% Features Complete - Testing in Progress</div>
+    </div>
+
+    <h2>Current Sprint Status (October 2025)</h2>
+
+    <h3>Completed Features</h3>
+    <div class="success-box">
+        <ul>
+            <li><span class="checkmark">✓</span> Certificate CRUD operations with full validation</li>
+            <li><span class="checkmark">✓</span> 14-state workflow management with role-based transitions</li>
+            <li><span class="checkmark">✓</span> Partner integration (Amazon/Wayfair/None)</li>
+            <li><span class="checkmark">✓</span> Dashboard analytics with 12 statistical cards and 5 data tables</li>
+            <li><span class="checkmark">✓</span> PDF generation with QuestPDF library</li>
+            <li><span class="checkmark">✓</span> Certificate image upload and display (PNG/JPG, up to 5MB)</li>
+            <li><span class="checkmark">✓</span> RESTful API v1 with JWT and API key authentication</li>
+            <li><span class="checkmark">✓</span> Azure AD B2C integration with cookie fallback</li>
+            <li><span class="checkmark">✓</span> Role-based access control (Admin, Analyst, External, Internal, Public)</li>
+            <li><span class="checkmark">✓</span> Two-factor authentication with email/SMS</li>
+            <li><span class="checkmark">✓</span> Autocomplete search with categorized suggestions</li>
+            <li><span class="checkmark">✓</span> Infinite scroll (lazy loading) for performance</li>
+            <li><span class="checkmark">✓</span> Unique shareable URLs with query parameters</li>
+            <li><span class="checkmark">✓</span> Excel export with ClosedXML library</li>
+            <li><span class="checkmark">✓</span> Product ID management (100s of ASINs per certificate)</li>
+            <li><span class="checkmark">✓</span> Rate limiting (60/min, 1000/hour, 5000/day)</li>
+            <li><span class="checkmark">✓</span> Response caching (5-minute duration)</li>
+            <li><span class="checkmark">✓</span> Health monitoring endpoints</li>
+            <li><span class="checkmark">✓</span> Database-driven filters for all tile views</li>
+            <li><span class="checkmark">✓</span> Design consistency between External and Internal views</li>
+        </ul>
+    </div>
+
+    <h3>Recently Completed (September-October 2025)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Feature</th>
+                <th>Date Completed</th>
+                <th>Impact</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Certificate Image Upload</td>
+                <td>October 6, 2025</td>
+                <td>Allows previewing actual certificate snapshots in tile views</td>
+            </tr>
+            <tr>
+                <td>Infinite Scroll Implementation</td>
+                <td>October 6, 2025</td>
+                <td>Improved performance with lazy loading for large datasets</td>
+            </tr>
+            <tr>
+                <td>Autocomplete Search</td>
+                <td>October 6, 2025</td>
+                <td>Enhanced user experience with categorized suggestions</td>
+            </tr>
+            <tr>
+                <td>Dashboard Export Enhancement</td>
+                <td>October 20, 2025</td>
+                <td>Stat cards now export full certificate details, not just counts</td>
+            </tr>
+            <tr>
+                <td>Product Management RBAC</td>
+                <td>October 29, 2025</td>
+                <td>Secured product operations to Admin/Analyst only</td>
+            </tr>
+            <tr>
+                <td>Design Consistency (External/Internal)</td>
+                <td>October 30, 2025</td>
+                <td>Unified visual experience across role-based views</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Not Required for Phase 1</h3>
+    <ul>
+        <li>Geographic filtering (future enhancement)</li>
+        <li>Saved search preferences (future enhancement)</li>
+        <li>Partner-specific branding (explicitly excluded from Phase 1)</li>
+        <li>Bulk role updates (single user management sufficient)</li>
+        <li>Advanced notification system (basic email notifications implemented)</li>
+        <li>Dedicated audit trail UI (audit data tracked in database)</li>
+    </ul>
+
+    <h2>Test Coverage Summary</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Test Suite</th>
+                <th>Total Tests</th>
+                <th>Pass Rate</th>
+                <th>Coverage</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Unit Tests (GCCWebApp.Tests)</td>
+                <td>171</td>
+                <td>95%</td>
+                <td>90%</td>
+            </tr>
+            <tr>
+                <td>API Tests (GCCWebApp.Api.Tests)</td>
+                <td>20</td>
+                <td>85%</td>
+                <td>92%</td>
+            </tr>
+            <tr>
+                <td>Security Tests (GCCWebApp.Security.Tests)</td>
+                <td>30</td>
+                <td>90%</td>
+                <td>95%</td>
+            </tr>
+            <tr>
+                <td>UAT Tests (GCCWebApp.UAT.Tests)</td>
+                <td>80</td>
+                <td>75%</td>
+                <td>85%</td>
+            </tr>
+            <tr>
+                <td>Performance Tests (GCCWebApp.Performance.Tests)</td>
+                <td>10</td>
+                <td>80%</td>
+                <td>85%</td>
+            </tr>
+            <tr>
+                <td>Role-Based UI Tests (GCCWebApp.RoleBasedUI.Tests)</td>
+                <td>45</td>
+                <td>92%</td>
+                <td>90%</td>
+            </tr>
+            <tr>
+                <td>Accessibility Tests (GCCWebApp.Accessibility.Tests)</td>
+                <td>8</td>
+                <td>100%</td>
+                <td>80%</td>
+            </tr>
+            <tr style="font-weight: bold; background: var(--light-bg);">
+                <td>TOTAL</td>
+                <td>624+</td>
+                <td>87%</td>
+                <td>87%</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Testing & Readiness Checklist</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Category</th>
+                <th>Status</th>
+                <th>Notes</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Core certificate management</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>Full CRUD with 14-state workflow</td>
+            </tr>
+            <tr>
+                <td>Authentication system</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>Azure AD B2C + Cookie fallback + 2FA</td>
+            </tr>
+            <tr>
+                <td>API implementation</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>RESTful v1 with JWT/API key auth</td>
+            </tr>
+            <tr>
+                <td>PDF generation</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>QuestPDF with GCC branding</td>
+            </tr>
+            <tr>
+                <td>Certificate image upload</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>PNG/JPG up to 5MB with validation</td>
+            </tr>
+            <tr>
+                <td>Partner support</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>Amazon, Wayfair, None (branding deferred)</td>
+            </tr>
+            <tr>
+                <td>Database optimization</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>Indexes on key columns, query optimization</td>
+            </tr>
+            <tr>
+                <td>Security measures</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>HTTPS, CSRF, XSS protection, rate limiting</td>
+            </tr>
+            <tr>
+                <td>Autocomplete search</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>Categorized suggestions, debouncing</td>
+            </tr>
+            <tr>
+                <td>Infinite scroll</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>Lazy loading with retry mechanism</td>
+            </tr>
+            <tr>
+                <td>Unique search URLs</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>Query parameters for sharing/bookmarking</td>
+            </tr>
+            <tr>
+                <td>UI polish and consistency</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>External/Internal views identical design</td>
+            </tr>
+            <tr>
+                <td>Performance optimization</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>Caching, async/await, connection pooling</td>
+            </tr>
+            <tr>
+                <td>Deployment configuration</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>AccuWeb Windows hosting with IIS + SQL Server</td>
+            </tr>
+            <tr>
+                <td>Health monitoring</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>/health endpoint with detailed checks</td>
+            </tr>
+            <tr>
+                <td>Documentation</td>
+                <td><span class="checkmark">✓</span> Complete</td>
+                <td>5 deployment guides + API docs</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Current Status</h2>
+    <div class="warning-box" style="font-size: 12pt;">
+        <p><strong>Current Status:</strong> ⚙ <strong>IN TESTING - All Phase 1 Features Complete</strong></p>
+        <p><strong>Deployment Target:</strong> AccuWeb Windows Hosting with IIS + SQL Server</p>
+        <p><strong>Database:</strong> SQL Server 2019+ (production standard)</p>
+        <p><strong>All Phase 1 Requirements:</strong> ✅ COMPLETE (100%)</p>
+        <p><strong>Performance Testing:</strong> 🔄 IN PROGRESS (20-30 req/sec, 50-100 concurrent users)</p>
+        <p><strong>Security Hardening:</strong> ✅ COMPLETE</p>
+        <p><strong>Documentation:</strong> ✅ COMPLETE (5 comprehensive deployment guides)</p>
+        <p><strong>Build & Publish:</strong> ✅ Clean build with 624+ tests (87% pass rate)</p>
+        <p><strong>Next Milestone:</strong> Complete UAT and performance testing</p>
+        <p><strong>Last Updated:</strong> October 31, 2025</p>
+    </div>
+
+    <hr class="section-divider">
+
+    <!-- Technical Specifications -->
+    <h1 id="technical">5. Technical Specifications</h1>
+
+    <h2>Technology Stack</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Component</th>
+                <th>Technology</th>
+                <th>Version</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Framework</td>
+                <td>ASP.NET Core MVC</td>
+                <td>8.0</td>
+            </tr>
+            <tr>
+                <td>ORM</td>
+                <td>Entity Framework Core</td>
+                <td>9.0.9</td>
+            </tr>
+            <tr>
+                <td>Database</td>
+                <td>SQL Server</td>
+                <td>2019+</td>
+            </tr>
+            <tr>
+                <td>Authentication</td>
+                <td>Azure AD B2C + Cookie Auth</td>
+                <td>Latest</td>
+            </tr>
+            <tr>
+                <td>PDF Generation</td>
+                <td>QuestPDF</td>
+                <td>Latest</td>
+            </tr>
+            <tr>
+                <td>Excel Generation</td>
+                <td>ClosedXML</td>
+                <td>0.104.1</td>
+            </tr>
+            <tr>
+                <td>Image Processing</td>
+                <td>SixLabors.ImageSharp</td>
+                <td>3.1.11</td>
+            </tr>
+            <tr>
+                <td>Frontend</td>
+                <td>Bootstrap 5 + jQuery</td>
+                <td>5.x / 3.x</td>
+            </tr>
+            <tr>
+                <td>Testing</td>
+                <td>xUnit + Moq + Playwright</td>
+                <td>2.9.3 / 4.20.72 / 1.55.0</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Database Schema Highlights</h2>
+
+    <h3>Certificate Table (Primary Entity)</h3>
+    <pre><code>CREATE TABLE Certificates (
+    Id INT PRIMARY KEY IDENTITY,
+    Number VARCHAR(50) UNIQUE NOT NULL,
+    Status VARCHAR(50) NOT NULL,
+    Partner VARCHAR(100),
+    CompanyId INT FOREIGN KEY REFERENCES Companies(Id),
+    ProductId INT FOREIGN KEY REFERENCES Products(Id),
+    CertificationType VARCHAR(100) NOT NULL,
+    EffectiveDate DATE NOT NULL,
+    ExpirationDate DATE NOT NULL,
+    CertificateImagePath VARCHAR(500),
+    CreatedBy VARCHAR(100) NOT NULL,
+    CreatedAt DATETIME NOT NULL,
+    UpdatedBy VARCHAR(100),
+    UpdatedAt DATETIME,
+    CONSTRAINT CK_Certificate_Dates CHECK (ExpirationDate > EffectiveDate)
+)</code></pre>
+
+    <h3>Key Relationships</h3>
+    <ul>
+        <li><strong>Certificate → Company:</strong> Many-to-One (required)</li>
+        <li><strong>Certificate → Product:</strong> Many-to-One (required)</li>
+        <li><strong>Certificate → CertificateProductIds:</strong> One-to-Many (ASINs, UPCs, etc.)</li>
+        <li><strong>Certificate → User:</strong> CreatedBy/UpdatedBy audit fields</li>
+        <li><strong>User → Role:</strong> Many-to-Many via UserRoles table</li>
+        <li><strong>User → Company:</strong> Many-to-Many (External user filtering)</li>
+        <li><strong>User → Partner:</strong> Many-to-Many (External user filtering)</li>
+    </ul>
+
+    <h2>API Specifications</h2>
+
+    <h3>Authentication Methods</h3>
+    <ul>
+        <li><strong>JWT Token:</strong> Bearer token in Authorization header for user authentication</li>
+        <li><strong>API Key:</strong> X-API-Key header for system-to-system integration</li>
+        <li><strong>Cookie:</strong> Session cookie for web application authentication</li>
+    </ul>
+
+    <h3>Standard Response Format</h3>
+    <pre><code>{
+    "success": true,
+    "data": {
+        "certificates": [...],
+        "pagination": {
+            "page": 1,
+            "pageSize": 20,
+            "totalCount": 156,
+            "totalPages": 8
+        }
+    },
+    "errors": [],
+    "timestamp": "2025-10-31T10:30:00Z"
+}</code></pre>
+
+    <h3>Error Codes</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Code</th>
+                <th>Meaning</th>
+                <th>Common Causes</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>400</td>
+                <td>Bad Request</td>
+                <td>Invalid input data, validation errors</td>
+            </tr>
+            <tr>
+                <td>401</td>
+                <td>Unauthorized</td>
+                <td>Missing or invalid authentication token</td>
+            </tr>
+            <tr>
+                <td>403</td>
+                <td>Forbidden</td>
+                <td>Valid authentication but insufficient permissions</td>
+            </tr>
+            <tr>
+                <td>404</td>
+                <td>Not Found</td>
+                <td>Requested resource does not exist</td>
+            </tr>
+            <tr>
+                <td>429</td>
+                <td>Too Many Requests</td>
+                <td>Rate limit exceeded (60/min, 1000/hr, 5000/day)</td>
+            </tr>
+            <tr>
+                <td>500</td>
+                <td>Internal Server Error</td>
+                <td>Unexpected server error, logged for investigation</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Performance Requirements</h2>
+
+    <h3>Response Time Targets</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Operation</th>
+                <th>Target</th>
+                <th>Maximum</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Page Load (initial)</td>
+                <td>&lt; 1.5 seconds</td>
+                <td>&lt; 2 seconds</td>
+            </tr>
+            <tr>
+                <td>API Response</td>
+                <td>&lt; 300ms</td>
+                <td>&lt; 500ms</td>
+            </tr>
+            <tr>
+                <td>Search Query</td>
+                <td>&lt; 500ms</td>
+                <td>&lt; 1 second</td>
+            </tr>
+            <tr>
+                <td>Export (1000 records)</td>
+                <td>&lt; 3 seconds</td>
+                <td>&lt; 5 seconds</td>
+            </tr>
+            <tr>
+                <td>Lazy Load Batch</td>
+                <td>&lt; 300ms</td>
+                <td>&lt; 500ms</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Scalability Requirements</h3>
+    <ul>
+        <li><strong>Certificates:</strong> Support 10,000+ certificates without performance degradation</li>
+        <li><strong>Concurrent Users:</strong> Handle 100 simultaneous users browsing/searching</li>
+        <li><strong>API Throughput:</strong> Process 1000 requests/minute during peak hours</li>
+        <li><strong>Database Connections:</strong> Connection pooling with max 100 connections</li>
+        <li><strong>File Storage:</strong> Support 5MB certificate images with auto-resizing</li>
+    </ul>
+
+    <h3>Availability Targets</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Metric</th>
+                <th>Target</th>
+                <th>Measurement</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Uptime</td>
+                <td>99.9%</td>
+                <td>~8.76 hours downtime per year</td>
+            </tr>
+            <tr>
+                <td>Maintenance Window</td>
+                <td>Sunday 2-4 AM EST</td>
+                <td>Scheduled maintenance only</td>
+            </tr>
+            <tr>
+                <td>Backup Schedule</td>
+                <td>Daily at midnight</td>
+                <td>Full database backup with 30-day retention</td>
+            </tr>
+            <tr>
+                <td>Recovery Time Objective (RTO)</td>
+                <td>&lt; 4 hours</td>
+                <td>Maximum acceptable downtime</td>
+            </tr>
+            <tr>
+                <td>Recovery Point Objective (RPO)</td>
+                <td>&lt; 24 hours</td>
+                <td>Maximum acceptable data loss</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Security Requirements</h2>
+
+    <h3>Authentication & Authorization</h3>
+    <ul>
+        <li><strong>Primary:</strong> Azure AD B2C with multi-factor authentication (email/SMS)</li>
+        <li><strong>Fallback:</strong> Cookie-based authentication with secure session management</li>
+        <li><strong>Session Timeout:</strong> 30 minutes of inactivity</li>
+        <li><strong>Password Policy:</strong> Minimum 8 characters, uppercase, lowercase, number, special character</li>
+        <li><strong>Role-Based Access:</strong> 5 distinct roles with policy-based authorization</li>
+        <li><strong>API Security:</strong> JWT tokens with 1-hour expiration, refresh token support</li>
+    </ul>
+
+    <h3>Data Protection</h3>
+    <ul>
+        <li><strong>Transport Security:</strong> HTTPS only with TLS 1.2+ enforced</li>
+        <li><strong>Input Validation:</strong> Server-side validation on all user inputs</li>
+        <li><strong>SQL Injection Prevention:</strong> Parameterized queries via Entity Framework</li>
+        <li><strong>XSS Protection:</strong> Output encoding, Content Security Policy headers</li>
+        <li><strong>CSRF Protection:</strong> Anti-forgery tokens on all POST/PUT/DELETE operations</li>
+        <li><strong>Rate Limiting:</strong> 60 requests/minute per user, 1000/hour, 5000/day</li>
+        <li><strong>File Upload Security:</strong> MIME type validation, size limits, virus scanning ready</li>
+    </ul>
+
+    <hr class="section-divider">
+
+    <!-- Appendix -->
+    <h1 id="appendix">6. Appendix & References</h1>
+
+    <h2>Glossary of Terms</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Term</th>
+                <th>Definition</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>GCC</strong></td>
+                <td>Green Circle Certified - Organization providing environmental certifications</td>
+            </tr>
+            <tr>
+                <td><strong>B2C</strong></td>
+                <td>Business to Consumer - Azure AD authentication service</td>
+            </tr>
+            <tr>
+                <td><strong>MFA / 2FA</strong></td>
+                <td>Multi-Factor / Two-Factor Authentication - Enhanced security with secondary verification</td>
+            </tr>
+            <tr>
+                <td><strong>CRUD</strong></td>
+                <td>Create, Read, Update, Delete - Basic data operations</td>
+            </tr>
+            <tr>
+                <td><strong>UAT</strong></td>
+                <td>User Acceptance Testing - Final testing phase before production</td>
+            </tr>
+            <tr>
+                <td><strong>JWT</strong></td>
+                <td>JSON Web Token - Secure authentication token format</td>
+            </tr>
+            <tr>
+                <td><strong>RBAC</strong></td>
+                <td>Role-Based Access Control - Permission system based on user roles</td>
+            </tr>
+            <tr>
+                <td><strong>API</strong></td>
+                <td>Application Programming Interface - System integration endpoints</td>
+            </tr>
+            <tr>
+                <td><strong>ORM</strong></td>
+                <td>Object-Relational Mapping - Entity Framework Core for database access</td>
+            </tr>
+            <tr>
+                <td><strong>ASIN</strong></td>
+                <td>Amazon Standard Identification Number - Product identifier used by Amazon</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Reference Documentation</h2>
+    <ul>
+        <li><strong>Mockup Designs:</strong> 0_Documentation/mockups/0_0_MasterDesignGuide.html</li>
+        <li><strong>Gap Analysis:</strong> docs/core/Mockup-vs-Implementation-Gap-Analysis-2025-08-27.md</li>
+        <li><strong>Implementation Status:</strong> docs/core/Requirements-vs-Implementation-Analysis-2025-08-27.md</li>
+        <li><strong>UAT Test Cases:</strong> docs/core/MANUAL_UAT_TEST_CASES.md</li>
+        <li><strong>Deployment Guide (Visual):</strong> docs/deployment/DEPLOYMENT_GUIDE_ACCUWEB.html</li>
+        <li><strong>Deployment Guide (Detailed):</strong> docs/deployment/DEPLOYMENT_ACCUWEB.md</li>
+        <li><strong>Deployment Checklist:</strong> docs/deployment/DEPLOYMENT_CHECKLIST_ACCUWEB.md</li>
+        <li><strong>Performance Analysis:</strong> docs/deployment/PERFORMANCE_ACCUWEB.md</li>
+        <li><strong>Hosting Documentation:</strong> docs/deployment/HOSTING_DOCUMENTATION.html</li>
+    </ul>
+
+    <h2>Test Credentials (Development Environment)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Role</th>
+                <th>Username</th>
+                <th>Password</th>
+                <th>Access Level</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Admin</td>
+                <td>admin@greencirclecertified.com</td>
+                <td>Admin123!</td>
+                <td>Full system access</td>
+            </tr>
+            <tr>
+                <td>Analyst</td>
+                <td>analyst@greencirclecertified.com</td>
+                <td>Analyst123!</td>
+                <td>Certificate management, no user admin</td>
+            </tr>
+            <tr>
+                <td>External</td>
+                <td>partner@amazon.com</td>
+                <td>Partner123!</td>
+                <td>Partner-specific certificates only</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="warning-box">
+        <strong>Security Note:</strong> These are development credentials only. Production credentials must be changed during deployment and stored securely using Azure Key Vault or equivalent secret management system.
+    </div>
+
+    <h2>Key Routes & Endpoints</h2>
+
+    <h3>Public Routes</h3>
+    <ul>
+        <li><strong>/Certificate/CertificateTileView</strong> - Public certificate browsing</li>
+        <li><strong>/Certificate/Details/{id}</strong> - Public certificate details</li>
+        <li><strong>/Account/Login</strong> - User authentication page</li>
+    </ul>
+
+    <h3>Authenticated Routes</h3>
+    <ul>
+        <li><strong>/Certificate/CertificateTileViewExternal</strong> - Partner certificate view (requires ExternalAccess)</li>
+        <li><strong>/Certificate/CertificateTileViewInternal</strong> - Internal certificate view (requires InternalAccess)</li>
+        <li><strong>/Certificate/Create</strong> - Create new certificate (Admin/Analyst)</li>
+        <li><strong>/Certificate/Edit/{id}</strong> - Edit certificate (Admin/Analyst)</li>
+        <li><strong>/Dashboard</strong> - Analytics dashboard (Admin/Analyst)</li>
+    </ul>
+
+    <h3>Admin Routes</h3>
+    <ul>
+        <li><strong>/Admin/UserManagement</strong> - User CRUD operations (Admin only)</li>
+        <li><strong>/Admin/RoleManagement</strong> - Role assignment (Admin only)</li>
+        <li><strong>/Admin/ProductManagement</strong> - Product management (Admin/Analyst)</li>
+        <li><strong>/Admin/Tags</strong> - Tag management (Admin/Analyst)</li>
+        <li><strong>/Admin/CertificateTypes</strong> - Certificate type config (Admin only)</li>
+    </ul>
+
+    <h3>API Endpoints</h3>
+    <ul>
+        <li><strong>GET /api/v1/certificates</strong> - List certificates with pagination</li>
+        <li><strong>GET /api/v1/certificates/{id}</strong> - Get certificate by ID</li>
+        <li><strong>POST /api/v1/certificates</strong> - Create certificate (requires JWT)</li>
+        <li><strong>PUT /api/v1/certificates/{id}</strong> - Update certificate (requires JWT)</li>
+        <li><strong>DELETE /api/v1/certificates/{id}</strong> - Delete certificate (requires JWT + Admin)</li>
+        <li><strong>GET /api/v1/products</strong> - List products</li>
+        <li><strong>GET /swagger</strong> - OpenAPI documentation (http://localhost:5101/swagger)</li>
+    </ul>
+
+    <h2>Change Log Summary</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Change</th>
+                <th>Impact</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>2025-10-31</td>
+                <td>Formal requirements document created</td>
+                <td>Professional deliverable for business stakeholders</td>
+            </tr>
+            <tr>
+                <td>2025-10-30</td>
+                <td>Design consistency (US-014) completed</td>
+                <td>External/Internal views now visually identical</td>
+            </tr>
+            <tr>
+                <td>2025-10-29</td>
+                <td>Product Management RBAC (US-012) completed</td>
+                <td>Secured product operations to Admin/Analyst only</td>
+            </tr>
+            <tr>
+                <td>2025-10-20</td>
+                <td>Dashboard export enhancement (US-006B)</td>
+                <td>Stat cards now export full certificate details</td>
+            </tr>
+            <tr>
+                <td>2025-10-06</td>
+                <td>Certificate image upload (US-003)</td>
+                <td>Enabled visual certificate previews in tile views</td>
+            </tr>
+            <tr>
+                <td>2025-10-06</td>
+                <td>Infinite scroll implementation</td>
+                <td>Improved performance for large datasets</td>
+            </tr>
+            <tr>
+                <td>2025-10-06</td>
+                <td>Autocomplete search with categories</td>
+                <td>Enhanced user search experience</td>
+            </tr>
+            <tr>
+                <td>2025-09-28</td>
+                <td>Certificate download with uploaded files</td>
+                <td>Fallback to generated PDF if no uploaded file</td>
+            </tr>
+            <tr>
+                <td>2025-09-18</td>
+                <td>Product ID management (100s of ASINs)</td>
+                <td>Supports Amazon and multi-retailer products</td>
+            </tr>
+            <tr>
+                <td>2025-08-27</td>
+                <td>14-state workflow implemented</td>
+                <td>Complete certificate lifecycle management</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2>Contact Information</h2>
+    <div class="info-box">
+        <p><strong>Project Team:</strong> GCC Database Solution Development Team</p>
+        <p><strong>Organization:</strong> Green Circle Certified</p>
+        <p><strong>Document Owner:</strong> Project Manager / Technical Lead</p>
+        <p><strong>Last Review Date:</strong> October 31, 2025</p>
+        <p><strong>Next Review Date:</strong> Post-deployment (30 days after launch)</p>
+        <p><strong>Document Version:</strong> 1.0 - In Testing</p>
+    </div>
+
+    <div style="text-align: center; margin-top: 60px; padding-top: 20px; border-top: 2px solid var(--border-color);">
+        <p style="font-size: 10pt; color: #999;">
+            <strong>GCC Database Solution - Requirements & User Stories</strong><br>
+            Document Version 1.0 | October 31, 2025 | Status: In Testing<br>
+            Confidential - For Internal Business Review Only
+        </p>
+    </div>
+
+</body>
+</html>

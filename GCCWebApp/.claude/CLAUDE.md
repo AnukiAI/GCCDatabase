@@ -66,6 +66,20 @@ Database: gccwebap_certificates
 Username: GCC_adminxyz123
 ```
 
+**CRITICAL DATABASE REQUIREMENT - Schema Ownership**:
+```
+⚠️ REQUIRED: All database tables MUST be in 'dbo' schema
+   - Entity Framework requires dbo.TableName (not username.TableName)
+   - Production user MUST have:
+     1. db_owner role membership
+     2. DEFAULT_SCHEMA = dbo
+   - Common error: Tables created as GCC_adminxyz123.TableName instead of dbo.TableName
+   - Symptom: Certificates not displaying despite data in database
+   - Fix: Run DatabaseScripts/REBUILD_PRODUCTION_DBO.cmd
+   - Verify: SELECT SCHEMA_NAME(schema_id), name FROM sys.tables
+     Should show: dbo | Certificates (not GCC_adminxyz123 | Certificates)
+```
+
 **Key Tables**: Certificates, Companies, Products, Users, ApiKeys, CertificateProductIds, Roles, UserRoles
 **Key Migrations**: `20250918212035_AddCertificateProductIds`, `20250827182202_AddPartnerFieldToCertificate`
 

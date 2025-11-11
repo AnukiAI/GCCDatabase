@@ -1,0 +1,6 @@
+1|Admin|Full system access|1|1|2025-10-29 22:10:33.8242588|2025-10-29 22:10:33.8242589
+2|Analyst|Certificate management access|1|1|2025-10-29 22:10:33.8243039|2025-10-29 22:10:33.8243039
+3|External|External user access|1|1|2025-10-29 22:10:33.8243042|2025-10-29 22:10:33.8243042
+4|Public|Public read-only access|1|1|2025-10-29 22:10:33.8243043|2025-10-29 22:10:33.8243043
+
+(4 rows affected)

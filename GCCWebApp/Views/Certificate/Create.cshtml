@@ -6,8 +6,414 @@
 }
 
 @section Styles {
-    <link href="~/css/certificate-create.css" asp-append-version="true" rel="stylesheet" />
     <link href="~/css/product-id-manager.css" asp-append-version="true" rel="stylesheet" />
+    <style>
+        /* Certificate Create Styles - Inline to bypass cache and CSS conflicts */
+
+        /* ===== CONTAINER LAYOUT ===== */
+        .admin-container {
+            background-color: #ffffff !important;
+            padding: 32px !important;
+            border-radius: 8px !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+            width: 100% !important;
+        }
+
+        .admin-content {
+            background: #ffffff !important;
+            width: 100% !important;
+        }
+
+        /* Hide layout page header when admin-container is present */
+        body:has(.admin-container) .page-header {
+            display: none !important;
+        }
+
+        /* ===== ADMIN HEADER ===== */
+        .admin-header {
+            margin-bottom: 32px !important;
+            padding-bottom: 24px !important;
+            border-bottom: 2px solid #e0e0e0 !important;
+        }
+
+        .admin-header-content {
+            display: flex !important;
+            align-items: flex-start !important;
+            justify-content: space-between !important;
+            gap: 24px !important;
+        }
+
+        .admin-title-section {
+            flex: 1 !important;
+        }
+
+        .admin-page-subtitle {
+            color: #6c757d !important;
+            font-size: 16px !important;
+            margin: 0 !important;
+        }
+
+        .admin-actions-section {
+            flex-shrink: 0 !important;
+        }
+
+        .admin-button-group {
+            display: flex !important;
+            gap: 12px !important;
+            align-items: center !important;
+        }
+
+        .admin-btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            padding: 10px 20px !important;
+            border-radius: 6px !important;
+            font-size: 16px !important;
+            font-weight: 500 !important;
+            text-decoration: none !important;
+            transition: all 0.3s ease !important;
+            border: none !important;
+            cursor: pointer !important;
+            min-height: 44px !important;
+        }
+
+        .admin-btn--secondary {
+            background-color: #6c757d !important;
+            color: #ffffff !important;
+        }
+
+        .admin-btn--secondary:hover {
+            background-color: #5a6268 !important;
+            transform: translateY(-1px) !important;
+        }
+
+        /* ===== FORM SECTION HEADER ===== */
+        .form-section-header {
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            color: #002B76 !important;
+            font-size: 20px !important;
+            font-weight: 600 !important;
+            margin-bottom: 24px !important;
+            padding: 12px 0 12px 16px !important;
+            border-bottom: 3px solid #002B76 !important;
+            background: linear-gradient(90deg, rgba(0, 43, 118, 0.05) 0%, transparent 100%) !important;
+        }
+
+        .form-section-header i {
+            color: #00AEEF !important;
+        }
+
+        /* ===== FORM GRID LAYOUT ===== */
+        .form-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 380px !important;
+            gap: 32px !important;
+            margin-bottom: 32px !important;
+            width: 100% !important;
+        }
+
+        .main-form {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 20px 24px !important;
+            min-width: 0 !important;
+        }
+
+        /* ===== FORM GROUPS ===== */
+        .form-group {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 6px !important;
+        }
+
+        .form-group label {
+            font-weight: 500 !important;
+            color: #002B76 !important;
+            font-size: 16px !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 10px 12px !important;
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 6px !important;
+            font-size: 16px !important;
+            transition: all 0.3s ease !important;
+            background: #ffffff !important;
+            font-family: inherit !important;
+            min-height: 44px !important;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none !important;
+            border-color: #00AEEF !important;
+            box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1) !important;
+        }
+
+        /* ===== CERTIFICATE SIDEBAR ===== */
+        .certificate-sidebar {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 24px !important;
+            min-width: 0 !important;
+            width: 100% !important;
+        }
+
+        /* ===== UPLOAD SECTION ===== */
+        .upload-section {
+            background: #ffffff !important;
+            border: 2px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+            padding: 24px !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .upload-section:hover {
+            border-color: #00AEEF !important;
+            box-shadow: 0 2px 8px rgba(0, 174, 239, 0.1) !important;
+        }
+
+        .section-icon {
+            width: 48px !important;
+            height: 48px !important;
+            border-radius: 50% !important;
+            background: linear-gradient(135deg, #00AEEF 0%, #0090C8 100%) !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            margin: 0 auto 16px !important;
+        }
+
+        .section-icon i {
+            color: #ffffff !important;
+            font-size: 24px !important;
+        }
+
+        .upload-section h3 {
+            color: #002B76 !important;
+            font-size: 18px !important;
+            font-weight: 600 !important;
+            margin: 0 0 8px 0 !important;
+            text-align: center !important;
+        }
+
+        .upload-section p {
+            color: #6c757d !important;
+            font-size: 14px !important;
+            margin: 0 0 16px 0 !important;
+            text-align: center !important;
+        }
+
+        .upload-placeholder {
+            border: 2px dashed #00AEEF !important;
+            border-radius: 8px !important;
+            padding: 32px !important;
+            text-align: center !important;
+            background: rgba(0, 174, 239, 0.02) !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: center !important;
+            min-height: 180px !important;
+        }
+
+        .upload-placeholder:hover {
+            border-color: #92C83E !important;
+            background: rgba(146, 200, 62, 0.05) !important;
+            transform: scale(1.02) !important;
+        }
+
+        /* ===== TAGS SECTION ===== */
+        .tags-section {
+            background: #ffffff !important;
+            border: 2px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+            padding: 24px !important;
+        }
+
+        .tags-section h3 {
+            color: #002B76 !important;
+            font-size: 18px !important;
+            font-weight: 600 !important;
+            margin: 0 0 20px 0 !important;
+            text-align: center !important;
+        }
+
+        .tags-group {
+            margin-bottom: 20px !important;
+        }
+
+        .tags-group:last-child {
+            margin-bottom: 0 !important;
+        }
+
+        .tags-group label {
+            font-weight: 500 !important;
+            color: #002B76 !important;
+            font-size: 14px !important;
+            margin-bottom: 8px !important;
+            display: block !important;
+        }
+
+        .tags-group select {
+            width: 100% !important;
+            padding: 10px 12px !important;
+            border: 1px solid #e0e0e0 !important;
+            border-radius: 6px !important;
+            font-size: 16px !important;
+            background: #ffffff !important;
+            font-family: inherit !important;
+            min-height: 44px !important;
+        }
+
+        .tags-container {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 8px !important;
+            margin-top: 12px !important;
+            min-height: 44px !important;
+        }
+
+        /* ===== CERTIFICATE SECTION ===== */
+        .certificate-section {
+            background: #ffffff !important;
+            border: 2px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+            padding: 24px !important;
+            margin-bottom: 24px !important;
+        }
+
+        .pdf-upload {
+            border: 2px dashed #00AEEF !important;
+            border-radius: 8px !important;
+            padding: 48px !important;
+            text-align: center !important;
+            background: rgba(0, 174, 239, 0.02) !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+        }
+
+        .pdf-upload:hover {
+            border-color: #92C83E !important;
+            background: rgba(146, 200, 62, 0.05) !important;
+            transform: translateY(-2px) !important;
+        }
+
+        .pdf-upload-text {
+            color: #00AEEF !important;
+            font-size: 16px !important;
+            margin-bottom: 8px !important;
+            font-weight: 500 !important;
+        }
+
+        /* ===== PRODUCT MANAGER ===== */
+        .product-manager {
+            background: #ffffff !important;
+            border: 2px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+            padding: 24px !important;
+            margin-bottom: 24px !important;
+        }
+
+        .section-description {
+            color: #6c757d !important;
+            font-size: 14px !important;
+            margin: 0 0 16px 0 !important;
+        }
+
+        /* ===== ACTION BUTTONS ===== */
+        .action-buttons {
+            display: flex !important;
+            gap: 12px !important;
+            justify-content: flex-end !important;
+            margin-top: 32px !important;
+            padding-top: 24px !important;
+            border-top: 2px solid #e0e0e0 !important;
+            flex-wrap: wrap !important;
+        }
+
+        .btn {
+            display: inline-flex !important;
+            align-items: center !important;
+            gap: 8px !important;
+            padding: 10px 20px !important;
+            border-radius: 6px !important;
+            font-size: 16px !important;
+            font-weight: 500 !important;
+            text-decoration: none !important;
+            transition: all 0.3s ease !important;
+            cursor: pointer !important;
+            min-height: 44px !important;
+            border: none !important;
+        }
+
+        .btn-primary {
+            background-color: #92C83E !important;
+            color: #ffffff !important;
+        }
+
+        .btn-primary:hover {
+            background-color: #7BA633 !important;
+            transform: translateY(-1px) !important;
+        }
+
+        .btn-outline {
+            background-color: #ffffff !important;
+            color: #6c757d !important;
+            border: 1px solid #e0e0e0 !important;
+        }
+
+        .btn-outline:hover {
+            background-color: #f8f9fa !important;
+            border-color: #6c757d !important;
+        }
+
+        /* ===== UTILITY CLASSES ===== */
+        .card-style {
+            background: #ffffff !important;
+            border: 2px solid #e0e0e0 !important;
+            border-radius: 8px !important;
+            padding: 24px !important;
+        }
+
+        .text-danger {
+            color: #FF5252 !important;
+        }
+
+        /* ===== RESPONSIVE ===== */
+        @@media (max-width: 1024px) {
+            .form-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .certificate-sidebar {
+                order: 2 !important;
+            }
+        }
+
+        @@media (max-width: 768px) {
+            .main-form {
+                grid-template-columns: 1fr !important;
+            }
+
+            .admin-header-content {
+                flex-direction: column !important;
+            }
+
+            .admin-container {
+                padding: 16px !important;
+            }
+        }
+    </style>
 }
 
 @section Breadcrumbs {
@@ -22,17 +428,18 @@
     </span>
 }
 
-@section PageActions {
-    <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="btn btn-outline">
-        <i class="fas fa-arrow-left"></i> Back to Management
-    </a>
-}
-
 <div class="admin-container">
     <header class="admin-header">
         <div class="admin-header-content">
             <div class="admin-title-section">
                 <p class="admin-page-subtitle">Add a new certificate to the GreenCircle Certified database</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="admin-btn admin-btn--secondary">
+                        <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Management
+                    </a>
+                </div>
             </div>
         </div>
     </header>
@@ -165,7 +572,7 @@
                 </div>
 
                 <!-- Sidebar -->
-                <div class="sidebar">
+                <div class="certificate-sidebar">
                     <div class="upload-section card-style">
                         <div class="section-icon">
                             <i class="fas fa-image"></i>
@@ -177,8 +584,8 @@
                                 <img id="certificateImagePreviewImg" src="" alt="Certificate Preview" style="max-width: 100%; max-height: 250px; object-fit: contain; border-radius: 8px;" />
                             </div>
                             <div id="certificateImagePlaceholder">
-                                <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: var(--blue-primary); margin-bottom: 8px;"></i>
-                                <div style="font-size: 14px; color: var(--text-secondary);">Click to upload image</div>
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: #00AEEF; margin-bottom: 8px;"></i>
+                                <div style="font-size: 14px; color: #6c757d;">Click to upload image</div>
                             </div>
                         </div>
                         <input type="file" id="certificateImage" name="certificateImage" accept="image/jpeg,image/jpg,image/png" aria-labelledby="certificate-image-label" aria-describedby="certificate-image-help" style="display: none;" />
@@ -239,9 +646,9 @@
                 <div class="form-group">
                     <label for="certificatePdf">Upload PDF Certificate <span class="text-danger" aria-label="required">*</span></label>
                     <div class="pdf-upload" id="pdfUploadZone" role="button" tabindex="0" aria-label="Upload PDF certificate file. You can drag and drop a file here or press Enter to select a file." onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificatePdf').click();}">
-                        <i class="fas fa-file-pdf" style="font-size: 48px; color: var(--warning); margin-bottom: 12px;"></i>
+                        <i class="fas fa-file-pdf" style="font-size: 48px; color: #FFC107; margin-bottom: 12px;"></i>
                         <div class="pdf-upload-text">Drag and drop PDF here or click to select</div>
-                        <small style="color: var(--text-secondary); font-size: 13px;">Maximum file size: 10MB</small>
+                        <small style="color: #6c757d; font-size: 13px;">Maximum file size: 10MB</small>
                     </div>
                     <input type="file" id="certificatePdf" name="certificatePdf" accept="application/pdf" style="display: none;" required aria-required="true" aria-describedby="pdf-help" />
                     <div id="pdfPreviewContainer" aria-live="polite"></div>

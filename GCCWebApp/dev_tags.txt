@@ -1,0 +1,30 @@
+Id,Name,TagType,Description,IsActive
+--,----,-------,-----------,--------
+1,APR,external,APR Environmental Product Declaration,1
+2,LEED,external,Contributes to LEED certification,1
+3,High Priority Client,internal,Important client certification,1
+4,Q4 Review,internal,Scheduled for quarterly review,1
+5,Environmental Facts,internal,Environmental impact data,1
+6,Recycled Content,internal,Contains recycled materials,1
+7,Carbon Neutral,internal,Carbon neutral product,1
+8,Energy Star,internal,Energy Star certified product,1
+9,Cradle to Cradle,internal,Cradle to Cradle certified,1
+10,Forest Stewardship Council,internal,FSC certified materials,1
+11,GREENGUARD,internal,Low chemical emissions,1
+12,Bio-Based,internal,Made from renewable biological resources,1
+13,Renewable Energy,internal,Manufactured using renewable energy,1
+14,Circular Economy,internal,Designed for circular economy principles,1
+15,Water Stewardship,internal,Responsible water usage in manufacturing,1
+16,Fair Trade,internal,Fair trade certified materials,1
+17,Urgent Review,internal,Requires immediate attention,1
+18,Annual Audit,internal,Scheduled for annual audit,1
+19,Customer Request,internal,Generated from customer inquiry,1
+20,Regulatory Compliance,internal,Required for regulatory compliance,1
+21,Market Expansion,internal,Supporting new market entry,1
+22,Partnership Program,internal,Part of strategic partnership,1
+23,Innovation Project,internal,Supporting innovation initiative,1
+24,Cost Optimization,internal,Cost reduction initiative,1
+25,Quality Improvement,internal,Quality enhancement program,1
+26,Digital Transformation,internal,Digital transformation project,1
+
+(26 rows affected)

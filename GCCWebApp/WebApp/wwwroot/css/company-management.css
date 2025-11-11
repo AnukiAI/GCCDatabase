@@ -1,0 +1,531 @@
+/* Company Management Styles - Uses main.css variables */
+
+/* ===== LAYOUT CONTAINERS ===== */
+.admin-container {
+    background-color: var(--white);
+    padding: var(--space-xl);
+    max-width: 1400px;
+    margin: var(--space-xl) auto;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow);
+}
+
+/* ===== HEADER SECTION ===== */
+/* Modern admin header structure is defined in admin-layout.css and admin-mockup-override.css */
+/* This file only contains company-specific overrides */
+
+.admin-container h1 {
+    color: var(--blue-dark);
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+}
+
+/* ===== BUTTON STYLES ===== */
+.btn {
+    background-color: var(--white);
+    color: var(--blue-dark);
+    border: 1px solid var(--border-color);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: 16px;
+    font-family: inherit;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: 44px;
+}
+
+.btn:hover {
+    background-color: var(--light-gray);
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background-color: var(--green-primary);
+    color: var(--white);
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #0089BC;
+}
+
+.btn-add {
+    background-color: var(--green-primary);
+    color: var(--white);
+    border: none;
+}
+
+.btn-add:hover {
+    background-color: var(--green-secondary);
+}
+
+.btn-delete,
+.btn-edit {
+    background: none;
+    border: none;
+    padding: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: var(--transition);
+    border-radius: var(--border-radius-sm);
+    min-width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 2px;
+}
+
+.btn-delete {
+    color: var(--warning);
+}
+
+.btn-edit {
+    color: var(--blue-primary);
+}
+
+.btn-delete:hover {
+    background-color: rgba(255, 82, 82, 0.1);
+}
+
+.btn-edit:hover {
+    background-color: rgba(0, 174, 239, 0.1);
+}
+
+/* ===== SEARCH AND FILTER BAR ===== */
+.search-filter-bar {
+    display: flex;
+    align-items: center;
+    background-color: var(--light-gray);
+    border-radius: 0; /* Remove border radius for full-width appearance */
+    padding: var(--space-md);
+    margin-bottom: var(--space-md);
+    margin-left: calc(-1 * var(--space-xl)); /* Extend to left edge */
+    margin-right: calc(-1 * var(--space-xl)); /* Extend to right edge */
+    padding-left: var(--space-xl); /* Restore padding for content alignment */
+    padding-right: var(--space-xl); /* Restore padding for content alignment */
+    gap: var(--space-md);
+    flex-wrap: wrap;
+}
+
+.search-box {
+    position: relative;
+    flex: 1 1 100%; /* Take full width in the search-filter-bar */
+    width: 100%;
+    min-width: 200px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md) var(--space-sm) 35px;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    background-color: var(--white);
+    font-family: inherit;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.search-icon {
+    position: absolute;
+    left: var(--space-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+/* ===== TABLE STYLES ===== */
+.table-container {
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+    margin-bottom: var(--space-lg);
+    background-color: var(--white);
+}
+
+/* Override main.css company-name white color for table context */
+#company-table .company-name {
+    color: var(--text-color);
+    font-weight: normal;
+    font-size: 16px;
+}
+
+#company-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--white);
+}
+
+#company-table th,
+#company-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#company-table th {
+    background-color: var(--light-gray);
+    color: var(--blue-dark);
+    font-weight: 500;
+    position: sticky;
+    top: 0;
+    cursor: pointer;
+    font-size: 16px;
+    white-space: nowrap;
+}
+
+#company-table th .sort-icon {
+    display: inline-block;
+    margin-left: var(--space-xs);
+    font-size: 12px;
+    opacity: 0.6;
+    transition: var(--transition);
+}
+
+#company-table th.active-sort .sort-icon {
+    opacity: 1;
+    color: var(--blue-primary);
+}
+
+#company-table tbody tr {
+    background-color: var(--white);
+    transition: background-color 0.2s;
+}
+
+#company-table tbody tr:hover {
+    background-color: var(--light-gray);
+}
+
+#company-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Actions column specific styling */
+.actions-col {
+    text-align: center;
+    white-space: nowrap;
+    min-width: 80px;
+}
+
+#company-table td:last-child {
+    text-align: center;
+    white-space: nowrap;
+    padding: 8px 4px;
+}
+
+/* ===== MODAL STYLES ===== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+    background-color: var(--white);
+    margin: 5% auto;
+    padding: var(--space-xl);
+    width: 60%;
+    max-width: 900px;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow);
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+}
+
+.modal-title {
+    color: var(--blue-dark);
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 500;
+}
+
+.modal-close {
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+
+.modal-close:hover {
+    color: var(--text-color);
+}
+
+.form-group {
+    margin-bottom: var(--space-md);
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    color: var(--text-color);
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: var(--space-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: 16px;
+    box-sizing: border-box;
+    min-height: 44px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+}
+
+.footer-info {
+    text-align: right;
+    color: var(--text-secondary);
+    font-size: 16px;
+    margin-top: var(--space-xs);
+}
+
+/* ===== INLINE EDITING STYLES ===== */
+.company-edit-row .company-name,
+.company-edit-row .company-email,
+.company-edit-row .company-url {
+    display: none;
+}
+
+.company-name-edit,
+.company-email-edit,
+.company-url-edit {
+    display: none;
+}
+
+.company-edit-row .company-name-edit,
+.company-edit-row .company-email-edit,
+.company-edit-row .company-url-edit {
+    display: block;
+}
+
+.company-edit-row {
+    background-color: rgba(0, 174, 239, 0.05);
+}
+
+/* Add row styles */
+.company-add-row {
+    display: none;
+    background-color: rgba(146, 200, 62, 0.05);
+}
+
+.company-add-row.active {
+    display: table-row;
+}
+
+.company-edit-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--blue-primary);
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.company-edit-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+}
+
+/* Edit action buttons */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
+.company-edit-actions {
+    display: none;
+    gap: 5px;
+    justify-content: center;
+}
+
+.company-edit-row .action-buttons {
+    display: none;
+}
+
+.company-edit-row .company-edit-actions {
+    display: flex;
+}
+
+/* Always show actions for add row */
+.company-add-row .company-edit-actions {
+    display: flex;
+}
+
+.company-btn-save,
+.company-btn-cancel {
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    transition: var(--transition);
+}
+
+.company-btn-save {
+    background-color: var(--green-primary);
+    color: var(--white);
+}
+
+.company-btn-save:hover {
+    background-color: var(--green-secondary);
+}
+
+.company-btn-cancel {
+    background-color: #f8f9fa;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.company-btn-cancel:hover {
+    background-color: #e2e6ea;
+}
+
+/* URL links */
+.url-link {
+    color: var(--blue-primary);
+    text-decoration: none;
+}
+
+.url-link:hover {
+    text-decoration: underline;
+}
+
+/* Toast notification */
+.company-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--green-primary);
+    color: white;
+    padding: 12px 20px;
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--shadow);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    max-width: 300px;
+}
+
+.company-toast.show {
+    opacity: 1;
+}
+
+.company-toast.error {
+    background-color: var(--warning);
+}
+
+.company-toast.success {
+    background-color: var(--green-primary);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1024px) {
+    .admin-container {
+        padding: var(--space-lg);
+        margin: var(--space-md);
+    }
+
+    .search-filter-bar {
+        margin-left: calc(-1 * var(--space-lg));
+        margin-right: calc(-1 * var(--space-lg));
+        padding-left: var(--space-lg);
+        padding-right: var(--space-lg);
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-container {
+        padding: var(--space-md);
+        margin: var(--space-sm);
+    }
+
+    /* Admin header responsive layout handled by admin-layout.css and admin-mockup-override.css */
+
+    .search-filter-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-left: calc(-1 * var(--space-md));
+        margin-right: calc(-1 * var(--space-md));
+        padding-left: var(--space-md);
+        padding-right: var(--space-md);
+    }
+
+    .search-box {
+        width: 100%;
+    }
+
+    .modal-content {
+        width: 90%;
+        margin: 10% auto;
+        padding: var(--space-lg);
+    }
+
+    .btn-delete, .btn-edit {
+        min-width: 32px;
+        height: 32px;
+        margin: 0 1px;
+    }
+
+    #company-table {
+        font-size: 16px;
+    }
+
+    #company-table th,
+    #company-table td {
+        padding: var(--space-sm);
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-container {
+        padding: var(--space-sm);
+        margin: var(--space-xs);
+    }
+
+    .search-filter-bar {
+        margin-left: calc(-1 * var(--space-sm));
+        margin-right: calc(-1 * var(--space-sm));
+        padding-left: var(--space-sm);
+        padding-right: var(--space-sm);
+    }
+
+    .btn {
+        font-size: 16px;
+        padding: var(--space-xs) var(--space-sm);
+    }
+
+    .admin-container h1 {
+        font-size: var(--font-size-lg);
+    }
+
+    /* Admin button layout handled by admin-layout.css and admin-mockup-override.css */
+}

@@ -977,40 +977,20 @@ namespace GCCWebApp.Controllers
             }
         }
 
-        // GCC API
+        // GCC API Keys Management
         public IActionResult GCCAPI()
         {
-            var model = new AmazonAPISettingsViewModel
-            {
-                AccessKeyId = "AKIA****************",
-                SecretAccessKey = "************************************",
-                Region = "us-east-1",
-                MarketplaceId = "ATVPDKIKX0DER",
-                IsEnabled = true,
-                LastSync = DateTime.Now.AddHours(-6),
-                LastSyncStatus = "Success",
-                SyncIntervalHours = 24
-            };
-
-            return View(model);
+            // API key management is handled via /api/v1/apikeys endpoints
+            // This view provides the UI for managing API keys
+            return View();
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public IActionResult SaveGCCAPISettings([FromBody] AmazonAPISettingsViewModel model)
+        // Amazon API Integration
+        public IActionResult AmazonAPI()
         {
-            if (!ModelState.IsValid)
-            {
-                return Json(new ApiResponse<object> 
-                { 
-                    Success = false, 
-                    Message = "Invalid data provided",
-                    Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
-                });
-            }
-
-            // In real app: save to database and test connection
-            return Json(new ApiResponse<object> { Success = true, Message = "Amazon API settings saved successfully" });
+            // Amazon SP-API integration settings for syncing certificates
+            // Settings stored in configuration/database
+            return View();
         }
 
         // Lookup data for dropdowns

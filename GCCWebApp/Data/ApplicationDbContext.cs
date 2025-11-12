@@ -39,6 +39,8 @@ namespace GCCWebApp.Data
 
         // API management
         public DbSet<ApiKey> ApiKeys { get; set; }
+        public DbSet<AmazonApiSettings> AmazonApiSettings { get; set; }
+        public DbSet<AmazonSyncHistory> AmazonSyncHistory { get; set; }
 
         // ETL entities
         public DbSet<ETLConfiguration> ETLConfigurations { get; set; }

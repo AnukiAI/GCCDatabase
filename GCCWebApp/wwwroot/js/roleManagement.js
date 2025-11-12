@@ -112,7 +112,6 @@ class RoleManagement {
             <tr data-role-id="${role.id}">
                 <td>
                     <strong>${this.escapeHtml(role.name)}</strong>
-                    ${role.isSystem ? '<span class="badge badge-system">System</span>' : ''}
                 </td>
                 <td>${this.escapeHtml(role.description || '')}</td>
                 <td>

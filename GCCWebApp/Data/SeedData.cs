@@ -95,7 +95,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "admin",
-                    Email = "admin@gcc.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Admin",
                     FullName = "Admin User",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -110,7 +110,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "analyst",
-                    Email = "analyst@gcc.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Jane",
                     FullName = "Jane Analyst",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -124,7 +124,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "external",
-                    Email = "external@company.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "External",
                     FullName = "External User",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -137,7 +137,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "testuser",
-                    Email = "test@gcc.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Test",
                     FullName = "Test User",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -152,7 +152,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "sarah.johnson",
-                    Email = "sarah.johnson@gcc.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Sarah",
                     FullName = "Sarah Johnson",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -166,7 +166,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "mike.chen",
-                    Email = "mike.chen@gcc.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Mike",
                     FullName = "Mike Chen",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -180,7 +180,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "lisa.rodriguez",
-                    Email = "lisa.rodriguez@assaabloy.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Lisa",
                     FullName = "Lisa Rodriguez",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -193,7 +193,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "david.kim",
-                    Email = "david.kim@3m.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "David",
                     FullName = "David Kim",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -206,7 +206,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "emma.wilson",
-                    Email = "emma.wilson@interface.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Emma",
                     FullName = "Emma Wilson",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -219,7 +219,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "alex.martinez",
-                    Email = "alex.martinez@steelcase.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Alex",
                     FullName = "Alex Martinez",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -232,7 +232,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "jennifer.lee",
-                    Email = "jennifer.lee@gcc.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Jennifer",
                     FullName = "Jennifer Lee",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -246,7 +246,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "robert.taylor",
-                    Email = "robert.taylor@gcc.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Robert",
                     FullName = "Robert Taylor",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -260,7 +260,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "maria.garcia",
-                    Email = "maria.garcia@mohawkind.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Maria",
                     FullName = "Maria Garcia",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -273,7 +273,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "public.user",
-                    Email = "public@example.com",
+                    Email = "swest@anukiconsulting.com",
                     Name = "Public",
                     FullName = "Public User",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -289,20 +289,20 @@ namespace GCCWebApp.Data
             await context.SaveChangesAsync();
 
             // Assign roles to users
-            var adminUser = users.First(u => u.Email == "admin@gcc.com");
-            var analystUser = users.First(u => u.Email == "analyst@gcc.com");
-            var externalUser = users.First(u => u.Email == "external@company.com");
-            var testUser = users.First(u => u.Email == "test@gcc.com");
-            var sarahUser = users.First(u => u.Email == "sarah.johnson@gcc.com");
-            var mikeUser = users.First(u => u.Email == "mike.chen@gcc.com");
-            var lisaUser = users.First(u => u.Email == "lisa.rodriguez@assaabloy.com");
-            var davidUser = users.First(u => u.Email == "david.kim@3m.com");
-            var emmaUser = users.First(u => u.Email == "emma.wilson@interface.com");
-            var alexUser = users.First(u => u.Email == "alex.martinez@steelcase.com");
-            var jenniferUser = users.First(u => u.Email == "jennifer.lee@gcc.com");
-            var robertUser = users.First(u => u.Email == "robert.taylor@gcc.com");
-            var mariaUser = users.First(u => u.Email == "maria.garcia@mohawkind.com");
-            var publicUser = users.First(u => u.Email == "public@example.com");
+            var adminUser = users.First(u => u.Username == "admin");
+            var analystUser = users.First(u => u.Username == "analyst");
+            var externalUser = users.First(u => u.Username == "external");
+            var testUser = users.First(u => u.Username == "testuser");
+            var sarahUser = users.First(u => u.Username == "sarah.johnson");
+            var mikeUser = users.First(u => u.Username == "mike.chen");
+            var lisaUser = users.First(u => u.Username == "lisa.rodriguez");
+            var davidUser = users.First(u => u.Username == "david.kim");
+            var emmaUser = users.First(u => u.Username == "emma.wilson");
+            var alexUser = users.First(u => u.Username == "alex.martinez");
+            var jenniferUser = users.First(u => u.Username == "jennifer.lee");
+            var robertUser = users.First(u => u.Username == "robert.taylor");
+            var mariaUser = users.First(u => u.Username == "maria.garcia");
+            var publicUser = users.First(u => u.Username == "public.user");
 
             // Assign appropriate roles
             adminUser.Roles = new List<Role> { adminRole };

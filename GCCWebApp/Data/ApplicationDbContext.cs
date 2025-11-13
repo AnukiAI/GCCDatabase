@@ -39,8 +39,12 @@ namespace GCCWebApp.Data
 
         // API management
         public DbSet<ApiKey> ApiKeys { get; set; }
+        public DbSet<PartnerApiKey> PartnerApiKeys { get; set; }
         public DbSet<AmazonApiSettings> AmazonApiSettings { get; set; }
         public DbSet<AmazonSyncHistory> AmazonSyncHistory { get; set; }
+
+        // Settings
+        public DbSet<GoogleAnalyticsSettings> GoogleAnalyticsSettings { get; set; }
 
         // ETL entities
         public DbSet<ETLConfiguration> ETLConfigurations { get; set; }
@@ -533,6 +537,24 @@ namespace GCCWebApp.Data
                         v => System.Text.Json.JsonSerializer.Serialize(v, (System.Text.Json.JsonSerializerOptions?)null),
                         v => System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, int>>(v, (System.Text.Json.JsonSerializerOptions?)null) ?? new Dictionary<string, int>())
                     .Metadata.SetValueComparer(dictionaryIntComparer);
+            });
+
+            // Google Analytics Settings configuration
+            modelBuilder.Entity<GoogleAnalyticsSettings>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.Property(e => e.TrackingId)
+                    .HasMaxLength(20)
+                    .IsRequired();
+
+                entity.Property(e => e.CustomScript)
+                    .HasColumnType("TEXT");
+
+                entity.HasOne(e => e.UpdatedByUser)
+                    .WithMany()
+                    .HasForeignKey(e => e.UpdatedBy)
+                    .OnDelete(DeleteBehavior.NoAction);
             });
         }
     }

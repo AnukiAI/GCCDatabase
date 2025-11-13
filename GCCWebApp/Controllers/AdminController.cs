@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Models;
 using GCCWebApp.Services;
+using GCCWebApp.Data;
 using System.Text.Json;
 
 namespace GCCWebApp.Controllers
@@ -11,11 +13,23 @@ namespace GCCWebApp.Controllers
     {
         private readonly IAdminService _adminService;
         private readonly ILogger<AdminController> _logger;
+        private readonly ApplicationDbContext _context;
 
-        public AdminController(IAdminService adminService, ILogger<AdminController> logger)
+        public AdminController(IAdminService adminService, ILogger<AdminController> logger, ApplicationDbContext context)
         {
             _adminService = adminService;
             _logger = logger;
+            _context = context;
+        }
+
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst("UserId");
+            if (userIdClaim != null && int.TryParse(userIdClaim.Value, out int userId))
+            {
+                return userId;
+            }
+            return null;
         }
 
         // GET: Admin Dashboard
@@ -260,17 +274,20 @@ namespace GCCWebApp.Controllers
         }
 
         // Google Analytics
-        public IActionResult GoogleAnalytics()
+        public async Task<IActionResult> GoogleAnalytics()
         {
+            var settings = await _context.GoogleAnalyticsSettings.FirstOrDefaultAsync();
+
             var model = new GoogleAnalyticsViewModel
             {
-                TrackingId = "G-XXXXXXXXXX",
-                IsEnabled = true,
-                TrackPageViews = true,
-                TrackEvents = true,
-                TrackConversions = false,
-                LastUpdated = DateTime.Now.AddDays(-5),
-                UpdatedBy = "Admin User"
+                TrackingId = settings?.TrackingId ?? "",
+                IsEnabled = settings?.IsEnabled ?? false,
+                CustomScript = settings?.CustomScript ?? "",
+                AnonymizeIp = settings?.AnonymizeIp ?? true,
+                EnhancedLinkAttribution = settings?.EnhancedLinkAttribution ?? false,
+                DebugMode = settings?.DebugMode ?? false,
+                LastUpdated = settings?.UpdatedAt,
+                UpdatedBy = settings?.UpdatedByUser?.Name ?? ""
             };
 
             return View(model);
@@ -278,20 +295,65 @@ namespace GCCWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult SaveGoogleAnalytics([FromBody] GoogleAnalyticsViewModel model)
+        public async Task<IActionResult> SaveGoogleAnalytics([FromBody] GoogleAnalyticsViewModel model)
         {
             if (!ModelState.IsValid)
             {
-                return Json(new ApiResponse<object> 
-                { 
-                    Success = false, 
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
                     Message = "Invalid data provided",
                     Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
                 });
             }
 
-            // In real app: save to database
-            return Json(new ApiResponse<object> { Success = true, Message = "Google Analytics settings saved successfully" });
+            try
+            {
+                var settings = await _context.GoogleAnalyticsSettings.FirstOrDefaultAsync();
+                var userId = GetCurrentUserId();
+
+                if (settings == null)
+                {
+                    // Create new settings
+                    settings = new GoogleAnalyticsSettings
+                    {
+                        TrackingId = model.TrackingId,
+                        IsEnabled = model.IsEnabled,
+                        CustomScript = model.CustomScript,
+                        AnonymizeIp = model.AnonymizeIp,
+                        EnhancedLinkAttribution = model.EnhancedLinkAttribution,
+                        DebugMode = model.DebugMode,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        UpdatedBy = userId
+                    };
+                    _context.GoogleAnalyticsSettings.Add(settings);
+                }
+                else
+                {
+                    // Update existing settings
+                    settings.TrackingId = model.TrackingId;
+                    settings.IsEnabled = model.IsEnabled;
+                    settings.CustomScript = model.CustomScript;
+                    settings.AnonymizeIp = model.AnonymizeIp;
+                    settings.EnhancedLinkAttribution = model.EnhancedLinkAttribution;
+                    settings.DebugMode = model.DebugMode;
+                    settings.UpdatedAt = DateTime.UtcNow;
+                    settings.UpdatedBy = userId;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Json(new ApiResponse<object> { Success = true, Message = "Google Analytics settings saved successfully" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = $"Error saving settings: {ex.Message}"
+                });
+            }
         }
 
         [HttpGet]
@@ -985,11 +1047,11 @@ namespace GCCWebApp.Controllers
             return View();
         }
 
-        // Amazon API Integration
-        public IActionResult AmazonAPI()
+        // Partner API Access Management
+        public IActionResult PartnerAPI()
         {
-            // Amazon SP-API integration settings for syncing certificates
-            // Settings stored in configuration/database
+            // Manage API keys for external partners (Amazon, Wayfair, etc.)
+            // Partners use these keys to access GCC REST API endpoints
             return View();
         }
 

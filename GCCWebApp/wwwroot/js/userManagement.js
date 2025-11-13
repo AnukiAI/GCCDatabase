@@ -152,14 +152,16 @@ class UserManagement {
                 <td class="admin-table-td admin-table-td--hidden-mobile user-last-login">${lastLogin}</td>
                 <td class="admin-table-td admin-table-td--actions">
                     <div class="admin-action-buttons">
-                        <button class="admin-action-btn admin-action-btn--edit" onclick="userManagement.editUser(${user.id})" title="Edit User" aria-label="Edit ${this.escapeHtml(user.name || 'user')}">
-                            <i class="fas fa-edit"></i>
-                        </button>
                         <div class="admin-dropdown" style="display: inline-block;">
-                            <button class="admin-action-btn admin-action-btn--2fa ${user.twoFactorEnabled ? '' : 'disabled'}" onclick="userManagement.toggle2FADropdown(${user.id}); event.stopPropagation();" title="2FA Management - ${user.twoFactorEnabled ? 'Enabled' : 'Disabled'}" aria-label="2FA Management for ${this.escapeHtml(user.name || 'user')}" style="opacity: ${user.twoFactorEnabled ? '1' : '0.5'}">
-                                <i class="fas fa-shield-alt"></i>
+                            <button class="admin-action-btn admin-action-btn--menu" onclick="userManagement.toggleActionsDropdown(${user.id}); event.stopPropagation();" title="Actions menu" aria-label="Actions for ${this.escapeHtml(user.name || 'user')}">
+                                <i class="fas fa-ellipsis-v"></i>
                             </button>
-                            <div id="dropdown-${user.id}" class="admin-dropdown-menu admin-dropdown-menu--right">
+                            <div id="actions-dropdown-${user.id}" class="admin-dropdown-menu admin-dropdown-menu--right">
+                                <button class="admin-dropdown-item" onclick="userManagement.editUser(${user.id}); event.stopPropagation();">
+                                    <i class="fas fa-edit"></i>
+                                    <span>Edit User</span>
+                                </button>
+                                <div class="admin-dropdown-divider"></div>
                                 <button class="admin-dropdown-item" onclick="userManagement.view2FAStatus(${user.id}); event.stopPropagation();">
                                     <i class="fas fa-eye"></i>
                                     <span>View 2FA Status</span>
@@ -169,27 +171,31 @@ class UserManagement {
                                         <i class="fas fa-redo"></i>
                                         <span>Reset 2FA</span>
                                     </button>
-                                    <div class="admin-dropdown-divider"></div>
                                     <button class="admin-dropdown-item" onclick="userManagement.disable2FA(${user.id}); event.stopPropagation();" style="color: var(--admin-danger);">
                                         <i class="fas fa-ban"></i>
                                         <span>Disable 2FA</span>
                                     </button>
                                 ` : `
-                                    <div class="admin-dropdown-divider"></div>
                                     <button class="admin-dropdown-item" onclick="userManagement.enable2FA(${user.id}); event.stopPropagation();" style="color: var(--admin-success);">
                                         <i class="fas fa-shield-alt"></i>
                                         <span>Enable 2FA</span>
                                     </button>
                                 `}
+                                ${user.role !== 'Admin' ? `
+                                    <div class="admin-dropdown-divider"></div>
+                                    <button class="admin-dropdown-item admin-dropdown-item--danger" onclick="userManagement.deleteUser(${user.id}); event.stopPropagation();">
+                                        <i class="fas fa-trash-alt"></i>
+                                        <span>Delete User</span>
+                                    </button>
+                                ` : `
+                                    <div class="admin-dropdown-divider"></div>
+                                    <div class="admin-dropdown-item admin-dropdown-item--disabled" title="Admin users cannot be deleted">
+                                        <i class="fas fa-shield-alt"></i>
+                                        <span>Protected User</span>
+                                    </div>
+                                `}
                             </div>
                         </div>
-                        ${user.role !== 'Admin' ? `
-                            <button class="admin-action-btn admin-action-btn--delete" onclick="userManagement.deleteUser(${user.id})" title="Delete User" aria-label="Delete ${this.escapeHtml(user.name || 'user')}">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
-                        ` : `
-                            <span class="admin-note" title="Admin users cannot be deleted">Protected</span>
-                        `}
                     </div>
                 </td>
             </tr>
@@ -312,12 +318,15 @@ class UserManagement {
     }
     
     async editUser(userId) {
+        // Close dropdowns first
+        this.closeAllDropdowns();
+
         const user = this.users.find(u => u.id === userId);
         if (!user) {
             this.showNotification('User not found', 'error');
             return;
         }
-        
+
         document.getElementById('modal-title').textContent = 'Edit User';
         document.getElementById('user-id').value = user.id;
         document.getElementById('user-name').value = user.name || '';
@@ -325,11 +334,11 @@ class UserManagement {
         document.getElementById('user-role').value = user.role || '';
         document.getElementById('user-status').value = user.status || '';
         
-        // Set selected companies
-        const companySelect = document.getElementById('user-company');
-        if (companySelect && user.companyIds) {
-            Array.from(companySelect.options).forEach(option => {
-                option.selected = user.companyIds.includes(parseInt(option.value));
+        // Set selected companies via checkboxes
+        const companyCheckboxes = document.querySelectorAll('input[name="user-companies"]');
+        if (companyCheckboxes && user.companyIds) {
+            companyCheckboxes.forEach(checkbox => {
+                checkbox.checked = user.companyIds.includes(parseInt(checkbox.value));
             });
         }
 
@@ -347,6 +356,9 @@ class UserManagement {
     }
     
     async deleteUser(userId) {
+        // Close dropdowns first
+        this.closeAllDropdowns();
+
         const user = this.users.find(u => u.id === userId);
         if (!user) {
             this.showNotification('User not found', 'error');
@@ -402,9 +414,9 @@ class UserManagement {
     
     async handleFormSubmit(e) {
         e.preventDefault();
-        
-        const companySelect = document.getElementById('user-company');
-        const selectedCompanies = Array.from(companySelect.selectedOptions).map(option => parseInt(option.value));
+
+        const companyCheckboxes = document.querySelectorAll('input[name="user-companies"]:checked');
+        const selectedCompanies = Array.from(companyCheckboxes).map(checkbox => parseInt(checkbox.value));
         const passwordField = document.getElementById('user-password');
         const passwordValue = passwordField.value.trim();
         
@@ -726,15 +738,26 @@ class UserManagement {
             });
         }
 
-        // Update modal company dropdown
-        const userCompanySelect = document.getElementById('user-company');
-        if (userCompanySelect) {
-            userCompanySelect.innerHTML = '';
+        // Update modal company checkboxes
+        const companiesContainer = document.getElementById('user-companies-container');
+        if (companiesContainer) {
+            companiesContainer.innerHTML = '';
             this.companies.forEach(company => {
-                const option = document.createElement('option');
-                option.value = company.id;
-                option.textContent = company.name;
-                userCompanySelect.appendChild(option);
+                const label = document.createElement('label');
+                label.className = 'admin-checkbox-item';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'user-companies';
+                checkbox.value = company.id;
+                checkbox.id = `company-${company.id}`;
+
+                const span = document.createElement('span');
+                span.textContent = company.name;
+
+                label.appendChild(checkbox);
+                label.appendChild(span);
+                companiesContainer.appendChild(label);
             });
         }
     }
@@ -746,6 +769,40 @@ class UserManagement {
     }
     
     // 2FA Management Methods
+    toggleActionsDropdown(userId) {
+        console.log('Toggle actions dropdown for user:', userId);
+        const dropdown = document.getElementById(`actions-dropdown-${userId}`);
+
+        if (!dropdown) {
+            console.error('Actions dropdown not found for user:', userId);
+            return;
+        }
+
+        const allDropdowns = document.querySelectorAll('.admin-dropdown-menu');
+        const allRows = document.querySelectorAll('.admin-table-row');
+
+        // Close all other dropdowns
+        allDropdowns.forEach(menu => {
+            if (menu !== dropdown) {
+                menu.classList.remove('admin-dropdown-menu--show');
+            }
+        });
+
+        // Remove elevated class from all rows
+        allRows.forEach(row => row.classList.remove('dropdown-open'));
+
+        // Toggle current dropdown
+        dropdown.classList.toggle('admin-dropdown-menu--show');
+
+        // Add elevated class to current row if dropdown is open
+        if (dropdown.classList.contains('admin-dropdown-menu--show')) {
+            const currentRow = dropdown.closest('.admin-table-row');
+            if (currentRow) {
+                currentRow.classList.add('dropdown-open');
+            }
+        }
+    }
+
     toggle2FADropdown(userId) {
         console.log('Toggle 2FA dropdown for user:', userId);
         const dropdown = document.getElementById(`dropdown-${userId}`);
@@ -786,35 +843,47 @@ class UserManagement {
 
     closeDropdownOnOutsideClick = (event) => {
         if (!event.target.closest('.admin-dropdown')) {
-            document.querySelectorAll('.admin-dropdown-menu').forEach(menu => {
-                menu.classList.remove('admin-dropdown-menu--show');
-            });
-            // Remove elevated class from all rows
-            document.querySelectorAll('.admin-table-row').forEach(row => {
-                row.classList.remove('dropdown-open');
-            });
+            this.closeAllDropdowns();
         }
     }
-    
+
+    closeAllDropdowns() {
+        document.querySelectorAll('.admin-dropdown-menu').forEach(menu => {
+            menu.classList.remove('admin-dropdown-menu--show');
+        });
+        // Remove elevated class from all rows
+        document.querySelectorAll('.admin-table-row').forEach(row => {
+            row.classList.remove('dropdown-open');
+        });
+    }
+
     async view2FAStatus(userId) {
+        // Close dropdowns first
+        this.closeAllDropdowns();
         try {
             const user = this.users.find(u => u.id === userId);
             if (!user) {
                 this.showNotification('User not found', 'error');
                 return;
             }
-            
-            // Show 2FA status modal or navigate to status page
-            const statusInfo = `
-                <strong>2FA Status for ${user.name}</strong><br>
-                Email: ${user.email}<br>
-                Current Status: ${user.twoFactorEnabled ? 'Enabled' : 'Disabled'}<br>
-                Method: ${user.twoFactorMethod || 'None'}<br>
-                Last Updated: ${user.twoFactorLastUpdated || 'Never'}
-            `;
-            
-            this.showNotification(statusInfo, 'info');
-            
+
+            // Format 2FA status as plain text
+            const statusIcon = user.twoFactorEnabled ? '✓' : '✗';
+            const statusText = user.twoFactorEnabled ? 'Enabled' : 'Disabled';
+            const statusInfo = `User: ${user.name}
+Email: ${user.email}
+Current Status: ${statusIcon} ${statusText}
+Method: ${user.twoFactorMethod || 'None'}
+Last Updated: ${user.twoFactorLastUpdated || 'Never'}`;
+
+            await AdminCore.showConfirmation({
+                title: '2FA Status',
+                message: statusInfo,
+                confirmText: 'OK',
+                showCancel: false,
+                type: 'info'
+            });
+
         } catch (error) {
             console.error('Error viewing 2FA status:', error);
             this.showNotification('Failed to load 2FA status', 'error');
@@ -822,6 +891,9 @@ class UserManagement {
     }
     
     async reset2FA(userId) {
+        // Close dropdowns first
+        this.closeAllDropdowns();
+
         const user = this.users.find(u => u.id === userId);
         if (!user) {
             this.showNotification('User not found', 'error');
@@ -863,6 +935,9 @@ class UserManagement {
     }
     
     async disable2FA(userId) {
+        // Close dropdowns first
+        this.closeAllDropdowns();
+
         const user = this.users.find(u => u.id === userId);
         if (!user) {
             this.showNotification('User not found', 'error');
@@ -906,6 +981,9 @@ class UserManagement {
     }
 
     async enable2FA(userId) {
+        // Close dropdowns first
+        this.closeAllDropdowns();
+
         const user = this.users.find(u => u.id === userId);
         if (!user) {
             this.showNotification('User not found', 'error');

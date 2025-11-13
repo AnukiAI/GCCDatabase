@@ -106,7 +106,7 @@
                         <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="lastLogin" width="12%">
                             Last Login <i class="admin-sort-icon fas fa-sort"></i>
                         </th>
-                        <th class="admin-table-th admin-table-th--actions" width="6%">Actions</th>
+                        <th class="admin-table-th admin-table-th--actions" width="8%">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="admin-table-body">
@@ -123,39 +123,42 @@
 
 <!-- Add/Edit User Modal -->
 <div id="user-modal" class="admin-modal" aria-hidden="true" role="dialog" aria-labelledby="modal-title">
-    <div class="admin-modal-overlay"></div>
-    <div class="admin-modal-container">
-        <div class="admin-modal-header">
-            <h3 class="admin-modal-title" id="modal-title">Add New User</h3>
+    <!-- Backdrop (sibling) -->
+    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 9998; backdrop-filter: blur(3px);"></div>
+
+    <!-- Modal Container (sibling) -->
+    <div class="admin-modal-container" style="position: relative; z-index: 9999; max-width: 650px; background-color: white; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+        <div class="admin-modal-header" style="background-color: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+            <h3 class="admin-modal-title" id="modal-title" style="color: #002B76; font-weight: 600;">Add New User</h3>
             <button class="admin-modal-close" aria-label="Close modal">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="admin-modal-body">
+        <div class="admin-modal-body" style="background-color: white;">
             <form id="user-form" class="admin-form" data-validate>
                 <input type="hidden" id="user-id">
 
                 <div class="admin-form-group">
-                    <label for="user-name" class="admin-label admin-label--required">Name</label>
-                    <input type="text" id="user-name" class="admin-input" required aria-required="true">
+                    <label for="user-name" class="admin-label admin-label--required" style="color: #333; font-weight: 500;">Name</label>
+                    <input type="text" id="user-name" class="admin-input" required aria-required="true" style="border: 1px solid #ced4da; background-color: white; color: #333;">
                 </div>
 
                 <div class="admin-form-group">
-                    <label for="user-company" class="admin-label">Company</label>
-                    <select id="user-company" class="admin-select" multiple size="4" aria-describedby="company-help">
-                        <!-- Options will be populated by JavaScript -->
-                    </select>
-                    <span class="admin-form-help" id="company-help">Hold Ctrl/Cmd to select multiple companies</span>
+                    <label class="admin-label" style="color: #333; font-weight: 500;">Companies</label>
+                    <div id="user-companies-container" class="admin-checkbox-list" aria-describedby="company-help">
+                        <!-- Company checkboxes will be populated by JavaScript -->
+                    </div>
+                    <span class="admin-form-help" id="company-help" style="color: #6c757d;">Select all companies this user should have access to</span>
                 </div>
 
                 <div class="admin-form-group">
-                    <label for="user-email" class="admin-label admin-label--required">Email</label>
-                    <input type="email" id="user-email" class="admin-input" required aria-required="true">
+                    <label for="user-email" class="admin-label admin-label--required" style="color: #333; font-weight: 500;">Email</label>
+                    <input type="email" id="user-email" class="admin-input" required aria-required="true" style="border: 1px solid #ced4da; background-color: white; color: #333;">
                 </div>
 
                 <div class="admin-form-group">
-                    <label for="user-role" class="admin-label admin-label--required">Role</label>
-                    <select id="user-role" class="admin-select" required aria-required="true">
+                    <label for="user-role" class="admin-label admin-label--required" style="color: #333; font-weight: 500;">Role</label>
+                    <select id="user-role" class="admin-select" required aria-required="true" style="border: 1px solid #ced4da; background-color: white; color: #333;">
                         <option value="">Select a role</option>
                         <option value="Admin">Admin</option>
                         <option value="Analyst">Analyst</option>
@@ -165,17 +168,17 @@
                 </div>
 
                 <div class="admin-form-group">
-                    <label for="user-status" class="admin-label admin-label--required">Status</label>
-                    <select id="user-status" class="admin-select" required aria-required="true">
+                    <label for="user-status" class="admin-label admin-label--required" style="color: #333; font-weight: 500;">Status</label>
+                    <select id="user-status" class="admin-select" required aria-required="true" style="border: 1px solid #ced4da; background-color: white; color: #333;">
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
                     </select>
                 </div>
 
                 <div class="admin-form-group" id="password-group">
-                    <label for="user-password" class="admin-label">Password</label>
-                    <input type="password" id="user-password" class="admin-input" aria-describedby="password-help">
-                    <span class="admin-form-help" id="password-help">Leave blank to keep current password</span>
+                    <label for="user-password" class="admin-label" style="color: #333; font-weight: 500;">Password</label>
+                    <input type="password" id="user-password" class="admin-input" aria-describedby="password-help" style="border: 1px solid #ced4da; background-color: white; color: #333;">
+                    <span class="admin-form-help" id="password-help" style="color: #6c757d;">Leave blank to keep current password</span>
                 </div>
 
                 <div class="admin-form-group">
@@ -186,7 +189,7 @@
                 </div>
             </form>
         </div>
-        <div class="admin-modal-footer">
+        <div class="admin-modal-footer" style="background-color: #f8f9fa; border-top: 2px solid #e9ecef;">
             <button type="button" class="admin-btn admin-btn--secondary" id="cancel-btn">Cancel</button>
             <button type="submit" class="admin-btn admin-btn--primary" id="save-btn" form="user-form">Save</button>
         </div>

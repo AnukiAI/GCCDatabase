@@ -289,6 +289,11 @@
     color: var(--admin-warning-dark);
 }
 
+.admin-action-btn--menu:hover {
+    background-color: var(--admin-bg-accent);
+    color: var(--admin-primary);
+}
+
 /* Dropdown action button */
 .admin-action-dropdown {
     position: relative;

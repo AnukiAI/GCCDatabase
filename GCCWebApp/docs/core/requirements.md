@@ -521,6 +521,63 @@ The Dashboard includes three quick-action export buttons that generate CSV repor
 **Expected:** Backend rejects with 403 Forbidden or validation error
 **Actual:** ✅ Pass (SaveProduct endpoint has `[Authorize(Policy = "AnalystOrAdmin")]`)
 
+#### US-015: Modal/Popup Backdrop Standard (MANDATORY FOR ALL MODALS)
+**As a** User
+**I want to** all popups and modals to appear with a dark semi-transparent backdrop
+**So that** I can focus on the modal content without distraction from the background page
+
+**CRITICAL REQUIREMENT:** This standard is **MANDATORY** for **ALL modals and popups** across the entire application - no exceptions. Any new modal must follow this pattern before deployment.
+
+**Acceptance Criteria:**
+- ✅ All modals must include a dark backdrop overlay that covers the entire viewport
+- ✅ Backdrop must have 85% black opacity: `rgba(0, 0, 0, 0.85)`
+- ✅ Backdrop must use 3px blur effect: `backdrop-filter: blur(3px)`
+- ✅ Backdrop must be positioned fixed with full screen coverage: `position: fixed; top: 0; left: 0; right: 0; bottom: 0;`
+- ✅ Backdrop must have z-index: 9998 to appear above page content
+- ✅ Modal container must have z-index: 9999 to appear above backdrop
+- ✅ Modal content must have white background with strong shadow for visibility
+- ✅ All form elements (labels, inputs, buttons) must have high contrast for readability
+- ✅ Backdrop structure: Separate backdrop div as sibling to modal container (not nested)
+- ✅ Pattern applies to ALL modals: confirmations, forms, alerts, success messages, info dialogs
+
+**Scope:** This applies to every modal in the application including but not limited to:
+- Admin modals (User Management, Role Management, API Key Management, Tags, etc.)
+- Product management modals
+- Certificate management modals
+- Company management modals
+- Partner modals
+- Any future modals or popups
+
+**Implementation Status:** ✅ COMPLETE (2025-11-13)
+- Reference Implementation: `Views/Admin/PartnerAPI.cshtml` (lines 183-225, 229-272)
+- Pattern Structure:
+  ```html
+  <div id="modal-id" class="admin-modal" style="display: none;">
+      <!-- Backdrop (sibling) -->
+      <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+           background-color: rgba(0, 0, 0, 0.85); z-index: 9998;
+           backdrop-filter: blur(3px);"></div>
+
+      <!-- Modal Container (sibling) -->
+      <div class="admin-modal-container" style="position: relative; z-index: 9999;
+           background-color: white; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+          <!-- Header, Body, Footer -->
+      </div>
+  </div>
+  ```
+- CSS Classes: `admin-modal`, `admin-modal-container`, `admin-modal-header`, `admin-modal-body`, `admin-modal-footer`
+- JavaScript: Uses `admin-modal--show` class for smooth fade-in/fade-out animations
+- Applies to: Generate API Key modal, API Key Display modal, and all future modals
+
+**Design Benefits:**
+- **Focus**: Dark backdrop directs user attention to modal content
+- **Context**: Blur effect indicates page is temporarily inactive
+- **Accessibility**: High contrast ensures readability for all users
+- **Consistency**: Uniform modal experience across entire application
+- **Professional**: Modern UI pattern used by industry-leading applications
+
+**CRITICAL**: All new modals MUST follow this pattern. Native browser dialogs (alert/confirm/prompt) are strictly prohibited per Master Design Guide.
+
 ### EPIC 5: API Integration
 
 #### US-010: RESTful API
@@ -993,6 +1050,24 @@ CREATE TABLE Certificates (
 - [UAT Test Cases](MANUAL_UAT_TEST_CASES.md)
 
 ### Change Log
+- **2025-11-13 (Modal UX Enhancement)**: **MODAL BACKDROP STANDARD ESTABLISHED (US-015)**
+  - ✅ **Modal Backdrop Standard Documented**:
+    - All modals must include 85% black opacity backdrop with 3px blur
+    - Backdrop positioned fixed covering entire viewport (z-index: 9998)
+    - Modal container positioned above backdrop (z-index: 9999)
+    - High contrast white background with strong shadow for visibility
+    - Backdrop and modal as sibling elements (not nested) for proper layering
+  - ✅ **Reference Implementation**:
+    - Partner API page modals demonstrate correct pattern
+    - Generate API Key modal and API Key Display modal
+    - Location: Views/Admin/PartnerAPI.cshtml (lines 183-272)
+  - ✅ **Design Benefits**:
+    - Dark backdrop focuses user attention on modal content
+    - Blur effect indicates page temporarily inactive
+    - Professional modern UI pattern
+    - Consistent modal experience across application
+  - **CRITICAL**: All new modals MUST follow this pattern. Native browser dialogs prohibited.
+  - Testing: Visual verification at /Admin/PartnerAPI
 - **2025-10-29 (Product Management Enhancement)**: **ROLE-BASED ACCESS & UI STANDARDS COMPLIANCE**
   - ✅ **Product Management Role-Based Access Implemented** (US-012):
     - Edit, Delete, Add New, Template, and Import buttons now restricted to Admin and Analyst roles only

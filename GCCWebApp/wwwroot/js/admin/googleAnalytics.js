@@ -39,11 +39,15 @@ function loadSettings() {
     }
 }
 
-function saveSettings() {
+async function saveSettings() {
     const trackingId = document.getElementById('ga-tracking-id').value.trim();
     const enabled = document.getElementById('enable-tracking').checked;
+    const customScript = document.getElementById('custom-script').value.trim();
+    const anonymizeIp = document.getElementById('anonymize-ip').checked;
+    const enhancedLink = document.getElementById('enhanced-link').checked;
+    const debugMode = document.getElementById('debug-mode').checked;
 
-    // Validate tracking ID format
+    // Validate tracking ID format if enabled
     if (enabled && trackingId && !validateTrackingIdFormat(trackingId)) {
         AdminCore.showNotification('Please enter a valid Google Analytics Tracking ID (e.g., G-XXXXXXXXXX)', 'error');
         return;
@@ -52,23 +56,40 @@ function saveSettings() {
     // Prepare settings object
     const settings = {
         trackingId: trackingId,
-        enabled: enabled,
-        savedAt: new Date().toISOString(),
-        savedBy: 'Admin' // In real app, get from current user
+        isEnabled: enabled,
+        customScript: customScript,
+        anonymizeIp: anonymizeIp,
+        enhancedLinkAttribution: enhancedLink,
+        debugMode: debugMode
     };
 
-    // Save to localStorage (in real app, save to server)
-    localStorage.setItem('googleAnalyticsSettings', JSON.stringify(settings));
+    try {
+        const response = await fetch('/Admin/SaveGoogleAnalytics', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            },
+            body: JSON.stringify(settings)
+        });
 
-    // Show success message
-    showNotification('Settings saved successfully!', 'success');
-    
-    // Add to history
-    const action = enabled ? 'Enabled' : 'Disabled';
-    addToHistory(trackingId || 'No tracking ID', action);
+        const result = await response.json();
 
-    // Update status display
-    updateStatusDisplay();
+        if (result.success) {
+            AdminCore.showNotification('Settings saved successfully!', 'success');
+
+            // Add to history
+            const action = enabled ? 'Enabled' : 'Disabled';
+            addToHistory(trackingId || 'No tracking ID', action);
+
+            // Update status display
+            updateStatusDisplay();
+        } else {
+            AdminCore.showNotification(result.message || 'Error saving settings', 'error');
+        }
+    } catch (error) {
+        AdminCore.showNotification('Error saving settings: ' + error.message, 'error');
+    }
 }
 
 function validateTrackingId() {

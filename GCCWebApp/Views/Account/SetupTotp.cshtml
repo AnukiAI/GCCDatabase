@@ -71,14 +71,15 @@
                                     <label for="totpCode" class="form-label">
                                         <strong>6-Digit Verification Code</strong>
                                     </label>
-                                    <input type="text" 
-                                           class="form-control form-control-lg text-center totp-input" 
-                                           id="totpCode" 
-                                           name="totpCode" 
+                                    <input type="text"
+                                           class="form-control form-control-lg text-center totp-input"
+                                           id="totpCode"
+                                           name="totpCode"
                                            placeholder="000000"
                                            maxlength="6"
                                            pattern="[0-9]{6}"
-                                           autocomplete="one-time-code"
+                                           inputmode="numeric"
+                                           autocomplete="off"
                                            required>
                                     <div class="form-text">
                                         <i class="fas fa-info-circle me-1"></i>
@@ -148,8 +149,9 @@
 
 <style>
 .totp-setup-page {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: #f5f5f5;
     min-height: 100vh;
+    padding-top: 2rem;
 }
 
 .qr-code-container {
@@ -169,8 +171,8 @@
 }
 
 .totp-input:focus {
-    border-color: #28a745;
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    border-color: #92C83E;
+    box-shadow: 0 0 0 0.2rem rgba(146, 200, 62, 0.25);
 }
 
 .verification-form {
@@ -192,7 +194,7 @@
     background: #f8f9fa;
     padding: 1rem;
     border-radius: 8px;
-    border-left: 4px solid #007bff;
+    border-left: 4px solid #92C83E;
 }
 
 .card {
@@ -201,41 +203,41 @@
 }
 
 .card-header {
-    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%) !important;
+    background: #002B76 !important;
+    color: white;
 }
 </style>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const totpInput = document.getElementById('totpCode');
-    
-    // Auto-format and submit when 6 digits entered
+
+    if (!totpInput) {
+        console.error('TOTP input field not found');
+        return;
+    }
+
+    // Simple input handler - only sanitize numeric input
     totpInput.addEventListener('input', function(e) {
         // Remove non-numeric characters
-        this.value = this.value.replace(/[^0-9]/g, '');
-        
-        // Limit to 6 digits
-        if (this.value.length > 6) {
-            this.value = this.value.slice(0, 6);
-        }
-        
+        let value = this.value.replace(/[^0-9]/g, '');
+
+        // Update the field value
+        this.value = value;
+
         // Add visual feedback when complete
-        if (this.value.length === 6) {
+        if (value.length === 6) {
             this.classList.add('is-valid');
-            // Auto-submit after short delay to let user see the complete code
-            setTimeout(() => {
-                if (this.value.length === 6) {
-                    this.form.submit();
-                }
-            }, 500);
         } else {
             this.classList.remove('is-valid');
         }
     });
-    
+
     // Focus the input on page load
-    totpInput.focus();
-    
+    setTimeout(() => {
+        totpInput.focus();
+    }, 100);
+
     // Refresh QR code every 5 minutes in case of issues
     setInterval(function() {
         const qrImg = document.querySelector('.qr-code-image');

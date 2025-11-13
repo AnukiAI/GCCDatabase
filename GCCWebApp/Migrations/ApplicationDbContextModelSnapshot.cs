@@ -1020,6 +1020,50 @@ namespace GCCWebApp.Migrations
                     b.ToTable("ETLLogEntries");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.GoogleAnalyticsSettings", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AnonymizeIp")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CustomScript")
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("DebugMode")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EnhancedLinkAttribution")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("TrackingId")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UpdatedBy")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UpdatedBy");
+
+                    b.ToTable("GoogleAnalyticsSettings");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.Partner", b =>
                 {
                     b.Property<int>("Id")
@@ -1078,6 +1122,71 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("IsActive", "SortOrder");
 
                     b.ToTable("Partners");
+                });
+
+            modelBuilder.Entity("GCCWebApp.Models.PartnerApiKey", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AllowedEndpoints")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ApiKey")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("ExpiresAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastUsedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PartnerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Permissions")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("RateLimitPerHour")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RequestCount")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("RevokedBy")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PartnerId");
+
+                    b.ToTable("PartnerApiKeys");
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.Permission", b =>
@@ -1760,6 +1869,27 @@ namespace GCCWebApp.Migrations
                     b.Navigation("Certificate");
 
                     b.Navigation("Field");
+                });
+
+            modelBuilder.Entity("GCCWebApp.Models.GoogleAnalyticsSettings", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.User", "UpdatedByUser")
+                        .WithMany()
+                        .HasForeignKey("UpdatedBy")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.Navigation("UpdatedByUser");
+                });
+
+            modelBuilder.Entity("GCCWebApp.Models.PartnerApiKey", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.Partner", "Partner")
+                        .WithMany()
+                        .HasForeignKey("PartnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Partner");
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.Product", b =>

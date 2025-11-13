@@ -10,94 +10,8 @@
     <link href="~/css/admin/admin.css" rel="stylesheet" />
     <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
     <style>
-        /* Enhanced Modal Styling */
-        .admin-modal {
-            z-index: 10000;
-        }
-
-        .admin-modal-overlay {
-            background: rgba(0, 43, 118, 0.6);
-            backdrop-filter: blur(4px);
-        }
-
-        .admin-modal-container {
-            max-width: 650px;
-            border-radius: 12px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3), 0 0 1px rgba(0, 0, 0, 0.2);
-            animation: modalSlideIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-
-        @@keyframes modalSlideIn {
-            from {
-                transform: translateY(-50px);
-                opacity: 0;
-            }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
-        }
-
-        .admin-modal-header {
-            background: linear-gradient(135deg, #002B76 0%, #003d9e 100%);
-            color: white;
-            padding: 24px 28px;
-            border-radius: 12px 12px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .admin-modal-title {
-            margin: 0;
-            font-size: 22px;
-            font-weight: 600;
-            letter-spacing: -0.3px;
-        }
-
-        .admin-modal-close {
-            background: rgba(255, 255, 255, 0.15);
-            border: none;
-            color: white;
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
-        .admin-modal-close:hover {
-            background: rgba(255, 255, 255, 0.25);
-            transform: rotate(90deg);
-        }
-
-        .admin-modal-body {
-            padding: 32px 28px;
-            background: white;
-            max-height: calc(90vh - 220px);
-            overflow-y: auto;
-        }
-
-        .admin-modal-body::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .admin-modal-body::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-
-        .admin-modal-body::-webkit-scrollbar-thumb {
-            background: #92C83E;
-            border-radius: 4px;
-        }
-
-        .admin-modal-body::-webkit-scrollbar-thumb:hover {
-            background: #7ab02d;
-        }
+        /* Modal backdrop and container styling now follows US-015 standard */
+        /* Inline styles used in modal HTML for explicit control */
 
         .admin-form-group {
             margin-bottom: 24px;
@@ -291,6 +205,126 @@
         .admin-btn--primary:active {
             transform: translateY(0);
         }
+
+        /* Enhanced Permission Badge Styling */
+        .permissions-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+        }
+
+        .permission-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #92C83E 0%, #7ab02d 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: help;
+            transition: all 0.2s;
+            box-shadow: 0 2px 4px rgba(146, 200, 62, 0.2);
+        }
+
+        .permission-badge:hover {
+            background: linear-gradient(135deg, #7ab02d 0%, #6a9e26 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(146, 200, 62, 0.3);
+        }
+
+        .permission-more {
+            display: inline-block;
+            background: #e9ecef;
+            color: #6c757d;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: help;
+            transition: all 0.2s;
+        }
+
+        .permission-more:hover {
+            background: #dee2e6;
+            color: #495057;
+        }
+
+        .no-permissions {
+            color: #adb5bd;
+            font-style: italic;
+            font-size: 13px;
+        }
+
+        /* Keyboard Navigation & Accessibility */
+        .admin-table-row:focus,
+        tr[role="row"]:focus {
+            outline: 3px solid #92C83E;
+            outline-offset: -3px;
+            background-color: #f8f9fa;
+        }
+
+        .admin-action-btn:focus {
+            outline: 2px solid #92C83E;
+            outline-offset: 2px;
+        }
+
+        .admin-btn:focus {
+            outline: 3px solid #92C83E;
+            outline-offset: 2px;
+        }
+
+        .admin-search-input:focus {
+            border-color: #92C83E;
+            box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.15);
+        }
+
+        /* Screen reader only text */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Enhanced tooltips */
+        .permission-badge[title],
+        .permission-more[title] {
+            position: relative;
+        }
+
+        /* Improve action button hover states */
+        .admin-action-btn--edit {
+            color: #002B76;
+        }
+
+        .admin-action-btn--edit:hover {
+            background-color: #e3f2fd;
+            color: #001f54;
+        }
+
+        .admin-action-btn--delete {
+            color: #dc3545;
+        }
+
+        .admin-action-btn--delete:hover:not(:disabled) {
+            background-color: #ffebee;
+            color: #c62828;
+        }
+
+        /* Table row keyboard navigation */
+        tr[role="row"] {
+            transition: background-color 0.2s;
+        }
+
+        tr[role="row"]:hover {
+            background-color: #f8f9fa;
+        }
     </style>
 }
 
@@ -334,23 +368,23 @@
 
     <div class="admin-content">
         <div class="admin-table-container">
-            <table id="role-table" class="admin-table">
+            <table id="role-table" class="admin-table" role="table" aria-label="Role management table">
                 <thead class="admin-table-header">
-                    <tr>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="20%">
-                            Role Name <i class="admin-sort-icon fas fa-sort"></i>
+                    <tr role="row">
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="20%" role="columnheader" aria-sort="none" tabindex="0">
+                            Role Name <i class="admin-sort-icon fas fa-sort" aria-hidden="true"></i>
                         </th>
-                        <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="description" width="30%">
-                            Description <i class="admin-sort-icon fas fa-sort"></i>
+                        <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="description" width="30%" role="columnheader" aria-sort="none" tabindex="0">
+                            Description <i class="admin-sort-icon fas fa-sort" aria-hidden="true"></i>
                         </th>
-                        <th class="admin-table-th" width="35%">Permissions</th>
-                        <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="users" width="10%">
-                            Users <i class="admin-sort-icon fas fa-sort"></i>
+                        <th class="admin-table-th" width="35%" role="columnheader">Permissions</th>
+                        <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="users" width="10%" role="columnheader" aria-sort="none" tabindex="0">
+                            Users <i class="admin-sort-icon fas fa-sort" aria-hidden="true"></i>
                         </th>
-                        <th class="admin-table-th admin-table-th--actions" width="5%">Actions</th>
+                        <th class="admin-table-th admin-table-th--actions" width="5%" role="columnheader">Actions</th>
                     </tr>
                 </thead>
-                <tbody class="admin-table-body">
+                <tbody class="admin-table-body" role="rowgroup">
                     <!-- Data will be populated by JavaScript -->
                 </tbody>
             </table>
@@ -364,46 +398,49 @@
 
 <!-- Add/Edit Role Modal -->
 <div id="role-modal" class="admin-modal" aria-hidden="true" role="dialog" aria-labelledby="modal-title">
-    <div class="admin-modal-overlay"></div>
-    <div class="admin-modal-container">
-        <div class="admin-modal-header">
-            <h3 class="admin-modal-title" id="modal-title">Add New Role</h3>
+    <!-- Backdrop (sibling) -->
+    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 9998; backdrop-filter: blur(3px);"></div>
+
+    <!-- Modal Container (sibling) -->
+    <div class="admin-modal-container" style="position: relative; z-index: 9999; max-width: 650px; background-color: white; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+        <div class="admin-modal-header" style="background-color: #f8f9fa; border-bottom: 2px solid #e9ecef;">
+            <h3 class="admin-modal-title" id="modal-title" style="color: #002B76; font-weight: 600;">Add New Role</h3>
             <button class="admin-modal-close" aria-label="Close modal">
                 <i class="fas fa-times"></i>
             </button>
         </div>
-        <div class="admin-modal-body">
+        <div class="admin-modal-body" style="background-color: white;">
             <form id="role-form" class="admin-form" data-validate>
                 <input type="hidden" id="role-id">
 
                 <div class="admin-form-group">
-                    <label for="role-name" class="admin-label admin-label--required">Role Name</label>
-                    <input type="text" id="role-name" class="admin-input" required aria-required="true">
+                    <label for="role-name" class="admin-label admin-label--required" style="color: #333; font-weight: 500;">Role Name</label>
+                    <input type="text" id="role-name" class="admin-input" required aria-required="true" style="border: 1px solid #ced4da; background-color: white; color: #333;">
                 </div>
 
                 <div class="admin-form-group">
-                    <label for="role-description" class="admin-label">Description</label>
-                    <textarea id="role-description" class="admin-textarea" rows="3" placeholder="Describe the role's purpose and responsibilities"></textarea>
+                    <label for="role-description" class="admin-label" style="color: #333; font-weight: 500;">Description</label>
+                    <textarea id="role-description" class="admin-textarea" rows="3" placeholder="Describe the role's purpose and responsibilities" style="border: 1px solid #ced4da; background-color: white; color: #333;"></textarea>
                 </div>
 
                 <div class="admin-form-group">
-                    <label class="admin-label">Permissions</label>
+                    <label class="admin-label" style="color: #333; font-weight: 500;">Permissions</label>
                     <div id="permissions-container" class="admin-permissions-container">
                         <!-- Permissions will be populated by JavaScript -->
                     </div>
                 </div>
 
                 <div class="admin-form-group" id="system-role-warning" style="display: none;">
-                    <div class="admin-alert admin-alert--warning">
-                        <i class="fas fa-exclamation-triangle"></i>
+                    <div class="admin-alert admin-alert--warning" style="padding: 12px 16px; background-color: #fff3cd; border-left: 4px solid #ffc107; color: #856404;">
+                        <i class="fas fa-exclamation-triangle" style="color: #ffc107;"></i>
                         This is a system role. Changes to permissions may affect core functionality.
                     </div>
                 </div>
             </form>
         </div>
-        <div class="admin-modal-footer">
-            <button type="button" class="admin-btn admin-btn--secondary" id="cancel-btn">Cancel</button>
-            <button type="submit" class="admin-btn admin-btn--primary" id="save-btn" form="role-form">Save</button>
+        <div class="admin-modal-footer" style="background-color: #f8f9fa; border-top: 2px solid #e9ecef;">
+            <button type="button" class="admin-btn admin-btn--secondary" id="cancel-btn" aria-label="Cancel and close modal">Cancel</button>
+            <button type="submit" class="admin-btn admin-btn--primary" id="save-btn" form="role-form" aria-label="Save role changes">Save</button>
         </div>
     </div>
 </div>
@@ -466,6 +503,67 @@
                 searchInput.addEventListener('input', function() {
                     debouncedSearch(this.value);
                 });
+            }
+
+            // Keyboard Navigation for Table Rows
+            const setupKeyboardNavigation = function() {
+                const tbody = document.querySelector('.admin-table-body');
+                if (!tbody) return;
+
+                tbody.addEventListener('keydown', function(e) {
+                    const currentRow = e.target.closest('tr[role="row"]');
+                    if (!currentRow) return;
+
+                    const allRows = Array.from(tbody.querySelectorAll('tr[role="row"]'));
+                    const currentIndex = allRows.indexOf(currentRow);
+
+                    switch(e.key) {
+                        case 'ArrowDown':
+                            e.preventDefault();
+                            if (currentIndex < allRows.length - 1) {
+                                allRows[currentIndex + 1].focus();
+                            }
+                            break;
+                        case 'ArrowUp':
+                            e.preventDefault();
+                            if (currentIndex > 0) {
+                                allRows[currentIndex - 1].focus();
+                            }
+                            break;
+                        case 'Enter':
+                        case ' ':
+                            e.preventDefault();
+                            const editBtn = currentRow.querySelector('.admin-action-btn--edit');
+                            if (editBtn) {
+                                editBtn.click();
+                            }
+                            break;
+                        case 'Delete':
+                            e.preventDefault();
+                            const deleteBtn = currentRow.querySelector('.admin-action-btn--delete');
+                            if (deleteBtn && !deleteBtn.disabled) {
+                                deleteBtn.click();
+                            }
+                            break;
+                        case 'Escape':
+                            e.preventDefault();
+                            currentRow.blur();
+                            break;
+                    }
+                });
+            };
+
+            // Initialize keyboard navigation
+            setupKeyboardNavigation();
+
+            // Re-initialize keyboard navigation when table updates
+            const observer = new MutationObserver(function(mutations) {
+                setupKeyboardNavigation();
+            });
+
+            const tableBody = document.querySelector('.admin-table-body');
+            if (tableBody) {
+                observer.observe(tableBody, { childList: true });
             }
 
             // Table action handling with admin framework

@@ -97,17 +97,19 @@ namespace GCCWebApp.Models
         [Required]
         [StringLength(20)]
         public string TrackingId { get; set; } = string.Empty;
-        
-        public bool IsEnabled { get; set; } = true;
-        
-        public bool TrackPageViews { get; set; } = true;
-        
-        public bool TrackEvents { get; set; } = true;
-        
-        public bool TrackConversions { get; set; } = false;
-        
+
+        public bool IsEnabled { get; set; } = false;
+
+        public string? CustomScript { get; set; }
+
+        public bool AnonymizeIp { get; set; } = true;
+
+        public bool EnhancedLinkAttribution { get; set; } = false;
+
+        public bool DebugMode { get; set; } = false;
+
         public DateTime? LastUpdated { get; set; }
-        
+
         public string UpdatedBy { get; set; } = string.Empty;
     }
 

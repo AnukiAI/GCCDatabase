@@ -189,6 +189,25 @@ AzureAdB2C__ClientId=[client-id]
 - 14-state certificate lifecycle (`CertificateWorkflowService`)
 - Role-based permissions enforced
 
+### Partner API Access ⚠️ **REQUIRED - NEW**
+- **REQUIREMENT**: Partners (Amazon, Wayfair, etc.) access GCC data via dedicated API keys
+- **Architecture**: Partners pull data from GCC API (not push to partner APIs)
+- **Scalability**: System must support multiple partners with individual API keys
+- **Implementation**:
+  - Each partner gets a unique API key to access GCC REST API endpoints
+  - Partner API keys managed separately from general API keys
+  - Track usage statistics per partner (requests, endpoints accessed, data volume)
+  - Configure access permissions per partner (which endpoints they can access)
+  - Support partner-specific rate limits and quotas
+- **Admin Interface**: `/Admin/PartnerAPI` (formerly `/Admin/AmazonAPI`)
+  - List all partners (Amazon, Wayfair, etc.)
+  - Generate/revoke API keys for each partner
+  - View usage statistics and access logs
+  - Configure endpoint permissions and rate limits
+- **Database**: `PartnerApiKey` table with partner association, key, permissions, usage stats
+- **Security**: Partner API keys use same authentication as general API keys but with partner tracking
+- **Future**: Add webhook support for partners to receive real-time updates
+
 ### User Feedback & Alert System
 
 **CRITICAL**: All feedback must use custom components. Native `alert()`, `confirm()`, `prompt()` STRICTLY PROHIBITED.
@@ -239,6 +258,54 @@ AdminCore.showNotification('Delete this item?', 'warning');
 // ❌ NEVER use modal for success messages
 await AdminCore.showConfirmation({ message: 'Deleted!' });
 ```
+
+### Modal Backdrop Standard (US-015) - MANDATORY FOR ALL MODALS
+
+**CRITICAL**: **ALL modals and popups** must follow this backdrop standard - no exceptions.
+
+**Requirements** (see `docs/core/requirements.md` US-015 for full details):
+- **85% black opacity backdrop**: `rgba(0, 0, 0, 0.85)`
+- **3px blur effect**: `backdrop-filter: blur(3px)`
+- **Full viewport coverage**: `position: fixed; top: 0; left: 0; right: 0; bottom: 0;`
+- **Z-index layering**: Backdrop (9998), Modal container (9999)
+- **Sibling structure**: Backdrop and container as siblings (not nested)
+- **High contrast**: White background, dark text, visible borders
+
+**Reference Implementation**: `Views/Admin/PartnerAPI.cshtml` (lines 183-272)
+
+**Modal Structure Pattern**:
+```html
+<div id="modal-id" class="admin-modal" style="display: none;">
+    <!-- Backdrop (sibling) -->
+    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+         background-color: rgba(0, 0, 0, 0.85); z-index: 9998;
+         backdrop-filter: blur(3px);"></div>
+
+    <!-- Modal Container (sibling) -->
+    <div class="admin-modal-container" style="position: relative; z-index: 9999;
+         max-width: 650px; background-color: white;
+         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+        <div class="admin-modal-header" style="background-color: #f8f9fa;
+             border-bottom: 2px solid #e9ecef;">
+            <h3 class="admin-modal-title" style="color: #002B76; font-weight: 600;">Title</h3>
+            <button class="admin-modal-close"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="admin-modal-body" style="background-color: white;">
+            <!-- Modal content with high-contrast form elements -->
+        </div>
+        <div class="admin-modal-footer" style="background-color: #f8f9fa;
+             border-top: 2px solid #e9ecef;">
+            <!-- Action buttons -->
+        </div>
+    </div>
+</div>
+```
+
+**Pages with Updated Modals**:
+- ✅ Partner API Management (`Views/Admin/PartnerAPI.cshtml`)
+- ✅ User Management (`Views/Admin/UserManagement.cshtml`)
+- ✅ Role Management (`Views/Admin/RoleManagement.cshtml`)
+- ⚠️ **All other modals must be updated to this standard**
 
 ## Import Template Download Feature
 
@@ -326,10 +393,30 @@ downloadImportTemplate() {
 - **Authenticated**: `POST/PUT/DELETE /api/v1/certificates/{id}`
 - **Swagger**: http://localhost:5101/swagger
 
-**Test Credentials**:
-- Admin: `admin@greencirclecertified.com` / `Admin123!`
-- Analyst: `analyst@greencirclecertified.com` / `Analyst123!`
-- External: `partner@amazon.com` / `Partner123!`
+**Test Credentials** (Login with USERNAME, not email):
+- Admin: Username: `admin` / Password: `TestPass123!` (Email: swest@anukiconsulting.com)
+- Analyst: Username: `analyst` / Password: `TestPass123!` (Email: swest@anukiconsulting.com)
+- External: Username: `external` / Password: `TestPass123!` (Email: swest@anukiconsulting.com)
+
+**All Test Accounts** (14 total, all use Password: `TestPass123!` and Email: `swest@anukiconsulting.com`):
+| Username | Role | Name |
+|----------|------|------|
+| admin | Admin | Admin User |
+| analyst | Analyst | Jane Analyst |
+| external | External | External User |
+| testuser | Public | Test User |
+| sarah.johnson | Analyst | Sarah Johnson |
+| mike.chen | Analyst | Mike Chen |
+| lisa.rodriguez | External | Lisa Rodriguez |
+| david.kim | External | David Kim |
+| emma.wilson | External | Emma Wilson |
+| alex.martinez | External | Alex Martinez |
+| jennifer.lee | Analyst | Jennifer Lee |
+| robert.taylor | Analyst | Robert Taylor |
+| maria.garcia | External | Maria Garcia |
+| public.user | Public | Public User |
+
+**Note**: All 2FA emails will be sent to swest@anukiconsulting.com
 
 ## Feature Implementation Status
 
@@ -343,7 +430,7 @@ downloadImportTemplate() {
 | US-006 | Bulk CSV Import/Export | ✅ Complete |
 | US-007 | Certificate Workflow (14 states) | ✅ Complete |
 | US-008 | Role-Based Access Control | ✅ Complete |
-| US-009 | Amazon API Integration | ✅ Complete |
+| US-009 | Partner API Access (Amazon, Wayfair, etc.) | ⚠️ Redesign Required |
 | US-010 | Excel Export | ✅ Complete |
 | FILTER-001 | Database-Driven Filters (All Views) | ✅ Complete (2025-10-27) |
 

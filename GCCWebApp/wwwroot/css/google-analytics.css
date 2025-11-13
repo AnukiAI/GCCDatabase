@@ -269,14 +269,14 @@ pre {
 
 /* Save Button Override */
 #save-settings-btn {
-    background-color: var(--green-primary);
-    border-color: var(--green-primary);
-    color: white;
+    background-color: #92C83E !important;
+    border-color: #92C83E !important;
+    color: white !important;
 }
 
 #save-settings-btn:hover {
-    background-color: var(--green-secondary);
-    border-color: var(--green-secondary);
+    background-color: #7fb32e !important;
+    border-color: #7fb32e !important;
 }
 
 /* Responsive Design */

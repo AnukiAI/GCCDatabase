@@ -9,10 +9,11 @@ namespace GCCWebApp.Extensions
         {
             services.AddSwaggerGen(c =>
             {
+                // Admin/General API Documentation
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Version = "v1.1",
-                    Title = "GCC Web API",
+                    Title = "GCC Web API - Admin & General",
                     Description = @"
 **Green Circle Certified Web Application API**
 
@@ -27,11 +28,12 @@ and administrative functions for the GCC certification system.
 - 📋 Bulk operations for efficient data management
 - 🔄 Real-time data synchronization
 
+### Authentication Required
+All API requests must be authenticated. Anonymous access is not permitted.
+
 ### Rate Limits
-- Anonymous: 100 requests/hour
-- Authenticated: 500 requests/hour
+- Authenticated (Cookie/JWT): 500 requests/hour
 - API Key: 1,000 requests/hour
-- Partner API Key: 2,000 requests/hour
 - Admin: 5,000 requests/hour
 
 ### Support
@@ -52,6 +54,77 @@ and administrative functions for the GCC certification system.
                     }
                 });
 
+                // Partner API Documentation (Separate Document)
+                c.SwaggerDoc("partner", new OpenApiInfo
+                {
+                    Version = "v1.0",
+                    Title = "GCC Partner API",
+                    Description = @"
+**Partner API Management & Administration**
+
+This API provides administrative endpoints for managing partner API access, API keys, and usage statistics.
+Partners (Amazon, Wayfair, etc.) use API keys to access GCC data through dedicated endpoints.
+
+### Partner API Features
+- 🔑 Generate and manage partner API keys
+- 📊 View detailed usage statistics and analytics
+- ⚙️ Configure partner access permissions
+- 📈 Monitor API usage and rate limits
+- 🔒 Revoke and rotate API keys for security
+
+### Authentication
+All Partner API endpoints require **Admin role** authentication using:
+- Cookie-based session (GCC.Session)
+- JWT Bearer token with Admin privileges
+
+### Rate Limits for Partners
+Partner API keys have higher rate limits:
+- **Partner API Key**: 2,000 requests/hour
+- This applies to partners using their API keys to access GCC data endpoints
+
+### Security Best Practices
+- Store API keys securely - they cannot be retrieved after generation
+- Rotate keys regularly for security
+- Revoke compromised keys immediately
+- Monitor usage statistics for unusual activity
+
+### Support
+- Technical Support: api-support@greencirclecertified.com
+- Partner Portal: https://partners.greencirclecertified.com
+- Documentation: https://docs.greencirclecertified.com/partner-api",
+                    TermsOfService = new Uri("https://greencirclecertified.com/partner-terms"),
+                    Contact = new OpenApiContact
+                    {
+                        Name = "GCC Partner API Team",
+                        Email = "partner-api@greencirclecertified.com",
+                        Url = new Uri("https://greencirclecertified.com/partner-support")
+                    },
+                    License = new OpenApiLicense
+                    {
+                        Name = "GCC Partner API License",
+                        Url = new Uri("https://greencirclecertified.com/partner-api-license")
+                    }
+                });
+
+                // Document filter to separate Partner API endpoints
+                c.DocInclusionPredicate((docName, apiDesc) =>
+                {
+                    var controllerName = apiDesc.ActionDescriptor.RouteValues["controller"];
+
+                    if (docName == "partner")
+                    {
+                        // Partner document only includes PartnerApi controller
+                        return controllerName?.Equals("PartnerApi", StringComparison.OrdinalIgnoreCase) == true;
+                    }
+                    else if (docName == "v1")
+                    {
+                        // Admin/General document excludes PartnerApi controller
+                        return controllerName?.Equals("PartnerApi", StringComparison.OrdinalIgnoreCase) != true;
+                    }
+
+                    return false;
+                });
+
                 // Include XML comments
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -66,24 +139,19 @@ and administrative functions for the GCC certification system.
                 // Enable annotations
                 c.EnableAnnotations();
 
-                // Add servers
-                c.AddServer(new OpenApiServer
-                {
-                    Url = "https://api.greencirclecertified.com",
-                    Description = "Production Server"
-                });
-
-                c.AddServer(new OpenApiServer
-                {
-                    Url = "https://staging-api.greencirclecertified.com",
-                    Description = "Staging Server"
-                });
-
+                // Add servers (configure production URLs as needed)
                 c.AddServer(new OpenApiServer
                 {
                     Url = "http://localhost:5101",
                     Description = "Development Server"
                 });
+
+                // TODO: Add production server URL when available
+                // c.AddServer(new OpenApiServer
+                // {
+                //     Url = "https://your-production-domain.com",
+                //     Description = "Production Server"
+                // });
 
                 // Security Definitions
                 c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme
@@ -198,8 +266,19 @@ Cookies are secure, HTTP-only, and have appropriate SameSite settings."
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "GCC Web API v1");
+                    // Admin & General API Documentation
+                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "GCC Web API - Admin & General");
+
+                    // Partner API Documentation (Separate)
+                    c.SwaggerEndpoint("/swagger/partner/swagger.json", "GCC Partner API");
+
                     c.RoutePrefix = "swagger";
+                    c.DocumentTitle = "GCC API Documentation";
+                    c.DefaultModelsExpandDepth(2);
+                    c.DefaultModelExpandDepth(2);
+                    c.DisplayRequestDuration();
+                    c.EnableDeepLinking();
+                    c.EnableFilter();
                 });
             }
 

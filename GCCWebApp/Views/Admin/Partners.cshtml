@@ -67,11 +67,11 @@
                 </td>
                 <td>
                     <div class="partners-add-actions" style="display: flex; gap: 5px;">
-                        <button id="save-new-partner-btn" class="partners-btn-save" onclick="saveNewPartner()">
-                            <i class="fas fa-check"></i> Save
+                        <button id="cancel-new-partner-btn" class="admin-btn admin-btn--sm admin-btn--secondary" onclick="cancelAddPartner()">
+                            <i class="fas fa-times" aria-hidden="true"></i> Cancel
                         </button>
-                        <button id="cancel-new-partner-btn" class="partners-btn-cancel" onclick="cancelAddPartner()">
-                            <i class="fas fa-times"></i> Cancel
+                        <button id="save-new-partner-btn" class="admin-btn admin-btn--sm admin-btn--success" onclick="saveNewPartner()">
+                            <i class="fas fa-check" aria-hidden="true"></i> Save
                         </button>
                     </div>
                 </td>
@@ -208,11 +208,11 @@
                 const actionButtons = document.createElement('div');
                 actionButtons.className = 'action-buttons';
                 actionButtons.innerHTML = `
-                    <button class="partners-btn-edit" onclick="editPartner(${partner.id})" title="Edit Partner">
-                        <i class="fas fa-edit"></i>
+                    <button class="partners-btn-edit" onclick="editPartner(${partner.id})" title="Edit Partner" aria-label="Edit partner ${partner.name}">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
                     </button>
-                    <button class="partners-btn-delete" onclick="deletePartner(${partner.id})" title="Delete Partner">
-                        <i class="fas fa-trash-alt"></i>
+                    <button class="partners-btn-delete" onclick="deletePartner(${partner.id})" title="Delete Partner" aria-label="Delete partner ${partner.name}">
+                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
                     </button>
                 `;
                 actionsCell.appendChild(actionButtons);
@@ -221,8 +221,8 @@
                 const editActions = document.createElement('div');
                 editActions.className = 'partners-edit-actions';
                 editActions.innerHTML = `
-                    <button class="partners-btn-save" onclick="savePartner(${partner.id})">Save</button>
-                    <button class="partners-btn-cancel" onclick="cancelEdit(${partner.id})">Cancel</button>
+                    <button class="admin-btn admin-btn--sm admin-btn--secondary" onclick="cancelEdit(${partner.id})"><i class="fas fa-times" aria-hidden="true"></i> Cancel</button>
+                    <button class="admin-btn admin-btn--sm admin-btn--success" onclick="savePartner(${partner.id})"><i class="fas fa-check" aria-hidden="true"></i> Save</button>
                 `;
                 actionsCell.appendChild(editActions);
 

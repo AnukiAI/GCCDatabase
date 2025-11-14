@@ -28,6 +28,9 @@ namespace GCCWebApp.Models
 
         public string? ValidationRules { get; set; } // JSON validation rules
 
+        [MaxLength(100)]
+        public string? Section { get; set; } // Section for grouping fields (e.g., "Core Certificate Information")
+
         public int CertificateTypeId { get; set; }
 
         // Navigation properties

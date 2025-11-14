@@ -176,7 +176,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Mobile
             var bodyWidth = await _page.EvaluateAsync<int>("document.body.scrollWidth");
             var viewportWidth = await _page.EvaluateAsync<int>("window.innerWidth");
             
-            bodyWidth.Should().BeLessOrEqualTo(viewportWidth + 5, 
+            bodyWidth.Should().BeLessThanOrEqualTo(viewportWidth + 5, 
                 $"Content should not cause horizontal scroll on {width}x{height} screen");
         }
 
@@ -371,7 +371,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Mobile
                 if (rect != null)
                 {
                     var minDimension = Math.Min(rect.Width, rect.Height);
-                    minDimension.Should().BeGreaterOrEqualTo(40, 
+                    minDimension.Should().BeGreaterThanOrEqualTo(40, 
                         "Interactive elements should meet minimum touch target size (40px)");
                 }
             }

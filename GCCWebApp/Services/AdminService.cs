@@ -713,7 +713,8 @@ namespace GCCWebApp.Services
                     SortOrder = cf.SortOrder,
                     Options = cf.Options ?? "",
                     DefaultValue = cf.DefaultValue ?? "",
-                    ValidationRules = cf.ValidationRules ?? ""
+                    ValidationRules = cf.ValidationRules ?? "",
+                    Section = cf.Section
                 })
                 .ToListAsync();
         }
@@ -733,7 +734,8 @@ namespace GCCWebApp.Services
                 SortOrder = field.SortOrder,
                 Options = field.Options ?? "",
                 DefaultValue = field.DefaultValue ?? "",
-                ValidationRules = field.ValidationRules ?? ""
+                ValidationRules = field.ValidationRules ?? "",
+                Section = field.Section
             };
         }
 
@@ -750,7 +752,9 @@ namespace GCCWebApp.Services
                     SortOrder = model.SortOrder,
                     Options = model.Options,
                     DefaultValue = model.DefaultValue,
-                    ValidationRules = model.ValidationRules
+                    ValidationRules = model.ValidationRules,
+                    Section = model.Section ?? "Core Certificate Information",
+                    CertificateTypeId = 1 // Default to first certificate type for now
                 };
 
                 _context.CustomFields.Add(field);
@@ -778,6 +782,7 @@ namespace GCCWebApp.Services
                 field.Options = model.Options;
                 field.DefaultValue = model.DefaultValue;
                 field.ValidationRules = model.ValidationRules;
+                field.Section = model.Section;
 
                 await _context.SaveChangesAsync();
                 return true;

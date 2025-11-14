@@ -158,28 +158,31 @@ namespace GCCWebApp.Models
     public class CertificateFieldViewModel
     {
         public int Id { get; set; }
-        
+
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [Required]
         public string FieldType { get; set; } = string.Empty;
-        
+
         public bool IsRequired { get; set; }
-        
+
         public bool IsVisible { get; set; } = true;
-        
+
         public int SortOrder { get; set; }
-        
+
         [StringLength(500)]
         public string Options { get; set; } = string.Empty;
-        
+
         [StringLength(255)]
         public string DefaultValue { get; set; } = string.Empty;
-        
+
         [StringLength(500)]
         public string ValidationRules { get; set; } = string.Empty;
+
+        [StringLength(100)]
+        public string? Section { get; set; }
     }
 
     // CSF Attributes Models

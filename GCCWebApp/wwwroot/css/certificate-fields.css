@@ -1,5 +1,10 @@
 /* Certificate Fields Management Styles - Uses main.css variables */
 
+/* Fix button alignment */
+.admin-certificate-fields .admin-actions-section {
+    margin-left: auto;
+}
+
 /* Color variables */
 :root {
     --text-color: #333;

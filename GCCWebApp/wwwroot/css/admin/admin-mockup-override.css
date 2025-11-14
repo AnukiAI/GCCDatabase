@@ -542,3 +542,31 @@ select:focus-visible {
     outline: 2px solid var(--mockup-blue-primary);
     outline-offset: 2px;
 }
+
+/* =============================================================================
+   PARTNER CARDS - Partner API Page
+   ============================================================================= */
+
+.partner-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.partner-card:hover {
+    border-color: #00AEEF;
+    box-shadow: 0 2px 8px rgba(0, 174, 239, 0.2);
+}
+
+.partner-card.selected {
+    border-color: #00AEEF;
+    background: #f5f9ff;
+    box-shadow: 0 2px 8px rgba(0, 174, 239, 0.3);
+}
+
+.partner-card.selected:hover {
+    box-shadow: 0 2px 8px rgba(0, 174, 239, 0.3);
+}

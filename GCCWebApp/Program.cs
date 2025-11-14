@@ -368,6 +368,7 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IValidationService, ValidationService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+builder.Services.AddScoped<ICertificateFieldService, CertificateFieldService>();
 builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
 builder.Services.AddScoped<IPartnerApiKeyService, PartnerApiKeyService>();
 builder.Services.AddScoped<IAmazonApiService, AmazonApiService>();

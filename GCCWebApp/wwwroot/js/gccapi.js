@@ -77,6 +77,53 @@ function setupEventListeners() {
     if (statusFilter) {
         statusFilter.addEventListener('change', handleSearchAndFilter);
     }
+
+    // Escape key closes modals
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            // Check for any open modal
+            const generateModal = document.getElementById('apikey-modal');
+            const successModal = document.getElementById('apikey-success-modal');
+
+            if (generateModal && generateModal.classList.contains('admin-modal--active')) {
+                e.preventDefault();
+                closeGenerateKeyModal();
+            } else if (successModal && successModal.classList.contains('admin-modal--active')) {
+                e.preventDefault();
+                closeSuccessModal();
+            }
+        }
+    });
+
+    // Backdrop click closes Generate modal only (not Success modal for security)
+    const generateModal = document.getElementById('apikey-modal');
+    if (generateModal) {
+        generateModal.addEventListener('click', (e) => {
+            // Only close if clicking the modal itself (backdrop), not its children
+            if (e.target === generateModal) {
+                closeGenerateKeyModal();
+            }
+        });
+    }
+
+    // Event delegation for retry button in error state
+    const apiKeyTable = document.getElementById('apikey-table');
+    if (apiKeyTable) {
+        apiKeyTable.addEventListener('click', (e) => {
+            const retryBtn = e.target.closest('[data-action="retry"]');
+            if (retryBtn) {
+                loadApiKeys();
+            }
+
+            // Event delegation for revoke buttons
+            const revokeBtn = e.target.closest('[data-action="revoke"]');
+            if (revokeBtn && !revokeBtn.disabled) {
+                const keyId = revokeBtn.dataset.keyId;
+                const keyName = revokeBtn.dataset.keyName;
+                revokeApiKey(keyId, keyName);
+            }
+        });
+    }
 }
 
 // Load API Keys
@@ -132,7 +179,7 @@ async function loadApiKeys() {
                         <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ccc; margin-bottom: 12px;"></i>
                         <p style="margin: 0 0 8px 0; font-weight: 600;">Failed to load API keys</p>
                         <p style="margin: 0; font-size: 12px; color: #999;">${escapeHtml(error.message)}</p>
-                        <button onclick="loadApiKeys()" style="margin-top: 16px; padding: 8px 16px; background: #00AEEF; color: white; border: none; border-radius: 4px; cursor: pointer;">
+                        <button data-action="retry" style="margin-top: 16px; padding: 8px 16px; background: #00AEEF; color: white; border: none; border-radius: 4px; cursor: pointer;">
                             <i class="fas fa-sync"></i> Retry
                         </button>
                     </td>
@@ -195,7 +242,9 @@ function renderApiKeys() {
                 <td class="admin-table-td admin-table-td--actions">
                     <div class="admin-table-actions">
                         <button class="admin-table-action-btn admin-table-action-btn--delete"
-                                onclick="revokeApiKey(${key.id}, '${escapeHtml(key.name)}')"
+                                data-action="revoke"
+                                data-key-id="${key.id}"
+                                data-key-name="${escapeHtml(key.name)}"
                                 title="Revoke API key"
                                 ${!key.isActive ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
                             <i class="fas fa-ban"></i>
@@ -207,6 +256,53 @@ function renderApiKeys() {
     }).join('');
 
     updateCount(filteredApiKeys.length, allApiKeys.length);
+}
+
+/**
+ * Focus trap handler for modal accessibility
+ */
+let focusTrapHandler = null;
+
+function setupFocusTrap(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    const focusableElements = modal.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+
+    if (focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    // Trap focus within modal
+    focusTrapHandler = (e) => {
+        if (e.key !== 'Tab') return;
+
+        if (e.shiftKey) {
+            // Shift + Tab
+            if (document.activeElement === firstElement) {
+                lastElement.focus();
+                e.preventDefault();
+            }
+        } else {
+            // Tab
+            if (document.activeElement === lastElement) {
+                firstElement.focus();
+                e.preventDefault();
+            }
+        }
+    };
+
+    modal.addEventListener('keydown', focusTrapHandler);
+}
+
+function removeFocusTrap(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal || !focusTrapHandler) return;
+    modal.removeEventListener('keydown', focusTrapHandler);
+    focusTrapHandler = null;
 }
 
 // Show Generate Key Modal
@@ -222,9 +318,10 @@ function showGenerateKeyModal() {
         modal.classList.add('admin-modal--active');
         modal.setAttribute('aria-hidden', 'false');
 
-        // Focus first input
+        // Focus first input and setup focus trap
         setTimeout(() => {
             document.getElementById('key-name')?.focus();
+            setupFocusTrap('apikey-modal');
         }, 100);
     }
 }
@@ -233,6 +330,7 @@ function showGenerateKeyModal() {
 function closeGenerateKeyModal() {
     const modal = document.getElementById('apikey-modal');
     if (modal) {
+        removeFocusTrap('apikey-modal');
         modal.classList.remove('admin-modal--active');
         modal.setAttribute('aria-hidden', 'true');
     }
@@ -311,10 +409,11 @@ function showSuccessModal(keyData) {
     modal.classList.add('admin-modal--active');
     modal.setAttribute('aria-hidden', 'false');
 
-    // Select the key for easy copying
+    // Select the key for easy copying and setup focus trap
     setTimeout(() => {
         const keyInput = document.getElementById('generated-key');
         keyInput?.select();
+        setupFocusTrap('apikey-success-modal');
     }, 100);
 }
 
@@ -322,6 +421,7 @@ function showSuccessModal(keyData) {
 function closeSuccessModal() {
     const modal = document.getElementById('apikey-success-modal');
     if (modal) {
+        removeFocusTrap('apikey-success-modal');
         modal.classList.remove('admin-modal--active');
         modal.setAttribute('aria-hidden', 'true');
     }

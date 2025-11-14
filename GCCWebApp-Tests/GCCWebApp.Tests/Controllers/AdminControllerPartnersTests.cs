@@ -6,7 +6,9 @@ using Moq;
 using GCCWebApp.Controllers;
 using GCCWebApp.Models;
 using GCCWebApp.Services;
+using GCCWebApp.Data;
 using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using Xunit;
 
@@ -15,14 +17,22 @@ namespace GCCWebApp.Tests.Controllers
     public class AdminControllerPartnersTests
     {
         private readonly Mock<ILogger<AdminController>> _loggerMock;
+        private readonly ApplicationDbContext _context;
         private readonly Mock<IAdminService> _adminServiceMock;
         private readonly AdminController _controller;
 
         public AdminControllerPartnersTests()
         {
+            // Setup in-memory database for AdminController dependency
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+
+            _context = new ApplicationDbContext(options);
             _loggerMock = new Mock<ILogger<AdminController>>();
             _adminServiceMock = new Mock<IAdminService>();
-            _controller = new AdminController(_adminServiceMock.Object, _loggerMock.Object);
+
+            _controller = new AdminController(_adminServiceMock.Object, _loggerMock.Object, _context);
             SetupAdminUser();
         }
 

@@ -840,6 +840,8 @@ namespace GCCWebApp.Controllers
         // Partners
         public IActionResult Partners()
         {
+            ViewData["Title"] = "Partners Management";
+            ViewData["BodyClass"] = "role-admin";
             return View();
         }
 
@@ -901,7 +903,7 @@ namespace GCCWebApp.Controllers
                     return Json(new ApiResponse<object> { Success = true, Message = "Partner updated successfully" });
                 }
 
-                return Json(new ApiResponse<object> { Success = false, Message = "Partner not found or failed to update" });
+                return Json(new ApiResponse<object> { Success = false, Message = "Partner not found or update failed" });
             }
             catch (Exception ex)
             {
@@ -922,7 +924,7 @@ namespace GCCWebApp.Controllers
                     return Json(new ApiResponse<object> { Success = true, Message = "Partner deleted successfully" });
                 }
 
-                return Json(new ApiResponse<object> { Success = false, Message = "Partner not found or failed to delete" });
+                return Json(new ApiResponse<object> { Success = false, Message = "Partner not found or delete failed" });
             }
             catch (Exception ex)
             {

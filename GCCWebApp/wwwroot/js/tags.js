@@ -23,7 +23,12 @@ function getAntiForgeryToken() {
 function populateTable(data) {
     if (!tagTableBody) return;
 
+    // Clear existing data rows but keep the add row if it exists
+    const addRow = document.getElementById('tags-add-row');
     tagTableBody.innerHTML = '';
+    if (addRow) {
+        tagTableBody.appendChild(addRow);
+    }
 
     if (data.length === 0) {
         const row = document.createElement('tr');
@@ -48,50 +53,95 @@ function populateTable(data) {
         row.className = 'admin-table-row';
         row.dataset.id = tag.id;
 
-        // Tag name
+        // Tag name cell with view and edit modes
         const nameCell = document.createElement('td');
-        nameCell.className = 'admin-table-td tag-name';
-        nameCell.textContent = tag.name;
+        nameCell.className = 'admin-table-td';
+
+        // View mode
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'tag-name';
+        nameSpan.textContent = tag.name;
+        nameCell.appendChild(nameSpan);
+
+        // Edit mode
+        const nameEditDiv = document.createElement('div');
+        nameEditDiv.className = 'tag-name-edit';
+        nameEditDiv.innerHTML = `<input type="text" class="tags-edit-input" value="${escapeHtml(tag.name)}">`;
+        nameCell.appendChild(nameEditDiv);
+
         row.appendChild(nameCell);
 
-        // Tag type
+        // Tag type cell with view and edit modes
         const typeCell = document.createElement('td');
         typeCell.className = 'admin-table-td admin-table-td--hidden-mobile';
+
+        // View mode
         const typeSpan = document.createElement('span');
-        typeSpan.className = `admin-badge admin-badge--${tag.tagType === 'external' ? 'success' : 'info'}`;
+        typeSpan.className = `tag-type admin-badge admin-badge--${tag.tagType === 'external' ? 'success' : 'info'}`;
         typeSpan.textContent = tag.tagType.charAt(0).toUpperCase() + tag.tagType.slice(1);
         typeCell.appendChild(typeSpan);
+
+        // Edit mode
+        const typeEditDiv = document.createElement('div');
+        typeEditDiv.className = 'tag-type-edit';
+        typeEditDiv.innerHTML = `
+            <select class="tags-edit-select">
+                <option value="external" ${tag.tagType === 'external' ? 'selected' : ''}>External</option>
+                <option value="internal" ${tag.tagType === 'internal' ? 'selected' : ''}>Internal</option>
+            </select>
+        `;
+        typeCell.appendChild(typeEditDiv);
+
         row.appendChild(typeCell);
 
-        // Description
+        // Description cell with view and edit modes
         const descCell = document.createElement('td');
         descCell.className = 'admin-table-td admin-table-td--hidden-mobile';
-        descCell.textContent = tag.description || '';
+
+        // View mode
+        const descSpan = document.createElement('span');
+        descSpan.className = 'tag-description';
+        descSpan.textContent = tag.description || '';
+        descCell.appendChild(descSpan);
+
+        // Edit mode
+        const descEditDiv = document.createElement('div');
+        descEditDiv.className = 'tag-description-edit';
+        descEditDiv.innerHTML = `<textarea class="tags-edit-textarea" rows="2">${escapeHtml(tag.description || '')}</textarea>`;
+        descCell.appendChild(descEditDiv);
+
         row.appendChild(descCell);
 
-        // Actions
+        // Actions cell with Edit/Delete and Save/Cancel buttons
         const actionsCell = document.createElement('td');
         actionsCell.className = 'admin-table-td admin-table-td--actions';
+
+        // Regular action buttons (Edit/Delete)
         const actionButtons = document.createElement('div');
-        actionButtons.className = 'admin-action-buttons';
-
-        const editButton = document.createElement('button');
-        editButton.className = 'admin-action-btn admin-action-btn--edit';
-        editButton.innerHTML = '<i class="fas fa-edit"></i>';
-        editButton.title = 'Edit tag';
-        editButton.setAttribute('aria-label', `Edit ${tag.name}`);
-        editButton.addEventListener('click', () => openEditModal(tag));
-        actionButtons.appendChild(editButton);
-
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'admin-action-btn admin-action-btn--delete';
-        deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
-        deleteButton.title = 'Delete tag';
-        deleteButton.setAttribute('aria-label', `Delete ${tag.name}`);
-        deleteButton.addEventListener('click', () => deleteTag(tag.id, tag.name));
-        actionButtons.appendChild(deleteButton);
-
+        actionButtons.className = 'action-buttons';
+        actionButtons.innerHTML = `
+            <button class="admin-action-btn admin-action-btn--edit" onclick="editTag(${tag.id})" title="Edit Tag" aria-label="Edit tag ${escapeHtml(tag.name)}">
+                <i class="fas fa-edit" aria-hidden="true"></i>
+            </button>
+            <button class="admin-action-btn admin-action-btn--delete" onclick="deleteTag(${tag.id}, '${escapeHtml(tag.name)}')" title="Delete Tag" aria-label="Delete tag ${escapeHtml(tag.name)}">
+                <i class="fas fa-trash-alt" aria-hidden="true"></i>
+            </button>
+        `;
         actionsCell.appendChild(actionButtons);
+
+        // Edit action buttons (Save/Cancel)
+        const editActions = document.createElement('div');
+        editActions.className = 'tags-edit-actions';
+        editActions.innerHTML = `
+            <button class="admin-btn admin-btn--sm admin-btn--secondary" onclick="cancelEdit(${tag.id})" aria-label="Cancel editing">
+                <i class="fas fa-times" aria-hidden="true"></i> Cancel
+            </button>
+            <button class="admin-btn admin-btn--sm admin-btn--success" onclick="saveTag(${tag.id})" aria-label="Save tag">
+                <i class="fas fa-check" aria-hidden="true"></i> Save
+            </button>
+        `;
+        actionsCell.appendChild(editActions);
+
         row.appendChild(actionsCell);
 
         tagTableBody.appendChild(row);
@@ -100,6 +150,13 @@ function populateTable(data) {
     if (tagCountElement) {
         tagCountElement.textContent = `Showing ${data.length} of ${tags.length} tags`;
     }
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Function to initialize the table sortable headers
@@ -177,106 +234,207 @@ function getFilteredData() {
     return filteredData;
 }
 
-// Function to open the modal for adding a new tag
-function openAddModal() {
-    const modal = document.getElementById('tag-modal');
-    const modalTitle = document.getElementById('modal-title');
-    const tagForm = document.getElementById('tag-form');
-    const tagIdInput = document.getElementById('tag-id');
-
-    if (modalTitle) modalTitle.textContent = 'Add New Tag';
-    if (tagForm) tagForm.reset();
-    if (tagIdInput) tagIdInput.value = '';
-
-    AdminCore.openModal('tag-modal');
+// Function to show the add tag row (inline)
+function showAddTagRow() {
+    const addRow = document.getElementById('tags-add-row');
+    if (addRow) {
+        addRow.classList.add('active');
+        const nameInput = addRow.querySelector('.tags-edit-input');
+        if (nameInput) {
+            nameInput.focus();
+        }
+    }
 }
 
-// Function to open the modal for editing a tag
-function openEditModal(tag) {
-    const modalTitle = document.getElementById('modal-title');
-    const tagIdInput = document.getElementById('tag-id');
-    const tagNameInput = document.getElementById('tag-name');
-    const tagTypeInput = document.getElementById('tag-type');
-    const tagDescriptionInput = document.getElementById('tag-description');
+// Function to save new tag from add row
+async function saveNewTag() {
+    const addRow = document.getElementById('tags-add-row');
+    if (!addRow) return;
 
-    if (modalTitle) modalTitle.textContent = 'Edit Tag';
-    if (tagIdInput) tagIdInput.value = tag.id;
-    if (tagNameInput) tagNameInput.value = tag.name;
-    if (tagTypeInput) tagTypeInput.value = tag.tagType;
-    if (tagDescriptionInput) tagDescriptionInput.value = tag.description || '';
+    const nameInput = addRow.querySelector('input[name="new-tag-name"]');
+    const typeSelect = addRow.querySelector('select[name="new-tag-type"]');
+    const descTextarea = addRow.querySelector('textarea[name="new-tag-description"]');
 
-    AdminCore.openModal('tag-modal');
-}
+    const name = nameInput?.value.trim() || '';
+    const tagType = typeSelect?.value || '';
+    const description = descTextarea?.value.trim() || '';
 
-// Function to save a tag (add or update)
-async function saveTag(event) {
-    event.preventDefault();
-
-    const tagIdInput = document.getElementById('tag-id');
-    const tagNameInput = document.getElementById('tag-name');
-    const tagTypeInput = document.getElementById('tag-type');
-    const tagDescriptionInput = document.getElementById('tag-description');
-    const saveBtn = document.getElementById('save-btn');
-
-    const tagId = tagIdInput?.value;
-    const tagData = {
-        name: tagNameInput?.value || '',
-        tagType: tagTypeInput?.value || '',
-        description: tagDescriptionInput?.value || ''
-    };
-
-    // Validate required fields
-    if (!tagData.name || !tagData.tagType) {
-        AdminCore.showNotification('Please fill in all required fields', 'error');
+    if (!name) {
+        AdminCore.showNotification('Tag name cannot be empty', 'error');
+        if (nameInput) nameInput.focus();
         return;
     }
 
-    // Show loading state
-    if (saveBtn) AdminCore.showLoading(saveBtn);
+    if (!tagType) {
+        AdminCore.showNotification('Please select a tag type', 'error');
+        if (typeSelect) typeSelect.focus();
+        return;
+    }
 
     try {
         const token = getAntiForgeryToken();
-        let response;
-
-        if (tagId) {
-            // Update existing tag
-            response = await fetch(`/Admin/UpdateTag/${tagId}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify(tagData)
-            });
-        } else {
-            // Create new tag
-            response = await fetch('/Admin/CreateTag', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'RequestVerificationToken': token
-                },
-                body: JSON.stringify(tagData)
-            });
-        }
+        const response = await fetch('/Admin/CreateTag', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': token
+            },
+            body: JSON.stringify({ name, tagType, description })
+        });
 
         const result = await response.json();
 
         if (result.success) {
-            AdminCore.showNotification(result.message || 'Tag saved successfully!', 'success');
-            AdminCore.closeModal('tag-modal');
+            // Reset add row
+            if (nameInput) nameInput.value = '';
+            if (typeSelect) typeSelect.value = '';
+            if (descTextarea) descTextarea.value = '';
+            addRow.classList.remove('active');
 
             // Reload tags from server
             await loadTags();
+            AdminCore.showNotification('Tag added successfully', 'success');
         } else {
-            AdminCore.showNotification(result.message || 'Failed to save tag', 'error');
+            AdminCore.showNotification(result.message || 'Failed to create tag', 'error');
         }
     } catch (error) {
-        console.error('Error saving tag:', error);
-        AdminCore.showNotification('An error occurred while saving the tag', 'error');
-    } finally {
-        if (saveBtn) AdminCore.hideLoading(saveBtn);
+        console.error('Error creating tag:', error);
+        AdminCore.showNotification('An error occurred while creating the tag', 'error');
     }
+}
+
+// Function to cancel adding new tag
+function cancelAddTag() {
+    const addRow = document.getElementById('tags-add-row');
+    if (!addRow) return;
+
+    const nameInput = addRow.querySelector('input[name="new-tag-name"]');
+    const typeSelect = addRow.querySelector('select[name="new-tag-type"]');
+    const descTextarea = addRow.querySelector('textarea[name="new-tag-description"]');
+
+    if (nameInput) nameInput.value = '';
+    if (typeSelect) typeSelect.value = '';
+    if (descTextarea) descTextarea.value = '';
+
+    addRow.classList.remove('active');
+}
+
+// Function to edit a tag (inline)
+function editTag(id) {
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    if (!row) return;
+
+    row.classList.add('tags-edit-row');
+    const nameInput = row.querySelector('.tags-edit-input');
+    if (nameInput) {
+        nameInput.focus();
+        nameInput.select();
+    }
+}
+
+// Function to save a tag (inline editing)
+async function saveTag(id) {
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    if (!row) return;
+
+    const nameInput = row.querySelector('.tag-name-edit input');
+    const typeSelect = row.querySelector('.tag-type-edit select');
+    const descTextarea = row.querySelector('.tag-description-edit textarea');
+
+    const newName = nameInput?.value.trim() || '';
+    const newType = typeSelect?.value || '';
+    const newDescription = descTextarea?.value.trim() || '';
+
+    if (!newName) {
+        AdminCore.showNotification('Tag name cannot be empty', 'error');
+        if (nameInput) nameInput.focus();
+        return;
+    }
+
+    if (!newType) {
+        AdminCore.showNotification('Please select a tag type', 'error');
+        if (typeSelect) typeSelect.focus();
+        return;
+    }
+
+    // Get current tag data
+    const currentTag = tags.find(t => t.id === id);
+    if (!currentTag) {
+        AdminCore.showNotification('Tag not found', 'error');
+        return;
+    }
+
+    try {
+        const token = getAntiForgeryToken();
+        const response = await fetch(`/Admin/UpdateTag/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': token
+            },
+            body: JSON.stringify({
+                id: id,
+                name: newName,
+                tagType: newType,
+                description: newDescription
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // Update local data
+            const tagIndex = tags.findIndex(t => t.id === id);
+            if (tagIndex !== -1) {
+                tags[tagIndex].name = newName;
+                tags[tagIndex].tagType = newType;
+                tags[tagIndex].description = newDescription;
+            }
+
+            // Update display
+            const nameSpan = row.querySelector('.tag-name');
+            const typeSpan = row.querySelector('.tag-type');
+            const descSpan = row.querySelector('.tag-description');
+
+            if (nameSpan) nameSpan.textContent = newName;
+            if (typeSpan) {
+                typeSpan.textContent = newType.charAt(0).toUpperCase() + newType.slice(1);
+                typeSpan.className = `tag-type admin-badge admin-badge--${newType === 'external' ? 'success' : 'info'}`;
+            }
+            if (descSpan) descSpan.textContent = newDescription;
+
+            // Remove edit class
+            row.classList.remove('tags-edit-row');
+            AdminCore.showNotification('Tag updated successfully', 'success');
+        } else {
+            AdminCore.showNotification(result.message || 'Failed to update tag', 'error');
+        }
+    } catch (error) {
+        console.error('Error updating tag:', error);
+        AdminCore.showNotification('An error occurred while updating the tag', 'error');
+    }
+}
+
+// Function to cancel editing (inline)
+function cancelEdit(id) {
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    if (!row) return;
+
+    // Get original tag data
+    const tag = tags.find(t => t.id === id);
+    if (!tag) return;
+
+    // Reset input values to original
+    const nameInput = row.querySelector('.tag-name-edit input');
+    const typeSelect = row.querySelector('.tag-type-edit select');
+    const descTextarea = row.querySelector('.tag-description-edit textarea');
+
+    if (nameInput) nameInput.value = tag.name;
+    if (typeSelect) typeSelect.value = tag.tagType;
+    if (descTextarea) descTextarea.value = tag.description || '';
+
+    // Remove edit class
+    row.classList.remove('tags-edit-row');
 }
 
 // Function to delete a tag
@@ -402,24 +560,10 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeTagManagement();
     }
 
-    // Add Tag button
+    // Add Tag button - show inline add row instead of modal
     const addTagBtn = document.getElementById('add-tag-btn');
     if (addTagBtn) {
-        addTagBtn.addEventListener('click', openAddModal);
-    }
-
-    // Cancel button
-    const cancelBtn = document.getElementById('cancel-btn');
-    if (cancelBtn) {
-        cancelBtn.addEventListener('click', () => {
-            AdminCore.closeModal('tag-modal');
-        });
-    }
-
-    // Form submission
-    const tagForm = document.getElementById('tag-form');
-    if (tagForm) {
-        tagForm.addEventListener('submit', saveTag);
+        addTagBtn.addEventListener('click', showAddTagRow);
     }
 
     // Search input
@@ -493,7 +637,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
-// Export functions for use in inline scripts
+// Export functions for use in inline scripts and onclick handlers
 window.initializeTagManagement = initializeTagManagement;
 window.refreshTagList = loadTags;
 window.handleTagSearch = function(value) {
@@ -504,3 +648,10 @@ window.handleTagFilter = function(value) {
     currentFilter = value;
     sortData();
 };
+window.showAddTagRow = showAddTagRow;
+window.saveNewTag = saveNewTag;
+window.cancelAddTag = cancelAddTag;
+window.editTag = editTag;
+window.saveTag = saveTag;
+window.cancelEdit = cancelEdit;
+window.deleteTag = deleteTag;

@@ -389,6 +389,40 @@
             color: #FF5252 !important;
         }
 
+        /* ===== CUSTOM FIELDS ===== */
+        .custom-field-section {
+            margin-bottom: 30px !important;
+        }
+
+        .section-header {
+            font-size: 18px !important;
+            font-weight: 600 !important;
+            color: #002B76 !important;
+            margin-bottom: 15px !important;
+            padding-bottom: 10px !important;
+            border-bottom: 2px solid #e0e0e0 !important;
+        }
+
+        .custom-fields-grid {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 20px !important;
+        }
+
+        .custom-field-group label {
+            font-weight: 500 !important;
+            color: #002B76 !important;
+            font-size: 16px !important;
+        }
+
+        .custom-field-input {
+            min-height: 44px !important;
+        }
+
+        .custom-field-input.is-invalid {
+            border-color: #dc3545 !important;
+        }
+
         /* ===== RESPONSIVE ===== */
         @@media (max-width: 1024px) {
             .form-grid {
@@ -669,6 +703,18 @@
                 @await Html.PartialAsync("_ProductIdManager", Model.ProductIds)
             </div>
 
+            <!-- Custom Fields Section -->
+            <div class="card-style" style="margin-bottom: 24px;">
+                <div class="form-section-header">
+                    <i class="fas fa-sliders-h"></i>
+                    <span>Custom Fields</span>
+                </div>
+
+                <div id="custom-fields-container" class="mb-4">
+                    <p class="text-muted">Select a certification type to load custom fields.</p>
+                </div>
+            </div>
+
             <div class="action-buttons">
                 <button type="submit" name="action" value="save" class="btn btn-primary" aria-label="Save certificate">
                     <i class="fas fa-save" aria-hidden="true"></i> Save
@@ -690,5 +736,64 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script src="~/js/product-id-manager.js"></script>
+    <script src="~/js/certificate-custom-fields.js"></script>
     <script src="~/js/certificate-create.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Load custom fields when certification type changes
+            $('#CertificationTypeId').change(function() {
+                const typeId = $(this).val();
+                if (typeId) {
+                    certificateCustomFields.loadFieldsForType(typeId);
+                } else {
+                    $('#custom-fields-container').html('<p class="text-muted">Select a certification type to load custom fields.</p>');
+                }
+            });
+
+            // Load fields if type is already selected
+            const initialTypeId = $('#CertificationTypeId').val();
+            if (initialTypeId) {
+                certificateCustomFields.loadFieldsForType(initialTypeId);
+            }
+
+            // Intercept form submission to handle custom fields
+            const form = document.getElementById('certificateCreateForm');
+            const originalSubmit = form.onsubmit;
+
+            form.addEventListener('submit', async function(e) {
+                // First validate custom fields
+                const validation = certificateCustomFields.validateFields();
+                if (!validation.isValid) {
+                    e.preventDefault();
+                    if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+                        AdminCore.showNotification('Please fix validation errors: ' + validation.errors.join(', '), 'error');
+                    } else {
+                        alert('Please fix validation errors: ' + validation.errors.join(', '));
+                    }
+                    return false;
+                }
+            });
+        });
+
+        // Store original certificate create success handler
+        if (typeof window.certificateCreateSuccess === 'undefined') {
+            window.originalCertificateCreateSuccess = window.certificateCreateSuccess || function() {};
+
+            // Override success handler to save custom fields after certificate creation
+            window.certificateCreateSuccess = async function(result) {
+                if (result && result.success && result.certificateId) {
+                    // Save custom field values
+                    const fieldsSaved = await certificateCustomFields.saveFieldValues(result.certificateId);
+                    if (fieldsSaved) {
+                        // Redirect to details page
+                        window.location.href = `/Certificate/Details/${result.certificateId}`;
+                    }
+                } else {
+                    // Call original success handler if no certificate ID
+                    window.originalCertificateCreateSuccess(result);
+                }
+            };
+        }
+    </script>
 }

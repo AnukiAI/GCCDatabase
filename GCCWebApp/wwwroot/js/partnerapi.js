@@ -67,6 +67,54 @@ function setupEventListeners() {
     document.getElementById('copy-key-btn')?.addEventListener('click', () => {
         copyApiKey();
     });
+
+    // Escape key closes modals
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            // Check for any open modal
+            const generateModal = document.getElementById('generate-key-modal');
+            const displayModal = document.getElementById('key-display-modal');
+
+            if (generateModal && generateModal.classList.contains('admin-modal--show')) {
+                e.preventDefault();
+                closeGenerateKeyModal();
+            } else if (displayModal && displayModal.classList.contains('admin-modal--show')) {
+                e.preventDefault();
+                closeKeyDisplayModal();
+            }
+        }
+    });
+
+    // Backdrop click closes Generate modal only (not Display modal for security)
+    const generateModal = document.getElementById('generate-key-modal');
+    if (generateModal) {
+        generateModal.addEventListener('click', (e) => {
+            // Only close if clicking the modal itself (backdrop), not its children
+            if (e.target === generateModal) {
+                closeGenerateKeyModal();
+            }
+        });
+    }
+
+    // Event delegation for revoke buttons in API keys table
+    document.getElementById('api-keys-tbody')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action="revoke"]');
+        if (btn) {
+            const keyId = btn.dataset.keyId;
+            const keyValue = btn.dataset.keyValue;
+            revokeApiKey(keyId, keyValue);
+        }
+    });
+
+    // Event delegation for revoke buttons in all keys table
+    document.getElementById('all-keys-tbody')?.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-action="revoke"]');
+        if (btn) {
+            const keyId = btn.dataset.keyId;
+            const keyValue = btn.dataset.keyValue;
+            revokeApiKey(keyId, keyValue);
+        }
+    });
 }
 
 /**
@@ -132,17 +180,7 @@ function createPartnerCard(partner) {
     const isSelected = selectedPartnerId === partner.id;
     return `
         <div id="partner-card-${partner.id}"
-             class="partner-card ${isSelected ? 'selected' : ''}"
-             style="
-                 border: 2px solid ${isSelected ? '#00AEEF' : '#e0e0e0'};
-                 border-radius: 8px;
-                 padding: 20px;
-                 cursor: pointer;
-                 transition: all 0.2s;
-                 background: ${isSelected ? '#f5f9ff' : 'white'};
-             "
-             onmouseover="this.style.borderColor='#00AEEF'; this.style.boxShadow='0 2px 8px rgba(0,174,239,0.2)';"
-             onmouseout="if(!${isSelected}) { this.style.borderColor='#e0e0e0'; this.style.boxShadow='none'; } else { this.style.boxShadow='0 2px 8px rgba(0,174,239,0.3)'; }">
+             class="partner-card ${isSelected ? 'selected' : ''}">
             <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
                 <h4 style="margin: 0; color: #002B76; font-size: 18px; font-weight: 600;">${escapeHtml(partner.name)}</h4>
                 ${isSelected ? '<i class="fas fa-check-circle" style="color: #92C83E; font-size: 20px;"></i>' : ''}
@@ -160,18 +198,15 @@ function createPartnerCard(partner) {
 async function selectPartner(partnerId) {
     selectedPartnerId = partnerId;
 
-    // Update partner cards
+    // Update partner cards using CSS classes
     partnersData.forEach(partner => {
         const cardEl = document.getElementById(`partner-card-${partner.id}`);
         if (cardEl) {
             const isSelected = partner.id === partnerId;
-            cardEl.style.border = `2px solid ${isSelected ? '#00AEEF' : '#e0e0e0'}`;
-            cardEl.style.background = isSelected ? '#f5f9ff' : 'white';
-
             if (isSelected) {
-                cardEl.style.boxShadow = '0 2px 8px rgba(0,174,239,0.3)';
+                cardEl.classList.add('selected');
             } else {
-                cardEl.style.boxShadow = 'none';
+                cardEl.classList.remove('selected');
             }
         }
     });
@@ -269,7 +304,9 @@ function displayPartnerApiKeys(keys) {
             <td class="admin-table-actions">
                 ${key.isActive
                     ? `<button class="admin-btn-icon admin-btn-icon--danger"
-                              onclick="revokeApiKey(${key.id}, '${escapeHtml(key.apiKey)}')"
+                              data-action="revoke"
+                              data-key-id="${key.id}"
+                              data-key-value="${escapeHtml(key.apiKey)}"
                               title="Revoke this API key">
                            <i class="fas fa-ban"></i>
                        </button>`
@@ -334,7 +371,9 @@ async function loadAllApiKeys() {
                     <td class="admin-table-actions">
                         ${key.isActive
                             ? `<button class="admin-btn-icon admin-btn-icon--danger"
-                                      onclick="revokeApiKey(${key.id}, '${escapeHtml(key.apiKey)}')"
+                                      data-action="revoke"
+                                      data-key-id="${key.id}"
+                                      data-key-value="${escapeHtml(key.apiKey)}"
                                       title="Revoke this API key">
                                    <i class="fas fa-ban"></i>
                                </button>`
@@ -356,14 +395,64 @@ async function loadAllApiKeys() {
 }
 
 /**
+ * Focus trap handler for modal accessibility
+ */
+let focusTrapHandler = null;
+
+function setupFocusTrap(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+
+    const focusableElements = modal.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+
+    if (focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    // Focus first element
+    firstElement.focus();
+
+    // Trap focus within modal
+    focusTrapHandler = (e) => {
+        if (e.key !== 'Tab') return;
+
+        if (e.shiftKey) {
+            // Shift + Tab
+            if (document.activeElement === firstElement) {
+                lastElement.focus();
+                e.preventDefault();
+            }
+        } else {
+            // Tab
+            if (document.activeElement === lastElement) {
+                firstElement.focus();
+                e.preventDefault();
+            }
+        }
+    };
+
+    modal.addEventListener('keydown', focusTrapHandler);
+}
+
+function removeFocusTrap(modalId) {
+    const modal = document.getElementById(modalId);
+    if (!modal || !focusTrapHandler) return;
+    modal.removeEventListener('keydown', focusTrapHandler);
+    focusTrapHandler = null;
+}
+
+/**
  * Open the Generate API Key modal
  */
 function openGenerateKeyModal() {
     const modal = document.getElementById('generate-key-modal');
-    modal.style.display = 'flex'; // Enable flexbox layout
     // Use setTimeout to allow display change to apply before adding show class
     setTimeout(() => {
         modal.classList.add('admin-modal--show');
+        setupFocusTrap('generate-key-modal');
     }, 10);
 
     // Reset form
@@ -378,12 +467,8 @@ function openGenerateKeyModal() {
  */
 function closeGenerateKeyModal() {
     const modal = document.getElementById('generate-key-modal');
+    removeFocusTrap('generate-key-modal');
     modal.classList.remove('admin-modal--show');
-
-    // Wait for animation to complete before hiding
-    setTimeout(() => {
-        modal.style.display = 'none';
-    }, 300); // Match the transition duration in CSS
 }
 
 /**
@@ -470,10 +555,10 @@ function showGeneratedKey(keyData) {
     document.getElementById('generated-key-description').textContent = keyData.description || 'None';
 
     const modal = document.getElementById('key-display-modal');
-    modal.style.display = 'flex'; // Enable flexbox layout
     // Use setTimeout to allow display change to apply before adding show class
     setTimeout(() => {
         modal.classList.add('admin-modal--show');
+        setupFocusTrap('key-display-modal');
     }, 10);
 }
 
@@ -482,12 +567,8 @@ function showGeneratedKey(keyData) {
  */
 function closeKeyDisplayModal() {
     const modal = document.getElementById('key-display-modal');
+    removeFocusTrap('key-display-modal');
     modal.classList.remove('admin-modal--show');
-
-    // Wait for animation to complete before hiding
-    setTimeout(() => {
-        modal.style.display = 'none';
-    }, 300); // Match the transition duration in CSS
 }
 
 /**

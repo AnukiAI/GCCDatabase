@@ -8,6 +8,21 @@
 
 @section Styles {
     <link href="~/css/certificates.css" rel="stylesheet" />
+    <style>
+        .section-header {
+            font-size: 16px;
+            font-weight: 600;
+            color: #002B76;
+            margin-top: 20px;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .section-header:first-child {
+            margin-top: 0;
+        }
+    </style>
 }
 
 @section Breadcrumbs {
@@ -107,6 +122,32 @@
                     </dl>
                 </div>
             </div>
+
+            @* Custom Fields Section *@
+            @if (Model.CustomFieldValues != null && Model.CustomFieldValues.Any())
+            {
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h3>Additional Information</h3>
+                    </div>
+                    <div class="card-body">
+                        @foreach (var section in Model.CustomFieldValues.GroupBy(f => f.Field.Section))
+                        {
+                            <h4 class="section-header">@(section.Key)</h4>
+                            <dl class="row mb-4">
+                                @foreach (var fieldValue in section)
+                                {
+                                    @if (!string.IsNullOrWhiteSpace(fieldValue.Value))
+                                    {
+                                        <dt class="col-sm-3">@fieldValue.Field.Name:</dt>
+                                        <dd class="col-sm-9">@fieldValue.DisplayValue</dd>
+                                    }
+                                }
+                            </dl>
+                        }
+                    </div>
+                </div>
+            }
         </div>
     </div>
 </div>

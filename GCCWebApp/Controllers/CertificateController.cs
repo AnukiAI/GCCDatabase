@@ -23,6 +23,7 @@ namespace GCCWebApp.Controllers
         private readonly ICertificateService _certificateService;
         private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly IFileUploadService _fileUploadService;
+        private readonly ICertificateFieldService _certificateFieldService;
 
         public CertificateController(
             ILogger<CertificateController> logger,
@@ -31,7 +32,8 @@ namespace GCCWebApp.Controllers
             ICertificatePdfService pdfService,
             ICertificateService certificateService,
             IWebHostEnvironment hostingEnvironment,
-            IFileUploadService fileUploadService)
+            IFileUploadService fileUploadService,
+            ICertificateFieldService certificateFieldService)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
@@ -40,6 +42,7 @@ namespace GCCWebApp.Controllers
             _certificateService = certificateService;
             _hostingEnvironment = hostingEnvironment;
             _fileUploadService = fileUploadService;
+            _certificateFieldService = certificateFieldService;
         }
 
         #region Basic CRUD Operations
@@ -285,18 +288,23 @@ namespace GCCWebApp.Controllers
 
         /// <summary>
         /// Get certificate details
-        /// GET: /Certificate/Details/5
+        /// GET: /Certificate/Details/24-0366
         /// External users can view certificate details (read-only)
         /// </summary>
         [Authorize(Policy = "ExternalAccess")]
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Details(string number)
         {
             try
             {
-                var certificate = await _certificateRepository.GetByIdAsync(id);
+                if (string.IsNullOrWhiteSpace(number))
+                {
+                    return BadRequest("Certificate number is required");
+                }
+
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
                 if (certificate == null)
                 {
-                    return NotFound();
+                    return NotFound($"Certificate {number} not found");
                 }
 
                 var model = new CertificateDetailsViewModelSimple
@@ -307,11 +315,15 @@ namespace GCCWebApp.Controllers
                     ShowInternalData = IsInternalUser()
                 };
 
+                // Load custom field values
+                var customFieldValues = await _certificateFieldService.GetFormattedFieldValuesAsync(certificate.Id);
+                model.CustomFieldValues = customFieldValues;
+
                 return View(model);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading certificate details for ID: {Id}", id);
+                _logger.LogError(ex, "Error loading certificate details for number: {Number}", number);
                 return RedirectToAction("Error", "Home");
             }
         }
@@ -530,17 +542,23 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// Edit certificate by ID - GET
+        /// Edit certificate by certificate number - GET
+        /// GET: /Certificate/Edit/24-0366
         /// </summary>
         [Authorize(Policy = "AnalystOrAdmin")]
-        public async Task<IActionResult> Edit(int id)
+        public async Task<IActionResult> Edit(string number)
         {
             try
             {
-                var certificate = await _certificateRepository.GetByIdAsync(id);
+                if (string.IsNullOrWhiteSpace(number))
+                {
+                    return BadRequest("Certificate number is required");
+                }
+
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
                 if (certificate == null)
                 {
-                    return NotFound();
+                    return NotFound($"Certificate {number} not found");
                 }
 
                 var model = new CertificateEditViewModel
@@ -580,35 +598,6 @@ namespace GCCWebApp.Controllers
                 ViewBag.ExistingInternalTags = existingTags.Where(t => t.TagType == "internal").Select(t => new { t.Id, t.Name }).ToList();
 
                 return View(model);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading edit form for certificate ID: {Id}", id);
-                return RedirectToAction("Error", "Home");
-            }
-        }
-
-        /// <summary>
-        /// Edit certificate by certificate number - GET
-        /// </summary>
-        [Authorize(Policy = "AnalystOrAdmin")]
-        public async Task<IActionResult> EditByNumber(string number)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(number))
-                {
-                    return BadRequest("Certificate number is required");
-                }
-
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
-                if (certificate == null)
-                {
-                    return NotFound($"Certificate {number} not found");
-                }
-
-                // Redirect to Edit with ID to reuse existing logic
-                return RedirectToAction(nameof(Edit), new { id = certificate.Id });
             }
             catch (Exception ex)
             {
@@ -793,16 +782,22 @@ namespace GCCWebApp.Controllers
 
         /// <summary>
         /// Delete certificate confirmation - GET
+        /// GET: /Certificate/Delete/24-0366
         /// </summary>
         [Authorize(Policy = "AdminOnly")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(string number)
         {
             try
             {
-                var certificate = await _certificateRepository.GetByIdAsync(id);
+                if (string.IsNullOrWhiteSpace(number))
+                {
+                    return BadRequest("Certificate number is required");
+                }
+
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
                 if (certificate == null)
                 {
-                    return NotFound();
+                    return NotFound($"Certificate {number} not found");
                 }
 
                 var model = new CertificateDetailsViewModelSimple
@@ -817,7 +812,7 @@ namespace GCCWebApp.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading delete confirmation for certificate ID: {Id}", id);
+                _logger.LogError(ex, "Error loading delete confirmation for certificate number: {Number}", number);
                 return RedirectToAction("Error", "Home");
             }
         }
@@ -828,14 +823,19 @@ namespace GCCWebApp.Controllers
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         [Authorize(Policy = "AdminOnly")]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(string number)
         {
             try
             {
-                var certificate = await _certificateRepository.GetByIdAsync(id);
+                if (string.IsNullOrWhiteSpace(number))
+                {
+                    return BadRequest("Certificate number is required");
+                }
+
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
                 if (certificate == null)
                 {
-                    return NotFound();
+                    return NotFound($"Certificate {number} not found");
                 }
 
                 await _certificateRepository.RemoveAsync(certificate);
@@ -848,9 +848,9 @@ namespace GCCWebApp.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error deleting certificate ID: {Id}", id);
+                _logger.LogError(ex, "Error deleting certificate number: {Number}", number);
                 TempData["ErrorMessage"] = "An error occurred while deleting the certificate.";
-                return RedirectToAction(nameof(Details), new { id });
+                return RedirectToAction(nameof(Details), new { number });
             }
         }
 
@@ -1028,17 +1028,22 @@ namespace GCCWebApp.Controllers
 
         /// <summary>
         /// Download certificate PDF
-        /// GET: /Certificate/Download/5
+        /// GET: /Certificate/Download/24-0366
         /// </summary>
         [AllowAnonymous]
-        public async Task<IActionResult> Download(int id)
+        public async Task<IActionResult> Download(string number)
         {
             try
             {
-                var certificate = await _certificateRepository.GetByIdAsync(id);
+                if (string.IsNullOrWhiteSpace(number))
+                {
+                    return BadRequest("Certificate number is required");
+                }
+
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
                 if (certificate == null)
                 {
-                    return NotFound();
+                    return NotFound($"Certificate {number} not found");
                 }
 
                 // Check if an uploaded certificate file exists
@@ -1085,7 +1090,7 @@ namespace GCCWebApp.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error downloading certificate for ID: {Id}", id);
+                _logger.LogError(ex, "Error downloading certificate for number: {Number}", number);
                 return BadRequest("Failed to download certificate");
             }
         }
@@ -1187,7 +1192,7 @@ namespace GCCWebApp.Controllers
                     return NotFound();
                 }
 
-                return await Download(certificate.Id);
+                return await Download(certificate.Number);
             }
             catch (Exception ex)
             {
@@ -1598,8 +1603,110 @@ namespace GCCWebApp.Controllers
 
         #endregion
 
+        #region Custom Fields API
+
+        /// <summary>
+        /// Gets all custom fields for a specific certificate type
+        /// GET: /Certificate/GetCustomFields?certificateTypeId={id}
+        /// </summary>
+        [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> GetCustomFields(int certificateTypeId)
+        {
+            try
+            {
+                var fields = await _certificateFieldService.GetFieldsForCertificateTypeAsync(certificateTypeId);
+                return Json(new { success = true, data = fields });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting custom fields for certificate type {CertificateTypeId}", certificateTypeId);
+                return Json(new { success = false, message = "Error loading custom fields" });
+            }
+        }
+
+        /// <summary>
+        /// Gets custom field values for a specific certificate
+        /// GET: /Certificate/GetCustomFieldValues?certificateId={id}
+        /// </summary>
+        [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> GetCustomFieldValues(int certificateId)
+        {
+            try
+            {
+                var values = await _certificateFieldService.GetFieldValuesForCertificateAsync(certificateId);
+                return Json(new { success = true, data = values });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting custom field values for certificate {CertificateId}", certificateId);
+                return Json(new { success = false, message = "Error loading field values" });
+            }
+        }
+
+        /// <summary>
+        /// Saves custom field values for a certificate
+        /// POST: /Certificate/SaveCustomFieldValues
+        /// </summary>
+        [HttpPost]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveCustomFieldValues([FromBody] SaveCustomFieldValuesRequest request)
+        {
+            try
+            {
+                if (request == null || request.CertificateId <= 0)
+                {
+                    return Json(new { success = false, message = "Invalid request" });
+                }
+
+                // Get fields for validation
+                var certificate = await _certificateRepository.GetByIdAsync(request.CertificateId);
+                if (certificate == null)
+                {
+                    return Json(new { success = false, message = "Certificate not found" });
+                }
+
+                var fields = await _certificateFieldService.GetFieldsForCertificateTypeAsync(certificate.CertificationTypeId);
+
+                // Validate field values
+                var (isValid, errors) = await _certificateFieldService.ValidateFieldValuesAsync(request.FieldValues, fields);
+                if (!isValid)
+                {
+                    return Json(new { success = false, message = "Validation failed", errors });
+                }
+
+                // Save values
+                var saved = await _certificateFieldService.SaveFieldValuesAsync(request.CertificateId, request.FieldValues);
+
+                if (saved)
+                {
+                    return Json(new { success = true, message = "Field values saved successfully" });
+                }
+                else
+                {
+                    return Json(new { success = false, message = "Failed to save field values" });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving custom field values for certificate {CertificateId}", request?.CertificateId);
+                return Json(new { success = false, message = "Error saving field values" });
+            }
+        }
+
+        #endregion
+
         #endregion
     }
+}
+
+// DTO for saving custom field values
+public class SaveCustomFieldValuesRequest
+{
+    public int CertificateId { get; set; }
+    public Dictionary<int, string> FieldValues { get; set; } = new Dictionary<int, string>();
 }
 
 // DTO for certificate import

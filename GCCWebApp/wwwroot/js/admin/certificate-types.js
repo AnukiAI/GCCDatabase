@@ -176,14 +176,16 @@ function populateTable(data) {
 
             const saveBtn = document.createElement('button');
             saveBtn.className = 'admin-action-btn admin-action-btn--save';
-            saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+            saveBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i>';
             saveBtn.title = 'Save';
+            saveBtn.setAttribute('aria-label', 'Save changes to certificate type');
             saveBtn.addEventListener('click', () => saveCertTypeEdit(certType.id));
 
             const cancelBtn = document.createElement('button');
             cancelBtn.className = 'admin-action-btn admin-action-btn--cancel';
-            cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+            cancelBtn.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
             cancelBtn.title = 'Cancel';
+            cancelBtn.setAttribute('aria-label', 'Cancel editing');
             cancelBtn.addEventListener('click', cancelCertTypeEdit);
 
             actionButtons.appendChild(saveBtn);
@@ -196,14 +198,14 @@ function populateTable(data) {
 
             const editBtn = document.createElement('button');
             editBtn.className = 'admin-action-btn admin-action-btn--edit';
-            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+            editBtn.innerHTML = '<i class="fas fa-edit" aria-hidden="true"></i>';
             editBtn.title = 'Edit';
             editBtn.setAttribute('aria-label', `Edit ${certType.name}`);
             editBtn.addEventListener('click', () => editCertType(certType.id));
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'admin-action-btn admin-action-btn--delete';
-            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt" aria-hidden="true"></i>';
             deleteBtn.title = 'Delete';
             deleteBtn.setAttribute('aria-label', `Delete ${certType.name}`);
             deleteBtn.addEventListener('click', () => deleteCertType(certType.id));
@@ -240,14 +242,16 @@ function populateTable(data) {
 
         const saveBtn = document.createElement('button');
         saveBtn.className = 'admin-action-btn admin-action-btn--save';
-        saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+        saveBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i>';
         saveBtn.title = 'Save';
+        saveBtn.setAttribute('aria-label', 'Save new certificate type');
         saveBtn.addEventListener('click', saveNewCertType);
 
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'admin-action-btn admin-action-btn--cancel';
-        cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+        cancelBtn.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
         cancelBtn.title = 'Cancel';
+        cancelBtn.setAttribute('aria-label', 'Cancel adding certificate type');
         cancelBtn.addEventListener('click', cancelAddCertType);
 
         actionButtons.appendChild(saveBtn);

@@ -374,7 +374,8 @@ class CertificateFieldsManager {
 
         this.fieldsTableBody.innerHTML = '';
 
-        this.displayedFields = this.filteredFields.slice(0, this.currentDisplayCount);
+        // Show all fields at once (no lazy loading for admin pages with small datasets)
+        this.displayedFields = this.filteredFields;
 
         this.displayedFields.forEach(field => {
             const row = document.createElement('tr');
@@ -403,11 +404,11 @@ class CertificateFieldsManager {
             <td>${field.notes || ''}</td>
             <td>
                 <div class="action-buttons">
-                    <button class="action-btn edit-btn" title="Edit Field">
-                        <i class="fas fa-edit"></i>
+                    <button class="action-btn edit-btn" title="Edit Field" aria-label="Edit field">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
                     </button>
-                    <button class="action-btn delete-btn" title="Delete Field">
-                        <i class="fas fa-trash-alt"></i>
+                    <button class="action-btn delete-btn" title="Delete Field" aria-label="Delete field">
+                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
                     </button>
                 </div>
             </td>
@@ -458,11 +459,11 @@ class CertificateFieldsManager {
             </td>
             <td>
                 <div class="action-buttons edit-actions">
-                    <button class="action-btn save-btn" title="Save Changes">
-                        <i class="fas fa-check"></i>
+                    <button class="action-btn save-btn" title="Save Changes" aria-label="Save changes to custom field">
+                        <i class="fas fa-check" aria-hidden="true"></i>
                     </button>
-                    <button class="action-btn cancel-btn" title="Cancel Edit">
-                        <i class="fas fa-times"></i>
+                    <button class="action-btn cancel-btn" title="Cancel Edit" aria-label="Cancel editing custom field">
+                        <i class="fas fa-times" aria-hidden="true"></i>
                     </button>
                 </div>
             </td>
@@ -498,7 +499,7 @@ class CertificateFieldsManager {
             );
         }
 
-        this.currentDisplayCount = this.itemsPerLoad;
+        // Show all filtered results (no lazy loading)
         this.renderFields();
     }
 

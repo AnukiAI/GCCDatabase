@@ -6,6 +6,7 @@
 @section Styles {
     <link href="~/css/admin/admin.css" rel="stylesheet" />
     <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
+    <link href="~/css/tags.css" rel="stylesheet" />
 }
 
 @section Breadcrumbs {
@@ -82,6 +83,32 @@
                     </tr>
                 </thead>
                 <tbody class="admin-table-body">
+                    <!-- Add tag row (initially hidden) -->
+                    <tr id="tags-add-row" class="tags-add-row">
+                        <td>
+                            <input type="text" name="new-tag-name" class="tags-edit-input" placeholder="Enter tag name">
+                        </td>
+                        <td class="admin-table-td--hidden-mobile">
+                            <select name="new-tag-type" class="tags-edit-select">
+                                <option value="">Select type</option>
+                                <option value="external">External</option>
+                                <option value="internal">Internal</option>
+                            </select>
+                        </td>
+                        <td class="admin-table-td--hidden-mobile">
+                            <textarea name="new-tag-description" class="tags-edit-textarea" rows="2" placeholder="Optional description"></textarea>
+                        </td>
+                        <td>
+                            <div class="tags-add-actions">
+                                <button class="admin-btn admin-btn--sm admin-btn--secondary" onclick="cancelAddTag()" aria-label="Cancel adding tag">
+                                    <i class="fas fa-times" aria-hidden="true"></i> Cancel
+                                </button>
+                                <button class="admin-btn admin-btn--sm admin-btn--success" onclick="saveNewTag()" aria-label="Save new tag">
+                                    <i class="fas fa-check" aria-hidden="true"></i> Save
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
                     <!-- Data will be populated by JavaScript -->
                 </tbody>
             </table>
@@ -93,230 +120,11 @@
     </div>
 </div>
 
-<!-- Add/Edit Tag Modal (US-015 Modal Backdrop Standard) -->
-<div id="tag-modal" class="admin-modal" aria-hidden="true" role="dialog" aria-labelledby="modal-title">
-    <!-- Backdrop (sibling) -->
-    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 9998; backdrop-filter: blur(3px);"></div>
-
-    <!-- Modal Container (sibling) -->
-    <div class="admin-modal-container" style="position: relative; z-index: 9999; max-width: 600px; background-color: white; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
-        <div class="admin-modal-header" style="background-color: #f8f9fa; border-bottom: 2px solid #e9ecef;">
-            <h3 class="admin-modal-title" id="modal-title" style="color: #002B76; font-weight: 600;">Add New Tag</h3>
-            <button class="admin-modal-close" aria-label="Close modal">
-                <i class="fas fa-times"></i>
-            </button>
-        </div>
-        <div class="admin-modal-body" style="background-color: white;">
-            <form id="tag-form" class="admin-form" data-validate>
-                <input type="hidden" id="tag-id">
-
-                <div class="admin-form-group">
-                    <label for="tag-name" class="admin-label admin-label--required" style="color: #333; font-weight: 500;">Tag Name</label>
-                    <input type="text" id="tag-name" class="admin-input" required aria-required="true" aria-describedby="tag-name-help" style="border: 1px solid #ced4da; background-color: white; color: #333;">
-                    <span id="tag-name-help" class="admin-form-help" style="color: #6c757d;">Enter a unique, descriptive name for this tag</span>
-                </div>
-
-                <div class="admin-form-group">
-                    <label for="tag-type" class="admin-label admin-label--required" style="color: #333; font-weight: 500;">Tag Type</label>
-                    <select id="tag-type" class="admin-select" required aria-required="true" aria-describedby="tag-type-help" style="border: 1px solid #ced4da; background-color: white; color: #333;">
-                        <option value="">Select a type</option>
-                        <option value="external">External</option>
-                        <option value="internal">Internal</option>
-                    </select>
-                    <span id="tag-type-help" class="admin-form-help" style="color: #6c757d;">External tags are visible to customers, internal tags are for organizational use only</span>
-                </div>
-
-                <div class="admin-form-group">
-                    <label for="tag-description" class="admin-label" style="color: #333; font-weight: 500;">Description</label>
-                    <textarea id="tag-description" class="admin-textarea" rows="3" placeholder="Optional description..." aria-describedby="tag-description-help" style="border: 1px solid #ced4da; background-color: white; color: #333;"></textarea>
-                    <span id="tag-description-help" class="admin-form-help" style="color: #6c757d;">Provide additional context about when and how to use this tag</span>
-                </div>
-            </form>
-        </div>
-        <div class="admin-modal-footer" style="background-color: #f8f9fa; border-top: 2px solid #e9ecef;">
-            <button type="button" class="admin-btn admin-btn--secondary" id="cancel-btn">Cancel</button>
-            <button type="submit" class="admin-btn admin-btn--primary" id="save-btn" form="tag-form">Save</button>
-        </div>
-    </div>
-</div>
+<!-- Antiforgery token for AJAX requests -->
+@Html.AntiForgeryToken()
 
 @section Scripts {
     <script src="~/js/admin/admin-core.js"></script>
     <script src="~/js/admin/exportUtils.js"></script>
     <script src="~/js/tags.js"></script>
-    <script>
-        // Enhanced tag management with admin framework
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize tag management
-            if (typeof initializeTagManagement === 'function') {
-                initializeTagManagement();
-            }
-
-            // Enhanced modal handling with admin framework
-            const addTagBtn = document.getElementById('add-tag-btn');
-            const cancelBtn = document.getElementById('cancel-btn');
-            const tagForm = document.getElementById('tag-form');
-
-            if (addTagBtn) {
-                addTagBtn.addEventListener('click', function() {
-                    document.getElementById('modal-title').textContent = 'Add New Tag';
-                    tagForm.reset();
-                    AdminCore.openModal('tag-modal');
-                });
-            }
-
-            if (cancelBtn) {
-                cancelBtn.addEventListener('click', function() {
-                    AdminCore.closeModal('tag-modal');
-                });
-            }
-
-            // Enhanced form submission with validation
-            if (tagForm) {
-                tagForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-
-                    const formData = AdminCore.serializeForm(tagForm);
-                    const errors = AdminCore.validateForm(tagForm);
-
-                    if (errors.length > 0) {
-                        AdminCore.showNotification(errors.join('<br>'), 'error');
-                        return;
-                    }
-
-                    // Show loading state
-                    const saveBtn = document.getElementById('save-btn');
-                    AdminCore.showLoading(saveBtn);
-
-                    // Simulate API call (replace with actual implementation)
-                    setTimeout(() => {
-                        AdminCore.hideLoading(saveBtn);
-                        AdminCore.closeModal('tag-modal');
-                        AdminCore.showNotification('Tag saved successfully!', 'success');
-
-                        // Refresh tag list (implement actual refresh logic)
-                        if (typeof refreshTagList === 'function') {
-                            refreshTagList();
-                        }
-                    }, 1500);
-                });
-            }
-
-            // Enhanced search functionality
-            const searchInput = document.getElementById('search-input');
-            if (searchInput) {
-                // Debounced search
-                const debouncedSearch = AdminCore.debounce(function(value) {
-                    AdminCore.announceToScreenReader(`Searching for: ${value}`);
-                    // Implement search logic
-                    if (typeof handleTagSearch === 'function') {
-                        handleTagSearch(value);
-                    }
-                }, 300);
-
-                searchInput.addEventListener('input', function() {
-                    debouncedSearch(this.value);
-                });
-            }
-
-            // Enhanced filter handling
-            const typeFilter = document.getElementById('type-filter');
-            if (typeFilter) {
-                typeFilter.addEventListener('change', function() {
-                    AdminCore.announceToScreenReader(`Filter changed to: ${this.value}`);
-                    // Implement filter logic
-                    if (typeof handleTagFilter === 'function') {
-                        handleTagFilter(this.value);
-                    }
-                });
-            }
-
-            // Table action handling with admin framework
-            document.addEventListener('click', function(e) {
-                if (e.target.matches('.admin-action-btn--edit') || e.target.closest('.admin-action-btn--edit')) {
-                    const row = e.target.closest('.admin-table-row');
-                    if (row) {
-                        const tagId = row.dataset.id;
-                        editTag(tagId);
-                    }
-                }
-
-                if (e.target.matches('.admin-action-btn--delete') || e.target.closest('.admin-action-btn--delete')) {
-                    const row = e.target.closest('.admin-table-row');
-                    if (row) {
-                        const tagId = row.dataset.id;
-                        const tagName = row.querySelector('.tag-name')?.textContent || 'this tag';
-
-                        // Use AdminCore.showConfirmation instead of native confirm
-                        AdminCore.showConfirmation({
-                            title: 'Delete Confirmation',
-                            message: `Are you sure you want to delete the tag "${tagName}"? This action cannot be undone.`,
-                            confirmText: 'Delete',
-                            cancelText: 'Cancel',
-                            type: 'danger'
-                        }).then(confirmed => {
-                            if (confirmed) {
-                                deleteTag(tagId);
-                            }
-                        });
-                    }
-                }
-            });
-
-            // Sample functions for demonstration (replace with actual implementations)
-            window.editTag = function(tagId) {
-                document.getElementById('modal-title').textContent = 'Edit Tag';
-                // Load tag data into form
-                AdminCore.openModal('tag-modal');
-            };
-
-            window.deleteTag = function(tagId) {
-                AdminCore.showLoading(`#tag-row-${tagId}`);
-
-                // Simulate deletion
-                setTimeout(() => {
-                    AdminCore.showNotification('Tag deleted successfully!', 'success');
-                    // Remove row or refresh list
-                }, 1000);
-            };
-
-            // Enhanced export functionality with admin framework
-            const exportBtn = document.getElementById('export-btn');
-            if (exportBtn) {
-                exportBtn.addEventListener('click', function() {
-                    AdminCore.showLoading(exportBtn);
-
-                    // Sample data structure for Tags
-                    const sampleData = [
-                        { id: 1, name: 'Sustainable', type: 'external', description: 'Products with sustainability features' },
-                        { id: 2, name: 'Energy Efficient', type: 'external', description: 'Energy saving products' },
-                        { id: 3, name: 'Indoor Air Quality', type: 'internal', description: 'Products that improve indoor air quality' },
-                        { id: 4, name: 'Low VOC', type: 'external', description: 'Low volatile organic compound emissions' },
-                        { id: 5, name: 'Recycled Materials', type: 'external', description: 'Made from recycled content' },
-                        { id: 6, name: 'Priority Product', type: 'internal', description: 'High priority for marketing' },
-                        { id: 7, name: 'Eco-Friendly', type: 'external', description: 'Environmentally friendly products' }
-                    ];
-
-                    const columns = [
-                        { key: 'id', header: 'ID' },
-                        { key: 'name', header: 'Tag Name' },
-                        { key: 'type', header: 'Tag Type' },
-                        { key: 'description', header: 'Description' }
-                    ];
-
-                    setTimeout(() => {
-                        AdminCore.hideLoading(exportBtn);
-                        // Direct CSV export - no modal popup required
-                        ExportUtils.exportToCSV(sampleData, columns, 'tags');
-                        AdminCore.showNotification('Tags exported to CSV successfully!', 'success');
-                    }, 1000);
-                });
-            }
-
-            // Show initial success message
-            setTimeout(() => {
-                AdminCore.showNotification('Tag management loaded successfully!', 'success', { duration: 3000 });
-            }, 500);
-        });
-    </script>
 }

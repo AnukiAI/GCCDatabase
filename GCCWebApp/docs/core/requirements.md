@@ -1133,6 +1133,7 @@ CREATE TABLE Certificates (
     - View: Views/Certificate/CertificateSingleView.cshtml (lines 212-280)
     - Controller: Controllers/CertificateController.cs (lines 397-414)
 - **2025-10-06 (SEO Enhancement)**: **CERTIFICATE NUMBER IN URLS (SEO & USER-FRIENDLY)**
+  - ⚠️ **INITIAL IMPLEMENTATION (PARTIAL)**: JavaScript and Single View only
   - ✅ **URLs Now Use Certificate Numbers Instead of Database IDs**:
     - Old: `/Certificate/CertificateSingleView/146`
     - New: `/Certificate/CertificateSingleView/24-0366`
@@ -1156,6 +1157,30 @@ CREATE TABLE Certificates (
     - Old URLs with database ID still work
     - No breaking changes to existing links
   - Location: wwwroot/js/certificate-tile-view*.js (multiple files updated)
+
+- **2025-11-13 (SEO Enhancement - COMPLETE)**: **ALL CERTIFICATE CONTROLLER METHODS NOW USE CERTIFICATE NUMBERS**
+  - ✅ **FULL IMPLEMENTATION COMPLETE**: All certificate controller methods updated
+  - ✅ **Updated Methods** (Controllers/CertificateController.cs):
+    - **Details** (line 295): `Details(string number)` - `/Certificate/Details/24-0366`
+    - **Edit** (line 549): `Edit(string number)` - `/Certificate/Edit/24-0366`
+    - **Delete** (line 788): `Delete(string number)` - `/Certificate/Delete/24-0366`
+    - **DeleteConfirmed** (line 826): `DeleteConfirmed(string number)` - POST to `/Certificate/Delete/24-0366`
+    - **Download** (line 1023): `Download(string number)` - `/Certificate/Download/24-0366`
+  - ✅ **Removed Redundant Code**:
+    - Removed `EditByNumber` method (was redundant redirect, lines 602-625)
+  - ✅ **Validation Added**:
+    - All methods validate: `if (string.IsNullOrWhiteSpace(number))`
+    - Return `BadRequest("Certificate number is required")` for empty values
+    - Return `NotFound($"Certificate {number} not found")` for missing certificates
+  - ✅ **Repository Integration**:
+    - All methods use `GetCertificateByNumberAsync(number)` instead of `GetByIdAsync(id)`
+    - Error logging updated to reference certificate numbers
+  - ⚠️ **BREAKING CHANGE**:
+    - Old ID-based URLs will no longer work (e.g., `/Certificate/Edit/56` → 400 Bad Request)
+    - Users must use certificate numbers (e.g., `/Certificate/Edit/24-0366`)
+    - Consider adding redirect logic for old URLs if needed
+  - 📄 **Documentation**: `CERTIFICATE_NUMBER_ROUTING_FIX.md`
+  - Location: Controllers/CertificateController.cs (5 methods updated, 1 removed)
 - **2025-10-06 (UI Enhancement v3)**: **HEADER ELEMENTS ENLARGED**
   - ✅ **Certificate Category INCREASED**:
     - Font size: 16px → 20px (25% increase)

@@ -801,6 +801,10 @@ namespace GCCWebApp.Migrations
                     b.Property<string>("Options")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Section")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<int>("SortOrder")
                         .HasColumnType("int");
 

@@ -131,7 +131,7 @@
         <div class="admin-modal-header" style="background-color: #f8f9fa; border-bottom: 2px solid #e9ecef;">
             <h3 class="admin-modal-title" id="modal-title" style="color: #002B76; font-weight: 600;">Add New User</h3>
             <button class="admin-modal-close" aria-label="Close modal">
-                <i class="fas fa-times"></i>
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         </div>
         <div class="admin-modal-body" style="background-color: white;">
@@ -190,8 +190,8 @@
             </form>
         </div>
         <div class="admin-modal-footer" style="background-color: #f8f9fa; border-top: 2px solid #e9ecef;">
-            <button type="button" class="admin-btn admin-btn--secondary" id="cancel-btn">Cancel</button>
-            <button type="submit" class="admin-btn admin-btn--primary" id="save-btn" form="user-form">Save</button>
+            <button type="button" class="admin-btn admin-btn--secondary" id="cancel-btn" aria-label="Cancel and close modal"><i class="fas fa-times" aria-hidden="true"></i> Cancel</button>
+            <button type="submit" class="admin-btn admin-btn--primary" id="save-btn" form="user-form" aria-label="Save user"><i class="fas fa-save" aria-hidden="true"></i> Save</button>
         </div>
     </div>
 </div>

@@ -72,33 +72,33 @@
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px;">
             <div style="background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px;">
                 <span style="background: #92C83E; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;">GET</span>
-                <code style="margin-left: 8px; font-size: 12px;">/api/v1/certificates</code>
-                <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">List all certificates</p>
+                <code style="margin-left: 8px; font-size: 14px;">/api/v1/certificates</code>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: #666;">List all certificates</p>
             </div>
             <div style="background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px;">
                 <span style="background: #92C83E; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;">GET</span>
-                <code style="margin-left: 8px; font-size: 12px;">/api/v1/certificates/{id}</code>
-                <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Get certificate by ID</p>
+                <code style="margin-left: 8px; font-size: 14px;">/api/v1/certificates/{id}</code>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: #666;">Get certificate by ID</p>
             </div>
             <div style="background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px;">
                 <span style="background: #00AEEF; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;">POST</span>
-                <code style="margin-left: 8px; font-size: 12px;">/api/v1/certificates</code>
-                <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Create new certificate</p>
+                <code style="margin-left: 8px; font-size: 14px;">/api/v1/certificates</code>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: #666;">Create new certificate</p>
             </div>
             <div style="background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px;">
                 <span style="background: #FFA500; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;">PUT</span>
-                <code style="margin-left: 8px; font-size: 12px;">/api/v1/certificates/{id}</code>
-                <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Update certificate</p>
+                <code style="margin-left: 8px; font-size: 14px;">/api/v1/certificates/{id}</code>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: #666;">Update certificate</p>
             </div>
             <div style="background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px;">
                 <span style="background: #92C83E; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;">GET</span>
-                <code style="margin-left: 8px; font-size: 12px;">/api/v1/products</code>
-                <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">List all products</p>
+                <code style="margin-left: 8px; font-size: 14px;">/api/v1/products</code>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: #666;">List all products</p>
             </div>
             <div style="background: white; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px;">
                 <span style="background: #92C83E; color: white; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600;">GET</span>
-                <code style="margin-left: 8px; font-size: 12px;">/api/v1/bulk-certificates</code>
-                <p style="margin: 8px 0 0 0; font-size: 12px; color: #666;">Bulk certificate operations</p>
+                <code style="margin-left: 8px; font-size: 14px;">/api/v1/bulk-certificates</code>
+                <p style="margin: 8px 0 0 0; font-size: 14px; color: #666;">Bulk certificate operations</p>
             </div>
         </div>
     </div>
@@ -169,11 +169,11 @@
     <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 9998; backdrop-filter: blur(3px);"></div>
 
     <!-- Modal Container (sibling) -->
-    <div class="admin-modal-container" style="position: relative; z-index: 9999; max-width: 600px; background-color: white; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+    <div class="admin-modal-container" style="position: relative; z-index: 9999; max-width: 600px; background-color: white; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);" aria-labelledby="generate-key-modal-title-gcc">
         <div class="admin-modal-header" style="background-color: #f8f9fa; border-bottom: 2px solid #e9ecef;">
-            <h3 class="admin-modal-title" id="modal-title" style="color: #002B76; font-weight: 600;">Generate New API Key</h3>
+            <h3 class="admin-modal-title" id="generate-key-modal-title-gcc" style="color: #002B76; font-weight: 600;">Generate New API Key</h3>
             <button class="admin-modal-close" aria-label="Close modal">
-                <i class="fas fa-times"></i>
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         </div>
         <div class="admin-modal-body" style="background-color: white;">
@@ -198,8 +198,8 @@
             </form>
         </div>
         <div class="admin-modal-footer" style="background-color: #f8f9fa; border-top: 2px solid #e9ecef;">
-            <button type="button" class="admin-btn admin-btn--secondary" id="cancel-btn">Cancel</button>
-            <button type="submit" class="admin-btn admin-btn--primary" id="save-btn" form="apikey-form">Generate Key</button>
+            <button type="button" class="admin-btn admin-btn--secondary" id="cancel-btn" aria-label="Cancel and close modal"><i class="fas fa-times" aria-hidden="true"></i> Cancel</button>
+            <button type="submit" class="admin-btn admin-btn--primary" id="save-btn" form="apikey-form" aria-label="Generate new API key"><i class="fas fa-save" aria-hidden="true"></i> Generate Key</button>
         </div>
     </div>
 </div>
@@ -210,9 +210,9 @@
     <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 9998; backdrop-filter: blur(3px);"></div>
 
     <!-- Modal Container (sibling) -->
-    <div class="admin-modal-container" style="position: relative; z-index: 9999; max-width: 600px; background-color: white; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+    <div class="admin-modal-container" style="position: relative; z-index: 9999; max-width: 600px; background-color: white; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);" aria-labelledby="key-generated-modal-title-gcc">
         <div class="admin-modal-header" style="background: #92C83E; color: white; border-bottom: 2px solid #7ab32e;">
-            <h3 class="admin-modal-title" style="color: white; font-weight: 600;">
+            <h3 id="key-generated-modal-title-gcc" class="admin-modal-title" style="color: white; font-weight: 600;">
                 <i class="fas fa-check-circle"></i> API Key Generated Successfully
             </h3>
         </div>

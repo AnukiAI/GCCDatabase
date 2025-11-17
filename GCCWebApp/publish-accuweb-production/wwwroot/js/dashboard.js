@@ -54,12 +54,13 @@ async function downloadStat(statType) {
     }
 }
 
-// Table download functionality (matching async pattern)
+// Table download functionality - Downloads full certificate data for the table
 async function downloadTable(tableType) {
-    console.log('Downloading table:', tableType);
+    console.log('Downloading certificates for table:', tableType);
 
     try {
-        const response = await fetch(`/Export/DownloadTable?type=${tableType}&format=excel`, {
+        // Call the correct Dashboard controller endpoint (not Export controller)
+        const response = await fetch(`/Dashboard/DownloadTable?type=${tableType}`, {
             method: 'GET',
             credentials: 'same-origin',
             headers: {
@@ -69,21 +70,22 @@ async function downloadTable(tableType) {
 
         if (response.ok) {
             const blob = await response.blob();
-            
+
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${tableType}-table-${new Date().toISOString().split('T')[0]}.xlsx`;
+            // CSV format only - includes full certificate details
+            link.download = `${tableType}_certificates_${new Date().toISOString().split('T')[0]}.csv`;
             link.style.display = 'none';
-            
+
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
+
             window.URL.revokeObjectURL(url);
 
             if (window.GreenCircle?.showToast) {
-                window.GreenCircle.showToast(`Downloaded ${tableType.replace(/-/g, ' ')} table`, 'success');
+                window.GreenCircle.showToast('Certificates exported to CSV successfully!', 'success');
             }
         } else if (response.status === 302 || response.status === 401) {
             console.error('Authentication required');

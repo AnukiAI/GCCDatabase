@@ -680,6 +680,15 @@
     border-bottom: 2px solid var(--admin-border-secondary);
 }
 
+.admin-checkbox-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--admin-border-primary);
+    border-radius: var(--admin-radius-sm);
+    padding: var(--admin-space-sm);
+    background-color: var(--admin-bg-secondary);
+}
+
 .admin-checkbox-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));

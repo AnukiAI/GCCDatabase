@@ -317,7 +317,15 @@ class ProductIdManager {
     }
 
     async handleDelete(productIdId) {
-        if (!confirm('Are you sure you want to delete this product ID?')) {
+        const confirmed = await AdminCore.showConfirmation({
+            title: 'Delete Confirmation',
+            message: 'Are you sure you want to delete this product ID? This action cannot be undone.',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+
+        if (!confirmed) {
             return;
         }
 

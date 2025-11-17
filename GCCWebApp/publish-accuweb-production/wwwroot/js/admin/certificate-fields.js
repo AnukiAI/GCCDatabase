@@ -9,9 +9,10 @@ class CertificateFieldsManager {
         this.filteredFields = [];
         this.displayedFields = [];
         this.currentEditingId = null;
-        this.initialDisplayCount = 7;
-        this.isShowingAll = false;
-        
+        this.itemsPerLoad = 15;
+        this.currentDisplayCount = 15;
+        this.isLoading = false;
+
         this.init();
     }
 
@@ -19,6 +20,7 @@ class CertificateFieldsManager {
         this.bindEvents();
         await this.loadFields();
         this.renderFields();
+        this.initInfiniteScroll();
     }
 
     bindEvents() {
@@ -27,13 +29,12 @@ class CertificateFieldsManager {
         this.fieldCountElement = document.getElementById('field-count');
         this.searchInput = document.getElementById('search-input');
         this.addFieldBtn = document.getElementById('add-field-btn');
-        this.showMoreBtn = document.getElementById('show-more-btn');
         this.exportBtn = document.getElementById('export-btn');
+        this.tableContainer = document.querySelector('.table-container');
 
         // Event listeners
         this.addFieldBtn?.addEventListener('click', () => this.startAddNew());
         this.searchInput?.addEventListener('input', this.debounce((e) => this.handleSearch(e), 300));
-        this.showMoreBtn?.addEventListener('click', () => this.showAllFields());
         this.exportBtn?.addEventListener('click', () => this.showExportModal());
 
         // Table event delegation
@@ -298,7 +299,15 @@ class CertificateFieldsManager {
         const field = this.fields.find(f => f.id === id);
         if (!field) return;
 
-        if (confirm(`Are you sure you want to delete the field "${field.name}"?`)) {
+        const confirmed = await AdminCore.showConfirmation({
+            title: 'Delete Confirmation',
+            message: `Are you sure you want to delete the field "${field.name}"? This action cannot be undone.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+
+        if (confirmed) {
             await this.deleteField(id);
         }
     }
@@ -365,7 +374,8 @@ class CertificateFieldsManager {
 
         this.fieldsTableBody.innerHTML = '';
 
-        this.displayedFields = this.isShowingAll ? this.filteredFields : this.filteredFields.slice(0, this.initialDisplayCount);
+        // Show all fields at once (no lazy loading for admin pages with small datasets)
+        this.displayedFields = this.filteredFields;
 
         this.displayedFields.forEach(field => {
             const row = document.createElement('tr');
@@ -381,7 +391,6 @@ class CertificateFieldsManager {
         });
 
         this.updateFieldCount();
-        this.updateShowMoreButton();
     }
 
     renderNormalRow(row, field) {
@@ -395,11 +404,11 @@ class CertificateFieldsManager {
             <td>${field.notes || ''}</td>
             <td>
                 <div class="action-buttons">
-                    <button class="action-btn edit-btn" title="Edit Field">
-                        <i class="fas fa-edit"></i>
+                    <button class="action-btn edit-btn" title="Edit Field" aria-label="Edit field">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
                     </button>
-                    <button class="action-btn delete-btn" title="Delete Field">
-                        <i class="fas fa-trash-alt"></i>
+                    <button class="action-btn delete-btn" title="Delete Field" aria-label="Delete field">
+                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
                     </button>
                 </div>
             </td>
@@ -450,11 +459,11 @@ class CertificateFieldsManager {
             </td>
             <td>
                 <div class="action-buttons edit-actions">
-                    <button class="action-btn save-btn" title="Save Changes">
-                        <i class="fas fa-check"></i>
+                    <button class="action-btn save-btn" title="Save Changes" aria-label="Save changes to custom field">
+                        <i class="fas fa-check" aria-hidden="true"></i>
                     </button>
-                    <button class="action-btn cancel-btn" title="Cancel Edit">
-                        <i class="fas fa-times"></i>
+                    <button class="action-btn cancel-btn" title="Cancel Edit" aria-label="Cancel editing custom field">
+                        <i class="fas fa-times" aria-hidden="true"></i>
                     </button>
                 </div>
             </td>
@@ -490,13 +499,36 @@ class CertificateFieldsManager {
             );
         }
 
-        this.isShowingAll = false;
+        // Show all filtered results (no lazy loading)
         this.renderFields();
     }
 
-    showAllFields() {
-        this.isShowingAll = true;
+    initInfiniteScroll() {
+        if (!this.tableContainer) return;
+
+        this.tableContainer.addEventListener('scroll', () => {
+            if (this.isLoading) return;
+
+            const scrollTop = this.tableContainer.scrollTop;
+            const scrollHeight = this.tableContainer.scrollHeight;
+            const clientHeight = this.tableContainer.clientHeight;
+
+            // Load more when 200px from bottom
+            if (scrollTop + clientHeight >= scrollHeight - 200) {
+                this.loadMoreFields();
+            }
+        });
+    }
+
+    loadMoreFields() {
+        if (this.displayedFields.length >= this.filteredFields.length) {
+            return; // All fields already displayed
+        }
+
+        this.isLoading = true;
+        this.currentDisplayCount += this.itemsPerLoad;
         this.renderFields();
+        this.isLoading = false;
     }
 
     updateFieldCount() {
@@ -512,17 +544,9 @@ class CertificateFieldsManager {
         }
     }
 
-    updateShowMoreButton() {
-        if (!this.showMoreBtn) return;
+    // Removed updateShowMoreButton - using infinite scroll instead
 
-        if (this.filteredFields.length > this.initialDisplayCount && !this.isShowingAll) {
-            this.showMoreBtn.style.display = 'inline-flex';
-            this.showMoreBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Show ${this.filteredFields.length - this.initialDisplayCount} More`;
-        } else {
-            this.showMoreBtn.style.display = 'none';
-        }
-    }
-
+    // Export to CSV only
     showExportModal() {
         if (window.ExportUtils) {
             const columns = [
@@ -534,8 +558,9 @@ class CertificateFieldsManager {
                 { key: 'sortOrder', header: 'Sort Order' },
                 { key: 'notes', header: 'Notes' }
             ];
-            
-            window.ExportUtils.showExportModal(this.filteredFields, columns, 'certificate-fields', (message, type) => this.showToast(message, type));
+
+            // Direct CSV export only
+            window.ExportUtils.exportToCSV(this.filteredFields, columns, 'certificate-fields', (message, type) => this.showToast(message, type));
         } else {
             this.showToast('Export functionality not available', 'error');
         }

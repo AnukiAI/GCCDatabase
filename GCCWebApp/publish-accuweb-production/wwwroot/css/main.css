@@ -46,6 +46,15 @@ Small Mobile (≤480px): Ultra-compact, touch-optimized
     --warning: #ff5252;
     --success: #92C83E;
     --header-color: #FCFDEB;
+
+    /* GCC Brand Colors - Admin Component Support */
+    --gcc-green-primary: #92C83E;      /* Light green - PRIMARY brand color */
+    --gcc-green-secondary: #447638;    /* Dark green - SECONDARY shade */
+    --gcc-blue-primary: #00AEEF;       /* Primary blue */
+    --gcc-blue-dark: #002B76;          /* Navy blue */
+    --admin-warning: #FFC107;          /* Warning yellow */
+    --admin-danger: #FF5252;           /* Error red */
+    --admin-success: #92C83E;          /* Success green */
     /* Layout */
     --border-radius-sm: 4px;
     --border-radius-md: 8px;
@@ -1060,8 +1069,14 @@ table thead {
 }
 
 .filter-tree .filter-item {
-    margin: 0 0 1px 0 !important; /* Minimal bottom margin for spacing */
-    padding: 0 !important;
+    margin-top: 0 !important;
+    margin-right: 0 !important;
+    margin-bottom: 1px !important;
+    margin-left: 0 !important;
+    padding-top: 0 !important;
+    padding-right: 0 !important;
+    padding-bottom: 0 !important;
+    /* padding-left is controlled by filter-level classes */
     font-size: 16px;
     line-height: 1.2 !important;
 }
@@ -1082,15 +1097,15 @@ table thead {
     }
 
 .filter-level-1 {
-    margin-left: 0;
+    padding-left: 0 !important;
 }
 
 .filter-level-2 {
-    margin-left: 20px;
+    padding-left: 30px !important;
 }
 
 .filter-level-3 {
-    margin-left: 40px;
+    padding-left: 60px !important;
 }
 
 /* Add to your CSS */
@@ -1667,6 +1682,11 @@ input, select, button, .form-input, .form-select {
         padding: 24px; /* Increased from 16px */
     }
 
+/* Override gradient background for certificate single view */
+body.theme-option4 .certificate-single-card .card-body {
+    background: white;
+}
+
 .certificate-details-grid {
     display: flex;
     gap: 32px; /* Increased from 16px */
@@ -1698,7 +1718,6 @@ input, select, button, .form-input, .form-select {
     font-weight: 600;
     margin-bottom: 10px; /* Reduced from 14px - tighter spacing below title */
     color: var(--blue-dark);
-    background: linear-gradient(90deg, rgba(0, 174, 239, 0.08) 0%, transparent 100%); /* Subtle gradient background */
     border-left: 5px solid var(--blue-primary); /* Increased from 4px */
     padding-left: 14px; /* Increased from 10px */
     padding-right: 14px; /* Added right padding */
@@ -1817,7 +1836,6 @@ input, select, button, .form-input, .form-select {
     max-width: 750px; /* Increased from 650px */
     height: auto;
     border-radius: 10px; /* Increased from 8px */
-    border: 2px solid var(--blue-primary); /* Enhanced border - 2px with blue color */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Enhanced shadow for depth */
     object-fit: contain;
     margin-bottom: 20px; /* Increased from 15px - Space for download button */
@@ -2190,7 +2208,13 @@ input, select, button, .form-input, .form-select {
 
 /* ===== 19. ROLE-BASED VISIBILITY SYSTEM ===== */
 .role-element {
-    display: none;
+    display: none !important;
+}
+
+/* Explicitly hide analyst/admin elements for external users */
+.role-external .role-analyst-show,
+.role-external .role-admin-show {
+    display: none !important;
 }
 
 .role-public .role-public-show {
@@ -2238,6 +2262,35 @@ input, select, button, .form-input, .form-select {
 .role-analyst .role-analyst-show.nav-item,
 .role-admin .role-admin-show.nav-item {
     display: list-item;
+}
+
+/* Override for table cells and headers */
+.role-public .role-public-show.actions-cell,
+.role-public .role-public-show.actions-col,
+.role-public th.role-public-show,
+.role-public td.role-public-show {
+    display: table-cell !important;
+}
+
+.role-external .role-external-show.actions-cell,
+.role-external .role-external-show.actions-col,
+.role-external th.role-external-show,
+.role-external td.role-external-show {
+    display: table-cell !important;
+}
+
+.role-analyst .role-analyst-show.actions-cell,
+.role-analyst .role-analyst-show.actions-col,
+.role-analyst th.role-analyst-show,
+.role-analyst td.role-analyst-show {
+    display: table-cell !important;
+}
+
+.role-admin .role-admin-show.actions-cell,
+.role-admin .role-admin-show.actions-col,
+.role-admin th.role-admin-show,
+.role-admin td.role-admin-show {
+    display: table-cell !important;
 }
 
 /* Maintain nav bar formatting for public users with no visible items */

@@ -109,27 +109,31 @@ class RoleManagement {
         }
 
         tbody.innerHTML = this.filteredRoles.map(role => `
-            <tr data-role-id="${role.id}">
-                <td>
+            <tr data-role-id="${role.id}" role="row" tabindex="0" aria-label="Role: ${this.escapeHtml(role.name)}">
+                <td role="cell">
                     <strong>${this.escapeHtml(role.name)}</strong>
-                    ${role.isSystemRole ? '<span class="badge badge-system">System</span>' : ''}
                 </td>
-                <td>${this.escapeHtml(role.description || '')}</td>
-                <td>
-                    <div class="permissions-list">
+                <td role="cell">${this.escapeHtml(role.description || '')}</td>
+                <td role="cell">
+                    <div class="permissions-list" aria-label="${role.permissions?.length || 0} permissions assigned">
                         ${this.renderPermissions(role.permissions)}
                     </div>
                 </td>
-                <td class="text-center">${role.userCount || 0}</td>
-                <td class="actions-col">
+                <td class="text-center" role="cell" aria-label="${role.userCount || 0} users">${role.userCount || 0}</td>
+                <td class="actions-col" role="cell">
                     <div class="action-buttons">
-                        <button class="admin-action-btn admin-action-btn--edit" onclick="roleManager.editRole(${role.id})" title="Edit">
-                            <i class="fas fa-edit"></i>
+                        <button class="admin-action-btn admin-action-btn--edit"
+                                onclick="roleManager.editRole(${role.id})"
+                                title="Edit ${this.escapeHtml(role.name)} role"
+                                aria-label="Edit ${this.escapeHtml(role.name)} role">
+                            <i class="fas fa-edit" aria-hidden="true"></i>
                         </button>
-                        <button class="admin-action-btn admin-action-btn--delete" onclick="roleManager.deleteRole(${role.id})"
-                                title="${role.name === 'Admin' ? 'Cannot delete Admin role' : 'Delete'}"
-                                ${role.name === 'Admin' ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
-                            <i class="fas fa-trash-alt"></i>
+                        <button class="admin-action-btn admin-action-btn--delete"
+                                onclick="roleManager.deleteRole(${role.id})"
+                                title="${role.name === 'Admin' ? 'Cannot delete Admin role - system protected' : 'Delete ' + this.escapeHtml(role.name) + ' role'}"
+                                aria-label="${role.name === 'Admin' ? 'Cannot delete Admin role - system protected' : 'Delete ' + this.escapeHtml(role.name) + ' role'}"
+                                ${role.name === 'Admin' ? 'disabled aria-disabled="true" style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                            <i class="fas fa-trash-alt" aria-hidden="true"></i>
                         </button>
                     </div>
                 </td>
@@ -151,19 +155,22 @@ class RoleManagement {
         if (!permissions || permissions.length === 0) {
             return '<span class="no-permissions">No permissions assigned</span>';
         }
-        
+
         // Show first 3 permissions and count of remaining
         const displayPerms = permissions.slice(0, 3);
         const remaining = permissions.length - 3;
-        
-        let html = displayPerms.map(perm => 
-            `<span class="permission-badge">${this.escapeHtml(perm)}</span>`
+
+        // Create tooltip with all permissions
+        const allPermsTitle = permissions.map(p => this.escapeHtml(p)).join(', ');
+
+        let html = displayPerms.map(perm =>
+            `<span class="permission-badge" title="${allPermsTitle}">${this.escapeHtml(perm)}</span>`
         ).join('');
-        
+
         if (remaining > 0) {
-            html += `<span class="permission-more">+${remaining} more</span>`;
+            html += `<span class="permission-more" title="${allPermsTitle}">+${remaining} more</span>`;
         }
-        
+
         return html;
     }
     
@@ -263,7 +270,7 @@ class RoleManagement {
         document.getElementById('role-description').value = role.description || '';
 
         // Show system role warning if applicable
-        const isSystemRole = role.isSystemRole || role.name === 'Admin';
+        const isSystemRole = role.isSystem || role.name === 'Admin';
         document.getElementById('system-role-warning').style.display = isSystemRole ? 'block' : 'none';
 
         // Populate permissions
@@ -286,6 +293,11 @@ class RoleManagement {
             return;
         }
 
+        // Normalize selectedPermissions to handle various formats
+        const normalizedSelected = selectedPermissions || [];
+        console.log('Selected permissions:', normalizedSelected);
+        console.log('Available permissions:', this.permissions);
+
         // Group permissions by category for better display
         const permissionsByCategory = {};
 
@@ -305,16 +317,26 @@ class RoleManagement {
                         <div class="admin-checkbox-grid">`;
 
             permissionsByCategory[category].forEach(perm => {
-                const isChecked = selectedPermissions.includes(perm.name) ||
-                                selectedPermissions.includes(perm.id);
+                // Check multiple formats: permission name, display name, id as number, id as string
+                const isChecked = normalizedSelected.includes(perm.name) ||
+                                normalizedSelected.includes(perm.displayName) ||
+                                normalizedSelected.includes(perm.id) ||
+                                normalizedSelected.includes(perm.id.toString()) ||
+                                normalizedSelected.includes(String(perm.id));
+
+                if (isChecked) {
+                    console.log(`Checking permission: ${perm.name} (${perm.displayName})`);
+                }
+
                 html += `
                     <label class="admin-checkbox-item">
                         <input type="checkbox"
                                name="permissions"
-                               value="${perm.id || perm.name}"
-                               ${isChecked ? 'checked' : ''}>
-                        <span>${this.escapeHtml(perm.name)}</span>
-                        ${perm.description ? `<small class="admin-text-muted">${this.escapeHtml(perm.description)}</small>` : ''}
+                               value="${perm.id}"
+                               ${isChecked ? 'checked' : ''}
+                               aria-label="${this.escapeHtml(perm.displayName || perm.name)}">
+                        <span>${this.escapeHtml(perm.displayName || perm.name)}</span>
+                        ${perm.description ? `<small>${this.escapeHtml(perm.description)}</small>` : ''}
                     </label>
                 `;
             });
@@ -393,7 +415,15 @@ class RoleManagement {
             return;
         }
 
-        if (!confirm(`Are you sure you want to delete the role "${role.name}"?`)) {
+        const confirmed = await AdminCore.showConfirmation({
+            title: 'Delete Confirmation',
+            message: `Are you sure you want to delete the role "${role.name}"? This action cannot be undone.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+
+        if (!confirmed) {
             return;
         }
         

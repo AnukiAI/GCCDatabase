@@ -6,12 +6,28 @@ using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Models.Api;
 using Asp.Versioning;
+using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
 
 namespace GCCWebApp.Controllers.Api.v1
 {
+    /// <summary>
+    /// Product management API endpoints
+    /// Provides read operations for products with comprehensive details and filtering
+    /// </summary>
+    /// <remarks>
+    /// This controller manages product-related operations including:
+    /// - Retrieving products with pagination and filtering
+    /// - Getting detailed product information including identifiers (ASIN, UPC, etc.)
+    /// - Searching products by various criteria
+    /// - Viewing associated certificates
+    ///
+    /// All endpoints require authentication via API Key or JWT token.
+    /// Partners receive filtered product data based on their associations.
+    /// </remarks>
     [ApiVersion("1.0")]
     [Authorize(AuthenticationSchemes = "ApiKey")]
+    [SwaggerTag("Products")]
     public class ProductsController : BaseApiController
     {
         private readonly ApplicationDbContext _context;
@@ -24,9 +40,50 @@ namespace GCCWebApp.Controllers.Api.v1
         }
 
         /// <summary>
-        /// Get all products with optional pagination and filtering
+        /// Retrieve products with pagination and filtering
         /// </summary>
+        /// <remarks>
+        /// Returns a paginated list of products with optional search filtering.
+        ///
+        /// **Features:**
+        /// - Pagination support (configurable page size)
+        /// - Search across product name, description, model, and SKU
+        /// - Sorting by multiple fields
+        /// - Includes product identifiers (ASIN, UPC, etc.)
+        /// - Shows associated certificates
+        ///
+        /// **Search Examples:**
+        /// - `searchTerm=Bamboo` - Find products containing "Bamboo"
+        /// - `searchTerm=B08` - Find products with ASIN starting with "B08"
+        /// - `searchTerm=012345` - Find products with UPC containing "012345"
+        ///
+        /// **Sorting Options:**
+        /// - `sortBy=name` - Sort by product name (default)
+        /// - `sortBy=model` - Sort by product model
+        /// - `sortBy=createdat` - Sort by creation date
+        ///
+        /// Add `sortDescending=true` for descending order.
+        ///
+        /// **Response includes:**
+        /// - Product details (name, description, model, SKU)
+        /// - Company information
+        /// - Product type and category
+        /// - Product identifiers (ASIN, UPC, GTIN, EAN, etc.)
+        /// - Associated certificates
+        /// </remarks>
+        /// <param name="parameters">Pagination and filtering parameters</param>
+        /// <returns>Paginated list of products matching the search criteria</returns>
+        /// <response code="200">Returns the paginated product list</response>
+        /// <response code="400">Invalid pagination parameters</response>
+        /// <response code="401">Authentication required</response>
+        /// <response code="429">Rate limit exceeded</response>
         [HttpGet]
+        [SwaggerOperation(
+            Summary = "Get products with pagination",
+            Description = "Retrieve a paginated list of products with optional search and sorting",
+            OperationId = "GetProducts",
+            Tags = new[] { "Products", "Partner API" }
+        )]
         [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<Product>>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetProducts([FromQuery] PaginationParams parameters)
@@ -80,9 +137,42 @@ namespace GCCWebApp.Controllers.Api.v1
         }
 
         /// <summary>
-        /// Get a product by ID
+        /// Get detailed product information by ID
         /// </summary>
+        /// <remarks>
+        /// Returns comprehensive details for a specific product including all identifiers and certificates.
+        ///
+        /// **Response includes:**
+        /// - Product basic information (name, description, model, SKU)
+        /// - Company details
+        /// - Product type and category
+        /// - All product identifiers:
+        ///   - ASIN (Amazon Standard Identification Number)
+        ///   - UPC (Universal Product Code)
+        ///   - GTIN (Global Trade Item Number)
+        ///   - EAN (European Article Number)
+        ///   - ISBN, SKU, MPN
+        /// - Associated active certificates
+        /// - Metadata (creation/update timestamps)
+        ///
+        /// **Use Cases:**
+        /// - Getting complete product details for display
+        /// - Verifying product certifications
+        /// - Retrieving all product identifiers for cross-platform mapping
+        /// </remarks>
+        /// <param name="id">Product database ID</param>
+        /// <returns>Detailed product information</returns>
+        /// <response code="200">Returns the product details</response>
+        /// <response code="400">Invalid product ID</response>
+        /// <response code="401">Authentication required</response>
+        /// <response code="404">Product not found</response>
         [HttpGet("{id}")]
+        [SwaggerOperation(
+            Summary = "Get product by ID",
+            Description = "Retrieve detailed product information including all identifiers and certificates",
+            OperationId = "GetProduct",
+            Tags = new[] { "Products", "Partner API" }
+        )]
         [ProducesResponseType(typeof(StandardApiResponse<Product>), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

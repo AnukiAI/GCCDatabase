@@ -22,8 +22,8 @@
 .admin-container {
     background-color: #fff !important;
     padding: 20px !important;
-    max-width: 1400px !important;
-    margin: 20px auto !important;
+    max-width: 100% !important;
+    margin: 0 !important;
     border-radius: 6px !important;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
 }
@@ -241,54 +241,82 @@
 }
 
 /* =============================================================================
-   ACTION BUTTONS - Matching Company Management
+   ACTION BUTTONS - Standardized Across All Admin Pages
    ============================================================================= */
 
+/* Action column containers - standardized spacing and alignment */
+.action-buttons,
+.actions-cell {
+    display: flex !important;
+    gap: 6px !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+/* Individual action buttons - standardized styling */
+.btn-edit,
+.btn-delete,
+.btn-view,
 .action-btn {
-    padding: 4px 6px !important;
-    border: 1px solid #ddd !important;
-    background: white !important;
-    border-radius: 4px !important;
+    background: none !important;
+    border: none !important;
     cursor: pointer !important;
-    color: #666 !important;
+    padding: 6px !important;
     font-size: 16px !important;
     transition: all 0.2s ease !important;
-    min-width: 40px !important;
-    min-height: 40px !important;
-    display: flex !important;
+    border-radius: 4px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    display: inline-flex !important;
     align-items: center !important;
     justify-content: center !important;
     flex-shrink: 0 !important;
 }
 
+/* Edit button styling */
+.btn-edit,
 .action-btn.edit {
-    color: #666 !important;
+    color: #00AEEF !important;
 }
 
+.btn-edit:hover,
 .action-btn.edit:hover {
-    background: #00AEEF !important;
-    color: white !important;
-    border-color: #00AEEF !important;
+    background-color: rgba(0, 174, 239, 0.1) !important;
+    color: #00AEEF !important;
 }
 
+/* Delete button styling */
+.btn-delete,
+.action-btn.delete {
+    color: #ff5252 !important;
+}
+
+.btn-delete:hover,
+.action-btn.delete:hover {
+    background-color: rgba(255, 82, 82, 0.1) !important;
+    color: #ff5252 !important;
+}
+
+/* View button styling */
+.btn-view,
+.action-btn.view {
+    color: #447638 !important;
+}
+
+.btn-view:hover,
+.action-btn.view:hover {
+    background-color: rgba(68, 118, 56, 0.1) !important;
+    color: #447638 !important;
+}
+
+/* Add button styling */
 .action-btn.add {
-    color: #666 !important;
+    color: #92C83E !important;
 }
 
 .action-btn.add:hover {
-    background: #7CB342 !important;
-    color: white !important;
-    border-color: #7CB342 !important;
-}
-
-.action-btn.delete {
-    color: #666 !important;
-}
-
-.action-btn.delete:hover {
-    background: #ff5252 !important;
-    color: white !important;
-    border-color: #ff5252 !important;
+    background-color: rgba(146, 200, 62, 0.1) !important;
+    color: #447638 !important;
 }
 
 /* =============================================================================

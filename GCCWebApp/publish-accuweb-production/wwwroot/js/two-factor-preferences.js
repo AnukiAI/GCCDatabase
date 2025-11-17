@@ -92,7 +92,7 @@
                     const phonePattern = /^[\d\s\(\)\-\+]+$/;
                     if (!phonePattern.test(phoneInput.value)) {
                         e.preventDefault();
-                        alert('Please enter a valid phone number');
+                        AdminCore.showNotification('Please enter a valid phone number', 'error');
                         phoneInput.focus();
                         return false;
                     }
@@ -105,11 +105,23 @@
     function initializeDisableAuthenticatorButton() {
         const disableButton = document.querySelector('[data-disable-authenticator]');
         if (disableButton) {
-            disableButton.addEventListener('click', function(e) {
-                const confirmed = confirm('Are you sure you want to disable Microsoft Authenticator? This will make your account less secure.');
-                if (!confirmed) {
-                    e.preventDefault();
-                    return false;
+            disableButton.addEventListener('click', async function(e) {
+                e.preventDefault();
+
+                const confirmed = await AdminCore.showConfirmation({
+                    title: 'Disable Microsoft Authenticator',
+                    message: 'Are you sure you want to disable Microsoft Authenticator? This will make your account less secure.',
+                    confirmText: 'Disable',
+                    cancelText: 'Keep Enabled',
+                    type: 'warning'
+                });
+
+                if (confirmed) {
+                    // Submit the form or perform the disable action
+                    const form = disableButton.closest('form');
+                    if (form) {
+                        form.submit();
+                    }
                 }
             });
         }

@@ -54,11 +54,11 @@ All API requests must be authenticated. Anonymous access is not permitted.
                     }
                 });
 
-                // Partner API Documentation (Separate Document)
-                c.SwaggerDoc("partner", new OpenApiInfo
+                // Partner API Management Documentation (Admin-only)
+                c.SwaggerDoc("partner-management", new OpenApiInfo
                 {
                     Version = "v1.0",
-                    Title = "GCC Partner API",
+                    Title = "GCC Partner API Management",
                     Description = @"
 **Partner API Management & Administration**
 
@@ -73,7 +73,7 @@ Partners (Amazon, Wayfair, etc.) use API keys to access GCC data through dedicat
 - 🔒 Revoke and rotate API keys for security
 
 ### Authentication
-All Partner API endpoints require **Admin role** authentication using:
+All Partner API Management endpoints require **Admin role** authentication using:
 - Cookie-based session (GCC.Session)
 - JWT Bearer token with Admin privileges
 
@@ -106,19 +106,164 @@ Partner API keys have higher rate limits:
                     }
                 });
 
-                // Document filter to separate Partner API endpoints
+                // Partner Data Access API (Partner-facing, Read-only)
+                c.SwaggerDoc("partner-data", new OpenApiInfo
+                {
+                    Version = "v1.0",
+                    Title = "GCC Partner Data Access API",
+                    Description = @"
+**Partner Data Access API - Read-Only Certificate & Product Data**
+
+This API provides secure, read-only access to certificate and product data for authorized external partners (Amazon, Wayfair, etc.).
+
+⚠️ **IMPORTANT - Automatic Data Filtering**
+All API responses are **automatically filtered** based on your user account's associations:
+- **Company-based filtering**: You only see data for companies you are associated with
+- **Partner-based filtering**: You only see data for your partner relationship (e.g., Amazon, Wayfair)
+- **No access to other partners' data**: Data is strictly scoped to your authorized access level
+
+### 🔐 Data Access Scope
+Your API access is determined by your user account configuration:
+1. **If associated with Companies**: See certificates/products for those specific companies only
+2. **If associated with Partners**: See certificates where Partner field matches your partnership (Amazon, Wayfair, etc.)
+3. **If associated with BOTH**: See data matching EITHER company OR partner (OR logic)
+4. **If no associations**: No data access (empty results)
+
+### 📋 Recommended Endpoints for Partners
+
+#### Primary Endpoint - Search by Product ID
+🔍 **Most commonly used by partners** - Search certificates by ASIN, UPC, GTIN, EAN, etc.
+```
+GET /api/v1/certificates/search/productid?productId=B08XQRT456&type=ASIN
+```
+**Supported types**: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN
+**Returns**: Only certificates you have access to based on your associations
+
+#### Other Available Endpoints
+- **GET /api/v1/certificates** - List all accessible certificates (filtered to your scope)
+- **GET /api/v1/certificates/{id}** - Get specific certificate by number or ID (if you have access)
+- **GET /api/v1/certificates/{id}/download** - Download certificate PDF (if you have access)
+
+### 🔑 Authentication
+All requests require authentication via:
+- **Cookie-based session** (when logged in via web interface)
+- **Partner API Key** in Authorization header:
+```
+Authorization: Bearer gcc_partner_[your_64_char_key]
+```
+
+### ⏱️ Rate Limits
+- **Authenticated Users**: 500 requests/hour
+- **Partner API Keys**: 2,000 requests/hour
+- **Burst limit**: 10 requests/minute
+
+### 📄 Pagination
+All list endpoints support pagination:
+- `page` - Page number (default: 1)
+- `limit` - Results per page (default: 50, max: 100)
+
+### 🔍 Additional Filtering (Optional)
+You can further filter already-scoped results by:
+- `partner` - Partner name (Amazon, Wayfair) - only shows results within your access scope
+- `status` - Certificate status (Active, Expired, Draft, etc.)
+- `companyId` - Company ID - only shows if you have access to that company
+
+**Note**: Server-side filtering ensures you can NEVER access data outside your authorized scope, regardless of query parameters.
+
+### 📊 Response Format
+All responses follow this structure:
+```json
+{
+  ""success"": true,
+  ""data"": {...},
+  ""message"": ""Optional message"",
+  ""pagination"": {...}
+}
+```
+
+### ⚠️ Error Codes
+- **400** - Bad Request (invalid parameters)
+- **401** - Unauthorized (not logged in or invalid API key)
+- **403** - Forbidden (authenticated but no access to requested resource)
+- **404** - Not Found (resource doesn't exist OR you don't have access to it)
+- **429** - Rate Limit Exceeded
+- **500** - Internal Server Error
+
+### 📞 Support
+- Technical Support: api-support@greencirclecertified.com
+- Documentation: https://docs.greencirclecertified.com/partner-api
+- Status Page: https://status.greencirclecertified.com",
+                    TermsOfService = new Uri("https://greencirclecertified.com/partner-terms"),
+                    Contact = new OpenApiContact
+                    {
+                        Name = "GCC Partner API Support",
+                        Email = "api-support@greencirclecertified.com",
+                        Url = new Uri("https://greencirclecertified.com/partner-support")
+                    },
+                    License = new OpenApiLicense
+                    {
+                        Name = "GCC Partner Data API License",
+                        Url = new Uri("https://greencirclecertified.com/partner-data-license")
+                    }
+                });
+
+                // Document filter to separate API endpoints by audience
                 c.DocInclusionPredicate((docName, apiDesc) =>
                 {
                     var controllerName = apiDesc.ActionDescriptor.RouteValues["controller"];
+                    var actionName = apiDesc.ActionDescriptor.RouteValues["action"];
+                    var httpMethod = apiDesc.HttpMethod;
+                    var relativePath = apiDesc.RelativePath?.ToLower() ?? "";
 
-                    if (docName == "partner")
+                    if (docName == "partner-data")
                     {
-                        // Partner document only includes PartnerApi controller
+                        // Partner Data API: Only specific READ operations relevant to partners
+                        var isGetMethod = httpMethod?.Equals("GET", StringComparison.OrdinalIgnoreCase) == true;
+
+                        if (!isGetMethod)
+                            return false;
+
+                        // Certificates: Only show partner-relevant endpoints
+                        if (controllerName?.Equals("Certificates", StringComparison.OrdinalIgnoreCase) == true)
+                        {
+                            // Allow these specific certificate endpoints:
+                            // - List certificates (GET /)
+                            // - Get by ID (GET {id})
+                            // - Get by number (GET number/{certificateNumber})
+                            // - Search by product ID (GET search/productid) - PRIMARY USE CASE
+                            // - Download PDF (GET {id}/download)
+
+                            // Block administrative endpoints like:
+                            // - GET expiring (administrative)
+                            // - GET search (too broad, use search/productid instead)
+
+                            var blockedPaths = new[] {
+                                "api/v1/certificates/expiring",
+                                "api/v1/certificates/search" // Partners should use search/productid instead
+                            };
+
+                            return !blockedPaths.Any(blocked => relativePath.Contains(blocked));
+                        }
+
+                        // Products: Only show basic read operations
+                        if (controllerName?.Equals("Products", StringComparison.OrdinalIgnoreCase) == true)
+                        {
+                            // Allow:
+                            // - GET / (list products - filtered to user's access)
+                            // - GET {id} (get specific product)
+                            return true;
+                        }
+
+                        return false;
+                    }
+                    else if (docName == "partner-management")
+                    {
+                        // Partner Management API: Admin-only PartnerApi controller
                         return controllerName?.Equals("PartnerApi", StringComparison.OrdinalIgnoreCase) == true;
                     }
                     else if (docName == "v1")
                     {
-                        // Admin/General document excludes PartnerApi controller
+                        // Admin/General API: All endpoints except PartnerApi
                         return controllerName?.Equals("PartnerApi", StringComparison.OrdinalIgnoreCase) != true;
                     }
 
@@ -263,14 +408,74 @@ Cookies are secure, HTTP-only, and have appropriate SameSite settings."
         {
             if (app.Environment.IsDevelopment())
             {
+                // Add role-based authorization middleware for Swagger endpoints
+                app.Use(async (context, next) =>
+                {
+                    // Check if the request is for Swagger UI or Swagger JSON
+                    if (context.Request.Path.StartsWithSegments("/swagger"))
+                    {
+                        var user = context.User;
+                        var isAdmin = user?.HasClaim("Role", "Admin") == true;
+                        var isAnalyst = user?.HasClaim("Role", "Analyst") == true;
+                        var isExternal = user?.HasClaim("Role", "External") == true;
+                        var isAuthenticated = user?.Identity?.IsAuthenticated == true;
+
+                        // Block unauthenticated users entirely
+                        if (!isAuthenticated)
+                        {
+                            context.Response.StatusCode = 403;
+                            context.Response.Redirect("/Account/AccessDenied");
+                            return;
+                        }
+
+                        // Check specific swagger document access
+                        var path = context.Request.Path.Value?.ToLower() ?? "";
+
+                        // Admin API (v1) - Admin and Analyst only
+                        if (path.Contains("/swagger/v1/") && !isAdmin && !isAnalyst)
+                        {
+                            context.Response.StatusCode = 403;
+                            context.Response.Redirect("/Account/AccessDenied");
+                            return;
+                        }
+
+                        // Partner Management API - Admin only
+                        if (path.Contains("/swagger/partner-management/") && !isAdmin)
+                        {
+                            context.Response.StatusCode = 403;
+                            context.Response.Redirect("/Account/AccessDenied");
+                            return;
+                        }
+
+                        // Partner Data API - External, Analyst, and Admin
+                        if (path.Contains("/swagger/partner-data/") && !isAdmin && !isAnalyst && !isExternal)
+                        {
+                            context.Response.StatusCode = 403;
+                            context.Response.Redirect("/Account/AccessDenied");
+                            return;
+                        }
+
+                        // Main Swagger UI page - allow all authenticated users, but they'll only see docs they have access to
+                        if (path == "/swagger" || path == "/swagger/" || path == "/swagger/index.html")
+                        {
+                            // Allow access - the DocInclusionPredicate will filter what they can see
+                        }
+                    }
+
+                    await next();
+                });
+
                 app.UseSwagger();
                 app.UseSwaggerUI(c =>
                 {
                     // Admin & General API Documentation
                     c.SwaggerEndpoint("/swagger/v1/swagger.json", "GCC Web API - Admin & General");
 
-                    // Partner API Documentation (Separate)
-                    c.SwaggerEndpoint("/swagger/partner/swagger.json", "GCC Partner API");
+                    // Partner Data Access API (Partner-facing, Read-only)
+                    c.SwaggerEndpoint("/swagger/partner-data/swagger.json", "Partner Data Access API");
+
+                    // Partner API Management (Admin-only)
+                    c.SwaggerEndpoint("/swagger/partner-management/swagger.json", "Partner API Management");
 
                     c.RoutePrefix = "swagger";
                     c.DocumentTitle = "GCC API Documentation";

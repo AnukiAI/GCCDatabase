@@ -57,11 +57,27 @@
         // Populate certification types
         const certTypeList = document.querySelector('#cert-type-content ul');
         if (certTypeList && state.filterOptions.certificationTypes) {
-            certTypeList.innerHTML = state.filterOptions.certificationTypes.map(type => `
+            certTypeList.innerHTML = state.filterOptions.certificationTypes.map(type => {
+                const typeName = typeof type === 'string' ? type : type.name;
+                const typeLevel = typeof type === 'string' ? 1 : (type.level || 1);
+                return `
+                <li class="filter-item filter-level-${typeLevel}">
+                    <label>
+                        <input type="checkbox" name="cert-type" value="${escapeHtml(typeName)}">
+                        ${escapeHtml(typeName)}
+                    </label>
+                </li>
+            `}).join('');
+        }
+
+        // Populate product categories
+        const productCategoryList = document.querySelector('#product-category-content ul');
+        if (productCategoryList && state.filterOptions.productCategories) {
+            productCategoryList.innerHTML = state.filterOptions.productCategories.map(category => `
                 <li class="filter-item">
                     <label>
-                        <input type="checkbox" name="cert-type" value="${escapeHtml(type)}">
-                        ${escapeHtml(type)}
+                        <input type="checkbox" name="product-category" value="${escapeHtml(category)}">
+                        ${escapeHtml(category)}
                     </label>
                 </li>
             `).join('');
@@ -88,6 +104,19 @@
                     <label>
                         <input type="checkbox" name="countries" value="${escapeHtml(country)}">
                         ${escapeHtml(country)}
+                    </label>
+                </li>
+            `).join('');
+        }
+
+        // Populate additional tags (APR, LEED, etc.)
+        const additionalList = document.querySelector('#additional-content ul');
+        if (additionalList && state.filterOptions.additionalTags) {
+            additionalList.innerHTML = state.filterOptions.additionalTags.map(tag => `
+                <li class="filter-item">
+                    <label>
+                        <input type="checkbox" name="additional" value="${escapeHtml(tag)}">
+                        ${escapeHtml(tag)}
                     </label>
                 </li>
             `).join('');
@@ -794,8 +823,16 @@
     // Update results count
     function updateResultsCount() {
         const resultsCount = document.getElementById('resultsCount');
+        const announcement = document.getElementById('searchAnnouncement');
+
         if (resultsCount) {
-            resultsCount.textContent = `${state.totalCount} Result${state.totalCount !== 1 ? 's' : ''}`;
+            const countText = `${state.totalCount} Result${state.totalCount !== 1 ? 's' : ''}`;
+            resultsCount.textContent = countText;
+
+            // Announce to screen readers
+            if (announcement) {
+                announcement.textContent = `Search updated. ${countText} found.`;
+            }
         }
     }
 

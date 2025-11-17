@@ -182,7 +182,7 @@ class ProductManagement {
 
             // Actions cell
             const actionsCell = document.createElement('td');
-            actionsCell.className = 'actions-cell';
+            actionsCell.className = 'actions-cell role-element role-analyst-show role-admin-show';
             actionsCell.setAttribute('data-label', 'Actions');
             
             if (this.currentEditingId === product.id) {
@@ -451,8 +451,16 @@ class ProductManagement {
     async deleteProduct(id) {
         const product = this.products.find(p => p.id === id);
         if (!product) return;
-        
-        if (!confirm(`Are you sure you want to delete "${product.name}"? This action cannot be undone.`)) {
+
+        const confirmed = await AdminCore.showConfirmation({
+            title: 'Delete Confirmation',
+            message: `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+
+        if (!confirmed) {
             return;
         }
         

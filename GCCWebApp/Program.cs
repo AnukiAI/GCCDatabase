@@ -566,6 +566,18 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerConfiguration(apiVersionDescriptionProvider);
 }
 
+// ===== DEDICATED PARTNER API DOCUMENTATION ROUTE =====
+// Route for partners to access their specific API documentation
+app.MapGet("/partner/api-docs", (HttpContext context) =>
+{
+    // Redirect to the partner-data Swagger UI with a clean URL
+    context.Response.Redirect("/swagger/index.html?urls.primaryName=Partner Data Access API");
+    return Task.CompletedTask;
+})
+.WithName("PartnerApiDocs")
+.WithMetadata(new Microsoft.AspNetCore.Mvc.ProducesResponseTypeAttribute(302))
+.RequireAuthorization("ExternalAccess"); // Only partners can access
+
 // ===== ROUTE MAPPING =====
 
 // Certificate number edit route (must come before default)
@@ -643,9 +655,9 @@ using (var scope = app.Services.CreateScope())
 
         if (app.Environment.IsDevelopment())
         {
-            // Development: Seed test data for easier development
+            // Development: Apply migrations automatically (data seeding via SQL scripts only)
             await SeedData.InitializeAsync(context);
-            logger.LogInformation("✅ Development database seeded successfully");
+            logger.LogInformation("✅ Development database migrations applied successfully (use SQL scripts in Database_Scripts/ to seed data)");
         }
         else if (app.Environment.EnvironmentName == "Testing")
         {

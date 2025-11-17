@@ -9,7 +9,8 @@
     background-color: var(--admin-bg-primary);
     border: 1px solid var(--admin-border-primary);
     border-radius: var(--admin-radius-md);
-    overflow: hidden;
+    overflow-x: auto; /* Allow horizontal scrolling if needed */
+    overflow-y: visible; /* Allow vertical overflow for dropdowns */
     box-shadow: var(--admin-shadow-sm);
     position: relative;
 }
@@ -281,6 +282,16 @@
 .admin-action-btn--view:hover {
     background-color: var(--admin-success-light);
     color: var(--admin-success);
+}
+
+.admin-action-btn--2fa:hover {
+    background-color: var(--admin-warning-light);
+    color: var(--admin-warning-dark);
+}
+
+.admin-action-btn--menu:hover {
+    background-color: var(--admin-bg-accent);
+    color: var(--admin-primary);
 }
 
 /* Dropdown action button */

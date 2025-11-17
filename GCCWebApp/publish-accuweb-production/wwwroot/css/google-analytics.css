@@ -9,6 +9,31 @@
     margin-bottom: 32px;
 }
 
+/* Admin Header Content Layout */
+.admin-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    width: 100%;
+    gap: 20px;
+}
+
+.admin-title-section {
+    flex: 1;
+}
+
+.admin-actions-section {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.admin-button-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
 /* Analytics Container */
 .analytics-container {
     background: #fff;
@@ -55,6 +80,25 @@
     background-color: #f9f9f9;
     color: #999;
     cursor: not-allowed;
+}
+
+.form-group textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    font-size: 16px;
+    font-family: 'Courier New', monospace;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+    resize: vertical;
+    min-height: 150px;
+}
+
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--blue-primary);
+    box-shadow: 0 0 0 2px rgba(0, 174, 239, 0.2);
 }
 
 .form-help {
@@ -225,14 +269,14 @@ pre {
 
 /* Save Button Override */
 #save-settings-btn {
-    background-color: var(--green-primary);
-    border-color: var(--green-primary);
-    color: white;
+    background-color: #92C83E !important;
+    border-color: #92C83E !important;
+    color: white !important;
 }
 
 #save-settings-btn:hover {
-    background-color: var(--green-secondary);
-    border-color: var(--green-secondary);
+    background-color: #7fb32e !important;
+    border-color: #7fb32e !important;
 }
 
 /* Responsive Design */

@@ -11,30 +11,14 @@
 }
 
 /* ===== HEADER SECTION ===== */
-.admin-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: var(--space-xl);
-    flex-wrap: wrap;
-    gap: var(--space-md);
-}
-
-.title-area {
-    flex-grow: 1;
-}
+/* Modern admin header structure is defined in admin-layout.css and admin-mockup-override.css */
+/* This file only contains company-specific overrides */
 
 .admin-container h1 {
     color: var(--blue-dark);
     margin: 0;
     font-size: var(--font-size-xl);
     font-weight: 500;
-}
-
-.buttons-area {
-    display: flex;
-    gap: var(--space-sm);
-    padding-top: 16px;
 }
 
 /* ===== BUTTON STYLES ===== */
@@ -117,16 +101,21 @@
     display: flex;
     align-items: center;
     background-color: var(--light-gray);
-    border-radius: var(--border-radius-sm);
+    border-radius: 0; /* Remove border radius for full-width appearance */
     padding: var(--space-md);
     margin-bottom: var(--space-md);
+    margin-left: calc(-1 * var(--space-xl)); /* Extend to left edge */
+    margin-right: calc(-1 * var(--space-xl)); /* Extend to right edge */
+    padding-left: var(--space-xl); /* Restore padding for content alignment */
+    padding-right: var(--space-xl); /* Restore padding for content alignment */
     gap: var(--space-md);
     flex-wrap: wrap;
 }
 
 .search-box {
     position: relative;
-    flex-grow: 1;
+    flex: 1 1 100%; /* Take full width in the search-filter-bar */
+    width: 100%;
     min-width: 200px;
 }
 
@@ -464,6 +453,13 @@
         padding: var(--space-lg);
         margin: var(--space-md);
     }
+
+    .search-filter-bar {
+        margin-left: calc(-1 * var(--space-lg));
+        margin-right: calc(-1 * var(--space-lg));
+        padding-left: var(--space-lg);
+        padding-right: var(--space-lg);
+    }
 }
 
 @media (max-width: 768px) {
@@ -472,19 +468,15 @@
         margin: var(--space-sm);
     }
 
-    .admin-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .buttons-area {
-        width: 100%;
-        justify-content: space-between;
-    }
+    /* Admin header responsive layout handled by admin-layout.css and admin-mockup-override.css */
 
     .search-filter-bar {
         flex-direction: column;
         align-items: flex-start;
+        margin-left: calc(-1 * var(--space-md));
+        margin-right: calc(-1 * var(--space-md));
+        padding-left: var(--space-md);
+        padding-right: var(--space-md);
     }
 
     .search-box {
@@ -519,6 +511,13 @@
         margin: var(--space-xs);
     }
 
+    .search-filter-bar {
+        margin-left: calc(-1 * var(--space-sm));
+        margin-right: calc(-1 * var(--space-sm));
+        padding-left: var(--space-sm);
+        padding-right: var(--space-sm);
+    }
+
     .btn {
         font-size: 16px;
         padding: var(--space-xs) var(--space-sm);
@@ -528,14 +527,5 @@
         font-size: var(--font-size-lg);
     }
 
-    .buttons-area {
-        flex-direction: column;
-        width: 100%;
-        gap: var(--space-sm);
-    }
-
-    .btn {
-        justify-content: center;
-        width: 100%;
-    }
+    /* Admin button layout handled by admin-layout.css and admin-mockup-override.css */
 }

@@ -116,11 +116,44 @@ class CertificateTileViewExternal {
             mobileToggle.addEventListener('click', () => this.toggleMobileFilters());
         }
 
-        // Export button
-        const exportBtn = document.querySelector('.export-btn');
-        if (exportBtn) {
-            exportBtn.addEventListener('click', () => this.showExportModal());
+        // Export buttons (top toolbar)
+        const exportSelectedBtn = document.getElementById('exportSelectedBtn');
+        const exportAllBtn = document.getElementById('exportAllBtn');
+        const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+
+        if (exportSelectedBtn) {
+            exportSelectedBtn.addEventListener('click', () => this.exportSelected());
         }
+
+        if (exportAllBtn) {
+            exportAllBtn.addEventListener('click', () => this.exportAll());
+        }
+
+        if (downloadSelectedBtn) {
+            downloadSelectedBtn.addEventListener('click', () => this.downloadSelected());
+        }
+
+        // Bulk action buttons (appears when items selected)
+        document.querySelectorAll('[data-action="bulk-download"]').forEach(btn => {
+            btn.addEventListener('click', () => this.downloadSelected());
+        });
+
+        document.querySelectorAll('[data-action="bulk-export"]').forEach(btn => {
+            btn.addEventListener('click', () => this.exportSelected());
+        });
+
+        // Select all checkbox in table view
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', (e) => this.handleSelectAll(e.target.checked));
+        }
+
+        // Individual row checkboxes
+        document.addEventListener('change', (e) => {
+            if (e.target.classList.contains('row-checkbox')) {
+                this.handleRowCheckboxChange();
+            }
+        });
 
         // Close dropdowns when clicking outside
         document.addEventListener('click', (e) => {
@@ -131,6 +164,9 @@ class CertificateTileViewExternal {
                 this.closeAutocomplete();
             }
         });
+
+        // Initialize button states (disabled by default since tile view is active)
+        this.toggleBulkActionButtons(false);
     }
 
     /**
@@ -272,7 +308,7 @@ class CertificateTileViewExternal {
         try {
             const loadingIndicator = document.getElementById('loadingIndicator');
             if (loadingIndicator) {
-                loadingIndicator.style.display = 'flex';
+                loadingIndicator.classList.add('active');
             }
 
             const result = await this.service.loadMore();
@@ -284,7 +320,7 @@ class CertificateTileViewExternal {
         } finally {
             const loadingIndicator = document.getElementById('loadingIndicator');
             if (loadingIndicator) {
-                loadingIndicator.style.display = 'none';
+                loadingIndicator.classList.remove('active');
             }
         }
     }
@@ -536,6 +572,9 @@ class CertificateTileViewExternal {
             tableView.style.display = 'block';
             this.populateTableView();
         }
+
+        // Enable export and download buttons (only work in table view)
+        this.toggleBulkActionButtons(true);
     }
 
     /**
@@ -547,6 +586,64 @@ class CertificateTileViewExternal {
 
         if (tableView) tableView.style.display = 'none';
         if (tileView) tileView.style.display = 'grid';
+
+        // Disable export and download buttons (only work in table view)
+        this.toggleBulkActionButtons(false);
+    }
+
+    /**
+     * Enable/disable bulk action buttons based on view mode
+     */
+    toggleBulkActionButtons(enabled) {
+        // Export All button in top controls is always enabled - no need to toggle it
+        // Selection-based buttons (Export Selected, Download Selected) are only in bulk actions bar
+        // which automatically shows/hides based on selection state in table view
+    }
+
+    /**
+     * Handle select all checkbox in table view
+     */
+    handleSelectAll(checked) {
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        rowCheckboxes.forEach(checkbox => {
+            checkbox.checked = checked;
+        });
+        this.updateBulkActionsBar();
+    }
+
+    /**
+     * Handle individual row checkbox change
+     */
+    handleRowCheckboxChange() {
+        const rowCheckboxes = document.querySelectorAll('.row-checkbox');
+        const checkedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        const selectAllCheckbox = document.getElementById('selectAll');
+
+        // Update select all checkbox state
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = rowCheckboxes.length > 0 && rowCheckboxes.length === checkedCheckboxes.length;
+            selectAllCheckbox.indeterminate = checkedCheckboxes.length > 0 && checkedCheckboxes.length < rowCheckboxes.length;
+        }
+
+        this.updateBulkActionsBar();
+    }
+
+    /**
+     * Update bulk actions bar visibility based on selected items
+     */
+    updateBulkActionsBar() {
+        const checkedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        const bulkActionsBar = document.getElementById('bulkActionsBar');
+        const selectedCountSpan = document.getElementById('selectedCount');
+
+        if (bulkActionsBar && selectedCountSpan) {
+            if (checkedCheckboxes.length > 0) {
+                bulkActionsBar.style.display = 'flex';
+                selectedCountSpan.textContent = `${checkedCheckboxes.length} certificate${checkedCheckboxes.length !== 1 ? 's' : ''} selected`;
+            } else {
+                bulkActionsBar.style.display = 'none';
+            }
+        }
     }
 
     /**
@@ -559,8 +656,8 @@ class CertificateTileViewExternal {
         // Clear existing content
         gridBody.innerHTML = '';
 
-        // Use current certificates data
-        const certificates = this.service.state.certificates || [];
+        // Use current certificates data from service
+        const certificates = this.service.certificates || [];
         if (certificates && certificates.length > 0) {
             gridBody.innerHTML = certificates.map(cert => this.createTableRow(cert)).join('');
         } else {
@@ -656,7 +753,7 @@ class CertificateTileViewExternal {
             await this.service.downloadCertificate(certificateId);
         } catch (error) {
             console.error('Error downloading certificate:', error);
-            alert('Failed to download certificate. Please try again.');
+            AdminCore.showNotification('Failed to download certificate. Please try again.', 'error');
         }
     }
 
@@ -684,7 +781,7 @@ class CertificateTileViewExternal {
                     await this.service.exportCertificates(format);
                 } catch (error) {
                     console.error('Export error:', error);
-                    alert('Failed to export certificates. Please try again.');
+                    AdminCore.showNotification('Failed to export certificates. Please try again.', 'error');
                 }
             });
         });
@@ -947,6 +1044,127 @@ class CertificateTileViewExternal {
                 </div>
             `;
         }
+    }
+
+    /**
+     * Export selected certificates to CSV (opens in Excel)
+     */
+    async exportSelected() {
+        const selectedCerts = this.getSelectedCertificates();
+        if (selectedCerts.length === 0) {
+            AdminCore.showNotification('Please select certificates to export', 'warning');
+            return;
+        }
+
+        try {
+            // Extract certificate IDs from selected certificates
+            const selectedIds = selectedCerts.map(cert => cert.id);
+            await this.service.exportCertificates(selectedIds);
+
+            AdminCore.showNotification(`Exported ${selectedCerts.length} certificate(s) to CSV`, 'success');
+        } catch (error) {
+            console.error('Export error:', error);
+            AdminCore.showNotification('Export failed. Please try again.', 'error');
+        }
+    }
+
+    /**
+     * Export all filtered certificates to CSV (opens in Excel)
+     */
+    async exportAll() {
+        try {
+            const totalCount = this.service.totalCount || this.service.certificates.length;
+
+            // Export all (pass null to export based on current filters)
+            await this.service.exportCertificates(null);
+
+            AdminCore.showNotification(`Exported ${totalCount} certificate(s) to CSV`, 'success');
+        } catch (error) {
+            console.error('Export error:', error);
+            AdminCore.showNotification('Export failed. Please try again.', 'error');
+        }
+    }
+
+    /**
+     * Download PDF certificates for selected items as ZIP file
+     */
+    async downloadSelected() {
+        const selectedCerts = this.getSelectedCertificates();
+        if (selectedCerts.length === 0) {
+            AdminCore.showNotification('Please select certificates to download', 'warning');
+            return;
+        }
+
+        try {
+            // Show progress notification
+            AdminCore.showNotification(`Preparing ZIP file with ${selectedCerts.length} certificate(s)...`, 'info');
+
+            // Extract certificate IDs
+            const certificateIds = selectedCerts.map(cert => cert.id);
+
+            // Call the backend ZIP endpoint
+            const response = await fetch('/Certificate/DownloadSelectedZip', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/zip'
+                },
+                body: JSON.stringify(certificateIds)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP error! status: ${response.status}`);
+            }
+
+            // Get the ZIP file blob
+            const blob = await response.blob();
+
+            // Create a download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Get filename from Content-Disposition header or use default
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `certificates_${new Date().toISOString().split('T')[0]}.zip`;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            // Show success notification
+            AdminCore.showNotification(`Successfully downloaded ${selectedCerts.length} certificate(s) as ZIP`, 'success');
+        } catch (error) {
+            console.error('ZIP download error:', error);
+            AdminCore.showNotification(`Failed to download certificates: ${error.message}`, 'error');
+        }
+    }
+
+    /**
+     * Get selected certificates from checkboxes
+     */
+    getSelectedCertificates() {
+        const selected = [];
+        const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+        checkboxes.forEach(checkbox => {
+            const certId = checkbox.getAttribute('data-cert-id');
+            if (certId) {
+                const cert = this.service.certificates.find(c => c.id == certId);
+                if (cert) selected.push(cert);
+            }
+        });
+        return selected;
     }
 }
 

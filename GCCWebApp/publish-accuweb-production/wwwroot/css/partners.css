@@ -1,6 +1,24 @@
 /* partners.css - Partners Management specific styles */
 /* These styles are loaded only on partners management pages */
 
+/* Override admin header layout for Partners page */
+.admin-container .admin-header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    gap: 20px;
+}
+
+.admin-container .admin-title-section {
+    flex: 0 1 auto;
+}
+
+.admin-container .admin-actions-section {
+    flex: 0 0 auto;
+    margin-left: auto;
+}
+
 /* Partners Header */
 .partners-header {
     display: flex;
@@ -289,6 +307,17 @@
 
 /* Footer Info */
 .partners-footer-info {
+    text-align: right;
+    color: #777;
+    font-size: 16px;
+    margin-top: 10px;
+    padding: 0 5px;
+}
+
+/* Override admin.css footer-info for Partners page */
+.admin-container .footer-info {
+    display: flex;
+    justify-content: flex-end;
     text-align: right;
     color: #777;
     font-size: 16px;

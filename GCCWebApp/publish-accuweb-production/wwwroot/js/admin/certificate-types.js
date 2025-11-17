@@ -132,8 +132,7 @@ async function deleteCertificateTypeApi(id) {
 }
 
 function showError(message) {
-    // Simple error display - you can enhance this
-    alert(message);
+    AdminCore.showNotification(message, 'error');
 }
 
 // Function to populate the table
@@ -177,14 +176,16 @@ function populateTable(data) {
 
             const saveBtn = document.createElement('button');
             saveBtn.className = 'admin-action-btn admin-action-btn--save';
-            saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+            saveBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i>';
             saveBtn.title = 'Save';
+            saveBtn.setAttribute('aria-label', 'Save changes to certificate type');
             saveBtn.addEventListener('click', () => saveCertTypeEdit(certType.id));
 
             const cancelBtn = document.createElement('button');
             cancelBtn.className = 'admin-action-btn admin-action-btn--cancel';
-            cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+            cancelBtn.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
             cancelBtn.title = 'Cancel';
+            cancelBtn.setAttribute('aria-label', 'Cancel editing');
             cancelBtn.addEventListener('click', cancelCertTypeEdit);
 
             actionButtons.appendChild(saveBtn);
@@ -197,14 +198,14 @@ function populateTable(data) {
 
             const editBtn = document.createElement('button');
             editBtn.className = 'admin-action-btn admin-action-btn--edit';
-            editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+            editBtn.innerHTML = '<i class="fas fa-edit" aria-hidden="true"></i>';
             editBtn.title = 'Edit';
             editBtn.setAttribute('aria-label', `Edit ${certType.name}`);
             editBtn.addEventListener('click', () => editCertType(certType.id));
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'admin-action-btn admin-action-btn--delete';
-            deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            deleteBtn.innerHTML = '<i class="fas fa-trash-alt" aria-hidden="true"></i>';
             deleteBtn.title = 'Delete';
             deleteBtn.setAttribute('aria-label', `Delete ${certType.name}`);
             deleteBtn.addEventListener('click', () => deleteCertType(certType.id));
@@ -241,14 +242,16 @@ function populateTable(data) {
 
         const saveBtn = document.createElement('button');
         saveBtn.className = 'admin-action-btn admin-action-btn--save';
-        saveBtn.innerHTML = '<i class="fas fa-check"></i>';
+        saveBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i>';
         saveBtn.title = 'Save';
+        saveBtn.setAttribute('aria-label', 'Save new certificate type');
         saveBtn.addEventListener('click', saveNewCertType);
 
         const cancelBtn = document.createElement('button');
         cancelBtn.className = 'admin-action-btn admin-action-btn--cancel';
-        cancelBtn.innerHTML = '<i class="fas fa-times"></i>';
+        cancelBtn.innerHTML = '<i class="fas fa-times" aria-hidden="true"></i>';
         cancelBtn.title = 'Cancel';
+        cancelBtn.setAttribute('aria-label', 'Cancel adding certificate type');
         cancelBtn.addEventListener('click', cancelAddCertType);
 
         actionButtons.appendChild(saveBtn);
@@ -310,11 +313,12 @@ async function saveNewCertType() {
         if (success) {
             addingNew = false;
             await loadCertificateTypes(); // Reload data from server
+            AdminCore.showNotification('Certificate type created successfully', 'success');
         } else {
-            alert('Failed to create certificate type. Please try again.');
+            AdminCore.showNotification('Failed to create certificate type. Please try again.', 'error');
         }
     } else {
-        alert('Please enter a certificate type name.');
+        AdminCore.showNotification('Please enter a certificate type name.', 'warning');
     }
 }
 
@@ -352,11 +356,12 @@ async function saveCertTypeEdit(id) {
         if (success) {
             editingId = null;
             await loadCertificateTypes(); // Reload data from server
+            AdminCore.showNotification('Certificate type updated successfully', 'success');
         } else {
-            alert('Failed to update certificate type. Please try again.');
+            AdminCore.showNotification('Failed to update certificate type. Please try again.', 'error');
         }
     } else {
-        alert('Please enter a certificate type name.');
+        AdminCore.showNotification('Please enter a certificate type name.', 'warning');
     }
 }
 
@@ -368,28 +373,38 @@ function cancelCertTypeEdit() {
 
 // Function to delete a certificate type
 async function deleteCertType(id) {
-    if (confirm('Are you sure you want to delete this certificate type?')) {
+    const confirmed = await AdminCore.showConfirmation({
+        title: 'Delete Confirmation',
+        message: 'Are you sure you want to delete this certificate type? This action cannot be undone.',
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        type: 'danger'
+    });
+
+    if (confirmed) {
         const success = await deleteCertificateTypeApi(id);
         if (success) {
             await loadCertificateTypes(); // Reload data from server
+            AdminCore.showNotification('Certificate type deleted successfully', 'success');
         } else {
-            alert('Failed to delete certificate type. Please try again.');
+            AdminCore.showNotification('Failed to delete certificate type. Please try again.', 'error');
         }
     }
 }
 
-// Export functionality
+// Export functionality - CSV only
 function exportCertificateTypes() {
     const columns = [
         { key: 'id', header: 'ID' },
         { key: 'name', header: 'Certificate Type Name' }
     ];
-    
-    ExportUtils.showExportModal(
-        filterCertTypes(), 
-        columns, 
+
+    // Direct CSV export only
+    ExportUtils.exportToCSV(
+        filterCertTypes(),
+        columns,
         'certificate_types',
-        (message, type) => alert(message)
+        (message, type) => AdminCore.showNotification(message, type)
     );
 }
 

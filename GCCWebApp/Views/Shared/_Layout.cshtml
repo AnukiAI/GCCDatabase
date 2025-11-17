@@ -1,4 +1,4 @@
-﻿@using Microsoft.AspNetCore.Http
+@using Microsoft.AspNetCore.Http
 @using Microsoft.EntityFrameworkCore
 @using GCCWebApp.Data
 @inject ApplicationDbContext DbContext
@@ -10,8 +10,17 @@
     // Get user name for display
     var userName = Context.Session.GetString("UserName") ?? "Sign In";
 
-    // Get Google Analytics settings
-    var gaSettings = await DbContext.GoogleAnalyticsSettings.FirstOrDefaultAsync();
+    // Get Google Analytics settings (safe for fresh deployments)
+    GCCWebApp.Models.GoogleAnalyticsSettings? gaSettings = null;
+    try
+    {
+        gaSettings = await DbContext.GoogleAnalyticsSettings.FirstOrDefaultAsync();
+    }
+    catch (Exception)
+    {
+        // Database not initialized yet - this is normal for fresh deployments
+        gaSettings = null;
+    }
 }
 <!DOCTYPE html>
 <html lang="en">

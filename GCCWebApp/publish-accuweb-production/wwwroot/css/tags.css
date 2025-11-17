@@ -409,47 +409,165 @@
     color: white;
 }
 
+/* ===== INLINE EDITING STYLES ===== */
+/* Edit Mode Input Fields */
+.tags-edit-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--blue-primary);
+    border-radius: 4px;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    box-sizing: border-box;
+}
+
+    .tags-edit-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+    }
+
+.tags-edit-select {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--blue-primary);
+    border-radius: 4px;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    box-sizing: border-box;
+}
+
+    .tags-edit-select:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+    }
+
+.tags-edit-textarea {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--blue-primary);
+    border-radius: 4px;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    box-sizing: border-box;
+    resize: vertical;
+}
+
+    .tags-edit-textarea:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+    }
+
+/* CSS toggle rules for inline editing - hide view mode during edit */
+.tags-edit-row .tag-name {
+    display: none;
+}
+
+.tag-name-edit {
+    display: none;
+}
+
+.tags-edit-row .tag-name-edit {
+    display: block;
+}
+
+.tags-edit-row .tag-type {
+    display: none;
+}
+
+.tag-type-edit {
+    display: none;
+}
+
+.tags-edit-row .tag-type-edit {
+    display: block;
+}
+
+.tags-edit-row .tag-description {
+    display: none;
+}
+
+.tag-description-edit {
+    display: none;
+}
+
+.tags-edit-row .tag-description-edit {
+    display: block;
+}
+
+/* Hide Edit/Delete buttons during edit mode */
+.tags-edit-row .action-buttons {
+    display: none;
+}
+
+/* Show Save/Cancel buttons during edit mode */
+.tags-edit-actions {
+    display: none;
+}
+
+.tags-edit-row .tags-edit-actions {
+    display: flex;
+    gap: 5px;
+}
+
+/* Add row (initially hidden) */
+.tags-add-row {
+    display: none;
+    background-color: #f8f9fa;
+}
+
+    .tags-add-row.active {
+        display: table-row;
+    }
+
+.tags-add-actions {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 768px) {
     .admin-header {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .buttons-area {
         justify-content: stretch;
     }
-    
+
     .btn {
         justify-content: center;
     }
-    
+
     .search-filter-bar {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .search-box {
         max-width: none;
     }
-    
+
     .filters {
         justify-content: stretch;
     }
-    
+
     .filter-select {
         flex: 1;
         min-width: 0;
     }
-    
+
     .modal-content {
         margin: 10% auto;
         width: 95%;
     }
-    
+
     .action-buttons {
         flex-direction: column;
         gap: 4px;
+    }
+
+    .tags-edit-actions {
+        flex-direction: column;
+        gap: 3px;
     }
 }
 

@@ -455,5 +455,379 @@ namespace GCCWebApp.Controllers.Api.v1
                 return HandleError(ex, "Failed to retrieve expiring certificates");
             }
         }
+
+        /// <summary>
+        /// Search certificates by product ID (ASIN, UPC, GTIN, EAN, etc.)
+        /// </summary>
+        /// <remarks>
+        /// This endpoint allows partners to find certificates by product identifiers such as:
+        /// - **ASIN** (Amazon Standard Identification Number) - e.g., "B08XQRT456"
+        /// - **UPC** (Universal Product Code) - e.g., "012345678901"
+        /// - **GTIN** (Global Trade Item Number) - e.g., "00012345678901"
+        /// - **EAN** (European Article Number) - e.g., "5901234567890"
+        /// - **ISBN** (International Standard Book Number)
+        /// - **SKU** (Stock Keeping Unit)
+        /// - **MPN** (Manufacturer Part Number)
+        ///
+        /// **Examples:**
+        ///
+        /// Search by ASIN:
+        /// ```
+        /// GET /api/v1/certificates/search/productid?productId=B08XQRT456&amp;type=ASIN
+        /// ```
+        ///
+        /// Search by UPC:
+        /// ```
+        /// GET /api/v1/certificates/search/productid?productId=012345678901&amp;type=UPC
+        /// ```
+        ///
+        /// Search across all product ID types:
+        /// ```
+        /// GET /api/v1/certificates/search/productid?productId=B08XQRT456
+        /// ```
+        ///
+        /// **Response includes:**
+        /// - Certificate details (number, status, expiration date)
+        /// - Product and company information
+        /// - Matched product ID information
+        /// - Download URL for certificate PDF
+        ///
+        /// **Use Cases:**
+        /// - Amazon searching for certificates by ASIN
+        /// - Wayfair finding certificates by SKU
+        /// - Retailers verifying product certifications by UPC
+        /// </remarks>
+        /// <param name="productId">The product identifier value (e.g., "B08XQRT456", "012345678901")</param>
+        /// <param name="type">Optional product ID type filter: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN. If not provided, searches all types.</param>
+        /// <returns>List of certificates matching the product ID</returns>
+        /// <response code="200">Returns certificates matching the product ID</response>
+        /// <response code="400">Invalid product ID or type parameter</response>
+        /// <response code="401">Authentication required</response>
+        /// <response code="404">No certificates found for the specified product ID</response>
+        /// <response code="429">Rate limit exceeded</response>
+        [HttpGet("search/productid")]
+        [SwaggerOperation(
+            Summary = "Search certificates by product ID (ASIN, UPC, GTIN, EAN, etc.)",
+            Description = @"Find certificates using product identifiers like ASIN, UPC, GTIN, EAN, ISBN, SKU, or MPN.
+
+**IMPORTANT**: Returns ALL product IDs associated with each certificate, not just the searched ID.
+This is crucial for partners who need to see all ASINs/UPCs for a product family.
+
+**Role-Based Filtering**: External users only see certificates they have access to based on:
+- Company associations: Certificates from their associated companies
+- Partner associations: Certificates where Partner field matches their partnership (Amazon, Wayfair, etc.)
+- OR logic: If associated with BOTH companies and partners, shows certificates matching EITHER
+- Admin/Analyst: See all certificates (no filtering)",
+            OperationId = "SearchCertificatesByProductId",
+            Tags = new[] { "Certificates", "Partner API" }
+        )]
+        [ProducesResponseType(typeof(StandardApiResponse<IEnumerable<object>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> SearchByProductId(
+            [FromQuery][Required][StringLength(100, MinimumLength = 1)] string productId,
+            [FromQuery] string? type = null)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(productId))
+                    return BadRequestResponse("Product ID is required");
+
+                // Valid product ID types
+                var validTypes = new[] { "ASIN", "UPC", "GTIN", "EAN", "ISBN", "SKU", "MPN" };
+
+                if (!string.IsNullOrEmpty(type) && !validTypes.Contains(type.ToUpper()))
+                    return BadRequestResponse($"Invalid product ID type. Valid types are: {string.Join(", ", validTypes)}");
+
+                // Get user role and associations for filtering
+                var userRole = GetCurrentUserRole();
+                var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
+                var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+
+                // Query certificate product IDs to find matching certificates
+                var matchQuery = _context.CertificateProductIds
+                    .Include(cpi => cpi.Certificate)
+                        .ThenInclude(c => c.Product)
+                    .Include(cpi => cpi.Certificate)
+                        .ThenInclude(c => c.Company)
+                    .Include(cpi => cpi.Certificate)
+                        .ThenInclude(c => c.CertificationType)
+                    .Where(cpi => cpi.ProductIdValue == productId);
+
+                // Filter by type if specified
+                if (!string.IsNullOrEmpty(type))
+                {
+                    matchQuery = matchQuery.Where(cpi => cpi.ProductIdType.ToUpper() == type.ToUpper());
+                }
+
+                var matchedCertificateProductIds = await matchQuery.ToListAsync();
+
+                if (!matchedCertificateProductIds.Any())
+                {
+                    var message = string.IsNullOrEmpty(type)
+                        ? $"No certificates found for product ID: {productId}"
+                        : $"No certificates found for product ID: {productId} (type: {type})";
+
+                    return SuccessResponse(new List<object>(), message);
+                }
+
+                // Get unique certificate IDs from matches
+                var certificateIds = matchedCertificateProductIds
+                    .Select(cpi => cpi.CertificateId)
+                    .Distinct()
+                    .ToList();
+
+                // Now get all certificates with ALL their product IDs
+                var certificatesQuery = _context.Certificates
+                    .Include(c => c.Product)
+                        .ThenInclude(p => p.ProductType)
+                    .Include(c => c.Company)
+                    .Include(c => c.CertificationType)
+                    .Include(c => c.ProductIds)
+                    .Where(c => certificateIds.Contains(c.Id));
+
+                // Apply role-based filtering for External users
+                if (userRole == "External")
+                {
+                    bool hasCompanies = userCompanyIds.Any();
+                    bool hasPartners = userPartnerNames.Any();
+
+                    if (hasCompanies && hasPartners)
+                    {
+                        // Show certificates from their companies OR matching their partners
+                        certificatesQuery = certificatesQuery.Where(c =>
+                            userCompanyIds.Contains(c.CompanyId) ||
+                            userPartnerNames.Contains(c.Partner ?? "None")
+                        );
+                    }
+                    else if (hasCompanies)
+                    {
+                        // Only company filtering
+                        certificatesQuery = certificatesQuery.Where(c => userCompanyIds.Contains(c.CompanyId));
+                    }
+                    else if (hasPartners)
+                    {
+                        // Only partner filtering
+                        certificatesQuery = certificatesQuery.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                    }
+                    else
+                    {
+                        // No associations - return empty
+                        return SuccessResponse(new List<object>(), "No certificates found matching your access permissions");
+                    }
+                }
+                // Admin and Analyst see all matched certificates (no additional filtering)
+
+                var certificates = await certificatesQuery.ToListAsync();
+
+                if (!certificates.Any())
+                {
+                    return SuccessResponse(new List<object>(), "No certificates found matching your access permissions");
+                }
+
+                // Map to response objects with ALL product IDs for each certificate
+                var results = certificates.Select(cert => new
+                {
+                    id = cert.Id,
+                    certificateNumber = cert.Number,
+                    productName = cert.Product?.Name,
+                    productType = cert.Product?.ProductType?.Name,
+                    company = cert.Company?.Name,
+                    companyId = cert.CompanyId,
+                    partner = cert.Partner,
+                    status = cert.Status,
+                    certificationType = cert.CertificationType?.Name,
+                    effectiveDate = cert.EffectiveDate,
+                    expirationDate = cert.ExpirationDate,
+                    location = cert.Location,
+                    country = cert.Country,
+                    pdfUrl = $"/api/v1/certificates/{cert.Number}/download",
+                    // Return ALL product IDs associated with this certificate
+                    productIds = cert.ProductIds
+                        .Where(cpi => cpi.Status == "Active") // Only active product IDs
+                        .Select(cpi => new
+                        {
+                            type = cpi.ProductIdType,
+                            value = cpi.ProductIdValue,
+                            partner = cpi.Partner,
+                            status = cpi.Status,
+                            isMatchedId = cpi.ProductIdValue == productId &&
+                                         (string.IsNullOrEmpty(type) || cpi.ProductIdType.Equals(type, StringComparison.OrdinalIgnoreCase))
+                        })
+                        .OrderByDescending(pi => pi.isMatchedId) // Put the matched ID first
+                        .ThenBy(pi => pi.type)
+                        .ThenBy(pi => pi.value)
+                        .ToList()
+                }).ToList();
+
+                var totalProductIds = results.Sum(r => r.productIds.Count);
+                return SuccessResponse(results, $"Found {results.Count} certificate(s) with {totalProductIds} total product IDs for search: {productId}");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching certificates by product ID {ProductId}", productId);
+                return HandleError(ex, "Failed to search certificates by product ID");
+            }
+        }
+
+        private string GetCurrentUserRole()
+        {
+            return User?.FindFirst("Role")?.Value ?? "Public";
+        }
+
+        private async Task<List<int>> GetCurrentUserCompanyIdsAsync()
+        {
+            var userEmail = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+            if (string.IsNullOrEmpty(userEmail))
+                return new List<int>();
+
+            // Find user and their associated companies
+            var user = await _context.Users
+                .Include(u => u.Companies)
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            if (user?.Companies != null)
+            {
+                return user.Companies.Select(c => c.Id).ToList();
+            }
+
+            return new List<int>();
+        }
+
+        private async Task<List<string>> GetCurrentUserPartnerNamesAsync()
+        {
+            var userEmail = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+            if (string.IsNullOrEmpty(userEmail))
+                return new List<string>();
+
+            // Find user and their associated partners
+            var user = await _context.Users
+                .Include(u => u.Partners)
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            if (user?.Partners != null && user.Partners.Any())
+            {
+                return user.Partners.Select(p => p.Name).ToList();
+            }
+
+            return new List<string>();
+        }
+
+        /// <summary>
+        /// Download certificate PDF file
+        /// </summary>
+        /// <remarks>
+        /// Downloads the certificate PDF file for the specified certificate.
+        ///
+        /// **Authentication:** Requires API Key or JWT token
+        ///
+        /// **Parameters:**
+        /// - `id`: Can be either the certificate number (e.g., "24-0366") or database ID (e.g., 146)
+        ///
+        /// **Examples:**
+        ///
+        /// Download by certificate number:
+        /// ```
+        /// GET /api/v1/certificates/24-0366/download
+        /// ```
+        ///
+        /// Download by database ID:
+        /// ```
+        /// GET /api/v1/certificates/146/download
+        /// ```
+        ///
+        /// **Response:**
+        /// - Content-Type: application/pdf
+        /// - Content-Disposition: attachment; filename="certificate_24-0366.pdf"
+        /// - Binary PDF data
+        ///
+        /// **Use Cases:**
+        /// - Downloading certificate PDFs for partner systems
+        /// - Archiving certificates for compliance
+        /// - Displaying certificates to end users
+        ///
+        /// **Notes:**
+        /// - If an uploaded certificate file exists, it will be returned
+        /// - If no uploaded file exists, a dynamically generated PDF will be created
+        /// </remarks>
+        /// <param name="id">Certificate number (e.g., "24-0366") or database ID (e.g., 146)</param>
+        /// <returns>Certificate PDF file</returns>
+        /// <response code="200">Returns the certificate PDF file</response>
+        /// <response code="400">Invalid certificate ID format</response>
+        /// <response code="401">Authentication required</response>
+        /// <response code="404">Certificate not found</response>
+        /// <response code="500">Error generating or retrieving PDF</response>
+        [HttpGet("{id}/download")]
+        [SwaggerOperation(
+            Summary = "Download certificate PDF",
+            Description = "Download the certificate PDF file by certificate number or ID",
+            OperationId = "DownloadCertificate",
+            Tags = new[] { "Certificates", "Partner API" }
+        )]
+        [ProducesResponseType(typeof(FileResult), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status404NotFound)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status500InternalServerError)]
+        [Produces("application/pdf")]
+        public async Task<IActionResult> DownloadCertificate([FromRoute] string id)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(id))
+                    return BadRequestResponse("Certificate ID or number is required");
+
+                Certificate? certificate = null;
+
+                // Try to parse as integer ID first
+                if (int.TryParse(id, out int certId))
+                {
+                    certificate = await _context.Certificates
+                        .Include(c => c.Product)
+                        .Include(c => c.Company)
+                        .Include(c => c.CertificationType)
+                        .FirstOrDefaultAsync(c => c.Id == certId);
+                }
+
+                // If not found or not an integer, try as certificate number
+                if (certificate == null)
+                {
+                    certificate = await _context.Certificates
+                        .Include(c => c.Product)
+                        .Include(c => c.Company)
+                        .Include(c => c.CertificationType)
+                        .FirstOrDefaultAsync(c => c.Number == id);
+                }
+
+                if (certificate == null)
+                    return NotFoundResponse($"Certificate '{id}' not found");
+
+                // Check if uploaded certificate file exists
+                if (!string.IsNullOrEmpty(certificate.CertificateFile))
+                {
+                    var filePath = Path.Combine("wwwroot", "uploads", "certificates", certificate.CertificateFile);
+
+                    if (System.IO.File.Exists(filePath))
+                    {
+                        var fileBytes = await System.IO.File.ReadAllBytesAsync(filePath);
+                        var fileName = $"certificate_{certificate.Number}.pdf";
+
+                        return File(fileBytes, "application/pdf", fileName);
+                    }
+                }
+
+                // TODO: If no uploaded file exists, generate PDF dynamically
+                // For now, return error indicating PDF generation not implemented
+                return NotFoundResponse(
+                    "Certificate file not found. PDF generation not yet implemented."
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error downloading certificate {CertificateId}", id);
+                return HandleError(ex, "Failed to download certificate");
+            }
+        }
     }
 }

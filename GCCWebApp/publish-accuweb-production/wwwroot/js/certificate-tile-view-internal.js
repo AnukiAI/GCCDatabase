@@ -56,14 +56,62 @@
         // Populate certification types
         const certTypeList = document.querySelector('#cert-type-content ul');
         if (certTypeList && state.filterOptions.certificationTypes) {
-            certTypeList.innerHTML = state.filterOptions.certificationTypes.map(type => `
-                <li class="filter-item">
+            certTypeList.innerHTML = state.filterOptions.certificationTypes.map(type => {
+                const typeName = typeof type === 'string' ? type : type.name;
+                const typeLevel = typeof type === 'string' ? 1 : (type.level || 1);
+                return `
+                <li class="filter-item filter-level-${typeLevel}">
                     <label>
-                        <input type="checkbox" name="cert-type" value="${escapeHtml(type)}">
-                        ${escapeHtml(type)}
+                        <input type="checkbox" name="cert-type" value="${escapeHtml(typeName)}">
+                        ${escapeHtml(typeName)}
                     </label>
                 </li>
-            `).join('');
+            `}).join('');
+        }
+
+        // Populate hierarchical product categories
+        const productCategoryList = document.querySelector('#product-cat-content ul');
+        if (productCategoryList && state.filterOptions.productCategoriesHierarchy) {
+            let html = '';
+
+            state.filterOptions.productCategoriesHierarchy.forEach(category => {
+                // Level 1: Category
+                html += `
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="${escapeHtml(category.name)}">
+                            ${escapeHtml(category.name)}
+                        </label>
+                    </li>`;
+
+                // Level 2: Types
+                if (category.types && category.types.length > 0) {
+                    category.types.forEach(type => {
+                        html += `
+                            <li class="filter-item filter-level-2">
+                                <label>
+                                    <input type="checkbox" name="product-cat" value="${escapeHtml(type.name)}">
+                                    ${escapeHtml(type.name)}
+                                </label>
+                            </li>`;
+
+                        // Level 3: Subcategories
+                        if (type.subcategories && type.subcategories.length > 0) {
+                            type.subcategories.forEach(subcat => {
+                                html += `
+                                    <li class="filter-item filter-level-3">
+                                        <label>
+                                            <input type="checkbox" name="product-cat" value="${escapeHtml(subcat.name)}">
+                                            ${escapeHtml(subcat.name)}
+                                        </label>
+                                    </li>`;
+                            });
+                        }
+                    });
+                }
+            });
+
+            productCategoryList.innerHTML = html;
         }
 
         // Populate companies
@@ -87,6 +135,19 @@
                     <label>
                         <input type="checkbox" name="countries" value="${escapeHtml(country)}">
                         ${escapeHtml(country)}
+                    </label>
+                </li>
+            `).join('');
+        }
+
+        // Populate additional tags (APR, LEED, etc.)
+        const additionalList = document.querySelector('#additional-content ul');
+        if (additionalList && state.filterOptions.additionalTags) {
+            additionalList.innerHTML = state.filterOptions.additionalTags.map(tag => `
+                <li class="filter-item">
+                    <label>
+                        <input type="checkbox" name="additional" value="${escapeHtml(tag)}">
+                        ${escapeHtml(tag)}
                     </label>
                 </li>
             `).join('');
@@ -401,8 +462,9 @@
             });
         }
 
-        // Sort dropdown
-        const sortDropdownBtn = document.getElementById('sortDropdownBtn');
+        // Sort dropdown - target the button inside the sortDropdown container
+        const sortDropdown = document.getElementById('sortDropdown');
+        const sortDropdownBtn = sortDropdown?.querySelector('.sort-dropdown-button');
         if (sortDropdownBtn) {
             sortDropdownBtn.addEventListener('click', toggleSortDropdown);
         }
@@ -680,10 +742,30 @@
     }
 
     // Toggle sort dropdown
-    function toggleSortDropdown() {
+    function toggleSortDropdown(event) {
+        event?.stopPropagation();
         const dropdown = document.getElementById('sortDropdown');
         if (dropdown) {
+            const isOpen = dropdown.classList.contains('open');
             dropdown.classList.toggle('open');
+
+            // Add/remove click outside listener
+            if (!isOpen) {
+                setTimeout(() => {
+                    document.addEventListener('click', closeSortDropdownOutside);
+                }, 0);
+            } else {
+                document.removeEventListener('click', closeSortDropdownOutside);
+            }
+        }
+    }
+
+    // Close sort dropdown when clicking outside
+    function closeSortDropdownOutside(event) {
+        const dropdown = document.getElementById('sortDropdown');
+        if (dropdown && !dropdown.contains(event.target)) {
+            dropdown.classList.remove('open');
+            document.removeEventListener('click', closeSortDropdownOutside);
         }
     }
 
@@ -865,31 +947,24 @@
 
     // Setup export and download button handlers
     function setupExportDownloadButtons() {
-        const exportSelectedBtn = document.getElementById('exportSelectedBtn');
-        const exportAllBtn = document.getElementById('exportAllBtn');
         const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+        const exportAllBtn = document.getElementById('exportAllBtn');
 
-        if (exportSelectedBtn) {
-            exportSelectedBtn.addEventListener('click', handleExportSelected);
+        if (downloadSelectedBtn) {
+            downloadSelectedBtn.addEventListener('click', handleDownloadSelected);
         }
 
         if (exportAllBtn) {
             exportAllBtn.addEventListener('click', handleExportAll);
         }
 
-        if (downloadSelectedBtn) {
-            downloadSelectedBtn.addEventListener('click', handleDownloadSelected);
-        }
-
-        // Setup bulk action buttons
+        // Setup bulk action buttons (clear selection only)
         setupBulkActionButtons();
     }
 
     // Setup bulk action buttons in the bulk actions bar
     function setupBulkActionButtons() {
         const clearSelectionBtn = document.querySelector('[data-action="clear-selection"]');
-        const bulkDownloadBtn = document.querySelector('[data-action="bulk-download"]');
-        const bulkExportBtn = document.querySelector('[data-action="bulk-export"]');
 
         if (clearSelectionBtn) {
             clearSelectionBtn.addEventListener('click', () => {
@@ -897,15 +972,8 @@
                 const selectAllCheckbox = document.getElementById('selectAll');
                 if (selectAllCheckbox) selectAllCheckbox.checked = false;
                 updateBulkActionsBar();
+                updateDownloadSelectedButton();
             });
-        }
-
-        if (bulkDownloadBtn) {
-            bulkDownloadBtn.addEventListener('click', handleDownloadSelected);
-        }
-
-        if (bulkExportBtn) {
-            bulkExportBtn.addEventListener('click', handleExportSelected);
         }
     }
 
@@ -985,7 +1053,7 @@
         }
     }
 
-    // Handle download selected certificates as PDFs
+    // Handle download selected certificates as ZIP file
     async function handleDownloadSelected() {
         const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
 
@@ -994,23 +1062,57 @@
             return;
         }
 
-        const selectedIds = Array.from(selectedCheckboxes).map(cb => cb.dataset.certId);
-        showToast(`Downloading ${selectedIds.length} certificate(s)...`, 'info');
+        const selectedIds = Array.from(selectedCheckboxes).map(cb => parseInt(cb.dataset.certId));
+        showToast(`Preparing ZIP file with ${selectedIds.length} certificate(s)...`, 'info');
 
-        // Download each certificate sequentially to avoid overwhelming the server
-        let successCount = 0;
-        for (const id of selectedIds) {
-            try {
-                await downloadCertificate(id);
-                successCount++;
-                // Small delay between downloads
-                await new Promise(resolve => setTimeout(resolve, 500));
-            } catch (error) {
-                console.error(`Error downloading certificate ${id}:`, error);
+        try {
+            // Call the backend ZIP endpoint
+            const response = await fetch('/Certificate/DownloadSelectedZip', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/zip'
+                },
+                body: JSON.stringify(selectedIds)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || `HTTP error! status: ${response.status}`);
             }
-        }
 
-        showToast(`Downloaded ${successCount} of ${selectedIds.length} certificate(s)`, 'success');
+            // Get the ZIP file blob
+            const blob = await response.blob();
+
+            // Create a download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            // Get filename from Content-Disposition header or use default
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = `certificates_${new Date().toISOString().split('T')[0]}.zip`;
+            if (contentDisposition) {
+                const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                if (filenameMatch && filenameMatch[1]) {
+                    filename = filenameMatch[1].replace(/['"]/g, '');
+                }
+            }
+
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+
+            // Cleanup
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+
+            // Show success notification
+            showToast(`Successfully downloaded ${selectedIds.length} certificate(s) as ZIP`, 'success');
+        } catch (error) {
+            console.error('ZIP download error:', error);
+            showToast(`Failed to download certificates: ${error.message}`, 'error');
+        }
     }
 
     function handleViewTypeChange(viewType) {
@@ -1039,6 +1141,8 @@
             tableView.style.display = 'block';
             populateTableView();
         }
+
+        // Bulk actions bar will handle Download Selected button visibility
     }
 
     // Show tile view
@@ -1048,6 +1152,8 @@
 
         if (tableView) tableView.style.display = 'none';
         if (tileView) tileView.style.display = 'grid';
+
+        // Bulk actions bar is hidden in tile view, so Download Selected is not visible
     }
 
     // Populate table view with certificates
@@ -1074,6 +1180,22 @@
         });
     }
 
+    // Update Download Selected button state
+    function updateDownloadSelectedButton() {
+        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        const downloadSelectedBtn = document.getElementById('downloadSelectedBtn');
+
+        if (downloadSelectedBtn) {
+            if (selectedCheckboxes.length > 0) {
+                downloadSelectedBtn.disabled = false;
+                downloadSelectedBtn.title = `Download ${selectedCheckboxes.length} selected certificate${selectedCheckboxes.length !== 1 ? 's' : ''}`;
+            } else {
+                downloadSelectedBtn.disabled = true;
+                downloadSelectedBtn.title = 'Select certificates in table view to download';
+            }
+        }
+    }
+
     // Update bulk actions bar based on selection
     function updateBulkActionsBar() {
         const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
@@ -1096,6 +1218,9 @@
             selectAllCheckbox.checked = selectedCheckboxes.length === allCheckboxes.length;
             selectAllCheckbox.indeterminate = selectedCheckboxes.length > 0 && selectedCheckboxes.length < allCheckboxes.length;
         }
+
+        // Update Download Selected button state
+        updateDownloadSelectedButton();
     }
 
     // Render table rows for certificates

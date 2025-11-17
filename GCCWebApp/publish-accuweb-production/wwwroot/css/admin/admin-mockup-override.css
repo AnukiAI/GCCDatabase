@@ -36,7 +36,8 @@
 }
 
 .admin-title-section {
-    flex-grow: 1;
+    flex: 1 1 0; /* Flex-grow, flex-shrink, flex-basis - ensures it takes space even when empty */
+    min-width: 0; /* Allows flex item to shrink below content size if needed */
 }
 
 .admin-page-title {
@@ -53,6 +54,8 @@
 .admin-actions-section {
     display: flex;
     gap: 10px;
+    flex-shrink: 0; /* Prevent actions section from shrinking */
+    margin-left: auto; /* Force to right edge even if title section is empty */
 }
 
 .admin-button-group {
@@ -229,7 +232,7 @@
 .table-container {
     border: 1px solid #eee;
     border-radius: 4px;
-    overflow: hidden;
+    overflow: visible;
     margin-bottom: 20px;
     box-shadow: none;
     background-color: #fff;
@@ -538,4 +541,32 @@ input:focus-visible,
 select:focus-visible {
     outline: 2px solid var(--mockup-blue-primary);
     outline-offset: 2px;
+}
+
+/* =============================================================================
+   PARTNER CARDS - Partner API Page
+   ============================================================================= */
+
+.partner-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.partner-card:hover {
+    border-color: #00AEEF;
+    box-shadow: 0 2px 8px rgba(0, 174, 239, 0.2);
+}
+
+.partner-card.selected {
+    border-color: #00AEEF;
+    background: #f5f9ff;
+    box-shadow: 0 2px 8px rgba(0, 174, 239, 0.3);
+}
+
+.partner-card.selected:hover {
+    box-shadow: 0 2px 8px rgba(0, 174, 239, 0.3);
 }

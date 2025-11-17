@@ -118,10 +118,10 @@ public class GlobalExceptionHandlingMiddleware
         // For web requests, redirect to appropriate error page
         var errorPath = statusCode switch
         {
-            HttpStatusCode.NotFound => "/Error/404",
-            HttpStatusCode.Forbidden => "/Error/403",
+            HttpStatusCode.NotFound => "/Home/Error",
+            HttpStatusCode.Forbidden => "/Home/Error",
             HttpStatusCode.Unauthorized => "/Account/AccessDenied",
-            _ => "/Error/500"
+            _ => "/Home/Error"
         };
 
         // Store error details in TempData for error page

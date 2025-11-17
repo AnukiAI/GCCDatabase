@@ -1,0 +1,166 @@
+================================================================================
+QUICK START: Seed Certificate Data to Production Database
+================================================================================
+Created: 2025-11-14
+Purpose: Add test certificate data so public page displays certificates
+
+ISSUE: Production site loads but shows no certificates
+FIX: Run the PRODUCTION_SEED_CERTIFICATES.sql script
+
+================================================================================
+INSTRUCTIONS (SQL Server Management Studio):
+================================================================================
+
+1. OPEN SQL SERVER MANAGEMENT STUDIO
+   - Server: 68.71.129.120,1533
+   - Authentication: SQL Server Authentication
+   - Login: GCC_adminxyz123
+   - Password: [your password from appsettings.Production.json]
+   - Database: gccwebap_certificates
+
+2. OPEN THE SEED SCRIPT
+   - File → Open → File
+   - Navigate to: PRODUCTION_SEED_CERTIFICATES.sql
+   - Or copy/paste the entire script content
+
+3. EXECUTE THE SCRIPT
+   - Click "Execute" (or press F5)
+   - Wait for completion (should take < 10 seconds)
+   - Check the Messages tab for success confirmation
+
+4. VERIFY DATA WAS CREATED
+   Expected output in Messages:
+   ✓ 10 Companies created
+   ✓ 10 Products created
+   ✓ 22 Active Certificates created for public viewing
+
+   Verification query results:
+   Companies: 10
+   Products: 10
+   Certificates: 22
+   Active Certificates: 22
+
+5. RESTART YOUR APPLICATION
+   - In IIS Manager: Right-click application pool → Recycle
+   - OR: Touch web.config file to force restart
+   - OR: Wait 2-3 minutes for auto-restart
+
+6. VERIFY PUBLIC PAGE
+   - Visit: https://gccwebapp.com/
+   - You should now see 22 certificate tiles
+   - Test filters and search functionality
+   - Try downloading a certificate PDF
+
+================================================================================
+WHAT DATA IS INCLUDED:
+================================================================================
+
+COMPANIES (10):
+- CertainTeed (Malvern, PA)
+- Owens Corning (Toledo, OH)
+- Johns Manville (Denver, CO)
+- Interface (Atlanta, GA)
+- Shaw Industries (Dalton, GA)
+- Mohawk Industries (Calhoun, GA)
+- Philips Lighting (Eindhoven, Netherlands)
+- Procter & Gamble (Cincinnati, OH)
+- Unilever (London, UK)
+- Herman Miller (Zeeland, MI)
+
+PRODUCTS (10):
+- EcoTouch Insulation (Owens Corning)
+- Sustainable Insulation Batts (CertainTeed)
+- Climate Pro Insulation (Johns Manville)
+- TacTiles Carpet Tiles (Interface)
+- EcoWorx Carpet (Shaw Industries)
+- SmartStrand Carpet (Mohawk)
+- LED Tube Lights (Philips)
+- Tide Purclean Detergent (P&G)
+- Seventh Generation Cleaner (Unilever)
+- Aeron Office Chair (Herman Miller)
+
+CERTIFICATES (22):
+- All Status: Active (publicly visible)
+- All IsPublic: True
+- Certificate Types: CEF, CSF, RC (Recycled Content)
+- Partners: Amazon, Wayfair, None
+- Expiration Dates: 2027 (3 years from issue)
+- Certificate Numbers: 24-0001 through 24-0501
+
+================================================================================
+TROUBLESHOOTING:
+================================================================================
+
+ERROR: "Cannot insert the value NULL into column 'UpdatedAt'"
+FIX: This script includes all timestamps. If you still see this, the database
+     schema might be different. Check that you're using the correct database.
+
+ERROR: "Cannot insert duplicate key"
+FIX: Data already exists. Either:
+     1. Skip this step (data already seeded)
+     2. Delete existing data first:
+        DELETE FROM Certificates;
+        DELETE FROM Products;
+        DELETE FROM Companies;
+        Then re-run the seed script.
+
+ERROR: "Login failed for user 'GCC_adminxyz123'"
+FIX: Verify your password. Check appsettings.Production.json for correct password.
+
+ERROR: "Invalid object name 'dbo.Companies'"
+FIX: Database schema not created. Run 02_CREATE_SCHEMA.sql first.
+
+ISSUE: Certificates still don't appear on website
+FIX:
+  1. Verify data exists: SELECT * FROM Certificates WHERE Status = 'Active'
+  2. Restart application (IIS recycle)
+  3. Clear browser cache (Ctrl+Shift+Delete)
+  4. Check table ownership: SELECT SCHEMA_NAME(schema_id), name FROM sys.tables
+     Tables must be in 'dbo' schema, not 'GCC_adminxyz123' schema
+
+================================================================================
+ALTERNATIVE: Run via Command Line (sqlcmd)
+================================================================================
+
+If you prefer command line:
+
+sqlcmd -S 68.71.129.120,1533 ^
+       -U GCC_adminxyz123 ^
+       -P [your_password] ^
+       -d gccwebap_certificates ^
+       -i PRODUCTION_SEED_CERTIFICATES.sql ^
+       -o seed_results.log
+
+Then check seed_results.log for confirmation.
+
+================================================================================
+NEXT STEPS AFTER SEEDING:
+================================================================================
+
+1. ✓ Verify public page shows 22 certificates
+2. ✓ Test search and filters work
+3. ✓ Download a certificate PDF to verify functionality
+4. Login as admin and begin adding real production certificates:
+   - Username: admin (if created)
+   - Or create your admin account through User Management
+5. Gradually replace test data with real production data
+
+================================================================================
+SUPPORT:
+================================================================================
+
+File Location:
+C:\Users\swest\OneDrive - PointSolve Technology Inc\LocalWest\Projects\
+GCC Database Solution\GCCWebApp\GCCWebApp\PRODUCTION_SEED_CERTIFICATES.sql
+
+This script is:
+✓ Safe to run (uses transactions with error handling)
+✓ Idempotent (checks if data exists before inserting)
+✓ Production-compatible (includes all required fields)
+✓ Minimal (only 22 certificates for quick verification)
+
+For more comprehensive test data (175+ certificates), use:
+Database_Scripts\FULL_TEST_DATA_SEED.sql
+(Note: May require schema modifications for production)
+
+================================================================================

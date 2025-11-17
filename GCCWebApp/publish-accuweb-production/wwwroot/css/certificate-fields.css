@@ -1,5 +1,10 @@
 /* Certificate Fields Management Styles - Uses main.css variables */
 
+/* Fix button alignment */
+.admin-certificate-fields .admin-actions-section {
+    margin-left: auto;
+}
+
 /* Color variables */
 :root {
     --text-color: #333;
@@ -33,24 +38,6 @@
 }
 
 /* Title styling now handled by main.css .page-title */
-
-.header-actions {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-.buttons-area {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-}
-
-.admin-header {
-    margin-top: -10px;
-}
 
 /* Search Filter Bar */
 .search-filter-bar {
@@ -87,74 +74,7 @@
     color: #666;
 }
 
-/* Buttons */
-.btn {
-    background-color: #ffffff !important;
-    color: #333333 !important;
-    border: 1px solid #dddddd !important;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 16px;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.btn:hover {
-    background-color: #f5f5f5 !important;
-    color: #333333 !important;
-}
-
-/* Export button specific styling */
-.btn-export,
-#export-btn {
-    background-color: #ffffff !important;
-    color: #333333 !important;
-    border: 1px solid #dddddd !important;
-}
-
-.btn-export:hover,
-#export-btn:hover {
-    background-color: #f5f5f5 !important;
-    color: #333333 !important;
-}
-
-.btn-outline {
-    background-color: #fff;
-    color: var(--blue-primary);
-    border: 1px solid var(--blue-primary);
-}
-
-.btn-outline:hover {
-    background-color: var(--blue-primary);
-    color: white;
-}
-
-.btn-add,
-.btn-primary {
-    background-color: var(--green-primary);
-    color: white;
-    border: none;
-}
-
-.btn-add:hover,
-.btn-primary:hover {
-    background-color: var(--green-secondary);
-}
-
-.btn-cancel {
-    background-color: #f8f9fa;
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-}
-
-.btn-cancel:hover {
-    background-color: #e2e6ea;
-}
+/* Button styles now handled by admin framework */
 
 /* Search Controls */
 .controls-section {

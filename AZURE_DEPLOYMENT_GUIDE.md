@@ -1,5 +1,25 @@
 # Azure App Service Deployment Guide for GCC Web Application
 
+## When to Choose Azure App Service
+
+### Choose Azure S1 ($30-75/month) When You Need:
+- **Auto-scaling** for variable traffic patterns
+- **Deployment slots** for staging/production workflow
+- **CI/CD pipelines** with Azure DevOps or GitHub Actions
+- **Native Microsoft ecosystem** integration
+- **Enterprise compliance** and security features
+- **Application Insights** monitoring built-in
+
+### Choose AccuWeb ($12/month) Instead When:
+- Budget is primary constraint
+- Traffic is predictable (< 50K users/month)
+- Don't need auto-scaling
+- Manual deployment is acceptable
+
+**See ACCUWEB_DEPLOYMENT_GUIDE.md for budget option.**
+
+---
+
 ## Prerequisites
 
 1. **Azure Account**: Sign up at https://azure.microsoft.com (free tier available)
@@ -243,10 +263,22 @@ curl "https://$APP_URL/health"
 - **Free Tier (F1)**: 60 min/day compute, perfect for testing
 - **Shared (D1)**: ~$10/month, always on
 
-### Production (Recommended):
-- **Basic (B1)**: ~$13/month, custom domains, SSL
-- **Basic (B2)**: ~$26/month, more resources
-- **Standard (S1)**: ~$70/month, auto-scaling, slots
+### Production Options:
+- **Basic (B1)**: ~$13/month, custom domains, SSL (no auto-scaling)
+- **Basic (B2)**: ~$26/month, more resources (no auto-scaling)
+- **Standard (S1)**: ~$30-75/month, **SWEET SPOT** - auto-scaling, deployment slots, 100GB storage ⭐
+- **Premium (P1V2)**: ~$96/month, enhanced performance
+
+### Cost vs Value Comparison:
+| Tier | Monthly Cost | Best For | vs AccuWeb ($12/mo) |
+|------|--------------|----------|---------------------|
+| B1 | $13 | Testing, no auto-scale | Similar price, less features |
+| S1 | $30-75 | **Production ASP.NET MVC** | 2-6x cost, but auto-scaling + slots |
+| P1V2 | $96 | High-performance apps | 8x cost, premium features |
+
+**Recommendation:**
+- **Budget-conscious**: AccuWeb at $12/month (see ACCUWEB_DEPLOYMENT_GUIDE.md)
+- **Native Microsoft platform needs**: Azure S1 at $30-75/month (deployment slots, auto-scale, CI/CD)
 
 ### Change pricing tier:
 ```bash

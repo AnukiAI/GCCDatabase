@@ -323,12 +323,11 @@
     padding-left: 60px !important;
 }
 
-/* Main Content 
+/* Main Content */
 .main-content {
     flex: 1;
     padding: 20px;
 }
-*/
 .results-header {
     display: flex;
     justify-content: space-between;
@@ -929,7 +928,7 @@
 }
 
 .suggestion-type {
-    font-size: 14px;
+    font-size: 16px;
     color: var(--text-muted);
     font-weight: 400;
     background-color: var(--light-gray);
@@ -941,30 +940,29 @@
     margin-left: 12px;
 }
 
-/* Type-specific styling */
-.suggestion-type:contains("Company") {
+/* Type-specific styling - Using data attributes instead of :contains() which is invalid CSS */
+.suggestion-type[data-type="company"] {
     background-color: #e3f2fd;
     color: #1976d2;
 }
 
-.suggestion-type:contains("Product") {
+.suggestion-type[data-type="product"] {
     background-color: #f3e5f5;
     color: #7b1fa2;
 }
 
-.suggestion-type:contains("Certificate") {
+.suggestion-type[data-type="certificate"] {
     background-color: #e8f5e8;
     color: #388e3c;
 }
 
-.suggestion-type:contains("Certification Type") {
+.suggestion-type[data-type="certification-type"] {
     background-color: #fff3e0;
     color: #f57c00;
 }
 
-/* Search bar positioning updates */
+/* Search bar positioning updates - z-index for autocomplete dropdown */
 .sidebar .search-bar {
-    position: relative;
     z-index: 1001;
 }
 

@@ -3,7 +3,6 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 <link rel="stylesheet" href="~/css/certificatetileview.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
 <!-- Main Container -->
 <div class="main-container">
@@ -18,11 +17,7 @@
         <div class="search-bar">
             <i class="fas fa-search search-icon"></i>
             <input type="text" id="searchInput" class="search-input" placeholder="Search">
-            <div class="autocomplete-dropdown" id="autocompleteDropdown" style="display: none;">
-                <ul class="autocomplete-list" id="autocompleteList">
-                    <!-- Suggestions will be populated dynamically -->
-                </ul>
-            </div>
+            <!-- Autocomplete dropdown will be created dynamically by JavaScript -->
         </div>
 
         <div class="filters-header">

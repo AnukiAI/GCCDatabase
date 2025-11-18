@@ -1804,7 +1804,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("UsersId");
 
-                    b.ToTable("RoleUser");
+                    b.ToTable("UserRoles", (string)null);
                 });
 
             modelBuilder.Entity("CertificateTag", b =>

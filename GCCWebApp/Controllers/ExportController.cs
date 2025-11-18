@@ -41,21 +41,22 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous] // Temporarily allow anonymous access for testing
+        [Authorize(Policy = "AnalystOrAdmin")]
         public async Task<IActionResult> DownloadStat(string type, string format = "csv")
         {
             try
             {
                 _logger.LogInformation("DownloadStat called - Type: {StatType}, Format: {Format}", type, format);
 
-                // Temporarily bypass authentication for testing
-                var userRole = HttpContext.Session.GetString("UserRole") ?? "Admin"; // Default to Admin for testing
+                // Get authenticated user role
+                var userRole = HttpContext.Session.GetString("UserRole");
 
-                // Comment out authentication check for now
-                // if (userRole != "Admin" && userRole != "Analyst")
-                // {
-                //     return Forbid();
-                // }
+                // Enforce authentication check
+                if (string.IsNullOrEmpty(userRole) || (userRole != "Admin" && userRole != "Analyst"))
+                {
+                    _logger.LogWarning("Unauthorized access attempt to DownloadStat by role: {UserRole}", userRole ?? "None");
+                    return Forbid();
+                }
 
                 var stats = await _certificateRepository.GetCertificateStatisticsAsync();
                 var data = await GetStatData(type, stats);
@@ -105,13 +106,20 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous] // Temporarily allow anonymous access for testing
+        [Authorize(Policy = "AnalystOrAdmin")]
         public async Task<IActionResult> DownloadReport(string type, string format = "excel")
         {
             try
             {
-                // Temporarily bypass authentication for testing
-                var userRole = HttpContext.Session.GetString("UserRole") ?? "Admin"; // Default to Admin for testing
+                // Get authenticated user role
+                var userRole = HttpContext.Session.GetString("UserRole");
+
+                // Enforce authentication check
+                if (string.IsNullOrEmpty(userRole) || (userRole != "Admin" && userRole != "Analyst"))
+                {
+                    _logger.LogWarning("Unauthorized access attempt to DownloadReport by role: {UserRole}", userRole ?? "None");
+                    return Forbid();
+                }
 
                 List<Certificate> certificates;
                 string reportTitle;
@@ -182,19 +190,20 @@ namespace GCCWebApp.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous] // Temporarily allow anonymous access for testing
+        [Authorize(Policy = "AnalystOrAdmin")]
         public async Task<IActionResult> DownloadTable(string type, string format = "csv")
         {
             try
             {
-                // Temporarily bypass authentication for testing
-                var userRole = HttpContext.Session.GetString("UserRole") ?? "Admin"; // Default to Admin for testing
-                
-                // Comment out authentication check for now
-                // if (userRole != "Admin" && userRole != "Analyst")
-                // {
-                //     return Forbid();
-                // }
+                // Get authenticated user role
+                var userRole = HttpContext.Session.GetString("UserRole");
+
+                // Enforce authentication check
+                if (string.IsNullOrEmpty(userRole) || (userRole != "Admin" && userRole != "Analyst"))
+                {
+                    _logger.LogWarning("Unauthorized access attempt to DownloadTable by role: {UserRole}", userRole ?? "None");
+                    return Forbid();
+                }
 
                 var data = await GetTableData(type);
                 
@@ -637,113 +646,9 @@ namespace GCCWebApp.Controllers
             }
         }
 
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> TestTuples()
-        {
-            try
-            {
-                var certTypes = await _certificateRepository.GetCertificationTypeStatisticsAsync();
-                var converted = certTypes.Select(ct => new { Name = ct.Name, Count = ct.Count }).ToList();
-                
-                return Ok(new { 
-                    Original = certTypes,
-                    Converted = converted,
-                    Count = certTypes.Count(),
-                    Message = "Tuple conversion test"
-                });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Error = ex.Message, StackTrace = ex.StackTrace });
-            }
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> TestData()
-        {
-            try
-            {
-                var stats = await _certificateRepository.GetCertificateStatisticsAsync();
-                var certTypes = await _certificateRepository.GetCertificationTypeStatisticsAsync();
-                var companies = await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(5);
-                var products = await _certificateRepository.GetProductTypeStatisticsAsync(5);
-
-                var testData = new
-                {
-                    Statistics = stats,
-                    CertificationTypes = certTypes,
-                    Companies = companies,
-                    Products = products,
-                    Message = "Data retrieved successfully"
-                };
-
-                return Ok(testData);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Error = ex.Message, StackTrace = ex.StackTrace });
-            }
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> TestDownloadNoAuth(string type = "total-active-certs", string format = "excel")
-        {
-            try
-            {
-                // Test download without authentication requirement
-                var stats = await _certificateRepository.GetCertificateStatisticsAsync();
-                var data = await GetStatData(type, stats);
-                
-                if (data == null)
-                {
-                    return BadRequest($"No data found for type: {type}. Available stats: {string.Join(", ", stats.Keys)}");
-                }
-
-                if (format?.ToLower() == "excel")
-                {
-                    var excelBytes = GenerateStatExcel(type, data);
-                    var fileName = $"{type}-test-{DateTime.UtcNow:yyyy-MM-dd}.xlsx";
-                    return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
-                }
-                else
-                {
-                    var csv = GenerateStatCsv(type, data);
-                    var fileName = $"{type}-test-{DateTime.UtcNow:yyyy-MM-dd}.csv";
-                    return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
-                }
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Error = ex.Message, StackTrace = ex.StackTrace });
-            }
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> TestCsvGeneration(string type = "total-active-certs")
-        {
-            try
-            {
-                var stats = await _certificateRepository.GetCertificateStatisticsAsync();
-                var data = await GetStatData(type, stats);
-                
-                if (data == null)
-                {
-                    return BadRequest($"No data found for type: {type}. Available stats: {string.Join(", ", stats.Keys)}");
-                }
-
-                var csv = GenerateStatCsv(type, data);
-                
-                return Content(csv, "text/plain");
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { Error = ex.Message, StackTrace = ex.StackTrace });
-            }
-        }
+        // SECURITY: Test endpoints removed in production. Use proper authentication for all endpoints.
+        // If test endpoints are needed for development, they should be in a separate TestController
+        // with environment-specific registration (only in Development mode).
 
         [HttpPost]
         [Authorize(Policy = "AdminOnly")]

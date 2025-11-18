@@ -512,23 +512,25 @@
         </div>
     </div>
 
-    <!-- Optional: Add some loading functionality -->
     <script>
-              document.addEventListener('DOMContentLoaded', function() {
-            // Add loading state to login button
-            const loginButton = document.querySelector('.login-button');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Add loading state to login button (FIXED: use correct selector)
+            const loginButton = document.querySelector('.btn-lime');
             const loginForm = document.querySelector('form');
 
             if (loginForm) {
-                loginForm.addEventListener('submit', function() {
+                loginForm.addEventListener('submit', function(e) {
+                    console.log('Form submitted'); // Debug log
+
                     if (loginButton) {
                         loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> <span>Signing in...</span>';
+                        loginButton.disabled = true;
                         loginButton.style.pointerEvents = 'none';
                     }
                 });
+            } else {
+                console.error('Login form not found');
             }
-
-            // Rest of your existing JavaScript code...
         });
     </script>
 </body>

@@ -1011,10 +1011,10 @@ namespace GCCWebApp.Controllers
                         return userId;
                     }
                     
-                    // If it's a GUID (Azure AD), we would need to look up the user in the database
-                    // For now, return a default admin user ID for testing
-                    _logger.LogWarning("Could not parse user ID {UserId} as integer, using default", userIdClaim.Value);
-                    return 1; // Default to admin user
+                    // If it's a GUID (Azure AD), we need to look up the user in the database
+                    // SECURITY: Do NOT default to admin user - return null to prevent unauthorized access
+                    _logger.LogError("Could not parse user ID {UserId} as integer. Azure AD integration requires database user lookup.", userIdClaim.Value);
+                    return null; // Return null instead of defaulting to admin
                 }
 
                 return null;

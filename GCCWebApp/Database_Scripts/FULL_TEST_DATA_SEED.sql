@@ -470,21 +470,21 @@ BEGIN
 
     INSERT INTO dbo.Users (Id, Username, Email, Name, FullName, PasswordHash, Status, TwoFactorMethod, IsActive, IsStaff, IsSuperuser, IsDeleted, RequirePasswordReset, TwoFactorEnabled, IsEmailVerified, IsPhoneVerified, FailedLoginAttempts, MaxConcurrentSessions, MustChangePassword, RequirePasswordChange, MaxPasswordHistory, CreatedAt, UpdatedAt)
     VALUES
-        (1, 'admin', 'admin@gcc.com', 'Admin', 'Admin User', @PasswordHash, 'active', 'Email', 1, 1, 1, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (2, 'analyst', 'analyst@gcc.com', 'Jane', 'Jane Analyst', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (3, 'external', 'external@company.com', 'External', 'External User', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (4, 'testuser', 'test@gcc.com', 'Test', 'Test User', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (5, 'sarah.johnson', 'sarah.johnson@gcc.com', 'Sarah', 'Sarah Johnson', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (6, 'mike.chen', 'mike.chen@gcc.com', 'Mike', 'Mike Chen', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (7, 'lisa.rodriguez', 'lisa.rodriguez@assaabloy.com', 'Lisa', 'Lisa Rodriguez', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (8, 'david.kim', 'david.kim@3m.com', 'David', 'David Kim', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (9, 'emma.wilson', 'emma.wilson@interface.com', 'Emma', 'Emma Wilson', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (10, 'alex.martinez', 'alex.martinez@steelcase.com', 'Alex', 'Alex Martinez', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (11, 'jennifer.lee', 'jennifer.lee@gcc.com', 'Jennifer', 'Jennifer Lee', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (12, 'robert.taylor', 'robert.taylor@gcc.com', 'Robert', 'Robert Taylor', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (13, 'maria.garcia', 'maria.garcia@mohawkind.com', 'Maria', 'Maria Garcia', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (14, 'public.user', 'public@example.com', 'Public', 'Public User', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
-        (15, 'partner', 'partner@amazon.com', 'Partner', 'Amazon Partner', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE());
+        (1, 'admin', 'swest@anukiconsulting.com', 'Admin', 'Admin User', @PasswordHash, 'active', 'Email', 1, 1, 1, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (2, 'analyst', 'jane.analyst@anukiconsulting.com', 'Jane', 'Jane Analyst', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (3, 'external', 'external.user@anukiconsulting.com', 'External', 'External User', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (4, 'testuser', 'test.user@anukiconsulting.com', 'Test', 'Test User', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (5, 'sarah.johnson', 'sarah.johnson@anukiconsulting.com', 'Sarah', 'Sarah Johnson', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (6, 'mike.chen', 'mike.chen@anukiconsulting.com', 'Mike', 'Mike Chen', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (7, 'lisa.rodriguez', 'lisa.rodriguez@anukiconsulting.com', 'Lisa', 'Lisa Rodriguez', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (8, 'david.kim', 'david.kim@anukiconsulting.com', 'David', 'David Kim', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (9, 'emma.wilson', 'emma.wilson@anukiconsulting.com', 'Emma', 'Emma Wilson', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (10, 'alex.martinez', 'alex.martinez@anukiconsulting.com', 'Alex', 'Alex Martinez', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (11, 'jennifer.lee', 'jennifer.lee@anukiconsulting.com', 'Jennifer', 'Jennifer Lee', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (12, 'robert.taylor', 'robert.taylor@anukiconsulting.com', 'Robert', 'Robert Taylor', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (13, 'maria.garcia', 'maria.garcia@anukiconsulting.com', 'Maria', 'Maria Garcia', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (14, 'public.user', 'public.user@anukiconsulting.com', 'Public', 'Public User', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (15, 'partner', 'partner.amazon@anukiconsulting.com', 'Partner', 'Amazon Partner', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE());
 
     SET IDENTITY_INSERT dbo.Users OFF;
     PRINT '✓ 15 Users created';
@@ -498,30 +498,30 @@ PRINT '';
 -- ============================================
 PRINT '11. Assigning roles to users...';
 
-IF NOT EXISTS (SELECT 1 FROM dbo.RoleUser)
+IF NOT EXISTS (SELECT 1 FROM dbo.UserRoles)
 BEGIN
     -- Admin users
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (1, 1);  -- admin@gcc.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (1, 12); -- robert.taylor@gcc.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (1, 1);  -- swest@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (1, 12); -- robert.taylor@anukiconsulting.com
 
     -- Analyst users
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (2, 2);  -- analyst@gcc.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (2, 5);  -- sarah.johnson@gcc.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (2, 6);  -- mike.chen@gcc.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (2, 11); -- jennifer.lee@gcc.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (2, 2);  -- jane.analyst@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (2, 5);  -- sarah.johnson@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (2, 6);  -- mike.chen@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (2, 11); -- jennifer.lee@anukiconsulting.com
 
     -- External users
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 3);  -- external@company.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 7);  -- lisa.rodriguez@assaabloy.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 8);  -- david.kim@3m.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 9);  -- emma.wilson@interface.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 10); -- alex.martinez@steelcase.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 13); -- maria.garcia@mohawkind.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 15); -- partner@amazon.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 3);  -- external.user@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 7);  -- lisa.rodriguez@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 8);  -- david.kim@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 9);  -- emma.wilson@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 10); -- alex.martinez@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 13); -- maria.garcia@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 15); -- partner.amazon@anukiconsulting.com
 
     -- Public users
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (4, 4);  -- test@gcc.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (4, 14); -- public@example.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (4, 4);  -- test.user@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (4, 14); -- public.user@anukiconsulting.com
 
     PRINT '✓ User-Role assignments created';
 END
@@ -726,10 +726,34 @@ UNION ALL SELECT 'ApiKeys', COUNT(*) FROM dbo.ApiKeys
 ORDER BY EntityType;
 
 PRINT '';
-PRINT 'Test User Credentials:';
-PRINT 'Admin: admin@gcc.com / TestPass123!';
-PRINT 'Analyst: analyst@gcc.com / TestPass123!';
-PRINT 'External: partner@amazon.com / TestPass123!';
+PRINT '============================================';
+PRINT 'Test User Credentials (LOGIN WITH USERNAME):';
+PRINT '============================================';
+PRINT 'IMPORTANT: Login with USERNAME, not email address!';
+PRINT 'IMPORTANT: All passwords are TestPass123!';
+PRINT '';
+PRINT 'Admin Users:';
+PRINT '  - Username: admin (Email: admin@gcc.com)';
+PRINT '  - Username: robert.taylor (Email: robert.taylor@gcc.com)';
+PRINT '';
+PRINT 'Analyst Users:';
+PRINT '  - Username: analyst (Email: analyst@gcc.com)';
+PRINT '  - Username: sarah.johnson (Email: sarah.johnson@gcc.com)';
+PRINT '  - Username: mike.chen (Email: mike.chen@gcc.com)';
+PRINT '  - Username: jennifer.lee (Email: jennifer.lee@gcc.com)';
+PRINT '';
+PRINT 'External Users:';
+PRINT '  - Username: external (Email: external@company.com)';
+PRINT '  - Username: lisa.rodriguez (Email: lisa.rodriguez@assaabloy.com)';
+PRINT '  - Username: david.kim (Email: david.kim@3m.com)';
+PRINT '  - Username: emma.wilson (Email: emma.wilson@interface.com)';
+PRINT '  - Username: alex.martinez (Email: alex.martinez@steelcase.com)';
+PRINT '  - Username: maria.garcia (Email: maria.garcia@mohawkind.com)';
+PRINT '  - Username: partner (Email: partner@amazon.com)';
+PRINT '';
+PRINT 'Public Users:';
+PRINT '  - Username: testuser (Email: test@gcc.com)';
+PRINT '  - Username: public.user (Email: public@example.com)';
 PRINT '';
 PRINT 'Completed at: ' + CONVERT(VARCHAR, GETDATE(), 120);
 PRINT '============================================';

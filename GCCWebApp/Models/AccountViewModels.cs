@@ -5,8 +5,7 @@ namespace GCCWebApp.Models
     public class LoginViewModel
     {
         [Required]
-        [EmailAddress]
-        [Display(Name = "Email")]
+        [Display(Name = "Email or Username")]
         public string Email { get; set; } = string.Empty;
 
         [Required]

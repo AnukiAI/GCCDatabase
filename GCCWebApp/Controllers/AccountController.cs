@@ -972,8 +972,114 @@ namespace GCCWebApp.Controllers
             ViewBag.ErrorMessage = "Authentication failed. Please try again.";
             return View("TwoFactorAuthentication");
         }
-
-        #endregion
     }
+
+    #endregion
+
+    #region Diagnostic Endpoints
+
+    /// <summary>
+    /// DIAGNOSTIC: Test authentication flow - REMOVE IN PRODUCTION
+    /// </summary>
+    [HttpGet]
+    [AllowAnonymous]
+    public async Task<IActionResult> TestAuth(string username = "admin", string password = "TestPass123!")
+    {
+        try
+        {
+            var result = new
+            {
+                TestingUser = username,
+                Step1_UserQuery = "Checking...",
+                Step2_UserFound = false,
+                Step3_UserActive = false,
+                Step4_PasswordVerified = false,
+                Step5_RolesLoaded = false,
+                Step6_RoleName = "",
+                UserDetails = (object?)null,
+                RoleDetails = (object?)null,
+                ErrorMessage = ""
+            };
+
+            // Step 1: Query user
+            var user = await _context.Users
+                .Include(u => u.Roles)
+                .FirstOrDefaultAsync(u => u.Email == username || u.Username == username);
+
+            if (user == null)
+            {
+                return Ok(new
+                {
+                    result.TestingUser,
+                    Step1_UserQuery = "Complete",
+                    Step2_UserFound = false,
+                    ErrorMessage = $"User '{username}' not found in database"
+                });
+            }
+
+            // Step 2: User found
+            var userFound = true;
+
+            // Step 3: Check if active
+            var isActive = user.IsActive && !user.IsDeleted && user.Status == "active";
+
+            // Step 4: Verify password
+            bool passwordVerified = false;
+            try
+            {
+                passwordVerified = BCrypt.Net.BCrypt.Verify(password, user.PasswordHash);
+            }
+            catch (Exception ex)
+            {
+                return Ok(new
+                {
+                    result.TestingUser,
+                    Step1_UserQuery = "Complete",
+                    Step2_UserFound = userFound,
+                    Step3_UserActive = isActive,
+                    Step4_PasswordVerified = false,
+                    ErrorMessage = $"BCrypt verification failed: {ex.Message}"
+                });
+            }
+
+            // Step 5: Check roles
+            var rolesLoaded = user.Roles != null && user.Roles.Any();
+            var roleName = user.Roles.FirstOrDefault()?.Name ?? "No role assigned";
+
+            return Ok(new
+            {
+                result.TestingUser,
+                Step1_UserQuery = "Complete",
+                Step2_UserFound = userFound,
+                Step3_UserActive = isActive,
+                Step4_PasswordVerified = passwordVerified,
+                Step5_RolesLoaded = rolesLoaded,
+                Step6_RoleName = roleName,
+                UserDetails = new
+                {
+                    user.Id,
+                    user.Username,
+                    user.Email,
+                    user.IsActive,
+                    user.IsDeleted,
+                    user.Status,
+                    PasswordHashLength = user.PasswordHash?.Length ?? 0,
+                    RoleCount = user.Roles?.Count ?? 0
+                },
+                RoleDetails = user.Roles?.Select(r => new { r.Id, r.Name }).ToList(),
+                Success = userFound && isActive && passwordVerified && rolesLoaded
+            });
+        }
+        catch (Exception ex)
+        {
+            return Ok(new
+            {
+                ErrorMessage = $"Exception: {ex.Message}",
+                StackTrace = ex.StackTrace
+            });
+        }
+    }
+
+    #endregion
 }
 }

@@ -132,11 +132,15 @@ public class SecurityHeadersMiddleware
         }
         else
         {
-            cspBuilder.Add("script-src 'self' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com");
+            // FIXED: Added 'unsafe-inline' for production to allow inline scripts (login form, etc.)
+            cspBuilder.Add("script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com");
         }
 
-        // Style source
+        // Style source - allow inline styles and CDN resources
         cspBuilder.Add("style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com");
+
+        // Style source for external stylesheets (explicit for better compatibility)
+        cspBuilder.Add("style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com");
 
         // Font source
         cspBuilder.Add("font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com");

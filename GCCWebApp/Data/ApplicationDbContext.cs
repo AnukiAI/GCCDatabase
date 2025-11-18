@@ -393,7 +393,8 @@ namespace GCCWebApp.Data
 
             modelBuilder.Entity<User>()
                 .HasMany(u => u.Roles)
-                .WithMany(r => r.Users);
+                .WithMany(r => r.Users)
+                .UsingEntity(j => j.ToTable("UserRoles"));
 
             modelBuilder.Entity<Role>()
                 .HasMany(r => r.Permissions)

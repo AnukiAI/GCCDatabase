@@ -679,3 +679,5 @@ pwsh playwright.ps1 install
 **Testing Status**: 624+ tests, 87% pass rate (expected 95% after Playwright install)
 **Database**: ANUKI01 configured, migrations pending
 **Documentation**: Comprehensive setup, requirements, and traceability complete
+- Require proper authentication always
+- the emails have to be unique. it should only be swest@anukiconsulting.com for admin. use different test emails from others.

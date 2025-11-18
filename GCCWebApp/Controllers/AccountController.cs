@@ -4,12 +4,15 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using QRCoder;
+using BCrypt.Net;
 using GCCWebApp.Configuration;
 using GCCWebApp.Services;
 using GCCWebApp.Models;
+using GCCWebApp.Data;
 
 namespace GCCWebApp.Controllers
 {
@@ -21,23 +24,26 @@ namespace GCCWebApp.Controllers
         private readonly IConfiguration _configuration;
         private readonly IEnhancedTwoFactorService _twoFactorService;
         private readonly IEmailService _emailService;
+        private readonly ApplicationDbContext _context;
 
         public AccountController(
-            ILogger<AccountController> logger, 
-            IOptions<AzureAdB2COptions>? azureAdB2COptions, 
+            ILogger<AccountController> logger,
+            IOptions<AzureAdB2COptions>? azureAdB2COptions,
             IConfiguration configuration,
             IEnhancedTwoFactorService twoFactorService,
-            IEmailService emailService)
+            IEmailService emailService,
+            ApplicationDbContext context)
         {
             _logger = logger;
             _azureAdB2COptions = azureAdB2COptions?.Value;
             _configuration = configuration;
             _twoFactorService = twoFactorService;
             _emailService = emailService;
-            
+            _context = context;
+
             // Check if Azure AD B2C is properly configured
-            _isAzureAdB2CConfigured = _azureAdB2COptions != null && 
-                !string.IsNullOrEmpty(_azureAdB2COptions.ClientId) && 
+            _isAzureAdB2CConfigured = _azureAdB2COptions != null &&
+                !string.IsNullOrEmpty(_azureAdB2COptions.ClientId) &&
                 !_azureAdB2COptions.ClientId.Contains("{") &&
                 !string.IsNullOrEmpty(_azureAdB2COptions.TenantId) &&
                 !_azureAdB2COptions.TenantId.Contains("{");
@@ -644,42 +650,51 @@ namespace GCCWebApp.Controllers
 
         private string ValidateUser(string email, string password)
         {
-            // Check if test mode is enabled
-            var isTestMode = _configuration.GetValue<bool>("Authentication:EnableTestMode");
-            
-            if (isTestMode)
+            try
             {
-                // Load test users from environment variables for security
-                var testUsers = new Dictionary<string, (string password, string role)>
-                {
-                    { "admin@test.com", (Environment.GetEnvironmentVariable("GCC_TEST_ADMIN_PASSWORD") ?? "admin", "Admin") },
-                    { "analyst@test.com", (Environment.GetEnvironmentVariable("GCC_TEST_ANALYST_PASSWORD") ?? "analyst", "Analyst") },
-                    { "external@test.com", (Environment.GetEnvironmentVariable("GCC_TEST_EXTERNAL_PASSWORD") ?? "external", "External") },
-                    { "public@test.com", (Environment.GetEnvironmentVariable("GCC_TEST_PUBLIC_PASSWORD") ?? "public", "Public") }
-                };
+                // Query database for user by email OR username
+                var user = _context.Users
+                    .Include(u => u.Roles)
+                    .FirstOrDefault(u => u.Email == email || u.Username == email);
 
-                if (testUsers.TryGetValue(email.ToLowerInvariant(), out var user) && user.password == password)
+                // User not found
+                if (user == null)
                 {
-                    _logger.LogInformation("Test user {Email} authenticated with role {Role}", email, user.role);
-                    return user.role;
+                    _logger.LogWarning("Login attempt failed: User not found for email/username: {Email}", email);
+                    return string.Empty;
                 }
-            }
-            
-            // Fallback to hardcoded test users for backward compatibility
-            var fallbackUsers = new Dictionary<string, (string password, string role)>
-            {
-                { "admin@greencirclecertified.com", ("Admin123!", "Admin") },
-                { "analyst@greencirclecertified.com", ("Analyst123!", "Analyst") },
-                { "partner@amazon.com", ("Partner123!", "External") },
-                { "user@test.com", ("User123!", "Public") }
-            };
 
-            if (fallbackUsers.TryGetValue(email.ToLower(), out var userData) && userData.password == password)
-            {
-                return userData.role;
-            }
+                // Check if user is active
+                if (!user.IsActive || user.IsDeleted || user.Status != "active")
+                {
+                    _logger.LogWarning("Login attempt failed: User {Email} is not active (IsActive={IsActive}, IsDeleted={IsDeleted}, Status={Status})",
+                        email, user.IsActive, user.IsDeleted, user.Status);
+                    return string.Empty;
+                }
 
-            return string.Empty; // Invalid credentials
+                // Verify password using BCrypt
+                if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+                {
+                    _logger.LogWarning("Login attempt failed: Invalid password for user: {Email}", email);
+                    return string.Empty;
+                }
+
+                // Get user's primary role
+                var role = user.Roles.FirstOrDefault()?.Name ?? "Public";
+
+                _logger.LogInformation("User {Email} successfully authenticated with role {Role}", email, role);
+
+                // Update last login timestamp
+                user.LastLoginAt = DateTime.UtcNow;
+                _context.SaveChanges();
+
+                return role;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating user {Email}", email);
+                return string.Empty;
+            }
         }
 
         private async Task SignInUser(string email, string role, bool rememberMe)

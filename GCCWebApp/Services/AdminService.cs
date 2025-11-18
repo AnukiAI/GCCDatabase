@@ -63,7 +63,7 @@ namespace GCCWebApp.Services
                     Id = u.Id,
                     Name = u.FullName ?? u.Username,
                     Email = u.Email,
-                    Role = u.Roles.FirstOrDefault()!.Name ?? "user",
+                    Role = u.Roles.FirstOrDefault() != null ? u.Roles.FirstOrDefault()!.Name : "Public",
                     Status = u.IsActive ? "active" : "inactive",
                     CompanyNames = u.Companies.Select(c => c.Name).ToList(),
                     PartnerNames = u.Partners.Select(p => p.Name).ToList(),

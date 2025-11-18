@@ -22,6 +22,7 @@ namespace GCCWebApp.Data
         public DbSet<CustomFieldValue> CustomFieldValues { get; set; }
         public DbSet<CertificateDocument> CertificateDocuments { get; set; }
         public DbSet<CertificateProductId> CertificateProductIds { get; set; }
+        public DbSet<CertificateStatusHistory> CertificateStatusHistory { get; set; }
 
         // Product related entities
         public DbSet<ProductCategory> ProductCategories { get; set; }
@@ -555,6 +556,35 @@ namespace GCCWebApp.Data
                     .WithMany()
                     .HasForeignKey(e => e.UpdatedBy)
                     .OnDelete(DeleteBehavior.NoAction);
+            });
+
+            // Certificate Status History configuration
+            modelBuilder.Entity<CertificateStatusHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // Performance indexes for status history queries
+                entity.HasIndex(e => e.CertificateId);
+                entity.HasIndex(e => e.ChangedBy);
+                entity.HasIndex(e => e.ChangedAt);
+                entity.HasIndex(e => e.NewStatus);
+                entity.HasIndex(e => e.PreviousStatus);
+
+                // Composite indexes for complex queries
+                entity.HasIndex(e => new { e.CertificateId, e.ChangedAt });
+                entity.HasIndex(e => new { e.CertificateId, e.NewStatus });
+                entity.HasIndex(e => new { e.ChangedAt, e.NewStatus });
+
+                // Relationships
+                entity.HasOne(e => e.Certificate)
+                    .WithMany(c => c.StatusHistory)
+                    .HasForeignKey(e => e.CertificateId)
+                    .OnDelete(DeleteBehavior.Cascade); // Delete history when certificate is deleted
+
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.ChangedBy)
+                    .OnDelete(DeleteBehavior.NoAction); // Don't delete history when user is deleted
             });
         }
     }

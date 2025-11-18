@@ -1,0 +1,271 @@
+Warning! The maximum key length for a clustered index is 900 bytes. The index 'PK_CertificateAggregates' has maximum length of 908 bytes. For some combination of large values, the insert/update operation will fail.
+Msg 1934, Level 16, State 1, Server ACCUSQL2019, Line 1
+CREATE INDEX failed because the following SET options have incorrect settings: 'QUOTED_IDENTIFIER'. Verify that SET options are correct for use with indexed views and/or indexes on computed columns and/or filtered indexes and/or query notifications and/or XML data type methods and/or spatial index operations.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ApiKeys" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateAggregates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateDocuments" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateDocuments" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateDocuments" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateProductIds" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Certificates" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateTag" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificationTypes" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Companies" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Companies" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Companies" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Companies" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Companies" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Companies" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Companies" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CompanyUser" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CustomFields" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CustomFieldValues" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CustomFieldValues" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ETLAlerts" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ETLAlerts" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ETLConfigurations" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ETLDataQualityIssues" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ETLDataQualityIssues" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ETLLogEntries" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ETLLogEntries" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Partners" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Partners" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Partners" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Partners" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Partners" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "PartnerUser" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "PermissionRole" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Permissions" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ProductCategories" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ProductIdentifiers" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Products" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Products" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Products" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Products" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Products" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Products" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Products" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Products" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Products" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Products" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ProductSubcategories" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ProductTag" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ProductTypes" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "ProductTypes" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Roles" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "RoleUser" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Tags" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Users" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Users" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Users" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Users" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Users" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Users" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Users" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "Users" because it does not exist or you do not have permissions.
+
+(1 rows affected)
+Msg 3902, Level 16, State 1, Server ACCUSQL2019, Line 2
+The COMMIT TRANSACTION request has no corresponding BEGIN TRANSACTION.
+Msg 4902, Level 16, State 1, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificationTypes" because it does not exist or you do not have permissions.
+Msg 4902, Level 16, State 1, Server ACCUSQL2019, Line 13
+Cannot find the object "ApiKeys" because it does not exist or you do not have permissions.
+
+(1 rows affected)
+Msg 208, Level 16, State 1, Server ACCUSQL2019, Line 9
+Invalid object name 'Certificates'.
+
+(1 rows affected)
+Msg 4902, Level 16, State 1, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificationTypes" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificationTypes" because it does not exist or you do not have permissions.
+Msg 4902, Level 16, State 1, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificationTypes" because it does not exist or you do not have permissions.
+Msg 208, Level 16, State 1, Server ACCUSQL2019, Line 8
+Invalid object name 'CertificationTypes'.
+
+(1 rows affected)
+Msg 3902, Level 16, State 1, Server ACCUSQL2019, Line 2
+The COMMIT TRANSACTION request has no corresponding BEGIN TRANSACTION.
+Msg 208, Level 16, State 1, Server ACCUSQL2019, Line 7
+Invalid object name 'CertificationTypes'.
+
+(1 rows affected)
+Msg 2714, Level 16, State 6, Server ACCUSQL2019, Line 7
+There is already an object named 'AmazonApiSettings' in the database.
+Msg 2714, Level 16, State 6, Server ACCUSQL2019, Line 7
+There is already an object named 'AmazonSyncHistory' in the database.
+
+(1 rows affected)
+Msg 3902, Level 16, State 1, Server ACCUSQL2019, Line 2
+The COMMIT TRANSACTION request has no corresponding BEGIN TRANSACTION.
+Msg 1767, Level 16, State 1, Server ACCUSQL2019, Line 7
+Foreign key 'FK_PartnerApiKeys_Partners_PartnerId' references invalid table 'Partners'.
+Msg 1750, Level 16, State 1, Server ACCUSQL2019, Line 7
+Could not create constraint or index. See previous errors.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "PartnerApiKeys" because it does not exist or you do not have permissions.
+
+(1 rows affected)
+Msg 3902, Level 16, State 1, Server ACCUSQL2019, Line 2
+The COMMIT TRANSACTION request has no corresponding BEGIN TRANSACTION.
+Msg 1767, Level 16, State 1, Server ACCUSQL2019, Line 7
+Foreign key 'FK_GoogleAnalyticsSettings_Users_UpdatedBy' references invalid table 'Users'.
+Msg 1750, Level 16, State 1, Server ACCUSQL2019, Line 7
+Could not create constraint or index. See previous errors.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "GoogleAnalyticsSettings" because it does not exist or you do not have permissions.
+
+(1 rows affected)
+Msg 3902, Level 16, State 1, Server ACCUSQL2019, Line 2
+The COMMIT TRANSACTION request has no corresponding BEGIN TRANSACTION.
+Msg 4902, Level 16, State 1, Server ACCUSQL2019, Line 7
+Cannot find the object "CustomFields" because it does not exist or you do not have permissions.
+
+(1 rows affected)
+Msg 1767, Level 16, State 1, Server ACCUSQL2019, Line 7
+Foreign key 'FK_CertificateStatusHistory_Certificates_CertificateId' references invalid table 'Certificates'.
+Msg 1750, Level 16, State 1, Server ACCUSQL2019, Line 7
+Could not create constraint or index. See previous errors.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateStatusHistory" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateStatusHistory" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateStatusHistory" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateStatusHistory" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateStatusHistory" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateStatusHistory" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateStatusHistory" because it does not exist or you do not have permissions.
+Msg 1088, Level 16, State 12, Server ACCUSQL2019, Line 7
+Cannot find the object "CertificateStatusHistory" because it does not exist or you do not have permissions.
+
+(1 rows affected)
+Msg 3902, Level 16, State 1, Server ACCUSQL2019, Line 2
+The COMMIT TRANSACTION request has no corresponding BEGIN TRANSACTION.

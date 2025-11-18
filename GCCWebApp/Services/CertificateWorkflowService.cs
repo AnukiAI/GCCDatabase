@@ -1,5 +1,8 @@
 using GCCWebApp.Models;
 using GCCWebApp.Repositories;
+using GCCWebApp.Data;
+using Microsoft.AspNetCore.Http;
+using Microsoft.EntityFrameworkCore;
 
 namespace GCCWebApp.Services
 {
@@ -21,15 +24,21 @@ namespace GCCWebApp.Services
         private readonly ICertificateRepository _certificateRepository;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ILogger<CertificateWorkflowService> _logger;
+        private readonly ApplicationDbContext _context;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public CertificateWorkflowService(
             ICertificateRepository certificateRepository,
             IUnitOfWork unitOfWork,
-            ILogger<CertificateWorkflowService> logger)
+            ILogger<CertificateWorkflowService> logger,
+            ApplicationDbContext context,
+            IHttpContextAccessor httpContextAccessor)
         {
             _certificateRepository = certificateRepository;
             _unitOfWork = unitOfWork;
             _logger = logger;
+            _context = context;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         /// <summary>
@@ -80,6 +89,9 @@ namespace GCCWebApp.Services
                 _logger.LogInformation("Certificate {CertificateId} status changed from {OldStatus} to {NewStatus} by user {UserId}",
                     certificateId, oldStatus, newStatus, userId);
 
+                // Log status change to audit trail
+                await LogStatusChangeAsync(certificate, oldStatus, newStatus, userId);
+
                 // Trigger additional business logic based on new status
                 await HandleStatusChangeBusinessLogic(certificate, oldStatus, newStatus, userId);
 
@@ -129,24 +141,34 @@ namespace GCCWebApp.Services
                 {
                     if (certificate.Status == "active" && certificate.ExpirationDate <= expiringDate)
                     {
+                        var oldStatus = certificate.Status;
                         certificate.Status = "expiring_soon";
                         certificate.UpdatedAt = DateTime.UtcNow;
                         await _certificateRepository.UpdateAsync(certificate);
 
                         _logger.LogInformation("Certificate {CertificateNumber} automatically updated to 'expiring_soon' status",
                             certificate.Number);
+
+                        // Log automated status change (using system user ID 0 for automated tasks)
+                        await LogStatusChangeAsync(certificate, oldStatus, "expiring_soon", 0,
+                            "Automated transition: Certificate expires within 30 days", isAutomated: true);
                     }
 
                     // Check for expired certificates
-                    if ((certificate.Status == "active" || certificate.Status == "expiring_soon") && 
+                    if ((certificate.Status == "active" || certificate.Status == "expiring_soon") &&
                         certificate.ExpirationDate <= DateTime.UtcNow)
                     {
+                        var oldStatus = certificate.Status;
                         certificate.Status = "expired";
                         certificate.UpdatedAt = DateTime.UtcNow;
                         await _certificateRepository.UpdateAsync(certificate);
 
                         _logger.LogInformation("Certificate {CertificateNumber} automatically expired",
                             certificate.Number);
+
+                        // Log automated status change (using system user ID 0 for automated tasks)
+                        await LogStatusChangeAsync(certificate, oldStatus, "expired", 0,
+                            "Automated transition: Certificate expiration date reached", isAutomated: true);
                     }
                 }
 
@@ -171,6 +193,62 @@ namespace GCCWebApp.Services
             {
                 _logger.LogError(ex, "Error getting certificate status statistics");
                 return new Dictionary<string, int>();
+            }
+        }
+
+        /// <summary>
+        /// Logs status change to audit trail
+        /// </summary>
+        private async Task LogStatusChangeAsync(Certificate certificate, string oldStatus, string newStatus, int userId, string? reason = null, bool isAutomated = false)
+        {
+            try
+            {
+                var httpContext = _httpContextAccessor.HttpContext;
+
+                var historyEntry = new CertificateStatusHistory
+                {
+                    CertificateId = certificate.Id,
+                    CertificateNumber = certificate.Number,
+                    PreviousStatus = oldStatus,
+                    NewStatus = newStatus,
+                    Reason = reason,
+                    ChangedBy = userId,
+                    ChangedAt = DateTime.UtcNow,
+                    IsAutomatedTransition = isAutomated,
+                    ChangeSource = isAutomated ? "Automated" : "Manual",
+                    IpAddress = httpContext?.Connection?.RemoteIpAddress?.ToString(),
+                    UserAgent = httpContext?.Request?.Headers["User-Agent"].ToString()
+                };
+
+                // Get user details for denormalization
+                var user = await _context.Users.FindAsync(userId);
+                if (user != null)
+                {
+                    historyEntry.ChangedByUsername = user.Username;
+                }
+
+                // Calculate duration in previous status
+                var previousStatusEntry = await _context.CertificateStatusHistory
+                    .Where(h => h.CertificateId == certificate.Id)
+                    .OrderByDescending(h => h.ChangedAt)
+                    .FirstOrDefaultAsync();
+
+                if (previousStatusEntry != null)
+                {
+                    var duration = (DateTime.UtcNow - previousStatusEntry.ChangedAt).TotalDays;
+                    historyEntry.DurationInPreviousStatus = (int)Math.Round(duration);
+                }
+
+                _context.CertificateStatusHistory.Add(historyEntry);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Status history logged for certificate {CertificateNumber}: {OldStatus} -> {NewStatus}",
+                    certificate.Number, oldStatus, newStatus);
+            }
+            catch (Exception ex)
+            {
+                // Don't fail the status change if logging fails
+                _logger.LogError(ex, "Error logging status change for certificate {CertificateId}", certificate.Id);
             }
         }
 

@@ -1,0 +1,27 @@
+GCC Web Application - Production Deployment
+============================================
+Build Date: Mon 11/17/2025 18:28:02.63
+Environment: Production
+Target Server: 68.71.129.120,1533
+Database: gccwebap_certificates
+============================================
+
+IMPORTANT CHANGES IN THIS DEPLOYMENT:
+- Automatic migrations DISABLED for Production
+- Manual migration management via apply-migrations.cmd
+- Schema locked to dbo
+- Application only validates DB connectivity on startup
+
+DEPLOYMENT STEPS:
+1. Stop the application on AccuWebHosting
+2. Backup current application files
+3. Upload contents of publish-accuweb-production folder
+4. Update appsettings.Production.json with connection string
+5. Restart the application
+6. Verify no auto-migrations occur in logs
+
+DATABASE MANAGEMENT:
+- Schema changes are now manual only
+- Use Database_Scripts\apply-migrations.cmd when needed
+- See Database_Scripts\README_DATABASE_SETUP.md
+

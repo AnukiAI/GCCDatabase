@@ -641,9 +641,71 @@ class UserManagement {
         }
     }
 
-    showImportModal() {
-        // TODO: Implement import functionality
-        this.showNotification('Import functionality coming soon', 'info');
+    async showImportModal() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                // Get anti-forgery token
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                if (token) {
+                    formData.append('__RequestVerificationToken', token);
+                }
+
+                try {
+                    this.showNotification('Importing users...', 'info');
+                    this.showLoading(true, 'Importing users...');
+
+                    const response = await fetch('/Admin/ImportUsers', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'RequestVerificationToken': token
+                        }
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        this.showNotification(result.message || 'Users imported successfully', 'success');
+
+                        // Show detailed results if there are errors
+                        if (result.data && result.data.errors && result.data.errors.length > 0) {
+                            let errorMsg = `Import completed with ${result.data.successCount} successes and ${result.data.errorCount} errors.\n\nFirst errors:\n`;
+                            errorMsg += result.data.errors.slice(0, 5).join('\n');
+                            if (result.data.errors.length > 5) {
+                                errorMsg += `\n... and ${result.data.errors.length - 5} more`;
+                            }
+                            console.warn('Import errors:', result.data.errors);
+
+                            await AdminCore.showConfirmation({
+                                title: 'Import Results',
+                                message: errorMsg,
+                                confirmText: 'OK',
+                                type: 'warning'
+                            });
+                        }
+
+                        // Reload users
+                        await this.loadUsers();
+                        this.renderUsers();
+                    } else {
+                        this.showNotification(result.message || 'Import failed', 'error');
+                    }
+                } catch (error) {
+                    console.error('Import error:', error);
+                    this.showNotification('Error importing users', 'error');
+                } finally {
+                    this.showLoading(false);
+                }
+            }
+        };
+        input.click();
     }
     
     showLoading(show, message = 'Loading...') {

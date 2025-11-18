@@ -1,12 +1,41 @@
 -- ============================================
 -- GCC Complete Test Data Seeding Script
 -- ============================================
--- This script seeds COMPLETE test data for development/test environments
--- Includes: 175+ certificates, 28 companies, 43 products, 15 users
+-- This script CLEANS and seeds COMPLETE test data for development/test/production environments
+--
+-- IMPORTANT: This script DELETES ALL EXISTING DATA before seeding!
+--
+-- What it does:
+-- 1. Deletes all existing data (in correct FK order)
+-- 2. Seeds fresh data: 175+ certificates, 28 companies, 43 products, 15 users
+--
+-- Includes:
+-- - Product Categories (6)
+-- - Certification Types (5)
+-- - Partners (3)
+-- - Companies (28)
+-- - Product Types (17)
+-- - Products (43)
+-- - Roles (4)
+-- - Permissions (14)
+-- - Users (15)
+-- - Certificates (175+)
+-- - Tags (10)
+-- - Role/Permission assignments
+--
 -- Based on: Data/SeedData.cs
 -- Database: SQL Server
--- Safe to run multiple times (idempotent)
+-- Safe to run multiple times (idempotent with cleanup)
 -- ============================================
+
+SET ANSI_NULLS ON;
+GO
+SET QUOTED_IDENTIFIER ON;
+GO
+SET ANSI_PADDING ON;
+GO
+SET ANSI_WARNINGS ON;
+GO
 
 SET NOCOUNT ON;
 GO
@@ -20,6 +49,99 @@ PRINT '';
 BEGIN TRANSACTION;
 
 BEGIN TRY
+
+-- ============================================
+-- CLEANUP EXISTING DATA (for clean migration)
+-- ============================================
+PRINT '============================================';
+PRINT 'STEP 0: Cleaning existing data...';
+PRINT '============================================';
+PRINT '';
+
+-- Delete in correct order (child tables first, respecting foreign keys)
+
+-- Certificate-related junction tables and dependencies
+PRINT '0.1. Cleaning certificate dependencies...';
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CertificateProductIds')
+    DELETE FROM dbo.CertificateProductIds;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CertificateTags')
+    DELETE FROM dbo.CertificateTags;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CertificateStatusHistory')
+    DELETE FROM dbo.CertificateStatusHistory;
+PRINT '✓ Certificate dependencies cleaned';
+PRINT '';
+
+-- Certificates (depends on Companies, Products, CertificationTypes)
+PRINT '0.2. Cleaning certificates...';
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Certificates')
+    DELETE FROM dbo.Certificates;
+PRINT '✓ Certificates cleaned';
+PRINT '';
+
+-- User-related junction tables
+PRINT '0.3. Cleaning user and role dependencies...';
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'RoleUser')
+    DELETE FROM dbo.RoleUser;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'PermissionRole')
+    DELETE FROM dbo.PermissionRole;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'ApiKeys')
+    DELETE FROM dbo.ApiKeys;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'PartnerApiKeys')
+    DELETE FROM dbo.PartnerApiKeys;
+PRINT '✓ User and role dependencies cleaned';
+PRINT '';
+
+-- Users, Roles, Permissions
+PRINT '0.4. Cleaning users, roles, and permissions...';
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Users')
+    DELETE FROM dbo.Users;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Roles')
+    DELETE FROM dbo.Roles;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Permissions')
+    DELETE FROM dbo.Permissions;
+PRINT '✓ Users, roles, and permissions cleaned';
+PRINT '';
+
+-- Products (depends on Companies, ProductTypes, ProductCategories)
+PRINT '0.5. Cleaning products...';
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Products')
+    DELETE FROM dbo.Products;
+PRINT '✓ Products cleaned';
+PRINT '';
+
+-- Companies
+PRINT '0.6. Cleaning companies...';
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Companies')
+    DELETE FROM dbo.Companies;
+PRINT '✓ Companies cleaned';
+PRINT '';
+
+-- Product Types (depends on ProductCategories)
+PRINT '0.7. Cleaning product types...';
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'ProductTypes')
+    DELETE FROM dbo.ProductTypes;
+PRINT '✓ Product types cleaned';
+PRINT '';
+
+-- Lookup tables (no dependencies)
+PRINT '0.8. Cleaning lookup tables...';
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Tags')
+    DELETE FROM dbo.Tags;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CertificationTypes')
+    DELETE FROM dbo.CertificationTypes;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'Partners')
+    DELETE FROM dbo.Partners;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'ProductCategories')
+    DELETE FROM dbo.ProductCategories;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'CertificateFields')
+    DELETE FROM dbo.CertificateFields;
+PRINT '✓ Lookup tables cleaned';
+PRINT '';
+
+PRINT '============================================';
+PRINT 'Cleanup completed - ready for fresh seed';
+PRINT '============================================';
+PRINT '';
 
 -- ============================================
 -- 1. Product Categories
@@ -104,36 +226,36 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Companies)
 BEGIN
     SET IDENTITY_INSERT dbo.Companies ON;
 
-    INSERT INTO dbo.Companies (Id, Name, ContactInfo, Location, Country, IsActive, Website)
+    INSERT INTO dbo.Companies (Id, Name, ContactInfo, Location, Country, IsActive, Website, IsDeleted, CreatedAt, UpdatedAt)
     VALUES
-        (1, 'ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division', 'sustainability@assaabloy.com', 'Berlin, CT', 'United States', 1, NULL),
-        (2, 'Green Products Inc. - Environmental Division', 'contact@greenproducts.com', 'Portland, OR', 'United States', 1, NULL),
-        (3, 'Acme Corporation', 'info@acme.com', 'New York, NY', 'United States', 1, 'https://www.acme.com'),
-        (4, 'Globex Industries', 'sales@globex.com', 'Chicago, IL', 'United States', 1, 'https://www.globex.com'),
-        (5, 'Stark Enterprises', 'hello@stark.com', 'Malibu, CA', 'United States', 1, 'https://www.stark.com'),
-        (6, 'Wayne Technologies', 'contact@waynetech.com', 'Gotham, NY', 'United States', 1, 'https://www.waynetech.com'),
-        (7, 'EcoFlex Manufacturing', 'info@ecoflex.com', 'Austin, TX', 'United States', 1, NULL),
-        (8, 'GAF Materials Corporation', 'green@gaf.com', 'Cedar City, UT', 'United States', 1, NULL),
-        (9, '3M Company', 'sustainability@3m.com', 'St. Paul, MN', 'United States', 1, NULL),
-        (10, 'Shaw Industries Group', 'green@shawinc.com', 'Dalton, GA', 'United States', 1, NULL),
-        (11, 'Mohawk Industries', 'sustainability@mohawkind.com', 'Calhoun, GA', 'United States', 1, NULL),
-        (12, 'Armstrong World Industries', 'green@armstrong.com', 'Lancaster, PA', 'United States', 1, NULL),
-        (13, 'Owens Corning', 'sustainability@owenscorning.com', 'Toledo, OH', 'United States', 1, NULL),
-        (14, 'CertainTeed Corporation', 'sustainability@certainteed.com', 'Malvern, PA', 'United States', 1, NULL),
-        (15, 'Johns Manville', 'environmental@jm.com', 'Denver, CO', 'United States', 1, NULL),
-        (16, 'Kingspan Insulation', 'green@kingspan.com', 'Atlanta, GA', 'United States', 1, NULL),
-        (17, 'Hunter Douglas', 'sustainability@hunterdouglas.com', 'Pearl River, NY', 'United States', 1, NULL),
-        (18, 'Steelcase Inc.', 'sustainability@steelcase.com', 'Grand Rapids, MI', 'United States', 1, NULL),
-        (19, 'Herman Miller Inc.', 'green@hermanmiller.com', 'Zeeland, MI', 'United States', 1, NULL),
-        (20, 'Knoll Inc.', 'sustainability@knoll.com', 'East Greenville, PA', 'United States', 1, NULL),
-        (21, 'Teknion Corporation', 'environmental@teknion.com', 'Toronto, ON', 'Canada', 1, NULL),
-        (22, 'Forbo Flooring Systems', 'sustainability@forbo.com', 'Hazleton, PA', 'United States', 1, NULL),
-        (23, 'Tarkett USA Inc.', 'green@tarkett.com', 'Solon, OH', 'United States', 1, NULL),
-        (24, 'Milliken & Company', 'sustainability@milliken.com', 'Spartanburg, SC', 'United States', 1, NULL),
-        (25, 'USG Corporation', 'environmental@usg.com', 'Chicago, IL', 'United States', 1, NULL),
-        (26, 'Lutron Electronics', 'sustainability@lutron.com', 'Coopersburg, PA', 'United States', 1, NULL),
-        (27, 'Philips Lighting', 'green@philips.com', 'Somerset, NJ', 'United States', 1, NULL),
-        (28, 'Cree Lighting', 'sustainability@cree.com', 'Durham, NC', 'United States', 1, NULL);
+        (1, 'ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division', 'sustainability@assaabloy.com', 'Berlin, CT', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (2, 'Green Products Inc. - Environmental Division', 'contact@greenproducts.com', 'Portland, OR', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (3, 'Acme Corporation', 'info@acme.com', 'New York, NY', 'United States', 1, 'https://www.acme.com', 0, GETDATE(), GETDATE()),
+        (4, 'Globex Industries', 'sales@globex.com', 'Chicago, IL', 'United States', 1, 'https://www.globex.com', 0, GETDATE(), GETDATE()),
+        (5, 'Stark Enterprises', 'hello@stark.com', 'Malibu, CA', 'United States', 1, 'https://www.stark.com', 0, GETDATE(), GETDATE()),
+        (6, 'Wayne Technologies', 'contact@waynetech.com', 'Gotham, NY', 'United States', 1, 'https://www.waynetech.com', 0, GETDATE(), GETDATE()),
+        (7, 'EcoFlex Manufacturing', 'info@ecoflex.com', 'Austin, TX', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (8, 'GAF Materials Corporation', 'green@gaf.com', 'Cedar City, UT', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (9, '3M Company', 'sustainability@3m.com', 'St. Paul, MN', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (10, 'Shaw Industries Group', 'green@shawinc.com', 'Dalton, GA', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (11, 'Mohawk Industries', 'sustainability@mohawkind.com', 'Calhoun, GA', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (12, 'Armstrong World Industries', 'green@armstrong.com', 'Lancaster, PA', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (13, 'Owens Corning', 'sustainability@owenscorning.com', 'Toledo, OH', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (14, 'CertainTeed Corporation', 'sustainability@certainteed.com', 'Malvern, PA', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (15, 'Johns Manville', 'environmental@jm.com', 'Denver, CO', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (16, 'Kingspan Insulation', 'green@kingspan.com', 'Atlanta, GA', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (17, 'Hunter Douglas', 'sustainability@hunterdouglas.com', 'Pearl River, NY', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (18, 'Steelcase Inc.', 'sustainability@steelcase.com', 'Grand Rapids, MI', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (19, 'Herman Miller Inc.', 'green@hermanmiller.com', 'Zeeland, MI', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (20, 'Knoll Inc.', 'sustainability@knoll.com', 'East Greenville, PA', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (21, 'Teknion Corporation', 'environmental@teknion.com', 'Toronto, ON', 'Canada', 1, NULL, 0, GETDATE(), GETDATE()),
+        (22, 'Forbo Flooring Systems', 'sustainability@forbo.com', 'Hazleton, PA', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (23, 'Tarkett USA Inc.', 'green@tarkett.com', 'Solon, OH', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (24, 'Milliken & Company', 'sustainability@milliken.com', 'Spartanburg, SC', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (25, 'USG Corporation', 'environmental@usg.com', 'Chicago, IL', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (26, 'Lutron Electronics', 'sustainability@lutron.com', 'Coopersburg, PA', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (27, 'Philips Lighting', 'green@philips.com', 'Somerset, NJ', 'United States', 1, NULL, 0, GETDATE(), GETDATE()),
+        (28, 'Cree Lighting', 'sustainability@cree.com', 'Durham, NC', 'United States', 1, NULL, 0, GETDATE(), GETDATE());
 
     SET IDENTITY_INSERT dbo.Companies OFF;
     PRINT '✓ 28 Companies created';
@@ -194,55 +316,55 @@ IF NOT EXISTS (SELECT 1 FROM dbo.Products)
 BEGIN
     SET IDENTITY_INSERT dbo.Products ON;
 
-    INSERT INTO dbo.Products (Id, Name, Description, CategoryId, ProductTypeId, CompanyId, IsActive)
+    INSERT INTO dbo.Products (Id, Name, Description, CategoryId, ProductTypeId, CompanyId, IsActive, IsDeleted, CreatedAt, UpdatedAt)
     VALUES
-        (1, '900ET Exit Device Trim with EcoFlex®', 'Exit device trim with sustainable EcoFlex technology', 1, 1, 1, 1),
-        (2, 'Standard Exit Device - Model 9800', 'Commercial grade exit device', 1, 1, 1, 1),
-        (3, 'Heavy-Duty Exit Hardware - Series 2000', 'Heavy-duty commercial exit hardware', 1, 1, 1, 1),
-        (4, 'Commercial Door Closer - DC300', 'Commercial grade door closing mechanism', 1, 1, 1, 1),
-        (5, 'Security Exit Device - EX700', 'High-security exit device system', 1, 1, 1, 1),
-        (6, 'Reusable Water Bottle - Stainless Steel', 'Eco-friendly stainless steel water bottle', 6, NULL, 2, 1),
-        (7, 'Bamboo Coffee Cup with Lid', 'Sustainable bamboo coffee cup', 6, NULL, 2, 1),
-        (8, 'Glass Storage Container Set', 'Reusable glass storage containers', 6, NULL, 2, 1),
-        (9, 'Organic Cotton Tote Bag', 'Sustainable organic cotton tote bag', 5, NULL, 2, 1),
-        (10, '10Gain XP Category 6A Cable', 'High-performance network cable', 2, 6, 4, 1),
-        (11, 'Carbon Negative Carpet Tile', 'Sustainable carpet tiles', 5, 4, 5, 1),
-        (12, '3M VHB Tape', 'Very High Bond structural glazing tape', 1, NULL, 9, 1),
-        (13, 'Shaw Contract Carpet Tile', 'Commercial carpet tile with recycled content', 5, 4, 10, 1),
-        (14, 'Mohawk Hardwood Flooring', 'Sustainable hardwood flooring', 1, 3, 11, 1),
-        (15, 'Armstrong Ceiling Tiles', 'Mineral fiber ceiling tiles', 1, NULL, 12, 1),
-        (16, 'Owens Corning Fiberglas Insulation', 'Pink fiberglass insulation batts', 1, 1, 13, 1),
-        (17, 'LED Light Fixtures', 'Energy-efficient LED lighting', 2, 7, 9, 1),
-        (18, 'Office Chair', 'Ergonomic office seating', 6, 8, 10, 1),
-        (19, 'CertainTeed Fiber Glass Insulation', 'Sustainable fiberglass insulation with recycled content', 1, 1, 14, 1),
-        (20, 'Johns Manville Mineral Wool Insulation', 'Fire-resistant mineral wool insulation', 1, 1, 15, 1),
-        (21, 'Kingspan Kooltherm K5 External Wall Board', 'High-performance insulation board', 1, 1, 16, 1),
-        (22, 'Hunter Douglas Architectural Window Treatments', 'Energy-efficient window coverings', 1, NULL, 17, 1),
-        (23, 'Steelcase Think Ergonomic Office Chair', 'Sustainable office seating with recycled materials', 6, 8, 18, 1),
-        (24, 'Herman Miller Aeron Chair', 'Iconic ergonomic chair with sustainable design', 6, 8, 19, 1),
-        (25, 'Knoll ReGeneration Chair', 'Made from recycled materials', 6, 8, 20, 1),
-        (26, 'Teknion District Chair', 'Sustainable office seating solution', 6, 8, 21, 1),
-        (27, 'Forbo Marmoleum Flooring', 'Natural linoleum flooring with low environmental impact', 1, 3, 22, 1),
-        (28, 'Tarkett iQ Surface Flooring', 'Sustainable homogeneous vinyl flooring', 1, 3, 23, 1),
-        (29, 'Milliken Modular Carpet', 'Carbon neutral carpet tiles', 5, 4, 24, 1),
-        (30, 'USG Sheetrock Brand Gypsum Panels', 'Sustainable drywall with recycled content', 1, NULL, 25, 1),
-        (31, 'Lutron Caseta Smart Dimmer Switch', 'Energy-saving smart lighting control', 2, 7, 26, 1),
-        (32, 'Philips LED Tube Light', 'Energy-efficient LED lighting solution', 2, 7, 27, 1),
-        (33, 'Cree LED High Bay Fixture', 'Industrial LED lighting with smart controls', 2, 7, 28, 1),
-        (34, 'Interface Net-Works Carpet Tiles', 'Made from recycled fishing nets', 5, 4, 5, 1),
-        (35, '3M Scotchshield Ultra Safety & Security Window Film', 'Window protection film', 1, NULL, 9, 1),
-        (36, 'Shaw EcoWorx Carpet Backing', 'Recyclable carpet backing system', 5, 4, 10, 1),
-        (37, 'Armstrong Clean Room Ceiling Panels', 'Specialized ceiling tiles for clean environments', 1, NULL, 12, 1),
-        (38, 'GAF TPO Roofing Membrane', 'Single-ply roofing membrane', 1, NULL, 8, 1),
-        (39, 'Superior Essex PowerWise Cable', 'Energy-efficient data center cable', 2, 6, 4, 1);
+        (1, '900ET Exit Device Trim with EcoFlex®', 'Exit device trim with sustainable EcoFlex technology', 1, 1, 1, 1, 0, GETDATE(), GETDATE()),
+        (2, 'Standard Exit Device - Model 9800', 'Commercial grade exit device', 1, 1, 1, 1, 0, GETDATE(), GETDATE()),
+        (3, 'Heavy-Duty Exit Hardware - Series 2000', 'Heavy-duty commercial exit hardware', 1, 1, 1, 1, 0, GETDATE(), GETDATE()),
+        (4, 'Commercial Door Closer - DC300', 'Commercial grade door closing mechanism', 1, 1, 1, 1, 0, GETDATE(), GETDATE()),
+        (5, 'Security Exit Device - EX700', 'High-security exit device system', 1, 1, 1, 1, 0, GETDATE(), GETDATE()),
+        (6, 'Reusable Water Bottle - Stainless Steel', 'Eco-friendly stainless steel water bottle', 6, NULL, 2, 1, 0, GETDATE(), GETDATE()),
+        (7, 'Bamboo Coffee Cup with Lid', 'Sustainable bamboo coffee cup', 6, NULL, 2, 1, 0, GETDATE(), GETDATE()),
+        (8, 'Glass Storage Container Set', 'Reusable glass storage containers', 6, NULL, 2, 1, 0, GETDATE(), GETDATE()),
+        (9, 'Organic Cotton Tote Bag', 'Sustainable organic cotton tote bag', 5, NULL, 2, 1, 0, GETDATE(), GETDATE()),
+        (10, '10Gain XP Category 6A Cable', 'High-performance network cable', 2, 6, 4, 1, 0, GETDATE(), GETDATE()),
+        (11, 'Carbon Negative Carpet Tile', 'Sustainable carpet tiles', 5, 4, 5, 1, 0, GETDATE(), GETDATE()),
+        (12, '3M VHB Tape', 'Very High Bond structural glazing tape', 1, NULL, 9, 1, 0, GETDATE(), GETDATE()),
+        (13, 'Shaw Contract Carpet Tile', 'Commercial carpet tile with recycled content', 5, 4, 10, 1, 0, GETDATE(), GETDATE()),
+        (14, 'Mohawk Hardwood Flooring', 'Sustainable hardwood flooring', 1, 3, 11, 1, 0, GETDATE(), GETDATE()),
+        (15, 'Armstrong Ceiling Tiles', 'Mineral fiber ceiling tiles', 1, NULL, 12, 1, 0, GETDATE(), GETDATE()),
+        (16, 'Owens Corning Fiberglas Insulation', 'Pink fiberglass insulation batts', 1, 1, 13, 1, 0, GETDATE(), GETDATE()),
+        (17, 'LED Light Fixtures', 'Energy-efficient LED lighting', 2, 7, 9, 1, 0, GETDATE(), GETDATE()),
+        (18, 'Office Chair', 'Ergonomic office seating', 6, 8, 10, 1, 0, GETDATE(), GETDATE()),
+        (19, 'CertainTeed Fiber Glass Insulation', 'Sustainable fiberglass insulation with recycled content', 1, 1, 14, 1, 0, GETDATE(), GETDATE()),
+        (20, 'Johns Manville Mineral Wool Insulation', 'Fire-resistant mineral wool insulation', 1, 1, 15, 1, 0, GETDATE(), GETDATE()),
+        (21, 'Kingspan Kooltherm K5 External Wall Board', 'High-performance insulation board', 1, 1, 16, 1, 0, GETDATE(), GETDATE()),
+        (22, 'Hunter Douglas Architectural Window Treatments', 'Energy-efficient window coverings', 1, NULL, 17, 1, 0, GETDATE(), GETDATE()),
+        (23, 'Steelcase Think Ergonomic Office Chair', 'Sustainable office seating with recycled materials', 6, 8, 18, 1, 0, GETDATE(), GETDATE()),
+        (24, 'Herman Miller Aeron Chair', 'Iconic ergonomic chair with sustainable design', 6, 8, 19, 1, 0, GETDATE(), GETDATE()),
+        (25, 'Knoll ReGeneration Chair', 'Made from recycled materials', 6, 8, 20, 1, 0, GETDATE(), GETDATE()),
+        (26, 'Teknion District Chair', 'Sustainable office seating solution', 6, 8, 21, 1, 0, GETDATE(), GETDATE()),
+        (27, 'Forbo Marmoleum Flooring', 'Natural linoleum flooring with low environmental impact', 1, 3, 22, 1, 0, GETDATE(), GETDATE()),
+        (28, 'Tarkett iQ Surface Flooring', 'Sustainable homogeneous vinyl flooring', 1, 3, 23, 1, 0, GETDATE(), GETDATE()),
+        (29, 'Milliken Modular Carpet', 'Carbon neutral carpet tiles', 5, 4, 24, 1, 0, GETDATE(), GETDATE()),
+        (30, 'USG Sheetrock Brand Gypsum Panels', 'Sustainable drywall with recycled content', 1, NULL, 25, 1, 0, GETDATE(), GETDATE()),
+        (31, 'Lutron Caseta Smart Dimmer Switch', 'Energy-saving smart lighting control', 2, 7, 26, 1, 0, GETDATE(), GETDATE()),
+        (32, 'Philips LED Tube Light', 'Energy-efficient LED lighting solution', 2, 7, 27, 1, 0, GETDATE(), GETDATE()),
+        (33, 'Cree LED High Bay Fixture', 'Industrial LED lighting with smart controls', 2, 7, 28, 1, 0, GETDATE(), GETDATE()),
+        (34, 'Interface Net-Works Carpet Tiles', 'Made from recycled fishing nets', 5, 4, 5, 1, 0, GETDATE(), GETDATE()),
+        (35, '3M Scotchshield Ultra Safety & Security Window Film', 'Window protection film', 1, NULL, 9, 1, 0, GETDATE(), GETDATE()),
+        (36, 'Shaw EcoWorx Carpet Backing', 'Recyclable carpet backing system', 5, 4, 10, 1, 0, GETDATE(), GETDATE()),
+        (37, 'Armstrong Clean Room Ceiling Panels', 'Specialized ceiling tiles for clean environments', 1, NULL, 12, 1, 0, GETDATE(), GETDATE()),
+        (38, 'GAF TPO Roofing Membrane', 'Single-ply roofing membrane', 1, NULL, 8, 1, 0, GETDATE(), GETDATE()),
+        (39, 'Superior Essex PowerWise Cable', 'Energy-efficient data center cable', 2, 6, 4, 1, 0, GETDATE(), GETDATE());
 
     -- Add more products to reach 43
-    INSERT INTO dbo.Products (Id, Name, Description, CategoryId, CompanyId, IsActive)
+    INSERT INTO dbo.Products (Id, Name, Description, CategoryId, ProductTypeId, CompanyId, IsActive, IsDeleted, CreatedAt, UpdatedAt)
     VALUES
-        (40, 'EcoFlex Sustainable Packaging', 'Biodegradable packaging materials', 3, 7, 1),
-        (41, 'Green Paper Products - Recycled Copy Paper', 'Office paper with 100% recycled content', 4, 2, 1),
-        (42, 'Sustainable Wood Furniture Collection', 'FSC-certified wood furniture', 6, 18, 1),
-        (43, 'Energy Star Certified Appliances', 'High-efficiency home appliances', 1, 3, 1);
+        (40, 'EcoFlex Sustainable Packaging', 'Biodegradable packaging materials', 3, NULL, 7, 1, 0, GETDATE(), GETDATE()),
+        (41, 'Green Paper Products - Recycled Copy Paper', 'Office paper with 100% recycled content', 4, NULL, 2, 1, 0, GETDATE(), GETDATE()),
+        (42, 'Sustainable Wood Furniture Collection', 'FSC-certified wood furniture', 6, NULL, 18, 1, 0, GETDATE(), GETDATE()),
+        (43, 'Energy Star Certified Appliances', 'High-efficiency home appliances', 1, NULL, 3, 1, 0, GETDATE(), GETDATE());
 
     SET IDENTITY_INSERT dbo.Products OFF;
     PRINT '✓ 43 Products created';
@@ -346,23 +468,23 @@ BEGIN
     -- Note: Password hash is for "TestPass123!" using BCrypt
     DECLARE @PasswordHash NVARCHAR(500) = '$2a$11$WJZ5XqF5KyC5Y8NyN8E9ouKbBZHBqBqPYYnJQXLgTYxNzC6gKFZ5m';
 
-    INSERT INTO dbo.Users (Id, Username, Email, Name, FullName, PasswordHash, Status, TwoFactorMethod, IsActive, IsStaff, IsSuperuser, CreatedAt, UpdatedAt)
+    INSERT INTO dbo.Users (Id, Username, Email, Name, FullName, PasswordHash, Status, TwoFactorMethod, IsActive, IsStaff, IsSuperuser, IsDeleted, RequirePasswordReset, TwoFactorEnabled, IsEmailVerified, IsPhoneVerified, FailedLoginAttempts, MaxConcurrentSessions, MustChangePassword, RequirePasswordChange, MaxPasswordHistory, CreatedAt, UpdatedAt)
     VALUES
-        (1, 'admin', 'admin@gcc.com', 'Admin', 'Admin User', @PasswordHash, 'active', 'Email', 1, 1, 1, GETDATE(), GETDATE()),
-        (2, 'analyst', 'analyst@gcc.com', 'Jane', 'Jane Analyst', @PasswordHash, 'active', 'Email', 1, 1, 0, GETDATE(), GETDATE()),
-        (3, 'external', 'external@company.com', 'External', 'External User', @PasswordHash, 'active', 'Email', 1, 0, 0, GETDATE(), GETDATE()),
-        (4, 'testuser', 'test@gcc.com', 'Test', 'Test User', @PasswordHash, 'active', 'Email', 1, 0, 0, GETDATE(), GETDATE()),
-        (5, 'sarah.johnson', 'sarah.johnson@gcc.com', 'Sarah', 'Sarah Johnson', @PasswordHash, 'active', 'Email', 1, 1, 0, GETDATE(), GETDATE()),
-        (6, 'mike.chen', 'mike.chen@gcc.com', 'Mike', 'Mike Chen', @PasswordHash, 'active', 'Email', 1, 1, 0, GETDATE(), GETDATE()),
-        (7, 'lisa.rodriguez', 'lisa.rodriguez@assaabloy.com', 'Lisa', 'Lisa Rodriguez', @PasswordHash, 'active', 'Email', 1, 0, 0, GETDATE(), GETDATE()),
-        (8, 'david.kim', 'david.kim@3m.com', 'David', 'David Kim', @PasswordHash, 'active', 'Email', 1, 0, 0, GETDATE(), GETDATE()),
-        (9, 'emma.wilson', 'emma.wilson@interface.com', 'Emma', 'Emma Wilson', @PasswordHash, 'active', 'Email', 1, 0, 0, GETDATE(), GETDATE()),
-        (10, 'alex.martinez', 'alex.martinez@steelcase.com', 'Alex', 'Alex Martinez', @PasswordHash, 'active', 'Email', 1, 0, 0, GETDATE(), GETDATE()),
-        (11, 'jennifer.lee', 'jennifer.lee@gcc.com', 'Jennifer', 'Jennifer Lee', @PasswordHash, 'active', 'Email', 1, 1, 0, GETDATE(), GETDATE()),
-        (12, 'robert.taylor', 'robert.taylor@gcc.com', 'Robert', 'Robert Taylor', @PasswordHash, 'active', 'Email', 1, 1, 0, GETDATE(), GETDATE()),
-        (13, 'maria.garcia', 'maria.garcia@mohawkind.com', 'Maria', 'Maria Garcia', @PasswordHash, 'active', 'Email', 1, 0, 0, GETDATE(), GETDATE()),
-        (14, 'public.user', 'public@example.com', 'Public', 'Public User', @PasswordHash, 'active', 'Email', 1, 0, 0, GETDATE(), GETDATE()),
-        (15, 'partner', 'partner@amazon.com', 'Partner', 'Amazon Partner', @PasswordHash, 'active', 'Email', 1, 0, 0, GETDATE(), GETDATE());
+        (1, 'admin', 'admin@gcc.com', 'Admin', 'Admin User', @PasswordHash, 'active', 'Email', 1, 1, 1, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (2, 'analyst', 'analyst@gcc.com', 'Jane', 'Jane Analyst', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (3, 'external', 'external@company.com', 'External', 'External User', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (4, 'testuser', 'test@gcc.com', 'Test', 'Test User', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (5, 'sarah.johnson', 'sarah.johnson@gcc.com', 'Sarah', 'Sarah Johnson', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (6, 'mike.chen', 'mike.chen@gcc.com', 'Mike', 'Mike Chen', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (7, 'lisa.rodriguez', 'lisa.rodriguez@assaabloy.com', 'Lisa', 'Lisa Rodriguez', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (8, 'david.kim', 'david.kim@3m.com', 'David', 'David Kim', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (9, 'emma.wilson', 'emma.wilson@interface.com', 'Emma', 'Emma Wilson', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (10, 'alex.martinez', 'alex.martinez@steelcase.com', 'Alex', 'Alex Martinez', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (11, 'jennifer.lee', 'jennifer.lee@gcc.com', 'Jennifer', 'Jennifer Lee', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (12, 'robert.taylor', 'robert.taylor@gcc.com', 'Robert', 'Robert Taylor', @PasswordHash, 'active', 'Email', 1, 1, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (13, 'maria.garcia', 'maria.garcia@mohawkind.com', 'Maria', 'Maria Garcia', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (14, 'public.user', 'public@example.com', 'Public', 'Public User', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE()),
+        (15, 'partner', 'partner@amazon.com', 'Partner', 'Amazon Partner', @PasswordHash, 'active', 'Email', 1, 0, 0, 0, 0, 0, 1, 0, 0, 3, 0, 0, 5, GETDATE(), GETDATE());
 
     SET IDENTITY_INSERT dbo.Users OFF;
     PRINT '✓ 15 Users created';
@@ -562,14 +684,14 @@ IF NOT EXISTS (SELECT 1 FROM dbo.ApiKeys)
 BEGIN
     SET IDENTITY_INSERT dbo.ApiKeys ON;
 
-    INSERT INTO dbo.ApiKeys (Id, Name, [Key], KeyHash, Description, CreatedBy, IsActive, CreatedAt, LastUsedAt, ExpiresAt, Environment, Scopes, RateLimitPerHour)
+    INSERT INTO dbo.ApiKeys (Id, Name, [Key], KeyHash, Description, CreatedBy, IsActive, CreatedAt, LastUsedAt, ExpiresAt, Environment, Scopes, RateLimitPerMinute, RateLimitPerHour, RateLimitPerDay, RequireTLS, MaxConcurrentRequests, SecurityViolationCount, IsTemporarilyBlocked, RequestCount)
     VALUES
         (1, 'Integration Test Key', 'gcc_test_key_1234567890abcdef', 'test_key_hash_1234567890abcdef',
-         'API key for integration testing', 'admin', 1, GETDATE(), GETDATE(), DATEADD(YEAR, 1, GETDATE()), 'Development', 'read,write,admin', 10000),
+         'API key for integration testing', 'admin', 1, GETDATE(), GETDATE(), DATEADD(YEAR, 1, GETDATE()), 'Development', 'read,write,admin', 60, 10000, 100000, 1, 10, 0, 0, 0),
         (2, 'Partner API Access', 'gcc_partner_key_abcdef1234567890', 'partner_key_hash_abcdef1234567890',
-         'API access for external partners', 'partner', 1, GETDATE(), DATEADD(DAY, -5, GETDATE()), DATEADD(MONTH, 6, GETDATE()), 'Production', 'read', 1000),
+         'API access for external partners', 'partner', 1, GETDATE(), DATEADD(DAY, -5, GETDATE()), DATEADD(MONTH, 6, GETDATE()), 'Production', 'read', 60, 1000, 10000, 1, 10, 0, 0, 0),
         (3, 'Mobile App Key', 'gcc_mobile_key_fedcba0987654321', 'mobile_key_hash_fedcba0987654321',
-         'API key for mobile application', 'analyst', 1, DATEADD(DAY, -30, GETDATE()), DATEADD(HOUR, -2, GETDATE()), DATEADD(MONTH, 3, GETDATE()), 'Production', 'read,write', 5000);
+         'API key for mobile application', 'analyst', 1, DATEADD(DAY, -30, GETDATE()), DATEADD(HOUR, -2, GETDATE()), DATEADD(MONTH, 3, GETDATE()), 'Production', 'read,write', 60, 5000, 50000, 1, 10, 0, 0, 0);
 
     SET IDENTITY_INSERT dbo.ApiKeys OFF;
     PRINT '✓ 3 API Keys created';

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <location path="." inheritInChildApplications="false">
+    <system.webServer>
+      <handlers>
+        <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+      </handlers>
+      <aspNetCore processPath=".\GCCWebApp.exe" arguments="" stdoutLogEnabled="true" stdoutLogFile=".\logs\stdout" hostingModel="inprocess">
+        <environmentVariables>
+          <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Production" />
+          <environmentVariable name="DatabaseProvider" value="SqlServer" />
+          <environmentVariable name="USE_SQL_SERVER" value="true" />
+          <!-- SHOW DETAILED ERRORS -->
+          <environmentVariable name="ASPNETCORE_DETAILEDERRORS" value="true" />
+        </environmentVariables>
+      </aspNetCore>
+      <!-- SHOW ERRORS ON PAGE -->
+      <httpErrors existingResponse="PassThrough" />
+    </system.webServer>
+  </location>
+</configuration>

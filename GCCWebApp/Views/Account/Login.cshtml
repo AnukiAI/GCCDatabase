@@ -475,9 +475,9 @@
                 <form asp-controller="Account" asp-action="Login" asp-route-returnUrl="@ViewData["ReturnUrl"]" method="post">
                     @Html.AntiForgeryToken()
                     <div class="form-group">
-                       <label for="Email" class="form-label">Email Address <span class="text-danger" aria-label="required">*</span></label>
-                       <input asp-for="Email" type="email" id="Email" name="Email" class="form-control" placeholder="Enter your email" required aria-required="true" aria-describedby="email-help" />
-                       <small id="email-help" class="form-text text-muted">We'll never share your email with anyone else.</small>
+                       <label for="Email" class="form-label">Email or Username <span class="text-danger" aria-label="required">*</span></label>
+                       <input asp-for="Email" type="text" id="Email" name="Email" class="form-control" placeholder="Enter your email or username" required aria-required="true" aria-describedby="email-help" />
+                       <small id="email-help" class="form-text text-muted">You can login with either your email address or username.</small>
                        <span asp-validation-for="Email" class="text-danger" role="alert"></span>
                     </div>
 

@@ -1528,6 +1528,18 @@
         <member name="M:GCCWebApp.Migrations.AddSectionToCustomFields.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
+        <member name="T:GCCWebApp.Migrations.AddCertificateStatusHistory">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificateStatusHistory.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificateStatusHistory.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificateStatusHistory.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
         <member name="T:GCCWebApp.Models.Api.CertificateExportRequest">
             <summary>
             Request model for exporting certificates in various formats
@@ -1654,6 +1666,102 @@
         <member name="M:GCCWebApp.Models.CertificateStatusHelper.IsFinalStatus(System.String)">
             <summary>
             Checks if a status represents a final/terminal state
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.CertificateStatusHistory">
+            <summary>
+            Tracks all certificate status transitions for audit trail and compliance.
+            Provides complete history of status changes with timestamps, user info, and reasons.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.Id">
+            <summary>
+            Primary key
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.CertificateId">
+            <summary>
+            Foreign key to Certificate
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.CertificateNumber">
+            <summary>
+            Certificate number (denormalized for query performance)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.PreviousStatus">
+            <summary>
+            Previous status before change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.NewStatus">
+            <summary>
+            New status after change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.Reason">
+            <summary>
+            Reason for status change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.Notes">
+            <summary>
+            Additional notes or comments
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.ChangedBy">
+            <summary>
+            User who made the status change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.ChangedByUsername">
+            <summary>
+            User name (denormalized for query performance)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.ChangedAt">
+            <summary>
+            When the status change occurred
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.IpAddress">
+            <summary>
+            IP address of user who made the change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.UserAgent">
+            <summary>
+            User agent of browser/client
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.ChangeSource">
+            <summary>
+            Source of change: Manual, Automated, API, Import
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.DurationInPreviousStatus">
+            <summary>
+            Duration in previous status (in days)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.IsAutomatedTransition">
+            <summary>
+            Is this an automated transition
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.WorkflowStep">
+            <summary>
+            Related workflow step or action
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.Certificate">
+            <summary>
+            Related certificate
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.User">
+            <summary>
+            User who made the change
             </summary>
         </member>
         <member name="T:GCCWebApp.Models.CertificateViewModel">
@@ -1989,6 +2097,11 @@
         <member name="M:GCCWebApp.Services.CertificateWorkflowService.GetStatusStatisticsAsync">
             <summary>
             Gets statistics for certificate statuses
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateWorkflowService.LogStatusChangeAsync(GCCWebApp.Models.Certificate,System.String,System.String,System.Int32,System.String,System.Boolean)">
+            <summary>
+            Logs status change to audit trail
             </summary>
         </member>
         <member name="M:GCCWebApp.Services.CertificateWorkflowService.HandleStatusChangeBusinessLogic(GCCWebApp.Models.Certificate,System.String,System.String,System.Int32)">

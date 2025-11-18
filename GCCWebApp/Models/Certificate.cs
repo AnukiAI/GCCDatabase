@@ -67,5 +67,8 @@ namespace GCCWebApp.Models
 
         // Product ID relationships - supports multiple ASINs, UPCs, etc.
         public ICollection<CertificateProductId> ProductIds { get; set; } = new List<CertificateProductId>();
+
+        // Status history for audit trail
+        public ICollection<CertificateStatusHistory> StatusHistory { get; set; } = new List<CertificateStatusHistory>();
     }
 }

@@ -147,6 +147,152 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ImportUsers(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "No file provided" });
+            }
+
+            if (!file.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Only CSV files are supported" });
+            }
+
+            try
+            {
+                var successCount = 0;
+                var errorCount = 0;
+                var errors = new List<string>();
+
+                using (var stream = new StreamReader(file.OpenReadStream()))
+                {
+                    var line = await stream.ReadLineAsync(); // Skip header
+                    var lineNumber = 1;
+
+                    while ((line = await stream.ReadLineAsync()) != null)
+                    {
+                        lineNumber++;
+                        try
+                        {
+                            var values = ParseCsvLine(line);
+
+                            if (values.Length < 4) // Minimum required fields
+                            {
+                                errors.Add($"Line {lineNumber}: Insufficient fields");
+                                errorCount++;
+                                continue;
+                            }
+
+                            // CSV Format: Name, Email, Role, Password, CompanyIds (comma-separated)
+                            var model = new CreateUserViewModel
+                            {
+                                Name = values[0],
+                                Email = values[1],
+                                Role = values[2],
+                                Password = values.Length > 3 ? values[3] : "TempPassword123!",
+                                CompanyIds = values.Length > 4 && !string.IsNullOrWhiteSpace(values[4])
+                                    ? values[4].Split(';').Select(int.Parse).ToList()
+                                    : new List<int>(),
+                                RequirePasswordReset = true
+                            };
+
+                            if (string.IsNullOrWhiteSpace(model.Name))
+                            {
+                                errors.Add($"Line {lineNumber}: Name is required");
+                                errorCount++;
+                                continue;
+                            }
+
+                            if (string.IsNullOrWhiteSpace(model.Email))
+                            {
+                                errors.Add($"Line {lineNumber}: Email is required");
+                                errorCount++;
+                                continue;
+                            }
+
+                            var success = await _adminService.CreateUserAsync(model);
+                            if (success)
+                            {
+                                successCount++;
+                            }
+                            else
+                            {
+                                errors.Add($"Line {lineNumber}: Failed to create user (email may already exist)");
+                                errorCount++;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            errors.Add($"Line {lineNumber}: {ex.Message}");
+                            errorCount++;
+                        }
+                    }
+                }
+
+                var message = $"Import completed. {successCount} users imported successfully";
+                if (errorCount > 0)
+                {
+                    message += $", {errorCount} errors occurred";
+                }
+
+                return Json(new ApiResponse<object>
+                {
+                    Success = true,
+                    Data = new { successCount, errorCount, errors = errors.Take(10).ToList() },
+                    Message = message
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = $"Import failed: {ex.Message}"
+                });
+            }
+        }
+
+        private string[] ParseCsvLine(string line)
+        {
+            var values = new List<string>();
+            var current = new System.Text.StringBuilder();
+            var inQuotes = false;
+
+            for (int i = 0; i < line.Length; i++)
+            {
+                var c = line[i];
+
+                if (c == '"')
+                {
+                    if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                    {
+                        // Escaped quote
+                        current.Append('"');
+                        i++;
+                    }
+                    else
+                    {
+                        inQuotes = !inQuotes;
+                    }
+                }
+                else if (c == ',' && !inQuotes)
+                {
+                    values.Add(current.ToString().Trim());
+                    current.Clear();
+                }
+                else
+                {
+                    current.Append(c);
+                }
+            }
+
+            values.Add(current.ToString().Trim());
+            return values.ToArray();
+        }
+
         // Role Management
         public IActionResult RoleManagement()
         {

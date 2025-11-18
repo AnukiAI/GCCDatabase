@@ -1,0 +1,614 @@
+{
+  "info": {
+    "name": "GCC Web API v1.1",
+    "description": "Complete Postman collection for Green Circle Certified Web Application API\n\n**Features:**\n- Authentication examples (API Key, JWT, Cookie)\n- Certificate CRUD operations\n- Bulk operations\n- Health monitoring\n- Error handling examples\n- Rate limiting demonstrations\n\n**Getting Started:**\n1. Set up environment variables\n2. Run authentication requests to get tokens\n3. Test individual endpoints\n4. Try bulk operations\n5. Monitor health status\n\n**Environment Variables Required:**\n- `base_url` - API base URL (e.g., https://api.greencirclecertified.com)\n- `api_key` - Your API key\n- `username` - Your username\n- `password` - Your password",
+    "version": "1.1.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "apikey",
+    "apikey": [
+      {
+        "key": "key",
+        "value": "X-API-Key",
+        "type": "string"
+      },
+      {
+        "key": "value",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-set request timestamp",
+          "pm.environment.set('timestamp', new Date().toISOString());"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Global test scripts",
+          "pm.test('Response time is less than 2000ms', function () {",
+          "    pm.expect(pm.response.responseTime).to.be.below(2000);",
+          "});",
+          "",
+          "pm.test('Response has standard API format', function () {",
+          "    if (pm.response.headers.get('content-type').includes('application/json')) {",
+          "        const jsonData = pm.response.json();",
+          "        pm.expect(jsonData).to.have.property('success');",
+          "        pm.expect(jsonData).to.have.property('timestamp');",
+          "        pm.expect(jsonData).to.have.property('requestId');",
+          "        pm.expect(jsonData).to.have.property('version');",
+          "    }",
+          "});",
+          "",
+          "// Check rate limit headers",
+          "pm.test('Rate limit headers present', function () {",
+          "    if (pm.request.url.path.includes('api')) {",
+          "        pm.expect(pm.response.headers.get('X-RateLimit-Limit')).to.exist;",
+          "        pm.expect(pm.response.headers.get('X-RateLimit-Remaining')).to.exist;",
+          "    }",
+          "});"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5101",
+      "type": "string"
+    },
+    {
+      "key": "api_version",
+      "value": "v1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "description": "Authentication and authorization endpoints",
+      "item": [
+        {
+          "name": "Login with Credentials",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Login successful', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.have.property('accessToken');",
+                  "    ",
+                  "    // Store tokens for future requests",
+                  "    pm.environment.set('access_token', jsonData.data.accessToken);",
+                  "    pm.environment.set('refresh_token', jsonData.data.refreshToken);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "login"]
+            },
+            "description": "Authenticate with username and password to receive JWT tokens"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "auth", "refresh"]
+            }
+          }
+        },
+        {
+          "name": "Create API Key",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('API Key created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.have.property('key');",
+                  "    ",
+                  "    // Store the new API key",
+                  "    pm.environment.set('new_api_key', jsonData.data.key);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Postman Test Key\",\n  \"description\": \"API key created from Postman collection for testing\",\n  \"expiresAt\": \"2025-12-31T23:59:59Z\",\n  \"allowedIPs\": [],\n  \"scopes\": \"read,write\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/apikeys",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "apikeys"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Certificates",
+      "description": "Certificate management operations",
+      "item": [
+        {
+          "name": "Get All Certificates",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates?pageNumber=1&pageSize=20&searchTerm=&sortBy=issuedate&sortDescending=false",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates"],
+              "query": [
+                {
+                  "key": "pageNumber",
+                  "value": "1",
+                  "description": "Page number (1-based)"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "20",
+                  "description": "Number of items per page (1-100)"
+                },
+                {
+                  "key": "searchTerm",
+                  "value": "",
+                  "description": "Search across certificate number, product, company"
+                },
+                {
+                  "key": "sortBy",
+                  "value": "issuedate",
+                  "description": "Sort field: certificatenumber|issuedate|expirationdate|productname|companyname"
+                },
+                {
+                  "key": "sortDescending",
+                  "value": "false",
+                  "description": "Sort direction"
+                }
+              ]
+            },
+            "description": "Retrieve paginated list of certificates with optional filtering and sorting"
+          }
+        },
+        {
+          "name": "Get Certificate by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates", "1"]
+            },
+            "description": "Get detailed information for a specific certificate by ID"
+          }
+        },
+        {
+          "name": "Get Certificate by Number",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates/number/24-0001",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates", "number", "24-0001"]
+            },
+            "description": "Get certificate by certificate number"
+          }
+        },
+        {
+          "name": "Search Certificates",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates/search?term=paper&status=Active&pageNumber=1&pageSize=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates", "search"],
+              "query": [
+                {
+                  "key": "term",
+                  "value": "paper",
+                  "description": "Search term"
+                },
+                {
+                  "key": "status",
+                  "value": "Active",
+                  "description": "Certificate status filter"
+                },
+                {
+                  "key": "pageNumber",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Advanced search with multiple criteria"
+          }
+        },
+        {
+          "name": "Create Certificate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Certificate created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.success).to.be.true;",
+                  "    pm.expect(jsonData.data).to.have.property('id');",
+                  "    ",
+                  "    // Store ID for future operations",
+                  "    pm.environment.set('created_certificate_id', jsonData.data.id);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"number\": \"TEST-{{$randomInt}}\",\n  \"productId\": 1,\n  \"companyId\": 1,\n  \"certificationTypeId\": 1,\n  \"effectiveDate\": \"2024-01-01T00:00:00Z\",\n  \"expirationDate\": \"2025-01-01T00:00:00Z\",\n  \"status\": \"Active\",\n  \"partner\": \"None\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates"]
+            },
+            "description": "Create a new certificate"
+          }
+        },
+        {
+          "name": "Update Certificate",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"id\": {{created_certificate_id}},\n  \"number\": \"TEST-UPDATED-{{$randomInt}}\",\n  \"productId\": 1,\n  \"companyId\": 1,\n  \"certificationTypeId\": 1,\n  \"effectiveDate\": \"2024-01-01T00:00:00Z\",\n  \"expirationDate\": \"2025-06-01T00:00:00Z\",\n  \"status\": \"Active\",\n  \"partner\": \"None\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates/{{created_certificate_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates", "{{created_certificate_id}}"]
+            },
+            "description": "Update an existing certificate"
+          }
+        },
+        {
+          "name": "Delete Certificate",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates/{{created_certificate_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates", "{{created_certificate_id}}"]
+            },
+            "description": "Delete a certificate"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔄 Bulk Operations",
+      "description": "Batch processing operations for efficient data management",
+      "item": [
+        {
+          "name": "Bulk Create Certificates",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"number\": \"BULK-{{$randomInt}}\",\n    \"productId\": 1,\n    \"companyId\": 1,\n    \"certificationTypeId\": 1,\n    \"effectiveDate\": \"2024-01-01T00:00:00Z\",\n    \"expirationDate\": \"2025-01-01T00:00:00Z\",\n    \"status\": \"Active\",\n    \"partner\": \"None\"\n  },\n  {\n    \"number\": \"BULK-{{$randomInt}}\",\n    \"productId\": 2,\n    \"companyId\": 1,\n    \"certificationTypeId\": 1,\n    \"effectiveDate\": \"2024-02-01T00:00:00Z\",\n    \"expirationDate\": \"2025-02-01T00:00:00Z\",\n    \"status\": \"Active\",\n    \"partner\": \"Amazon\"\n  }\n]"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates/bulk/create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates", "bulk", "create"]
+            },
+            "description": "Create multiple certificates in a single request (max 100)"
+          }
+        },
+        {
+          "name": "Bulk Validate Certificates",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "[\n  {\n    \"number\": \"VALIDATE-TEST-1\",\n    \"productId\": 1,\n    \"companyId\": 1,\n    \"certificationTypeId\": 1,\n    \"effectiveDate\": \"2024-01-01T00:00:00Z\",\n    \"expirationDate\": \"2025-01-01T00:00:00Z\",\n    \"status\": \"Active\"\n  },\n  {\n    \"number\": \"\",\n    \"productId\": 999,\n    \"companyId\": 1,\n    \"certificationTypeId\": 1,\n    \"effectiveDate\": \"2024-01-01T00:00:00Z\",\n    \"expirationDate\": \"2023-01-01T00:00:00Z\",\n    \"status\": \"Invalid\"\n  }\n]"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates/bulk/validate",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates", "bulk", "validate"]
+            },
+            "description": "Validate multiple certificates without creating them"
+          }
+        },
+        {
+          "name": "Bulk Delete Certificates",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ids\": [1, 2, 3]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates/bulk",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates", "bulk"]
+            },
+            "description": "Delete multiple certificates by ID"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏢 Companies & Products",
+      "description": "Company and product management",
+      "item": [
+        {
+          "name": "Get All Products",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/products",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "products"]
+            }
+          }
+        },
+        {
+          "name": "Get Product by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/products/1",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "products", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Health & Monitoring",
+      "description": "Health checks and system monitoring",
+      "item": [
+        {
+          "name": "Health Check - Complete",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Complete health status with all checks"
+          }
+        },
+        {
+          "name": "Health Check - Readiness",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health/ready",
+              "host": ["{{base_url}}"],
+              "path": ["health", "ready"]
+            },
+            "description": "Readiness probe for load balancers"
+          }
+        },
+        {
+          "name": "Health Check - Liveness",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health/live",
+              "host": ["{{base_url}}"],
+              "path": ["health", "live"]
+            },
+            "description": "Liveness probe for container orchestration"
+          }
+        },
+        {
+          "name": "API Metrics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/metrics",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "metrics"]
+            },
+            "description": "Get API usage metrics"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚨 Error Scenarios",
+      "description": "Examples of error responses and handling",
+      "item": [
+        {
+          "name": "401 - No Authentication",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates"]
+            },
+            "description": "Example of unauthorized access"
+          }
+        },
+        {
+          "name": "404 - Certificate Not Found",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates/999999",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates", "999999"]
+            },
+            "description": "Example of resource not found"
+          }
+        },
+        {
+          "name": "400 - Invalid Data",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"number\": \"\",\n  \"productId\": \"invalid\",\n  \"companyId\": -1,\n  \"effectiveDate\": \"invalid-date\",\n  \"expirationDate\": \"2020-01-01\",\n  \"status\": \"InvalidStatus\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates"]
+            },
+            "description": "Example of validation errors"
+          }
+        },
+        {
+          "name": "429 - Rate Limit Test",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// This will make multiple rapid requests to test rate limiting",
+                  "// Note: Only run this if you want to test rate limits",
+                  "console.log('Testing rate limits - this request may be throttled');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/{{api_version}}/certificates",
+              "host": ["{{base_url}}"],
+              "path": ["api", "{{api_version}}", "certificates"]
+            },
+            "description": "Make rapid requests to test rate limiting"
+          }
+        }
+      ]
+    }
+  ]
+}

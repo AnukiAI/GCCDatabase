@@ -51,6 +51,8 @@ dotnet test
 
 ## Database Configuration
 
+### Quick Reference
+
 **Dev (ANUKI01)**:
 ```
 Server: ANUKI01
@@ -64,21 +66,38 @@ Connection: Server=ANUKI01;Database=GCCDatabase_Dev;User Id=GCC_DevUser;Password
 Server: 68.71.129.120,1533
 Database: gccwebap_certificates
 Username: GCC_adminxyz123
+Password: Q3Ez4e!gE_47KNi
 ```
 
-**CRITICAL DATABASE REQUIREMENT - Schema Ownership**:
+### Complete Database Documentation
+
+**📚 All database documentation:** `docs/database/`
+
+**Quick Links:**
+- [Quick Start Guide](../docs/database/deployment/QUICK_START.md) - 5-minute database setup
+- [Sync Dev to Prod](../docs/database/deployment/SYNC_DEV_TO_PROD.md) - Update production data
+- [Critical Schema Requirement](../docs/database/reference/CRITICAL_SCHEMA_REQUIREMENT.md) - **MUST READ**
+- [Connection Strings](../docs/database/reference/CONNECTION_STRINGS.md) - Full connection details
+- [Common Issues](../docs/database/troubleshooting/COMMON_ISSUES.md) - Troubleshooting guide
+- [Database README](../docs/database/README.md) - Complete documentation index
+
+### CRITICAL DATABASE REQUIREMENT - Schema Ownership
+
+**⚠️ REQUIRED: All database tables MUST be in 'dbo' schema**
+
 ```
-⚠️ REQUIRED: All database tables MUST be in 'dbo' schema
-   - Entity Framework requires dbo.TableName (not username.TableName)
-   - Production user MUST have:
-     1. db_owner role membership
-     2. DEFAULT_SCHEMA = dbo
-   - Common error: Tables created as GCC_adminxyz123.TableName instead of dbo.TableName
-   - Symptom: Certificates not displaying despite data in database
-   - Fix: Run DatabaseScripts/REBUILD_PRODUCTION_DBO.cmd
-   - Verify: SELECT SCHEMA_NAME(schema_id), name FROM sys.tables
-     Should show: dbo | Certificates (not GCC_adminxyz123 | Certificates)
+- Entity Framework requires dbo.TableName (not username.TableName)
+- Production user MUST have:
+  1. db_owner role membership
+  2. DEFAULT_SCHEMA = dbo
+- Common error: Tables created as GCC_adminxyz123.TableName instead of dbo.TableName
+- Symptom: Certificates not displaying despite data in database
+- Fix: See docs/database/reference/CRITICAL_SCHEMA_REQUIREMENT.md
+- Verify: SELECT SCHEMA_NAME(schema_id), name FROM sys.tables
+  Should show: dbo | Certificates (not GCC_adminxyz123 | Certificates)
 ```
+
+**See:** [Critical Schema Requirement](../docs/database/reference/CRITICAL_SCHEMA_REQUIREMENT.md) for complete details.
 
 **Key Tables**: Certificates, Companies, Products, Users, ApiKeys, CertificateProductIds, Roles, UserRoles
 **Key Migrations**: `20250918212035_AddCertificateProductIds`, `20250827182202_AddPartnerFieldToCertificate`
@@ -482,6 +501,87 @@ docker-compose up -d        # Full stack with PostgreSQL
 
 **Configs**: `docker-compose.yml` (PostgreSQL), `docker-compose.mariadb.yml`
 **Health**: `/health`
+
+## Production Deployment (AccuWebHosting / Plesk)
+
+### ⚠️ CRITICAL: web.config Must Be Plesk-Compatible
+
+**Known Issue:** HTTP 500.19 error - "Duplicate collection entry" when deploying to Plesk/AccuWebHosting.
+
+**Root Cause:** Plesk has server-level IIS configuration that conflicts with these web.config sections:
+- `<fileExtensions>` - Blocking .db, .config, .log, .bak files
+- `<hiddenSegments>` - Hiding bin, App_code, App_Data, logs directories
+
+**Fix:** These sections MUST be removed from web.config before deployment to Plesk.
+
+**Correct web.config for Plesk:**
+```xml
+<!-- Request Filtering - REMOVED fileExtensions and hiddenSegments to avoid Plesk conflicts -->
+<security>
+  <requestFiltering>
+    <requestLimits maxAllowedContentLength="104857600" />
+  </requestFiltering>
+</security>
+```
+
+**WRONG - DO NOT USE ON PLESK:**
+```xml
+<security>
+  <requestFiltering>
+    <requestLimits maxAllowedContentLength="104857600" />
+    <fileExtensions>  <!-- ❌ REMOVE THIS - Causes HTTP 500.19 -->
+      <add fileExtension=".db" allowed="false" />
+      <add fileExtension=".config" allowed="false" />
+    </fileExtensions>
+    <hiddenSegments>  <!-- ❌ REMOVE THIS - Causes HTTP 500.19 -->
+      <add segment="bin" />
+      <add segment="logs" />
+    </hiddenSegments>
+  </requestFiltering>
+</security>
+```
+
+### Production Deployment Checklist
+
+**⚠️ CRITICAL: ALWAYS check and fix SOURCE web.config FIRST before publishing!**
+
+The web.config in the project root (`GCCWebApp/web.config`) is copied during publish. If it has the wrong sections, they will regenerate every time you publish.
+
+Before publishing for production:
+```bash
+# 0. FIRST: Check SOURCE web.config in project root
+# Verify GCCWebApp/web.config does NOT have <fileExtensions> or <hiddenSegments> sections
+# These sections MUST be removed from the SOURCE, not just the published output
+
+# 1. Clean publish
+dotnet publish GCCWebApp.csproj -c Release -r win-x64 --self-contained false -o publish-production
+
+# 2. Verify web.config is correct (should already be correct if step 0 was done)
+# Double-check publish-production/web.config has the fix
+
+# 3. Create logs folder
+mkdir -p publish-production/logs
+touch publish-production/logs/.gitkeep
+
+# 4. Create ZIP
+powershell -Command "Compress-Archive -Path './publish-production/*' -DestinationPath './GCCWebApp-Production-Deploy.zip' -CompressionLevel Optimal -Force"
+```
+
+**Files to check/fix:**
+- ✅ **SOURCE**: `GCCWebApp/web.config` (project root) - FIX THIS FIRST
+- ✅ **OUTPUT**: `publish-production/web.config` (verify after publish)
+
+### Other Common Deployment Issues
+
+**Data Protection Error (HTTP 500):**
+- Check `appsettings.Production.json` has `"PersistKeysToAzureBlobStorage": false`
+- Azure Blob placeholders cause app crash on startup
+
+**Missing Logs Folder:**
+- web.config requires `logs/` folder to exist
+- IIS needs write permissions: `icacls logs /grant "IIS_IUSRS:(OI)(CI)F"`
+
+**Full Documentation:** See `docs/deployment/HTTP_500_TROUBLESHOOTING.md` and `docs/deployment/WEB_CONFIG_FIX_DEPLOYMENT_20251010.md`
 
 ## Troubleshooting
 

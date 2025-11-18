@@ -658,6 +658,91 @@ namespace GCCWebApp.Migrations
                     b.ToTable("CertificateProductIds");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.CertificateStatusHistory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("CertificateId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CertificateNumber")
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
+
+                    b.Property<string>("ChangeSource")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ChangedBy")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ChangedByUsername")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int?>("DurationInPreviousStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsAutomatedTransition")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("NewStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("PreviousStatus")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("WorkflowStep")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CertificateId");
+
+                    b.HasIndex("ChangedAt");
+
+                    b.HasIndex("ChangedBy");
+
+                    b.HasIndex("NewStatus");
+
+                    b.HasIndex("PreviousStatus");
+
+                    b.HasIndex("CertificateId", "ChangedAt");
+
+                    b.HasIndex("CertificateId", "NewStatus");
+
+                    b.HasIndex("ChangedAt", "NewStatus");
+
+                    b.ToTable("CertificateStatusHistory");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.CertificationType", b =>
                 {
                     b.Property<int>("Id")
@@ -1836,6 +1921,25 @@ namespace GCCWebApp.Migrations
                     b.Navigation("UpdatedByUser");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.CertificateStatusHistory", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.Certificate", "Certificate")
+                        .WithMany("StatusHistory")
+                        .HasForeignKey("CertificateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GCCWebApp.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("ChangedBy")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Certificate");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.CertificationType", b =>
                 {
                     b.HasOne("GCCWebApp.Models.CertificationType", "Parent")
@@ -2031,6 +2135,8 @@ namespace GCCWebApp.Migrations
                     b.Navigation("Documents");
 
                     b.Navigation("ProductIds");
+
+                    b.Navigation("StatusHistory");
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.CertificationType", b =>

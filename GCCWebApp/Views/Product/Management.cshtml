@@ -207,89 +207,8 @@
 @section Scripts {
     <script src="~/js/admin/admin-core.js"></script>
     <script>
-        // Sample data for initial display
-        let products = [
-            {
-                id: 1,
-                name: 'Premium Door Handle',
-                company: 'Acme Corporation',
-                category: 'Building Materials',
-                type: 'Door Hardware',
-                status: 'Active',
-                certificates: 2,
-                description: 'High-quality door handle with stainless steel finish',
-                sku: 'ACM-DH-001',
-                model: 'DH-Premium-2024',
-                manufacturer: 'Acme Corp',
-                country: 'USA',
-                identifiers: {
-                    asin: ['B08XYZ1234', 'B09ABC5678', 'B07DEF9012'],
-                    upc: ['123456789012', '234567890123', '345678901234'],
-                    gtin: ['01234567890128', '12345678901235', '23456789012342'],
-                    ean: ['1234567890128', '2345678901235', '3456789012342']
-                }
-            },
-            {
-                id: 2,
-                name: 'Thermal Insulation Board',
-                company: 'Globex Industries',
-                category: 'Building Materials',
-                type: 'Insulation',
-                status: 'Active',
-                certificates: 3,
-                description: 'Energy-efficient insulation board for construction',
-                sku: 'GLX-INS-002',
-                model: 'Thermal-Pro-X1',
-                manufacturer: 'Globex Inc',
-                country: 'Canada',
-                identifiers: {
-                    asin: ['B10MNO3456', 'B11PQR7890', 'B12STU1234', 'B13VWX5678'],
-                    upc: ['456789012345', '567890123456', '678901234567', '789012345678'],
-                    gtin: ['34567890123456', '45678901234567', '56789012345678', '67890123456789'],
-                    ean: ['4567890123456', '5678901234567', '6789012345678', '7890123456789']
-                }
-            },
-            {
-                id: 3,
-                name: 'LED Light Fixture',
-                company: 'Stark Enterprises',
-                category: 'Electronics / Electrical',
-                type: 'Lighting',
-                status: 'Active',
-                certificates: 1,
-                description: 'Energy-efficient LED lighting solution',
-                sku: 'STK-LED-003',
-                model: 'LED-Bright-500',
-                manufacturer: 'Stark Tech',
-                country: 'Germany',
-                identifiers: {
-                    asin: ['B14YZA9012', 'B15BCD3456'],
-                    upc: ['890123456789', '901234567890'],
-                    gtin: ['78901234567890', '89012345678901'],
-                    ean: ['8901234567890', '9012345678901']
-                }
-            },
-            {
-                id: 4,
-                name: 'Network Cable Cat6',
-                company: 'Wayne Technologies',
-                category: 'Electronics / Electrical',
-                type: 'Network Cables',
-                status: 'Inactive',
-                certificates: 0,
-                description: 'High-speed network cable for data transmission',
-                sku: 'WYN-CAB-004',
-                model: 'Cat6-Ultra-100m',
-                manufacturer: 'Wayne Tech',
-                country: 'Japan',
-                identifiers: {
-                    asin: ['B16EFG7890', 'B17HIJ1234', 'B18KLM5678', 'B19NOP9012', 'B20QRS3456'],
-                    upc: ['012345678901', '123456789012', '234567890123', '345678901234', '456789012345'],
-                    gtin: ['90123456789012', '01234567890123', '12345678901234', '23456789012345', '34567890123456'],
-                    ean: ['0123456789012', '1234567890123', '2345678901234', '3456789012345', '4567890123456']
-                }
-            }
-        ];
+        // Products will be loaded from API
+        let products = [];
 
         let companies = [];
         let categories = [];
@@ -333,8 +252,8 @@
         let selectedSuggestionIndex = -1;
 
         // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
-            loadInitialData();
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadInitialData();
             initializeEventListeners();
             initializeSortableHeaders();
             populateTable();
@@ -470,18 +389,18 @@
             // Filter products
             let filteredProducts = products.filter(product => {
                 const matchesSearch = product.name.toLowerCase().includes(searchTerm) ||
-                                    product.company.toLowerCase().includes(searchTerm) ||
-                                    product.category.toLowerCase().includes(searchTerm) ||
-                                    product.type.toLowerCase().includes(searchTerm) ||
+                                    (product.companyName && product.companyName.toLowerCase().includes(searchTerm)) ||
+                                    (product.categoryName && product.categoryName.toLowerCase().includes(searchTerm)) ||
+                                    (product.productTypeName && product.productTypeName.toLowerCase().includes(searchTerm)) ||
                                     (product.sku && product.sku.toLowerCase().includes(searchTerm)) ||
                                     (product.model && product.model.toLowerCase().includes(searchTerm));
-                const matchesCategory = categoryFilterValue === 'all' || product.category === categoryFilterValue;
-                const matchesCompany = companyFilterValue === 'all' || product.company === companyFilterValue;
+                const matchesCategory = categoryFilterValue === 'all' || product.categoryName === categoryFilterValue;
+                const matchesCompany = companyFilterValue === 'all' || product.companyName === companyFilterValue;
                 const matchesStatus = statusFilterValue === 'all' || product.status.toLowerCase() === statusFilterValue;
-                const matchesCertificates = certificateFilterValue === 'all' || 
-                    (certificateFilterValue === 'has-certificates' && product.certificates > 0) ||
-                    (certificateFilterValue === 'no-certificates' && product.certificates === 0);
-                
+                const matchesCertificates = certificateFilterValue === 'all' ||
+                    (certificateFilterValue === 'has-certificates' && product.certificateCount > 0) ||
+                    (certificateFilterValue === 'no-certificates' && product.certificateCount === 0);
+
                 return matchesSearch && matchesCategory && matchesCompany && matchesStatus && matchesCertificates;
             });
             
@@ -534,11 +453,11 @@
                             <div class="product-sku">SKU: ${product.sku || 'N/A'}</div>
                         </div>
                     </td>
-                    <td data-label="Company">${product.company}</td>
+                    <td data-label="Company">${product.companyName || ''}</td>
                     <td data-label="Category">
                         <div class="category-info">
-                            <div class="category-name">${product.category}</div>
-                            <div class="product-type">${product.type}</div>
+                            <div class="category-name">${product.categoryName || ''}</div>
+                            <div class="product-type">${product.productTypeName || ''}</div>
                         </div>
                     </td>
                     <td data-label="Status">
@@ -546,7 +465,7 @@
                     </td>
                     <td data-label="Certificates">
                         <span class="certificate-count">
-                            <i class="fas fa-certificate"></i> ${product.certificates}
+                            <i class="fas fa-certificate"></i> ${product.certificateCount || 0}
                         </span>
                     </td>
                     <td data-label="Identifiers">

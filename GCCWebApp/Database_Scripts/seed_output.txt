@@ -1,0 +1,59 @@
+============================================
+GCC Complete Test Data Seeding
+Started at: 2025-11-17 15:52:31
+============================================
+ 
+1. Seeding Product Categories...
+ƒo" 6 Product Categories created
+ 
+2. Seeding Certification Types...
+ƒo" 5 Certification Types created
+ 
+3. Seeding Partners...
+ƒo" 3 Partners created
+ 
+4. Seeding Companies...
+ƒo" 28 Companies created
+ 
+5. Seeding Product Types...
+ƒo" 19 Product Types created
+ 
+6. Seeding Products...
+ƒo" 43 Products created
+ 
+7. Seeding Roles...
+ƒo" 4 Roles created
+ 
+8. Seeding Permissions...
+ƒo" 6 Permissions created
+ 
+9. Assigning permissions to roles...
+ƒo" Permissions assigned to all roles
+ 
+10. Seeding Users...
+ƒo" 15 Users created
+ 
+11. Assigning roles to users...
+ƒo" User-Role assignments created
+ 
+12. Seeding base certificates...
+ƒo" 25 Base Certificates created
+ 
+13. Skipping additional test certificates (not needed, prevents duplicates)...
+ƒ-< Additional certificate generation skipped (commented out)
+ 
+14. Seeding Tags...
+ƒo" 10 Tags created
+ 
+15. Seeding API Keys...
+ 
+============================================
+ERROR OCCURRED DURING SEEDING
+============================================
+Error Message: Cannot insert the value NULL into column 'RequireTLS', table 'gccwebap_certificates.dbo.ApiKeys'; column does not allow nulls. INSERT fails.
+Error Line: 557
+Error Severity: 16
+Error State: 2
+============================================
+Msg 515, Level 16, State 2, Server ACCUSQL2019, Line 557
+Cannot insert the value NULL into column 'RequireTLS', table 'gccwebap_certificates.dbo.ApiKeys'; column does not allow nulls. INSERT fails.

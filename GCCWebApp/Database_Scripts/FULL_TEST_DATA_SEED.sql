@@ -684,14 +684,14 @@ IF NOT EXISTS (SELECT 1 FROM dbo.ApiKeys)
 BEGIN
     SET IDENTITY_INSERT dbo.ApiKeys ON;
 
-    INSERT INTO dbo.ApiKeys (Id, Name, [Key], KeyHash, Description, CreatedBy, IsActive, CreatedAt, LastUsedAt, ExpiresAt, Environment, Scopes, RateLimitPerMinute, RateLimitPerHour, RateLimitPerDay, RequireTLS, MaxConcurrentRequests, SecurityViolationCount, IsTemporarilyBlocked, RequestCount)
+    INSERT INTO dbo.ApiKeys (Id, Name, [Key], KeyHash, Description, CreatedBy, IsActive, CreatedAt, LastUsedAt, ExpiresAt, Environment, Scopes, RateLimitPerMinute, RateLimitPerHour, RateLimitPerDay, RequireTLS, MaxConcurrentRequests, SecurityViolationCount, IsTemporarilyBlocked, RequestCount, SecurityViolations, RateLimit)
     VALUES
         (1, 'Integration Test Key', 'gcc_test_key_1234567890abcdef', 'test_key_hash_1234567890abcdef',
-         'API key for integration testing', 'admin', 1, GETDATE(), GETDATE(), DATEADD(YEAR, 1, GETDATE()), 'Development', 'read,write,admin', 60, 10000, 100000, 1, 10, 0, 0, 0),
+         'API key for integration testing', 'admin', 1, GETDATE(), GETDATE(), DATEADD(YEAR, 1, GETDATE()), 'Development', 'read,write,admin', 60, 10000, 100000, 1, 10, 0, 0, 0, 0, 100),
         (2, 'Partner API Access', 'gcc_partner_key_abcdef1234567890', 'partner_key_hash_abcdef1234567890',
-         'API access for external partners', 'partner', 1, GETDATE(), DATEADD(DAY, -5, GETDATE()), DATEADD(MONTH, 6, GETDATE()), 'Production', 'read', 60, 1000, 10000, 1, 10, 0, 0, 0),
+         'API access for external partners', 'partner', 1, GETDATE(), DATEADD(DAY, -5, GETDATE()), DATEADD(MONTH, 6, GETDATE()), 'Production', 'read', 60, 1000, 10000, 1, 10, 0, 0, 0, 0, 100),
         (3, 'Mobile App Key', 'gcc_mobile_key_fedcba0987654321', 'mobile_key_hash_fedcba0987654321',
-         'API key for mobile application', 'analyst', 1, DATEADD(DAY, -30, GETDATE()), DATEADD(HOUR, -2, GETDATE()), DATEADD(MONTH, 3, GETDATE()), 'Production', 'read,write', 60, 5000, 50000, 1, 10, 0, 0, 0);
+         'API key for mobile application', 'analyst', 1, DATEADD(DAY, -30, GETDATE()), DATEADD(HOUR, -2, GETDATE()), DATEADD(MONTH, 3, GETDATE()), 'Production', 'read,write', 60, 5000, 50000, 1, 10, 0, 0, 0, 0, 100);
 
     SET IDENTITY_INSERT dbo.ApiKeys OFF;
     PRINT '✓ 3 API Keys created';

@@ -1,0 +1,742 @@
+/* =============================================================================
+   GCC Admin Components CSS
+   Standardized UI components (buttons, forms, inputs, badges, etc.)
+   ============================================================================= */
+
+/* ===== BUTTONS ===== */
+
+/* Base Button Styles */
+.admin-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--admin-space-sm);
+    padding: var(--admin-space-sm) var(--admin-space-md);
+    font-family: var(--admin-font-family-primary);
+    font-size: var(--admin-font-size-base);
+    font-weight: var(--admin-font-weight-medium);
+    line-height: var(--admin-line-height-tight);
+    text-decoration: none;
+    text-align: center;
+    border: 1px solid transparent;
+    border-radius: var(--admin-radius-md);
+    background-color: var(--admin-bg-primary);
+    color: var(--admin-text-primary);
+    cursor: pointer;
+    transition: all var(--admin-transition-fast);
+    user-select: none;
+    white-space: nowrap;
+    vertical-align: middle;
+    min-height: 40px;
+    box-shadow: var(--admin-shadow-xs);
+}
+
+.admin-btn:hover {
+    text-decoration: none;
+    transform: translateY(-1px);
+    box-shadow: var(--admin-shadow-sm);
+}
+
+.admin-btn:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15);
+}
+
+.admin-btn:active {
+    transform: translateY(0);
+    box-shadow: var(--admin-shadow-xs);
+}
+
+.admin-btn:disabled,
+.admin-btn.admin-btn--disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: var(--admin-shadow-xs);
+}
+
+.admin-btn:disabled:hover,
+.admin-btn.admin-btn--disabled:hover {
+    transform: none;
+    box-shadow: var(--admin-shadow-xs);
+}
+
+/* Button Variants */
+.admin-btn--primary {
+    background-color: var(--admin-primary);
+    border-color: var(--admin-primary);
+    color: var(--admin-text-inverse);
+}
+
+.admin-btn--primary:hover {
+    background-color: var(--admin-primary-hover);
+    border-color: var(--admin-primary-hover);
+    color: var(--admin-text-inverse);
+}
+
+.admin-btn--secondary {
+    background-color: transparent;
+    border-color: var(--admin-border-primary);
+    color: var(--admin-text-primary);
+}
+
+.admin-btn--secondary:hover {
+    background-color: var(--admin-bg-accent);
+    border-color: var(--admin-border-dark);
+    color: var(--admin-text-primary);
+}
+
+.admin-btn--success {
+    background-color: var(--admin-success);
+    border-color: var(--admin-success);
+    color: var(--admin-text-inverse);
+}
+
+.admin-btn--success:hover {
+    background-color: var(--admin-success-dark);
+    border-color: var(--admin-success-dark);
+}
+
+.admin-btn--warning {
+    background-color: var(--admin-warning);
+    border-color: var(--admin-warning);
+    color: var(--admin-text-inverse);
+}
+
+.admin-btn--warning:hover {
+    background-color: var(--admin-warning-dark);
+    border-color: var(--admin-warning-dark);
+}
+
+.admin-btn--danger {
+    background-color: var(--admin-danger);
+    border-color: var(--admin-danger);
+    color: var(--admin-text-inverse);
+}
+
+.admin-btn--danger:hover {
+    background-color: var(--admin-danger-dark);
+    border-color: var(--admin-danger-dark);
+}
+
+.admin-btn--ghost {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--admin-text-secondary);
+    box-shadow: none;
+}
+
+.admin-btn--ghost:hover {
+    background-color: var(--admin-bg-accent);
+    color: var(--admin-text-primary);
+    box-shadow: none;
+}
+
+.admin-btn--link {
+    background-color: transparent;
+    border-color: transparent;
+    color: var(--admin-text-link);
+    box-shadow: none;
+    text-decoration: underline;
+}
+
+.admin-btn--link:hover {
+    color: var(--admin-text-link-hover);
+    background-color: transparent;
+    box-shadow: none;
+    transform: none;
+}
+
+/* Button Sizes */
+.admin-btn--xs {
+    padding: var(--admin-space-xs) var(--admin-space-sm);
+    font-size: var(--admin-font-size-xs);
+    min-height: 28px;
+}
+
+.admin-btn--sm {
+    padding: var(--admin-space-xs) var(--admin-space-sm);
+    font-size: var(--admin-font-size-sm);
+    min-height: 32px;
+}
+
+.admin-btn--lg {
+    padding: var(--admin-space-md) var(--admin-space-lg);
+    font-size: var(--admin-font-size-lg);
+    min-height: 48px;
+}
+
+.admin-btn--xl {
+    padding: var(--admin-space-lg) var(--admin-space-xl);
+    font-size: var(--admin-font-size-xl);
+    min-height: 56px;
+}
+
+/* Button Groups */
+.admin-btn-group {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--admin-space-sm);
+}
+
+.admin-btn-group .admin-btn {
+    margin: 0;
+}
+
+.admin-btn-group--attached {
+    gap: 0;
+}
+
+.admin-btn-group--attached .admin-btn {
+    border-radius: 0;
+    border-right-width: 0;
+}
+
+.admin-btn-group--attached .admin-btn:first-child {
+    border-top-left-radius: var(--admin-radius-md);
+    border-bottom-left-radius: var(--admin-radius-md);
+}
+
+.admin-btn-group--attached .admin-btn:last-child {
+    border-top-right-radius: var(--admin-radius-md);
+    border-bottom-right-radius: var(--admin-radius-md);
+    border-right-width: 1px;
+}
+
+/* Icon Buttons */
+.admin-btn--icon-only {
+    padding: var(--admin-space-sm);
+    min-width: 40px;
+}
+
+.admin-btn--icon-only.admin-btn--sm {
+    padding: var(--admin-space-xs);
+    min-width: 32px;
+}
+
+.admin-btn--icon-only.admin-btn--lg {
+    padding: var(--admin-space-md);
+    min-width: 48px;
+}
+
+/* ===== FORM ELEMENTS ===== */
+
+/* Base Form Styles */
+.admin-form {
+    width: 100%;
+}
+
+.admin-form-group {
+    margin-bottom: var(--admin-space-md);
+}
+
+.admin-form-group:last-child {
+    margin-bottom: 0;
+}
+
+.admin-label {
+    display: block;
+    margin-bottom: var(--admin-space-xs);
+    font-size: var(--admin-font-size-base);
+    font-weight: var(--admin-font-weight-medium);
+    color: var(--admin-text-primary);
+    line-height: var(--admin-line-height-normal);
+}
+
+.admin-label--required::after {
+    content: ' *';
+    color: var(--admin-danger);
+}
+
+/* Input Styles */
+.admin-input,
+.admin-textarea,
+.admin-select {
+    display: block;
+    width: 100%;
+    padding: var(--admin-space-sm) var(--admin-space-md);
+    font-family: var(--admin-font-family-primary);
+    font-size: var(--admin-font-size-base);
+    line-height: var(--admin-line-height-normal);
+    color: var(--admin-text-primary);
+    background-color: var(--admin-bg-primary);
+    border: 1px solid var(--admin-border-primary);
+    border-radius: var(--admin-radius-sm);
+    transition: all var(--admin-transition-fast);
+    min-height: 40px;
+}
+
+.admin-input:focus,
+.admin-textarea:focus,
+.admin-select:focus {
+    outline: none;
+    border-color: var(--admin-border-focus);
+    box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+}
+
+.admin-input:disabled,
+.admin-textarea:disabled,
+.admin-select:disabled {
+    background-color: var(--admin-bg-muted);
+    color: var(--admin-text-muted);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.admin-input::placeholder,
+.admin-textarea::placeholder {
+    color: var(--admin-text-muted);
+}
+
+/* Input Sizes */
+.admin-input--sm,
+.admin-textarea--sm,
+.admin-select--sm {
+    padding: var(--admin-space-xs) var(--admin-space-sm);
+    font-size: var(--admin-font-size-sm);
+    min-height: 32px;
+}
+
+.admin-input--lg,
+.admin-textarea--lg,
+.admin-select--lg {
+    padding: var(--admin-space-md) var(--admin-space-lg);
+    font-size: var(--admin-font-size-lg);
+    min-height: 48px;
+}
+
+/* Textarea Specific */
+.admin-textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+/* Select Specific */
+.admin-select {
+    cursor: pointer;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right var(--admin-space-sm) center;
+    background-repeat: no-repeat;
+    background-size: 16px 12px;
+    padding-right: var(--admin-space-xl);
+}
+
+/* Input Group */
+.admin-input-group {
+    position: relative;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    width: 100%;
+}
+
+.admin-input-group .admin-input {
+    position: relative;
+    flex: 1 1 auto;
+    width: 1%;
+}
+
+.admin-input-group-prepend,
+.admin-input-group-append {
+    display: flex;
+    align-items: center;
+    padding: var(--admin-space-sm) var(--admin-space-md);
+    background-color: var(--admin-bg-accent);
+    border: 1px solid var(--admin-border-primary);
+    color: var(--admin-text-secondary);
+    font-size: var(--admin-font-size-base);
+    line-height: var(--admin-line-height-normal);
+    white-space: nowrap;
+}
+
+.admin-input-group-prepend {
+    border-right: 0;
+    border-top-left-radius: var(--admin-radius-sm);
+    border-bottom-left-radius: var(--admin-radius-sm);
+}
+
+.admin-input-group-append {
+    border-left: 0;
+    border-top-right-radius: var(--admin-radius-sm);
+    border-bottom-right-radius: var(--admin-radius-sm);
+}
+
+.admin-input-group .admin-input:not(:first-child) {
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+}
+
+.admin-input-group .admin-input:not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+/* Checkbox and Radio */
+.admin-checkbox,
+.admin-radio {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--admin-border-primary);
+    border-radius: var(--admin-radius-xs);
+    background-color: var(--admin-bg-primary);
+    cursor: pointer;
+    transition: all var(--admin-transition-fast);
+    margin-right: var(--admin-space-sm);
+    flex-shrink: 0;
+}
+
+.admin-radio {
+    border-radius: var(--admin-radius-full);
+}
+
+.admin-checkbox:checked,
+.admin-radio:checked {
+    background-color: var(--admin-primary);
+    border-color: var(--admin-primary);
+}
+
+.admin-checkbox:checked::after {
+    content: '';
+    display: block;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin: 1px 0 0 4px;
+}
+
+.admin-radio:checked::after {
+    content: '';
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: var(--admin-radius-full);
+    background-color: white;
+    margin: 3px auto;
+}
+
+.admin-checkbox:focus,
+.admin-radio:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.15);
+}
+
+.admin-checkbox-label,
+.admin-radio-label {
+    display: flex;
+    align-items: flex-start;
+    cursor: pointer;
+    font-size: var(--admin-font-size-base);
+    line-height: var(--admin-line-height-normal);
+    color: var(--admin-text-primary);
+    gap: var(--admin-space-sm);
+}
+
+.admin-checkbox:disabled,
+.admin-radio:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.admin-checkbox:disabled + .admin-checkbox-label,
+.admin-radio:disabled + .admin-radio-label {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Search Box */
+.admin-search-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.admin-search-input {
+    padding-left: var(--admin-space-xl);
+}
+
+.admin-search-icon {
+    position: absolute;
+    left: var(--admin-space-md);
+    color: var(--admin-text-muted);
+    font-size: var(--admin-font-size-sm);
+    pointer-events: none;
+}
+
+/* Form Validation States */
+.admin-input--valid,
+.admin-textarea--valid,
+.admin-select--valid {
+    border-color: var(--admin-success);
+    box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.1);
+}
+
+.admin-input--invalid,
+.admin-textarea--invalid,
+.admin-select--invalid {
+    border-color: var(--admin-danger);
+    box-shadow: 0 0 0 3px rgba(255, 82, 82, 0.1);
+}
+
+.admin-form-help {
+    display: block;
+    margin-top: var(--admin-space-xs);
+    font-size: var(--admin-font-size-sm);
+    color: var(--admin-text-secondary);
+    line-height: var(--admin-line-height-normal);
+}
+
+.admin-form-error {
+    display: block;
+    margin-top: var(--admin-space-xs);
+    font-size: var(--admin-font-size-sm);
+    color: var(--admin-danger);
+    line-height: var(--admin-line-height-normal);
+}
+
+/* ===== BADGES & LABELS ===== */
+
+.admin-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--admin-space-xs) var(--admin-space-sm);
+    font-size: var(--admin-font-size-xs);
+    font-weight: var(--admin-font-weight-medium);
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    border-radius: var(--admin-radius-full);
+    background-color: var(--admin-bg-muted);
+    color: var(--admin-text-primary);
+}
+
+.admin-badge--primary {
+    background-color: var(--admin-primary-light);
+    color: var(--admin-primary);
+}
+
+.admin-badge--secondary {
+    background-color: var(--admin-bg-accent);
+    color: var(--admin-text-secondary);
+}
+
+.admin-badge--success {
+    background-color: var(--admin-success-light);
+    color: var(--admin-success-dark);
+}
+
+.admin-badge--warning {
+    background-color: var(--admin-warning-light);
+    color: var(--admin-warning-dark);
+}
+
+.admin-badge--danger {
+    background-color: var(--admin-danger-light);
+    color: var(--admin-danger-dark);
+}
+
+.admin-badge--info {
+    background-color: var(--admin-info-light);
+    color: var(--admin-info-dark);
+}
+
+/* ===== LOADING STATES ===== */
+
+.admin-spinner {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--admin-border-light);
+    border-radius: var(--admin-radius-full);
+    border-top-color: var(--admin-primary);
+    animation: admin-spin 0.8s ease-in-out infinite;
+}
+
+.admin-spinner--sm {
+    width: 16px;
+    height: 16px;
+    border-width: 1.5px;
+}
+
+.admin-spinner--lg {
+    width: 24px;
+    height: 24px;
+    border-width: 3px;
+}
+
+@keyframes admin-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.admin-loading {
+    position: relative;
+    color: transparent;
+}
+
+.admin-loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--admin-border-light);
+    border-radius: var(--admin-radius-full);
+    border-top-color: currentColor;
+    animation: admin-spin 0.8s ease-in-out infinite;
+}
+
+/* ===== TOOLTIPS ===== */
+
+.admin-tooltip {
+    position: relative;
+    display: inline-block;
+}
+
+.admin-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-bottom: var(--admin-space-xs);
+    padding: var(--admin-space-xs) var(--admin-space-sm);
+    background-color: var(--admin-bg-dark);
+    color: var(--admin-text-inverse);
+    font-size: var(--admin-font-size-sm);
+    line-height: var(--admin-line-height-tight);
+    border-radius: var(--admin-radius-sm);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--admin-transition-fast);
+    z-index: var(--admin-z-tooltip);
+}
+
+.admin-tooltip:hover::after {
+    opacity: 1;
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+
+@media (max-width: 767px) {
+    .admin-btn {
+        min-height: 44px; /* Better touch target on mobile */
+        font-size: var(--admin-font-size-base);
+    }
+
+    .admin-btn-group {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .admin-btn-group .admin-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .admin-input,
+    .admin-textarea,
+    .admin-select {
+        min-height: 44px; /* Better touch target on mobile */
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+}
+
+/* =============================================================================
+   PERMISSIONS CONTAINER
+   Styles for permission checkboxes in role management
+   ============================================================================= */
+
+.admin-permissions-container {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: var(--admin-space-md);
+    background-color: var(--admin-bg-secondary);
+    border: 1px solid var(--admin-border-primary);
+    border-radius: var(--admin-radius-md);
+}
+
+.admin-permission-group {
+    margin-bottom: var(--admin-space-lg);
+}
+
+.admin-permission-group:last-child {
+    margin-bottom: 0;
+}
+
+.admin-permission-category {
+    font-size: var(--admin-font-size-base);
+    font-weight: var(--admin-font-weight-semibold);
+    color: var(--admin-primary);
+    margin-bottom: var(--admin-space-sm);
+    padding-bottom: var(--admin-space-xs);
+    border-bottom: 2px solid var(--admin-border-secondary);
+}
+
+.admin-checkbox-list {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid var(--admin-border-primary);
+    border-radius: var(--admin-radius-sm);
+    padding: var(--admin-space-sm);
+    background-color: var(--admin-bg-secondary);
+}
+
+.admin-checkbox-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--admin-space-sm);
+}
+
+.admin-checkbox-item {
+    display: flex;
+    align-items: flex-start;
+    padding: var(--admin-space-sm);
+    background-color: var(--admin-bg-primary);
+    border: 1px solid var(--admin-border-primary);
+    border-radius: var(--admin-radius-sm);
+    cursor: pointer;
+    transition: all var(--admin-transition-fast);
+}
+
+.admin-checkbox-item:hover {
+    background-color: var(--admin-bg-hover);
+    border-color: var(--admin-primary);
+}
+
+.admin-checkbox-item input[type="checkbox"] {
+    margin-right: var(--admin-space-sm);
+    margin-top: 2px;
+}
+
+.admin-checkbox-item span {
+    flex: 1;
+    font-size: var(--admin-font-size-base);
+    color: var(--admin-text-primary);
+    line-height: var(--admin-line-height-normal);
+}
+
+.admin-checkbox-item small {
+    display: block;
+    margin-top: var(--admin-space-xs);
+    font-size: var(--admin-font-size-sm);
+    color: var(--admin-text-secondary);
+    line-height: var(--admin-line-height-tight);
+}
+
+@media (max-width: 768px) {
+    .admin-checkbox-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-permissions-container {
+        max-height: 300px;
+    }
+}

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using MySql.EntityFrameworkCore.Extensions;
@@ -30,15 +31,27 @@ builder.Services.AddSession(options =>
     options.IdleTimeout = TimeSpan.FromMinutes(30);
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
-    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-        ? CookieSecurePolicy.SameAsRequest
-        : CookieSecurePolicy.Always;
+    // TEMPORARY FIX: Allow cookies without valid SSL certificate
+    // TODO: Install proper SSL certificate and change back to CookieSecurePolicy.Always
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.Cookie.SameSite = SameSiteMode.Lax;
     options.Cookie.Name = "GCC.Session";
 });
 
 // ===== DISTRIBUTED CACHE =====
 builder.Services.AddDistributedMemoryCache();
+
+// ===== DATA PROTECTION =====
+// Configure keys to persist in application folder (not user profile)
+// This ensures keys survive deployments and app pool recycles
+var dataProtectionPath = Path.Combine(Directory.GetCurrentDirectory(), "DataProtectionKeys");
+Directory.CreateDirectory(dataProtectionPath);
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath))
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+
+Console.WriteLine($"DataProtection keys will be stored in: {dataProtectionPath}");
 
 // ===== DATABASE CONFIGURATION =====
 // Support for multiple database providers based on connection string
@@ -194,9 +207,9 @@ else
             options.SlidingExpiration = true;
             options.Cookie.Name = "GCC.Auth";
             options.Cookie.HttpOnly = true;
-            options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
-                ? CookieSecurePolicy.SameAsRequest
-                : CookieSecurePolicy.Always;
+            // TEMPORARY FIX: Allow cookies without valid SSL certificate
+            // TODO: Install proper SSL certificate and change back to CookieSecurePolicy.Always
+            options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         });
 }
 

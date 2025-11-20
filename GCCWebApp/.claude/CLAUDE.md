@@ -412,12 +412,19 @@ downloadImportTemplate() {
 - **Authenticated**: `POST/PUT/DELETE /api/v1/certificates/{id}`
 - **Swagger**: http://localhost:5101/swagger
 
-**Test Credentials** (Login with USERNAME, not email):
+## Test Credentials
+
+**Production UAT Credentials** (https://gccwebapp.com - Login with EMAIL):
+- **Admin**: admin@greencirclecertified.com / Admin123!
+- **Analyst**: analyst@greencirclecertified.com / Analyst123!
+- **External**: partner@amazon.com / Partner123!
+
+**Production Dev/Test Credentials** (https://gccwebapp.com - Login with USERNAME):
 - Admin: Username: `admin` / Password: `TestPass123!` (Email: swest@anukiconsulting.com)
 - Analyst: Username: `analyst` / Password: `TestPass123!` (Email: swest@anukiconsulting.com)
 - External: Username: `external` / Password: `TestPass123!` (Email: swest@anukiconsulting.com)
 
-**All Test Accounts** (14 total, all use Password: `TestPass123!` and Email: `swest@anukiconsulting.com`):
+**All Development Test Accounts** (14 total, all use Password: `TestPass123!` and Email: `swest@anukiconsulting.com`):
 | Username | Role | Name |
 |----------|------|------|
 | admin | Admin | Admin User |
@@ -582,6 +589,40 @@ powershell -Command "Compress-Archive -Path './publish-production/*' -Destinatio
 - IIS needs write permissions: `icacls logs /grant "IIS_IUSRS:(OI)(CI)F"`
 
 **Full Documentation:** See `docs/deployment/HTTP_500_TROUBLESHOOTING.md` and `docs/deployment/WEB_CONFIG_FIX_DEPLOYMENT_20251010.md`
+
+### Production Login Failures ✅ RESOLVED (2025-11-19)
+
+**Issue:** Users cannot log in to production (https://gccwebapp.com) - password verification fails.
+
+**Symptoms:**
+- Login page loads correctly
+- Entering credentials shows "Invalid email or password"
+- Diagnostic endpoint shows: `Step4_PasswordVerified: false`
+- User exists, is active, has correct role, but password hash doesn't match
+
+**Root Cause:** Production database has different BCrypt password hashes than expected. This happens when:
+- Database restored from old backup
+- Seed data didn't run during deployment
+- Manual password changes in database
+
+**Fix:** Reset passwords using SQL script:
+```bash
+# Run on production database (68.71.129.120,1533)
+sqlcmd -S 68.71.129.120,1533 -U GCC_adminxyz123 -P "Q3Ez4e!gE_47KNi" -d gccwebap_certificates -i "Scripts\RESET_PRODUCTION_PASSWORDS.sql"
+```
+
+**Test Login After Fix:**
+- URL: https://gccwebapp.com/Account/Login
+- Username: `admin` (or `analyst`, `external`)
+- Password: `TestPass123!`
+
+**Tools:**
+- `Scripts/RESET_PRODUCTION_PASSWORDS.sql` - Reset all user passwords
+- `Scripts/HashGenerator/` - Console app to generate BCrypt hashes
+- `Scripts/FIX_PRODUCTION_LOGIN.md` - Complete troubleshooting guide
+- Diagnostic URL: https://gccwebapp.com/Account/TestAuth?username=admin&password=TestPass123!
+
+**BCrypt Hash for "TestPass123!":** `$2a$11$24Y94.bK.yWpd7.p/YDwZOy6qriBEiO5OGe0MmjsYjDPV04YLpqpa`
 
 ## Troubleshooting
 

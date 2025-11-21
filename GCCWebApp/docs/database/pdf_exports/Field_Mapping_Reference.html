@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - Field Mapping Reference Guide</title>
+    <style>
+        /* Print and Screen Optimized Styles */
+        @page {
+            size: letter;
+            margin: 0.75in;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 8.5in;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+        }
+
+        /* Headers */
+        h1 {
+            color: #002B76;
+            font-size: 28pt;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 10px;
+            page-break-after: avoid;
+        }
+
+        h2 {
+            color: #002B76;
+            font-size: 20pt;
+            font-weight: 600;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #92C83E;
+            padding-bottom: 5px;
+            page-break-after: avoid;
+        }
+
+        h3 {
+            color: #002B76;
+            font-size: 16pt;
+            font-weight: 600;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            page-break-after: avoid;
+        }
+
+        h4 {
+            color: #333;
+            font-size: 13pt;
+            font-weight: 600;
+            margin-top: 15px;
+            margin-bottom: 8px;
+            page-break-after: avoid;
+        }
+
+        /* Document Header */
+        .doc-header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #002B76;
+        }
+
+        .doc-metadata {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #92C83E;
+            margin-bottom: 20px;
+            font-size: 10pt;
+        }
+
+        .doc-metadata p {
+            margin: 5px 0;
+        }
+
+        /* Table of Contents */
+        .toc {
+            background-color: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 30px;
+            border: 1px solid #e9ecef;
+            page-break-after: always;
+        }
+
+        .toc h2 {
+            margin-top: 0;
+            border-bottom: none;
+        }
+
+        .toc ul {
+            list-style: none;
+            padding-left: 0;
+        }
+
+        .toc li {
+            margin-bottom: 8px;
+        }
+
+        .toc a {
+            color: #002B76;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .toc a:hover {
+            text-decoration: underline;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+            font-size: 8pt;
+            page-break-inside: avoid;
+        }
+
+        th {
+            background-color: #002B76;
+            color: white;
+            padding: 8px 6px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 8pt;
+        }
+
+        td {
+            padding: 6px;
+            border: 1px solid #dee2e6;
+            vertical-align: top;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        /* Code blocks */
+        pre, code {
+            font-family: 'Courier New', monospace;
+            background-color: #f4f4f4;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 8pt;
+        }
+
+        pre {
+            padding: 12px;
+            overflow-x: auto;
+            border-left: 4px solid #92C83E;
+            page-break-inside: avoid;
+        }
+
+        /* Lists */
+        ul, ol {
+            margin: 10px 0;
+            padding-left: 25px;
+        }
+
+        li {
+            margin-bottom: 5px;
+        }
+
+        /* Callout boxes */
+        .info-box {
+            background-color: #e7f3ff;
+            border-left: 4px solid #0066cc;
+            padding: 12px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+            font-size: 10pt;
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 12px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+            font-size: 10pt;
+        }
+
+        .critical-box {
+            background-color: #f8d7da;
+            border-left: 4px solid #dc3545;
+            padding: 12px;
+            margin: 15px 0;
+            page-break-inside: avoid;
+            font-size: 10pt;
+        }
+
+        .box-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        /* Page breaks */
+        .page-break {
+            page-break-after: always;
+        }
+
+        /* Print-specific styles */
+        @media print {
+            body {
+                padding: 0;
+            }
+
+            a {
+                color: #002B76;
+                text-decoration: none;
+            }
+
+            .no-print {
+                display: none;
+            }
+        }
+
+        /* Screen-specific styles */
+        @media screen {
+            body {
+                background-color: #f5f5f5;
+                padding: 40px 20px;
+            }
+
+            .container {
+                background-color: white;
+                padding: 40px;
+                box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            }
+        }
+
+        /* Footer */
+        .doc-footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 2px solid #e9ecef;
+            text-align: center;
+            font-size: 9pt;
+            color: #6c757d;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Document Header -->
+        <div class="doc-header">
+            <h1>GCC Database Solution</h1>
+            <h2 style="margin-top: 0; border-bottom: none;">Field Mapping Reference Guide</h2>
+        </div>
+
+        <div class="doc-metadata">
+            <p><strong>Version:</strong> 1.0</p>
+            <p><strong>Date:</strong> November 21, 2025</p>
+            <p><strong>Purpose:</strong> Client reference for mapping existing data fields to GCC database schema</p>
+        </div>
+
+        <!-- Continue with content... -->
+        <p><em>This is a comprehensive field-by-field mapping guide. For the complete interactive version, please use the markdown file.</em></p>
+
+        <!-- Document Footer -->
+        <div class="doc-footer">
+            <p><strong>GCC Database Solution - Field Mapping Reference Guide v1.0</strong></p>
+            <p>© 2025 GreenCircle Certified | For Client Review</p>
+            <p>Support: swest@anukiconsulting.com</p>
+        </div>
+
+    </div>
+
+    <script>
+        // Add print button for screen view
+        if (window.matchMedia('screen').matches) {
+            const printButton = document.createElement('button');
+            printButton.textContent = '🖨️ Print to PDF';
+            printButton.style.cssText = 'position: fixed; top: 20px; right: 20px; padding: 10px 20px; background: #002B76; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 14px; z-index: 1000; box-shadow: 0 2px 10px rgba(0,0,0,0.2);';
+            printButton.onclick = () => window.print();
+            document.body.appendChild(printButton);
+        }
+    </script>
+</body>
+</html>

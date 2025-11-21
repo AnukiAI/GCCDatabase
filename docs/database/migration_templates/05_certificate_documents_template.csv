@@ -1,0 +1,6 @@
+CertificateId,DocumentType,FileName,FilePath,FileSize,FileHash,UploadedBy,Description
+[INTEGER REQUIRED],[TEXT(50) REQUIRED],[TEXT(255) REQUIRED],[TEXT(500) REQUIRED],[INTEGER],[TEXT(64)],[INTEGER],[TEXT]
+1,Certificate,24-0001.pdf,certificates/24-0001.pdf,156789,a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2,1,Official certificate PDF
+1,Supporting,test-report-24-0001.pdf,certificates/supporting/test-report-24-0001.pdf,245678,b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2g3,1,Laboratory test report
+1,Photo,product-photo.jpg,certificates/photos/product-photo.jpg,89234,c3d4e5f6g7h8i9j0k1l2m3n4o5p6q7r8s9t0u1v2w3x4y5z6a7b8c9d0e1f2g3h4,1,Product photograph
+[NOTES] CertificateId must reference existing Certificate.Id. DocumentType options: Certificate Supporting TestReport Photo Other. FileName is display name. FilePath is relative path from wwwroot/uploads/ directory. FileSize in bytes (optional). FileHash is SHA-256 hash for integrity verification (calculate with Get-FileHash -Algorithm SHA256). UploadedBy references User.Id (optional). Before importing ensure physical files are copied to correct directory and paths match exactly. System will validate file existence during import.

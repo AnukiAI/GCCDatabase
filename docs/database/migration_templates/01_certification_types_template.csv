@@ -1,0 +1,8 @@
+Name,AmazonCode,Description,Level,ParentId,SortOrder,IsActive
+[TEXT(255) REQUIRED],[TEXT(255)],[TEXT],[INTEGER],[INTEGER],[INTEGER],[BOOLEAN]
+GreenCircle Certified,GCC,Primary GreenCircle certification,1,,1,true
+FSC Certified,FSC,Forest Stewardship Council certification,1,,2,true
+CARB Compliant,CARB,California Air Resources Board compliance,1,,3,true
+"SCS Certified (Indoor Advantage, FloorScore)",SCS,SCS Indoor Air Quality certifications,1,,4,true
+Recycled Content,RECYCLED,Recycled content certification,1,,5,true
+[NOTES] Level 1 = parent/top-level certification. Level 2+ = child/sub-certification (indented in UI). ParentId references another CertificationType.Id for hierarchy. AmazonCode is optional partner-specific identifier. Name must be unique.

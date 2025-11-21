@@ -1,0 +1,8 @@
+Name,Description,SortOrder,IsActive
+[TEXT(255) REQUIRED],[TEXT],[INTEGER],[BOOLEAN]
+Flooring,Flooring products and materials,1,true
+Furniture,Furniture and home furnishings,2,true
+Building Materials,Construction and building materials,3,true
+Packaging,Packaging materials and containers,4,true
+Textiles,Fabrics and textile products,5,true
+[NOTES] Product categories are the top-level classification for products. Each product must belong to exactly one category. SortOrder controls display sequence in dropdowns (lower = first).

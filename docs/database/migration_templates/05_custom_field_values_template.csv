@@ -1,0 +1,8 @@
+CertificateId,FieldId,Value
+[INTEGER REQUIRED],[INTEGER REQUIRED],[TEXT REQUIRED]
+1,1,FSC-123456
+1,3,TR-2024-001
+2,1,FSC-789012
+2,2,CARB-2024-5678
+3,4,2024-03-15
+[NOTES] CertificateId must reference existing Certificate.Id. FieldId must reference existing CustomField.Id. Value must match the custom field's FieldType and ValidationRules. For Date fields use YYYY-MM-DD format. For Boolean fields use true or false. For Number fields use numeric values only. This table stores actual values for custom fields defined in 05_custom_fields_template.csv.

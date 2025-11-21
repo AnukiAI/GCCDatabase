@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database - Field Mapping Reference (Interactive)</title>
+
+    <!-- DataTables CSS -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/jquery.dataTables.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.dataTables.min.css">
+
+    <style>
+        @page {
+            size: landscape;
+            margin: 0.5in;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #002B76;
+            font-size: 32pt;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        h2 {
+            color: #002B76;
+            font-size: 24pt;
+            font-weight: 600;
+            margin-top: 40px;
+            margin-bottom: 20px;
+            border-bottom: 3px solid #92C83E;
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            color: #002B76;
+            font-size: 18pt;
+            font-weight: 600;
+            margin-top: 30px;
+            margin-bottom: 15px;
+        }
+
+        .doc-header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding-bottom: 30px;
+            border-bottom: 4px solid #002B76;
+        }
+
+        .doc-metadata {
+            background-color: #e7f3ff;
+            padding: 20px;
+            border-left: 5px solid #002B76;
+            margin-bottom: 30px;
+            border-radius: 5px;
+        }
+
+        .doc-metadata p {
+            margin: 8px 0;
+            font-size: 11pt;
+        }
+
+        .info-box {
+            background-color: #e7f3ff;
+            border-left: 5px solid #0066cc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .warning-box {
+            background-color: #fff3cd;
+            border-left: 5px solid #ffc107;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .critical-box {
+            background-color: #f8d7da;
+            border-left: 5px solid #dc3545;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .success-box {
+            background-color: #d4edda;
+            border-left: 5px solid #92C83E;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+
+        .box-title {
+            font-weight: 600;
+            font-size: 12pt;
+            margin-bottom: 10px;
+            color: #002B76;
+        }
+
+        /* DataTables customization */
+        table.dataTable {
+            width: 100% !important;
+            margin: 20px 0 !important;
+            font-size: 10pt;
+        }
+
+        table.dataTable thead th {
+            background-color: #002B76 !important;
+            color: white !important;
+            font-weight: 600;
+            padding: 12px 8px !important;
+            border-bottom: 2px solid #92C83E !important;
+        }
+
+        table.dataTable tbody td {
+            padding: 10px 8px !important;
+            vertical-align: top;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        table.dataTable tbody tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+
+        table.dataTable tbody tr:hover {
+            background-color: #e7f3ff !important;
+        }
+
+        /* Required field indicator */
+        .required {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        /* Code styling */
+        code {
+            background-color: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+            color: #d63384;
+        }
+
+        pre {
+            background-color: #f4f4f4;
+            padding: 15px;
+            border-left: 4px solid #92C83E;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 9pt;
+        }
+
+        /* Buttons */
+        .dt-buttons {
+            margin-bottom: 15px;
+        }
+
+        .dt-button {
+            background-color: #002B76 !important;
+            color: white !important;
+            border: none !important;
+            padding: 10px 20px !important;
+            border-radius: 5px !important;
+            margin-right: 10px !important;
+            cursor: pointer !important;
+            font-size: 11pt !important;
+        }
+
+        .dt-button:hover {
+            background-color: #004494 !important;
+        }
+
+        /* Print button */
+        .print-btn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #92C83E;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14pt;
+            font-weight: 600;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+
+        .print-btn:hover {
+            background-color: #7ab32e;
+        }
+
+        @media print {
+            .print-btn, .dt-buttons, .dataTables_filter, .dataTables_info, .dataTables_paginate {
+                display: none !important;
+            }
+
+            body {
+                background-color: white;
+                padding: 0;
+            }
+
+            .container {
+                box-shadow: none;
+                padding: 0;
+            }
+
+            table.dataTable {
+                page-break-inside: avoid;
+            }
+
+            table.dataTable thead {
+                display: table-header-group;
+            }
+        }
+    </style>
+</head>
+<body>
+    <button class="print-btn no-print" onclick="window.print()">🖨️ Print to PDF</button>
+
+    <div class="container">
+        <div class="doc-header">
+            <h1>GCC Database Solution</h1>
+            <h2 style="margin-top: 10px; border-bottom: none;">Field Mapping Reference Guide</h2>
+            <p style="font-size: 12pt; color: #666; margin-top: 10px;">Interactive Version with Searchable Tables</p>
+        </div>
+
+        <div class="doc-metadata">
+            <p><strong>Version:</strong> 1.0</p>
+            <p><strong>Date:</strong> November 21, 2025</p>
+            <p><strong>Purpose:</strong> Client reference for mapping existing data fields to GCC database schema</p>
+            <p><strong>Features:</strong> Search, sort, filter, and export tables to Excel/CSV/PDF</p>
+        </div>
+
+        <div class="success-box">
+            <div class="box-title">How to Use This Interactive Guide</div>
+            <ul>
+                <li><strong>Search:</strong> Use the search box above each table to find specific fields</li>
+                <li><strong>Sort:</strong> Click column headers to sort alphabetically or by data type</li>
+                <li><strong>Filter:</strong> Type in the search box to filter rows in real-time</li>
+                <li><strong>Export:</strong> Use buttons above tables to export to Excel, CSV, or PDF</li>
+                <li><strong>Print:</strong> Click the green "Print to PDF" button (top-right) for a PDF version</li>
+            </ul>
+        </div>
+
+        <!-- Certificate Fields Section -->
+        <h2 id="certificate-fields">Certificate Fields</h2>
+
+        <h3>Core Certificate Information</h3>
+        <p>Map your existing certificate fields to the GCC database schema. <span class="required">Red text = Required field</span></p>
+
+        <table id="certificateTable" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>GCC Field</th>
+                    <th>Data Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                    <th>Common Source Names</th>
+                    <th>Example Values</th>
+                    <th>Validation Rules</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>Id</code></td>
+                    <td>Integer</td>
+                    <td>Auto</td>
+                    <td>Primary key (auto-generated)</td>
+                    <td>ID, CertificateID, PK</td>
+                    <td>1, 2, 3</td>
+                    <td>System-generated, do not import</td>
+                </tr>
+                <tr>
+                    <td><code>Number</code></td>
+                    <td>String(7)</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Unique certificate number</td>
+                    <td>CertificateNumber, CertNumber, Cert#, Number</td>
+                    <td>24-0001, 24-0366, 25-0100</td>
+                    <td>Format: YY-NNNN (e.g., 24-0001), must be unique</td>
+                </tr>
+                <tr>
+                    <td><code>Status</code></td>
+                    <td>String(50)</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Certificate lifecycle status (14-state workflow)</td>
+                    <td>Status, State, CertStatus, LifecycleStatus</td>
+                    <td>active, draft, expired, issued</td>
+                    <td>Must be one of 14 valid values: active, draft, pending_review, under_review, pending_approval, approved, issued, expiring_soon, renewal_requested, suspended, revoked, expired, archived, cancelled</td>
+                </tr>
+                <tr>
+                    <td><code>EffectiveDate</code></td>
+                    <td>Date</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Certificate start date</td>
+                    <td>EffectiveDate, StartDate, IssueDate, ValidFrom, DateIssued</td>
+                    <td>2024-01-15, 2025-03-01</td>
+                    <td>Format: YYYY-MM-DD, must be before ExpirationDate</td>
+                </tr>
+                <tr>
+                    <td><code>ExpirationDate</code></td>
+                    <td>Date</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Certificate end date</td>
+                    <td>ExpirationDate, EndDate, ValidUntil, ExpDate, Expiry</td>
+                    <td>2025-01-14, 2026-02-28</td>
+                    <td>Format: YYYY-MM-DD, must be after EffectiveDate</td>
+                </tr>
+                <tr>
+                    <td><code>Location</code></td>
+                    <td>String(175)</td>
+                    <td>No</td>
+                    <td>Physical location</td>
+                    <td>Location, Address, Site, Facility, Plant</td>
+                    <td>"Seattle, WA", "123 Main St, Portland, OR"</td>
+                    <td>Max 175 characters</td>
+                </tr>
+                <tr>
+                    <td><code>Country</code></td>
+                    <td>String(100)</td>
+                    <td>No</td>
+                    <td>Country code or name</td>
+                    <td>Country, CountryCode, Nation</td>
+                    <td>US, CA, GB, United States</td>
+                    <td>Prefer ISO 3166-1 alpha-2 (US, CA, GB)</td>
+                </tr>
+                <tr>
+                    <td><code>Partner</code></td>
+                    <td>String(100)</td>
+                    <td>No</td>
+                    <td>Partner program</td>
+                    <td>Partner, Program, Marketplace, Channel</td>
+                    <td>Amazon, Wayfair, None, Other</td>
+                    <td>Must be: Amazon, Wayfair, None, or Other</td>
+                </tr>
+                <tr>
+                    <td><code>CompanyId</code></td>
+                    <td>Integer</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Reference to Company table</td>
+                    <td>CompanyID, ManufacturerID, ClientID, HolderID</td>
+                    <td>1, 5, 12</td>
+                    <td>Must reference existing Company.Id</td>
+                </tr>
+                <tr>
+                    <td><code>ProductId</code></td>
+                    <td>Integer</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Reference to Product table</td>
+                    <td>ProductID, ItemID, ProductRef</td>
+                    <td>1, 10, 25</td>
+                    <td>Must reference existing Product.Id</td>
+                </tr>
+                <tr>
+                    <td><code>CertificationTypeId</code></td>
+                    <td>Integer</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Reference to CertificationType</td>
+                    <td>CertTypeID, TypeID, CertificationID</td>
+                    <td>1, 2, 3</td>
+                    <td>Must reference existing CertificationType.Id</td>
+                </tr>
+                <tr>
+                    <td><code>CertificateFile</code></td>
+                    <td>String(500)</td>
+                    <td>No</td>
+                    <td>Path to PDF certificate</td>
+                    <td>CertificateFile, PDFPath, FilePath, DocumentPath</td>
+                    <td>certificates/24-0001.pdf</td>
+                    <td>Relative path from wwwroot/uploads/</td>
+                </tr>
+                <tr>
+                    <td><code>CertificateImagePath</code></td>
+                    <td>String(500)</td>
+                    <td>No</td>
+                    <td>Path to preview image (PNG/JPG)</td>
+                    <td>ImagePath, ThumbnailPath, PreviewImage</td>
+                    <td>certificates/24-0001.png</td>
+                    <td>Relative path from wwwroot/uploads/</td>
+                </tr>
+                <tr>
+                    <td><code>CreatedBy</code></td>
+                    <td>Integer</td>
+                    <td>No</td>
+                    <td>User who created certificate</td>
+                    <td>CreatedBy, CreatedByUserID, AuthorID</td>
+                    <td>1, 5</td>
+                    <td>Must reference existing User.Id (optional)</td>
+                </tr>
+                <tr>
+                    <td><code>CreatedAt</code></td>
+                    <td>DateTime</td>
+                    <td>Auto</td>
+                    <td>Creation timestamp</td>
+                    <td>CreatedDate, DateCreated, Created</td>
+                    <td>2024-11-21 10:30:00</td>
+                    <td>System sets on insert, can override during migration</td>
+                </tr>
+                <tr>
+                    <td><code>UpdatedAt</code></td>
+                    <td>DateTime</td>
+                    <td>Auto</td>
+                    <td>Last update timestamp</td>
+                    <td>ModifiedDate, LastModified, Updated</td>
+                    <td>2024-11-21 15:45:00</td>
+                    <td>System sets on update, can override during migration</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="page-break"></div>
+
+        <!-- Company Fields Section -->
+        <h2 id="company-fields">Company Fields</h2>
+
+        <h3>Core Company Information</h3>
+        <p>Map your existing company/manufacturer/client data to the GCC Companies table.</p>
+
+        <table id="companyTable" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>GCC Field</th>
+                    <th>Data Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                    <th>Common Source Names</th>
+                    <th>Example Values</th>
+                    <th>Validation Rules</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>Id</code></td>
+                    <td>Integer</td>
+                    <td>Auto</td>
+                    <td>Primary key (auto-generated)</td>
+                    <td>ID, CompanyID, ClientID, PK</td>
+                    <td>1, 2, 3</td>
+                    <td>System-generated, do not import</td>
+                </tr>
+                <tr>
+                    <td><code>Name</code></td>
+                    <td>String(255)</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Company legal name</td>
+                    <td>Name, CompanyName, BusinessName, LegalName, Organization</td>
+                    <td>"Acme Corporation", "Global Flooring Solutions Ltd"</td>
+                    <td>Max 255 chars, must be unique (case-insensitive)</td>
+                </tr>
+                <tr>
+                    <td><code>ContactInfo</code></td>
+                    <td>String(255)</td>
+                    <td>No</td>
+                    <td>Contact person or info</td>
+                    <td>Contact, ContactPerson, ContactName, PrimaryContact</td>
+                    <td>"John Smith", "Jane Doe, VP Operations"</td>
+                    <td>Max 255 characters</td>
+                </tr>
+                <tr>
+                    <td><code>Email</code></td>
+                    <td>String(255)</td>
+                    <td>No</td>
+                    <td>Company email</td>
+                    <td>Email, ContactEmail, CompanyEmail, BusinessEmail</td>
+                    <td>contact@acmecorp.com, info@company.com</td>
+                    <td>Must be valid email format if provided</td>
+                </tr>
+                <tr>
+                    <td><code>Website</code></td>
+                    <td>String(500)</td>
+                    <td>No</td>
+                    <td>Company website URL</td>
+                    <td>Website, URL, CompanyURL, WebAddress</td>
+                    <td>https://www.acmecorp.com, http://example.com</td>
+                    <td>Must start with http:// or https://</td>
+                </tr>
+                <tr>
+                    <td><code>Location</code></td>
+                    <td>String(175)</td>
+                    <td>No</td>
+                    <td>Physical location</td>
+                    <td>Location, Address, City, Site, Headquarters</td>
+                    <td>"Seattle, WA", "123 Main St, Portland, OR"</td>
+                    <td>Max 175 characters, free-text</td>
+                </tr>
+                <tr>
+                    <td><code>Country</code></td>
+                    <td>String(100)</td>
+                    <td>No</td>
+                    <td>Country code or name</td>
+                    <td>Country, CountryCode, Nation, Region</td>
+                    <td>US, CA, GB, United States, Canada</td>
+                    <td>Prefer ISO 3166-1 alpha-2 (US, CA, GB)</td>
+                </tr>
+                <tr>
+                    <td><code>IsActive</code></td>
+                    <td>Boolean</td>
+                    <td>No</td>
+                    <td>Active status flag</td>
+                    <td>IsActive, Active, Status, Enabled</td>
+                    <td>true, false, 1, 0</td>
+                    <td>Default: true</td>
+                </tr>
+                <tr>
+                    <td><code>CreatedAt</code></td>
+                    <td>DateTime</td>
+                    <td>Auto</td>
+                    <td>Creation timestamp</td>
+                    <td>CreatedDate, DateCreated</td>
+                    <td>2024-11-21 10:30:00</td>
+                    <td>System sets on insert</td>
+                </tr>
+                <tr>
+                    <td><code>UpdatedAt</code></td>
+                    <td>DateTime</td>
+                    <td>Auto</td>
+                    <td>Last update timestamp</td>
+                    <td>ModifiedDate, LastModified</td>
+                    <td>2024-11-21 15:45:00</td>
+                    <td>System sets on update</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="page-break"></div>
+
+        <!-- Product Fields Section -->
+        <h2 id="product-fields">Product Fields</h2>
+
+        <h3>Core Product Information</h3>
+
+        <table id="productTable" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>GCC Field</th>
+                    <th>Data Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                    <th>Common Source Names</th>
+                    <th>Example Values</th>
+                    <th>Validation Rules</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>Id</code></td>
+                    <td>Integer</td>
+                    <td>Auto</td>
+                    <td>Primary key (auto-generated)</td>
+                    <td>ID, ProductID, ItemID, PK</td>
+                    <td>1, 2, 3</td>
+                    <td>System-generated, do not import</td>
+                </tr>
+                <tr>
+                    <td><code>Name</code></td>
+                    <td>String(255)</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Product name</td>
+                    <td>Name, ProductName, ItemName, Title, Description</td>
+                    <td>"Oak Hardwood Flooring", "Bamboo Engineered Flooring"</td>
+                    <td>Max 255 characters, required</td>
+                </tr>
+                <tr>
+                    <td><code>Description</code></td>
+                    <td>Text</td>
+                    <td>No</td>
+                    <td>Product description</td>
+                    <td>Description, Details, FullDescription, LongDescription</td>
+                    <td>"Premium solid oak hardwood flooring 3/4 inch thick"</td>
+                    <td>Unlimited length</td>
+                </tr>
+                <tr>
+                    <td><code>Model</code></td>
+                    <td>String(100)</td>
+                    <td>No</td>
+                    <td>Product model number</td>
+                    <td>Model, ModelNumber, ModelCode, PartNumber</td>
+                    <td>"OAK-HW-750", "BAMB-ENG-500"</td>
+                    <td>Max 100 characters</td>
+                </tr>
+                <tr>
+                    <td><code>Sku</code></td>
+                    <td>String(50)</td>
+                    <td>No</td>
+                    <td>Stock keeping unit</td>
+                    <td>SKU, StockCode, ItemCode, ProductCode</td>
+                    <td>"OAK-HW-750-NAT", "BAMB-500"</td>
+                    <td>Max 50 characters</td>
+                </tr>
+                <tr>
+                    <td><code>Upc</code></td>
+                    <td>String(50)</td>
+                    <td>No</td>
+                    <td>Universal product code</td>
+                    <td>UPC, UniversalProductCode, Barcode</td>
+                    <td>"012345678905", "639382000393"</td>
+                    <td>12 digits if provided</td>
+                </tr>
+                <tr>
+                    <td><code>Asin</code></td>
+                    <td>String(50)</td>
+                    <td>No</td>
+                    <td>Amazon standard ID</td>
+                    <td>ASIN, AmazonASIN, AmazonID</td>
+                    <td>"B08N5WRWNW", "B07XYZ1234"</td>
+                    <td>10 alphanumeric characters if provided</td>
+                </tr>
+                <tr>
+                    <td><code>CategoryId</code></td>
+                    <td>Integer</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Reference to ProductCategory</td>
+                    <td>CategoryID, Category, ProductCategoryID</td>
+                    <td>1 (Flooring), 2 (Furniture), 3 (Building Materials)</td>
+                    <td>Must reference existing ProductCategory.Id</td>
+                </tr>
+                <tr>
+                    <td><code>ProductTypeId</code></td>
+                    <td>Integer</td>
+                    <td>No</td>
+                    <td>Reference to ProductType</td>
+                    <td>TypeID, ProductTypeID, Type</td>
+                    <td>1, 2, 3</td>
+                    <td>Must reference existing ProductType.Id if provided</td>
+                </tr>
+                <tr>
+                    <td><code>CompanyId</code></td>
+                    <td>Integer</td>
+                    <td>No</td>
+                    <td>Reference to Company (manufacturer)</td>
+                    <td>CompanyID, ManufacturerID, MakerID</td>
+                    <td>5, 12</td>
+                    <td>Must reference existing Company.Id if provided</td>
+                </tr>
+                <tr>
+                    <td><code>IsActive</code></td>
+                    <td>Boolean</td>
+                    <td>No</td>
+                    <td>Active status flag</td>
+                    <td>IsActive, Active, Status, Enabled</td>
+                    <td>true, false</td>
+                    <td>Default: true</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="page-break"></div>
+
+        <!-- User Fields Section -->
+        <h2 id="user-fields">User Fields</h2>
+
+        <h3>Core User Information</h3>
+
+        <div class="critical-box">
+            <div class="box-title">CRITICAL: Password Security</div>
+            <p>Passwords <strong>MUST</strong> be BCrypt hashed before import. Use the provided <code>Scripts/HashGenerator/</code> tool. <strong>NEVER</strong> store plain-text passwords in CSV files.</p>
+        </div>
+
+        <table id="userTable" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>GCC Field</th>
+                    <th>Data Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                    <th>Common Source Names</th>
+                    <th>Example Values</th>
+                    <th>Validation Rules</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>Id</code></td>
+                    <td>Integer</td>
+                    <td>Auto</td>
+                    <td>Primary key (auto-generated)</td>
+                    <td>ID, UserID, PK</td>
+                    <td>1, 2, 3</td>
+                    <td>System-generated</td>
+                </tr>
+                <tr>
+                    <td><code>Username</code></td>
+                    <td>String(255)</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Unique username</td>
+                    <td>Username, Login, UserName, LoginName</td>
+                    <td>admin, analyst, jsmith</td>
+                    <td>Max 255 chars, must be unique (case-insensitive)</td>
+                </tr>
+                <tr>
+                    <td><code>Email</code></td>
+                    <td>String(255)</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Email address</td>
+                    <td>Email, EmailAddress, UserEmail</td>
+                    <td>admin@example.com, john.smith@company.com</td>
+                    <td>Must be valid email format, must be unique</td>
+                </tr>
+                <tr>
+                    <td><code>Name</code></td>
+                    <td>String(100)</td>
+                    <td>No</td>
+                    <td>Short name or first name</td>
+                    <td>Name, FirstName, GivenName</td>
+                    <td>John, Jane, Admin</td>
+                    <td>Max 100 characters</td>
+                </tr>
+                <tr>
+                    <td><code>FullName</code></td>
+                    <td>String(255)</td>
+                    <td>No</td>
+                    <td>Full display name</td>
+                    <td>FullName, DisplayName, RealName</td>
+                    <td>"John Smith", "Jane Doe"</td>
+                    <td>Max 255 characters</td>
+                </tr>
+                <tr>
+                    <td><code>PasswordHash</code></td>
+                    <td>String(255)</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>BCrypt password hash</td>
+                    <td>Password, PasswordHash, Hash</td>
+                    <td>$2a$11$24Y94.bK.yWpd7.p/YDwZOy6qriBEiO5OGe0MmjsYjDPV04YLpqpa</td>
+                    <td>Must be BCrypt hash (use HashGenerator tool)</td>
+                </tr>
+                <tr>
+                    <td><code>Status</code></td>
+                    <td>String(20)</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Account status</td>
+                    <td>Status, AccountStatus, State</td>
+                    <td>active, inactive, locked</td>
+                    <td>Must be: active, inactive, or locked</td>
+                </tr>
+                <tr>
+                    <td><code>Roles</code></td>
+                    <td>String</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Comma-separated role names</td>
+                    <td>Role, Roles, UserRole, Permissions</td>
+                    <td>Admin, Analyst, "Admin,Analyst"</td>
+                    <td>Must reference existing role names (Admin, Analyst, External, Public)</td>
+                </tr>
+                <tr>
+                    <td><code>TwoFactorEnabled</code></td>
+                    <td>Boolean</td>
+                    <td>No</td>
+                    <td>2FA enabled flag</td>
+                    <td>TwoFactorEnabled, 2FA, MFAEnabled</td>
+                    <td>true, false</td>
+                    <td>Default: false</td>
+                </tr>
+                <tr>
+                    <td><code>TwoFactorMethod</code></td>
+                    <td>String</td>
+                    <td>No</td>
+                    <td>2FA delivery method</td>
+                    <td>TwoFactorMethod, 2FAMethod, MFAMethod</td>
+                    <td>Email, SMS, TOTP, Both</td>
+                    <td>Default: Email</td>
+                </tr>
+                <tr>
+                    <td><code>PhoneNumber</code></td>
+                    <td>String(20)</td>
+                    <td>No</td>
+                    <td>Phone for SMS 2FA</td>
+                    <td>Phone, PhoneNumber, Mobile, CellPhone</td>
+                    <td>+1-555-555-5555</td>
+                    <td>Required if TwoFactorMethod includes SMS</td>
+                </tr>
+                <tr>
+                    <td><code>IsActive</code></td>
+                    <td>Boolean</td>
+                    <td>No</td>
+                    <td>Active flag</td>
+                    <td>IsActive, Active, Enabled</td>
+                    <td>true, false</td>
+                    <td>Default: true</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="page-break"></div>
+
+        <!-- Product ID Fields Section -->
+        <h2 id="productid-fields">Certificate Product ID Fields</h2>
+
+        <h3>Multiple Product Identifiers (ASINs, UPCs, GTINs, etc.)</h3>
+
+        <div class="info-box">
+            <div class="box-title">Multiple Product IDs Per Certificate</div>
+            <p>The new CertificateProductId table supports <strong>hundreds</strong> of product identifiers per certificate. Legacy single fields (Certificate.Asin, Certificate.Upc) are deprecated.</p>
+        </div>
+
+        <table id="productIdTable" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>GCC Field</th>
+                    <th>Data Type</th>
+                    <th>Required</th>
+                    <th>Description</th>
+                    <th>Common Source Names</th>
+                    <th>Example Values</th>
+                    <th>Validation Rules</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><code>Id</code></td>
+                    <td>Integer</td>
+                    <td>Auto</td>
+                    <td>Primary key (auto-generated)</td>
+                    <td>ID, ProductIDID, PK</td>
+                    <td>1, 2, 3</td>
+                    <td>System-generated</td>
+                </tr>
+                <tr>
+                    <td><code>CertificateId</code></td>
+                    <td>Integer</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Reference to Certificate</td>
+                    <td>CertificateID, CertID</td>
+                    <td>1, 5, 10</td>
+                    <td>Must reference existing Certificate.Id</td>
+                </tr>
+                <tr>
+                    <td><code>ProductIdType</code></td>
+                    <td>String(10)</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Type of identifier</td>
+                    <td>Type, IDType, IdentifierType</td>
+                    <td>ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN, Other</td>
+                    <td>Must be one of: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN, Other</td>
+                </tr>
+                <tr>
+                    <td><code>ProductIdValue</code></td>
+                    <td>String(50)</td>
+                    <td><span class="required">Yes</span></td>
+                    <td>Identifier value</td>
+                    <td>Value, ID, Code, Number</td>
+                    <td>B08N5WRWNW, 012345678905</td>
+                    <td>Format must match type (ASIN=10 chars, UPC=12 digits, etc.)</td>
+                </tr>
+                <tr>
+                    <td><code>Status</code></td>
+                    <td>String(20)</td>
+                    <td>No</td>
+                    <td>Product ID status</td>
+                    <td>Status, State</td>
+                    <td>Active, Inactive, Pending, Expired</td>
+                    <td>Default: Active</td>
+                </tr>
+                <tr>
+                    <td><code>Partner</code></td>
+                    <td>String(50)</td>
+                    <td>No</td>
+                    <td>Associated partner</td>
+                    <td>Partner, Marketplace</td>
+                    <td>Amazon, Wayfair, None, Other</td>
+                    <td>Optional partner association</td>
+                </tr>
+                <tr>
+                    <td><code>ProductName</code></td>
+                    <td>String(200)</td>
+                    <td>No</td>
+                    <td>Product name for this ID</td>
+                    <td>ProductName, Name, Title</td>
+                    <td>"Oak Hardwood Flooring - Natural"</td>
+                    <td>Optional, max 200 characters</td>
+                </tr>
+                <tr>
+                    <td><code>ProductSku</code></td>
+                    <td>String(100)</td>
+                    <td>No</td>
+                    <td>SKU for this ID</td>
+                    <td>SKU, StockCode</td>
+                    <td>"OAK-HW-750-NAT"</td>
+                    <td>Optional, max 100 characters</td>
+                </tr>
+                <tr>
+                    <td><code>DisplayOrder</code></td>
+                    <td>Integer</td>
+                    <td>No</td>
+                    <td>Sort sequence</td>
+                    <td>DisplayOrder, SortOrder, Sequence</td>
+                    <td>1, 2, 3</td>
+                    <td>Controls display order in UI</td>
+                </tr>
+                <tr>
+                    <td><code>IsActive</code></td>
+                    <td>Boolean</td>
+                    <td>No</td>
+                    <td>Active flag</td>
+                    <td>IsActive, Active</td>
+                    <td>true, false</td>
+                    <td>Default: true (false = soft delete)</td>
+                </tr>
+                <tr>
+                    <td><code>IsPublic</code></td>
+                    <td>Boolean</td>
+                    <td>No</td>
+                    <td>Public visibility flag</td>
+                    <td>IsPublic, Public, Visible</td>
+                    <td>true, false</td>
+                    <td>Default: true (false = hide from public view)</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Product ID Type Reference -->
+        <h3>Product ID Type Formats</h3>
+
+        <table id="productIdTypesTable" class="display" style="width:100%">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Description</th>
+                    <th>Format</th>
+                    <th>Example</th>
+                    <th>Validation Regex</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>ASIN</strong></td>
+                    <td>Amazon Standard ID</td>
+                    <td>10 alphanumeric</td>
+                    <td>B08N5WRWNW</td>
+                    <td><code>^[A-Z0-9]{10}$</code></td>
+                </tr>
+                <tr>
+                    <td><strong>UPC</strong></td>
+                    <td>Universal Product Code</td>
+                    <td>12 digits</td>
+                    <td>012345678905</td>
+                    <td><code>^\d{12}$</code></td>
+                </tr>
+                <tr>
+                    <td><strong>GTIN</strong></td>
+                    <td>Global Trade Item Number</td>
+                    <td>8, 12, 13, or 14 digits</td>
+                    <td>00012345678905</td>
+                    <td><code>^\d{8,14}$</code></td>
+                </tr>
+                <tr>
+                    <td><strong>EAN</strong></td>
+                    <td>European Article Number</td>
+                    <td>13 digits</td>
+                    <td>5901234123457</td>
+                    <td><code>^\d{13}$</code></td>
+                </tr>
+                <tr>
+                    <td><strong>ISBN</strong></td>
+                    <td>International Book Number</td>
+                    <td>10 or 13 digits (with hyphens)</td>
+                    <td>978-0-596-52068-7</td>
+                    <td><code>^\d{9}[\dX]$</code> or <code>^\d{13}$</code></td>
+                </tr>
+                <tr>
+                    <td><strong>SKU</strong></td>
+                    <td>Stock Keeping Unit</td>
+                    <td>Varies by company</td>
+                    <td>ABC-12345-M</td>
+                    <td>No strict format</td>
+                </tr>
+                <tr>
+                    <td><strong>MPN</strong></td>
+                    <td>Manufacturer Part Number</td>
+                    <td>Varies by manufacturer</td>
+                    <td>MFR-9876-BLK</td>
+                    <td>No strict format</td>
+                </tr>
+                <tr>
+                    <td><strong>Other</strong></td>
+                    <td>Custom identifier</td>
+                    <td>Any format</td>
+                    <td>CUSTOM-ID-001</td>
+                    <td>No strict format</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <!-- Footer -->
+        <div style="margin-top: 60px; padding-top: 30px; border-top: 3px solid #002B76; text-align: center; color: #666;">
+            <p style="font-size: 11pt; font-weight: 600; margin-bottom: 10px;">GCC Database Solution - Field Mapping Reference Guide v1.0</p>
+            <p style="font-size: 10pt;">© 2025 GreenCircle Certified | For Client Review</p>
+            <p style="font-size: 10pt; margin-top: 10px;">Support: swest@anukiconsulting.com</p>
+        </div>
+
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
+    <!-- DataTables JS -->
+    <script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/dataTables.buttons.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.html5.min.js"></script>
+    <script src="https://cdn.datatables.net/buttons/2.4.2/js/buttons.print.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/pdfmake.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.2.7/vfs_fonts.js"></script>
+
+    <script>
+        $(document).ready(function() {
+            // Initialize all tables with DataTables
+            const tables = ['certificateTable', 'companyTable', 'productTable', 'userTable', 'productIdTable', 'productIdTypesTable'];
+
+            tables.forEach(function(tableId) {
+                $('#' + tableId).DataTable({
+                    pageLength: 25,
+                    lengthMenu: [[10, 25, 50, 100, -1], [10, 25, 50, 100, "All"]],
+                    dom: 'Bfrtip',
+                    buttons: [
+                        {
+                            extend: 'excel',
+                            text: '📊 Export to Excel',
+                            title: 'GCC_' + tableId.replace('Table', '_Fields')
+                        },
+                        {
+                            extend: 'csv',
+                            text: '📄 Export to CSV',
+                            title: 'GCC_' + tableId.replace('Table', '_Fields')
+                        },
+                        {
+                            extend: 'print',
+                            text: '🖨️ Print Table',
+                            title: 'GCC Field Mapping - ' + tableId.replace('Table', ' Fields')
+                        }
+                    ],
+                    order: [[0, 'asc']],
+                    responsive: true,
+                    autoWidth: false
+                });
+            });
+        });
+    </script>
+</body>
+</html>

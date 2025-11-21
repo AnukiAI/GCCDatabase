@@ -229,16 +229,23 @@ class CertificateTileViewExternal {
 
             // Populate certification types
             this.populateFilterOptions('cert-type-content', options.certificationTypes, 'certType');
-            
+
             // Populate product categories
             this.populateFilterOptions('product-cat-content', options.productCategories, 'productCategory');
-            
-            // Populate countries
-            this.populateFilterOptions('location-content', options.countries, 'country');
-            
-            // Populate partners if available
-            if (options.partners) {
-                this.populateFilterOptions('partner-content', options.partners, 'partner');
+
+            // Populate companies
+            if (options.companies && options.companies.length > 0) {
+                this.populateFilterOptions('company-content', options.companies, 'company');
+            }
+
+            // Populate countries (fixed ID: was 'location-content', now 'countries-content')
+            if (options.countries && options.countries.length > 0) {
+                this.populateFilterOptions('countries-content', options.countries, 'country');
+            }
+
+            // Populate additional tags (external tags only)
+            if (options.additionalTags && options.additionalTags.length > 0) {
+                this.populateFilterOptions('additional-content', options.additionalTags, 'tags');
             }
 
         } catch (error) {
@@ -262,16 +269,21 @@ class CertificateTileViewExternal {
         // Add new options
         options.forEach(option => {
             const li = document.createElement('li');
+            li.className = 'filter-item filter-level-1';
+
+            const label = document.createElement('label');
+
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.id = `${dataAttribute}-${option.id || option}`;
             checkbox.setAttribute(`data-${dataAttribute}`, option.id || option);
-            
-            const label = document.createElement('label');
-            label.htmlFor = checkbox.id;
-            label.textContent = option.name || option;
-            
-            li.appendChild(checkbox);
+
+            const span = document.createElement('span');
+            span.textContent = option.name || option;
+
+            // Checkbox INSIDE label for proper CSS alignment
+            label.appendChild(checkbox);
+            label.appendChild(span);
             li.appendChild(label);
             ul.appendChild(li);
 
@@ -490,7 +502,9 @@ class CertificateTileViewExternal {
         const filters = {
             certType: [],
             productCategory: [],
+            company: [],
             country: [],
+            tags: [],
             partner: []
         };
 
@@ -506,10 +520,22 @@ class CertificateTileViewExternal {
             if (value) filters.productCategory.push(value);
         });
 
-        // Get countries
-        document.querySelectorAll('#location-content input:checked').forEach(checkbox => {
+        // Get companies
+        document.querySelectorAll('#company-content input:checked').forEach(checkbox => {
+            const value = checkbox.getAttribute('data-company');
+            if (value) filters.company.push(value);
+        });
+
+        // Get countries (fixed ID: was '#location-content', now '#countries-content')
+        document.querySelectorAll('#countries-content input:checked').forEach(checkbox => {
             const value = checkbox.getAttribute('data-country');
             if (value) filters.country.push(value);
+        });
+
+        // Get additional tags
+        document.querySelectorAll('#additional-content input:checked').forEach(checkbox => {
+            const value = checkbox.getAttribute('data-tags');
+            if (value) filters.tags.push(value);
         });
 
         // Get partners

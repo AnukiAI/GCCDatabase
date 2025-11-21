@@ -1,0 +1,209 @@
+{
+  "certificationTypes": [
+    {
+      "name": "Biobased",
+      "level": 1
+    },
+    {
+      "name": "Biodegradable",
+      "level": 1
+    },
+    {
+      "name": "Carbon Footprint Reduction",
+      "level": 1
+    },
+    {
+      "name": "Certified Energy Savings",
+      "level": 1
+    },
+    {
+      "name": "Certified Environmental Facts",
+      "level": 1
+    },
+    {
+      "name": "Certified Sustainability Facts",
+      "level": 1
+    },
+    {
+      "name": "Certified Water Savings",
+      "level": 1
+    },
+    {
+      "name": "Closed Loop Product",
+      "level": 1
+    },
+    {
+      "name": "Dematerialization",
+      "level": 1
+    },
+    {
+      "name": "Greenhouse Gas (GHG) Verification",
+      "level": 1
+    },
+    {
+      "name": "GreenCircle Audited",
+      "level": 1
+    },
+    {
+      "name": "Life Cycle Assessment (LCA) Optimized",
+      "level": 1
+    },
+    {
+      "name": "Manufacturer Inventory Verification",
+      "level": 1
+    },
+    {
+      "name": "Recyclable Material",
+      "level": 1
+    },
+    {
+      "name": "Recycled Content",
+      "level": 1
+    },
+    {
+      "name": "Renewable Resource Content",
+      "level": 1
+    },
+    {
+      "name": "Sustainable Energy Practices",
+      "level": 1
+    },
+    {
+      "name": "Sustainable Manufacturing Practices",
+      "level": 1
+    },
+    {
+      "name": "Waste Diversion from Landfill",
+      "level": 1
+    },
+    {
+      "name": "Waste System Audit",
+      "level": 1
+    },
+    {
+      "name": "Preloved",
+      "level": 1
+    }
+  ],
+  "companies": [
+    {
+      "id": 9,
+      "name": "3M Company"
+    },
+    {
+      "id": 3,
+      "name": "Acme Corporation"
+    },
+    {
+      "id": 12,
+      "name": "Armstrong World Industries"
+    },
+    {
+      "id": 1,
+      "name": "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division"
+    },
+    {
+      "id": 14,
+      "name": "CertainTeed Corporation"
+    },
+    {
+      "id": 28,
+      "name": "Cree Lighting"
+    },
+    {
+      "id": 7,
+      "name": "EcoFlex Manufacturing"
+    },
+    {
+      "id": 22,
+      "name": "Forbo Flooring Systems"
+    },
+    {
+      "id": 8,
+      "name": "GAF Materials Corporation"
+    },
+    {
+      "id": 4,
+      "name": "Globex Industries"
+    },
+    {
+      "id": 2,
+      "name": "Green Products Inc. - Environmental Division"
+    },
+    {
+      "id": 19,
+      "name": "Herman Miller Inc."
+    },
+    {
+      "id": 15,
+      "name": "Johns Manville"
+    },
+    {
+      "id": 16,
+      "name": "Kingspan Insulation"
+    },
+    {
+      "id": 20,
+      "name": "Knoll Inc."
+    },
+    {
+      "id": 26,
+      "name": "Lutron Electronics"
+    },
+    {
+      "id": 24,
+      "name": "Milliken & Company"
+    },
+    {
+      "id": 11,
+      "name": "Mohawk Industries"
+    },
+    {
+      "id": 13,
+      "name": "Owens Corning"
+    },
+    {
+      "id": 27,
+      "name": "Philips Lighting"
+    },
+    {
+      "id": 10,
+      "name": "Shaw Industries Group"
+    },
+    {
+      "id": 5,
+      "name": "Stark Enterprises"
+    },
+    {
+      "id": 18,
+      "name": "Steelcase Inc."
+    },
+    {
+      "id": 23,
+      "name": "Tarkett USA Inc."
+    },
+    {
+      "id": 21,
+      "name": "Teknion Corporation"
+    },
+    {
+      "id": 25,
+      "name": "USG Corporation"
+    },
+    {
+      "id": 6,
+      "name": "Wayne Technologies"
+    }
+  ],
+  "countries": [
+    "Canada",
+    "United States"
+  ],
+  "productCategories": [
+    "Building Materials",
+    "Consumer Products",
+    "Electronics / Electrical",
+    "Textiles"
+  ],
+  "additionalTags": []
+}

@@ -783,32 +783,26 @@
                     }
                     return false;
                 }
+
+                // Get custom field values
+                const fieldValues = certificateCustomFields.getFieldValues();
+
+                // Remove any existing custom field hidden inputs
+                form.querySelectorAll('input[name^="CustomFieldValues"]').forEach(input => input.remove());
+
+                // Add custom field values as hidden inputs to the form
+                // Format: CustomFieldValues[fieldId] = value
+                Object.keys(fieldValues).forEach(fieldId => {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.name = `CustomFieldValues[${fieldId}]`;
+                    hiddenInput.value = fieldValues[fieldId] || '';
+                    form.appendChild(hiddenInput);
+                });
+
+                console.log('Custom field values added to form:', fieldValues);
             });
         });
-
-        // Store original certificate edit success handler
-        if (typeof window.certificateEditSuccess === 'undefined') {
-            window.originalCertificateEditSuccess = window.certificateEditSuccess || function() {};
-
-            // Override success handler to save custom fields after certificate update
-            window.certificateEditSuccess = async function(result) {
-                if (result && result.success) {
-                    const certificateId = @Model.Id;
-                    // Save custom field values
-                    const fieldsSaved = await certificateCustomFields.saveFieldValues(certificateId);
-                    if (fieldsSaved) {
-                        if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
-                            AdminCore.showNotification('Certificate and custom fields updated successfully', 'success');
-                        }
-                        // Optionally redirect to details page
-                        // window.location.href = `/Certificate/Details/${certificateId}`;
-                    }
-                } else {
-                    // Call original success handler
-                    window.originalCertificateEditSuccess(result);
-                }
-            };
-        }
     </script>
 
     <script>

@@ -1254,7 +1254,8 @@
         </member>
         <member name="M:GCCWebApp.Controllers.CertificateController.GetCustomFields(System.Int32)">
             <summary>
-            Gets all custom fields for a specific certificate type
+            Gets all custom fields (global, applies to all certificate types)
+            Filters internal fields for External users
             GET: /Certificate/GetCustomFields?certificateTypeId={id}
             </summary>
         </member>
@@ -1601,6 +1602,12 @@
             <summary>
             Product IDs associated with this certificate (managed by Product ID Manager)
             This is for the new Product ID Manager functionality
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateEditViewModel.CustomFieldValues">
+            <summary>
+            Custom field values associated with this certificate
+            Dictionary: Key = CustomField.Id, Value = Field value as string
             </summary>
         </member>
         <member name="T:GCCWebApp.Models.CertificateListViewModelSimple">
@@ -2148,8 +2155,16 @@
         </member>
         <member name="M:GCCWebApp.Services.ICertificateFieldService.GetFieldsForCertificateTypeAsync(System.Int32)">
             <summary>
-            Gets all custom fields for a specific certificate type
+            Gets all visible custom fields (global - applies to all certificate types)
+            certificateTypeId parameter kept for backward compatibility but ignored
             </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.ICertificateFieldService.GetFieldsAsync(System.Boolean)">
+            <summary>
+            Gets all visible custom fields with role-based filtering
+            </summary>
+            <param name="includeInternalFields">If true, includes fields where IsPublic=false. If false, only returns public fields.</param>
+            <returns>List of custom fields filtered by visibility and public/internal status</returns>
         </member>
         <member name="M:GCCWebApp.Services.ICertificateFieldService.GetFieldValuesForCertificateAsync(System.Int32)">
             <summary>

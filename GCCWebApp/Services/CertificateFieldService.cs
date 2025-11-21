@@ -20,14 +20,39 @@ namespace GCCWebApp.Services
         {
             try
             {
+                // NOTE: As of 2025-11-20, custom fields are GLOBAL (apply to all certificate types)
+                // The certificateTypeId parameter is kept for backward compatibility but ignored
                 return await _context.CustomFields
-                    .Where(cf => cf.CertificateTypeId == certificateTypeId && cf.IsVisible)
+                    .Where(cf => cf.IsVisible)
                     .OrderBy(cf => cf.SortOrder)
                     .ToListAsync();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting fields for certificate type {CertificateTypeId}", certificateTypeId);
+                _logger.LogError(ex, "Error getting custom fields", ex);
+                return new List<CustomField>();
+            }
+        }
+
+        public async Task<List<CustomField>> GetFieldsAsync(bool includeInternalFields = true)
+        {
+            try
+            {
+                var query = _context.CustomFields.Where(cf => cf.IsVisible);
+
+                // If not including internal fields, filter to only public fields
+                if (!includeInternalFields)
+                {
+                    query = query.Where(cf => cf.IsPublic);
+                }
+
+                return await query
+                    .OrderBy(cf => cf.SortOrder)
+                    .ToListAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting custom fields (includeInternal={IncludeInternal})", includeInternalFields);
                 return new List<CustomField>();
             }
         }

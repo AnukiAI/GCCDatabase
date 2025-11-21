@@ -1196,7 +1196,7 @@
             <div class="grid-row" data-cert-id="${cert.id}">
                 <div class="grid-cell actions-column">
                     <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="editCertificate('${cert.id}')" title="Edit Certificate">
+                        <button class="action-btn edit-btn" onclick="editCertificate('${cert.certificateNumber}')" title="Edit Certificate">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="action-btn download-btn" onclick="downloadCertificate('${cert.id}')" title="Download PDF">
@@ -1236,14 +1236,15 @@
     // Table action handlers simplified - checkboxes removed
 
     // Edit certificate function
-    window.editCertificate = function(id) {
-        if (!id) {
-            console.error('Certificate ID is missing');
-            showToast('Error: Certificate ID not found', 'error');
+    window.editCertificate = function(certificateNumber) {
+        if (!certificateNumber) {
+            console.error('Certificate number is missing');
+            showToast('Error: Certificate number not found', 'error');
             return;
         }
-        console.log('Editing certificate:', id);
-        window.location.href = `/Certificate/Edit/${id}`;
+        console.log('Editing certificate:', certificateNumber);
+        // Use certificate number (e.g., "24-1605") instead of ID for URL
+        window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
     };
 
     // Export functions for global access as object as well

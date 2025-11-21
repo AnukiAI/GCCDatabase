@@ -356,7 +356,7 @@
                     <button class="btn-icon" title="View Details" onclick="event.stopPropagation(); viewCertificateDetails('${cert.id}')">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn-icon" title="Edit Certificate" onclick="event.stopPropagation(); editCertificate('${cert.id}')">
+                    <button class="btn-icon" title="Edit Certificate" onclick="event.stopPropagation(); editCertificate('${cert.certificateNumber}')">
                         <i class="fas fa-edit"></i>
                     </button>
                     <button class="btn-icon" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.id}')">
@@ -428,7 +428,7 @@
                     <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.id}')">
                         <i class="fas fa-external-link-alt"></i>
                     </div>
-                    <div class="action-icon edit" title="Edit Certificate" onclick="event.stopPropagation(); editCertificate('${cert.id}')">
+                    <div class="action-icon edit" title="Edit Certificate" onclick="event.stopPropagation(); editCertificate('${cert.certificateNumber}')">
                         <i class="fas fa-edit"></i>
                     </div>
                 </div>
@@ -803,8 +803,9 @@
         window.open(`/Certificate/CertificateInternalView/${encodeURIComponent(id)}`, '_blank');
     }
 
-    function editCertificate(id) {
-        window.location.href = `/Certificate/Edit/${id}`;
+    function editCertificate(certificateNumber) {
+        // Use certificate number (e.g., "24-1605") instead of ID for URL
+        window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
     }
 
     window.viewCertificate = viewCertificate;
@@ -1250,7 +1251,7 @@
                 </div>
                 <div class="grid-cell actions-column">
                     <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="editCertificate('${cert.id}')" title="Edit Certificate">
+                        <button class="action-btn edit-btn" onclick="editCertificate('${cert.certificateNumber}')" title="Edit Certificate">
                             <i class="fas fa-edit"></i>
                         </button>
                         <button class="action-btn download-btn" onclick="downloadCertificate('${cert.id}')" title="Download PDF">

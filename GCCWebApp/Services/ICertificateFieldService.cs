@@ -5,9 +5,17 @@ namespace GCCWebApp.Services
     public interface ICertificateFieldService
     {
         /// <summary>
-        /// Gets all custom fields for a specific certificate type
+        /// Gets all visible custom fields (global - applies to all certificate types)
+        /// certificateTypeId parameter kept for backward compatibility but ignored
         /// </summary>
         Task<List<CustomField>> GetFieldsForCertificateTypeAsync(int certificateTypeId);
+
+        /// <summary>
+        /// Gets all visible custom fields with role-based filtering
+        /// </summary>
+        /// <param name="includeInternalFields">If true, includes fields where IsPublic=false. If false, only returns public fields.</param>
+        /// <returns>List of custom fields filtered by visibility and public/internal status</returns>
+        Task<List<CustomField>> GetFieldsAsync(bool includeInternalFields = true);
 
         /// <summary>
         /// Gets all field values for a specific certificate

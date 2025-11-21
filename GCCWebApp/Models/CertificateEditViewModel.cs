@@ -62,6 +62,12 @@ namespace GCCWebApp.Models
         /// </summary>
         public List<CertificateProductId> ProductIds { get; set; } = new List<CertificateProductId>();
 
+        /// <summary>
+        /// Custom field values associated with this certificate
+        /// Dictionary: Key = CustomField.Id, Value = Field value as string
+        /// </summary>
+        public Dictionary<int, string> CustomFieldValues { get; set; } = new Dictionary<int, string>();
+
         [Required]
         [Display(Name = "Company")]
         public int CompanyId { get; set; }

@@ -494,9 +494,9 @@
             window.location.href = `/Certificate/CertificateSingleView/${id}`;
         }
 
-        function editCertificate(id) {
-            // Navigate to certificate edit view
-            window.location.href = `/Certificate/Edit/${id}`;
+        function editCertificate(certificateNumber) {
+            // Navigate to certificate edit view using certificate number (e.g., "24-1605")
+            window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
         }
 
         function showExportModal() {

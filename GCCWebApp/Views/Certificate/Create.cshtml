@@ -762,16 +762,25 @@
             const originalSubmit = form.onsubmit;
 
             form.addEventListener('submit', async function(e) {
-                // First validate custom fields
-                const validation = certificateCustomFields.validateFields();
-                if (!validation.isValid) {
-                    e.preventDefault();
-                    if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
-                        AdminCore.showNotification('Please fix validation errors: ' + validation.errors.join(', '), 'error');
-                    } else {
-                        alert('Please fix validation errors: ' + validation.errors.join(', '));
+                try {
+                    // Only validate custom fields if they exist and are loaded
+                    if (typeof certificateCustomFields !== 'undefined' && certificateCustomFields.fields && certificateCustomFields.fields.length > 0) {
+                        const validation = certificateCustomFields.validateFields();
+                        if (!validation.isValid) {
+                            e.preventDefault();
+                            if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+                                AdminCore.showNotification('Please fix validation errors: ' + validation.errors.join(', '), 'error');
+                            } else {
+                                alert('Please fix validation errors: ' + validation.errors.join(', '));
+                            }
+                            return false;
+                        }
                     }
-                    return false;
+                    // If no custom fields or validation passes, allow form to submit normally
+                } catch (error) {
+                    console.error('Error validating custom fields:', error);
+                    // Allow form to submit even if validation has an error
+                    // (Better to let the server handle validation than block the user)
                 }
             });
         });

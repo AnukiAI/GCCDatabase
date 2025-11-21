@@ -336,7 +336,13 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var model = new CertificateEditViewModel();
+                var model = new CertificateEditViewModel
+                {
+                    // Set default dates to current year
+                    EffectiveDate = DateTime.Today,
+                    ExpirationDate = DateTime.Today.AddYears(2), // Default 2-year validity
+                    Status = "active" // Default status
+                };
 
                 // Load dropdown data
                 ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
@@ -366,7 +372,13 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var model = new CertificateEditViewModel();
+                var model = new CertificateEditViewModel
+                {
+                    // Set default dates to current year
+                    EffectiveDate = DateTime.Today,
+                    ExpirationDate = DateTime.Today.AddYears(2), // Default 2-year validity
+                    Status = "active" // Default status
+                };
 
                 // Load dropdown data
                 ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
@@ -579,7 +591,8 @@ namespace GCCWebApp.Controllers
                     CompanyId = certificate.CompanyId,
                     ProductId = certificate.ProductId,
                     CertificationTypeId = certificate.CertificationTypeId,
-                    ProductIds = certificate.ProductIds?.ToList() ?? new List<CertificateProductId>()
+                    ProductIds = certificate.ProductIds?.ToList() ?? new List<CertificateProductId>(),
+                    CustomFieldValues = await _certificateFieldService.GetFieldValuesForCertificateAsync(certificate.Id) ?? new Dictionary<int, string>()
                 };
 
                 // Load dropdown data
@@ -732,6 +745,40 @@ namespace GCCWebApp.Controllers
                                 certificate.Tags.Add(tag);
                             }
                         }
+                    }
+
+                    // Handle Custom Fields
+                    if (model.CustomFieldValues != null && model.CustomFieldValues.Any())
+                    {
+                        // Get fields for validation
+                        var fields = await _certificateFieldService.GetFieldsForCertificateTypeAsync(certificate.CertificationTypeId);
+
+                        // Validate custom field values
+                        var (isValid, validationErrors) = await _certificateFieldService.ValidateFieldValuesAsync(model.CustomFieldValues, fields);
+                        if (!isValid)
+                        {
+                            _logger.LogWarning("Custom field validation failed for certificate {Number}: {Errors}",
+                                certificate.Number, string.Join(", ", validationErrors));
+                            foreach (var error in validationErrors)
+                            {
+                                ModelState.AddModelError("CustomFieldValues", error);
+                            }
+                            await ReloadEditFormDataAsync(id);
+                            return View(model);
+                        }
+
+                        // Save custom field values
+                        var fieldsSaved = await _certificateFieldService.SaveFieldValuesAsync(certificate.Id, model.CustomFieldValues);
+                        if (!fieldsSaved)
+                        {
+                            _logger.LogWarning("Failed to save custom field values for certificate {Number}", certificate.Number);
+                            ModelState.AddModelError("CustomFieldValues", "Failed to save custom field values");
+                            await ReloadEditFormDataAsync(id);
+                            return View(model);
+                        }
+
+                        _logger.LogInformation("Saved {Count} custom field values for certificate {Number}",
+                            model.CustomFieldValues.Count, certificate.Number);
                     }
 
                     await _certificateRepository.UpdateAsync(certificate);
@@ -1606,7 +1653,8 @@ namespace GCCWebApp.Controllers
         #region Custom Fields API
 
         /// <summary>
-        /// Gets all custom fields for a specific certificate type
+        /// Gets all custom fields (global, applies to all certificate types)
+        /// Filters internal fields for External users
         /// GET: /Certificate/GetCustomFields?certificateTypeId={id}
         /// </summary>
         [HttpGet]
@@ -1615,12 +1663,16 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var fields = await _certificateFieldService.GetFieldsForCertificateTypeAsync(certificateTypeId);
+                // Determine if user can see internal fields
+                // External users can only see public fields
+                bool includeInternalFields = !User.IsInRole("External");
+
+                var fields = await _certificateFieldService.GetFieldsAsync(includeInternalFields);
                 return Json(new { success = true, data = fields });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting custom fields for certificate type {CertificateTypeId}", certificateTypeId);
+                _logger.LogError(ex, "Error getting custom fields");
                 return Json(new { success = false, message = "Error loading custom fields" });
             }
         }

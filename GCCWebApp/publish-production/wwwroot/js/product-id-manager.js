@@ -704,7 +704,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const certificateId = productIdManager.getAttribute('data-certificate-id');
         const isReadOnly = productIdManager.hasAttribute('data-readonly');
 
-        if (certificateId) {
+        // Initialize even if certificateId is 0 (new certificate on Create page)
+        if (certificateId !== null && certificateId !== undefined) {
             window.productIdManager = new ProductIdManager(null, parseInt(certificateId), isReadOnly);
         }
     }

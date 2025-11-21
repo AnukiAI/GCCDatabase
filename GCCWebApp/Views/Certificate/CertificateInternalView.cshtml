@@ -177,7 +177,7 @@
                 </div>
                 @if (Model.CanEdit)
                 {
-                    <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@certificateId')">
+                    <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@certificateNumber')">
                         <i class="fas fa-edit"></i>
                     </div>
                 }
@@ -195,12 +195,13 @@
 <script src="~/js/certificates.js"></script>
 <script>
     // Make certificate action functions available globally for this page
-    window.editCertificate = function(certificateId) {
-        if (!certificateId) {
-            console.error('Certificate ID is missing');
+    window.editCertificate = function(certificateNumber) {
+        if (!certificateNumber) {
+            console.error('Certificate number is missing');
             return;
         }
-        window.location.href = `/Certificate/Edit/${certificateId}`;
+        // Use certificate number (e.g., "24-1605") instead of ID for URL
+        window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
     };
 
     window.deleteCertificate = function(certificateId) {

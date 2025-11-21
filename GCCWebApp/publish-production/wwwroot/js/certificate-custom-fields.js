@@ -238,22 +238,87 @@ class CertificateCustomFields {
     }
 
     /**
-     * Validates all required fields
+     * Validates all required fields and custom validation rules
      * @returns {object} {isValid: boolean, errors: array}
      */
     validateFields() {
         const errors = [];
 
-        this.fields.filter(f => f.isRequired).forEach(field => {
+        this.fields.forEach(field => {
             const input = document.getElementById(`field_${field.id}`);
-            if (input) {
-                const value = input.type === 'checkbox' ? input.checked : input.value;
-                if (!value || value === '') {
-                    errors.push(`${field.name} is required`);
-                    input.classList.add('is-invalid');
-                } else {
-                    input.classList.remove('is-invalid');
+            if (!input) return;
+
+            const value = input.type === 'checkbox' ? input.checked : input.value;
+            let fieldErrors = [];
+
+            // 1. Required field validation
+            if (field.isRequired && (!value || value === '')) {
+                fieldErrors.push(`${field.name} is required`);
+            }
+
+            // 2. Type-specific validation (only if value is present)
+            if (value && value !== '') {
+                switch (field.fieldType.toLowerCase()) {
+                    case 'number':
+                        if (isNaN(value)) {
+                            fieldErrors.push(`${field.name} must be a valid number`);
+                        }
+                        break;
+                    case 'date':
+                        const date = new Date(value);
+                        if (isNaN(date.getTime())) {
+                            fieldErrors.push(`${field.name} must be a valid date`);
+                        }
+                        break;
                 }
+            }
+
+            // 3. Custom validation rules (JSON format)
+            if (value && value !== '' && field.validationRules) {
+                try {
+                    const rules = typeof field.validationRules === 'string'
+                        ? JSON.parse(field.validationRules)
+                        : field.validationRules;
+
+                    // Min length validation
+                    if (rules.minLength && value.length < rules.minLength) {
+                        fieldErrors.push(`${field.name} must be at least ${rules.minLength} characters`);
+                    }
+
+                    // Max length validation
+                    if (rules.maxLength && value.length > rules.maxLength) {
+                        fieldErrors.push(`${field.name} must be at most ${rules.maxLength} characters`);
+                    }
+
+                    // Min value validation (for numbers)
+                    if (rules.minValue && parseFloat(value) < rules.minValue) {
+                        fieldErrors.push(`${field.name} must be at least ${rules.minValue}`);
+                    }
+
+                    // Max value validation (for numbers)
+                    if (rules.maxValue && parseFloat(value) > rules.maxValue) {
+                        fieldErrors.push(`${field.name} must be at most ${rules.maxValue}`);
+                    }
+
+                    // Regex pattern validation
+                    if (rules.pattern) {
+                        const regex = new RegExp(rules.pattern);
+                        if (!regex.test(value)) {
+                            const errorMsg = rules.patternMessage || `${field.name} format is invalid`;
+                            fieldErrors.push(errorMsg);
+                        }
+                    }
+                } catch (ex) {
+                    console.warn(`Invalid validation rules for field ${field.name}:`, ex);
+                }
+            }
+
+            // Apply validation state to input
+            if (fieldErrors.length > 0) {
+                input.classList.add('is-invalid');
+                errors.push(...fieldErrors);
+            } else {
+                input.classList.remove('is-invalid');
             }
         });
 
@@ -308,10 +373,85 @@ class CertificateCustomFields {
 
     /**
      * Applies visibility rules based on field dependencies
+     * Reads visibility rules from ValidationRules JSON in format:
+     * { "showIf": { "fieldId": 123, "value": "someValue" } }
      */
     applyVisibilityRules() {
-        // Placeholder for conditional visibility logic
-        // Can be extended to hide/show fields based on other field values
+        this.fields.forEach(field => {
+            const fieldGroup = document.querySelector(`.custom-field-group[data-field-id="${field.id}"]`);
+            if (!fieldGroup) return;
+
+            // Default: show field
+            let shouldShow = true;
+
+            // Check if field has visibility rules
+            if (field.validationRules) {
+                try {
+                    const rules = typeof field.validationRules === 'string'
+                        ? JSON.parse(field.validationRules)
+                        : field.validationRules;
+
+                    // Check "showIf" condition
+                    if (rules.showIf) {
+                        const dependentFieldId = rules.showIf.fieldId;
+                        const dependentInput = document.getElementById(`field_${dependentFieldId}`);
+
+                        if (dependentInput) {
+                            const dependentValue = dependentInput.type === 'checkbox'
+                                ? (dependentInput.checked ? 'true' : 'false')
+                                : dependentInput.value;
+
+                            // Show only if dependent field matches expected value
+                            shouldShow = (dependentValue === rules.showIf.value);
+
+                            // Add change listener to dependent field
+                            if (!dependentInput.dataset.visibilityListenerAdded) {
+                                dependentInput.addEventListener('change', () => this.applyVisibilityRules());
+                                dependentInput.dataset.visibilityListenerAdded = 'true';
+                            }
+                        }
+                    }
+
+                    // Check "hideIf" condition
+                    if (rules.hideIf) {
+                        const dependentFieldId = rules.hideIf.fieldId;
+                        const dependentInput = document.getElementById(`field_${dependentFieldId}`);
+
+                        if (dependentInput) {
+                            const dependentValue = dependentInput.type === 'checkbox'
+                                ? (dependentInput.checked ? 'true' : 'false')
+                                : dependentInput.value;
+
+                            // Hide if dependent field matches expected value
+                            if (dependentValue === rules.hideIf.value) {
+                                shouldShow = false;
+                            }
+
+                            // Add change listener to dependent field
+                            if (!dependentInput.dataset.visibilityListenerAdded) {
+                                dependentInput.addEventListener('change', () => this.applyVisibilityRules());
+                                dependentInput.dataset.visibilityListenerAdded = 'true';
+                            }
+                        }
+                    }
+                } catch (ex) {
+                    console.warn(`Invalid visibility rules for field ${field.name}:`, ex);
+                }
+            }
+
+            // Apply visibility
+            fieldGroup.style.display = shouldShow ? '' : 'none';
+
+            // If hidden, clear validation errors and optionally clear value
+            if (!shouldShow) {
+                const input = document.getElementById(`field_${field.id}`);
+                if (input) {
+                    input.classList.remove('is-invalid');
+                    // Optionally clear value when hidden
+                    // input.value = '';
+                }
+            }
+        });
     }
 
     /**

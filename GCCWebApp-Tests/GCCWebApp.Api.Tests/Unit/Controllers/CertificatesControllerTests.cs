@@ -24,6 +24,9 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             _loggerMock = new Mock<ILogger<CertificatesController>>();
             _controller = new CertificatesController(_context, _loggerMock.Object);
 
+            // Setup HttpContext for the controller (required for BaseApiController)
+            ControllerTestHelper.SetupHttpContext(_controller);
+
             // Seed test data
             TestDbContextFactory.SeedTestData(_context);
         }

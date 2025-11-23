@@ -41,6 +41,9 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
                 _unitOfWorkMock.Object,
                 _pdfServiceMock.Object,
                 _context);
+
+            // Setup HttpContext for the controller (required for BaseApiController)
+            ControllerTestHelper.SetupHttpContext(_controller);
         }
 
         public void Dispose()

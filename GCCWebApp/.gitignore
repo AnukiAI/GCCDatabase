@@ -3,6 +3,8 @@
 **/obj/
 **/publish/
 **/publish-output/
+**/publish-production/
+**/backups/
 
 # Deployment artifacts
 *.zip
@@ -41,6 +43,9 @@ node_modules/
 *.tmp
 *.temp
 nul
+cookies.txt
+customfields.xml
+filters_*.json
 
 # Old deployment artifacts
 WebApp/

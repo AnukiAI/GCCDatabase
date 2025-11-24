@@ -1,7 +1,0 @@
-Name,Description,ContactEmail,ContactPhone,IsActive,SortOrder
-[TEXT(255) REQUIRED],[TEXT],[TEXT(255)],[TEXT(20)],[BOOLEAN],[INTEGER]
-Amazon,Amazon Marketplace,partner@amazon.com,,true,1
-Wayfair,Wayfair Marketplace,partner@wayfair.com,,true,2
-None,No partner program,,,true,3
-Other,Other partners,,,true,4
-[DELETE THIS ROW] - Partners are core entities in the system (Amazon/Wayfair/None/Other minimum). Only import if you need additional partners beyond the standard set. Partners cannot be bulk imported via CSV - use admin interface to add one at a time.

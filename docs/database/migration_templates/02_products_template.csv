@@ -1,6 +1,0 @@
-Name,Description,Model,Sku,Upc,Asin,CategoryId,ProductTypeId,ProductSubcategoryId,CompanyId,IsActive
-[TEXT(255) REQUIRED],[TEXT],[TEXT(100)],[TEXT(50)],[TEXT(50)],[TEXT(50)],[INTEGER REQUIRED],[INTEGER],[INTEGER],[INTEGER],[BOOLEAN]
-Oak Hardwood Flooring,Premium solid oak hardwood flooring 3/4 inch,OAK-HW-750,OAK-HW-750-NAT,012345678905,B08N5WRWNW,1,1,,5,true
-Bamboo Engineered Flooring,Sustainable bamboo engineered flooring,BAMB-ENG-500,BAMB-500,639382000393,B07XYZ1234,1,2,,5,true
-Reclaimed Wood Table,Dining table made from 100% reclaimed wood,TABLE-RW-001,TABLE-RW-001,,,2,,,12,true
-[NOTES] Name is required. CategoryId must reference existing ProductCategory.Id (1=Flooring 2=Furniture etc). ProductTypeId ProductSubcategoryId CompanyId are optional foreign keys. Model Sku Upc Asin are optional product identifiers. For multiple product IDs per product use 04_certificate_product_ids_template.csv instead. IsActive defaults to true.

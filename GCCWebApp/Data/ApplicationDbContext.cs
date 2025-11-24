@@ -23,6 +23,7 @@ namespace GCCWebApp.Data
         public DbSet<CertificateDocument> CertificateDocuments { get; set; }
         public DbSet<CertificateProductId> CertificateProductIds { get; set; }
         public DbSet<CertificateStatusHistory> CertificateStatusHistory { get; set; }
+        public DbSet<AuditHistory> AuditHistory { get; set; }
 
         // Product related entities
         public DbSet<ProductCategory> ProductCategories { get; set; }
@@ -586,6 +587,44 @@ namespace GCCWebApp.Data
                     .WithMany()
                     .HasForeignKey(e => e.ChangedBy)
                     .OnDelete(DeleteBehavior.NoAction); // Don't delete history when user is deleted
+            });
+
+            // Audit History configuration (generic entity change tracking)
+            modelBuilder.Entity<AuditHistory>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                // Performance indexes for audit queries
+                entity.HasIndex(e => e.EntityType);
+                entity.HasIndex(e => e.EntityId);
+                entity.HasIndex(e => e.ChangedBy);
+                entity.HasIndex(e => e.ChangedAt);
+                entity.HasIndex(e => e.Action);
+
+                // Composite indexes for common query patterns
+                entity.HasIndex(e => new { e.EntityType, e.EntityId, e.ChangedAt });
+                entity.HasIndex(e => new { e.EntityType, e.Action });
+                entity.HasIndex(e => new { e.ChangedBy, e.ChangedAt });
+                entity.HasIndex(e => new { e.ChangedAt, e.EntityType });
+
+                // Column constraints
+                entity.Property(e => e.EntityType).IsRequired().HasMaxLength(100);
+                entity.Property(e => e.EntityId).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.EntityName).HasMaxLength(255);
+                entity.Property(e => e.Action).IsRequired().HasMaxLength(20);
+                entity.Property(e => e.FieldName).HasMaxLength(100);
+                entity.Property(e => e.ChangedByUsername).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.IpAddress).HasMaxLength(50);
+                entity.Property(e => e.UserAgent).HasMaxLength(500);
+                entity.Property(e => e.ChangeSource).HasMaxLength(50);
+                entity.Property(e => e.Reason).HasMaxLength(1000);
+                entity.Property(e => e.SessionId).HasMaxLength(100);
+
+                // Relationship to User
+                entity.HasOne(e => e.User)
+                    .WithMany()
+                    .HasForeignKey(e => e.ChangedBy)
+                    .OnDelete(DeleteBehavior.NoAction); // Don't delete audit when user is deleted
             });
         }
     }

@@ -1,6 +1,0 @@
-Number,Status,EffectiveDate,ExpirationDate,Location,Country,Partner,CompanyId,ProductId,CertificationTypeId,Tags,CertificateFile,CertificateImagePath
-[TEXT(7) REQUIRED FORMAT:YY-NNNN],[TEXT(50) REQUIRED],[DATE REQUIRED YYYY-MM-DD],[DATE REQUIRED YYYY-MM-DD],[TEXT(175)],[TEXT(100)],[TEXT(100)],[INTEGER REQUIRED],[INTEGER REQUIRED],[INTEGER REQUIRED],[TEXT COMMA-SEPARATED],[TEXT(500)],[TEXT(500)]
-24-0001,active,2024-01-15,2025-01-14,"Seattle, WA",US,Amazon,5,10,1,"Renewable,Sustainable",certificates/24-0001.pdf,certificates/24-0001.png
-24-0002,active,2024-02-01,2025-01-31,"Portland, OR",US,Wayfair,5,11,1,"FSC Certified,Recycled Content",certificates/24-0002.pdf,certificates/24-0002.png
-24-0366,expiring_soon,2024-03-10,2025-03-09,"Toronto, ON",CA,None,12,15,2,,certificates/24-0366.pdf,
-[NOTES] Number must be unique and match format YY-NNNN (e.g. 24-0001). Status must be one of 14 valid values: draft pending_review under_review pending_approval approved issued active expiring_soon renewal_requested suspended revoked expired archived cancelled. EffectiveDate must be before ExpirationDate. CompanyId ProductId CertificationTypeId must reference existing records. Partner options: Amazon Wayfair None Other. Country should use ISO 3166-1 alpha-2 codes. Tags are comma-separated tag names. CertificateFile and CertificateImagePath are relative paths to uploaded files.

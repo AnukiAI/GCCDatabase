@@ -1,6 +1,0 @@
-Name,ContactInfo,Email,Website,Location,Country,IsActive
-[TEXT(255) REQUIRED],[TEXT(255)],[EMAIL(255)],[URL(500)],[TEXT(175)],[TEXT(100)],[BOOLEAN]
-"Acme Corporation",John Smith,contact@acmecorp.com,https://www.acmecorp.com,"Seattle, WA",US,true
-"Global Flooring Solutions Ltd",Jane Doe,info@globalflooring.com,https://www.globalflooring.com,"Toronto, ON",CA,true
-"EcoWood Industries","Mike Johnson, VP Operations",sales@ecowood.com,https://www.ecowood.com,"Portland, OR",US,true
-[NOTES] Name must be unique (case-insensitive). Email must be valid format if provided. Website must start with http:// or https://. Country should use ISO 3166-1 alpha-2 codes (US CA GB etc). Location is free-text (city state or address). IsActive defaults to true.

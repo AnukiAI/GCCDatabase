@@ -1,6 +1,0 @@
-Username,Email,Name,FullName,PasswordHash,Status,Roles,TwoFactorEnabled,TwoFactorMethod,PhoneNumber,IsActive
-[TEXT(255) REQUIRED],[EMAIL(255) REQUIRED],[TEXT(100)],[TEXT(255)],[TEXT(255) REQUIRED],[TEXT(20)],[TEXT],[BOOLEAN],[TEXT],[TEXT(20)],[BOOLEAN]
-admin,admin@greencirclecertified.com,Admin,Admin User,$2a$11$24Y94.bK.yWpd7.p/YDwZOy6qriBEiO5OGe0MmjsYjDPV04YLpqpa,active,Admin,false,Email,,true
-analyst,analyst@greencirclecertified.com,Jane,Jane Analyst,$2a$11$24Y94.bK.yWpd7.p/YDwZOy6qriBEiO5OGe0MmjsYjDPV04YLpqpa,active,Analyst,false,Email,,true
-external,partner@amazon.com,External,External User,$2a$11$24Y94.bK.yWpd7.p/YDwZOy6qriBEiO5OGe0MmjsYjDPV04YLpqpa,active,External,false,Email,,true
-[NOTES] Username and Email must be UNIQUE. PasswordHash must be BCrypt hash - use Scripts/HashGenerator/ tool to generate. Example hash is for password TestPass123!. Status must be active inactive or locked. Roles is comma-separated list (Admin Analyst External Public). TwoFactorMethod options: Email SMS TOTP Both. PhoneNumber required if TwoFactorMethod includes SMS. User must have at least one role.

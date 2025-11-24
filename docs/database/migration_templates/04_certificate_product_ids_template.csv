@@ -1,8 +1,0 @@
-CertificateId,ProductIdType,ProductIdValue,Status,Partner,ProductName,ProductSku,Description,IsActive,IsPublic,DisplayOrder
-[INTEGER REQUIRED],[TEXT(10) REQUIRED],[TEXT(50) REQUIRED],[TEXT(20)],[TEXT(50)],[TEXT(200)],[TEXT(100)],[TEXT(500)],[BOOLEAN],[BOOLEAN],[INTEGER]
-1,ASIN,B08N5WRWNW,Active,Amazon,Oak Hardwood Flooring - Natural,OAK-HW-750-NAT,Primary Amazon listing,true,true,1
-1,ASIN,B08N5WRWNY,Active,Amazon,Oak Hardwood Flooring - Dark,OAK-HW-750-DRK,Alternate finish,true,true,2
-1,UPC,012345678905,Active,,,,,true,true,3
-2,ASIN,B07XYZ1234,Active,Amazon,Bamboo Engineered Flooring,BAMB-500,,true,true,1
-2,GTIN,00012345678905,Active,,,,,true,true,2
-[NOTES] CertificateId must reference existing Certificate.Id. ProductIdType must be one of: ASIN UPC GTIN EAN ISBN SKU MPN Other. ProductIdValue format must match type (ASIN=10 chars UPC=12 digits GTIN=8/12/13/14 digits etc). Combination of ProductIdType+ProductIdValue must be UNIQUE across all certificates. Status options: Active Inactive Pending Expired. Partner options: Amazon Wayfair None Other. DisplayOrder controls sort sequence (lower = first). IsPublic=false hides from public view. Supports 100s of product IDs per certificate.

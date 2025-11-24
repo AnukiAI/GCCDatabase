@@ -1,8 +1,0 @@
-Name,FieldType,CertificateTypeId,IsRequired,DefaultValue,ValidationRules,SortOrder,IsActive
-[TEXT(100) REQUIRED],[TEXT(20) REQUIRED],[INTEGER],[BOOLEAN],[TEXT],[TEXT],[INTEGER],[BOOLEAN]
-FSC Chain of Custody ID,Text,2,true,,^[A-Z]{3}-[0-9]{6}$,1,true
-CARB Compliance Number,Text,3,true,,,2,true
-Test Report Number,Text,1,false,,,3,true
-Certification Date,Date,,false,,,4,true
-Inspector Name,Text,,false,,,5,true
-[NOTES] Name is field label shown in UI. FieldType options: Text Number Date Boolean Select. CertificateTypeId is optional - if provided field only applies to that certification type. IsRequired=true means field must have value for applicable certificates. DefaultValue is pre-filled value. ValidationRules is regex pattern for validation (e.g. ^[A-Z]{3}-[0-9]{6}$ for format ABC-123456). SortOrder controls display sequence. Custom fields enable extension of standard certificate schema for industry-specific or client-specific requirements.

@@ -390,6 +390,9 @@ builder.Services.AddScoped<ICertificatePdfService, CertificatePdfService>();
 builder.Services.AddScoped<ICertificateWorkflowService, CertificateWorkflowService>();
 builder.Services.AddScoped<IProductIdService, ProductIdService>();
 
+// ===== AUDIT SERVICES =====
+builder.Services.AddScoped<GCCWebApp.Services.Audit.IAuditService, GCCWebApp.Services.Audit.AuditService>();
+
 // ===== PERFORMANCE MONITORING =====
 builder.Services.AddScoped<GCCWebApp.Services.Performance.IPerformanceMonitoringService, GCCWebApp.Services.Performance.PerformanceMonitoringService>();
 

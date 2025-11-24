@@ -18,11 +18,11 @@ namespace GCCWebApp.Data
             // Apply any pending migrations
             await context.Database.MigrateAsync();
 
-            // NOTE: Automatic seeding has been disabled for manual control
+            // NOTE: Manual seeding control - Automatic seeding is disabled
             // To seed data, use one of these approaches:
             // 1. Run Database_Scripts/PRODUCTION_ESSENTIAL_SEED.sql for production setup
-            // 2. Run Database_Scripts/FULL_TEST_DATA_SEED.sql for testing/development
-            // 3. Manually call SeedEssentialSecurityDataAsync() if needed
+            // 2. Run Database_Scripts/FULL_TEST_DATA_SEED_uniqueemails.sql for testing/development
+            // 3. Run: sqlcmd -S ANUKI01 -U GCC_DevUser -P "DevP@ss2024!SQL" -d GCCDatabase_Dev -i "Database_Scripts\FULL_TEST_DATA_SEED_uniqueemails.sql"
 
             Console.WriteLine("Database migrations applied. No automatic seeding performed.");
             Console.WriteLine("Use SQL scripts in Database_Scripts/ folder to seed data when needed.");

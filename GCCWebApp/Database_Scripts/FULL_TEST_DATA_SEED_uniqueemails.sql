@@ -80,8 +80,8 @@ PRINT '';
 
 -- User-related junction tables
 PRINT '0.3. Cleaning user and role dependencies...';
-IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'RoleUser')
-    DELETE FROM dbo.RoleUser;
+IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'UserRoles')
+    DELETE FROM dbo.UserRoles;
 IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'PermissionRole')
     DELETE FROM dbo.PermissionRole;
 IF EXISTS (SELECT 1 FROM sys.tables WHERE name = 'ApiKeys')
@@ -498,30 +498,30 @@ PRINT '';
 -- ============================================
 PRINT '11. Assigning roles to users...';
 
-IF NOT EXISTS (SELECT 1 FROM dbo.RoleUser)
+IF NOT EXISTS (SELECT 1 FROM dbo.UserRoles)
 BEGIN
     -- Admin users
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (1, 1);  -- swest@anukiconsulting.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (1, 12); -- robert.taylor@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (1, 1);  -- swest@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (1, 12); -- robert.taylor@anukiconsulting.com
 
     -- Analyst users
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (2, 2);  -- jane.analyst@anukiconsulting.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (2, 5);  -- sarah.johnson@anukiconsulting.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (2, 6);  -- mike.chen@anukiconsulting.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (2, 11); -- jennifer.lee@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (2, 2);  -- jane.analyst@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (2, 5);  -- sarah.johnson@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (2, 6);  -- mike.chen@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (2, 11); -- jennifer.lee@anukiconsulting.com
 
     -- External users
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 3);  -- external.user@anukiconsulting.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 7);  -- lisa.rodriguez@anukiconsulting.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 8);  -- david.kim@anukiconsulting.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 9);  -- emma.wilson@anukiconsulting.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 10); -- alex.martinez@anukiconsulting.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 13); -- maria.garcia@anukiconsulting.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (3, 15); -- partner.amazon@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 3);  -- external.user@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 7);  -- lisa.rodriguez@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 8);  -- david.kim@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 9);  -- emma.wilson@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 10); -- alex.martinez@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 13); -- maria.garcia@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (3, 15); -- partner.amazon@anukiconsulting.com
 
     -- Public users
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (4, 4);  -- test.user@anukiconsulting.com
-    INSERT INTO dbo.RoleUser (RolesId, UsersId) VALUES (4, 14); -- public.user@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (4, 4);  -- test.user@anukiconsulting.com
+    INSERT INTO dbo.UserRoles (RolesId, UsersId) VALUES (4, 14); -- public.user@anukiconsulting.com
 
     PRINT '✓ User-Role assignments created';
 END

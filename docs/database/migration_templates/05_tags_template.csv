@@ -1,9 +1,0 @@
-Name,IsInternal,IsActive
-[TEXT(100) REQUIRED UNIQUE],[BOOLEAN],[BOOLEAN]
-Renewable,false,true
-Sustainable,false,true
-FSC Certified,false,true
-Recycled Content,false,true
-Priority Review,true,true
-Legal Hold,true,true
-[NOTES] Name must be unique (case-insensitive). IsInternal=true means tag is only visible to Admin/Analyst roles (hidden from External users). IsInternal=false means tag is public. IsActive=false soft-deletes the tag. Tags can be associated with both Certificates and Products via many-to-many relationships. Use Tags column in certificates CSV to assign tags during certificate import.

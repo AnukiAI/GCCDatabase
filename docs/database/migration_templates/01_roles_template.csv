@@ -1,7 +1,0 @@
-Name,Description,IsActive,SortOrder
-[TEXT(100)],[TEXT],[BOOLEAN],[INTEGER]
-Admin,System administrators with full access,true,1
-Analyst,Analysts with read/write access but no admin functions,true,2
-External,External users with limited access to their data only,true,3
-Public,Public users with view-only access,true,4
-[DELETE THIS ROW] - This is a system-managed entity. Roles are pre-seeded during database initialization. Only import if you need custom roles beyond the standard four.

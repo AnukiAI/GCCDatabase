@@ -6,6 +6,7 @@ namespace GCCWebApp.Services
     public interface ICertificateService
     {
         Task<CertificateListResponse> GetCertificatesAsync(CertificateListRequest request);
+        Task<CertificateListResponse> GetCertificatesByPartnerAsync(string partnerName, CertificateListRequest request);
         Task<CertificateDetailsViewModel> GetCertificateDetailsAsync(int id, string userRole);
         Task<CertificateDownloadModel?> GetCertificateDownloadAsync(int id, string userRole);
         Task<byte[]?> ExportCertificatesAsync(CertificateListRequest request, string format);

@@ -185,7 +185,7 @@
 
                     <!-- Download Button directly below image -->
                     <div class="certificate-download-action">
-                        <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@certificateId')">
+                        <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@certificateNumber')">
                             <i class="fas fa-download"></i>
                         </div>
                     </div>
@@ -205,9 +205,9 @@
 <script src="~/js/certificates.js"></script>
 <script>
     // Make downloadCertificate available globally for this page
-    window.downloadCertificate = function(certificateId) {
+    window.downloadCertificate = function(certificateNumber) {
         try {
-            window.open(`/Certificate/Download/${certificateId}`, '_blank');
+            window.open(`/Certificate/Download/${certificateNumber}`, '_blank');
             console.log('Certificate download started');
         } catch (error) {
             console.error('Error downloading certificate:', error);

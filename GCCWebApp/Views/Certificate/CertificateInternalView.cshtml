@@ -172,7 +172,7 @@
             </div>
             <!-- Action Buttons -->
             <div class="card-actions">
-                <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@certificateId')">
+                <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@certificateNumber')">
                     <i class="fas fa-download"></i>
                 </div>
                 @if (Model.CanEdit)
@@ -234,13 +234,13 @@
         }
     };
 
-    window.downloadCertificate = function(certificateId) {
-        if (!certificateId) {
-            console.error('Certificate ID is missing');
+    window.downloadCertificate = function(certificateNumber) {
+        if (!certificateNumber) {
+            console.error('Certificate number is missing');
             return;
         }
         try {
-            window.open(`/Certificate/Download/${certificateId}`, '_blank');
+            window.open(`/Certificate/Download/${certificateNumber}`, '_blank');
             console.log('Certificate download started');
         } catch (error) {
             console.error('Error downloading certificate:', error);

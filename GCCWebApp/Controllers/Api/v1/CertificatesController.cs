@@ -124,9 +124,30 @@ namespace GCCWebApp.Controllers.Api.v1
                     query = query.OrderByDescending(c => c.EffectiveDate);
                 }
 
+                // Use projection to avoid circular reference issues with navigation properties
                 var certificates = await query
                     .Skip((parameters.PageNumber - 1) * parameters.PageSize)
                     .Take(parameters.PageSize)
+                    .Select(c => new
+                    {
+                        c.Id,
+                        CertificateNumber = c.Number,
+                        c.Status,
+                        c.EffectiveDate,
+                        c.ExpirationDate,
+                        c.Location,
+                        c.Country,
+                        c.Partner,
+                        c.CertificationResults,
+                        ProductName = c.Product != null ? c.Product.Name : null,
+                        ProductId = c.ProductId,
+                        CompanyName = c.Company != null ? c.Company.Name : null,
+                        CompanyId = c.CompanyId,
+                        CertificationType = c.CertificationType != null ? c.CertificationType.Name : null,
+                        CertificationTypeId = c.CertificationTypeId,
+                        c.CreatedAt,
+                        c.UpdatedAt
+                    })
                     .ToListAsync();
 
                 var totalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize);
@@ -635,6 +656,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     company = cert.Company?.Name,
                     companyId = cert.CompanyId,
                     partner = cert.Partner,
+                    certificationResults = cert.CertificationResults,
                     status = cert.Status,
                     certificationType = cert.CertificationType?.Name,
                     effectiveDate = cert.EffectiveDate,

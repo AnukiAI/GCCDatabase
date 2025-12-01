@@ -79,7 +79,9 @@ namespace GCCWebApp.Controllers
 
             try
             {
-                var success = await _adminService.CreateUserAsync(model);
+                var currentUserId = GetCurrentUserId() ?? 0;
+                var currentUsername = User.Identity?.Name ?? "System";
+                var success = await _adminService.CreateUserAsync(model, currentUserId, currentUsername);
                 if (success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "User created successfully" });
@@ -110,7 +112,9 @@ namespace GCCWebApp.Controllers
 
             try
             {
-                var success = await _adminService.UpdateUserAsync(id, model);
+                var currentUserId = GetCurrentUserId() ?? 0;
+                var currentUsername = User.Identity?.Name ?? "System";
+                var success = await _adminService.UpdateUserAsync(id, model, currentUserId, currentUsername);
                 if (success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "User updated successfully" });
@@ -131,7 +135,9 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var success = await _adminService.DeleteUserAsync(id);
+                var currentUserId = GetCurrentUserId() ?? 0;
+                var currentUsername = User.Identity?.Name ?? "System";
+                var success = await _adminService.DeleteUserAsync(id, currentUserId, currentUsername);
                 if (success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "User deleted successfully" });
@@ -160,6 +166,11 @@ namespace GCCWebApp.Controllers
             {
                 return Json(new ApiResponse<object> { Success = false, Message = "Only CSV files are supported" });
             }
+
+            // Get current user info for audit trail
+            var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var currentUsername = User.Identity?.Name ?? "System";
+            var userId = int.TryParse(currentUserId, out var id) ? id : 0;
 
             try
             {
@@ -213,7 +224,7 @@ namespace GCCWebApp.Controllers
                                 continue;
                             }
 
-                            var success = await _adminService.CreateUserAsync(model);
+                            var success = await _adminService.CreateUserAsync(model, userId, currentUsername);
                             if (success)
                             {
                                 successCount++;

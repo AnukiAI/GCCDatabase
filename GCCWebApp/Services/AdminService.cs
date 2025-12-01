@@ -3,6 +3,7 @@ using GCCWebApp.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Text;
 using ClosedXML.Excel;
+using GCCWebApp.Services.Audit;
 
 namespace GCCWebApp.Services
 {
@@ -10,11 +11,13 @@ namespace GCCWebApp.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<AdminService> _logger;
+        private readonly IAuditService _auditService;
 
-        public AdminService(ApplicationDbContext context, ILogger<AdminService> logger)
+        public AdminService(ApplicationDbContext context, ILogger<AdminService> logger, IAuditService auditService)
         {
             _context = context;
             _logger = logger;
+            _auditService = auditService;
         }
 
         public async Task<AdminDashboardViewModel> GetDashboardDataAsync()
@@ -97,7 +100,7 @@ namespace GCCWebApp.Services
             };
         }
 
-        public async Task<bool> CreateUserAsync(CreateUserViewModel model)
+        public async Task<bool> CreateUserAsync(CreateUserViewModel model, int userId, string username)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -133,7 +136,7 @@ namespace GCCWebApp.Services
                     var companies = await _context.Companies
                         .Where(c => model.CompanyIds.Contains(c.Id))
                         .ToListAsync();
-                    
+
                     foreach (var company in companies)
                     {
                         user.Companies.Add(company);
@@ -141,6 +144,27 @@ namespace GCCWebApp.Services
                 }
 
                 await _context.SaveChangesAsync();
+
+                // Log audit history
+                try
+                {
+                    await _auditService.LogEntityChangeAsync(
+                        user.Id.ToString(),
+                        user.Email,
+                        "CREATE",
+                        null,
+                        user,
+                        userId,
+                        username,
+                        $"Created user with role: {model.Role ?? "None"}",
+                        "Web UI"
+                    );
+                }
+                catch (Exception auditEx)
+                {
+                    _logger.LogError(auditEx, "Failed to log audit history for user creation");
+                }
+
                 await transaction.CommitAsync();
                 return true;
             }
@@ -152,7 +176,7 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> UpdateUserAsync(int id, UserViewModel model)
+        public async Task<bool> UpdateUserAsync(int id, UserViewModel model, int userId, string username)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -163,6 +187,16 @@ namespace GCCWebApp.Services
                     .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
 
                 if (user == null) return false;
+
+                // Capture old state for audit (detached from context)
+                var oldUser = await _context.Users
+                    .AsNoTracking()
+                    .Include(u => u.Roles)
+                    .Include(u => u.Companies)
+                    .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+
+                var oldRole = oldUser?.Roles.FirstOrDefault()?.Name ?? "None";
+                var newRole = model.Role ?? "None";
 
                 user.FullName = model.Name;
                 user.Email = model.Email;
@@ -187,7 +221,7 @@ namespace GCCWebApp.Services
                     var companies = await _context.Companies
                         .Where(c => model.CompanyIds.Contains(c.Id))
                         .ToListAsync();
-                    
+
                     foreach (var company in companies)
                     {
                         user.Companies.Add(company);
@@ -195,6 +229,28 @@ namespace GCCWebApp.Services
                 }
 
                 await _context.SaveChangesAsync();
+
+                // Log audit history
+                try
+                {
+                    var roleChange = oldRole != newRole ? $" | Role changed from {oldRole} to {newRole}" : "";
+                    await _auditService.LogEntityChangeAsync(
+                        user.Id.ToString(),
+                        user.Email,
+                        "UPDATE",
+                        oldUser,
+                        user,
+                        userId,
+                        username,
+                        $"Updated user{roleChange}",
+                        "Web UI"
+                    );
+                }
+                catch (Exception auditEx)
+                {
+                    _logger.LogError(auditEx, "Failed to log audit history for user update");
+                }
+
                 await transaction.CommitAsync();
                 return true;
             }
@@ -206,7 +262,7 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> DeleteUserAsync(int id)
+        public async Task<bool> DeleteUserAsync(int id, int userId, string username)
         {
             try
             {
@@ -222,9 +278,37 @@ namespace GCCWebApp.Services
                     return false;
                 }
 
+                // Capture user state before deletion for audit
+                var userEmail = user.Email;
+                var oldUser = await _context.Users
+                    .AsNoTracking()
+                    .Include(u => u.Roles)
+                    .FirstOrDefaultAsync(u => u.Id == id);
+
                 user.IsDeleted = true;
                 user.DeletedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
+
+                // Log audit history
+                try
+                {
+                    await _auditService.LogEntityChangeAsync(
+                        id.ToString(),
+                        userEmail,
+                        "DELETE",
+                        oldUser,
+                        null, // User is soft deleted
+                        userId,
+                        username,
+                        "Soft delete - User marked as deleted",
+                        "Web UI"
+                    );
+                }
+                catch (Exception auditEx)
+                {
+                    _logger.LogError(auditEx, "Failed to log audit history for user deletion");
+                }
+
                 return true;
             }
             catch (Exception ex)

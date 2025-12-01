@@ -37,7 +37,7 @@
         }
 
         .login-left {
-            background: linear-gradient(135deg, #92C83E 0%, #447638 100%);
+            background: linear-gradient(135deg, #4a7c23 0%, #447638 100%);
             padding: 40px;
             display: flex;
             flex-direction: column;
@@ -146,7 +146,7 @@
 
         .form-control:focus {
             outline: none;
-            border-color: #92C83E;
+            border-color: #4a7c23;
             background-color: white;
             box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.1);
         }
@@ -203,7 +203,7 @@
         }
 
         .checkbox-group a {
-            color: #92C83E;
+            color: #4a7c23;
             text-decoration: none;
             font-weight: 600;
         }
@@ -218,7 +218,7 @@
             justify-content: center;
             gap: 12px;
             width: 100%;
-            background: linear-gradient(135deg, #92C83E 0%, #7bb82e 100%);
+            background: #92C83E;
             color: white;
             border: none;
             padding: 15px 30px;
@@ -259,7 +259,7 @@
         }
 
         .login-footer a {
-            color: #92C83E;
+            color: #4a7c23;
             text-decoration: none;
             font-weight: 600;
         }
@@ -327,7 +327,7 @@
     </style>
 </head>
 <body class="login-page">
-    <div class="login-container">
+    <main class="login-container" role="main">
         <div class="login-left">
             <img src="~/img/gcclogo.png" alt="GreenCircle Logo" class="login-logo" />
             <div class="login-brand">
@@ -344,8 +344,8 @@
 
             @if (!string.IsNullOrEmpty(ViewBag.Error))
             {
-                <div class="alert-error">
-                    <i class="fas fa-exclamation-circle"></i>
+                <div class="alert-error" role="alert">
+                    <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
                     @ViewBag.Error
                 </div>
             }
@@ -353,18 +353,18 @@
             <form asp-controller="Account" asp-action="Register" method="post" id="signupForm">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="FirstName">First Name *</label>
-                        <input type="text" id="FirstName" name="FirstName" class="form-control" placeholder="Enter your first name" required />
+                        <label for="FirstName">First Name <span aria-hidden="true">*</span><span class="sr-only">required</span></label>
+                        <input type="text" id="FirstName" name="FirstName" class="form-control" placeholder="Enter your first name" required aria-required="true" />
                     </div>
                     <div class="form-group">
-                        <label for="LastName">Last Name *</label>
-                        <input type="text" id="LastName" name="LastName" class="form-control" placeholder="Enter your last name" required />
+                        <label for="LastName">Last Name <span aria-hidden="true">*</span><span class="sr-only">required</span></label>
+                        <input type="text" id="LastName" name="LastName" class="form-control" placeholder="Enter your last name" required aria-required="true" />
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="Email">Email Address *</label>
-                    <input type="email" id="Email" name="Email" class="form-control" placeholder="Enter your email address" required />
+                    <label for="Email">Email Address <span aria-hidden="true">*</span><span class="sr-only">required</span></label>
+                    <input type="email" id="Email" name="Email" class="form-control" placeholder="Enter your email address" required aria-required="true" />
                 </div>
 
                 <div class="form-group">
@@ -373,26 +373,26 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="Password">Password *</label>
-                    <input type="password" id="Password" name="Password" class="form-control" placeholder="Create a strong password" required />
+                    <label for="Password">Password <span aria-hidden="true">*</span><span class="sr-only">required</span></label>
+                    <input type="password" id="Password" name="Password" class="form-control" placeholder="Create a strong password" required aria-required="true" aria-describedby="strengthLabel" />
                     <div class="password-strength">
-                        <div class="strength-bar">
+                        <div class="strength-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
                             <div class="strength-fill" id="strengthFill"></div>
                         </div>
-                        <div class="strength-label" id="strengthLabel">Password strength</div>
+                        <div class="strength-label" id="strengthLabel" aria-live="polite">Password strength</div>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="ConfirmPassword">Confirm Password *</label>
-                    <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="form-control" placeholder="Confirm your password" required />
-                    <div class="password-match" id="passwordMatch"></div>
+                    <label for="ConfirmPassword">Confirm Password <span aria-hidden="true">*</span><span class="sr-only">required</span></label>
+                    <input type="password" id="ConfirmPassword" name="ConfirmPassword" class="form-control" placeholder="Confirm your password" required aria-required="true" aria-describedby="passwordMatch" />
+                    <div class="password-match" id="passwordMatch" aria-live="polite"></div>
                 </div>
 
                 <div class="checkbox-group">
-                    <input type="checkbox" id="AgreeTerms" name="AgreeTerms" required />
+                    <input type="checkbox" id="AgreeTerms" name="AgreeTerms" required aria-required="true" />
                     <label for="AgreeTerms">
-                        I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a>
+                        I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a> <span class="sr-only">required</span>
                     </label>
                 </div>
 
@@ -403,8 +403,8 @@
                     </label>
                 </div>
 
-                <button type="submit" class="btn-lime" id="submitBtn" disabled>
-                    <i class="fas fa-user-plus"></i>
+                <button type="submit" class="btn-lime" id="submitBtn" disabled aria-disabled="true" aria-label="Create account - complete required fields to enable">
+                    <i class="fas fa-user-plus" aria-hidden="true"></i>
                     Create Account
                 </button>
             </form>
@@ -414,7 +414,7 @@
                 <a href="@Url.Action("Login", "Account")">Sign In Here</a>
             </div>
         </div>
-    </div>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

@@ -40,6 +40,9 @@ namespace GCCWebApp.Models
         [MaxLength(100)]
         public string? Partner { get; set; } = "None"; // Partner program: Amazon, Wayfair, None
 
+        [MaxLength(1000)]
+        public string? CertificationResults { get; set; } // Optional: Test results/scores for partner requirements (e.g., Amazon threshold verification)
+
         // Foreign Keys
         public int CompanyId { get; set; }
         public int ProductId { get; set; }

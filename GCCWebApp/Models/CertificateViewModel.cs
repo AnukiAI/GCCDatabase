@@ -146,6 +146,13 @@ namespace GCCWebApp.Models
         [Display(Name = "Partner")]
         public string? Partner { get; set; }
 
+        /// <summary>
+        /// Optional test results or scores for partner requirements (e.g., Amazon threshold verification)
+        /// </summary>
+        [Display(Name = "Certification Results")]
+        [StringLength(1000)]
+        public string? CertificationResults { get; set; }
+
         #endregion
 
         #region Product Identifiers

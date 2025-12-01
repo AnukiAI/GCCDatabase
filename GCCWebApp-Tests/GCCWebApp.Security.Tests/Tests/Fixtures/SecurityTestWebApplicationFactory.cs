@@ -10,6 +10,9 @@ namespace GCCWebApp.Security.Tests.Fixtures
 {
     public class SecurityTestWebApplicationFactory<TStartup> : WebApplicationFactory<TStartup> where TStartup : class
     {
+        // Use unique database name per factory instance to avoid conflicts
+        private readonly string _databaseName = $"SecurityTestDb_{Guid.NewGuid()}";
+
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureServices(services =>
@@ -21,10 +24,10 @@ namespace GCCWebApp.Security.Tests.Fixtures
                     services.Remove(descriptor);
                 }
 
-                // Add an in-memory database for testing
+                // Add an in-memory database for testing with unique name per factory
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("SecurityTestDb");
+                    options.UseInMemoryDatabase(_databaseName);
                 });
 
                 // Override configuration for security testing
@@ -109,31 +112,34 @@ namespace GCCWebApp.Security.Tests.Fixtures
 
                 context.Users.AddRange(adminUser, regularUser, inactiveUser);
 
-                // Add test API keys
+                // Add test API keys - use plain text keys for validation
+                // The ApiKeyAuthenticationHandler compares raw keys directly
                 var testApiKey = new Models.ApiKey
                 {
                     Id = 1,
                     Name = "SecurityTestKey",
-                    Key = BCrypt.Net.BCrypt.HashPassword("test-api-key-123"),
+                    Key = "test-api-key-123", // Must match what tests use
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = "Security Test Suite",
                     Scopes = "read,write",
-                    AllowedIPs = "127.0.0.1,::1",
-                    AllowedOrigins = "https://localhost,http://localhost"
+                    AllowedIPs = "*", // Allow all IPs for testing
+                    AllowedOrigins = "*", // Allow all origins for testing
+                    RequireTLS = false // Allow HTTP for testing
                 };
 
                 var restrictedApiKey = new Models.ApiKey
                 {
                     Id = 2,
                     Name = "RestrictedTestKey",
-                    Key = BCrypt.Net.BCrypt.HashPassword("restricted-api-key-456"),
+                    Key = "restricted_security_test_key", // Plain text for direct comparison
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
                     CreatedBy = "Security Test Suite",
                     Scopes = "read",
                     AllowedIPs = "192.168.1.100",
-                    AllowedOrigins = "https://trusted-domain.com"
+                    AllowedOrigins = "https://trusted-domain.com",
+                    RequireTLS = false // Allow HTTP for testing
                 };
 
                 context.ApiKeys.AddRange(testApiKey, restrictedApiKey);

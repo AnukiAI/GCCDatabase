@@ -10,13 +10,13 @@ namespace GCCWebApp.Models
         [MaxLength(255)]
         public string Name { get; set; } = string.Empty;
 
-        [EmailAddress]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
         [MaxLength(255)]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
-        [Url]
+        [Url(ErrorMessage = "Please enter a valid URL (e.g., https://example.com)")]
         [MaxLength(500)]
-        public string Url { get; set; } = string.Empty;
+        public string? Url { get; set; }
 
         [MaxLength(175)]
         public string? Location { get; set; }

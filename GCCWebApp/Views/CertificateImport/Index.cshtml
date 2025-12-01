@@ -1,0 +1,129 @@
+@{
+    ViewData["Title"] = "Certificate Import";
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <p class="admin-page-subtitle">Bulk import certificates from CSV file</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <a href="@Url.Action("DownloadTemplate", "CertificateImport")"
+                       class="admin-btn admin-btn--secondary"
+                       title="Download CSV template with example data">
+                        <i class="fas fa-file-download"></i> Download Template
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-content">
+        <!-- Info Panel -->
+        <div class="alert alert-info" style="margin-bottom: 2rem;">
+            <h4 style="margin-top: 0;"><i class="fas fa-info-circle"></i> Import Instructions</h4>
+            <ul style="margin-bottom: 0;">
+                <li><strong>Format:</strong> CSV file only (.csv extension)</li>
+                <li><strong>Required Columns:</strong> CertificateNumber, CompanyName, ProductName, CertificationType</li>
+                <li><strong>Behavior:</strong> Existing certificates will be updated, new ones will be created</li>
+                <li><strong>Validation:</strong> Company, Product, and CertificationType must exist in database</li>
+                <li><strong>Max Size:</strong> 10MB per file</li>
+                <li><strong>Preview:</strong> You'll see all changes before applying them</li>
+            </ul>
+        </div>
+
+        <!-- Upload Form -->
+        <div class="admin-card">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">Upload Certificate CSV File</h3>
+            </div>
+            <div class="admin-card-body">
+                <form asp-action="Upload" asp-controller="CertificateImport"
+                      method="post" enctype="multipart/form-data" id="uploadForm">
+                    @Html.AntiForgeryToken()
+
+                    <div class="form-group">
+                        <label for="csvFile" class="form-label">
+                            <i class="fas fa-file-csv"></i> Select CSV File
+                        </label>
+                        <div class="custom-file" style="margin-bottom: 1rem;">
+                            <input type="file"
+                                   class="custom-file-input"
+                                   id="csvFile"
+                                   name="csvFile"
+                                   accept=".csv"
+                                   required>
+                            <label class="custom-file-label" for="csvFile">Choose file...</label>
+                        </div>
+                        <small class="form-text text-muted">
+                            Select a CSV file containing certificate data. Download the template above if you need a format reference.
+                        </small>
+                    </div>
+
+                    <div class="admin-button-group" style="margin-top: 2rem;">
+                        <button type="submit" class="admin-btn admin-btn--primary">
+                            <i class="fas fa-upload"></i> Upload & Preview
+                        </button>
+                        <a href="@Url.Action("CertificateTileView", "Certificate")"
+                           class="admin-btn admin-btn--secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Imports (Optional - for future enhancement) -->
+        <div class="admin-card" style="margin-top: 2rem;">
+            <div class="admin-card-header">
+                <h3 class="admin-card-title">CSV Format Reference</h3>
+            </div>
+            <div class="admin-card-body">
+                <p><strong>Required Columns:</strong></p>
+                <ul>
+                    <li><code>CertificateNumber</code> - Unique certificate number (e.g., "24-0001")</li>
+                    <li><code>CompanyName</code> - Must match existing company</li>
+                    <li><code>ProductName</code> - Must match existing product</li>
+                    <li><code>CertificationType</code> - Must match existing certification type</li>
+                </ul>
+
+                <p><strong>Optional Columns:</strong></p>
+                <ul>
+                    <li><code>Status</code> - active, draft, expired, etc. (default: "active")</li>
+                    <li><code>EffectiveDate</code> - Date format: YYYY-MM-DD</li>
+                    <li><code>ExpirationDate</code> - Date format: YYYY-MM-DD</li>
+                    <li><code>Location</code> - City, State</li>
+                    <li><code>Country</code> - Country name</li>
+                    <li><code>Asin</code> - Amazon Standard ID</li>
+                    <li><code>Upc</code> - Universal Product Code</li>
+                    <li><code>Gtin</code> - Global Trade Item Number</li>
+                    <li><code>Ean</code> - European Article Number</li>
+                    <li><code>Partner</code> - Amazon, Wayfair, or None</li>
+                </ul>
+
+                <p class="text-muted" style="margin-top: 1rem;">
+                    <i class="fas fa-info-circle"></i> Tags and PDF attachments are managed separately and not included in CSV import.
+                </p>
+            </div>
+        </div>
+    </main>
+</div>
+
+@section Scripts {
+    <script>
+        // Update file input label with selected filename
+        document.getElementById('csvFile').addEventListener('change', function(e) {
+            var fileName = e.target.files[0]?.name || 'Choose file...';
+            e.target.nextElementSibling.textContent = fileName;
+        });
+
+        // Show loading state on form submit
+        document.getElementById('uploadForm').addEventListener('submit', function() {
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        });
+    </script>
+}

@@ -12,7 +12,6 @@
     <!-- Microsoft.Extensions packages inherited from main app via EntityFramework 9.0.8 -->
     
     <!-- Test execution settings -->
-    <VSTestLogger>console;verbosity=detailed</VSTestLogger>
     <VSTestResultsDirectory>TestResults</VSTestResultsDirectory>
     
     <!-- Suppress specific warnings for test projects -->
@@ -68,6 +67,12 @@
     <!-- Microsoft.Extensions.DependencyInjection inherited from main app -->
   </ItemGroup>
 
+  <ItemGroup Label="Configuration">
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="8.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="8.0.0" />
+  </ItemGroup>
+
   <ItemGroup Label="Project References">
     <ProjectReference Include="..\..\GCCWebApp\GCCWebApp.csproj" />
   </ItemGroup>
@@ -81,6 +86,12 @@
 
   <ItemGroup Label="Test Configuration Files">
     <None Update="appsettings.Test.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.Production.Test.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Update="appsettings.UAT.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Update="playwright.config.json">

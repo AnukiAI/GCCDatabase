@@ -22,6 +22,10 @@ namespace GCCWebApp.Models
         [MaxLength(100)]
         public string? Partner { get; set; } = "None";
 
+        [Display(Name = "Certification Results")]
+        [MaxLength(1000)]
+        public string? CertificationResults { get; set; }
+
         [Required]
         [Display(Name = "Effective Date")]
         [DataType(DataType.Date)]

@@ -40,9 +40,24 @@ namespace GCCWebApp.Models
         };
         public string UploadDirectory { get; set; } = "uploads/certificates";
         public bool RequireVirusScanning { get; set; } = true;
-        public string[] DangerousExtensions { get; set; } = 
+        public string[] DangerousExtensions { get; set; } =
         {
-            ".exe", ".bat", ".cmd", ".com", ".scr", ".vbs", ".js", ".jar", ".ps1", ".sh"
+            // Executables
+            ".exe", ".msi", ".bat", ".cmd", ".com", ".scr", ".pif", ".application", ".gadget",
+            ".msp", ".cpl", ".scf", ".lnk", ".inf", ".reg",
+            // Scripts
+            ".vbs", ".vbe", ".js", ".jse", ".ws", ".wsf", ".wsc", ".wsh", ".ps1", ".ps2",
+            ".psc1", ".psc2", ".msh", ".msh1", ".msh2", ".mshxml", ".msh1xml", ".msh2xml",
+            // Shell scripts
+            ".sh", ".bash", ".zsh", ".csh", ".tcsh", ".ksh", ".fish",
+            // Archives that could contain malicious files
+            ".jar", ".zip", ".rar", ".7z", ".tar", ".gz", ".bz2",
+            // Web/Server scripts
+            ".php", ".asp", ".aspx", ".jsp", ".cgi", ".pl", ".py", ".rb",
+            // Database and config files
+            ".sql", ".mdb", ".accdb", ".db", ".dbf",
+            // Other dangerous formats
+            ".hta", ".msc", ".url", ".isu", ".job"
         };
     }
 

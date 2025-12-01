@@ -1,0 +1,348 @@
+@model GCCWebApp.Models.Import.CertificateImportPreviewResult
+@{
+    ViewData["Title"] = "Import Preview";
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <p class="admin-page-subtitle">Review changes before applying</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="admin-content">
+        <!-- Summary Stats -->
+        <div class="row" style="margin-bottom: 2rem;">
+            <div class="col-md-3">
+                <div class="stat-card stat-card--primary">
+                    <div class="stat-card-value">@Model.TotalRows</div>
+                    <div class="stat-card-label">Total Rows</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card stat-card--success">
+                    <div class="stat-card-value">@Model.NewCertificates</div>
+                    <div class="stat-card-label">New</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card stat-card--warning">
+                    <div class="stat-card-value">@Model.ModifiedCertificates</div>
+                    <div class="stat-card-label">Modified</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-card @(Model.InvalidRows > 0 ? "stat-card--danger" : "stat-card--secondary")">
+                    <div class="stat-card-value">@Model.InvalidRows</div>
+                    <div class="stat-card-label">Errors</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        @if (Model.CanApply)
+        {
+            <div class="admin-card" style="margin-bottom: 2rem; background-color: #f8f9fa;">
+                <div class="admin-card-body">
+                    <form asp-action="Apply" asp-controller="CertificateImport" method="post" id="applyForm">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="importId" value="@Model.ImportId" />
+
+                        <div class="row align-items-end">
+                            <div class="col-md-8">
+                                <label for="reason" class="form-label">
+                                    <i class="fas fa-comment"></i> Reason for Import (Optional)
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       id="reason"
+                                       name="reason"
+                                       placeholder="e.g., Q4 2024 certification updates"
+                                       maxlength="500">
+                            </div>
+                            <div class="col-md-4">
+                                <div class="admin-button-group">
+                                    <button type="submit" class="admin-btn admin-btn--primary" id="applyBtn">
+                                        <i class="fas fa-check"></i> Apply Import
+                                    </button>
+                                    <a href="@Url.Action("Index", "CertificateImport")" class="admin-btn admin-btn--secondary">
+                                        <i class="fas fa-times"></i> Cancel
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+        else if (Model.HasCriticalErrors)
+        {
+            <div class="alert alert-danger">
+                <h4><i class="fas fa-exclamation-triangle"></i> Cannot Apply Import</h4>
+                <p>This import contains critical errors and cannot be applied. Please fix the errors and upload again.</p>
+            </div>
+        }
+
+        <!-- Error Rows -->
+        @if (Model.ErrorRows.Any())
+        {
+            <div class="admin-card" style="margin-bottom: 2rem;">
+                <div class="admin-card-header" style="background-color: #dc3545; color: white;">
+                    <h3 class="admin-card-title">
+                        <i class="fas fa-exclamation-circle"></i> Validation Errors (@Model.ErrorRows.Count)
+                    </h3>
+                </div>
+                <div class="admin-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Row</th>
+                                    <th>Certificate Number</th>
+                                    <th>Errors</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var error in Model.ErrorRows)
+                                {
+                                    <tr>
+                                        <td>@error.RowNumber</td>
+                                        <td><code>@error.CertificateNumber</code></td>
+                                        <td>
+                                            <ul style="margin: 0; padding-left: 1.2rem;">
+                                                @foreach (var msg in error.ErrorMessages)
+                                                {
+                                                    <li>@msg</li>
+                                                }
+                                            </ul>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- New Certificates -->
+        @if (Model.NewRows.Any())
+        {
+            <div class="admin-card" style="margin-bottom: 2rem;">
+                <div class="admin-card-header" style="background-color: #28a745; color: white;">
+                    <h3 class="admin-card-title">
+                        <i class="fas fa-plus-circle"></i> New Certificates (@Model.NewCertificates)
+                    </h3>
+                </div>
+                <div class="admin-card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Row</th>
+                                    <th>Certificate #</th>
+                                    <th>Company</th>
+                                    <th>Product</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Dates</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var row in Model.NewRows.Take(50))
+                                {
+                                    <tr>
+                                        <td>@row.RowNumber</td>
+                                        <td><code>@row.CertificateNumber</code></td>
+                                        <td>@row.CompanyName</td>
+                                        <td>@row.ProductName</td>
+                                        <td>@row.CertificationType</td>
+                                        <td><span class="badge badge-info">@row.Status</span></td>
+                                        <td style="font-size: 0.85rem;">
+                                            @row.EffectiveDate?.ToString("yyyy-MM-dd") - @row.ExpirationDate?.ToString("yyyy-MM-dd")
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    @if (Model.NewRows.Count > 50)
+                    {
+                        <p class="text-muted" style="margin-top: 1rem;">
+                            <i class="fas fa-info-circle"></i> Showing first 50 of @Model.NewRows.Count new certificates
+                        </p>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Modified Certificates -->
+        @if (Model.ModifiedRows.Any())
+        {
+            <div class="admin-card" style="margin-bottom: 2rem;">
+                <div class="admin-card-header" style="background-color: #ffc107; color: #000;">
+                    <h3 class="admin-card-title">
+                        <i class="fas fa-edit"></i> Modified Certificates (@Model.ModifiedCertificates)
+                    </h3>
+                </div>
+                <div class="admin-card-body">
+                    @foreach (var row in Model.ModifiedRows.Take(50))
+                    {
+                        <div class="card" style="margin-bottom: 1rem; border-left: 4px solid #ffc107;">
+                            <div class="card-header" style="background-color: #fff3cd;">
+                                <strong>Row @row.RowNumber:</strong>
+                                <code>@row.CertificateNumber</code> - @row.CompanyName / @row.ProductName
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-sm" style="margin-bottom: 0;">
+                                    <thead>
+                                        <tr>
+                                            <th style="width: 25%;">Field</th>
+                                            <th style="width: 37.5%;">Old Value</th>
+                                            <th style="width: 37.5%;">New Value</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var change in row.Changes)
+                                        {
+                                            <tr>
+                                                <td><strong>@change.FieldName</strong></td>
+                                                <td style="background-color: #ffebee; text-decoration: line-through;">
+                                                    @(string.IsNullOrEmpty(change.OldValue) ? "(empty)" : change.OldValue)
+                                                </td>
+                                                <td style="background-color: #e8f5e9;">
+                                                    @(string.IsNullOrEmpty(change.NewValue) ? "(empty)" : change.NewValue)
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    }
+                    @if (Model.ModifiedRows.Count > 50)
+                    {
+                        <p class="text-muted" style="margin-top: 1rem;">
+                            <i class="fas fa-info-circle"></i> Showing first 50 of @Model.ModifiedRows.Count modified certificates
+                        </p>
+                    }
+                </div>
+            </div>
+        }
+
+        <!-- Unchanged Certificates -->
+        @if (Model.UnchangedRows.Any())
+        {
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h3 class="admin-card-title">
+                        <i class="fas fa-check-circle"></i> Unchanged Certificates (@Model.UnchangedCertificates)
+                    </h3>
+                </div>
+                <div class="admin-card-body">
+                    <p class="text-muted">
+                        These certificates already exist in the database with the same data and will be skipped.
+                    </p>
+                    <details>
+                        <summary style="cursor: pointer; color: #002B76;">
+                            <i class="fas fa-list"></i> View unchanged certificates
+                        </summary>
+                        <div class="table-responsive" style="margin-top: 1rem;">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Row</th>
+                                        <th>Certificate Number</th>
+                                        <th>Company</th>
+                                        <th>Product</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var row in Model.UnchangedRows.Take(100))
+                                    {
+                                        <tr>
+                                            <td>@row.RowNumber</td>
+                                            <td><code>@row.CertificateNumber</code></td>
+                                            <td>@row.CompanyName</td>
+                                            <td>@row.ProductName</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </details>
+                </div>
+            </div>
+        }
+    </main>
+</div>
+
+@section Scripts {
+    <script>
+        // Confirm before applying
+        document.getElementById('applyForm')?.addEventListener('submit', function(e) {
+            const confirmMsg = 'Are you sure you want to apply this import?\n\n' +
+                               '@Model.NewCertificates new certificate(s) will be created\n' +
+                               '@Model.ModifiedCertificates certificate(s) will be updated\n\n' +
+                               'All changes will be logged to audit history.';
+
+            if (!confirm(confirmMsg)) {
+                e.preventDefault();
+                return false;
+            }
+
+            const submitBtn = document.getElementById('applyBtn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+        });
+    </script>
+}
+
+<style>
+    .stat-card {
+        padding: 1.5rem;
+        border-radius: 8px;
+        text-align: center;
+        background-color: #f8f9fa;
+        border: 2px solid #dee2e6;
+    }
+
+    .stat-card--primary {
+        background-color: #e3f2fd;
+        border-color: #002B76;
+    }
+
+    .stat-card--success {
+        background-color: #e8f5e9;
+        border-color: #28a745;
+    }
+
+    .stat-card--warning {
+        background-color: #fff3cd;
+        border-color: #ffc107;
+    }
+
+    .stat-card--danger {
+        background-color: #f8d7da;
+        border-color: #dc3545;
+    }
+
+    .stat-card--secondary {
+        background-color: #e2e3e5;
+        border-color: #6c757d;
+    }
+
+    .stat-card-value {
+        font-size: 2.5rem;
+        font-weight: bold;
+        line-height: 1;
+    }
+
+    .stat-card-label {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+</style>

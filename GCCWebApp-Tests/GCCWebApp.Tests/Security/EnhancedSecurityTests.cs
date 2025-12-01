@@ -38,8 +38,9 @@ namespace GCCWebApp.Tests.Security
             _mockLogger = new Mock<ILogger<AdminService>>();
             _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
             _mockAccountLogger = new Mock<ILogger<AccountController>>();
-            
-            _adminService = new AdminService(_context, _mockLogger.Object);
+            var mockAuditService = new Mock<GCCWebApp.Services.Audit.IAuditService>();
+
+            _adminService = new AdminService(_context, _mockLogger.Object, mockAuditService.Object);
             
             SeedTestData();
         }

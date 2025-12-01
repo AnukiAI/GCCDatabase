@@ -180,8 +180,8 @@
 
         .btn-secondary:hover {
             background: #f9fafb;
-            border-color: #92C83E;
-            color: #92C83E;
+            border-color: #4a7c23;
+            color: #4a7c23;
             text-decoration: none;
         }
 
@@ -198,7 +198,7 @@
         }
 
         .contact-info a {
-            color: #92C83E;
+            color: #4a7c23;
             text-decoration: none;
             font-weight: 600;
         }
@@ -233,42 +233,42 @@
     </style>
 </head>
 <body class="login-page">
-    <div class="auth-container">
+    <main class="auth-container" role="main">
         <div class="auth-icon">
-            <i class="fas fa-lock"></i>
+            <i class="fas fa-lock" aria-hidden="true"></i>
         </div>
 
         <div class="auth-header">
             <h2>Account Locked</h2>
         </div>
 
-        <div class="auth-content">
+        <div class="auth-content" role="alert">
             <p>Your account has been temporarily locked due to multiple failed login attempts. This is a security measure to protect your account.</p>
         </div>
 
         <div class="time-remaining">
-            <h3><i class="fas fa-clock"></i> Time Remaining</h3>
-            <div class="timer" id="timer">@(ViewBag.LockoutTimeRemaining ?? "15:00")</div>
+            <h3><i class="fas fa-clock" aria-hidden="true"></i> Time Remaining</h3>
+            <div class="timer" id="timer" aria-live="polite" aria-atomic="true">@(ViewBag.LockoutTimeRemaining ?? "15:00")</div>
             <div class="timer-label">minutes until unlock</div>
         </div>
 
         <div class="help-section">
-            <h3><i class="fas fa-info-circle"></i> What you can do:</h3>
+            <h3><i class="fas fa-info-circle" aria-hidden="true"></i> What you can do:</h3>
             <ul>
-                <li><i class="fas fa-check"></i> Wait for the lockout period to expire</li>
-                <li><i class="fas fa-check"></i> Contact support if you need immediate access</li>
-                <li><i class="fas fa-check"></i> Reset your password if you've forgotten it</li>
+                <li><i class="fas fa-check" aria-hidden="true"></i> Wait for the lockout period to expire</li>
+                <li><i class="fas fa-check" aria-hidden="true"></i> Contact support if you need immediate access</li>
+                <li><i class="fas fa-check" aria-hidden="true"></i> Reset your password if you've forgotten it</li>
             </ul>
         </div>
 
         <div class="action-buttons">
-            <a href="@Url.Action("ForgotPassword", "Account")" class="btn-primary">
-                <i class="fas fa-key"></i>
+            <a href="@Url.Action("ForgotPassword", "Account")" class="btn-primary" aria-label="Reset your password">
+                <i class="fas fa-key" aria-hidden="true"></i>
                 Reset Password
             </a>
-            
-            <a href="@Url.Action("Login", "Account")" class="btn-secondary">
-                <i class="fas fa-arrow-left"></i>
+
+            <a href="@Url.Action("Login", "Account")" class="btn-secondary" aria-label="Return to login page">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i>
                 Back to Login
             </a>
         </div>
@@ -277,7 +277,7 @@
             <p>Need immediate assistance?</p>
             <p>Contact support: <a href="mailto:support@greencirclecertified.com">support@greencirclecertified.com</a></p>
         </div>
-    </div>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

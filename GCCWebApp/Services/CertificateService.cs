@@ -147,6 +147,135 @@ namespace GCCWebApp.Services
             }
         }
 
+        public async Task<CertificateListResponse> GetCertificatesByPartnerAsync(string partnerName, CertificateListRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Retrieving certificates for partner: {PartnerName}", partnerName);
+
+                var query = _context.Certificates
+                    .Include(c => c.Company)
+                    .Include(c => c.Product)
+                    .Include(c => c.CertificationType)
+                    .Where(c => c.Partner == partnerName) // Filter by partner
+                    .AsQueryable();
+
+                // Apply search filters
+                if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
+                {
+                    var searchTerm = request.Filters.SearchTerm.ToLower();
+                    query = query.Where(c =>
+                        c.Company.Name.ToLower().Contains(searchTerm) ||
+                        c.Product.Name.ToLower().Contains(searchTerm) ||
+                        c.Number.ToLower().Contains(searchTerm));
+                }
+
+                if (request.Filters.CertificationTypes.Any())
+                {
+                    query = query.Where(c => request.Filters.CertificationTypes.Contains(c.CertificationType.Name));
+                }
+
+                if (request.Filters.Countries.Any())
+                {
+                    query = query.Where(c => request.Filters.Countries.Contains(c.Country ?? ""));
+                }
+
+                if (request.Filters.Statuses.Any())
+                {
+                    query = query.Where(c => request.Filters.Statuses.Contains(c.Status));
+                }
+
+                // Apply date filters
+                if (request.Filters.EffectiveDateStart.HasValue)
+                {
+                    query = query.Where(c => c.EffectiveDate >= request.Filters.EffectiveDateStart.Value);
+                }
+
+                if (request.Filters.EffectiveDateEnd.HasValue)
+                {
+                    query = query.Where(c => c.EffectiveDate <= request.Filters.EffectiveDateEnd.Value);
+                }
+
+                // Apply sorting
+                query = request.Sort?.ToLower() switch
+                {
+                    "newest" => query.OrderByDescending(c => c.EffectiveDate),
+                    "expiring" => query.OrderBy(c => c.ExpirationDate),
+                    "product-az" => query.OrderBy(c => c.Product.Name),
+                    "company-az" => query.OrderBy(c => c.Company.Name),
+                    "status" => query.OrderBy(c => c.Status),
+                    "type" => query.OrderBy(c => c.CertificationType.Name),
+                    "country" => query.OrderBy(c => c.Country),
+                    _ => query.OrderBy(c => c.Id)
+                };
+
+                // Get total count
+                var totalCount = await query.CountAsync();
+
+                // Apply pagination
+                var rawCertificates = await query
+                    .Skip((request.Page - 1) * request.PageSize)
+                    .Take(request.PageSize)
+                    .Select(c => new
+                    {
+                        Id = c.Id,
+                        CertificateNumber = c.Number,
+                        CertificationType = c.CertificationType.Name,
+                        CompanyName = c.Company.Name,
+                        ProductName = c.Product.Name,
+                        ProductCategory = c.Product.Category != null ? c.Product.Category.Name : "",
+                        EffectiveDate = c.EffectiveDate,
+                        ExpirationDate = c.ExpirationDate,
+                        Location = c.Location ?? "",
+                        Country = c.Country ?? "",
+                        Status = c.Status
+                    })
+                    .ToListAsync();
+
+                // Apply client-side transformations
+                var certificates = rawCertificates.Select(c => new CertificateCardModel
+                {
+                    Id = c.Id,
+                    CertificateNumber = c.CertificateNumber,
+                    CertificationType = c.CertificationType,
+                    CompanyName = c.CompanyName,
+                    ProductName = c.ProductName,
+                    ProductCategory = c.ProductCategory,
+                    EffectiveDate = c.EffectiveDate,
+                    ExpirationDate = c.ExpirationDate,
+                    Location = c.Location,
+                    Country = c.Country,
+                    Status = c.Status,
+                    BadgeText = GetBadgeText(c.CertificationType),
+                    TagType = DetermineTagType(request.UserRole)
+                }).ToList();
+
+                _logger.LogInformation("Retrieved {Count} certificates for partner {PartnerName}",
+                    certificates.Count, partnerName);
+
+                return new CertificateListResponse
+                {
+                    Certificates = certificates,
+                    TotalCount = totalCount,
+                    PageSize = request.PageSize,
+                    CurrentPage = request.Page,
+                    CurrentSort = request.Sort ?? string.Empty,
+                    AppliedFilters = request.Filters,
+                    Success = true
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving certificates for partner {PartnerName}", partnerName);
+                return new CertificateListResponse
+                {
+                    Success = false,
+                    Message = $"Failed to retrieve certificates for partner {partnerName}",
+                    Errors = new List<string> { ex.Message }
+                };
+            }
+        }
+
         public async Task<CertificateDetailsViewModel> GetCertificateDetailsAsync(int id, string userRole)
         {
             try

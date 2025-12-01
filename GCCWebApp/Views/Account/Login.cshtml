@@ -215,6 +215,7 @@
             .btn-lime:hover {
                 transform: translateY(-2px);
                 box-shadow: 0 8px 25px rgba(146, 200, 62, 0.3);
+                background-color: #7bb82e;
             }
 
             .btn-lime:active {
@@ -285,14 +286,14 @@
         }
 
             .security-notice i {
-                color: #0284c7;
+                color: #075985;
                 font-size: 20px;
                 flex-shrink: 0;
             }
 
             .security-notice strong {
                 display: block;
-                color: #0284c7;
+                color: #075985;
                 font-size: 16px;
                 margin-bottom: 2px;
             }
@@ -439,7 +440,7 @@
     </style>
 </head>
 <body class="login-page">
-    <div class="login-container">
+    <main class="login-container" role="main">
         <div class="login-left">
             <img src="~/img/gcclogo.png" alt="GreenCircle Logo" class="login-logo" />
             <div class="login-brand">
@@ -510,7 +511,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </main>
 
     <!-- Login button behavior handled by /js/auth.js -->
     <script src="~/js/auth.js"></script>

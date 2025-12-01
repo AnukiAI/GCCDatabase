@@ -730,7 +730,7 @@ th,
 
 /* ===== 10. PAGE HEADER ===== */
 .page-header {
-    padding: 5px 30px;
+    padding: 5px 0;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;

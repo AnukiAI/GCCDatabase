@@ -364,6 +364,8 @@ builder.Services.AddControllersWithViews(options =>
     options.JsonSerializerOptions.PropertyNamingPolicy =
         System.Text.Json.JsonNamingPolicy.CamelCase;
     options.JsonSerializerOptions.WriteIndented = true;
+    // Handle circular references in navigation properties (Company -> Certificates -> Company)
+    options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 });
 
 builder.Services.AddRazorPages();
@@ -392,6 +394,9 @@ builder.Services.AddScoped<IProductIdService, ProductIdService>();
 
 // ===== AUDIT SERVICES =====
 builder.Services.AddScoped<GCCWebApp.Services.Audit.IAuditService, GCCWebApp.Services.Audit.AuditService>();
+
+// ===== IMPORT SERVICES =====
+builder.Services.AddScoped<GCCWebApp.Services.Import.ICertificateImportService, GCCWebApp.Services.Import.CertificateImportService>();
 
 // ===== PERFORMANCE MONITORING =====
 builder.Services.AddScoped<GCCWebApp.Services.Performance.IPerformanceMonitoringService, GCCWebApp.Services.Performance.PerformanceMonitoringService>();
@@ -538,6 +543,10 @@ app.UseSession();
 
 // Authentication & Authorization
 app.UseAuthentication();
+
+// Partner API Key Authentication (validates X-API-Key header for partner requests)
+app.UseMiddleware<PartnerApiKeyAuthenticationMiddleware>();
+
 app.UseAuthorization();
 
 // Role middleware - set session roles based on claims

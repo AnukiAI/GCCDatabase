@@ -1,5 +1,6 @@
 using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
+using Microsoft.Extensions.Configuration;
 
 namespace GCCWebApp.UAT.Tests;
 
@@ -8,20 +9,72 @@ public abstract class BaseTest : PageTest
 {
     protected string BaseUrl = "http://localhost:5101"; // GCCWebApp default port (HTTP for testing)
     protected string ScreenshotPath = Path.Combine(Directory.GetCurrentDirectory(), "Screenshots");
+    protected IConfiguration? Configuration { get; private set; }
+    protected bool IsProductionTest { get; private set; }
 
     [OneTimeSetUp]
     public async Task OneTimeSetUp()
     {
+        // Load configuration based on environment
+        var testEnvironment = Environment.GetEnvironmentVariable("TEST_ENVIRONMENT") ?? "Development";
+        IsProductionTest = testEnvironment.Equals("Production", StringComparison.OrdinalIgnoreCase);
+
+        var configBuilder = new ConfigurationBuilder()
+            .SetBasePath(Directory.GetCurrentDirectory())
+            .AddJsonFile("appsettings.Test.json", optional: true);
+
+        // Load production config if TEST_ENVIRONMENT=Production
+        if (IsProductionTest)
+        {
+            configBuilder.AddJsonFile("appsettings.Production.Test.json", optional: false);
+            Console.WriteLine("*** PRODUCTION TEST MODE ***");
+            Console.WriteLine("Running tests against LIVE production site!");
+        }
+
+        configBuilder.AddEnvironmentVariables();
+        Configuration = configBuilder.Build();
+
+        // Get base URL: Environment variable > Config file > Default
+        BaseUrl = Environment.GetEnvironmentVariable("TEST_BASE_URL")
+                  ?? Configuration["BaseUrl"]
+                  ?? "http://localhost:5101";
+
+        Console.WriteLine($"Test Environment: {testEnvironment}");
+        Console.WriteLine($"Base URL: {BaseUrl}");
+
+        // Update TestDataHelper credentials for production if needed
+        if (IsProductionTest || BaseUrl.Contains("gccwebapp.com"))
+        {
+            Console.WriteLine("Using production credentials (username-based login)");
+            // Production uses username, not email
+            UpdateProductionCredentials();
+        }
+
         // Ensure screenshot directory exists
+        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+        ScreenshotPath = Path.Combine(Directory.GetCurrentDirectory(), "Screenshots",
+            IsProductionTest ? $"Production_{timestamp}" : $"Dev_{timestamp}");
         Directory.CreateDirectory(ScreenshotPath);
         Console.WriteLine($"Screenshots will be saved to: {Path.GetFullPath(ScreenshotPath)}");
-        
+
         // Install Playwright browsers if needed
         var exitCode = Microsoft.Playwright.Program.Main(new[] { "install" });
         if (exitCode != 0)
         {
             throw new Exception($"Playwright installation failed with exit code {exitCode}");
         }
+    }
+
+    private void UpdateProductionCredentials()
+    {
+        // For production, we use username instead of email
+        // The login page accepts username in the Email field
+        Helpers.TestDataHelper.Users.RoleCredentials["Admin"] =
+            ("admin", "TestPass123!", Helpers.TestDataHelper.Users.RoleCredentials["Admin"].ExpectedPages);
+        Helpers.TestDataHelper.Users.RoleCredentials["Analyst"] =
+            ("analyst", "TestPass123!", Helpers.TestDataHelper.Users.RoleCredentials["Analyst"].ExpectedPages);
+        Helpers.TestDataHelper.Users.RoleCredentials["External"] =
+            ("external", "TestPass123!", Helpers.TestDataHelper.Users.RoleCredentials["External"].ExpectedPages);
     }
 
     [SetUp]

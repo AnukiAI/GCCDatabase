@@ -119,6 +119,13 @@
 
                         <dt class="col-sm-3">Status:</dt>
                         <dd class="col-sm-9"><span class="badge badge-@(Model.Certificate.Status == "Active" ? "success" : "secondary")">@Model.Certificate.Status</span></dd>
+
+                        @* Certification Results - Admin/Analyst only *@
+                        @if (Model.ShowInternalData && !string.IsNullOrWhiteSpace(Model.Certificate.CertificationResults))
+                        {
+                            <dt class="col-sm-3 role-element role-analyst-show role-admin-show">Certification Results:</dt>
+                            <dd class="col-sm-9 role-element role-analyst-show role-admin-show">@Model.Certificate.CertificationResults</dd>
+                        }
                     </dl>
                 </div>
             </div>

@@ -39,7 +39,7 @@
         .welcome-icon {
             width: 120px;
             height: 120px;
-            background: linear-gradient(135deg, #92C83E 0%, #447638 100%);
+            background: linear-gradient(135deg, #4a7c23 0%, #447638 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -111,13 +111,13 @@
             padding: 15px;
             background: white;
             border-radius: 8px;
-            border-left: 4px solid #92C83E;
+            border-left: 4px solid #4a7c23;
         }
 
         .feature-icon {
             width: 40px;
             height: 40px;
-            background: linear-gradient(135deg, #92C83E 0%, #7bb82e 100%);
+            background: linear-gradient(135deg, #4a7c23 0%, #3d6a1c 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -146,7 +146,7 @@
             justify-content: center;
             gap: 12px;
             width: 100%;
-            background: linear-gradient(135deg, #92C83E 0%, #7bb82e 100%);
+            background: #92C83E;
             color: white;
             text-decoration: none;
             padding: 18px 40px;
@@ -232,9 +232,9 @@
     </style>
 </head>
 <body class="login-page">
-    <div class="auth-container">
+    <main class="auth-container" role="main">
         <div class="welcome-icon">
-            <i class="fas fa-check-circle"></i>
+            <i class="fas fa-check-circle" aria-hidden="true"></i>
         </div>
 
         <div class="auth-header">
@@ -250,27 +250,27 @@
             <div class="features-list">
                 <div class="feature-item">
                     <div class="feature-icon">
-                        <i class="fas fa-search"></i>
+                        <i class="fas fa-search" aria-hidden="true"></i>
                     </div>
                     <div class="feature-text">
                         <h4>Search Certifications</h4>
                         <p>Browse and search through our comprehensive database of sustainability certifications</p>
                     </div>
                 </div>
-                
+
                 <div class="feature-item">
                     <div class="feature-icon">
-                        <i class="fas fa-certificate"></i>
+                        <i class="fas fa-certificate" aria-hidden="true"></i>
                     </div>
                     <div class="feature-text">
                         <h4>View Detailed Reports</h4>
                         <p>Access detailed certification reports and sustainability metrics</p>
                     </div>
                 </div>
-                
+
                 <div class="feature-item">
                     <div class="feature-icon">
-                        <i class="fas fa-download"></i>
+                        <i class="fas fa-download" aria-hidden="true"></i>
                     </div>
                     <div class="feature-text">
                         <h4>Export Data</h4>
@@ -280,16 +280,16 @@
             </div>
         </div>
 
-        <a href="@Url.Action("Index", "Home")" class="btn-primary">
-            <i class="fas fa-rocket"></i>
+        <a href="@Url.Action("Index", "Home")" class="btn-primary" aria-label="Get started - go to dashboard">
+            <i class="fas fa-rocket" aria-hidden="true"></i>
             Get Started
         </a>
 
         <div class="countdown-section">
             <p>Redirecting you to the dashboard in:</p>
-            <div class="countdown" id="countdown">5</div>
+            <div class="countdown" id="countdown" aria-live="polite" aria-atomic="true">5</div>
         </div>
-    </div>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Services;
+using GCCWebApp.Services.Audit;
+using Moq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,7 +16,10 @@ namespace GCCWebApp.Tests.Services
     public class CompanyServiceTests : IDisposable
     {
         private readonly ApplicationDbContext _context;
+        private readonly Mock<IAuditService> _auditServiceMock;
         private readonly CompanyService _service;
+        private const int TestUserId = 1;
+        private const string TestUsername = "TestUser";
 
         public CompanyServiceTests()
         {
@@ -23,7 +28,8 @@ namespace GCCWebApp.Tests.Services
                 .Options;
 
             _context = new ApplicationDbContext(options);
-            _service = new CompanyService(_context);
+            _auditServiceMock = new Mock<IAuditService>();
+            _service = new CompanyService(_context, _auditServiceMock.Object);
 
             SeedTestData();
         }
@@ -200,7 +206,7 @@ namespace GCCWebApp.Tests.Services
             };
 
             // Act
-            var resultId = await _service.CreateCompanyAsync(model);
+            var resultId = await _service.CreateCompanyAsync(model, TestUserId, TestUsername);
 
             // Assert
             resultId.Should().BeGreaterThan(0);
@@ -227,7 +233,7 @@ namespace GCCWebApp.Tests.Services
             };
 
             // Act
-            var resultId = await _service.CreateCompanyAsync(model);
+            var resultId = await _service.CreateCompanyAsync(model, TestUserId, TestUsername);
 
             // Assert
             resultId.Should().BeGreaterThan(0);
@@ -247,7 +253,7 @@ namespace GCCWebApp.Tests.Services
             };
 
             // Act
-            var resultId = await _service.CreateCompanyAsync(model);
+            var resultId = await _service.CreateCompanyAsync(model, TestUserId, TestUsername);
 
             // Assert
             resultId.Should().BeGreaterThan(0);
@@ -276,8 +282,8 @@ namespace GCCWebApp.Tests.Services
             };
 
             // Act
-            var id1 = await _service.CreateCompanyAsync(model1);
-            var id2 = await _service.CreateCompanyAsync(model2);
+            var id1 = await _service.CreateCompanyAsync(model1, TestUserId, TestUsername);
+            var id2 = await _service.CreateCompanyAsync(model2, TestUserId, TestUsername);
 
             // Assert
             id1.Should().NotBe(id2);
@@ -305,7 +311,7 @@ namespace GCCWebApp.Tests.Services
             await Task.Delay(10); // Small delay to ensure timestamp difference
 
             // Act
-            var result = await _service.UpdateCompanyAsync(1, model);
+            var result = await _service.UpdateCompanyAsync(1, model, TestUserId, TestUsername);
 
             // Assert
             result.Should().BeTrue();
@@ -329,7 +335,7 @@ namespace GCCWebApp.Tests.Services
             };
 
             // Act
-            var result = await _service.UpdateCompanyAsync(999, model);
+            var result = await _service.UpdateCompanyAsync(999, model, TestUserId, TestUsername);
 
             // Assert
             result.Should().BeFalse();
@@ -347,7 +353,7 @@ namespace GCCWebApp.Tests.Services
             };
 
             // Act
-            var result = await _service.UpdateCompanyAsync(3, model);
+            var result = await _service.UpdateCompanyAsync(3, model, TestUserId, TestUsername);
 
             // Assert
             result.Should().BeFalse();
@@ -368,7 +374,7 @@ namespace GCCWebApp.Tests.Services
             };
 
             // Act
-            var result = await _service.UpdateCompanyAsync(1, model);
+            var result = await _service.UpdateCompanyAsync(1, model, TestUserId, TestUsername);
 
             // Assert
             result.Should().BeTrue();
@@ -388,7 +394,7 @@ namespace GCCWebApp.Tests.Services
         public async Task DeleteCompanyAsync_ValidId_ShouldSoftDeleteCompany()
         {
             // Act
-            var result = await _service.DeleteCompanyAsync(1);
+            var result = await _service.DeleteCompanyAsync(1, TestUserId, TestUsername);
 
             // Assert
             result.Should().BeTrue();
@@ -403,7 +409,7 @@ namespace GCCWebApp.Tests.Services
         public async Task DeleteCompanyAsync_NonExistentId_ShouldReturnFalse()
         {
             // Act
-            var result = await _service.DeleteCompanyAsync(999);
+            var result = await _service.DeleteCompanyAsync(999, TestUserId, TestUsername);
 
             // Assert
             result.Should().BeFalse();
@@ -413,7 +419,7 @@ namespace GCCWebApp.Tests.Services
         public async Task DeleteCompanyAsync_AlreadyDeletedCompany_ShouldReturnFalse()
         {
             // Act
-            var result = await _service.DeleteCompanyAsync(3);
+            var result = await _service.DeleteCompanyAsync(3, TestUserId, TestUsername);
 
             // Assert
             result.Should().BeFalse();
@@ -423,7 +429,7 @@ namespace GCCWebApp.Tests.Services
         public async Task DeleteCompanyAsync_ShouldNotActuallyRemoveFromDatabase()
         {
             // Act
-            await _service.DeleteCompanyAsync(2);
+            await _service.DeleteCompanyAsync(2, TestUserId, TestUsername);
 
             // Assert
             var allCompanies = await _context.Companies.ToListAsync();
@@ -437,7 +443,7 @@ namespace GCCWebApp.Tests.Services
         public async Task DeleteCompanyAsync_DeletedCompany_ShouldNotAppearInGetCompanies()
         {
             // Act
-            await _service.DeleteCompanyAsync(1);
+            await _service.DeleteCompanyAsync(1, TestUserId, TestUsername);
             var companies = await _service.GetCompaniesAsync();
 
             // Assert
@@ -459,7 +465,7 @@ namespace GCCWebApp.Tests.Services
                 Url = "https://lifecycle.com"
             };
 
-            var companyId = await _service.CreateCompanyAsync(createModel);
+            var companyId = await _service.CreateCompanyAsync(createModel, TestUserId, TestUsername);
             companyId.Should().BeGreaterThan(0);
 
             // Verify creation
@@ -475,7 +481,7 @@ namespace GCCWebApp.Tests.Services
                 Url = "https://updated-lifecycle.com"
             };
 
-            var updateResult = await _service.UpdateCompanyAsync(companyId, updateModel);
+            var updateResult = await _service.UpdateCompanyAsync(companyId, updateModel, TestUserId, TestUsername);
             updateResult.Should().BeTrue();
 
             // Verify update
@@ -484,7 +490,7 @@ namespace GCCWebApp.Tests.Services
             updatedCompany.Email.Should().Be("updated.lifecycle@example.com");
 
             // Delete
-            var deleteResult = await _service.DeleteCompanyAsync(companyId);
+            var deleteResult = await _service.DeleteCompanyAsync(companyId, TestUserId, TestUsername);
             deleteResult.Should().BeTrue();
 
             // Verify soft delete
@@ -512,7 +518,7 @@ namespace GCCWebApp.Tests.Services
                     Email = $"concurrent{i}@example.com",
                     Url = $"https://concurrent{i}.com"
                 };
-                tasks.Add(_service.CreateCompanyAsync(model));
+                tasks.Add(_service.CreateCompanyAsync(model, TestUserId, TestUsername));
             }
 
             var ids = await Task.WhenAll(tasks);
@@ -572,7 +578,7 @@ namespace GCCWebApp.Tests.Services
             };
 
             // Act
-            var companyId = await _service.CreateCompanyAsync(model);
+            var companyId = await _service.CreateCompanyAsync(model, TestUserId, TestUsername);
 
             // Assert
             companyId.Should().BeGreaterThan(0);
@@ -593,7 +599,7 @@ namespace GCCWebApp.Tests.Services
             };
 
             // Act
-            var result = await _service.UpdateCompanyAsync(1, model);
+            var result = await _service.UpdateCompanyAsync(1, model, TestUserId, TestUsername);
 
             // Assert
             result.Should().BeTrue();

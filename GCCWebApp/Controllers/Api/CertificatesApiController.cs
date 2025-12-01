@@ -34,6 +34,22 @@ namespace GCCWebApp.Controllers.Api
         /// <summary>
         /// Get certificates with filtering, sorting, and pagination
         /// </summary>
+        /// <remarks>
+        /// This endpoint supports both standard authentication (cookie/JWT) and Partner API key authentication.
+        ///
+        /// **Partner API Key Authentication:**
+        /// When authenticated with a partner API key (X-API-Key header), only certificates
+        /// associated with that partner are returned.
+        ///
+        /// **Standard Authentication:**
+        /// When authenticated with cookie or JWT, all certificates are returned (filtered by user role).
+        ///
+        /// **Example Partner Request:**
+        /// ```
+        /// GET /api/certificates?page=1&amp;pageSize=50
+        /// X-API-Key: gcc_partner_9f8e7d6c5b4a3210...
+        /// ```
+        /// </remarks>
         [HttpGet]
         [ProducesResponseType(typeof(CertificateListResponse), 200)]
         [ProducesResponseType(typeof(ApiErrorResponse), 400)]
@@ -42,10 +58,35 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
-                _logger.LogInformation("API request for certificates with filters: {@Request}", request);
+                // Check if request is from a partner (Partner API key authentication)
+                var partnerName = User.FindFirst("partner_name")?.Value;
+                if (!string.IsNullOrEmpty(partnerName))
+                {
+                    // Partner authentication - filter by partner
+                    _logger.LogInformation("Partner API request from {PartnerName} for certificates with filters: {@Request}",
+                        partnerName, request);
+
+                    var partnerResult = await _certificateService.GetCertificatesByPartnerAsync(partnerName, request);
+
+                    if (partnerResult.Success)
+                    {
+                        _logger.LogInformation("Returned {Count} certificates for partner {PartnerName}",
+                            partnerResult.Certificates.Count, partnerName);
+                        return Ok(partnerResult);
+                    }
+
+                    return BadRequest(new ApiErrorResponse
+                    {
+                        Message = partnerResult.Message,
+                        Errors = partnerResult.Errors
+                    });
+                }
+
+                // Standard authentication - return all certificates (filtered by user role)
+                _logger.LogInformation("Standard API request for certificates with filters: {@Request}", request);
 
                 var result = await _certificateService.GetCertificatesAsync(request);
-                
+
                 if (result.Success)
                 {
                     return Ok(result);
@@ -60,9 +101,9 @@ namespace GCCWebApp.Controllers.Api
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving certificates via API");
-                return StatusCode(500, new ApiErrorResponse 
-                { 
-                    Message = "An internal server error occurred while retrieving certificates." 
+                return StatusCode(500, new ApiErrorResponse
+                {
+                    Message = "An internal server error occurred while retrieving certificates."
                 });
             }
         }

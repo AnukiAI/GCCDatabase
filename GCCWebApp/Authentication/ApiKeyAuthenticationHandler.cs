@@ -30,6 +30,12 @@ namespace GCCWebApp.Authentication
 
         protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
         {
+            // Skip if already authenticated by Partner API key middleware
+            if (Context.User?.Identity?.AuthenticationType == "PartnerApiKey")
+            {
+                return AuthenticateResult.Success(new AuthenticationTicket(Context.User, Options.Scheme));
+            }
+
             // Check for API key in header
             if (!Request.Headers.ContainsKey(Options.HeaderName))
             {
@@ -37,6 +43,15 @@ namespace GCCWebApp.Authentication
             }
 
             string? apiKey = Request.Headers[Options.HeaderName];
+
+            // Skip partner API keys - they are handled by PartnerApiKeyAuthenticationMiddleware
+            if (!string.IsNullOrEmpty(apiKey) && apiKey.StartsWith("gcc_partner_"))
+            {
+                // Partner keys should have been authenticated by middleware before this handler runs
+                // If we reach here, the partner key middleware rejected it or didn't run
+                Logger.LogDebug("Partner API key detected, deferring to PartnerApiKeyAuthenticationMiddleware");
+                return AuthenticateResult.NoResult();
+            }
 
             if (string.IsNullOrEmpty(apiKey))
             {

@@ -8,6 +8,7 @@ using GCCWebApp.Models;
 using GCCWebApp.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using GCCWebApp.Services.Audit;
 
 namespace GCCWebApp.Tests.Controllers
 {
@@ -15,6 +16,7 @@ namespace GCCWebApp.Tests.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly Mock<ILogger<ProductController>> _loggerMock;
+        private readonly Mock<IAuditService> _auditServiceMock;
         private readonly ProductController _controller;
 
         public ProductControllerTests()
@@ -25,7 +27,8 @@ namespace GCCWebApp.Tests.Controllers
 
             _context = new ApplicationDbContext(options);
             _loggerMock = new Mock<ILogger<ProductController>>();
-            _controller = new ProductController(_context);
+            _auditServiceMock = new Mock<IAuditService>();
+            _controller = new ProductController(_context, _auditServiceMock.Object);
 
             SeedTestData();
         }

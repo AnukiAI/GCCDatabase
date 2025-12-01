@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using GCCWebApp.Models;
 using GCCWebApp.Data;
 using Microsoft.EntityFrameworkCore;
+using GCCWebApp.Services.Audit;
 
 namespace GCCWebApp.Controllers
 {
@@ -10,10 +11,12 @@ namespace GCCWebApp.Controllers
     public class ProductController : Controller
     {
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _auditService;
 
-        public ProductController(ApplicationDbContext context)
+        public ProductController(ApplicationDbContext context, IAuditService auditService)
         {
             _context = context;
+            _auditService = auditService;
         }
 
         // Removed Index action - not part of sitemap/wireframes
@@ -280,8 +283,10 @@ namespace GCCWebApp.Controllers
             try
             {
                 Product product;
-                
-                if (model.Id > 0)
+                Product? oldProduct = null;
+                var isUpdate = model.Id > 0;
+
+                if (isUpdate)
                 {
                     // Update existing product
                     var existingProduct = await _context.Products.FindAsync(model.Id);
@@ -289,9 +294,14 @@ namespace GCCWebApp.Controllers
                     {
                         return Json(new ApiResponse<object> { Success = false, Message = "Product not found" });
                     }
-                    
+
+                    // Capture old state for audit (detached from context)
+                    oldProduct = await _context.Products
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.Id == model.Id);
+
                     product = existingProduct;
-                    
+
                     product.Name = model.Name;
                     product.Description = model.Description;
                     product.Model = model.Model;
@@ -301,7 +311,7 @@ namespace GCCWebApp.Controllers
                     product.CompanyId = model.CompanyId;
                     product.IsActive = model.IsActive;
                     product.UpdatedAt = DateTime.UtcNow;
-                    
+
                     _context.Products.Update(product);
                 }
                 else
@@ -320,11 +330,36 @@ namespace GCCWebApp.Controllers
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
                     };
-                    
+
                     _context.Products.Add(product);
                 }
 
                 await _context.SaveChangesAsync();
+
+                // Log audit history
+                try
+                {
+                    var userId = GetCurrentUserId();
+                    var username = GetCurrentUsername();
+                    var action = isUpdate ? "UPDATE" : "CREATE";
+
+                    await _auditService.LogEntityChangeAsync(
+                        product.Id.ToString(),
+                        product.Name,
+                        action,
+                        oldProduct,
+                        product,
+                        userId,
+                        username,
+                        null, // No reason provided
+                        "Web UI"
+                    );
+                }
+                catch (Exception auditEx)
+                {
+                    // Log audit failure but don't fail the operation
+                    Console.WriteLine($"Failed to log audit history: {auditEx.Message}");
+                }
 
                 var productViewModel = new ProductViewModel
                 {
@@ -334,7 +369,7 @@ namespace GCCWebApp.Controllers
                     IsActive = product.IsActive
                 };
 
-                return Json(new ApiResponse<ProductViewModel> { Success = true, Data = productViewModel, Message = model.Id > 0 ? "Product updated successfully" : "Product created successfully" });
+                return Json(new ApiResponse<ProductViewModel> { Success = true, Data = productViewModel, Message = isUpdate ? "Product updated successfully" : "Product created successfully" });
             }
             catch (Exception ex)
             {
@@ -355,9 +390,17 @@ namespace GCCWebApp.Controllers
                     return Json(new ApiResponse<object> { Success = false, Message = "Product not found" });
                 }
 
+                // Capture product state before deletion for audit
+                var productName = product.Name;
+                var oldProduct = await _context.Products
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == id);
+
                 // Check if product has certificates before deleting
                 var hasCertificates = await _context.Certificates.AnyAsync(c => c.ProductId == id);
-                if (hasCertificates)
+                var isSoftDelete = hasCertificates;
+
+                if (isSoftDelete)
                 {
                     // Soft delete - just mark as inactive
                     product.IsActive = false;
@@ -371,7 +414,34 @@ namespace GCCWebApp.Controllers
                 }
 
                 await _context.SaveChangesAsync();
-                
+
+                // Log audit history
+                try
+                {
+                    var userId = GetCurrentUserId();
+                    var username = GetCurrentUsername();
+                    var deleteReason = isSoftDelete
+                        ? "Soft delete - Product has certificates and cannot be permanently removed"
+                        : "Hard delete - Product has no certificates";
+
+                    await _auditService.LogEntityChangeAsync(
+                        id.ToString(),
+                        productName,
+                        "DELETE",
+                        oldProduct,
+                        null, // Entity is deleted/deactivated, no new state
+                        userId,
+                        username,
+                        deleteReason,
+                        "Web UI"
+                    );
+                }
+                catch (Exception auditEx)
+                {
+                    // Log audit failure but don't fail the operation
+                    Console.WriteLine($"Failed to log audit history: {auditEx.Message}");
+                }
+
                 return Json(new ApiResponse<object> { Success = true, Message = "Product deleted successfully" });
             }
             catch (Exception ex)
@@ -484,6 +554,19 @@ namespace GCCWebApp.Controllers
             }
 
             return new List<string>();
+        }
+
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(userIdClaim, out var userId) ? userId : 0;
+        }
+
+        private string GetCurrentUsername()
+        {
+            return User?.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+                ?? User?.Identity?.Name
+                ?? "Unknown";
         }
 
         /// <summary>

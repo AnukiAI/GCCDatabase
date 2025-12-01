@@ -24,6 +24,7 @@ namespace GCCWebApp.Controllers
         private readonly IWebHostEnvironment _hostingEnvironment;
         private readonly IFileUploadService _fileUploadService;
         private readonly ICertificateFieldService _certificateFieldService;
+        private readonly GCCWebApp.Services.Audit.IAuditService _auditService;
 
         public CertificateController(
             ILogger<CertificateController> logger,
@@ -33,7 +34,8 @@ namespace GCCWebApp.Controllers
             ICertificateService certificateService,
             IWebHostEnvironment hostingEnvironment,
             IFileUploadService fileUploadService,
-            ICertificateFieldService certificateFieldService)
+            ICertificateFieldService certificateFieldService,
+            GCCWebApp.Services.Audit.IAuditService auditService)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
@@ -43,6 +45,7 @@ namespace GCCWebApp.Controllers
             _hostingEnvironment = hostingEnvironment;
             _fileUploadService = fileUploadService;
             _certificateFieldService = certificateFieldService;
+            _auditService = auditService;
         }
 
         #region Basic CRUD Operations
@@ -417,6 +420,7 @@ namespace GCCWebApp.Controllers
                         Number = model.Number,
                         Status = model.Status ?? "active",
                         Partner = model.Partner ?? "None",
+                        CertificationResults = model.CertificationResults,
                         EffectiveDate = model.EffectiveDate,
                         ExpirationDate = model.ExpirationDate,
                         Location = model.Location,
@@ -579,6 +583,7 @@ namespace GCCWebApp.Controllers
                     Number = certificate.Number,
                     Status = certificate.Status,
                     Partner = certificate.Partner,
+                    CertificationResults = certificate.CertificationResults,
                     EffectiveDate = certificate.EffectiveDate,
                     ExpirationDate = certificate.ExpirationDate,
                     Location = certificate.Location,
@@ -652,6 +657,7 @@ namespace GCCWebApp.Controllers
                     certificate.Number = model.Number;
                     certificate.Status = model.Status ?? "active";
                     certificate.Partner = model.Partner;
+                    certificate.CertificationResults = model.CertificationResults;
                     certificate.EffectiveDate = model.EffectiveDate;
                     certificate.ExpirationDate = model.ExpirationDate;
                     certificate.Location = model.Location;
@@ -1057,7 +1063,7 @@ namespace GCCWebApp.Controllers
                     {
                         return userId;
                     }
-                    
+
                     // If it's a GUID (Azure AD), we need to look up the user in the database
                     // SECURITY: Do NOT default to admin user - return null to prevent unauthorized access
                     _logger.LogError("Could not parse user ID {UserId} as integer. Azure AD integration requires database user lookup.", userIdClaim.Value);
@@ -1070,6 +1076,26 @@ namespace GCCWebApp.Controllers
             {
                 _logger.LogError(ex, "Error getting current user ID");
                 return null;
+            }
+        }
+
+        private string GetCurrentUsername()
+        {
+            try
+            {
+                if (!User.Identity?.IsAuthenticated == true)
+                    return "Anonymous";
+
+                return User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ??
+                      User.FindFirst("name")?.Value ??
+                      User.FindFirst("preferred_username")?.Value ??
+                      User.Identity?.Name ??
+                      "Unknown";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting current username");
+                return "Unknown";
             }
         }
 

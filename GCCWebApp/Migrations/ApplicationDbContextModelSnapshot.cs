@@ -427,6 +427,10 @@ namespace GCCWebApp.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("CertificationResults")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<int>("CertificationTypeId")
                         .HasColumnType("int");
 

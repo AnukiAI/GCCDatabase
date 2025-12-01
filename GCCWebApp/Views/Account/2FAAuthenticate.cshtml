@@ -42,7 +42,7 @@
         .auth-icon {
             width: 80px;
             height: 80px;
-            background: linear-gradient(135deg, #92C83E 0%, #447638 100%);
+            background: linear-gradient(135deg, #4a7c23 0%, #447638 100%);
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -90,7 +90,7 @@
 
         .code-input:focus {
             outline: none;
-            border-color: #92C83E;
+            border-color: #4a7c23;
             background-color: white;
             box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.1);
         }
@@ -111,7 +111,7 @@
 
         .form-control:focus {
             outline: none;
-            border-color: #92C83E;
+            border-color: #4a7c23;
             background-color: white;
             box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.1);
         }
@@ -122,7 +122,7 @@
             justify-content: center;
             gap: 12px;
             width: 100%;
-            background: linear-gradient(135deg, #92C83E 0%, #7bb82e 100%);
+            background: #92C83E;
             color: white;
             border: none;
             padding: 15px 30px;
@@ -156,7 +156,7 @@
         }
 
         .resend-link {
-            color: #92C83E;
+            color: #4a7c23;
             text-decoration: none;
             font-weight: 600;
             font-size: 14px;
@@ -164,7 +164,7 @@
         }
 
         .resend-link:hover {
-            color: #7bb82e;
+            color: #3d6a1c;
             text-decoration: underline;
         }
 
@@ -237,7 +237,7 @@
 
         .trust-device label {
             cursor: pointer;
-            color: #0369a1;
+            color: #075985;
             font-size: 14px;
         }
 
@@ -273,45 +273,46 @@
     </style>
 </head>
 <body class="login-page">
-    <div class="auth-container">
+    <main class="auth-container" role="main">
         <a href="@Url.Action("Login", "Account")" class="back-link">
-            <i class="fas fa-arrow-left"></i>
+            <i class="fas fa-arrow-left" aria-hidden="true"></i>
             Back to login
         </a>
 
         <div class="auth-header">
             <div class="auth-icon">
-                <i class="fas fa-shield-alt"></i>
+                <i class="fas fa-shield-alt" aria-hidden="true"></i>
             </div>
             <h2>Two-Factor Authentication</h2>
-            <p>Enter the 6-digit code from your authenticator app or email</p>
+            <p id="2fa-instructions">Enter the 6-digit code from your authenticator app or email</p>
         </div>
 
         @if (!string.IsNullOrEmpty(ViewBag.Error))
         {
-            <div class="alert-error">
-                <i class="fas fa-exclamation-circle"></i>
+            <div class="alert-error" role="alert">
+                <i class="fas fa-exclamation-circle" aria-hidden="true"></i>
                 @ViewBag.Error
             </div>
         }
 
         @if (!string.IsNullOrEmpty(ViewBag.Success))
         {
-            <div class="alert-success">
-                <i class="fas fa-check-circle"></i>
+            <div class="alert-success" role="alert">
+                <i class="fas fa-check-circle" aria-hidden="true"></i>
                 @ViewBag.Success
             </div>
         }
 
         <form asp-controller="Account" asp-action="Verify2FA" method="post">
             <div class="form-group">
-                <div class="code-input-group">
-                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
-                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
-                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
-                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
-                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
-                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required />
+                <label class="sr-only" id="code-label">Enter 6-digit verification code</label>
+                <div class="code-input-group" role="group" aria-labelledby="code-label" aria-describedby="2fa-instructions">
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 1 of 6" inputmode="numeric" autocomplete="one-time-code" />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 2 of 6" inputmode="numeric" />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 3 of 6" inputmode="numeric" />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 4 of 6" inputmode="numeric" />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 5 of 6" inputmode="numeric" />
+                    <input type="text" class="code-input" maxlength="1" pattern="[0-9]" required aria-label="Digit 6 of 6" inputmode="numeric" />
                 </div>
                 <input type="hidden" id="AuthCode" name="AuthCode" />
             </div>
@@ -321,19 +322,20 @@
                 <label for="TrustDevice">Trust this device for 30 days</label>
             </div>
 
-            <button type="submit" class="btn-lime">
-                <i class="fas fa-lock"></i>
+            <button type="submit" class="btn-lime" aria-label="Verify authentication code">
+                <i class="fas fa-lock" aria-hidden="true"></i>
                 Verify Code
             </button>
         </form>
 
         <div class="resend-section">
             <p>Didn't receive a code?</p>
-            <a href="#" class="resend-link" id="resendLink">
-                Resend code <span class="timer" id="timer"></span>
+            <a href="#" class="resend-link" id="resendLink" aria-describedby="resend-status">
+                Resend code <span class="timer" id="timer" aria-live="polite"></span>
             </a>
+            <span id="resend-status" class="sr-only">Resend available after countdown</span>
         </div>
-    </div>
+    </main>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

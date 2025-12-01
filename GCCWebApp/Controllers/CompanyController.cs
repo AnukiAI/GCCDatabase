@@ -15,6 +15,19 @@ namespace GCCWebApp.Controllers
             _companyService = companyService;
         }
 
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(userIdClaim, out var userId) ? userId : 0;
+        }
+
+        private string GetCurrentUsername()
+        {
+            return User?.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+                ?? User?.Identity?.Name
+                ?? "Unknown";
+        }
+
         public IActionResult Index()
         {
             return View();
@@ -49,9 +62,9 @@ namespace GCCWebApp.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return Json(new ApiResponse<object> 
-                { 
-                    Success = false, 
+                return Json(new ApiResponse<object>
+                {
+                    Success = false,
                     Message = "Invalid data provided",
                     Errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList()
                 });
@@ -59,11 +72,14 @@ namespace GCCWebApp.Controllers
 
             try
             {
+                var userId = GetCurrentUserId();
+                var username = GetCurrentUsername();
+
                 CompanyViewModel result;
                 if (model.Id > 0)
                 {
                     // Update existing company
-                    var success = await _companyService.UpdateCompanyAsync(model.Id, model);
+                    var success = await _companyService.UpdateCompanyAsync(model.Id, model, userId, username);
                     if (success)
                     {
                         result = await _companyService.GetCompanyByIdAsync(model.Id) ?? new CompanyViewModel();
@@ -77,7 +93,7 @@ namespace GCCWebApp.Controllers
                 else
                 {
                     // Create new company
-                    var newId = await _companyService.CreateCompanyAsync(model);
+                    var newId = await _companyService.CreateCompanyAsync(model, userId, username);
                     if (newId > 0)
                     {
                         result = await _companyService.GetCompanyByIdAsync(newId) ?? new CompanyViewModel();
@@ -100,7 +116,10 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var success = await _companyService.DeleteCompanyAsync(id);
+                var userId = GetCurrentUserId();
+                var username = GetCurrentUsername();
+
+                var success = await _companyService.DeleteCompanyAsync(id, userId, username);
                 if (success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "Company deleted successfully" });

@@ -4,14 +4,15 @@ public static class TestDataHelper
 {
     public static class Users
     {
-        public const string AdminEmail = "admin@test.com";
-        public const string AnalystEmail = "analyst@test.com";
-        public const string ExternalEmail = "external@test.com";
-        public const string ClientEmail = "client@test.com";
-        public const string PartnerEmail = "partner@test.com";
-        public const string PublicEmail = "public@test.com";
+        // Production uses USERNAME login, not email
+        public const string AdminEmail = "admin";
+        public const string AnalystEmail = "analyst";
+        public const string ExternalEmail = "external";
+        public const string ClientEmail = "client";
+        public const string PartnerEmail = "partner";
+        public const string PublicEmail = "public";
         public const string TestPassword = "TestPass123!";
-        
+
         public static readonly Dictionary<string, (string Email, string Password, string[] ExpectedPages)> RoleCredentials = new()
         {
             ["Admin"] = (AdminEmail, TestPassword, new[] { "/Admin", "/Admin/UserManagement", "/Admin/RoleManagement", "/Admin/ProductManagement" }),

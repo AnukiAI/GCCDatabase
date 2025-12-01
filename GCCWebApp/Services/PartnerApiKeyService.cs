@@ -11,6 +11,7 @@ namespace GCCWebApp.Services
         Task<List<PartnerApiKey>> GetAllApiKeysAsync();
         Task<List<PartnerApiKey>> GetApiKeysByPartnerAsync(int partnerId);
         Task<PartnerApiKey?> GetApiKeyByIdAsync(int id);
+        Task<PartnerApiKey?> GetApiKeyByValueAsync(string apiKey);
         Task<PartnerApiKey> GenerateApiKeyAsync(int partnerId, string? description, DateTime? expiresAt, string createdBy);
         Task<bool> RevokeApiKeyAsync(int id, string revokedBy);
         Task<bool> ValidateApiKeyAsync(string apiKey);
@@ -74,6 +75,21 @@ namespace GCCWebApp.Services
             {
                 _logger.LogError(ex, "Error retrieving API key {Id}", id);
                 throw;
+            }
+        }
+
+        public async Task<PartnerApiKey?> GetApiKeyByValueAsync(string apiKey)
+        {
+            try
+            {
+                return await _context.PartnerApiKeys
+                    .Include(k => k.Partner)
+                    .FirstOrDefaultAsync(k => k.ApiKey == apiKey && k.IsActive);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving API key by value");
+                return null;
             }
         }
 

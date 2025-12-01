@@ -10,9 +10,9 @@ namespace GCCWebApp.Services
         // User Management
         Task<List<UserViewModel>> GetUsersAsync();
         Task<UserViewModel?> GetUserByIdAsync(int id);
-        Task<bool> CreateUserAsync(CreateUserViewModel model);
-        Task<bool> UpdateUserAsync(int id, UserViewModel model);
-        Task<bool> DeleteUserAsync(int id);
+        Task<bool> CreateUserAsync(CreateUserViewModel model, int userId, string username);
+        Task<bool> UpdateUserAsync(int id, UserViewModel model, int userId, string username);
+        Task<bool> DeleteUserAsync(int id, int userId, string username);
         
         // Role Management
         Task<List<RoleViewModel>> GetRolesAsync();

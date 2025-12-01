@@ -96,23 +96,42 @@ namespace GCCWebApp.Middleware
         {
             if (context.User?.Identity?.IsAuthenticated == true)
             {
+                // Check for partner-specific rate limit from claims (set by PartnerApiKeyAuthenticationMiddleware)
+                var partnerRateLimitClaim = context.User.FindFirst("partner_rate_limit")?.Value;
+                if (!string.IsNullOrEmpty(partnerRateLimitClaim) &&
+                    int.TryParse(partnerRateLimitClaim, out var partnerLimit))
+                {
+                    _logger.LogDebug("Using partner-specific rate limit: {Limit} requests/hour", partnerLimit);
+                    return partnerLimit; // Uses PartnerApiKey.RateLimitPerHour from database
+                }
+
+                // Check if user is authenticated via partner API key (but no custom limit)
+                var partnerId = context.User.FindFirst("partner_id")?.Value;
+                if (!string.IsNullOrEmpty(partnerId))
+                {
+                    _logger.LogDebug("Using default partner API key limit: {Limit} requests/hour", _options.PartnerApiKeyLimit);
+                    return _options.PartnerApiKeyLimit; // Default: 2000/hour
+                }
+
+                // Check for general API key authentication (non-partner)
                 var apiKeyId = context.User.FindFirst("api_key_id")?.Value;
                 if (!string.IsNullOrEmpty(apiKeyId))
                 {
-                    var apiKeyName = context.User.FindFirst("api_key_name")?.Value;
-                    if (apiKeyName?.Contains("Amazon", StringComparison.OrdinalIgnoreCase) == true)
-                        return _options.PartnerApiKeyLimit;
-
-                    return _options.ApiKeyLimit;
+                    return _options.ApiKeyLimit; // Default: 1000/hour
                 }
 
+                // Admin users get higher limits
                 if (context.User.IsInRole("Admin"))
-                    return _options.AdminLimit;
+                {
+                    return _options.AdminLimit; // Default: 5000/hour
+                }
 
-                return _options.AuthenticatedLimit;
+                // Authenticated users (cookie/JWT)
+                return _options.AuthenticatedLimit; // Default: 1000/hour
             }
 
-            return _options.AnonymousLimit;
+            // Anonymous/unauthenticated users
+            return _options.AnonymousLimit; // Default: 100/hour
         }
 
         private long GetResetTime()

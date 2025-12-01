@@ -359,7 +359,7 @@
                     <button class="btn-icon" title="Edit Certificate" onclick="event.stopPropagation(); editCertificate('${cert.certificateNumber}')">
                         <i class="fas fa-edit"></i>
                     </button>
-                    <button class="btn-icon" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.id}')">
+                    <button class="btn-icon" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
                         <i class="fas fa-download"></i>
                     </button>
                 </td>
@@ -422,7 +422,7 @@
                     ` : ''}
                 </div>
                 <div class="card-actions">
-                    <div class="action-icon download" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.id}')">
+                    <div class="action-icon download" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
                         <i class="fas fa-download"></i>
                     </div>
                     <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.id}')">
@@ -1254,7 +1254,7 @@
                         <button class="action-btn edit-btn" onclick="editCertificate('${cert.certificateNumber}')" title="Edit Certificate">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn download-btn" onclick="downloadCertificate('${cert.id}')" title="Download PDF">
+                        <button class="action-btn download-btn" onclick="downloadCertificate('${cert.certificateNumber}')" title="Download PDF">
                             <i class="fas fa-download"></i>
                         </button>
                         <button class="action-btn view-btn" onclick="viewCertificateDetails('${cert.id}')" title="View Details">

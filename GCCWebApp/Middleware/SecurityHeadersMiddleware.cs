@@ -234,64 +234,61 @@ public class SecurityHeadersMiddleware
         var path = context.Request.Path.ToString().ToLowerInvariant();
         var queryString = context.Request.QueryString.ToString().ToLowerInvariant();
 
-        // Whitelist legitimate endpoints that might contain SQL-like keywords
-        var whitelistedPaths = new[]
+        // IMPORTANT: For URL paths, only check for ACTUAL SQL injection patterns
+        // Words like "delete", "update", "select", "create" are common in action method names
+        // (e.g., /Company/DeleteCompany, /Admin/UpdateUser, /Certificate/Create)
+        // Only flag patterns that indicate actual SQL injection attempts
+        var pathInjectionPatterns = new[]
         {
-            "/export/downloadstat",
-            "/export/downloadtable",
-            "/export/testdownloadnoauth",
-            "/export/testdata",
-            "/export/testtuples",
-            "/dashboard",
-            "/certificate",
-            "/admin"
+            "' or ", "\" or ", "' and ", "\" and ",
+            "'; drop", "\"; drop", "'; delete", "\"; delete",
+            "'; update", "\"; update", "'; insert", "\"; insert",
+            "union all select", "union select", "1=1", "1' or '1'='1",
+            "admin'--", "' or 1=1--", "or 1=1#", "' or 'a'='a",
+            "xp_cmdshell", "exec(", "execute(", "sp_executesql",
+            "%27", "%22", "%3b", "%2d%2d"  // URL-encoded: ' " ; --
         };
 
-        // Check if this is a whitelisted path
-        if (whitelistedPaths.Any(whitelist => path.StartsWith(whitelist)))
+        // Check URL path for actual injection patterns only
+        if (pathInjectionPatterns.Any(pattern => path.Contains(pattern)))
         {
-            // For whitelisted paths, use more specific SQL injection patterns
-            var strictSqlInjectionPatterns = new[]
-            {
-                "' or ", "\" or ", "' and ", "\" and ",
-                "'; drop", "\"; drop", "'; delete", "\"; delete",
-                "union all select", "union select", "1=1", "1' or '1'='1",
-                "admin'--", "' or 1=1--", "or 1=1#", "' or 'a'='a",
-                "xp_cmdshell", "exec(", "execute(", "sp_executesql"
-            };
-
-            return strictSqlInjectionPatterns.Any(pattern => 
-                queryString.Contains(pattern) || path.Contains(pattern));
+            return true;
         }
 
-        // For non-whitelisted paths, use broader detection
-        var sqlInjectionPatterns = new[]
+        // For query strings, be more careful but still avoid false positives
+        // Only flag if query string contains suspicious SQL syntax patterns
+        var queryInjectionPatterns = new[]
         {
-            "union", "select", "insert", "update", "delete", "drop", "exec", "execute",
-            "'", "\"", ";", "--", "/*", "*/", "xp_", "sp_", "@@", "char(",
-            "nchar(", "varchar(", "nvarchar(", "alter", "begin", "cast", "create",
-            "cursor", "declare", "fetch", "kill", "open", "sys", "table"
+            "' or ", "\" or ", "' and ", "\" and ",
+            "'; ", "\"; ", "'--", "\"--",
+            "union select", "union all select",
+            "1=1", "1' or '1'='1", "' or 'a'='a",
+            "xp_cmdshell", "exec(", "execute(", "sp_executesql",
+            "xp_", "sp_", "@@version", "@@servername",
+            "/**/", "char(", "nchar(", "varchar(", "nvarchar(",
+            "waitfor delay", "benchmark(", "sleep(",
+            "; drop ", "; delete ", "; update ", "; insert ",
+            "%27", "%22", "%3b%20drop", "%3b%20delete"  // URL-encoded patterns
         };
 
-        foreach (var pattern in sqlInjectionPatterns)
+        if (queryInjectionPatterns.Any(pattern => queryString.Contains(pattern)))
         {
-            if (queryString.Contains(pattern) || path.Contains(pattern))
-            {
-                return true;
-            }
+            return true;
         }
 
-        // Check form data if available
+        // Check form data for SQL injection patterns
         if (context.Request.HasFormContentType)
         {
             try
             {
-                var form = await context.Request.ReadFormAsync();
-                var formContent = string.Join(" ", form.Select(kvp => kvp.Value.ToString())).ToLowerInvariant();
-                
-                foreach (var pattern in sqlInjectionPatterns)
+                // Skip checking login forms - passwords may contain special characters
+                if (!path.Contains("/account/login") && !path.Contains("/account/signup"))
                 {
-                    if (formContent.Contains(pattern))
+                    var form = await context.Request.ReadFormAsync();
+                    var formContent = string.Join(" ", form.Select(kvp => kvp.Value.ToString())).ToLowerInvariant();
+
+                    // Use the same patterns as query strings for form data
+                    if (queryInjectionPatterns.Any(pattern => formContent.Contains(pattern)))
                     {
                         return true;
                     }

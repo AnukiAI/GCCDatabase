@@ -110,7 +110,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "analyst",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "analyst@test-gcc.local",
                     Name = "Jane",
                     FullName = "Jane Analyst",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -124,7 +124,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "external",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "external@test-gcc.local",
                     Name = "External",
                     FullName = "External User",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -137,7 +137,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "testuser",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "testuser@test-gcc.local",
                     Name = "Test",
                     FullName = "Test User",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -152,7 +152,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "sarah.johnson",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "sarah.johnson@test-gcc.local",
                     Name = "Sarah",
                     FullName = "Sarah Johnson",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -166,7 +166,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "mike.chen",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "mike.chen@test-gcc.local",
                     Name = "Mike",
                     FullName = "Mike Chen",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -180,7 +180,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "lisa.rodriguez",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "lisa.rodriguez@test-gcc.local",
                     Name = "Lisa",
                     FullName = "Lisa Rodriguez",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -193,7 +193,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "david.kim",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "david.kim@test-gcc.local",
                     Name = "David",
                     FullName = "David Kim",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -206,7 +206,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "emma.wilson",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "emma.wilson@test-gcc.local",
                     Name = "Emma",
                     FullName = "Emma Wilson",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -219,7 +219,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "alex.martinez",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "alex.martinez@test-gcc.local",
                     Name = "Alex",
                     FullName = "Alex Martinez",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -232,7 +232,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "jennifer.lee",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "jennifer.lee@test-gcc.local",
                     Name = "Jennifer",
                     FullName = "Jennifer Lee",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -246,7 +246,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "robert.taylor",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "robert.taylor@test-gcc.local",
                     Name = "Robert",
                     FullName = "Robert Taylor",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -260,7 +260,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "maria.garcia",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "maria.garcia@test-gcc.local",
                     Name = "Maria",
                     FullName = "Maria Garcia",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),
@@ -273,7 +273,7 @@ namespace GCCWebApp.Data
                 new User
                 {
                     Username = "public.user",
-                    Email = "swest@anukiconsulting.com",
+                    Email = "public.user@test-gcc.local",
                     Name = "Public",
                     FullName = "Public User",
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestPass123!"),

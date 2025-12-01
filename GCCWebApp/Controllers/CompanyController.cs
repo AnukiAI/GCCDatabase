@@ -60,6 +60,16 @@ namespace GCCWebApp.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveCompany([FromBody] CompanyViewModel model)
         {
+            // Convert empty strings to null for optional fields
+            if (string.IsNullOrWhiteSpace(model.Email))
+                model.Email = null;
+            if (string.IsNullOrWhiteSpace(model.Url))
+                model.Url = null;
+
+            // Clear and revalidate model state after normalizing empty strings
+            ModelState.Clear();
+            TryValidateModel(model);
+
             if (!ModelState.IsValid)
             {
                 return Json(new ApiResponse<object>

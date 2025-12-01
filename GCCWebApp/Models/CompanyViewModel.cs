@@ -11,6 +11,7 @@ namespace GCCWebApp.Models
         public string Name { get; set; } = string.Empty;
 
         [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        [RegularExpression(@"^[^@\s]+@[^@\s]+\.[^@\s]+$", ErrorMessage = "Please enter a valid email address (e.g., user@example.com)")]
         [MaxLength(255)]
         public string? Email { get; set; }
 

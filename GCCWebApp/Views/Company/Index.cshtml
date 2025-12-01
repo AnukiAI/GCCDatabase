@@ -330,7 +330,13 @@
                     sortData();
                     AdminCore.showNotification('Company added successfully', 'success');
                 } else {
-                    AdminCore.showNotification('Error: ' + (result.message || 'Failed to save company'), 'error');
+                    // Show validation errors if available
+                    let errorMsg = result.message || 'Failed to save company';
+                    if (result.errors && result.errors.length > 0) {
+                        errorMsg = result.errors.join(', ');
+                    }
+                    console.error('Save error:', result);
+                    AdminCore.showNotification('Error: ' + errorMsg, 'error');
                 }
             } catch (error) {
                 console.error('Error saving company:', error);
@@ -446,7 +452,13 @@
                     currentEditingId = null;
                     AdminCore.showNotification('Company updated successfully', 'success');
                 } else {
-                    AdminCore.showNotification('Error: ' + (result.message || 'Failed to update company'), 'error');
+                    // Show validation errors if available
+                    let errorMsg = result.message || 'Failed to update company';
+                    if (result.errors && result.errors.length > 0) {
+                        errorMsg = result.errors.join(', ');
+                    }
+                    console.error('Save error:', result);
+                    AdminCore.showNotification('Error: ' + errorMsg, 'error');
                 }
             } catch (error) {
                 console.error('Error updating company:', error);

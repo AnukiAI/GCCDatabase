@@ -5,6 +5,7 @@
 
 @section Styles {
     <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-modals.css" rel="stylesheet" />
     <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
     <link href="~/css/company-management.css" rel="stylesheet" />
 }
@@ -328,7 +329,11 @@
 
                     // Refresh table
                     sortData();
-                    AdminCore.showNotification('Company added successfully', 'success');
+                    await AdminCore.showSuccessModal({
+                        title: 'Company Added',
+                        message: 'The company has been added successfully.',
+                        buttonText: 'OK'
+                    });
                 } else {
                     // Show validation errors if available
                     let errorMsg = result.message || 'Failed to save company';
@@ -450,7 +455,11 @@
                     // Remove edit class
                     row.classList.remove('company-edit-row');
                     currentEditingId = null;
-                    AdminCore.showNotification('Company updated successfully', 'success');
+                    await AdminCore.showSuccessModal({
+                        title: 'Update Successful',
+                        message: 'The company has been updated successfully.',
+                        buttonText: 'OK'
+                    });
                 } else {
                     // Show validation errors if available
                     let errorMsg = result.message || 'Failed to update company';
@@ -517,7 +526,11 @@
                     // Remove from local array only if database delete succeeded
                     companies = companies.filter(company => company.id !== id);
                     sortData();
-                    AdminCore.showNotification('Company deleted successfully', 'success');
+                    await AdminCore.showSuccessModal({
+                        title: 'Delete Successful',
+                        message: 'The company has been deleted successfully.',
+                        buttonText: 'OK'
+                    });
                 } else {
                     AdminCore.showNotification('Error: ' + (result.message || 'Failed to delete company'), 'error');
                 }

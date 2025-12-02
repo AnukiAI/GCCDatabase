@@ -377,33 +377,26 @@ const AdminCore = {
         return new Promise((resolve) => {
             // Create modal overlay
             const overlay = document.createElement('div');
-            overlay.className = 'admin-modal-overlay';
+            overlay.className = 'admin-modal-overlay gcc-modal-overlay';
             overlay.setAttribute('role', 'dialog');
             overlay.setAttribute('aria-modal', 'true');
             overlay.setAttribute('aria-labelledby', 'modal-title');
             overlay.setAttribute('aria-describedby', 'modal-message');
 
-            // Determine button style based on type
-            const confirmBtnClass = config.type === 'danger' ? 'admin-modal-btn--danger' :
-                                   config.type === 'warning' ? 'admin-modal-btn--primary' :
-                                   'admin-modal-btn--success';
-
-            // Create modal HTML
+            // Create modal HTML - Delete button on LEFT (red), Cancel button on RIGHT (green)
             overlay.innerHTML = `
-                <div class="admin-modal-dialog">
-                    <div class="admin-modal-header">
-                        <h2 id="modal-title" class="admin-modal-title">${this.escapeHtml(config.title)}</h2>
-                    </div>
-                    <div class="admin-modal-body">
-                        <p id="modal-message" class="admin-modal-message">${this.escapeHtml(config.message)}</p>
-                    </div>
-                    <div class="admin-modal-footer">
-                        <button class="admin-modal-btn admin-modal-btn--secondary" data-action="cancel">
-                            ${this.escapeHtml(config.cancelText)}
-                        </button>
-                        <button class="admin-modal-btn ${confirmBtnClass}" data-action="confirm">
-                            ${this.escapeHtml(config.confirmText)}
-                        </button>
+                <div class="admin-modal-dialog gcc-modal-dialog">
+                    <div class="gcc-modal-content">
+                        <h2 id="modal-title" class="gcc-modal-title">${this.escapeHtml(config.title)}</h2>
+                        <p id="modal-message" class="gcc-modal-message">${this.escapeHtml(config.message)}</p>
+                        <div class="gcc-modal-buttons">
+                            <button class="gcc-modal-btn gcc-modal-btn--danger" data-action="confirm">
+                                ${this.escapeHtml(config.confirmText)}
+                            </button>
+                            <button class="gcc-modal-btn gcc-modal-btn--success" data-action="cancel">
+                                ${this.escapeHtml(config.cancelText)}
+                            </button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -464,7 +457,86 @@ const AdminCore = {
             // Show modal with animation
             requestAnimationFrame(() => {
                 overlay.classList.add('show');
-                confirmBtn.focus();
+                cancelBtn.focus(); // Focus on Cancel (safe option)
+            });
+
+            // Announce to screen readers
+            this.announceToScreenReader(`${config.title}. ${config.message}`);
+        });
+    },
+
+    /**
+     * Show a success modal (for delete/update confirmations)
+     * @param {Object} options - Modal configuration options
+     * @param {string} options.title - Modal title (e.g., "Delete Successful", "Update Successful")
+     * @param {string} options.message - Modal message
+     * @param {string} options.buttonText - Button text (default: "OK")
+     * @returns {Promise} Resolves when user clicks OK
+     */
+    showSuccessModal(options = {}) {
+        const defaults = {
+            title: 'Success',
+            message: 'Operation completed successfully.',
+            buttonText: 'OK'
+        };
+
+        const config = { ...defaults, ...options };
+
+        return new Promise((resolve) => {
+            // Create modal overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'admin-modal-overlay gcc-modal-overlay';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.setAttribute('aria-labelledby', 'success-modal-title');
+            overlay.setAttribute('aria-describedby', 'success-modal-message');
+
+            // Create modal HTML - Single green OK button
+            overlay.innerHTML = `
+                <div class="admin-modal-dialog gcc-modal-dialog">
+                    <div class="gcc-modal-content gcc-modal-content--success">
+                        <h2 id="success-modal-title" class="gcc-modal-title gcc-modal-title--success">${this.escapeHtml(config.title)}</h2>
+                        <p id="success-modal-message" class="gcc-modal-message">${this.escapeHtml(config.message)}</p>
+                        <div class="gcc-modal-buttons gcc-modal-buttons--centered">
+                            <button class="gcc-modal-btn gcc-modal-btn--success gcc-modal-btn--full" data-action="ok">
+                                ${this.escapeHtml(config.buttonText)}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Add to document
+            document.body.appendChild(overlay);
+
+            // Handle OK click
+            const handleOk = () => {
+                overlay.classList.remove('show');
+                setTimeout(() => {
+                    if (overlay.parentNode) {
+                        overlay.parentNode.removeChild(overlay);
+                    }
+                }, 300);
+                resolve(true);
+            };
+
+            // Bind events
+            const okBtn = overlay.querySelector('[data-action="ok"]');
+            okBtn.addEventListener('click', handleOk);
+
+            // Handle keyboard events
+            const keyHandler = (e) => {
+                if (e.key === 'Escape' || e.key === 'Enter') {
+                    handleOk();
+                    document.removeEventListener('keydown', keyHandler);
+                }
+            };
+            document.addEventListener('keydown', keyHandler);
+
+            // Show modal with animation
+            requestAnimationFrame(() => {
+                overlay.classList.add('show');
+                okBtn.focus();
             });
 
             // Announce to screen readers

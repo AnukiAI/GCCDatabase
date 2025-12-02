@@ -202,13 +202,24 @@ th,
 .page-container {
     max-width: 1450px;
     margin: 0 auto;
-    padding: 0 40px;
+    padding: 24px 40px;
 }
 
 .main-content {
-    max-width: 1450px;
+    max-width: 100%;
     margin: 0 auto;
     width: 100%;
+    background-color: #f9f9f9;
+    min-height: calc(100vh - 300px);
+}
+
+/* White boxed content area - global layout pattern */
+.page-content {
+    background-color: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 24px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .main-container {
@@ -730,7 +741,8 @@ th,
 
 /* ===== 10. PAGE HEADER ===== */
 .page-header {
-    padding: 5px 0;
+    padding: 0 0 16px 0;
+    margin-bottom: 24px;
     border-bottom: 1px solid var(--border-color);
     display: flex;
     justify-content: space-between;

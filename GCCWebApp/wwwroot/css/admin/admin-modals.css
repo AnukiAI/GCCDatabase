@@ -827,3 +827,156 @@
     transform: none;
     pointer-events: auto;
 }
+
+/* =============================================================================
+   GCC MODAL DESIGN - Matches Mockup Styling
+   Delete: Red button LEFT, Green button RIGHT
+   Success: Navy title, single green OK button
+   ============================================================================= */
+
+/* GCC Modal Overlay */
+.gcc-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(3px);
+    z-index: 9998;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.gcc-modal-overlay.show {
+    opacity: 1;
+}
+
+/* GCC Modal Dialog */
+.gcc-modal-dialog {
+    position: relative;
+    z-index: 9999;
+    max-width: 450px;
+    width: 90%;
+    margin: auto;
+}
+
+/* GCC Modal Content */
+.gcc-modal-content {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    padding: 30px;
+    text-align: center;
+}
+
+/* GCC Modal Title - Navy Blue */
+.gcc-modal-title {
+    color: #002B76;
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 15px 0;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+}
+
+/* Success Modal Title - Same styling */
+.gcc-modal-title--success {
+    color: #002B76;
+}
+
+/* GCC Modal Message */
+.gcc-modal-message {
+    color: #333333;
+    font-size: 16px;
+    line-height: 1.5;
+    margin: 0 0 25px 0;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+}
+
+/* GCC Modal Buttons Container */
+.gcc-modal-buttons {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+}
+
+.gcc-modal-buttons--centered {
+    justify-content: center;
+}
+
+/* GCC Modal Button Base */
+.gcc-modal-btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+}
+
+.gcc-modal-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.gcc-modal-btn:focus {
+    outline: 2px solid #002B76;
+    outline-offset: 2px;
+}
+
+/* Danger Button - Red */
+.gcc-modal-btn--danger {
+    background-color: #FF5252;
+    color: #ffffff;
+}
+
+.gcc-modal-btn--danger:hover {
+    background-color: #E53935;
+}
+
+/* Success Button - Green */
+.gcc-modal-btn--success {
+    background-color: #92C83E;
+    color: #ffffff;
+}
+
+.gcc-modal-btn--success:hover {
+    background-color: #7FB835;
+}
+
+/* Full Width Button (for success modal) */
+.gcc-modal-btn--full {
+    width: 100%;
+    min-width: unset;
+}
+
+/* Success Modal Content */
+.gcc-modal-content--success {
+    padding: 35px 30px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+    .gcc-modal-dialog {
+        width: 95%;
+        max-width: none;
+    }
+
+    .gcc-modal-content {
+        padding: 25px 20px;
+    }
+
+    .gcc-modal-buttons {
+        flex-direction: column;
+    }
+
+    .gcc-modal-btn {
+        width: 100%;
+    }
+}

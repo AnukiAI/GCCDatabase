@@ -4,6 +4,8 @@
 }
 
 @section Styles {
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
     <link href="~/css/product-types.css" rel="stylesheet" />
     <link href="~/css/product-types-override.css" rel="stylesheet" />
 }
@@ -42,22 +44,25 @@
     <div class="admin-toolbar">
         <div class="admin-search-section">
             <div class="admin-search-box">
+                <label for="search-input" class="admin-sr-only">Search product types</label>
+                <input type="text" id="search-input" class="admin-search-input" placeholder="Search hierarchy..." onkeyup="filterTree(this.value)" aria-label="Search product types">
                 <i class="fas fa-search admin-search-icon"></i>
-                <input type="text" id="search-input" class="admin-search-input" placeholder="Search hierarchy..." onkeyup="filterTree(this.value)">
             </div>
         </div>
-        <div class="stats-bar">
-            <div class="stat-item">
-                <span class="stat-number">3</span> Categories
-            </div>
-            <div class="stat-item">
-                <span class="stat-number">7</span> Types
-            </div>
-            <div class="stat-item">
-                <span class="stat-number">15</span> Subcategories
-            </div>
-            <div class="stat-item">
-                <span class="stat-number">247</span> Products
+        <div class="admin-filter-section">
+            <div class="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-number">3</span> Categories
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">7</span> Types
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">15</span> Subcategories
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">247</span> Products
+                </div>
             </div>
         </div>
     </div>

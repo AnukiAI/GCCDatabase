@@ -60,3 +60,29 @@ All three certificate tile views now consistently display "Certificates" as the 
 - Public: ViewData["Title"] = "Certificates" (no breadcrumb)
 - Internal: ViewData["Title"] = "Certificates", Breadcrumb = "Certificates"
 - External: ViewData["Title"] = "Certificates", Breadcrumb = "Certificates"
+
+---
+
+## 2025-12-02 - REQUIREMENT: Admin Page UI Consistency
+
+### Requirement
+All admin pages must maintain consistent UI layout:
+1. **Action buttons (Export, Add New, etc.)** must be **RIGHT-ALIGNED** in the header
+2. **Stats bar (Categories, Types, Subcategories, Products counts)** must be **RIGHT-ALIGNED** below search
+3. **Search bar** must be **100% width** of the toolbar area
+
+### Pages Affected
+- Product Types Management (`/Admin/ProductTypes`)
+- All other admin pages should follow this same pattern
+
+### Reference Pages (Correct Layout)
+- Tag Management (`/Admin/Tags`)
+- User Management (`/Admin/UserManagement`)
+- Role Management (`/Admin/RoleManagement`)
+
+### Fix Applied
+- Updated `product-types-override.css`:
+  - `.admin-header-content`: Added flex with `justify-content: space-between`
+  - `.admin-actions-section`: Added `margin-left: auto` for right alignment
+  - `.admin-button-group`: Added `justify-content: flex-end`
+  - `.admin-filter-section`: Added `justify-content: flex-end` for stats bar

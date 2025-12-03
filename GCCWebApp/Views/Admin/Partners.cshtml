@@ -7,6 +7,7 @@
 @section Styles {
     <link href="~/css/admin/admin.css" rel="stylesheet" />
     <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-inline-editing.css" rel="stylesheet" />
     <link href="~/css/partners.css" rel="stylesheet" />
     <link href="~/css/admin-company-style.css" rel="stylesheet" />
 }
@@ -41,56 +42,58 @@
         </div>
     </header>
 
-    <div class="search-filter-bar">
-        <div class="search-box">
-            <input type="text" id="partners-search-input" placeholder="Search partners...">
-            <i class="fas fa-search search-icon"></i>
+    <div class="admin-toolbar">
+        <div class="admin-search-section">
+            <div class="admin-search-box">
+                <i class="fas fa-search admin-search-icon"></i>
+                <input type="text" id="partners-search-input" class="admin-search-input" placeholder="Search partners...">
+            </div>
         </div>
     </div>
 
-    <div class="table-container">
-        <table id="partners-table">
-        <thead>
-            <tr>
-                <th width="90%" data-sort="name">
-                    Partner Name
-                    <span class="partners-sort-icon"><i class="fas fa-sort"></i></span>
-                </th>
-                <th width="10%" class="actions-col">Actions</th>
-            </tr>
-        </thead>
-        <tbody id="partners-table-body">
+    <div class="admin-content">
+        <div class="admin-table-container">
+            <table id="partners-table" class="admin-table">
+            <thead class="admin-table-header">
+                <tr>
+                    <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="90%">
+                        Partner Name <i class="admin-sort-icon fas fa-sort"></i>
+                    </th>
+                    <th class="admin-table-th admin-table-th--actions" width="10%">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="partners-table-body" class="admin-table-body">
             <!-- Add partner row (initially hidden) -->
-            <tr id="partners-add-row" class="partners-add-row">
+            <tr id="partners-add-row" class="admin-inline-add-row">
                 <td>
-                    <input type="text" id="new-partner-name" class="partners-edit-input" placeholder="Enter partner name">
+                    <input type="text" id="new-partner-name" class="admin-inline-input" placeholder="Enter partner name">
                 </td>
                 <td>
-                    <div class="partners-add-actions" style="display: flex; gap: 5px;">
-                        <button id="cancel-new-partner-btn" class="admin-btn admin-btn--sm admin-btn--secondary" onclick="cancelAddPartner()">
+                    <div class="admin-inline-add-actions">
+                        <button type="button" class="admin-inline-btn-cancel" onclick="cancelAddPartner()" aria-label="Cancel adding partner">
                             <i class="fas fa-times" aria-hidden="true"></i> Cancel
                         </button>
-                        <button id="save-new-partner-btn" class="admin-btn admin-btn--sm admin-btn--success" onclick="saveNewPartner()">
+                        <button type="button" class="admin-inline-btn-save" onclick="saveNewPartner()" aria-label="Save new partner">
                             <i class="fas fa-check" aria-hidden="true"></i> Save
                         </button>
                     </div>
                 </td>
             </tr>
             <!-- Table rows will be populated by JavaScript -->
-        </tbody>
-    </table>
+            </tbody>
+        </table>
+        </div>
     </div>
 
-    <div class="footer-info">
-        <span id="partners-count">Showing 0 of 0 partners</span>
+    <div class="admin-footer-info">
+        <span id="partners-count" class="admin-count-display">Showing 0 of 0 partners</span>
     </div>
 </div>
 
 <!-- Antiforgery token for AJAX requests -->
 @Html.AntiForgeryToken()
 
-<!-- Toast for notifications -->
-<div id="partners-toast" class="partners-toast"></div>
+<!-- Toast notifications handled by AdminCore.showNotification -->
 
 @section Scripts {
     <script src="~/js/admin/admin-core.js"></script>
@@ -191,38 +194,38 @@
 
                 // View mode
                 const nameSpan = document.createElement('span');
-                nameSpan.className = 'partner-name';
+                nameSpan.className = 'admin-inline-view';
                 nameSpan.textContent = partner.name;
                 nameCell.appendChild(nameSpan);
 
                 // Edit mode
                 const nameEditDiv = document.createElement('div');
-                nameEditDiv.className = 'partner-name-edit';
-                nameEditDiv.innerHTML = `<input type="text" class="partners-edit-input" value="${partner.name}">`;
+                nameEditDiv.className = 'admin-inline-edit';
+                nameEditDiv.innerHTML = `<input type="text" class="admin-inline-input" value="${partner.name}">`;
                 nameCell.appendChild(nameEditDiv);
 
                 // Actions cell
                 const actionsCell = document.createElement('td');
 
-                // Regular action buttons
+                // Regular action buttons (view mode)
                 const actionButtons = document.createElement('div');
-                actionButtons.className = 'action-buttons';
+                actionButtons.className = 'admin-inline-actions';
                 actionButtons.innerHTML = `
-                    <button class="partners-btn-edit" onclick="editPartner(${partner.id})" title="Edit Partner" aria-label="Edit partner ${partner.name}">
+                    <button class="admin-inline-action-btn admin-inline-action-btn--edit" onclick="editPartner(${partner.id})" title="Edit Partner" aria-label="Edit partner ${partner.name}">
                         <i class="fas fa-edit" aria-hidden="true"></i>
                     </button>
-                    <button class="partners-btn-delete" onclick="deletePartner(${partner.id})" title="Delete Partner" aria-label="Delete partner ${partner.name}">
+                    <button class="admin-inline-action-btn admin-inline-action-btn--delete" onclick="deletePartner(${partner.id})" title="Delete Partner" aria-label="Delete partner ${partner.name}">
                         <i class="fas fa-trash-alt" aria-hidden="true"></i>
                     </button>
                 `;
                 actionsCell.appendChild(actionButtons);
 
-                // Edit action buttons
+                // Edit action buttons (edit mode)
                 const editActions = document.createElement('div');
-                editActions.className = 'partners-edit-actions';
+                editActions.className = 'admin-inline-edit-actions';
                 editActions.innerHTML = `
-                    <button class="admin-btn admin-btn--sm admin-btn--secondary" onclick="cancelEdit(${partner.id})"><i class="fas fa-times" aria-hidden="true"></i> Cancel</button>
-                    <button class="admin-btn admin-btn--sm admin-btn--success" onclick="savePartner(${partner.id})"><i class="fas fa-check" aria-hidden="true"></i> Save</button>
+                    <button type="button" class="admin-inline-btn-cancel" onclick="cancelEdit(${partner.id})" aria-label="Cancel editing"><i class="fas fa-times" aria-hidden="true"></i> Cancel</button>
+                    <button type="button" class="admin-inline-btn-save" onclick="savePartner(${partner.id})" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i> Save</button>
                 `;
                 actionsCell.appendChild(editActions);
 
@@ -253,16 +256,16 @@
                     // Update header styling
                     headers.forEach(h => {
                         h.classList.remove('active-sort');
-                        const icon = h.querySelector('.partners-sort-icon i');
+                        const icon = h.querySelector('.admin-sort-icon');
                         if (icon) {
-                            icon.className = 'fas fa-sort';
+                            icon.className = 'admin-sort-icon fas fa-sort';
                         }
                     });
 
                     header.classList.add('active-sort');
-                    const sortIcon = header.querySelector('.partners-sort-icon i');
+                    const sortIcon = header.querySelector('.admin-sort-icon');
                     if (sortIcon) {
-                        sortIcon.className = sortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                        sortIcon.className = 'admin-sort-icon fas ' + (sortDirection === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
                     }
 
                     // Sort the data
@@ -330,8 +333,9 @@
             const addRow = document.getElementById('partners-add-row');
             if (addRow) {
                 addRow.classList.add('active');
-                const input = document.getElementById('new-partner-name');
+                const input = addRow.querySelector('.admin-inline-input');
                 if (input) {
+                    input.value = '';
                     input.focus();
                 }
             }
@@ -414,8 +418,8 @@
             const row = document.querySelector(`tr[data-id="${id}"]`);
             if (!row) return;
 
-            row.classList.add('partners-edit-row');
-            const input = row.querySelector('.partners-edit-input');
+            row.classList.add('admin-inline-edit-row');
+            const input = row.querySelector('.admin-inline-input');
             if (input) {
                 input.focus();
                 input.select();
@@ -426,7 +430,7 @@
             const row = document.querySelector(`tr[data-id="${id}"]`);
             if (!row) return;
 
-            const input = row.querySelector('.partners-edit-input');
+            const input = row.querySelector('.admin-inline-input');
             const newName = input ? input.value.trim() : '';
 
             if (!newName) {
@@ -485,11 +489,11 @@
                     }
 
                     // Update display
-                    const nameSpan = row.querySelector('.partner-name');
+                    const nameSpan = row.querySelector('.admin-inline-view');
                     if (nameSpan) nameSpan.textContent = newName;
 
                     // Remove edit class
-                    row.classList.remove('partners-edit-row');
+                    row.classList.remove('admin-inline-edit-row');
                     showPartnersToast('Partner updated successfully', 'success');
                 } else {
                     throw new Error(result.message || 'Failed to update partner');
@@ -511,11 +515,11 @@
             if (!partner) return;
 
             // Reset input value to original
-            const input = row.querySelector('.partners-edit-input');
+            const input = row.querySelector('.admin-inline-input');
             if (input) input.value = partner.name;
 
             // Remove edit class
-            row.classList.remove('partners-edit-row');
+            row.classList.remove('admin-inline-edit-row');
         }
 
         async function deletePartner(id) {
@@ -590,16 +594,9 @@
             showPartnersToast('Partners exported successfully', 'success');
         }
 
+        // Use AdminCore.showNotification for all toast notifications (US-015 compliant)
         function showPartnersToast(message, type = 'info') {
-            const toast = document.getElementById('partners-toast');
-            if (!toast) return;
-
-            toast.textContent = message;
-            toast.className = `partners-toast ${type} show`;
-
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+            AdminCore.showNotification(message, type);
         }
     </script>
 }

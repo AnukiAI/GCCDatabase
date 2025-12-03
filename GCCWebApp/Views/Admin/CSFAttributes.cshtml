@@ -6,91 +6,7 @@
 @section Styles {
     <link href="~/css/admin/admin.css" rel="stylesheet" />
     <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
-    <style>
-        /* CSF Attributes table-specific styles */
-        .csf-add-row {
-            display: none;
-            background-color: #f8f9fa;
-        }
-
-        .csf-add-row.active {
-            display: table-row;
-        }
-
-        .csf-edit-input {
-            width: 100%;
-            padding: 8px;
-            border: 1px solid #00AEEF;
-            border-radius: 4px;
-            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
-            box-sizing: border-box;
-        }
-
-        .csf-btn-save,
-        .csf-btn-cancel {
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: 500;
-            border: none;
-            transition: all 0.2s;
-        }
-
-        .csf-btn-save {
-            background-color: #447638;
-            color: white;
-        }
-
-        .csf-btn-save:hover {
-            background-color: #92C83E;
-        }
-
-        .csf-btn-cancel {
-            background-color: #f8f9fa;
-            color: #333;
-            border: 1px solid #ddd;
-        }
-
-        .csf-btn-cancel:hover {
-            background-color: #e2e6ea;
-        }
-
-        .edit-row {
-            background-color: rgba(0, 174, 239, 0.05);
-        }
-
-        .edit-row .view-mode {
-            display: none;
-        }
-
-        .edit-mode {
-            display: none;
-        }
-
-        .edit-row .edit-mode {
-            display: block;
-        }
-
-        .edit-row .action-buttons {
-            display: none;
-        }
-
-        .edit-actions {
-            display: none;
-        }
-
-        .edit-row .edit-actions {
-            display: flex;
-            gap: 5px;
-        }
-
-        /* Ensure footer count is right-aligned */
-        .footer-info {
-            text-align: right !important;
-            display: block !important;
-        }
-    </style>
+    <link href="~/css/admin/admin-inline-editing.css" rel="stylesheet" />
 }
 
 @section Breadcrumbs {
@@ -108,6 +24,7 @@
     <header class="admin-header">
         <div class="admin-header-content">
             <div class="admin-title-section">
+                <p class="admin-page-subtitle">Manage CSF certification attributes</p>
             </div>
             <div class="admin-actions-section">
                 <div class="admin-button-group">
@@ -122,53 +39,63 @@
         </div>
     </header>
 
-    <div class="search-filter-bar">
-        <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search">
-            <i class="fas fa-search search-icon"></i>
+    <div class="admin-toolbar">
+        <div class="admin-search-section">
+            <div class="admin-search-box">
+                <i class="fas fa-search admin-search-icon"></i>
+                <input type="text" id="search-input" class="admin-search-input" placeholder="Search CSF attributes...">
+            </div>
         </div>
     </div>
 
-    <div class="table-container">
-        <table id="csf-table">
-            <thead>
-                <tr>
-                    <th width="30%" data-sort="name">Attribute Name <span class="sort-icon">▼</span></th>
-                    <th width="50%" data-sort="description">Description <span class="sort-icon">▼</span></th>
-                    <th width="10%" data-sort="isActive">Active <span class="sort-icon">▼</span></th>
-                    <th width="10%" class="actions-col">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Add CSF Attribute row (initially hidden) -->
-                <tr id="csf-add-row" class="csf-add-row">
-                    <td>
-                        <input type="text" id="new-csf-name" class="csf-edit-input" placeholder="Enter attribute name" required>
-                    </td>
-                    <td>
-                        <input type="text" id="new-csf-description" class="csf-edit-input" placeholder="Enter description">
-                    </td>
-                    <td>
-                        <input type="checkbox" id="new-csf-active" checked>
-                    </td>
-                    <td>
-                        <div class="csf-add-actions" style="display: flex; gap: 5px;">
-                            <button class="admin-btn admin-btn--sm admin-btn--secondary" onclick="cancelAddCsfAttribute()">
-                                <i class="fas fa-times" aria-hidden="true"></i> Cancel
-                            </button>
-                            <button class="admin-btn admin-btn--sm admin-btn--success" onclick="saveNewCsfAttribute()">
-                                <i class="fas fa-check" aria-hidden="true"></i> Save
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-                <!-- Data will be populated by JavaScript -->
-            </tbody>
-        </table>
+    <div class="admin-content">
+        <div class="admin-table-container">
+            <table id="csf-table" class="admin-table">
+                <thead class="admin-table-header">
+                    <tr>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="30%">
+                            Attribute Name <i class="admin-sort-icon fas fa-sort"></i>
+                        </th>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="description" width="50%">
+                            Description <i class="admin-sort-icon fas fa-sort"></i>
+                        </th>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="isActive" width="10%">
+                            Active <i class="admin-sort-icon fas fa-sort"></i>
+                        </th>
+                        <th class="admin-table-th admin-table-th--actions" width="10%">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="admin-table-body">
+                    <!-- Add CSF Attribute row (initially hidden) -->
+                    <tr id="csf-add-row" class="admin-inline-add-row">
+                        <td>
+                            <input type="text" id="new-csf-name" class="admin-inline-input" placeholder="Enter attribute name" required>
+                        </td>
+                        <td>
+                            <input type="text" id="new-csf-description" class="admin-inline-input" placeholder="Enter description">
+                        </td>
+                        <td>
+                            <input type="checkbox" id="new-csf-active" checked>
+                        </td>
+                        <td>
+                            <div class="admin-inline-add-actions">
+                                <button type="button" class="admin-inline-btn-cancel" onclick="cancelAddCsfAttribute()" aria-label="Cancel adding attribute">
+                                    <i class="fas fa-times" aria-hidden="true"></i> Cancel
+                                </button>
+                                <button type="button" class="admin-inline-btn-save" onclick="saveNewCsfAttribute()" aria-label="Save new attribute">
+                                    <i class="fas fa-check" aria-hidden="true"></i> Save
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <div class="footer-info">
-        <span id="csf-count">Showing 0 of 0 CSF attributes</span>
+    <div class="admin-footer-info">
+        <span id="csf-count" class="admin-count-display">Showing 0 of 0 CSF attributes</span>
     </div>
 </div>
 
@@ -201,11 +128,12 @@
                         { key: 'description', header: 'Description' }
                     ];
                     
+                    // US-015: Use AdminCore.showNotification instead of alert()
                     ExportUtils.showExportModal(
-                        sampleData, 
-                        columns, 
+                        sampleData,
+                        columns,
                         'csf_attributes',
-                        (message, type) => alert(message)
+                        (message, type) => AdminCore.showNotification(message, type)
                     );
                 });
             }

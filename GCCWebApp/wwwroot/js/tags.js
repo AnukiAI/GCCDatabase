@@ -65,8 +65,8 @@ function populateTable(data) {
 
         // Edit mode
         const nameEditDiv = document.createElement('div');
-        nameEditDiv.className = 'tag-name-edit';
-        nameEditDiv.innerHTML = `<input type="text" class="tags-edit-input" value="${escapeHtml(tag.name)}">`;
+        nameEditDiv.className = 'tag-name-edit admin-inline-edit';
+        nameEditDiv.innerHTML = `<input type="text" class="admin-inline-input" value="${escapeHtml(tag.name)}">`;
         nameCell.appendChild(nameEditDiv);
 
         row.appendChild(nameCell);
@@ -83,9 +83,9 @@ function populateTable(data) {
 
         // Edit mode
         const typeEditDiv = document.createElement('div');
-        typeEditDiv.className = 'tag-type-edit';
+        typeEditDiv.className = 'tag-type-edit admin-inline-edit';
         typeEditDiv.innerHTML = `
-            <select class="tags-edit-select">
+            <select class="admin-inline-select">
                 <option value="external" ${tag.tagType === 'external' ? 'selected' : ''}>External</option>
                 <option value="internal" ${tag.tagType === 'internal' ? 'selected' : ''}>Internal</option>
             </select>
@@ -106,8 +106,8 @@ function populateTable(data) {
 
         // Edit mode
         const descEditDiv = document.createElement('div');
-        descEditDiv.className = 'tag-description-edit';
-        descEditDiv.innerHTML = `<textarea class="tags-edit-textarea" rows="2">${escapeHtml(tag.description || '')}</textarea>`;
+        descEditDiv.className = 'tag-description-edit admin-inline-edit';
+        descEditDiv.innerHTML = `<textarea class="admin-inline-textarea" rows="2">${escapeHtml(tag.description || '')}</textarea>`;
         descCell.appendChild(descEditDiv);
 
         row.appendChild(descCell);
@@ -118,12 +118,12 @@ function populateTable(data) {
 
         // Regular action buttons (Edit/Delete)
         const actionButtons = document.createElement('div');
-        actionButtons.className = 'action-buttons';
+        actionButtons.className = 'admin-inline-actions';
         actionButtons.innerHTML = `
-            <button class="admin-action-btn admin-action-btn--edit" onclick="editTag(${tag.id})" title="Edit Tag" aria-label="Edit tag ${escapeHtml(tag.name)}">
+            <button class="admin-inline-action-btn admin-inline-action-btn--edit" onclick="editTag(${tag.id})" title="Edit Tag" aria-label="Edit tag ${escapeHtml(tag.name)}">
                 <i class="fas fa-edit" aria-hidden="true"></i>
             </button>
-            <button class="admin-action-btn admin-action-btn--delete" onclick="deleteTag(${tag.id}, '${escapeHtml(tag.name)}')" title="Delete Tag" aria-label="Delete tag ${escapeHtml(tag.name)}">
+            <button class="admin-inline-action-btn admin-inline-action-btn--delete" onclick="deleteTag(${tag.id}, '${escapeHtml(tag.name)}')" title="Delete Tag" aria-label="Delete tag ${escapeHtml(tag.name)}">
                 <i class="fas fa-trash-alt" aria-hidden="true"></i>
             </button>
         `;
@@ -131,12 +131,12 @@ function populateTable(data) {
 
         // Edit action buttons (Save/Cancel)
         const editActions = document.createElement('div');
-        editActions.className = 'tags-edit-actions';
+        editActions.className = 'admin-inline-edit-actions';
         editActions.innerHTML = `
-            <button class="admin-btn admin-btn--sm admin-btn--secondary" onclick="cancelEdit(${tag.id})" aria-label="Cancel editing">
+            <button type="button" class="admin-inline-btn-cancel" onclick="cancelEdit(${tag.id})" aria-label="Cancel editing">
                 <i class="fas fa-times" aria-hidden="true"></i> Cancel
             </button>
-            <button class="admin-btn admin-btn--sm admin-btn--success" onclick="saveTag(${tag.id})" aria-label="Save tag">
+            <button type="button" class="admin-inline-btn-save" onclick="saveTag(${tag.id})" aria-label="Save tag">
                 <i class="fas fa-check" aria-hidden="true"></i> Save
             </button>
         `;
@@ -239,7 +239,7 @@ function showAddTagRow() {
     const addRow = document.getElementById('tags-add-row');
     if (addRow) {
         addRow.classList.add('active');
-        const nameInput = addRow.querySelector('.tags-edit-input');
+        const nameInput = addRow.querySelector('.admin-inline-input');
         if (nameInput) {
             nameInput.focus();
         }
@@ -324,8 +324,8 @@ function editTag(id) {
     const row = document.querySelector(`tr[data-id="${id}"]`);
     if (!row) return;
 
-    row.classList.add('tags-edit-row');
-    const nameInput = row.querySelector('.tags-edit-input');
+    row.classList.add('admin-inline-edit-row');
+    const nameInput = row.querySelector('.admin-inline-input');
     if (nameInput) {
         nameInput.focus();
         nameInput.select();
@@ -337,9 +337,9 @@ async function saveTag(id) {
     const row = document.querySelector(`tr[data-id="${id}"]`);
     if (!row) return;
 
-    const nameInput = row.querySelector('.tag-name-edit input');
-    const typeSelect = row.querySelector('.tag-type-edit select');
-    const descTextarea = row.querySelector('.tag-description-edit textarea');
+    const nameInput = row.querySelector('.tag-name-edit .admin-inline-input');
+    const typeSelect = row.querySelector('.tag-type-edit .admin-inline-select');
+    const descTextarea = row.querySelector('.tag-description-edit .admin-inline-textarea');
 
     const newName = nameInput?.value.trim() || '';
     const newType = typeSelect?.value || '';
@@ -404,7 +404,7 @@ async function saveTag(id) {
             if (descSpan) descSpan.textContent = newDescription;
 
             // Remove edit class
-            row.classList.remove('tags-edit-row');
+            row.classList.remove('admin-inline-edit-row');
             AdminCore.showNotification('Tag updated successfully', 'success');
         } else {
             AdminCore.showNotification(result.message || 'Failed to update tag', 'error');
@@ -425,16 +425,16 @@ function cancelEdit(id) {
     if (!tag) return;
 
     // Reset input values to original
-    const nameInput = row.querySelector('.tag-name-edit input');
-    const typeSelect = row.querySelector('.tag-type-edit select');
-    const descTextarea = row.querySelector('.tag-description-edit textarea');
+    const nameInput = row.querySelector('.tag-name-edit .admin-inline-input');
+    const typeSelect = row.querySelector('.tag-type-edit .admin-inline-select');
+    const descTextarea = row.querySelector('.tag-description-edit .admin-inline-textarea');
 
     if (nameInput) nameInput.value = tag.name;
     if (typeSelect) typeSelect.value = tag.tagType;
     if (descTextarea) descTextarea.value = tag.description || '';
 
     // Remove edit class
-    row.classList.remove('tags-edit-row');
+    row.classList.remove('admin-inline-edit-row');
 }
 
 // Function to delete a tag

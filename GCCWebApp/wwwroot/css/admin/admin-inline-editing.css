@@ -1,0 +1,247 @@
+/* admin-inline-editing.css - Standardized inline editing styles for admin pages */
+/* Used by: Tags, Partners, CSF Attributes, and other inline-editable tables */
+
+/* ===== CSS Variables for Inline Editing ===== */
+:root {
+    --inline-edit-border: #00AEEF;
+    --inline-edit-bg: #fff;
+    --inline-edit-focus-shadow: rgba(0, 174, 239, 0.15);
+    --inline-add-row-bg: #f8f9fa;
+    --inline-edit-row-bg: rgba(0, 174, 239, 0.03);
+}
+
+/* ===== ADD ROW STYLES ===== */
+.admin-inline-add-row {
+    display: none;
+    background-color: var(--inline-add-row-bg);
+}
+
+.admin-inline-add-row.active {
+    display: table-row;
+}
+
+/* ===== EDIT ROW STATE ===== */
+.admin-inline-edit-row {
+    background-color: var(--inline-edit-row-bg) !important;
+}
+
+/* ===== INPUT FIELD STYLES ===== */
+.admin-inline-input,
+.admin-inline-select,
+.admin-inline-textarea {
+    width: 100%;
+    padding: 8px 12px;
+    border: 2px solid var(--inline-edit-border);
+    border-radius: 4px;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    font-size: 14px;
+    background-color: var(--inline-edit-bg);
+    box-sizing: border-box;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-inline-input:focus,
+.admin-inline-select:focus,
+.admin-inline-textarea:focus {
+    outline: none;
+    border-color: var(--inline-edit-border);
+    box-shadow: 0 0 0 3px var(--inline-edit-focus-shadow);
+}
+
+.admin-inline-textarea {
+    resize: vertical;
+    min-height: 60px;
+}
+
+/* ===== VIEW/EDIT MODE TOGGLE ===== */
+/* View mode elements - shown by default, hidden during edit */
+.admin-inline-view {
+    display: block;
+}
+
+.admin-inline-edit-row .admin-inline-view {
+    display: none;
+}
+
+/* Edit mode elements - hidden by default, shown during edit */
+.admin-inline-edit {
+    display: none;
+}
+
+.admin-inline-edit-row .admin-inline-edit {
+    display: block;
+}
+
+/* ===== ACTION BUTTON CONTAINERS ===== */
+.admin-inline-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* Hide regular actions during edit mode */
+.admin-inline-edit-row .admin-inline-actions {
+    display: none;
+}
+
+/* Edit/Add action buttons container */
+.admin-inline-edit-actions,
+.admin-inline-add-actions {
+    display: none;
+    gap: 8px;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+/* Show edit actions during edit mode */
+.admin-inline-edit-row .admin-inline-edit-actions {
+    display: flex;
+}
+
+/* Add actions are always visible in add row */
+.admin-inline-add-row .admin-inline-add-actions {
+    display: flex;
+}
+
+/* ===== SAVE/CANCEL BUTTON STYLES ===== */
+/* These override admin-btn styles to ensure proper backgrounds */
+.admin-inline-btn-save,
+.admin-inline-btn-cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    min-height: 32px;
+}
+
+.admin-inline-btn-save {
+    background-color: #92C83E; /* GCC Green */
+    color: #fff;
+    border-color: #92C83E;
+}
+
+.admin-inline-btn-save:hover {
+    background-color: #7fb835;
+    border-color: #7fb835;
+}
+
+.admin-inline-btn-save:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.3);
+}
+
+.admin-inline-btn-cancel {
+    background-color: #f8f9fa; /* Light gray background */
+    color: #495057;
+    border-color: #ced4da;
+}
+
+.admin-inline-btn-cancel:hover {
+    background-color: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.admin-inline-btn-cancel:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(108, 117, 125, 0.2);
+}
+
+/* Icon styling in buttons */
+.admin-inline-btn-save i,
+.admin-inline-btn-cancel i {
+    font-size: 12px;
+}
+
+/* ===== ACTION ICON BUTTONS (Edit/Delete) ===== */
+.admin-inline-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: none;
+    border-radius: 4px;
+    background-color: transparent;
+    color: #6c757d;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.admin-inline-action-btn:hover {
+    background-color: #f1f3f4;
+}
+
+.admin-inline-action-btn--edit:hover {
+    color: #00AEEF;
+    background-color: rgba(0, 174, 239, 0.1);
+}
+
+.admin-inline-action-btn--delete:hover {
+    color: #FF5252;
+    background-color: rgba(255, 82, 82, 0.1);
+}
+
+.admin-inline-action-btn i {
+    font-size: 14px;
+}
+
+/* ===== BADGE STYLES ===== */
+.admin-inline-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.admin-inline-badge--external {
+    background-color: #447638;
+    color: #fff;
+}
+
+.admin-inline-badge--internal {
+    background-color: #00AEEF;
+    color: #fff;
+}
+
+.admin-inline-badge--active {
+    background-color: #92C83E;
+    color: #fff;
+}
+
+.admin-inline-badge--inactive {
+    background-color: #6c757d;
+    color: #fff;
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+    .admin-inline-edit-actions,
+    .admin-inline-add-actions {
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .admin-inline-btn-save,
+    .admin-inline-btn-cancel {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .admin-inline-actions {
+        flex-direction: column;
+        gap: 4px;
+    }
+}

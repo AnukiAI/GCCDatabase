@@ -30,8 +30,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 43, 118, 0.7);
-    backdrop-filter: blur(2px);
+    background-color: rgba(0, 0, 0, 0.85); /* US-015: 85% black opacity */
+    backdrop-filter: blur(3px); /* US-015: 3px blur effect */
     z-index: var(--admin-z-modal-backdrop);
     display: flex;
     align-items: center;

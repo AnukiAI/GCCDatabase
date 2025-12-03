@@ -39,10 +39,12 @@
         </div>
     </header>
 
-    <div class="search-filter-bar">
-        <div class="search-box">
-            <input type="text" placeholder="Search hierarchy..." onkeyup="filterTree(this.value)">
-            <i class="fas fa-search search-icon"></i>
+    <div class="admin-toolbar">
+        <div class="admin-search-section">
+            <div class="admin-search-box">
+                <i class="fas fa-search admin-search-icon"></i>
+                <input type="text" id="search-input" class="admin-search-input" placeholder="Search hierarchy..." onkeyup="filterTree(this.value)">
+            </div>
         </div>
         <div class="stats-bar">
             <div class="stat-item">

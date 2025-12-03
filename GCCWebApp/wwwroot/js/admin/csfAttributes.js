@@ -90,44 +90,100 @@ function populateTable(data) {
         const row = document.createElement('tr');
         row.setAttribute('data-id', attribute.id);
 
-        // Attribute Name
+        // Attribute Name cell
         const nameCell = document.createElement('td');
-        nameCell.textContent = attribute.name;
+
+        // View mode
+        const nameView = document.createElement('span');
+        nameView.className = 'admin-inline-view';
+        nameView.textContent = attribute.name;
+        nameCell.appendChild(nameView);
+
+        // Edit mode
+        const nameEdit = document.createElement('div');
+        nameEdit.className = 'admin-inline-edit';
+        nameEdit.innerHTML = `<input type="text" class="admin-inline-input" value="${escapeHtml(attribute.name)}">`;
+        nameCell.appendChild(nameEdit);
+
         row.appendChild(nameCell);
 
-        // Description
+        // Description cell
         const descCell = document.createElement('td');
-        descCell.textContent = attribute.description || '-';
+
+        // View mode
+        const descView = document.createElement('span');
+        descView.className = 'admin-inline-view';
+        descView.textContent = attribute.description || '-';
+        descCell.appendChild(descView);
+
+        // Edit mode
+        const descEdit = document.createElement('div');
+        descEdit.className = 'admin-inline-edit';
+        descEdit.innerHTML = `<input type="text" class="admin-inline-input" value="${escapeHtml(attribute.description || '')}">`;
+        descCell.appendChild(descEdit);
+
         row.appendChild(descCell);
 
-        // Active Status
+        // Active Status cell
         const activeCell = document.createElement('td');
+
+        // View mode
+        const activeView = document.createElement('span');
+        activeView.className = 'admin-inline-view';
         const activeIcon = attribute.isActive ?
             '<i class="fas fa-check-circle" style="color: #92C83E;"></i>' :
             '<i class="fas fa-times-circle" style="color: #FF5252;"></i>';
-        activeCell.innerHTML = activeIcon;
+        activeView.innerHTML = activeIcon;
+        activeCell.appendChild(activeView);
+
+        // Edit mode
+        const activeEdit = document.createElement('div');
+        activeEdit.className = 'admin-inline-edit';
+        activeEdit.innerHTML = `<input type="checkbox" ${attribute.isActive ? 'checked' : ''}>`;
+        activeCell.appendChild(activeEdit);
+
         row.appendChild(activeCell);
 
-        // Actions
+        // Actions cell
         const actionsCell = document.createElement('td');
 
-        // Edit button
-        const editButton = document.createElement('button');
-        editButton.className = 'btn-edit';
-        editButton.innerHTML = '<i class="fas fa-edit"></i>';
-        editButton.title = 'Edit';
-        editButton.addEventListener('click', () => editCSF(attribute.id));
-        actionsCell.appendChild(editButton);
+        // View mode action buttons
+        const actionButtons = document.createElement('div');
+        actionButtons.className = 'admin-inline-actions';
+        actionButtons.innerHTML = `
+            <button class="admin-inline-action-btn admin-inline-action-btn--edit" title="Edit Attribute" aria-label="Edit attribute ${escapeHtml(attribute.name)}">
+                <i class="fas fa-edit" aria-hidden="true"></i>
+            </button>
+            <button class="admin-inline-action-btn admin-inline-action-btn--delete" title="Delete Attribute" aria-label="Delete attribute ${escapeHtml(attribute.name)}">
+                <i class="fas fa-trash-alt" aria-hidden="true"></i>
+            </button>
+        `;
 
-        // Delete button
-        const deleteButton = document.createElement('button');
-        deleteButton.className = 'btn-delete';
-        deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
-        deleteButton.title = 'Delete';
-        deleteButton.addEventListener('click', () => deleteCSF(attribute.id));
-        actionsCell.appendChild(deleteButton);
+        // Add event listeners
+        actionButtons.querySelector('.admin-inline-action-btn--edit').addEventListener('click', () => editCSF(attribute.id));
+        actionButtons.querySelector('.admin-inline-action-btn--delete').addEventListener('click', () => deleteCSF(attribute.id));
 
+        actionsCell.appendChild(actionButtons);
+
+        // Edit mode action buttons
+        const editActions = document.createElement('div');
+        editActions.className = 'admin-inline-edit-actions';
+        editActions.innerHTML = `
+            <button type="button" class="admin-inline-btn-cancel" aria-label="Cancel editing">
+                <i class="fas fa-times" aria-hidden="true"></i> Cancel
+            </button>
+            <button type="button" class="admin-inline-btn-save" aria-label="Save changes">
+                <i class="fas fa-check" aria-hidden="true"></i> Save
+            </button>
+        `;
+
+        // Add event listeners for edit mode buttons
+        editActions.querySelector('.admin-inline-btn-cancel').addEventListener('click', () => cancelEditCSF(attribute.id));
+        editActions.querySelector('.admin-inline-btn-save').addEventListener('click', () => saveCSFEdit(attribute.id));
+
+        actionsCell.appendChild(editActions);
         row.appendChild(actionsCell);
+
         csfTableBody.appendChild(row);
     });
 
@@ -135,6 +191,13 @@ function populateTable(data) {
     const totalCount = csfAttributes.length;
     const visibleCount = data.length;
     csfCountElement.textContent = `Showing ${visibleCount} of ${totalCount} CSF attributes`;
+}
+
+// Helper function to escape HTML
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
 }
 
 // Format certification name
@@ -156,11 +219,11 @@ function capitalizeFirst(str) {
 // Initialize sortable headers
 function initializeSortableHeaders() {
     const headers = csfTable.querySelectorAll('th[data-sort]');
-    
+
     headers.forEach(header => {
         header.addEventListener('click', () => {
             const column = header.getAttribute('data-sort');
-            
+
             // Toggle sort direction if clicking the same column
             if (sortColumn === column) {
                 sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
@@ -168,24 +231,22 @@ function initializeSortableHeaders() {
                 sortColumn = column;
                 sortDirection = 'asc';
             }
-            
+
             // Update header styling
             headers.forEach(h => {
                 h.classList.remove('active-sort');
-                const icon = h.querySelector('.sort-icon');
+                const icon = h.querySelector('.admin-sort-icon');
                 if (icon) {
-                    icon.textContent = '▼';
-                    icon.style.opacity = '0.6';
+                    icon.className = 'admin-sort-icon fas fa-sort';
                 }
             });
-            
+
             header.classList.add('active-sort');
-            const sortIcon = header.querySelector('.sort-icon');
+            const sortIcon = header.querySelector('.admin-sort-icon');
             if (sortIcon) {
-                sortIcon.textContent = sortDirection === 'asc' ? '▼' : '▲';
-                sortIcon.style.opacity = '1';
+                sortIcon.className = 'admin-sort-icon fas ' + (sortDirection === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
             }
-            
+
             filterAndSort();
         });
     });
@@ -279,9 +340,95 @@ function saveCSF(e) {
     filterAndSort();
 }
 
-// Edit CSF attribute
+// Edit CSF attribute - now uses inline editing instead of modal
 function editCSF(id) {
-    openModal(id);
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    if (!row) return;
+
+    // Add edit mode class
+    row.classList.add('admin-inline-edit-row');
+
+    // Focus on the first input
+    const firstInput = row.querySelector('.admin-inline-input');
+    if (firstInput) {
+        firstInput.focus();
+        firstInput.select();
+    }
+}
+
+// Cancel inline editing
+function cancelEditCSF(id) {
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    if (!row) return;
+
+    // Get original data
+    const attribute = csfAttributes.find(a => a.id === id);
+    if (!attribute) return;
+
+    // Reset inputs to original values
+    const inputs = row.querySelectorAll('.admin-inline-edit .admin-inline-input');
+    if (inputs.length >= 2) {
+        inputs[0].value = attribute.name;
+        inputs[1].value = attribute.description || '';
+    }
+
+    const checkbox = row.querySelector('.admin-inline-edit input[type="checkbox"]');
+    if (checkbox) {
+        checkbox.checked = attribute.isActive;
+    }
+
+    // Remove edit mode class
+    row.classList.remove('admin-inline-edit-row');
+}
+
+// Save inline edits
+async function saveCSFEdit(id) {
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    if (!row) return;
+
+    // Get values from inputs
+    const inputs = row.querySelectorAll('.admin-inline-edit .admin-inline-input');
+    const newName = inputs[0] ? inputs[0].value.trim() : '';
+    const newDescription = inputs[1] ? inputs[1].value.trim() : '';
+    const checkbox = row.querySelector('.admin-inline-edit input[type="checkbox"]');
+    const newIsActive = checkbox ? checkbox.checked : true;
+
+    // Validate name
+    if (!newName) {
+        AdminCore.showNotification('Attribute name cannot be empty', 'error');
+        if (inputs[0]) inputs[0].focus();
+        return;
+    }
+
+    // Check for duplicate names (excluding current attribute)
+    const existingAttribute = csfAttributes.find(a => a.id !== id && a.name.toLowerCase() === newName.toLowerCase());
+    if (existingAttribute) {
+        AdminCore.showNotification('Attribute name already exists', 'error');
+        if (inputs[0]) inputs[0].focus();
+        return;
+    }
+
+    // Update local data
+    const attributeIndex = csfAttributes.findIndex(a => a.id === id);
+    if (attributeIndex !== -1) {
+        csfAttributes[attributeIndex].name = newName;
+        csfAttributes[attributeIndex].description = newDescription;
+        csfAttributes[attributeIndex].isActive = newIsActive;
+    }
+
+    // Update view mode displays
+    const viewElements = row.querySelectorAll('.admin-inline-view');
+    if (viewElements.length >= 3) {
+        viewElements[0].textContent = newName;
+        viewElements[1].textContent = newDescription || '-';
+        viewElements[2].innerHTML = newIsActive ?
+            '<i class="fas fa-check-circle" style="color: #92C83E;"></i>' :
+            '<i class="fas fa-times-circle" style="color: #FF5252;"></i>';
+    }
+
+    // Remove edit mode class
+    row.classList.remove('admin-inline-edit-row');
+    AdminCore.showNotification('CSF attribute updated successfully', 'success');
 }
 
 // Delete CSF attribute

@@ -5,6 +5,7 @@
 }
 
 @section Styles {
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
     <style>
         /* Dashboard-specific enhancements */
         .dashboard-title {
@@ -26,7 +27,7 @@
         }
 
         .stat-card {
-            background-color: #ffffff;
+            background-color: #f9f9f9;
             border: 1px solid #eaeaea;
             padding: 24px 28px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -133,7 +134,7 @@
         }
 
         .table-section {
-            background-color: #ffffff;
+            background-color: #f9f9f9;
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
             overflow: hidden;
@@ -386,6 +387,10 @@
         }
     </style>
 }
+
+<!-- Dashboard Container - Matches admin page pattern -->
+<div class="admin-container">
+    <div class="admin-content" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); padding: 24px;">
 
 <!-- Stats Grid -->
 <div class="stats-grid">
@@ -753,6 +758,8 @@
     </button>
 </div>
 
+    </div> <!-- End admin-content -->
+</div> <!-- End admin-container -->
 
 @section Scripts {
     <script src="~/js/dashboard.js"></script>

@@ -1,11 +1,6 @@
 /* Certificate Create/Edit Form Styles - Matches company-management.css theme */
 /* Updated: 2025-11-10 - Grid layout fix - Force cache bust */
 
-/* ===== HIDE LAYOUT PAGE HEADER FOR ADMIN PAGES ===== */
-body:has(.admin-container) .page-header {
-    display: none;
-}
-
 /* ===== ADMIN BUTTON STYLES (for header buttons) ===== */
 .admin-btn {
     display: inline-flex;

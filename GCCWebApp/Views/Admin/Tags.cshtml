@@ -6,6 +6,7 @@
 @section Styles {
     <link href="~/css/admin/admin.css" rel="stylesheet" />
     <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-inline-editing.css" rel="stylesheet" />
     <link href="~/css/tags.css" rel="stylesheet" />
 }
 
@@ -84,26 +85,26 @@
                 </thead>
                 <tbody class="admin-table-body">
                     <!-- Add tag row (initially hidden) -->
-                    <tr id="tags-add-row" class="tags-add-row">
+                    <tr id="tags-add-row" class="admin-inline-add-row">
                         <td>
-                            <input type="text" name="new-tag-name" class="tags-edit-input" placeholder="Enter tag name">
+                            <input type="text" name="new-tag-name" class="admin-inline-input" placeholder="Enter tag name">
                         </td>
                         <td class="admin-table-td--hidden-mobile">
-                            <select name="new-tag-type" class="tags-edit-select">
+                            <select name="new-tag-type" class="admin-inline-select">
                                 <option value="">Select type</option>
                                 <option value="external">External</option>
                                 <option value="internal">Internal</option>
                             </select>
                         </td>
                         <td class="admin-table-td--hidden-mobile">
-                            <textarea name="new-tag-description" class="tags-edit-textarea" rows="2" placeholder="Optional description"></textarea>
+                            <textarea name="new-tag-description" class="admin-inline-textarea" rows="2" placeholder="Optional description"></textarea>
                         </td>
                         <td>
-                            <div class="tags-add-actions">
-                                <button class="admin-btn admin-btn--sm admin-btn--secondary" onclick="cancelAddTag()" aria-label="Cancel adding tag">
+                            <div class="admin-inline-add-actions">
+                                <button type="button" class="admin-inline-btn-cancel" onclick="cancelAddTag()" aria-label="Cancel adding tag">
                                     <i class="fas fa-times" aria-hidden="true"></i> Cancel
                                 </button>
-                                <button class="admin-btn admin-btn--sm admin-btn--success" onclick="saveNewTag()" aria-label="Save new tag">
+                                <button type="button" class="admin-inline-btn-save" onclick="saveNewTag()" aria-label="Save new tag">
                                     <i class="fas fa-check" aria-hidden="true"></i> Save
                                 </button>
                             </div>

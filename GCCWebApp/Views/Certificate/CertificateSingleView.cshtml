@@ -6,7 +6,10 @@
 
     // Get data from model with safe defaults
     var certificateId = Model.Certificate?.Id.ToString() ?? "0";
-    var certificateNumber = Model.Certificate?.Number ?? "";
+    // Use Number from model, fallback to URL path segment if empty
+    var certificateNumber = !string.IsNullOrEmpty(Model.Certificate?.Number)
+        ? Model.Certificate.Number
+        : Context.Request.RouteValues["id"]?.ToString() ?? "";
     var certificationType = Model.Certificate?.CertificationType?.Name ?? "Certified Environmental Facts";
     var company = Model.Certificate?.Company?.Name ?? "Unknown Company";
     var productName = Model.Certificate?.Product?.Name ?? "Unknown Product";
@@ -186,7 +189,7 @@
 
                     <!-- Download Button directly below image -->
                     <div class="certificate-download-action">
-                        <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@certificateNumber')">
+                        <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@GetFormattedCertificateNumber()')">
                             <i class="fas fa-download"></i>
                         </div>
                     </div>

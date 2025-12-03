@@ -1104,19 +1104,19 @@ namespace GCCWebApp.Controllers
         /// GET: /Certificate/Download/24-0366
         /// </summary>
         [AllowAnonymous]
-        public async Task<IActionResult> Download(string number)
+        public async Task<IActionResult> Download(string id)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(number))
+                if (string.IsNullOrWhiteSpace(id))
                 {
                     return BadRequest("Certificate number is required");
                 }
 
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
                 if (certificate == null)
                 {
-                    return NotFound($"Certificate {number} not found");
+                    return NotFound($"Certificate {id} not found");
                 }
 
                 // Check if an uploaded certificate file exists
@@ -1163,7 +1163,7 @@ namespace GCCWebApp.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error downloading certificate for number: {Number}", number);
+                _logger.LogError(ex, "Error downloading certificate for number: {Id}", id);
                 return BadRequest("Failed to download certificate");
             }
         }

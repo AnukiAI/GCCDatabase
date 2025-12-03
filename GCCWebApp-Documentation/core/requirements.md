@@ -256,6 +256,46 @@ The Dashboard includes three quick-action export buttons that generate CSV repor
 - Updated: Dashboard export buttons generate CSV reports (2025-09-29)
 - Testing: ✅ Verified in GCCWebApp.Tests, GCCWebApp.UAT.Tests
 
+#### US-011: Certificate PDF Download
+**As a** Public User
+**I want to** download certificate PDFs from the tile view
+**So that** I can save and share certificate documentation
+
+**Acceptance Criteria:**
+- ✅ Download button on each certificate tile in public view
+- ✅ Download uploaded PDF if certificate has one stored
+- ✅ Generate PDF dynamically if no uploaded file exists (fallback)
+- ✅ PDF contains certificate details (number, company, product, dates, status)
+- ✅ File downloads with proper naming: `Certificate_{number}.pdf`
+- ✅ Works from all certificate views (Public, Internal, External)
+- ✅ AllowAnonymous access for public downloads
+
+**Implementation Status:** ✅ COMPLETE (100%)
+- Controller: `Controllers/CertificateController.cs` - `Download(string id)` action (lines 1107-1169)
+- PDF Service: `Services/CertificatePdfService.cs` - QuestPDF generation
+- File Service: `Services/FileUploadService.cs` - uploaded file retrieval
+- JavaScript: `wwwroot/js/certificate-tile-view.js` - `downloadCertificate()` function (lines 867-900)
+- Storage: `wwwroot/uploads/certificates/` for uploaded PDFs
+- Database: `Certificate.CertificateFile` stores relative path to uploaded PDF
+
+**Technical Flow:**
+1. User clicks PDF download button on certificate tile
+2. JavaScript calls `/Certificate/Download/{certificateNumber}`
+3. Controller checks if `Certificate.CertificateFile` has uploaded PDF path
+4. If uploaded file exists on disk → return file bytes
+5. If no uploaded file → generate PDF using `CertificatePdfService`
+6. PDF contains: certificate number, company, product, certification type, dates, status, location
+7. File returned with Content-Disposition header for download
+
+**Bug Fix (2025-12-03):**
+- Fixed routing parameter mismatch: changed `Download(string number)` to `Download(string id)`
+- Issue: MVC default route uses `{id}` parameter, but action had `number` parameter
+- Symptom: "Certificate PDF not available" error on public tile view
+- Resolution: Parameter name now matches route template for proper model binding
+
+**Testing:** ✅ Verified in GCCWebApp.Tests, GCCWebApp.UAT.Tests
+- TC-004: Certificate Export - PDF test case covers this functionality
+
 ### EPIC 4: User Management
 
 #### US-008: User Authentication
@@ -744,6 +784,17 @@ CREATE TABLE Certificates (
 - [UAT Test Cases](MANUAL_UAT_TEST_CASES.md)
 
 ### Change Log
+- **2025-12-03 (Bug Fix)**: **CERTIFICATE PDF DOWNLOAD ROUTING FIX**
+  - ✅ **Fixed PDF download from public certificate tile view**
+  - Issue: "Certificate PDF not available" error when clicking download button
+  - Root Cause: MVC routing parameter mismatch
+    - Route template uses `{id}` parameter
+    - Action method had `string number` parameter
+    - Result: Value never bound to parameter (null)
+  - Fix: Changed `Download(string number)` to `Download(string id)` in CertificateController.cs
+  - Also updated error messages and logging to use `id` variable
+  - Location: Controllers/CertificateController.cs (lines 1107-1169)
+  - Added US-011 user story documenting complete PDF download workflow
 - **2025-10-06 (UX Enhancement)**: **LAYOUT IMPROVEMENTS & IMAGE ZOOM FEATURE**
   - ✅ **Section Spacing Increased**:
     - Section margin-bottom: 20px → 28px (40% increase)

@@ -335,11 +335,11 @@
                 <div class="card-header">
                     <div class="header-row">
                         <div class="certificate-category">${escapeHtml(cert.certificationType)}</div>
-                        <div class="certificate-id" onclick="viewCertificateDetails('${cert.id}')" style="cursor: pointer;">${escapeHtml(formattedCertNumber)}</div>
+                        <div class="certificate-id" onclick="viewCertificateDetails('${cert.certificateNumber}')" style="cursor: pointer;">${escapeHtml(formattedCertNumber)}</div>
                     </div>
-                    <div class="company-name" onclick="viewCertificateDetails('${cert.id}')" style="cursor: pointer;">${escapeHtml(cert.companyName)}</div>
+                    <div class="company-name" onclick="viewCertificateDetails('${cert.certificateNumber}')" style="cursor: pointer;">${escapeHtml(cert.companyName)}</div>
                 </div>
-                <div class="card-body" onclick="viewCertificateDetails('${cert.id}')" style="cursor: pointer;">
+                <div class="card-body" onclick="viewCertificateDetails('${cert.certificateNumber}')" style="cursor: pointer;">
                     <div class="product-info">
                         <div class="product-name">${escapeHtml(cert.productName)}</div>
                         <div class="product-type">${escapeHtml(cert.productType || '')}</div>
@@ -361,10 +361,10 @@
                     ` : ''}
                 </div>
                 <div class="card-actions">
-                    <div class="action-icon download" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber || cert.number}')">
+                    <div class="action-icon download" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
                         <i class="fas fa-download"></i>
                     </div>
-                    <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.certificateNumber || cert.number || cert.id}')">
+                    <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.certificateNumber}')">
                         <i class="fas fa-external-link-alt"></i>
                     </div>
                 </div>
@@ -837,27 +837,29 @@
     }
 
     // View certificate details (main card click - new tab per requirement)
-    window.viewCertificateDetails = function(id) {
-        if (!id) {
-            console.error('Certificate ID is missing');
-            showToast('Error: Certificate ID not found', 'error');
+    // Uses certificate NUMBER only (not database ID) - per requirement
+    window.viewCertificateDetails = function(certificateNumber) {
+        if (!certificateNumber) {
+            console.error('Certificate number is missing');
+            showToast('Error: Certificate number not found', 'error');
             return;
         }
-        console.log('Opening certificate in new tab:', id);
+        console.log('Opening certificate in new tab:', certificateNumber);
         // Encode URI to handle certificate numbers with special chars like "24-0366"
-        window.open(`/Certificate/CertificateSingleView/${encodeURIComponent(id)}`, '_blank');
+        window.open(`/Certificate/CertificateSingleView/${encodeURIComponent(certificateNumber)}`, '_blank');
     };
 
     // View certificate (external link - new tab)
-    function viewCertificate(id) {
-        if (!id) {
-            console.error('Certificate ID is missing');
-            showToast('Error: Certificate ID not found', 'error');
+    // Uses certificate NUMBER only (not database ID) - per requirement
+    function viewCertificate(certificateNumber) {
+        if (!certificateNumber) {
+            console.error('Certificate number is missing');
+            showToast('Error: Certificate number not found', 'error');
             return;
         }
-        console.log('Opening certificate in new tab:', id);
+        console.log('Opening certificate in new tab:', certificateNumber);
         // Encode URI to handle certificate numbers with special chars like "24-0366"
-        window.open(`/Certificate/CertificateSingleView/${encodeURIComponent(id)}`, '_blank');
+        window.open(`/Certificate/CertificateSingleView/${encodeURIComponent(certificateNumber)}`, '_blank');
     }
     
     // Make it globally accessible
@@ -1202,7 +1204,7 @@
                         <button class="action-btn download-btn" onclick="downloadCertificate('${cert.certificateNumber}')" title="Download PDF">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${cert.id}')" title="View Details">
+                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${cert.certificateNumber}')" title="View Details">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
                     </div>

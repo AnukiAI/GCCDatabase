@@ -609,7 +609,7 @@ app.MapGet("/partner/api-docs", (HttpContext context) =>
 app.MapControllerRoute(
     name: "certificate_edit_by_number",
     pattern: "Certificate/Edit/{number}",
-    defaults: new { controller = "Certificate", action = "EditByNumber" },
+    defaults: new { controller = "Certificate", action = "Edit" },
     constraints: new { number = @"^[0-9]+-[0-9A-Za-z]+$" });
 
 // Dashboard route - explicit mapping for /Dashboard to Dashboard/Index

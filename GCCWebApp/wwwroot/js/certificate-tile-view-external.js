@@ -248,12 +248,12 @@
         const partnerBadge = cert.partner ? `<span class="partner-badge external">${escapeHtml(cert.partner)}</span>` : '';
         
         return `
-            <div class="certificate-card external-card" 
+            <div class="certificate-card external-card"
                  data-id="${cert.id}"
-                 data-type="${escapeHtml(cert.certificationType)}" 
-                 data-company="${cert.companyName}" 
+                 data-type="${escapeHtml(cert.certificationType)}"
+                 data-company="${cert.companyName}"
                  data-country="${cert.country}"
-                 onclick="viewCertificateDetails('${cert.id}')">
+                 onclick="viewCertificateDetails('${cert.certificateNumber}')">
                 <div class="card-header">
                     <div class="header-row">
                         <div class="certificate-category">${escapeHtml(cert.certificationType)}</div>
@@ -287,7 +287,7 @@
                     <div class="action-icon download" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
                         <i class="fas fa-download"></i>
                     </div>
-                    <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.id}')">
+                    <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.certificateNumber}')">
                         <i class="fas fa-external-link-alt"></i>
                     </div>
                 </div>
@@ -339,9 +339,9 @@
     function createCertificateTableRow(cert) {
         const partnerBadge = cert.partner ? `<span class="partner-badge external">${escapeHtml(cert.partner)}</span>` : '';
         const location = formatLocation(cert.location, cert.country);
-        
+
         return `
-            <tr class="certificate-row" data-id="${cert.id}" onclick="viewCertificateDetails('${cert.id}')">
+            <tr class="certificate-row" data-id="${cert.id}" onclick="viewCertificateDetails('${cert.certificateNumber}')">
                 <td class="cert-number">${escapeHtml(cert.certificateNumber)}</td>
                 <td class="company-name">${escapeHtml(cert.companyName)}</td>
                 <td class="product-name">${escapeHtml(cert.productName)}</td>
@@ -351,7 +351,7 @@
                 <td class="location">${location}</td>
                 <td class="partner">${partnerBadge}</td>
                 <td class="actions">
-                    <button class="btn-icon" title="View Details" onclick="event.stopPropagation(); viewCertificateDetails('${cert.id}')">
+                    <button class="btn-icon" title="View Details" onclick="event.stopPropagation(); viewCertificateDetails('${cert.certificateNumber}')">
                         <i class="fas fa-eye"></i>
                     </button>
                     <button class="btn-icon" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
@@ -712,56 +712,39 @@
     }
 
     // Certificate actions (External view - limited actions)
-    window.viewCertificateDetails = function(id) {
-        if (!id) {
-            console.error('Certificate ID is missing');
-            showToast('Error: Certificate ID not found', 'error');
+    // Use certificate number for navigation (more user-friendly URLs)
+    window.viewCertificateDetails = function(certificateNumber) {
+        if (!certificateNumber) {
+            console.error('Certificate number is missing');
+            showToast('Error: Certificate number not found', 'error');
             return;
         }
-        window.location.href = `/Certificate/CertificateExternalView/${id}`;
+        // Encode URI to handle certificate numbers with special chars like "24-0366"
+        window.location.href = `/Certificate/CertificateExternalView/${encodeURIComponent(certificateNumber)}`;
     };
 
-    function viewCertificate(id) {
+    function viewCertificate(certificateNumber) {
+        if (!certificateNumber) {
+            console.error('Certificate number is missing');
+            return;
+        }
         // Encode URI to handle certificate numbers with special chars like "24-0366"
-        window.open(`/Certificate/CertificateExternalView/${encodeURIComponent(id)}`, '_blank');
+        window.open(`/Certificate/CertificateExternalView/${encodeURIComponent(certificateNumber)}`, '_blank');
     }
 
     window.viewCertificate = viewCertificate;
 
-    // Download certificate (External view - with access control)
-    async function downloadCertificate(id) {
+    // Download certificate (External view) - uses the main CertificateController endpoint
+    // which handles both uploaded files and PDF generation fallback
+    function downloadCertificate(certificateNumber) {
         try {
-            const response = await fetch(`/api/certificate-tiles-external/${id}/download`);
-
-            if (response.ok) {
-                const blob = await response.blob();
-
-                // Extract filename from Content-Disposition header or use certificate number
-                let filename = `Certificate_${id}.pdf`; // Fallback
-                const contentDisposition = response.headers.get('Content-Disposition');
-                if (contentDisposition) {
-                    const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
-                    if (filenameMatch && filenameMatch[1]) {
-                        filename = filenameMatch[1].replace(/['"]/g, '');
-                    }
-                }
-
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-                showToast('Certificate download started', 'success');
-            } else if (response.status === 403) {
-                showToast('You do not have permission to download this certificate', 'error');
-            } else if (response.status === 404) {
-                showToast('Certificate PDF not available', 'error');
-            } else {
-                showToast('Failed to download certificate', 'error');
+            if (!certificateNumber) {
+                showToast('Certificate number is required', 'error');
+                return;
             }
+            // Use the main Download endpoint which accepts certificate number
+            window.open(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, '_blank');
+            console.log('Certificate download started for:', certificateNumber);
         } catch (error) {
             console.error('Error downloading certificate:', error);
             showToast('Failed to download certificate', 'error');

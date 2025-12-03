@@ -1,23 +1,107 @@
+@model CertificateDetailsViewModelSimple
 @{
-    // ViewData["Title"] = "Certificate Details - External";
+    ViewData["Title"] = "Certificate Details";
+    ViewData["BodyClass"] = "certificate-external-view";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Get data from model with safe defaults
+    var certificateId = Model.Certificate?.Id.ToString() ?? "0";
+    // Use Number from model, fallback to URL path segment if empty
+    var certificateNumber = !string.IsNullOrEmpty(Model.Certificate?.Number)
+        ? Model.Certificate.Number
+        : Context.Request.RouteValues["id"]?.ToString() ?? "";
+    var certificationType = Model.Certificate?.CertificationType?.Name ?? "Certified Environmental Facts";
+    var company = Model.Certificate?.Company?.Name ?? "Unknown Company";
+    var productName = Model.Certificate?.Product?.Name ?? "Unknown Product";
+    var productType = Model.Certificate?.Product?.ProductType?.Name ?? "General Product";
+    var location = Model.Certificate?.Location ?? "Unknown Location";
+    var country = Model.Certificate?.Country ?? "Unknown Country";
+    var effectiveDate = Model.Certificate?.EffectiveDate.ToString("M/d/yyyy") ?? "Unknown";
+    var expirationDate = Model.Certificate?.ExpirationDate.ToString("M/d/yyyy") ?? "Unknown";
+    var status = Model.Certificate?.Status ?? "unknown";
+    var partner = Model.Certificate?.Partner ?? "";
+    var certificateImagePath = Model.Certificate?.CertificateImagePath ?? "";
+    var certificateFile = Model.Certificate?.CertificateFile ?? "";
+
+    // Get external tags
+    var externalTags = Model.Certificate?.Tags?.Where(t => t.TagType == "external").ToList() ?? new List<Tag>();
+
+    // Format certificate number as YY-####
+    string GetFormattedCertificateNumber()
+    {
+        if (string.IsNullOrEmpty(certificateNumber)) return "N/A";
+
+        // If already in correct format, return as is
+        if (System.Text.RegularExpressions.Regex.IsMatch(certificateNumber, @"^\d{2}-\d{4}$"))
+            return certificateNumber;
+
+        // Try to get year from effective date
+        var year = "";
+        if (Model.Certificate?.EffectiveDate != null)
+        {
+            year = Model.Certificate.EffectiveDate.Year.ToString().Substring(2);
+        }
+        else
+        {
+            year = DateTime.Now.Year.ToString().Substring(2);
+        }
+
+        // If certificate number is just digits, format as YY-####
+        if (System.Text.RegularExpressions.Regex.IsMatch(certificateNumber, @"^\d+$"))
+        {
+            var paddedNumber = certificateNumber.PadLeft(4, '0');
+            return $"{year}-{paddedNumber}";
+        }
+
+        return certificateNumber; // Return as-is if we can't format it
+    }
+
+    // Helper methods
+    string GetProductCategoryDisplay()
+    {
+        var type = (productType ?? "").ToLower();
+        if (type.Contains("door") || type.Contains("exit") || type.Contains("lock"))
+            return "Construction / Building Products";
+        if (type.Contains("cable") || type.Contains("copper"))
+            return "Electronics / Telecommunications";
+        if (type.Contains("insulation") || type.Contains("roof"))
+            return "Construction / Building Products";
+        if (type.Contains("paper"))
+            return "Office Supplies";
+        if (type.Contains("plastic") || type.Contains("film"))
+            return "Materials / Components";
+        return "Construction / Building Products";
+    }
+
+    string GetProductSubcategory()
+    {
+        var type = (productType ?? "").ToLower();
+        if (type.Contains("exit")) return "Door Hardware";
+        if (type.Contains("lock")) return "Door Hardware";
+        if (type.Contains("cable")) return "Cables & Wiring";
+        if (type.Contains("insulation")) return "Insulation Materials";
+        if (type.Contains("roof")) return "Roofing Materials";
+        if (type.Contains("paper")) return "Paper Products";
+        if (type.Contains("plastic") || type.Contains("film")) return "Plastic Materials";
+        return "General Hardware";
+    }
 }
 
 <!-- Certificate Details -->
-<div class="certificate-single-container" data-id="@Model.CertificateNumber">
+<div class="certificate-single-container" data-id="@certificateId">
     <!-- Certificate Card styled like tile view -->
     <div class="certificate-card certificate-single-card">
         <div class="card-header">
             <div class="header-row">
-                <div class="certificate-category">@Model.CertificationType.ToUpper()</div>
-                <div class="certificate-id">@Model.CertificateNumber</div>
+                <div class="certificate-category">@certificationType.ToUpper()</div>
+                <div class="certificate-id">@GetFormattedCertificateNumber()</div>
             </div>
-            <div class="company-name">@Model.CompanyName</div>
+            <div class="company-name">@company</div>
         </div>
         <div class="card-body">
             <div class="product-info">
-                <div class="product-name">@Model.ProductName</div>
-                <div class="product-type">@Model.ProductType</div>
+                <div class="product-name" style="font-size: 22px; font-weight: 700;">@productName</div>
+                <div class="product-type" style="font-size: 18px;">@productType</div>
             </div>
             <!-- Main Detail Grid -->
             <div class="certificate-details-grid">
@@ -26,45 +110,45 @@
                     <!-- Certification Details -->
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Certification Details</h3>
-                        @if (!string.IsNullOrEmpty(Model.CSFAttributes))
-                        {
-                            <div class="certificate-field"><strong>CSF Attributes:</strong> <span>@Model.CSFAttributes</span></div>
-                        }
-                        <div class="certificate-field"><strong>Status:</strong> <span class="status-@Model.Status.ToLower()">@Model.Status</span></div>
+                        <div class="certificate-field">
+                            <strong>Status:</strong>
+                            <span class="status-badge status-@status.ToLower().Replace("_", "-")">@status</span>
+                        </div>
                         <div class="certificate-field">
                             <strong>Category:</strong>
-                            <span class="tag-type External">@Model.ProductCategory</span>
+                            <span class="tag-type External">@GetProductCategoryDisplay()</span>
                         </div>
-                        <div class="certificate-field"><strong>Product Type:</strong> <span>@Model.ProductType</span></div>
-                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@Model.ProductTypeSubcategory</span></div>
-                        @if (!string.IsNullOrEmpty(Model.Partner))
+                        <div class="certificate-field"><strong>Product Type:</strong> <span>@productType</span></div>
+                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@GetProductSubcategory()</span></div>
+                        @if (!string.IsNullOrEmpty(partner))
                         {
-                            <div class="certificate-field"><strong>Partner:</strong> <span>@Model.Partner</span></div>
+                            <div class="certificate-field"><strong>Partner:</strong> <span>@partner</span></div>
                         }
                         <div class="certificate-location">
                             <i class="fas fa-map-marker-alt"></i>
-                            @Model.Location, @Model.Country
+                            @location@if (!string.IsNullOrEmpty(country))
+                            {
+                                <text>, @country</text>
+                            }
                         </div>
                     </div>
-
                     <!-- Certification Period -->
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Certification Period</h3>
                         <div class="certificate-period">
-                            <strong>Effective Date:</strong> @Model.EffectiveDate.ToString("M/d/yyyy")<br>
-                            <strong>Expiration Date:</strong> @Model.ExpirationDate.ToString("M/d/yyyy")
+                            <strong>Effective Date:</strong> @effectiveDate<br>
+                            <strong>Expiration Date:</strong> @expirationDate
                         </div>
                     </div>
-
                     <!-- Contact Info -->
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Contact Information</h3>
                         <div class="certificate-field">
-                            <strong>Company Email:</strong>
+                            <strong>Company Contact:</strong>
                             <span>
-                                @if (!string.IsNullOrEmpty(Model.CompanyContactEmail))
+                                @if (!string.IsNullOrEmpty(Model.Certificate?.Company?.Email))
                                 {
-                                    <a href="mailto:@Model.CompanyContactEmail">@Model.CompanyContactEmail</a>
+                                    <a href="mailto:@Model.Certificate.Company.Email">@Model.Certificate.Company.Email</a>
                                 }
                                 else
                                 {
@@ -75,9 +159,9 @@
                         <div class="certificate-field">
                             <strong>Company URL:</strong>
                             <span>
-                                @if (!string.IsNullOrEmpty(Model.CompanyContactURL))
+                                @if (!string.IsNullOrEmpty(Model.Certificate?.Company?.Website))
                                 {
-                                    <a href="@Model.CompanyContactURL" target="_blank" rel="noopener">@Model.CompanyContactURL</a>
+                                    <a href="@Model.Certificate.Company.Website" target="_blank" rel="noopener">@Model.Certificate.Company.Website</a>
                                 }
                                 else
                                 {
@@ -86,58 +170,114 @@
                             </span>
                         </div>
                     </div>
-
-                   
-                    <!-- Tags (Both Internal and External for Internal users) -->
-                    <div class="certificate-tags">
-                        @if (!string.IsNullOrEmpty(Model.ExternalTag))
-                        {
-                            <div class="tag external">@Model.ExternalTag</div>
-                        } 
-                    </div>
-                    <!-- Verification URL -->
-                    @if (!string.IsNullOrEmpty(Model.VerificationURL))
+                    <!-- Tags (External only for external users) -->
+                    @if (externalTags.Any())
                     {
-                        <div class="verification-section">
-                            <div class="verification-url">
-                                <strong>Verification URL:</strong>
-                                <a href="@Model.VerificationURL" target="_blank" rel="noopener">@Model.VerificationURL</a>
-                            </div>
+                        <div class="certificate-tags">
+                            @foreach (var tag in externalTags)
+                            {
+                                <div class="tag external">@tag.Name</div>
+                            }
                         </div>
                     }
                 </div>
-                <!-- Right Column: Certificate Image -->
+                <!-- Right Column: Certificate Image/PDF Preview -->
                 <div class="certificate-image-column">
-                    @if (!string.IsNullOrEmpty(Model.CertificateUploadPath))
-                    {
-                        <img src="@Model.CertificateUploadPath" alt="Certificate Details" class="certificate-image" />
+                    @{
+                        // Use direct path to uploaded certificate image
+                        string certificateImageSrc;
+                        if (!string.IsNullOrEmpty(certificateImagePath))
+                        {
+                            certificateImageSrc = certificateImagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                                ? certificateImagePath
+                                : certificateImagePath.StartsWith("/")
+                                    ? certificateImagePath
+                                    : $"/uploads/{certificateImagePath}";
+                        }
+                        else if (!string.IsNullOrEmpty(certificateFile))
+                        {
+                            certificateImageSrc = certificateFile.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                                ? certificateFile
+                                : certificateFile.StartsWith("/")
+                                    ? certificateFile
+                                    : $"/uploads/{certificateFile}";
+                        }
+                        else
+                        {
+                            certificateImageSrc = Url.Content("~/img/certpreview.png");
+                        }
+                        var altText = $"Certificate {GetFormattedCertificateNumber()}";
                     }
-                    else
-                    {
-                        <img src="~/img/certpreview.png" alt="Certificate Details" class="certificate-image" />
-                    }
-                </div>
-            </div>
-            <!-- Action Buttons -->
-            <div class="card-actions">
-                <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@Model.CertificateNumber')">
-                    <i class="fas fa-download"></i>
-                </div>
-                @if (ViewBag.CanEdit)
-                {
-                    <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@Model.CertificateNumber')">
-                        <i class="fas fa-edit"></i>
+                    <div class="certificate-image-container" style="position: relative;">
+                        <img src="@certificateImageSrc" alt="@altText" class="certificate-image" onerror="this.src='@Url.Content("~/img/certpreview.png")';this.onerror=null;" onclick="openImageZoom('@certificateImageSrc')" />
+
+                        <!-- Magnifying Glass Icon overlay -->
+                        <div class="zoom-icon-overlay" onclick="openImageZoom('@certificateImageSrc')" title="Click to zoom">
+                            <i class="fas fa-search-plus"></i>
+                        </div>
                     </div>
-                }
-                @if (ViewBag.CanDelete)
-                {
-                    <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@Model.CertificateNumber')">
-                        <i class="fas fa-trash"></i>
+
+                    <!-- Download Button directly below image -->
+                    <div class="certificate-download-action">
+                        <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@GetFormattedCertificateNumber()')">
+                            <i class="fas fa-download"></i>
+                        </div>
                     </div>
-                }
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Image Zoom Modal -->
+<div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageZoom()">
+    <span class="zoom-close">&times;</span>
+    <img class="zoom-modal-content" id="zoomedImage">
+    <div class="zoom-caption" id="imageCaption">Certificate Preview</div>
+</div>
+
 <script src="~/js/certificates.js"></script>
+<script>
+    // Make downloadCertificate available globally for this page
+    window.downloadCertificate = function(certificateNumber) {
+        try {
+            if (!certificateNumber) {
+                console.error('Certificate number is required');
+                return;
+            }
+            window.open(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, '_blank');
+            console.log('Certificate download started for:', certificateNumber);
+        } catch (error) {
+            console.error('Error downloading certificate:', error);
+        }
+    };
+
+    // Image zoom functionality
+    function openImageZoom(imageSrc) {
+        const modal = document.getElementById('imageZoomModal');
+        const modalImg = document.getElementById('zoomedImage');
+        const caption = document.getElementById('imageCaption');
+
+        modal.style.display = 'block';
+        modalImg.src = imageSrc;
+        caption.innerHTML = 'Certificate @GetFormattedCertificateNumber() - Click anywhere to close';
+
+        // Prevent body scroll when modal is open
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageZoom() {
+        const modal = document.getElementById('imageZoomModal');
+        modal.style.display = 'none';
+
+        // Restore body scroll
+        document.body.style.overflow = 'auto';
+    }
+
+    // Close on ESC key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeImageZoom();
+        }
+    });
+</script>

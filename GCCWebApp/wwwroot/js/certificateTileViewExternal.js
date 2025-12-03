@@ -415,16 +415,16 @@ class CertificateTileViewExternal {
             </div>
         `;
 
-        // Add event listeners for actions
+        // Add event listeners for actions - use certificate NUMBER (not ID) per requirement
         const downloadBtn = card.querySelector('[data-action="download"]');
         const viewBtn = card.querySelector('[data-action="view"]');
-        
+
         if (downloadBtn) {
-            downloadBtn.addEventListener('click', () => this.handleDownload(cert.id));
+            downloadBtn.addEventListener('click', () => this.handleDownload(cert.certificateNumber));
         }
-        
+
         if (viewBtn) {
-            viewBtn.addEventListener('click', () => this.handleView(cert.id));
+            viewBtn.addEventListener('click', () => this.handleView(cert.certificateNumber));
         }
 
         return card;
@@ -707,10 +707,10 @@ class CertificateTileViewExternal {
                 </div>
                 <div class="grid-cell actions-column">
                     <div class="action-buttons">
-                        <button class="action-btn download-btn" onclick="window.certificateTileViewExternal.handleDownload('${cert.id}')" title="Download PDF">
+                        <button class="action-btn download-btn" onclick="window.certificateTileViewExternal.handleDownload('${cert.certificateNumber}')" title="Download PDF">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="window.certificateTileViewExternal.handleView('${cert.id}')" title="View Details">
+                        <button class="action-btn view-btn" onclick="window.certificateTileViewExternal.handleView('${cert.certificateNumber}')" title="View Details">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
                     </div>
@@ -772,11 +772,17 @@ class CertificateTileViewExternal {
     }
 
     /**
-     * Handle certificate download
+     * Handle certificate download - uses certificate NUMBER (not ID) per requirement
      */
-    async handleDownload(certificateId) {
+    async handleDownload(certificateNumber) {
         try {
-            await this.service.downloadCertificate(certificateId);
+            if (!certificateNumber) {
+                AdminCore.showNotification('Certificate number is required', 'error');
+                return;
+            }
+            // Use the main CertificateController Download endpoint that accepts certificate number
+            window.open(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, '_blank');
+            console.log('Certificate download started for:', certificateNumber);
         } catch (error) {
             console.error('Error downloading certificate:', error);
             AdminCore.showNotification('Failed to download certificate. Please try again.', 'error');
@@ -784,10 +790,15 @@ class CertificateTileViewExternal {
     }
 
     /**
-     * Handle view certificate details
+     * Handle view certificate details - uses certificate NUMBER (not ID) per requirement
      */
-    handleView(certificateId) {
-        window.open(`/Certificate/Details/${certificateId}`, '_blank');
+    handleView(certificateNumber) {
+        if (!certificateNumber) {
+            AdminCore.showNotification('Certificate number is required', 'error');
+            return;
+        }
+        // Use the CertificateExternalView endpoint that accepts certificate number
+        window.open(`/Certificate/CertificateExternalView/${encodeURIComponent(certificateNumber)}`, '_blank');
     }
 
     /**

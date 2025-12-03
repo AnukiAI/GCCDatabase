@@ -120,38 +120,27 @@ namespace GCCWebApp.Controllers
 
         /// <summary>
         /// Certificate external view - For external partners
-        /// GET: /Certificate/CertificateExternalView/{id}
+        /// GET: /Certificate/CertificateExternalView/24-0366 (by certificate number)
         /// </summary>
         [Authorize(Policy = "ExternalAccess")]
         public async Task<IActionResult> CertificateExternalView(string id)
         {
             try
             {
-                _logger.LogInformation("CertificateExternalView called with id: {Id}", id);
+                _logger.LogInformation("CertificateExternalView called with certificate number: {CertificateNumber}", id);
 
                 if (string.IsNullOrWhiteSpace(id))
                 {
-                    _logger.LogWarning("CertificateExternalView called with null or empty id");
-                    return BadRequest("Certificate ID is required");
+                    _logger.LogWarning("CertificateExternalView called with null or empty certificate number");
+                    return BadRequest("Certificate number is required");
                 }
 
-                Certificate? certificate = null;
-
-                // Try to parse as integer first (ID)
-                if (int.TryParse(id, out int certificateId))
-                {
-                    _logger.LogInformation("Looking up certificate by ID: {CertificateId}", certificateId);
-                    certificate = await _certificateRepository.GetByIdAsync(certificateId);
-                }
-                else
-                {
-                    _logger.LogInformation("Looking up certificate by number: {CertificateNumber}", id);
-                    certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
-                }
+                // Only look up by certificate number (not integer ID)
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
 
                 if (certificate == null)
                 {
-                    _logger.LogWarning("Certificate not found: {Id}", id);
+                    _logger.LogWarning("Certificate not found: {CertificateNumber}", id);
                     return NotFound($"Certificate {id} not found");
                 }
 
@@ -170,45 +159,34 @@ namespace GCCWebApp.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading certificate {Id}", id);
+                _logger.LogError(ex, "Error loading certificate {CertificateNumber}", id);
                 return RedirectToAction("Error", "Home");
             }
         }
 
         /// <summary>
         /// Certificate internal view - Only for Admin and Analyst roles
-        /// GET: /Certificate/CertificateInternalView/{id}
+        /// GET: /Certificate/CertificateInternalView/24-0366 (by certificate number)
         /// </summary>
         [Authorize(Policy = "AnalystOrAdmin")]
         public async Task<IActionResult> CertificateInternalView(string id)
         {
             try
             {
-                _logger.LogInformation("CertificateInternalView called with id: {Id}", id);
+                _logger.LogInformation("CertificateInternalView called with certificate number: {CertificateNumber}", id);
 
                 if (string.IsNullOrWhiteSpace(id))
                 {
-                    _logger.LogWarning("CertificateInternalView called with null or empty id");
-                    return BadRequest("Certificate ID is required");
+                    _logger.LogWarning("CertificateInternalView called with null or empty certificate number");
+                    return BadRequest("Certificate number is required");
                 }
 
-                Certificate? certificate = null;
-
-                // Try to parse as integer first (ID)
-                if (int.TryParse(id, out int certificateId))
-                {
-                    _logger.LogInformation("Looking up certificate by ID: {CertificateId}", certificateId);
-                    certificate = await _certificateRepository.GetByIdAsync(certificateId);
-                }
-                else
-                {
-                    _logger.LogInformation("Looking up certificate by number: {CertificateNumber}", id);
-                    certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
-                }
+                // Only look up by certificate number (not integer ID)
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
 
                 if (certificate == null)
                 {
-                    _logger.LogWarning("Certificate not found: {Id}", id);
+                    _logger.LogWarning("Certificate not found: {CertificateNumber}", id);
                     return NotFound($"Certificate {id} not found");
                 }
 
@@ -227,45 +205,35 @@ namespace GCCWebApp.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading certificate {Id}", id);
+                _logger.LogError(ex, "Error loading certificate {CertificateNumber}", id);
                 return RedirectToAction("Error", "Home");
             }
         }
 
         /// <summary>
-        /// Certificate single view by ID or certificate number - Public access allowed
+        /// Certificate single view by certificate number - Public access allowed
+        /// GET: /Certificate/CertificateSingleView/24-0366
         /// </summary>
         [AllowAnonymous]
         public async Task<IActionResult> CertificateSingleView(string id)
         {
             try
             {
-                _logger.LogInformation("CertificateSingleView called with id: {Id}", id);
-                
+                _logger.LogInformation("CertificateSingleView called with certificate number: {CertificateNumber}", id);
+
                 if (string.IsNullOrWhiteSpace(id))
                 {
-                    _logger.LogWarning("CertificateSingleView called with null or empty id");
-                    return BadRequest("Certificate ID is required");
+                    _logger.LogWarning("CertificateSingleView called with null or empty certificate number");
+                    return BadRequest("Certificate number is required");
                 }
 
-                Certificate? certificate = null;
-
-                // Try to parse as integer first (ID)
-                if (int.TryParse(id, out int certificateId))
-                {
-                    _logger.LogInformation("Looking up certificate by ID: {CertificateId}", certificateId);
-                    certificate = await _certificateRepository.GetByIdAsync(certificateId);
-                }
-                else
-                {
-                    _logger.LogInformation("Looking up certificate by number: {CertificateNumber}", id);
-                    // Try to find by certificate number
-                    certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
-                }
+                // Only look up by certificate number (not integer ID) - per requirement
+                _logger.LogInformation("Looking up certificate by number: {CertificateNumber}", id);
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
 
                 if (certificate == null)
                 {
-                    _logger.LogWarning("Certificate not found: {Id}", id);
+                    _logger.LogWarning("Certificate not found: {CertificateNumber}", id);
                     return NotFound($"Certificate {id} not found");
                 }
 
@@ -284,30 +252,32 @@ namespace GCCWebApp.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading certificate {Id}", id);
+                _logger.LogError(ex, "Error loading certificate {CertificateNumber}", id);
                 return RedirectToAction("Error", "Home");
             }
         }
 
         /// <summary>
-        /// Get certificate details
+        /// Get certificate details by certificate number
         /// GET: /Certificate/Details/24-0366
         /// External users can view certificate details (read-only)
         /// </summary>
         [Authorize(Policy = "ExternalAccess")]
-        public async Task<IActionResult> Details(string number)
+        public async Task<IActionResult> Details(string id)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(number))
+                if (string.IsNullOrWhiteSpace(id))
                 {
                     return BadRequest("Certificate number is required");
                 }
 
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
+                // Only look up by certificate number (not integer ID)
+                var certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
+
                 if (certificate == null)
                 {
-                    return NotFound($"Certificate {number} not found");
+                    return NotFound($"Certificate {id} not found");
                 }
 
                 var model = new CertificateDetailsViewModelSimple
@@ -326,7 +296,7 @@ namespace GCCWebApp.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error loading certificate details for number: {Number}", number);
+                _logger.LogError(ex, "Error loading certificate details for id: {Id}", id);
                 return RedirectToAction("Error", "Home");
             }
         }

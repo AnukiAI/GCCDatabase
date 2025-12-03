@@ -33,14 +33,29 @@ class ProductTypeManager {
 
     renderTreeView() {
         const treeContent = document.querySelector('.tree-content');
-        if (!treeContent || !this.hierarchyData) return;
+        if (!treeContent) return;
 
-        // Clear existing content and render dynamic data
-        treeContent.innerHTML = '';
-        
+        // Hide loading state
+        const loadingState = document.getElementById('tree-loading');
+        const emptyState = document.getElementById('tree-empty');
+
+        if (loadingState) loadingState.style.display = 'none';
+
+        // Check if we have data
+        if (!this.hierarchyData || this.hierarchyData.length === 0) {
+            if (emptyState) emptyState.style.display = 'flex';
+            return;
+        }
+
+        if (emptyState) emptyState.style.display = 'none';
+
+        // Clear existing content (except loading/empty states) and render dynamic data
+        const existingNodes = treeContent.querySelectorAll('.tree-node');
+        existingNodes.forEach(node => node.remove());
+
         // Build hierarchy from flat data
         const hierarchy = this.buildHierarchy(this.hierarchyData);
-        
+
         // Render each top-level category
         hierarchy.forEach(category => {
             treeContent.appendChild(this.createTreeNode(category, 1));
@@ -128,11 +143,13 @@ class ProductTypeManager {
     toggleNode(element) {
         const children = element.parentElement.querySelector('.children');
         const icon = element.querySelector('.node-icon i');
-        
+
         if (children) {
-            const isExpanded = children.style.display !== 'none';
+            // Check computed style to handle both CSS class and inline style display
+            const computedStyle = window.getComputedStyle(children);
+            const isExpanded = computedStyle.display !== 'none';
             children.style.display = isExpanded ? 'none' : 'block';
-            
+
             if (icon) {
                 if (isExpanded) {
                     icon.classList.remove('fa-chevron-down');
@@ -351,12 +368,15 @@ class ProductTypeManager {
             const nodeContent = treeNode.querySelector('.node-content.expandable');
             if (nodeContent) {
                 const children = treeNode.querySelector('.children');
-                if (children && children.style.display !== 'block') {
-                    children.style.display = 'block';
-                    const icon = nodeContent.querySelector('.node-icon i');
-                    if (icon) {
-                        icon.classList.remove('fa-chevron-right');
-                        icon.classList.add('fa-chevron-down');
+                if (children) {
+                    const computedStyle = window.getComputedStyle(children);
+                    if (computedStyle.display === 'none') {
+                        children.style.display = 'block';
+                        const icon = nodeContent.querySelector('.node-icon i');
+                        if (icon) {
+                            icon.classList.remove('fa-chevron-right');
+                            icon.classList.add('fa-chevron-down');
+                        }
                     }
                 }
             }
@@ -369,12 +389,15 @@ class ProductTypeManager {
             const nodeContent = treeNode.querySelector('.node-content.expandable');
             if (nodeContent) {
                 const children = treeNode.querySelector('.children');
-                if (children && children.style.display !== 'none') {
-                    children.style.display = 'none';
-                    const icon = nodeContent.querySelector('.node-icon i');
-                    if (icon) {
-                        icon.classList.remove('fa-chevron-down');
-                        icon.classList.add('fa-chevron-right');
+                if (children) {
+                    const computedStyle = window.getComputedStyle(children);
+                    if (computedStyle.display !== 'none') {
+                        children.style.display = 'none';
+                        const icon = nodeContent.querySelector('.node-icon i');
+                        if (icon) {
+                            icon.classList.remove('fa-chevron-down');
+                            icon.classList.add('fa-chevron-right');
+                        }
                     }
                 }
             }
@@ -442,13 +465,14 @@ class ProductTypeManager {
         const modal = document.createElement('div');
         modal.className = 'modal fade show';
         modal.style.cssText = `
-            display: block; 
+            display: block;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(3px);
             z-index: 1050;
             overflow: auto;
         `;
@@ -684,11 +708,13 @@ class ProductTypeManager {
 function toggleNode(element) {
     const children = element.parentElement.querySelector('.children');
     const icon = element.querySelector('.node-icon i');
-    
+
     if (children) {
-        const isExpanded = children.style.display !== 'none';
+        // Check computed style to handle both CSS class and inline style display
+        const computedStyle = window.getComputedStyle(children);
+        const isExpanded = computedStyle.display !== 'none';
         children.style.display = isExpanded ? 'none' : 'block';
-        
+
         if (icon) {
             if (isExpanded) {
                 icon.classList.remove('fa-chevron-down');

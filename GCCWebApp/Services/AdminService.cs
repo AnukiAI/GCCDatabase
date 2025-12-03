@@ -502,10 +502,10 @@ namespace GCCWebApp.Services
                 .ThenBy(pt => pt.SortOrder)
                 .ToListAsync();
             
-            // If no data exists, return sample data for demonstration
+            // Return empty list if no data exists (no mock data for production)
             if (!allProductTypes.Any())
             {
-                return GetSampleProductTypes();
+                return new List<ProductTypeViewModel>();
             }
 
             // Build hierarchical structure
@@ -545,35 +545,6 @@ namespace GCCWebApp.Services
             }
 
             return result;
-        }
-
-        private List<ProductTypeViewModel> GetSampleProductTypes()
-        {
-            return new List<ProductTypeViewModel>
-            {
-                new ProductTypeViewModel { Id = 1, Name = "Building Materials", Level = 0, SortOrder = 1, ProductCount = 89 },
-                new ProductTypeViewModel { Id = 2, Name = "Insulation", ParentId = 1, Level = 1, SortOrder = 1, ProductCount = 35, ParentName = "Building Materials" },
-                new ProductTypeViewModel { Id = 3, Name = "Foam Board", ParentId = 2, Level = 2, SortOrder = 1, ProductCount = 15, ParentName = "Insulation" },
-                new ProductTypeViewModel { Id = 4, Name = "Fiberglass", ParentId = 2, Level = 2, SortOrder = 2, ProductCount = 20, ParentName = "Insulation" },
-                new ProductTypeViewModel { Id = 5, Name = "Appliances", ParentId = 1, Level = 1, SortOrder = 2, ProductCount = 41, ParentName = "Building Materials" },
-                new ProductTypeViewModel { Id = 6, Name = "Kitchen Appliances", ParentId = 5, Level = 2, SortOrder = 1, ProductCount = 25, ParentName = "Appliances" },
-                new ProductTypeViewModel { Id = 7, Name = "Laundry Appliances", ParentId = 5, Level = 2, SortOrder = 2, ProductCount = 16, ParentName = "Appliances" },
-                new ProductTypeViewModel { Id = 8, Name = "Flooring", ParentId = 1, Level = 1, SortOrder = 3, ProductCount = 13, ParentName = "Building Materials" },
-                
-                new ProductTypeViewModel { Id = 9, Name = "Textiles", Level = 0, SortOrder = 2, ProductCount = 85 },
-                new ProductTypeViewModel { Id = 10, Name = "Carpeting", ParentId = 9, Level = 1, SortOrder = 1, ProductCount = 45, ParentName = "Textiles" },
-                new ProductTypeViewModel { Id = 11, Name = "Commercial Carpet", ParentId = 10, Level = 2, SortOrder = 1, ProductCount = 28, ParentName = "Carpeting" },
-                new ProductTypeViewModel { Id = 12, Name = "Residential Carpet", ParentId = 10, Level = 2, SortOrder = 2, ProductCount = 17, ParentName = "Carpeting" },
-                new ProductTypeViewModel { Id = 13, Name = "Fabric", ParentId = 9, Level = 1, SortOrder = 2, ProductCount = 40, ParentName = "Textiles" },
-                new ProductTypeViewModel { Id = 14, Name = "Upholstery Fabric", ParentId = 13, Level = 2, SortOrder = 1, ProductCount = 23, ParentName = "Fabric" },
-                new ProductTypeViewModel { Id = 15, Name = "Apparel Fabric", ParentId = 13, Level = 2, SortOrder = 2, ProductCount = 17, ParentName = "Fabric" },
-                
-                new ProductTypeViewModel { Id = 16, Name = "Consumer Products", Level = 0, SortOrder = 3, ProductCount = 73 },
-                new ProductTypeViewModel { Id = 17, Name = "Furniture", ParentId = 16, Level = 1, SortOrder = 1, ProductCount = 32, ParentName = "Consumer Products" },
-                new ProductTypeViewModel { Id = 18, Name = "Office Chairs", ParentId = 17, Level = 2, SortOrder = 1, ProductCount = 18, ParentName = "Furniture" },
-                new ProductTypeViewModel { Id = 19, Name = "Tables", ParentId = 17, Level = 2, SortOrder = 2, ProductCount = 14, ParentName = "Furniture" },
-                new ProductTypeViewModel { Id = 20, Name = "Electronics", ParentId = 16, Level = 1, SortOrder = 2, ProductCount = 41, ParentName = "Consumer Products" }
-            };
         }
 
         public async Task<ProductTypeViewModel?> GetProductTypeByIdAsync(int id)

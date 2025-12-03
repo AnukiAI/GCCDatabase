@@ -123,17 +123,27 @@
 }
 
 .toggle-label {
-    display: flex;
+    display: inline-flex !important;
     align-items: center;
     cursor: pointer;
     font-size: 16px;
     font-weight: 500;
+    margin-bottom: 8px;
 }
 
 .toggle-label input[type="checkbox"] {
-    margin: 0 12px 0 0;
-    transform: scale(1.3);
+    order: -1;
+    margin: 0 10px 0 0;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
     cursor: pointer;
+}
+
+.config-options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 }
 
 .checkbox-text {
@@ -267,17 +277,7 @@ pre {
     padding-top: 16px;
 }
 
-/* Save Button Override */
-#save-settings-btn {
-    background-color: #92C83E !important;
-    border-color: #92C83E !important;
-    color: white !important;
-}
-
-#save-settings-btn:hover {
-    background-color: #7fb32e !important;
-    border-color: #7fb32e !important;
-}
+/* Save Button - inherits standard admin-btn--primary styles from admin-mockup-override.css */
 
 /* Responsive Design */
 @media (max-width: 768px) {

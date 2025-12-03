@@ -409,6 +409,36 @@
 }
 
 /* =============================================================================
+   LOADING AND EMPTY STATES
+   ============================================================================= */
+
+.loading-state,
+.empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 20px;
+    color: #666;
+    font-size: 16px;
+    gap: 15px;
+}
+
+.loading-state i,
+.empty-state i {
+    font-size: 48px;
+    color: #ccc;
+}
+
+.loading-state i.fa-spinner {
+    color: var(--company-blue-primary);
+}
+
+.empty-state i {
+    color: #ddd;
+}
+
+/* =============================================================================
    RESPONSIVE DESIGN
    ============================================================================= */
 

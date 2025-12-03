@@ -5,7 +5,7 @@
     margin-left: auto;
 }
 
-/* Color variables */
+/* Color variables - Aligned with admin-core.css standards */
 :root {
     --text-color: #333;
     --white: #ffffff;
@@ -13,8 +13,8 @@
     --border-color: #ddd;
     --blue-primary: #00AEEF;
     --blue-dark: #002B76;
-    --green-primary: #92C83E;
-    --green-secondary: #447638;
+    --green-primary: #447638; /* GCC dark green - primary */
+    --green-secondary: #92C83E; /* GCC light green - secondary/accent */
     --transition: all 0.2s ease;
 }
 
@@ -331,16 +331,17 @@
     font-weight: 500;
 }
 
-/* Modal Styles */
+/* Modal Styles - US-015 Compliant */
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 9998;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.85); /* US-015: 85% black opacity */
+    backdrop-filter: blur(3px); /* US-015: 3px blur effect */
 }
 
 .modal.active {

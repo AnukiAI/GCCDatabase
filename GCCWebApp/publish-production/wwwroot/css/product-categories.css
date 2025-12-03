@@ -363,16 +363,17 @@
     color: var(--text-secondary);
 }
 
-/* ===== MODAL STYLES ===== */
+/* ===== MODAL STYLES - US-015 Compliant ===== */
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 9998;
     left: 0;
     top: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.4);
+    background-color: rgba(0, 0, 0, 0.85); /* US-015: 85% black opacity */
+    backdrop-filter: blur(3px); /* US-015: 3px blur effect */
 }
 
 .modal-content {

@@ -33,16 +33,30 @@ class ProductTypeManager {
 
     renderTreeView() {
         const treeContent = document.querySelector('.tree-content');
-        if (!treeContent || !this.hierarchyData) return;
+        if (!treeContent) return;
 
-        // Clear existing content and render dynamic data
-        treeContent.innerHTML = '';
-        
-        // Build hierarchy from flat data
-        const hierarchy = this.buildHierarchy(this.hierarchyData);
-        
-        // Render each top-level category
-        hierarchy.forEach(category => {
+        // Hide loading state
+        const loadingState = document.getElementById('tree-loading');
+        const emptyState = document.getElementById('tree-empty');
+
+        if (loadingState) loadingState.style.display = 'none';
+
+        // Check if we have data
+        if (!this.hierarchyData || this.hierarchyData.length === 0) {
+            if (emptyState) emptyState.style.display = 'flex';
+            return;
+        }
+
+        if (emptyState) emptyState.style.display = 'none';
+
+        // Clear existing content (except loading/empty states) and render dynamic data
+        const existingNodes = treeContent.querySelectorAll('.tree-node');
+        existingNodes.forEach(node => node.remove());
+
+        // API returns already-nested hierarchical data with 'children' property
+        // No need to call buildHierarchy - data is already in the correct format
+        // Render each top-level category directly
+        this.hierarchyData.forEach(category => {
             treeContent.appendChild(this.createTreeNode(category, 1));
         });
     }
@@ -128,11 +142,13 @@ class ProductTypeManager {
     toggleNode(element) {
         const children = element.parentElement.querySelector('.children');
         const icon = element.querySelector('.node-icon i');
-        
+
         if (children) {
-            const isExpanded = children.style.display !== 'none';
+            // Check computed style to handle both CSS class and inline style display
+            const computedStyle = window.getComputedStyle(children);
+            const isExpanded = computedStyle.display !== 'none';
             children.style.display = isExpanded ? 'none' : 'block';
-            
+
             if (icon) {
                 if (isExpanded) {
                     icon.classList.remove('fa-chevron-down');
@@ -146,11 +162,30 @@ class ProductTypeManager {
     }
 
     updateStats() {
-        // Update the stats bar with real data
-        const totalProducts = this.hierarchyData.reduce((sum, item) => sum + (item.productCount || 0), 0);
-        const categories = this.hierarchyData.filter(item => item.level === 0 || item.parentId === null).length;
-        const types = this.hierarchyData.filter(item => item.level === 1).length;
-        const subcategories = this.hierarchyData.filter(item => item.level === 2).length;
+        // Update the stats bar with real data from nested hierarchical structure
+        let categories = 0;
+        let types = 0;
+        let subcategories = 0;
+        let totalProducts = 0;
+
+        // Traverse nested hierarchy to count items
+        const countItems = (items, level) => {
+            items.forEach(item => {
+                totalProducts += item.productCount || 0;
+                if (level === 0) {
+                    categories++;
+                } else if (level === 1) {
+                    types++;
+                } else if (level === 2) {
+                    subcategories++;
+                }
+                if (item.children && item.children.length > 0) {
+                    countItems(item.children, level + 1);
+                }
+            });
+        };
+
+        countItems(this.hierarchyData, 0);
 
         // Update stat displays if elements exist
         const statNumbers = document.querySelectorAll('.stat-number');
@@ -183,11 +218,13 @@ class ProductTypeManager {
 
     switchView(viewType) {
         this.currentView = viewType;
-        
+
+        // Remove active class from all view buttons
         const viewButtons = document.querySelectorAll('.view-btn');
         viewButtons.forEach(btn => btn.classList.remove('active'));
-        
-        const activeButton = document.querySelector(`[onclick*="switchView('${viewType}')"]`);
+
+        // Find and activate the correct button using data-view attribute
+        const activeButton = document.querySelector(`.view-btn[data-view="${viewType}"]`);
         if (activeButton) activeButton.classList.add('active');
 
         if (viewType === 'tree') {
@@ -272,24 +309,33 @@ class ProductTypeManager {
     populateTableView(tableView) {
         const tbody = tableView.querySelector('#tableBody');
         if (!tbody || !this.hierarchyData) return;
-        
+
         tbody.innerHTML = '';
-        
-        // Sort data by level and sort order
-        const sortedData = [...this.hierarchyData].sort((a, b) => {
-            if (a.level !== b.level) return a.level - b.level;
-            return (a.sortOrder || 0) - (b.sortOrder || 0);
-        });
-        
-        sortedData.forEach(item => {
+
+        // Flatten nested hierarchy for table display
+        const flattenedData = [];
+        const flatten = (items, level, parentName = '-') => {
+            items.forEach(item => {
+                flattenedData.push({
+                    ...item,
+                    level: level,
+                    parentName: parentName
+                });
+                if (item.children && item.children.length > 0) {
+                    flatten(item.children, level + 1, item.name);
+                }
+            });
+        };
+        flatten(this.hierarchyData, 0);
+
+        flattenedData.forEach(item => {
             const row = document.createElement('tr');
             const typeLabel = item.level === 0 ? 'Category' : item.level === 1 ? 'Type' : 'Subcategory';
-            const parentName = item.parentId ? this.hierarchyData.find(p => p.id === item.parentId)?.name || '-' : '-';
-            
+
             row.innerHTML = `
                 <td>${'&nbsp;'.repeat(item.level * 4)}${item.name}</td>
                 <td><span class="badge badge-${typeLabel.toLowerCase()}">${typeLabel}</span></td>
-                <td>${parentName}</td>
+                <td>${item.parentName}</td>
                 <td>${item.productCount || 0}</td>
                 <td>${item.sortOrder || 0}</td>
                 <td>
@@ -303,10 +349,10 @@ class ProductTypeManager {
                     </div>
                 </td>
             `;
-            
+
             tbody.appendChild(row);
         });
-        
+
         // Attach event handlers to new buttons
         this.attachTableEventHandlers(tbody);
     }
@@ -351,12 +397,15 @@ class ProductTypeManager {
             const nodeContent = treeNode.querySelector('.node-content.expandable');
             if (nodeContent) {
                 const children = treeNode.querySelector('.children');
-                if (children && children.style.display !== 'block') {
-                    children.style.display = 'block';
-                    const icon = nodeContent.querySelector('.node-icon i');
-                    if (icon) {
-                        icon.classList.remove('fa-chevron-right');
-                        icon.classList.add('fa-chevron-down');
+                if (children) {
+                    const computedStyle = window.getComputedStyle(children);
+                    if (computedStyle.display === 'none') {
+                        children.style.display = 'block';
+                        const icon = nodeContent.querySelector('.node-icon i');
+                        if (icon) {
+                            icon.classList.remove('fa-chevron-right');
+                            icon.classList.add('fa-chevron-down');
+                        }
                     }
                 }
             }
@@ -369,12 +418,15 @@ class ProductTypeManager {
             const nodeContent = treeNode.querySelector('.node-content.expandable');
             if (nodeContent) {
                 const children = treeNode.querySelector('.children');
-                if (children && children.style.display !== 'none') {
-                    children.style.display = 'none';
-                    const icon = nodeContent.querySelector('.node-icon i');
-                    if (icon) {
-                        icon.classList.remove('fa-chevron-down');
-                        icon.classList.add('fa-chevron-right');
+                if (children) {
+                    const computedStyle = window.getComputedStyle(children);
+                    if (computedStyle.display !== 'none') {
+                        children.style.display = 'none';
+                        const icon = nodeContent.querySelector('.node-icon i');
+                        if (icon) {
+                            icon.classList.remove('fa-chevron-down');
+                            icon.classList.add('fa-chevron-right');
+                        }
                     }
                 }
             }
@@ -457,11 +509,11 @@ class ProductTypeManager {
         const parentOptions = entityType !== 'category' ? this.getParentOptions(entityType, item?.id) : '';
         
         modal.innerHTML = `
-            <div class="modal-dialog" style="margin: 50px auto; max-width: 500px;">
-                <div class="modal-content" style="background: white; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
-                    <div class="modal-header" style="padding: 1rem; border-bottom: 1px solid #dee2e6;">
-                        <h5 class="modal-title" style="margin: 0; font-size: 1.25rem;">${title}</h5>
-                        <button type="button" class="close" data-dismiss="modal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer;">
+            <div class="modal-dialog" style="margin: 50px auto; max-width: 650px; width: 90%;">
+                <div class="modal-content" style="background: white; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                    <div class="modal-header" style="padding: 1rem; border-bottom: 2px solid #e9ecef; background-color: #f8f9fa;">
+                        <h5 class="modal-title" style="margin: 0; font-size: 1.25rem; color: #002B76; font-weight: 600;">${title}</h5>
+                        <button type="button" class="close" data-dismiss="modal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">
                             <span>&times;</span>
                         </button>
                     </div>
@@ -495,11 +547,11 @@ class ProductTypeManager {
                             </div>
                         </form>
                     </div>
-                    <div class="modal-footer" style="padding: 1rem; border-top: 1px solid #dee2e6; display: flex; justify-content: flex-end; gap: 0.5rem;">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal" 
-                                style="padding: 0.375rem 0.75rem; border: 1px solid #6c757d; background: #6c757d; color: white; border-radius: 0.25rem; cursor: pointer;">Cancel</button>
+                    <div class="modal-footer" style="padding: 1rem; border-top: 2px solid #e9ecef; background-color: #f8f9fa; display: flex; justify-content: flex-end; gap: 0.75rem;">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal"
+                                style="padding: 10px 20px; border: 1px solid #92C83E; background: #92C83E; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">Cancel</button>
                         <button type="button" class="btn btn-primary" id="saveBtn"
-                                style="padding: 0.375rem 0.75rem; border: 1px solid #007bff; background: #007bff; color: white; border-radius: 0.25rem; cursor: pointer;">
+                                style="padding: 10px 20px; border: 1px solid #002B76; background: #002B76; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">
                             ${isEdit ? 'Update' : 'Create'}
                         </button>
                     </div>
@@ -685,11 +737,13 @@ class ProductTypeManager {
 function toggleNode(element) {
     const children = element.parentElement.querySelector('.children');
     const icon = element.querySelector('.node-icon i');
-    
+
     if (children) {
-        const isExpanded = children.style.display !== 'none';
+        // Check computed style to handle both CSS class and inline style display
+        const computedStyle = window.getComputedStyle(children);
+        const isExpanded = computedStyle.display !== 'none';
         children.style.display = isExpanded ? 'none' : 'block';
-        
+
         if (icon) {
             if (isExpanded) {
                 icon.classList.remove('fa-chevron-down');
@@ -763,23 +817,27 @@ function initializeExportFunctionality() {
                 AdminCore.showNotification('No data available to export. Please wait for data to load.', 'warning');
                 return;
             }
-            
-            // Flatten hierarchical data for export
-            const flattenedData = window.productTypeManager.hierarchyData.map(item => {
-                const typeLabel = item.level === 0 ? 'Category' : item.level === 1 ? 'Type' : 'Subcategory';
-                const parentName = item.parentId ? 
-                    window.productTypeManager.hierarchyData.find(p => p.id === item.parentId)?.name || '' : '';
-                
-                return {
-                    id: item.id,
-                    name: item.name,
-                    type: typeLabel,
-                    parent: parentName,
-                    level: item.level + 1,
-                    sortOrder: item.sortOrder || 0,
-                    productCount: item.productCount || 0
-                };
-            });
+
+            // Flatten nested hierarchical data for export
+            const flattenedData = [];
+            const flatten = (items, level, parentName = '') => {
+                items.forEach(item => {
+                    const typeLabel = level === 0 ? 'Category' : level === 1 ? 'Type' : 'Subcategory';
+                    flattenedData.push({
+                        id: item.id,
+                        name: item.name,
+                        type: typeLabel,
+                        parent: parentName,
+                        level: level + 1,
+                        sortOrder: item.sortOrder || 0,
+                        productCount: item.productCount || 0
+                    });
+                    if (item.children && item.children.length > 0) {
+                        flatten(item.children, level + 1, item.name);
+                    }
+                });
+            };
+            flatten(window.productTypeManager.hierarchyData, 0);
 
             const columns = [
                 { key: 'id', header: 'ID' },
@@ -857,17 +915,12 @@ function initializeEventHandlers() {
         });
     }
 
-    // View buttons
-    const viewButtons = document.querySelectorAll('button[onclick*="switchView"]');
+    // View buttons - use data-view attribute for reliable identification
+    const viewButtons = document.querySelectorAll('.view-btn[data-view]');
     viewButtons.forEach(button => {
-        const onclickAttr = button.getAttribute('onclick');
+        const viewType = button.getAttribute('data-view');
         button.removeAttribute('onclick');
-        
-        if (onclickAttr.includes("switchView('tree')")) {
-            button.addEventListener('click', () => switchView('tree'));
-        } else if (onclickAttr.includes("switchView('table')")) {
-            button.addEventListener('click', () => switchView('table'));
-        }
+        button.addEventListener('click', () => switchView(viewType));
     });
 
     // Expand/Collapse all buttons

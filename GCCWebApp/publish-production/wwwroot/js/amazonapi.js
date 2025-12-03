@@ -200,23 +200,15 @@ async function saveSettings() {
             // Update status display
             updateConnectionStatus(currentSettings);
 
-            // Show success
-            if (window.AdminCore && typeof AdminCore.showNotification === 'function') {
-                AdminCore.showNotification(result.message || 'Amazon API settings saved successfully', 'success');
-            } else {
-                alert('Settings saved successfully');
-            }
+            // Show success - US-015: Always use AdminCore.showNotification
+            AdminCore.showNotification(result.message || 'Amazon API settings saved successfully', 'success');
         } else {
             throw new Error(result.message || 'Failed to save settings');
         }
 
     } catch (error) {
         console.error('Error saving settings:', error);
-        if (window.AdminCore && typeof AdminCore.showNotification === 'function') {
-            AdminCore.showNotification('Failed to save settings: ' + error.message, 'error');
-        } else {
-            alert('Failed to save settings: ' + error.message);
-        }
+        AdminCore.showNotification('Failed to save settings: ' + error.message, 'error');
     } finally {
         saveBtn.innerHTML = originalText;
         saveBtn.disabled = false;
@@ -235,11 +227,7 @@ async function testConnection() {
         const refreshToken = document.getElementById('refresh-token').value.trim();
 
         if (!accessKeyId || !secretAccessKey || !refreshToken) {
-            if (window.AdminCore && typeof AdminCore.showNotification === 'function') {
-                AdminCore.showNotification('Please enter all required credentials first', 'warning');
-            } else {
-                alert('Please enter all required credentials first');
-            }
+            AdminCore.showNotification('Please enter all required credentials first', 'warning');
             return;
         }
 
@@ -277,22 +265,14 @@ async function testConnection() {
         const result = await response.json();
 
         if (result.success) {
-            if (window.AdminCore && typeof AdminCore.showNotification === 'function') {
-                AdminCore.showNotification(result.message || 'Connection test successful!', 'success');
-            } else {
-                alert('Connection test successful!');
-            }
+            AdminCore.showNotification(result.message || 'Connection test successful!', 'success');
         } else {
             throw new Error(result.message || 'Connection test failed');
         }
 
     } catch (error) {
         console.error('Connection test failed:', error);
-        if (window.AdminCore && typeof AdminCore.showNotification === 'function') {
-            AdminCore.showNotification('Connection test failed: ' + error.message, 'error');
-        } else {
-            alert('Connection test failed: ' + error.message);
-        }
+        AdminCore.showNotification('Connection test failed: ' + error.message, 'error');
     } finally {
         testBtn.innerHTML = originalText;
         testBtn.disabled = false;
@@ -307,11 +287,7 @@ async function triggerSync() {
     try {
         // Check if enabled and configured
         if (!currentSettings || !currentSettings.isEnabled) {
-            if (window.AdminCore && typeof AdminCore.showNotification === 'function') {
-                AdminCore.showNotification('Please enable and configure the integration first', 'warning');
-            } else {
-                alert('Please enable and configure the integration first');
-            }
+            AdminCore.showNotification('Please enable and configure the integration first', 'warning');
             return;
         }
 
@@ -361,11 +337,7 @@ async function triggerSync() {
             // Reload sync history
             await loadSyncHistory();
 
-            if (window.AdminCore && typeof AdminCore.showNotification === 'function') {
-                AdminCore.showNotification(result.message || 'Sync completed successfully', 'success');
-            } else {
-                alert('Sync completed successfully');
-            }
+            AdminCore.showNotification(result.message || 'Sync completed successfully', 'success');
         } else {
             throw new Error(result.message || 'Sync failed');
         }
@@ -379,11 +351,7 @@ async function triggerSync() {
             updateConnectionStatus(currentSettings);
         }
 
-        if (window.AdminCore && typeof AdminCore.showNotification === 'function') {
-            AdminCore.showNotification('Sync failed: ' + error.message, 'error');
-        } else {
-            alert('Sync failed: ' + error.message);
-        }
+        AdminCore.showNotification('Sync failed: ' + error.message, 'error');
     } finally {
         syncBtn.innerHTML = originalText;
         syncBtn.disabled = false;

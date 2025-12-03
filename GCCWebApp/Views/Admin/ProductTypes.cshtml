@@ -52,16 +52,16 @@
         <div class="admin-filter-section">
             <div class="stats-bar">
                 <div class="stat-item">
-                    <span class="stat-number">3</span> Categories
+                    <span class="stat-number">0</span> Categories
                 </div>
                 <div class="stat-item">
-                    <span class="stat-number">7</span> Types
+                    <span class="stat-number">0</span> Types
                 </div>
                 <div class="stat-item">
-                    <span class="stat-number">15</span> Subcategories
+                    <span class="stat-number">0</span> Subcategories
                 </div>
                 <div class="stat-item">
-                    <span class="stat-number">247</span> Products
+                    <span class="stat-number">0</span> Products
                 </div>
             </div>
         </div>
@@ -69,10 +69,10 @@
 
     <div class="toolbar">
         <div class="view-options">
-            <button class="view-btn active" onclick="switchView('tree')">
+            <button class="view-btn active" data-view="tree" onclick="switchView('tree')">
                 <i class="fas fa-sitemap"></i> Tree View
             </button>
-            <button class="view-btn" onclick="switchView('table')">
+            <button class="view-btn" data-view="table" onclick="switchView('table')">
                 <i class="fas fa-table"></i> Table View
             </button>
         </div>
@@ -100,230 +100,17 @@
             </div>
         </div>
         <div class="tree-content">
-
-            <!-- Building Materials Category -->
-            <div class="tree-node">
-                <div class="node-content category-node expandable" onclick="toggleNode(this)">
-                    <div class="node-indent level-1"></div>
-                    <div class="node-icon">
-                        <i class="fas fa-chevron-right"></i>
-                    </div>
-                    <div class="node-label">Building Materials</div>
-                    <div class="node-meta">
-                        <span class="node-count">89</span>
-                        <div class="node-actions">
-                            <button class="action-btn edit" title="Edit Category" onclick="showEditForm(this, 'category')" aria-label="Edit category">
-                                <i class="fas fa-edit" aria-hidden="true"></i>
-                            </button>
-                            <button class="action-btn add" title="Add Type" onclick="showAddForm('type', this)" aria-label="Add type">
-                                <i class="fas fa-plus" aria-hidden="true"></i>
-                            </button>
-                            <button class="action-btn delete" title="Delete Category" aria-label="Delete category">
-                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="children" data-parent="building-materials">
-
-                    <!-- Insulation Type -->
-                    <div class="tree-node">
-                        <div class="node-content type-node expandable" onclick="toggleNode(this)">
-                            <div class="node-indent level-2"></div>
-                            <div class="node-icon">
-                                <i class="fas fa-chevron-right"></i>
-                            </div>
-                            <div class="node-label">Insulation</div>
-                            <div class="node-meta">
-                                <span class="node-count">35</span>
-                                <div class="node-actions">
-                                    <button class="action-btn edit" title="Edit Type" onclick="showEditForm(this, 'type')" aria-label="Edit type">
-                                        <i class="fas fa-edit" aria-hidden="true"></i>
-                                    </button>
-                                    <button class="action-btn add" title="Add Subcategory" onclick="showAddForm('subcategory', this)" aria-label="Add subcategory">
-                                        <i class="fas fa-plus" aria-hidden="true"></i>
-                                    </button>
-                                    <button class="action-btn delete" title="Delete Type" aria-label="Delete type">
-                                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="children">
-                            <div class="tree-node">
-                                <div class="node-content subcategory-node">
-                                    <div class="node-indent level-3"></div>
-                                    <div class="node-icon"></div>
-                                    <div class="node-label">Foam Board</div>
-                                    <div class="node-meta">
-                                        <span class="node-count">15</span>
-                                        <div class="node-actions">
-                                            <button class="action-btn edit" title="Edit Subcategory" onclick="showEditForm(this, 'subcategory')" aria-label="Edit subcategory">
-                                                <i class="fas fa-edit" aria-hidden="true"></i>
-                                            </button>
-                                            <button class="action-btn delete" title="Delete Subcategory" aria-label="Delete subcategory">
-                                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Appliances Type -->
-                    <div class="tree-node">
-                        <div class="node-content type-node expandable" onclick="toggleNode(this)">
-                            <div class="node-indent level-2"></div>
-                            <div class="node-icon">
-                                <i class="fas fa-chevron-right"></i>
-                            </div>
-                            <div class="node-label">Appliances</div>
-                            <div class="node-meta">
-                                <span class="node-count">41</span>
-                                <div class="node-actions">
-                                    <button class="action-btn edit" title="Edit Type" onclick="showEditForm(this, 'type')" aria-label="Edit type">
-                                        <i class="fas fa-edit" aria-hidden="true"></i>
-                                    </button>
-                                    <button class="action-btn add" title="Add Subcategory" onclick="showAddForm('subcategory', this)" aria-label="Add subcategory">
-                                        <i class="fas fa-plus" aria-hidden="true"></i>
-                                    </button>
-                                    <button class="action-btn delete" title="Delete Type" aria-label="Delete type">
-                                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="children">
-                            <div class="tree-node">
-                                <div class="node-content subcategory-node">
-                                    <div class="node-indent level-3"></div>
-                                    <div class="node-icon"></div>
-                                    <div class="node-label">Kitchen Appliances</div>
-                                    <div class="node-meta">
-                                        <span class="node-count">25</span>
-                                        <div class="node-actions">
-                                            <button class="action-btn edit" title="Edit Subcategory" onclick="showEditForm(this, 'subcategory')" aria-label="Edit subcategory">
-                                                <i class="fas fa-edit" aria-hidden="true"></i>
-                                            </button>
-                                            <button class="action-btn delete" title="Delete Subcategory" aria-label="Delete subcategory">
-                                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="tree-node">
-                                <div class="node-content subcategory-node">
-                                    <div class="node-indent level-3"></div>
-                                    <div class="node-icon"></div>
-                                    <div class="node-label">Laundry Appliances</div>
-                                    <div class="node-meta">
-                                        <span class="node-count">16</span>
-                                        <div class="node-actions">
-                                            <button class="action-btn edit" title="Edit Subcategory" onclick="showEditForm(this, 'subcategory')" aria-label="Edit subcategory">
-                                                <i class="fas fa-edit" aria-hidden="true"></i>
-                                            </button>
-                                            <button class="action-btn delete" title="Delete Subcategory" aria-label="Delete subcategory">
-                                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Loading state - will be replaced by API data -->
+            <div class="loading-state" id="tree-loading">
+                <i class="fas fa-spinner fa-spin"></i>
+                <span>Loading product types...</span>
             </div>
-
-            <!-- Textiles Category -->
-            <div class="tree-node">
-                <div class="node-content category-node expandable" onclick="toggleNode(this)">
-                    <div class="node-indent level-1"></div>
-                    <div class="node-icon">
-                        <i class="fas fa-chevron-right"></i>
-                    </div>
-                    <div class="node-label">Textiles</div>
-                    <div class="node-meta">
-                        <span class="node-count">85</span>
-                        <div class="node-actions">
-                            <button class="action-btn edit" title="Edit Category" onclick="showEditForm(this, 'category')" aria-label="Edit category">
-                                <i class="fas fa-edit" aria-hidden="true"></i>
-                            </button>
-                            <button class="action-btn add" title="Add Type" onclick="showAddForm('type', this)" aria-label="Add type">
-                                <i class="fas fa-plus" aria-hidden="true"></i>
-                            </button>
-                            <button class="action-btn delete" title="Delete Category" aria-label="Delete category">
-                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-                <div class="children">
-                    <!-- Carpeting Type -->
-                    <div class="tree-node">
-                        <div class="node-content type-node expandable" onclick="toggleNode(this)">
-                            <div class="node-indent level-2"></div>
-                            <div class="node-icon">
-                                <i class="fas fa-chevron-right"></i>
-                            </div>
-                            <div class="node-label">Carpeting</div>
-                            <div class="node-meta">
-                                <span class="node-count">45</span>
-                                <div class="node-actions">
-                                    <button class="action-btn edit" title="Edit Type" onclick="showEditForm(this, 'type')" aria-label="Edit type">
-                                        <i class="fas fa-edit" aria-hidden="true"></i>
-                                    </button>
-                                    <button class="action-btn add" title="Add Subcategory" onclick="showAddForm('subcategory', this)" aria-label="Add subcategory">
-                                        <i class="fas fa-plus" aria-hidden="true"></i>
-                                    </button>
-                                    <button class="action-btn delete" title="Delete Type" aria-label="Delete type">
-                                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="children">
-                            <div class="tree-node">
-                                <div class="node-content subcategory-node">
-                                    <div class="node-indent level-3"></div>
-                                    <div class="node-icon"></div>
-                                    <div class="node-label">Commercial Carpet</div>
-                                    <div class="node-meta">
-                                        <span class="node-count">28</span>
-                                        <div class="node-actions">
-                                            <button class="action-btn edit" title="Edit Subcategory" onclick="showEditForm(this, 'subcategory')" aria-label="Edit subcategory">
-                                                <i class="fas fa-edit" aria-hidden="true"></i>
-                                            </button>
-                                            <button class="action-btn delete" title="Delete Subcategory" aria-label="Delete subcategory">
-                                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="tree-node">
-                                <div class="node-content subcategory-node">
-                                    <div class="node-indent level-3"></div>
-                                    <div class="node-icon"></div>
-                                    <div class="node-label">Residential Carpet</div>
-                                    <div class="node-meta">
-                                        <span class="node-count">17</span>
-                                        <div class="node-actions">
-                                            <button class="action-btn edit" title="Edit Subcategory" onclick="showEditForm(this, 'subcategory')" aria-label="Edit subcategory">
-                                                <i class="fas fa-edit" aria-hidden="true"></i>
-                                            </button>
-                                            <button class="action-btn delete" title="Delete Subcategory" aria-label="Delete subcategory">
-                                                <i class="fas fa-trash-alt" aria-hidden="true"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            <!-- Empty state - shown when no data -->
+            <div class="empty-state" id="tree-empty" style="display: none;">
+                <i class="fas fa-folder-open"></i>
+                <span>No product types found. Click "Add New Category" to create one.</span>
             </div>
+            <!-- Tree nodes will be dynamically inserted here by JavaScript -->
         </div>
     </div>
 </div>

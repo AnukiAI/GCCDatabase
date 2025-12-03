@@ -360,6 +360,8 @@
     padding: 0;
     background: none;
     border: none;
+    width: 100%;
+    display: block;
 }
 
 .admin-count-display {

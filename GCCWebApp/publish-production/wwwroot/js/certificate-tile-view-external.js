@@ -284,7 +284,7 @@
                     ` : ''}
                 </div>
                 <div class="card-actions">
-                    <div class="action-icon download" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.id}')">
+                    <div class="action-icon download" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
                         <i class="fas fa-download"></i>
                     </div>
                     <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.id}')">
@@ -354,7 +354,7 @@
                     <button class="btn-icon" title="View Details" onclick="event.stopPropagation(); viewCertificateDetails('${cert.id}')">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn-icon" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.id}')">
+                    <button class="btn-icon" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
                         <i class="fas fa-download"></i>
                     </button>
                 </td>

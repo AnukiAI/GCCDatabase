@@ -1,9 +1,9 @@
 /* tags.css - Tag Management specific styles */
 
-/* Color variables */
+/* Color variables - Aligned with admin-core.css standards */
 :root {
-    --green-primary: #92C83E;
-    --green-secondary: #447638;
+    --green-primary: #447638; /* GCC dark green - primary */
+    --green-secondary: #92C83E; /* GCC light green - secondary/accent */
     --blue-primary: #00AEEF;
     --blue-dark: #002B76;
     --border-color: #ddd;
@@ -273,11 +273,11 @@
     margin-top: 16px;
 }
 
-/* ===== MODAL STYLES ===== */
+/* ===== MODAL STYLES - US-015 Compliant ===== */
 .modal {
     display: none;
     position: fixed;
-    z-index: 1000;
+    z-index: 9998;
     left: 0;
     top: 0;
     width: 100%;
@@ -285,12 +285,14 @@
 }
 
 .modal-overlay {
-    position: absolute;
+    position: fixed; /* US-015: Fixed positioning */
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85); /* US-015: 85% black opacity */
+    backdrop-filter: blur(3px); /* US-015: 3px blur effect */
+    z-index: 9998;
 }
 
 .modal-content {

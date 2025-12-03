@@ -442,13 +442,14 @@ class ProductTypeManager {
         const modal = document.createElement('div');
         modal.className = 'modal fade show';
         modal.style.cssText = `
-            display: block; 
+            display: block;
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(3px);
             z-index: 1050;
             overflow: auto;
         `;

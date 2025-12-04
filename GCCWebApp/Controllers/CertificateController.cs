@@ -433,6 +433,14 @@ namespace GCCWebApp.Controllers
                         {
                             certificate.CertificateFile = uploadResult.FilePath;
                             _logger.LogInformation("Certificate PDF uploaded successfully: {FilePath}", uploadResult.FilePath);
+
+                            // Auto-generate thumbnail from PDF first page
+                            var thumbnailPath = await _fileUploadService.GeneratePdfThumbnailAsync(uploadResult.FilePath!, model.Number);
+                            if (!string.IsNullOrEmpty(thumbnailPath))
+                            {
+                                certificate.CertificateImagePath = thumbnailPath;
+                                _logger.LogInformation("PDF thumbnail generated: {ThumbnailPath}", thumbnailPath);
+                            }
                         }
                         else
                         {
@@ -668,6 +676,14 @@ namespace GCCWebApp.Controllers
                         {
                             certificate.CertificateFile = uploadResult.FilePath;
                             _logger.LogInformation("Certificate PDF uploaded successfully: {FilePath}", uploadResult.FilePath);
+
+                            // Auto-generate thumbnail from PDF first page (replaces existing thumbnail)
+                            var thumbnailPath = await _fileUploadService.GeneratePdfThumbnailAsync(uploadResult.FilePath!, model.Number);
+                            if (!string.IsNullOrEmpty(thumbnailPath))
+                            {
+                                certificate.CertificateImagePath = thumbnailPath;
+                                _logger.LogInformation("PDF thumbnail generated: {ThumbnailPath}", thumbnailPath);
+                            }
                         }
                         else
                         {

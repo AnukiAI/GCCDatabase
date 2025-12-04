@@ -5,6 +5,9 @@ using GCCWebApp.Models;
 using GCCWebApp.Data;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+using Docnet.Core;
+using Docnet.Core.Models;
 
 namespace GCCWebApp.Services
 {
@@ -21,6 +24,7 @@ namespace GCCWebApp.Services
         FileValidationResult ValidateFile(IFormFile file, FileUploadConfiguration config);
         Task<string> CalculateFileHashAsync(Stream stream);
         Task<bool> ScanFileForVirusesAsync(string filePath); // Placeholder for virus scanning
+        Task<string?> GeneratePdfThumbnailAsync(string pdfFilePath, string certificateNumber);
     }
 
     public class FileUploadService : IFileUploadService
@@ -433,9 +437,97 @@ namespace GCCWebApp.Services
             // Placeholder implementation - integrate with actual virus scanning service
             // For now, always return true (no virus detected)
             await Task.Delay(100); // Simulate scanning time
-            
+
             _logger.LogInformation("Virus scan performed on file: {FilePath} (placeholder implementation)", filePath);
             return true;
+        }
+
+        /// <summary>
+        /// Generates a thumbnail image from the first page of a PDF file
+        /// </summary>
+        /// <param name="pdfFilePath">Relative path to the PDF file (from wwwroot)</param>
+        /// <param name="certificateNumber">Certificate number for naming the thumbnail</param>
+        /// <returns>Relative path to the generated thumbnail, or null if failed</returns>
+        public async Task<string?> GeneratePdfThumbnailAsync(string pdfFilePath, string certificateNumber)
+        {
+            try
+            {
+                // Get full path to PDF
+                var fullPdfPath = Path.Combine(_environment.WebRootPath, pdfFilePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+
+                if (!File.Exists(fullPdfPath))
+                {
+                    _logger.LogWarning("PDF file not found for thumbnail generation: {PdfPath}", fullPdfPath);
+                    return null;
+                }
+
+                // Generate unique thumbnail filename
+                var thumbnailFileName = $"{certificateNumber}_thumb_{DateTime.UtcNow:yyyyMMdd_HHmmss}.png";
+                var thumbnailPath = Path.Combine(_imagesPath, thumbnailFileName);
+
+                // Read PDF and extract first page as image
+                using (var docReader = DocLib.Instance.GetDocReader(fullPdfPath, new PageDimensions(1240, 1754))) // A4 at 150 DPI
+                {
+                    var pageCount = docReader.GetPageCount();
+                    if (pageCount == 0)
+                    {
+                        _logger.LogWarning("PDF has no pages: {PdfPath}", fullPdfPath);
+                        return null;
+                    }
+
+                    // Get first page
+                    using (var pageReader = docReader.GetPageReader(0))
+                    {
+                        var width = pageReader.GetPageWidth();
+                        var height = pageReader.GetPageHeight();
+                        var rawBytes = pageReader.GetImage();
+
+                        if (rawBytes == null || rawBytes.Length == 0)
+                        {
+                            _logger.LogWarning("Failed to render PDF page to image: {PdfPath}", fullPdfPath);
+                            return null;
+                        }
+
+                        // Convert BGRA to RGBA and create image
+                        // Docnet returns BGRA format, ImageSharp expects RGBA
+                        for (int i = 0; i < rawBytes.Length; i += 4)
+                        {
+                            var temp = rawBytes[i]; // B
+                            rawBytes[i] = rawBytes[i + 2]; // R -> B position
+                            rawBytes[i + 2] = temp; // B -> R position
+                        }
+
+                        // Create image from raw bytes
+                        using (var image = Image.LoadPixelData<Rgba32>(rawBytes, width, height))
+                        {
+                            // Resize to thumbnail size (max 600px width)
+                            if (image.Width > 600)
+                            {
+                                var resizeOptions = new ResizeOptions
+                                {
+                                    Size = new Size(600, 0), // 0 = auto calculate height to maintain aspect ratio
+                                    Mode = ResizeMode.Max
+                                };
+                                image.Mutate(x => x.Resize(resizeOptions));
+                            }
+
+                            // Save as PNG
+                            await image.SaveAsPngAsync(thumbnailPath);
+                        }
+                    }
+                }
+
+                var relativePath = Path.Combine("uploads", "images", thumbnailFileName).Replace("\\", "/");
+                _logger.LogInformation("PDF thumbnail generated successfully: {ThumbnailPath} for certificate {CertificateNumber}",
+                    relativePath, certificateNumber);
+
+                return relativePath;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating PDF thumbnail for certificate {CertificateNumber}", certificateNumber);
+                return null;
+            }
         }
 
         /// <summary>

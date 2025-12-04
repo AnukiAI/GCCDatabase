@@ -179,18 +179,15 @@
                         <div class="section-icon">
                             <i class="fas fa-image"></i>
                         </div>
-                        <h3 id="certificate-image-label">Certificate Preview Image</h3>
-                        <p id="certificate-image-help">Upload a preview snapshot (PNG/JPG, max 5MB)</p>
-                        <div class="upload-placeholder" id="certificateImageUpload" role="button" tabindex="0" aria-labelledby="certificate-image-label" aria-describedby="certificate-image-help" onclick="document.getElementById('certificateImage').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificateImage').click();}">
-                            <div id="certificateImagePreview" style="display: none;">
-                                <img id="certificateImagePreviewImg" src="" alt="Certificate Preview" style="max-width: 100%; max-height: 250px; object-fit: contain; border-radius: 8px;" />
-                            </div>
-                            <div id="certificateImagePlaceholder">
-                                <i class="fas fa-cloud-upload-alt" style="font-size: 32px; color: #00AEEF; margin-bottom: 8px;"></i>
-                                <div style="font-size: 14px; color: #6c757d;">Click to upload image</div>
+                        <h3 id="certificate-image-label">Certificate Preview</h3>
+                        <p id="certificate-image-help" class="text-muted" style="font-size: 13px;">Auto-generated from uploaded PDF</p>
+                        <div class="preview-container" style="min-height: 150px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border: 1px dashed #dee2e6; border-radius: 6px; padding: 16px;">
+                            <div class="no-preview" style="text-align: center; color: #6c757d;">
+                                <i class="fas fa-file-pdf" style="font-size: 48px; margin-bottom: 8px;"></i>
+                                <p style="margin: 0;">No preview available</p>
+                                <small>Upload a PDF certificate below to generate preview</small>
                             </div>
                         </div>
-                        <input type="file" id="certificateImage" name="certificateImage" accept="image/jpeg,image/jpg,image/png" aria-labelledby="certificate-image-label" aria-describedby="certificate-image-help" style="display: none;" />
                         <input type="hidden" asp-for="CertificateImagePath" id="certificateImagePathHidden" />
                     </div>
 

@@ -175,6 +175,34 @@ Updated `wwwroot/js/product-types.js`:
 
 ---
 
+## 2025-12-03 - NEW REQUIREMENT: Certification Type Subcategory (Amazon Request)
+
+### Business Context
+Amazon requires a subcategory classification for certification types. Example:
+- **Certification Type**: Certified Energy Savings (existing field)
+- **Certification Type Subcategory**: Consumer Behavior (NEW field - dropdown)
+
+This needs to be passed to Amazon and shown in login tables.
+
+### Confirmed Requirements
+1. **Uniqueness**: Subcategories unique per Certification Type (same name can exist under different parent types)
+2. **Admin Management**: New admin page following existing patterns (table, Export, Add New, Template, Import)
+3. **Display**: Show in certificate tables like other fields
+
+### Open Questions (Awaiting Client Response)
+1. Is the Subcategory field required or optional on certificate upload?
+2. Cascading dropdown behavior when Certification Type changes?
+3. Example subcategory values for seeding test data?
+
+### Implementation Scope (Pending Confirmation)
+1. New `CertificationTypeSubcategory` entity and database table
+2. Add `CertificationTypeSubcategoryId` FK to `Certificates` table
+3. Admin page: `/Admin/CertificationTypeSubcategories`
+4. Update Create/Edit certificate forms with cascading dropdown
+5. Update tile views, tables, and API responses
+
+---
+
 ## 2025-12-03 - FIX APPLIED: ProductTypes View Toggle Button Highlighting
 
 ### Issue

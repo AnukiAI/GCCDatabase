@@ -10,7 +10,6 @@
         <h3 class="product-manager-title">
             <i class="fas fa-barcode me-2"></i>
             Product ID Manager
-            <span class="product-count badge bg-primary ms-2" id="productIdCount">@Model?.Count</span>
         </h3>
 
         @if (!isReadOnly)
@@ -34,41 +33,33 @@
 
     <!-- Filter Section -->
     <div class="product-manager-filters mb-3">
-        <div class="row g-2">
-            <div class="col-md-3">
-                <select class="form-select form-select-sm" id="filterByType">
-                    <option value="">All Types</option>
-                    <option value="ASIN">ASIN</option>
-                    <option value="UPC">UPC</option>
-                    <option value="GTIN">GTIN</option>
-                    <option value="EAN">EAN</option>
-                    <option value="ISBN">ISBN</option>
-                    <option value="SKU">SKU</option>
-                    <option value="MPN">MPN</option>
-                    <option value="OTHER">Other</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select class="form-select form-select-sm" id="filterByStatus">
-                    <option value="">All Status</option>
-                    <option value="Active">Active</option>
-                    <option value="Inactive">Inactive</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Expired">Expired</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <select class="form-select form-select-sm" id="filterByPartner">
-                    <option value="">All Partners</option>
-                    <option value="Amazon">Amazon</option>
-                    <option value="Wayfair">Wayfair</option>
-                    <option value="None">None</option>
-                    <option value="Other">Other</option>
-                </select>
-            </div>
-            <div class="col-md-3">
-                <input type="text" class="form-control form-control-sm" id="searchProductIds" placeholder="Search product IDs...">
-            </div>
+        <div style="display: flex; flex-wrap: nowrap; gap: 10px; align-items: center;">
+            <select class="form-select form-select-sm" id="filterByType" style="width: auto; min-width: 110px;">
+                <option value="">All Types</option>
+                <option value="ASIN">ASIN</option>
+                <option value="UPC">UPC</option>
+                <option value="GTIN">GTIN</option>
+                <option value="EAN">EAN</option>
+                <option value="ISBN">ISBN</option>
+                <option value="SKU">SKU</option>
+                <option value="MPN">MPN</option>
+                <option value="OTHER">Other</option>
+            </select>
+            <select class="form-select form-select-sm" id="filterByStatus" style="width: auto; min-width: 110px;">
+                <option value="">All Status</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Pending">Pending</option>
+                <option value="Expired">Expired</option>
+            </select>
+            <select class="form-select form-select-sm" id="filterByPartner" style="width: auto; min-width: 120px;">
+                <option value="">All Partners</option>
+                <option value="Amazon">Amazon</option>
+                <option value="Wayfair">Wayfair</option>
+                <option value="None">None</option>
+                <option value="Other">Other</option>
+            </select>
+            <input type="text" class="form-control form-control-sm" id="searchProductIds" placeholder="Search product IDs..." style="width: 200px;">
         </div>
     </div>
 

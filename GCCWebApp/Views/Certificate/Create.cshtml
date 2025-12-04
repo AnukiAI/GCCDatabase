@@ -26,6 +26,7 @@
     <header class="admin-header">
         <div class="admin-header-content">
             <div class="admin-title-section">
+                <h1 class="page-title">Add Certificate</h1>
                 <p class="admin-page-subtitle">Add a new certificate to the GreenCircle Certified database</p>
             </div>
             <div class="admin-actions-section">
@@ -326,28 +327,47 @@
 
             // Intercept form submission to handle custom fields
             const form = document.getElementById('certificateCreateForm');
-            const originalSubmit = form.onsubmit;
 
-            form.addEventListener('submit', async function(e) {
+            form.addEventListener('submit', function(e) {
                 try {
                     // Only validate custom fields if they exist and are loaded
                     if (typeof certificateCustomFields !== 'undefined' && certificateCustomFields.fields && certificateCustomFields.fields.length > 0) {
                         const validation = certificateCustomFields.validateFields();
                         if (!validation.isValid) {
                             e.preventDefault();
+                            e.stopPropagation();
                             if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
                                 AdminCore.showNotification('Please fix validation errors: ' + validation.errors.join(', '), 'error');
                             } else {
-                                alert('Please fix validation errors: ' + validation.errors.join(', '));
+                                console.error('Validation errors: ' + validation.errors.join(', '));
                             }
                             return false;
                         }
+
+                        // Get custom field values and add them to the form
+                        const fieldValues = certificateCustomFields.getFieldValues();
+
+                        // Remove any existing custom field hidden inputs
+                        form.querySelectorAll('input[name^="CustomFieldValues"]').forEach(input => input.remove());
+
+                        // Add custom field values as hidden inputs to the form
+                        Object.keys(fieldValues).forEach(fieldId => {
+                            const hiddenInput = document.createElement('input');
+                            hiddenInput.type = 'hidden';
+                            hiddenInput.name = `CustomFieldValues[${fieldId}]`;
+                            hiddenInput.value = fieldValues[fieldId] || '';
+                            form.appendChild(hiddenInput);
+                        });
+
+                        console.log('Custom field values added to form:', fieldValues);
                     }
                     // If no custom fields or validation passes, allow form to submit normally
+                    return true;
                 } catch (error) {
                     console.error('Error validating custom fields:', error);
                     // Allow form to submit even if validation has an error
                     // (Better to let the server handle validation than block the user)
+                    return true;
                 }
             });
         });

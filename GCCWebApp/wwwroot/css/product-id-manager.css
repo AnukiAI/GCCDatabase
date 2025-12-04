@@ -42,12 +42,26 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
 }
 
 .product-manager-filters {
     padding: 16px 24px 8px;
     background: #f8f9fa;
     border-bottom: 1px solid #dee2e6;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Fix Bootstrap row negative margins */
+.product-manager-filters .row {
+    margin-left: -8px;
+    margin-right: -8px;
+}
+
+.product-manager-filters .row > [class*="col-"] {
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 .product-ids-table-container {

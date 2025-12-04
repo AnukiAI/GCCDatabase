@@ -137,10 +137,41 @@ body:has(.admin-container) .page-header {
     padding: 24px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     transition: box-shadow 0.3s ease;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
 }
 
 .card-style:hover {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Card sections inside admin-content should be full width */
+.admin-content > .card-style,
+.admin-content > .product-manager,
+.admin-content > .certificate-section,
+.admin-content > .action-buttons {
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Ensure form itself is full width */
+.admin-content > form {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* All direct children of form should be full width */
+.admin-content > form > .certificate-section,
+.admin-content > form > .product-manager,
+.admin-content > form > .card-style,
+.admin-content > form > .action-buttons {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* ===== FORM GRID LAYOUT ===== */
@@ -518,6 +549,49 @@ body:has(.admin-container) .page-header {
 /* ===== PRODUCT MANAGER SECTION ===== */
 .product-manager {
     margin-top: 32px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Ensure Product ID Manager fits within the page */
+.product-manager .product-id-manager {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Fix Product ID Manager filter row to prevent overflow */
+.product-manager .product-manager-filters .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.product-manager .product-manager-filters .row > [class*="col-"] {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.product-manager .product-manager-filters .row > [class*="col-"]:first-child {
+    padding-left: 0;
+}
+
+.product-manager .product-manager-filters .row > [class*="col-"]:last-child {
+    padding-right: 0;
+}
+
+/* Ensure table container doesn't overflow */
+.product-manager .product-ids-table-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Make table responsive */
+.product-manager #productIdsTable {
+    width: 100%;
+    table-layout: auto;
 }
 
 /* ===== BUTTON STYLES - Matches company-management.css ===== */

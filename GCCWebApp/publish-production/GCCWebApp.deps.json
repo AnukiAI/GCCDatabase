@@ -17,6 +17,7 @@
           "BCrypt.Net-Next": "4.0.3",
           "ClosedXML": "0.105.0",
           "CsvHelper": "33.1.0",
+          "Docnet.Core": "2.6.0",
           "Microsoft.AspNetCore.Authentication.JwtBearer": "8.0.11",
           "Microsoft.AspNetCore.DataProtection": "8.0.16",
           "Microsoft.EntityFrameworkCore": "8.0.11",
@@ -235,6 +236,22 @@
           "lib/net8.0/CsvHelper.dll": {
             "assemblyVersion": "33.0.0.0",
             "fileVersion": "33.1.0.26"
+          }
+        }
+      },
+      "Docnet.Core/2.6.0": {
+        "runtime": {
+          "lib/netstandard2.0/Docnet.Core.dll": {
+            "assemblyVersion": "2.6.0.0",
+            "fileVersion": "2.6.0.0"
+          }
+        },
+        "native": {
+          "runtimes/win-x64/native/LICENSE": {
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/pdfium.dll": {
+            "fileVersion": "110.0.5445.0"
           }
         }
       },
@@ -2235,6 +2252,13 @@
       "sha512": "sha512-kqfTOZGrn7NarNeXgjh86JcpTHUoeQDMB8t9NVa/ZtlSYiV1rxfRnQ49WaJsob4AiGrbK0XDzpyKkBwai4F8eg==",
       "path": "csvhelper/33.1.0",
       "hashPath": "csvhelper.33.1.0.nupkg.sha512"
+    },
+    "Docnet.Core/2.6.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-in7fpB16Zbdz7D7Qv+4QrapTKKOU1ub2XOvmVGVDEyEwnEZjlbGIiwmpfO03q/GDDEkDM/gIAumxK0U988qSsQ==",
+      "path": "docnet.core/2.6.0",
+      "hashPath": "docnet.core.2.6.0.nupkg.sha512"
     },
     "DocumentFormat.OpenXml/3.1.1": {
       "type": "package",

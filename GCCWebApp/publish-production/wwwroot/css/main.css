@@ -2081,33 +2081,25 @@ body.theme-option4 .certificate-single-card .card-body {
     }
 }
 
-/* Certificate single view specific overrides - no layout changes needed */
+/* Certificate single view specific overrides */
 .certificate-single-container {
-    max-width: 100vw;
-    margin: 0 -40px; /* Counteract the page-container padding */
-    padding: 8px;
+    max-width: 100%;
+    margin: 0;
+    padding: 8px 0;
     background-color: transparent;
     box-shadow: none;
     border-radius: 0;
 }
 
-@media (max-width: 1024px) {
-    .certificate-single-container {
-        margin: 0 -24px; /* Counteract tablet padding */
-    }
-}
-
 @media (max-width: 768px) {
     .certificate-single-container {
-        margin: 0 -12px; /* Counteract mobile padding */
-        padding: 4px;
+        padding: 4px 0;
     }
 }
 
 @media (max-width: 480px) {
     .certificate-single-container {
-        margin: 0 -8px; /* Counteract small mobile padding */
-        padding: 2px;
+        padding: 2px 0;
     }
 }
 

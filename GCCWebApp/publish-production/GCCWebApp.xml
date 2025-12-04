@@ -1151,23 +1151,24 @@
         <member name="M:GCCWebApp.Controllers.CertificateController.CertificateExternalView(System.String)">
             <summary>
             Certificate external view - For external partners
-            GET: /Certificate/CertificateExternalView/{id}
+            GET: /Certificate/CertificateExternalView/24-0366 (by certificate number)
             </summary>
         </member>
         <member name="M:GCCWebApp.Controllers.CertificateController.CertificateInternalView(System.String)">
             <summary>
             Certificate internal view - Only for Admin and Analyst roles
-            GET: /Certificate/CertificateInternalView/{id}
+            GET: /Certificate/CertificateInternalView/24-0366 (by certificate number)
             </summary>
         </member>
         <member name="M:GCCWebApp.Controllers.CertificateController.CertificateSingleView(System.String)">
             <summary>
-            Certificate single view by ID or certificate number - Public access allowed
+            Certificate single view by certificate number - Public access allowed
+            GET: /Certificate/CertificateSingleView/24-0366
             </summary>
         </member>
         <member name="M:GCCWebApp.Controllers.CertificateController.Details(System.String)">
             <summary>
-            Get certificate details
+            Get certificate details by certificate number
             GET: /Certificate/Details/24-0366
             External users can view certificate details (read-only)
             </summary>
@@ -2532,6 +2533,14 @@
             <summary>
             Handles additional business logic when status changes
             </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.FileUploadService.GeneratePdfThumbnailAsync(System.String,System.String)">
+            <summary>
+            Generates a thumbnail image from the first page of a PDF file
+            </summary>
+            <param name="pdfFilePath">Relative path to the PDF file (from wwwroot)</param>
+            <param name="certificateNumber">Certificate number for naming the thumbnail</param>
+            <returns>Relative path to the generated thumbnail, or null if failed</returns>
         </member>
         <member name="M:GCCWebApp.Services.FileUploadService.ValidateImageAsync(System.IO.Stream)">
             <summary>

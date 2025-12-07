@@ -12,11 +12,19 @@ namespace GCCWebApp.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _auditService;
+        private readonly ILogger<ProductController> _logger;
+        private readonly bool _showDetailedErrors;
 
-        public ProductController(ApplicationDbContext context, IAuditService auditService)
+        public ProductController(
+            ApplicationDbContext context,
+            IAuditService auditService,
+            ILogger<ProductController> logger,
+            IConfiguration configuration)
         {
             _context = context;
             _auditService = auditService;
+            _logger = logger;
+            _showDetailedErrors = configuration.GetValue<bool>("FeatureFlags:ShowDetailedApiErrors", false);
         }
 
         // Removed Index action - not part of sitemap/wireframes
@@ -193,7 +201,7 @@ namespace GCCWebApp.Controllers
                         Model = p.Model,
                         Sku = p.Sku,
                         CompanyName = p.Company != null ? p.Company.Name : "",
-                        CategoryName = p.Category.Name,
+                        CategoryName = p.Category != null ? p.Category.Name : "",
                         ProductTypeName = p.ProductType != null ? p.ProductType.Name : "",
                         Status = p.IsActive ? "Active" : "Inactive",
                         CertificateCount = p.Certificates.Count(),
@@ -208,6 +216,17 @@ namespace GCCWebApp.Controllers
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error retrieving products");
+
+                if (_showDetailedErrors)
+                {
+                    return Json(new ApiResponse<List<ProductListViewModel>>
+                    {
+                        Success = false,
+                        Message = $"Error: {ex.Message} | Inner: {ex.InnerException?.Message} | Stack: {ex.StackTrace}"
+                    });
+                }
+
                 return Json(new ApiResponse<List<ProductListViewModel>> { Success = false, Message = ex.Message });
             }
         }

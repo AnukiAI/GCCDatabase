@@ -101,7 +101,7 @@
     <Content Remove="wwwroot\css\certificatesexternal.css" />
     <Content Remove="wwwroot\css\certificateTilesAlt1.css" />
     <Content Remove="wwwroot\css\certificatetilesAlt2.css" />
-    <Content Remove="wwwroot\css\certificatetileview.css" />
+    <!-- certificatetileview.css is needed - removed from exclusion list -->
     <Content Remove="wwwroot\css\main - Copy %284%29.css" />
     <Content Remove="wwwroot\css\main - Copy (2).css" />
     <Content Remove="wwwroot\css\main - Copy (3).css" />
@@ -122,7 +122,7 @@
 
   <ItemGroup>
     <None Include="obj\2025-08-09-admin-partners-add-new-partner-save-and-cancel-n.txt" />
-    <None Include="wwwroot\css\certificatetileview.css" />
+    <!-- certificatetileview.css now included by default SDK behavior -->
     <None Include="wwwroot\css\certificatesexternal.css" />
     <None Include="wwwroot\css\certificates.css" />
     <None Include="wwwroot\css\main - Copy.css" />

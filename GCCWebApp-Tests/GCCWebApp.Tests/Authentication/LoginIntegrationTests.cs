@@ -14,39 +14,14 @@ namespace GCCWebApp.Tests.Authentication;
 /// CRITICAL: Login integration tests that must pass before deployment
 /// These tests verify the complete login flow works end-to-end
 /// </summary>
-public class LoginIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+public class LoginIntegrationTests : IClassFixture<CustomWebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly CustomWebApplicationFactory<Program> _factory;
     private readonly HttpClient _client;
 
-    public LoginIntegrationTests(WebApplicationFactory<Program> factory)
+    public LoginIntegrationTests(CustomWebApplicationFactory<Program> factory)
     {
-        _factory = factory.WithWebHostBuilder(builder =>
-        {
-            builder.ConfigureServices(services =>
-            {
-                // Use in-memory database for testing
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
-
-                if (descriptor != null)
-                {
-                    services.Remove(descriptor);
-                }
-
-                services.AddDbContext<ApplicationDbContext>(options =>
-                {
-                    options.UseInMemoryDatabase("LoginTestDb");
-                });
-
-                // Ensure database is created and seeded
-                var sp = services.BuildServiceProvider();
-                using var scope = sp.CreateScope();
-                var scopedServices = scope.ServiceProvider;
-                var db = scopedServices.GetRequiredService<ApplicationDbContext>();
-                db.Database.EnsureCreated();
-            });
-        });
+        _factory = factory;
 
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions
         {

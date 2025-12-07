@@ -17,19 +17,22 @@ namespace GCCWebApp.Controllers.Api
         private readonly IUnitOfWork _unitOfWork;
         private readonly ICertificatePdfService _pdfService;
         private readonly ApplicationDbContext _context;
+        private readonly bool _showDetailedErrors;
 
         public CertificateTilesApiController(
             ILogger<CertificateTilesApiController> logger,
             ICertificateRepository certificateRepository,
             IUnitOfWork unitOfWork,
             ICertificatePdfService pdfService,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IConfiguration configuration)
         {
             _logger = logger;
             _certificateRepository = certificateRepository;
             _unitOfWork = unitOfWork;
             _pdfService = pdfService;
             _context = context;
+            _showDetailedErrors = configuration.GetValue<bool>("FeatureFlags:ShowDetailedApiErrors", false);
         }
 
         /// <summary>
@@ -162,6 +165,20 @@ namespace GCCWebApp.Controllers.Api
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving certificates for tile view");
+
+                if (_showDetailedErrors)
+                {
+                    return BadRequest(new {
+                        success = false,
+                        message = "Failed to retrieve certificates",
+                        error = ex.Message,
+                        innerError = ex.InnerException?.Message,
+                        stackTrace = ex.StackTrace,
+                        certificates = new List<object>(),
+                        totalCount = 0
+                    });
+                }
+
                 return BadRequest(new {
                     success = false,
                     message = "Failed to retrieve certificates",
@@ -324,6 +341,17 @@ namespace GCCWebApp.Controllers.Api
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving autocomplete suggestions for term: {Term}", term);
+
+                if (_showDetailedErrors)
+                {
+                    return BadRequest(new {
+                        error = "Failed to retrieve suggestions",
+                        message = ex.Message,
+                        innerError = ex.InnerException?.Message,
+                        stackTrace = ex.StackTrace
+                    });
+                }
+
                 return BadRequest(new { error = "Failed to retrieve suggestions" });
             }
         }

@@ -1561,6 +1561,88 @@
       ]
     },
     {
+      "Route": "css/certificatetileview.5au2ne6tfv.css",
+      "AssetFile": "css/certificatetileview.css",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "33611"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"zRTXMqvOdTNHgaPoFQ0c9NT7mvAkDEM/K7Nn1RYlvDY=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 18 Nov 2025 23:13:10 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "5au2ne6tfv"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-zRTXMqvOdTNHgaPoFQ0c9NT7mvAkDEM/K7Nn1RYlvDY="
+        },
+        {
+          "Name": "label",
+          "Value": "css/certificatetileview.css"
+        }
+      ]
+    },
+    {
+      "Route": "css/certificatetileview.css",
+      "AssetFile": "css/certificatetileview.css",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "no-cache"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "33611"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "text/css"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"zRTXMqvOdTNHgaPoFQ0c9NT7mvAkDEM/K7Nn1RYlvDY=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 18 Nov 2025 23:13:10 GMT"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-zRTXMqvOdTNHgaPoFQ0c9NT7mvAkDEM/K7Nn1RYlvDY="
+        }
+      ]
+    },
+    {
       "Route": "css/company-management.5986k225js.css",
       "AssetFile": "css/company-management.css",
       "Selectors": [],

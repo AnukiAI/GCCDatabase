@@ -542,9 +542,130 @@ function downloadImportTemplate() {
     }
 }
 
-// Function to show import modal (placeholder)
-function showImportModal() {
-    AdminCore.showNotification('Import functionality coming soon', 'info');
+// Function to handle CSV import for tags
+async function showImportModal() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.csv';
+
+    fileInput.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const contents = e.target.result;
+            const lines = contents.split('\n');
+
+            // Skip header row and process data
+            const tagsToImport = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                // Parse CSV properly handling quoted fields
+                const fields = parseCSVLine(line);
+                if (fields.length < 1) continue;
+
+                const name = fields[0]?.trim();
+                if (!name) continue;
+
+                // Validate tag type
+                let tagType = fields[1]?.trim().toLowerCase() || 'external';
+                if (tagType !== 'external' && tagType !== 'internal') {
+                    tagType = 'external'; // Default to external if invalid
+                }
+
+                tagsToImport.push({
+                    name: name,
+                    tagType: tagType,
+                    description: fields[2]?.trim() || ''
+                });
+            }
+
+            if (tagsToImport.length === 0) {
+                AdminCore.showNotification('No valid tags found in CSV file', 'warning');
+                return;
+            }
+
+            // Save each tag to the database
+            const token = getAntiForgeryToken();
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+
+            for (const tagData of tagsToImport) {
+                try {
+                    const response = await fetch('/Admin/CreateTag', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        },
+                        body: JSON.stringify(tagData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push(`${tagData.name}: ${result.message || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`${tagData.name}: ${error.message}`);
+                }
+            }
+
+            // Reload tags from database
+            await loadTags();
+
+            // Show result
+            if (errorCount === 0) {
+                AdminCore.showNotification(`Imported ${successCount} tags successfully`, 'success');
+            } else if (successCount > 0) {
+                AdminCore.showNotification(`Imported ${successCount} tags. ${errorCount} failed.`, 'warning');
+                console.error('Import errors:', errors);
+            } else {
+                AdminCore.showNotification(`Import failed. ${errorCount} errors occurred.`, 'error');
+                console.error('Import errors:', errors);
+            }
+        };
+
+        reader.readAsText(file);
+    });
+
+    fileInput.click();
+}
+
+// Parse CSV line handling quoted fields
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current);
+    return result;
 }
 
 // Initialize tag management

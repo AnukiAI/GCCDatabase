@@ -400,8 +400,8 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
         [Fact]
         public async Task GetCertificateTiles_WithPagination_ReturnsCorrectPage()
         {
-            // Act
-            var result = await _controller.GetCertificateTiles(page: 1, pageSize: 2);
+            // Act - Use limit: 0 to force pageSize logic (controller defaults limit to 20)
+            var result = await _controller.GetCertificateTiles(page: 1, pageSize: 2, limit: 0);
 
             // Assert
             result.Should().BeOfType<OkObjectResult>();

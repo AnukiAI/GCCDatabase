@@ -681,54 +681,128 @@ async function deleteUser(id) {
 }
 
 // Function to handle CSV import
-function importCSV() {
+async function importCSV() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = '.csv';
 
-    fileInput.addEventListener('change', (event) => {
+    fileInput.addEventListener('change', async (event) => {
         const file = event.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             const contents = e.target.result;
             const lines = contents.split('\n');
 
             // Skip header row and process data
-            const newUsers = [];
-            let maxId = users.length > 0 ? Math.max(...users.map(u => u.id)) : 0;
+            const usersToImport = [];
 
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                const fields = line.split(',');
+                // Parse CSV properly handling quoted fields
+                const fields = parseCSVLine(line);
                 if (fields.length < 5) continue;  // Must have at least name, company, email, role, status
 
-                maxId++;
-                newUsers.push({
-                    id: maxId,
-                    name: fields[0].trim(),
-                    company: fields[1] ? fields[1].trim().split(';') : [],
-                    partners: fields[2] ? fields[2].trim().split(';') : [],
-                    email: fields[3].trim(),
-                    role: fields[4].trim().toLowerCase(),
-                    status: fields[5] ? fields[5].trim().toLowerCase() : 'active',
-                    lastLogin: fields[6] ? fields[6].trim() : new Date().toISOString().slice(0, 16).replace('T', ' '),
-                    password: fields[7] ? fields[7].trim() : 'defaultpassword',
+                const name = fields[0]?.trim();
+                if (!name) continue;
+
+                usersToImport.push({
+                    name: name,
+                    company: fields[1] ? fields[1].trim().split(';').filter(c => c) : [],
+                    partners: fields[2] ? fields[2].trim().split(';').filter(p => p) : [],
+                    email: fields[3]?.trim() || '',
+                    role: fields[4]?.trim().toLowerCase() || 'external',
+                    status: fields[5]?.trim().toLowerCase() || 'active',
+                    password: fields[7]?.trim() || 'TempPassword123!',
                     requirePasswordReset: fields[8] ? fields[8].trim().toLowerCase() === 'true' : true
                 });
             }
 
-            users = [...users, ...newUsers];
-            applyFiltersAndSort();
+            if (usersToImport.length === 0) {
+                AdminCore.showNotification('No valid users found in CSV file', 'warning');
+                return;
+            }
+
+            // Save each user to the database
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+
+            for (const userData of usersToImport) {
+                try {
+                    const response = await fetch('/Admin/CreateUser', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token || ''
+                        },
+                        body: JSON.stringify(userData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push(`${userData.name}: ${result.message || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`${userData.name}: ${error.message}`);
+                }
+            }
+
+            // Reload users from database
+            await loadUsers();
+
+            // Show result
+            if (errorCount === 0) {
+                AdminCore.showNotification(`Imported ${successCount} users successfully`, 'success');
+            } else if (successCount > 0) {
+                AdminCore.showNotification(`Imported ${successCount} users. ${errorCount} failed.`, 'warning');
+                console.error('Import errors:', errors);
+            } else {
+                AdminCore.showNotification(`Import failed. ${errorCount} errors occurred.`, 'error');
+                console.error('Import errors:', errors);
+            }
         };
 
         reader.readAsText(file);
     });
 
     fileInput.click();
+}
+
+// Parse CSV line handling quoted fields
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current);
+    return result;
 }
 
 // Function to export to CSV

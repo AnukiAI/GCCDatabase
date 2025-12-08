@@ -22,10 +22,11 @@ namespace GCCWebApp.Api.Tests.Integration
                 if (descriptor != null)
                     services.Remove(descriptor);
 
-                // Add InMemory database for testing
+                // Add InMemory database for testing - use unique name per test run to avoid conflicts
+                var uniqueDbName = $"IntegrationTestDb_{Guid.NewGuid()}";
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("IntegrationTestDb");
+                    options.UseInMemoryDatabase(uniqueDbName);
                 });
 
                 // Build the service provider

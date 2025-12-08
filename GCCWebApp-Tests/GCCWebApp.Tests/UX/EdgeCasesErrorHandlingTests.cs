@@ -20,12 +20,12 @@ namespace GCCWebApp.Tests.UX
     /// Tests requirements: UX-003 to UX-007, ERROR-001 to ERROR-005
     /// Coverage: Form validation, error messages, network failures, data corruption, user guidance
     /// </summary>
-    public class EdgeCasesErrorHandlingTests : IClassFixture<WebApplicationFactory<Program>>
+    public class EdgeCasesErrorHandlingTests : IClassFixture<CustomWebApplicationFactory<Program>>
     {
-        private readonly WebApplicationFactory<Program> _factory;
+        private readonly CustomWebApplicationFactory<Program> _factory;
         private readonly HttpClient _client;
 
-        public EdgeCasesErrorHandlingTests(WebApplicationFactory<Program> factory)
+        public EdgeCasesErrorHandlingTests(CustomWebApplicationFactory<Program> factory)
         {
             _factory = factory;
             _client = _factory.CreateClient();

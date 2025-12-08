@@ -5,12 +5,12 @@ using FluentAssertions;
 
 namespace GCCWebApp.Tests
 {
-    public class SecurityIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+    public class SecurityIntegrationTests : IClassFixture<CustomWebApplicationFactory<Program>>
     {
-        private readonly WebApplicationFactory<Program> _factory;
+        private readonly CustomWebApplicationFactory<Program> _factory;
         private readonly HttpClient _client;
 
-        public SecurityIntegrationTests(WebApplicationFactory<Program> factory)
+        public SecurityIntegrationTests(CustomWebApplicationFactory<Program> factory)
         {
             _factory = factory;
             _client = _factory.CreateClient();

@@ -508,8 +508,11 @@ else
     app.UseDeveloperExceptionPage();
 }
 
-// HTTPS redirection
-app.UseHttpsRedirection();
+// HTTPS redirection - skip in Test environment to avoid "Failed to determine https port" errors
+if (!app.Environment.IsEnvironment("Test"))
+{
+    app.UseHttpsRedirection();
+}
 
 // CORS (must be before routing)
 app.UseCors("ApiCorsPolicy");

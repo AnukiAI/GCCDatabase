@@ -76,11 +76,12 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
         // Seed roles if they don't exist
         if (!db.Roles.Any())
         {
-            db.Roles.AddRange(
-                new GCCWebApp.Models.Role { Id = 1, Name = "Admin", Description = "Administrator role" },
-                new GCCWebApp.Models.Role { Id = 2, Name = "Analyst", Description = "Analyst role" },
-                new GCCWebApp.Models.Role { Id = 3, Name = "External", Description = "External user role" }
-            );
+            var adminRole = new GCCWebApp.Models.Role { Id = 1, Name = "Admin", Description = "Administrator role" };
+            var analystRole = new GCCWebApp.Models.Role { Id = 2, Name = "Analyst", Description = "Analyst role" };
+            var externalRole = new GCCWebApp.Models.Role { Id = 3, Name = "External", Description = "External user role" };
+
+            db.Roles.AddRange(adminRole, analystRole, externalRole);
+            db.SaveChanges();
         }
 
         // Seed test users if they don't exist
@@ -88,42 +89,54 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
         {
             // BCrypt hash for "TestPass123!"
             var passwordHash = "$2a$11$24Y94.bK.yWpd7.p/YDwZOy6qriBEiO5OGe0MmjsYjDPV04YLpqpa";
+            var adminRole = db.Roles.First(r => r.Name == "Admin");
+            var analystRole = db.Roles.First(r => r.Name == "Analyst");
+            var externalRole = db.Roles.First(r => r.Name == "External");
 
-            db.Users.AddRange(
-                new GCCWebApp.Models.User
-                {
-                    Id = 1,
-                    Username = "admin",
-                    Email = "swest@anukiconsulting.com",
-                    PasswordHash = passwordHash,
-                    FirstName = "Admin",
-                    LastName = "User",
-                    IsActive = true,
-                    RoleId = 1
-                },
-                new GCCWebApp.Models.User
-                {
-                    Id = 2,
-                    Username = "analyst",
-                    Email = "analyst@test.com",
-                    PasswordHash = passwordHash,
-                    FirstName = "Jane",
-                    LastName = "Analyst",
-                    IsActive = true,
-                    RoleId = 2
-                },
-                new GCCWebApp.Models.User
-                {
-                    Id = 3,
-                    Username = "external",
-                    Email = "external@test.com",
-                    PasswordHash = passwordHash,
-                    FirstName = "External",
-                    LastName = "User",
-                    IsActive = true,
-                    RoleId = 3
-                }
-            );
+            var adminUser = new GCCWebApp.Models.User
+            {
+                Id = 1,
+                Username = "admin",
+                Email = "swest@anukiconsulting.com",
+                PasswordHash = passwordHash,
+                Name = "Admin User",
+                FullName = "Admin User",
+                Status = "active",
+                TwoFactorMethod = "Email",
+                IsActive = true
+            };
+            adminUser.Roles.Add(adminRole);
+
+            var analystUser = new GCCWebApp.Models.User
+            {
+                Id = 2,
+                Username = "analyst",
+                Email = "analyst@test.com",
+                PasswordHash = passwordHash,
+                Name = "Jane Analyst",
+                FullName = "Jane Analyst",
+                Status = "active",
+                TwoFactorMethod = "Email",
+                IsActive = true
+            };
+            analystUser.Roles.Add(analystRole);
+
+            var externalUser = new GCCWebApp.Models.User
+            {
+                Id = 3,
+                Username = "external",
+                Email = "external@test.com",
+                PasswordHash = passwordHash,
+                Name = "External User",
+                FullName = "External User",
+                Status = "active",
+                TwoFactorMethod = "Email",
+                IsActive = true
+            };
+            externalUser.Roles.Add(externalRole);
+
+            db.Users.AddRange(adminUser, analystUser, externalUser);
+            db.SaveChanges();
         }
 
         // Seed certification types if they don't exist
@@ -133,15 +146,17 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
                 new GCCWebApp.Models.CertificationType { Id = 1, Name = "Certified Energy Savings", Description = "Energy efficiency certification", IsActive = true },
                 new GCCWebApp.Models.CertificationType { Id = 2, Name = "Certified Recycled Content", Description = "Recycled content certification", IsActive = true }
             );
+            db.SaveChanges();
         }
 
         // Seed companies if they don't exist
         if (!db.Companies.Any())
         {
             db.Companies.AddRange(
-                new GCCWebApp.Models.Company { Id = 1, Name = "Test Company", ContactEmail = "test@company.com", IsActive = true },
-                new GCCWebApp.Models.Company { Id = 2, Name = "Sample Corp", ContactEmail = "sample@corp.com", IsActive = true }
+                new GCCWebApp.Models.Company { Id = 1, Name = "Test Company", Email = "test@company.com", IsActive = true },
+                new GCCWebApp.Models.Company { Id = 2, Name = "Sample Corp", Email = "sample@corp.com", IsActive = true }
             );
+            db.SaveChanges();
         }
 
         // Seed products if they don't exist
@@ -151,8 +166,7 @@ public class CustomWebApplicationFactory<TProgram> : WebApplicationFactory<TProg
                 new GCCWebApp.Models.Product { Id = 1, Name = "Test Product", CompanyId = 1, IsActive = true },
                 new GCCWebApp.Models.Product { Id = 2, Name = "Sample Product", CompanyId = 2, IsActive = true }
             );
+            db.SaveChanges();
         }
-
-        db.SaveChanges();
     }
 }

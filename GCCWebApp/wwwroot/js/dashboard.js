@@ -5,8 +5,8 @@ async function downloadStat(statType) {
     console.log('Downloading stat:', statType);
 
     try {
-        // Use fetch to handle authentication properly - request Excel format
-        const response = await fetch(`/Export/DownloadStat?type=${statType}&format=excel`, {
+        // Use fetch to handle authentication properly - request CSV format
+        const response = await fetch(`/Export/DownloadStat?type=${statType}&format=csv`, {
             method: 'GET',
             credentials: 'same-origin', // Include cookies for authentication
             headers: {
@@ -22,7 +22,7 @@ async function downloadStat(statType) {
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = `${statType}-${new Date().toISOString().split('T')[0]}.xlsx`;
+            link.download = `${statType}-${new Date().toISOString().split('T')[0]}.csv`;
             link.style.display = 'none';
             
             document.body.appendChild(link);

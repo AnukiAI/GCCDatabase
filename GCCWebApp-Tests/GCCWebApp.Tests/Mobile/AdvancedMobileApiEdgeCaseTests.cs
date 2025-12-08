@@ -14,14 +14,14 @@ namespace GCCWebApp.Tests.Mobile
     /// Tests requirements: MOBILE-001 to MOBILE-005, API-006 to API-008
     /// Coverage: Mobile responsiveness edge cases, API rate limiting, offline scenarios, device-specific behaviors
     /// </summary>
-    public class AdvancedMobileApiEdgeCaseTests : IClassFixture<WebApplicationFactory<Program>>, IAsyncLifetime
+    public class AdvancedMobileApiEdgeCaseTests : IClassFixture<CustomWebApplicationFactory<Program>>, IAsyncLifetime
     {
-        private readonly WebApplicationFactory<Program> _factory;
+        private readonly CustomWebApplicationFactory<Program> _factory;
         private readonly HttpClient _httpClient;
         private IPlaywright _playwright = null!;
         private IBrowser _browser = null!;
 
-        public AdvancedMobileApiEdgeCaseTests(WebApplicationFactory<Program> factory)
+        public AdvancedMobileApiEdgeCaseTests(CustomWebApplicationFactory<Program> factory)
         {
             _factory = factory;
             _httpClient = _factory.CreateClient();

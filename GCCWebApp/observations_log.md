@@ -239,3 +239,82 @@ The JavaScript `initializeEventHandlers()` function was removing `onclick` attri
 - Tree View button is highlighted on page load (default view)
 - Clicking Table View highlights that button and removes highlight from Tree View
 - Clicking Tree View switches back and updates highlighting correctly
+
+---
+
+## 2025-12-07 - FIX APPLIED: Integration Test HTTPS Port Configuration
+
+### Issue
+~40+ integration tests were failing with error: "Failed to determine the https port for redirect"
+
+### Root Cause
+`app.UseHttpsRedirection()` in Program.cs was being called unconditionally. When tests use `WebApplicationFactory<Program>`, the test server doesn't have HTTPS configured, causing the middleware to fail when trying to determine the HTTPS port.
+
+### Fix Applied
+1. **Program.cs** (line 511-515): Made HTTPS redirection conditional on environment:
+   ```csharp
+   // HTTPS redirection - skip in Test environment to avoid "Failed to determine https port" errors
+   if (!app.Environment.IsEnvironment("Test"))
+   {
+       app.UseHttpsRedirection();
+   }
+   ```
+
+2. **Created `CustomWebApplicationFactory.cs`**: New shared test fixture that:
+   - Sets environment to "Test"
+   - Uses in-memory database
+   - Seeds test data (roles, users, companies, products, certification types)
+   - Configures HTTP-only (no HTTPS) for tests
+
+3. **Updated test classes** to use `CustomWebApplicationFactory<Program>` instead of `WebApplicationFactory<Program>`:
+   - `LoginIntegrationTests.cs`
+   - `PreDeploymentLoginSmokeTest`
+   - `SecurityIntegrationTests.cs` (IntegrationTests.cs)
+   - `EdgeCasesErrorHandlingTests.cs`
+   - `AdvancedMobileApiEdgeCaseTests.cs`
+   - `BusinessContinuityTests.cs`
+
+4. **Fixed `ProductControllerTests.cs`**: Updated constructor call to include new required parameters (logger, configuration)
+
+### Result
+- "Failed to determine the https port for redirect" warning eliminated from test output
+- Test infrastructure properly configured for HTTP-only testing
+
+### Files Modified
+- `GCCWebApp/Program.cs`
+- `GCCWebApp-Tests/GCCWebApp.Tests/CustomWebApplicationFactory.cs` (new)
+- `GCCWebApp-Tests/GCCWebApp.Tests/Authentication/LoginIntegrationTests.cs`
+- `GCCWebApp-Tests/GCCWebApp.Tests/IntegrationTests.cs`
+- `GCCWebApp-Tests/GCCWebApp.Tests/UX/EdgeCasesErrorHandlingTests.cs`
+- `GCCWebApp-Tests/GCCWebApp.Tests/Mobile/AdvancedMobileApiEdgeCaseTests.cs`
+- `GCCWebApp-Tests/GCCWebApp.Tests/Integration/BusinessContinuityTests.cs`
+- `GCCWebApp-Tests/GCCWebApp.Tests/Controllers/ProductControllerTests.cs`
+
+---
+
+## 2025-12-07 - Test Suite Status Summary
+
+### Current Test Results
+| Metric | Count |
+|--------|-------|
+| Total Tests | 591 |
+| Passed | 461 |
+| Failed | 130 |
+| Pass Rate | 78% |
+
+### Remaining Failure Categories (130 tests)
+1. **API Key Authentication Handler Tests** (~15 tests) - Mock setup issues with extension methods
+2. **Validation Service Tests** (~10 tests) - ASIN/UPC validation logic
+3. **JWT Token Service Tests** (~5 tests) - Token generation/validation
+4. **Login Integration Tests** (~7 tests) - Test database not having seeded users at login time
+5. **Mobile/UX Edge Case Tests** (~40 tests) - Playwright browser tests, network simulation
+6. **Document Controller Tests** (~3 tests) - File upload service mocking
+7. **Partner Management Tests** (~3 tests) - Service layer tests
+8. **Data Management/Migration Tests** (~5 tests) - Database migration tests
+9. **Email Service Tests** (~2 tests) - SMTP configuration tests
+
+### Next Steps to Improve Pass Rate
+1. Fix test database seeding to ensure users exist for login tests
+2. Update API Key Authentication Handler tests to use proper mock setup
+3. Review validation service logic vs test expectations
+4. Skip or mark as "requires browser" the Playwright-based mobile tests

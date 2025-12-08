@@ -226,11 +226,11 @@ public class LoginIntegrationTests : IClassFixture<CustomWebApplicationFactory<P
 /// Run this before every deployment to ensure login works
 /// </summary>
 [Collection("PreDeployment")]
-public class PreDeploymentLoginSmokeTest : IClassFixture<WebApplicationFactory<Program>>
+public class PreDeploymentLoginSmokeTest : IClassFixture<CustomWebApplicationFactory<Program>>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly CustomWebApplicationFactory<Program> _factory;
 
-    public PreDeploymentLoginSmokeTest(WebApplicationFactory<Program> factory)
+    public PreDeploymentLoginSmokeTest(CustomWebApplicationFactory<Program> factory)
     {
         _factory = factory;
     }

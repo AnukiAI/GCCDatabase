@@ -17,12 +17,12 @@ namespace GCCWebApp.Tests.Integration
     /// Business Continuity & Deployment Tests (BC-001 to BC-007)
     /// Tests backup/recovery, rollback procedures, deployment readiness, and post-launch support
     /// </summary>
-    public class BusinessContinuityTests : IClassFixture<WebApplicationFactory<Program>>
+    public class BusinessContinuityTests : IClassFixture<CustomWebApplicationFactory<Program>>
     {
-        private readonly WebApplicationFactory<Program> _factory;
+        private readonly CustomWebApplicationFactory<Program> _factory;
         private readonly HttpClient _client;
 
-        public BusinessContinuityTests(WebApplicationFactory<Program> factory)
+        public BusinessContinuityTests(CustomWebApplicationFactory<Program> factory)
         {
             _factory = factory;
             _client = _factory.CreateClient();

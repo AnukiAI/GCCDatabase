@@ -111,6 +111,12 @@ namespace GCCWebApp.Models
         public string? SessionId { get; set; }
 
         /// <summary>
+        /// Import batch ID for correlating all records from a single import operation
+        /// Used for Phase 2 Import History tracking
+        /// </summary>
+        public Guid? ImportBatchId { get; set; }
+
+        /// <summary>
         /// Additional metadata stored as JSON
         /// E.g., {"RoleName": "Admin", "BulkImport": true}
         /// </summary>
@@ -138,6 +144,11 @@ namespace GCCWebApp.Models
         public const string RoleAssigned = "ROLE_ASSIGNED";
         public const string RoleRemoved = "ROLE_REMOVED";
         public const string StatusChange = "STATUS_CHANGE";
+        // Import-specific actions for Phase 2 history tracking
+        public const string ImportCreate = "IMPORT_CREATE";
+        public const string ImportUpdate = "IMPORT_UPDATE";
+        public const string ImportSkipped = "IMPORT_SKIPPED";
+        public const string ImportError = "IMPORT_ERROR";
     }
 
     /// <summary>

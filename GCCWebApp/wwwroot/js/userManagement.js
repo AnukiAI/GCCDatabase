@@ -641,6 +641,10 @@ class UserManagement {
         }
     }
 
+    // Import preview state
+    importPreviewData = [];
+    importFileName = '';
+
     async showImportModal() {
         const input = document.createElement('input');
         input.type = 'file';
@@ -648,64 +652,453 @@ class UserManagement {
         input.onchange = async (e) => {
             const file = e.target.files[0];
             if (file) {
-                const formData = new FormData();
-                formData.append('file', file);
-
-                // Get anti-forgery token
-                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
-                if (token) {
-                    formData.append('__RequestVerificationToken', token);
-                }
-
-                try {
-                    this.showNotification('Importing users...', 'info');
-                    this.showLoading(true, 'Importing users...');
-
-                    const response = await fetch('/Admin/ImportUsers', {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'RequestVerificationToken': token
-                        }
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        this.showNotification(result.message || 'Users imported successfully', 'success');
-
-                        // Show detailed results if there are errors
-                        if (result.data && result.data.errors && result.data.errors.length > 0) {
-                            let errorMsg = `Import completed with ${result.data.successCount} successes and ${result.data.errorCount} errors.\n\nFirst errors:\n`;
-                            errorMsg += result.data.errors.slice(0, 5).join('\n');
-                            if (result.data.errors.length > 5) {
-                                errorMsg += `\n... and ${result.data.errors.length - 5} more`;
-                            }
-                            console.warn('Import errors:', result.data.errors);
-
-                            await AdminCore.showConfirmation({
-                                title: 'Import Results',
-                                message: errorMsg,
-                                confirmText: 'OK',
-                                type: 'warning'
-                            });
-                        }
-
-                        // Reload users
-                        await this.loadUsers();
-                        this.renderUsers();
-                    } else {
-                        this.showNotification(result.message || 'Import failed', 'error');
-                    }
-                } catch (error) {
-                    console.error('Import error:', error);
-                    this.showNotification('Error importing users', 'error');
-                } finally {
-                    this.showLoading(false);
-                }
+                this.importFileName = file.name;
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const contents = event.target.result;
+                    await this.parseAndPreviewImport(contents);
+                };
+                reader.readAsText(file);
             }
         };
         input.click();
+    }
+
+    async parseAndPreviewImport(contents) {
+        const lines = contents.split('\n');
+        const parsedUsers = [];
+
+        // Parse CSV (skip header row)
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const fields = this.parseCSVLine(line);
+            if (fields.length < 2) continue;
+
+            const name = fields[0]?.trim();
+            const email = fields[1]?.trim();
+            if (!name && !email) continue;
+
+            parsedUsers.push({
+                rowNumber: i,
+                name: name || '',
+                email: email || '',
+                company: fields[2]?.trim() || '',
+                role: fields[3]?.trim() || 'External',
+                status: fields[4]?.trim()?.toLowerCase() || 'active',
+                password: fields[5]?.trim() || '',
+                requirePasswordReset: fields[6]?.trim()?.toLowerCase() === 'true'
+            });
+        }
+
+        if (parsedUsers.length === 0) {
+            this.showNotification('No valid users found in CSV file', 'warning');
+            return;
+        }
+
+        // Compare with existing users and build preview
+        await this.buildImportPreview(parsedUsers);
+    }
+
+    async buildImportPreview(parsedUsers) {
+        this.importPreviewData = [];
+
+        for (const importUser of parsedUsers) {
+            // Match by email (primary identifier for users)
+            const existingUser = this.users.find(u =>
+                u.email?.toLowerCase() === importUser.email?.toLowerCase()
+            );
+
+            const previewRow = {
+                rowNumber: importUser.rowNumber,
+                data: importUser,
+                existingData: existingUser || null,
+                status: 'new',
+                changes: [],
+                errors: [],
+                selected: true,
+                action: 'create'
+            };
+
+            if (existingUser) {
+                // Compare fields and determine status
+                const changes = [];
+
+                if (existingUser.name !== importUser.name) {
+                    changes.push({ field: 'Name', oldValue: existingUser.name, newValue: importUser.name });
+                }
+                if (existingUser.role !== importUser.role) {
+                    changes.push({ field: 'Role', oldValue: existingUser.role, newValue: importUser.role });
+                }
+                if (existingUser.status?.toLowerCase() !== importUser.status?.toLowerCase()) {
+                    changes.push({ field: 'Status', oldValue: existingUser.status, newValue: importUser.status });
+                }
+
+                if (changes.length > 0) {
+                    previewRow.status = 'modified';
+                    previewRow.changes = changes;
+                    previewRow.action = 'update';
+                } else {
+                    previewRow.status = 'unchanged';
+                    previewRow.selected = false;
+                    previewRow.action = 'skip';
+                }
+            }
+
+            // Validate
+            if (!importUser.name) {
+                previewRow.errors.push('Name is required');
+            }
+            if (!importUser.email) {
+                previewRow.errors.push('Email is required');
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(importUser.email)) {
+                previewRow.errors.push('Invalid email format');
+            }
+            if (!['Admin', 'Analyst', 'External', 'Public'].includes(importUser.role)) {
+                previewRow.errors.push('Invalid role');
+            }
+
+            if (previewRow.errors.length > 0) {
+                previewRow.status = 'error';
+                previewRow.selected = false;
+            }
+
+            this.importPreviewData.push(previewRow);
+        }
+
+        // Show preview modal
+        this.showImportPreviewModal();
+    }
+
+    showImportPreviewModal() {
+        const modal = document.getElementById('import-preview-modal');
+        if (!modal) return;
+
+        // Calculate statistics
+        const stats = {
+            new: this.importPreviewData.filter(r => r.status === 'new').length,
+            modified: this.importPreviewData.filter(r => r.status === 'modified').length,
+            unchanged: this.importPreviewData.filter(r => r.status === 'unchanged').length,
+            errors: this.importPreviewData.filter(r => r.status === 'error').length
+        };
+
+        // Update stats display
+        document.getElementById('stat-new').textContent = stats.new;
+        document.getElementById('stat-modified').textContent = stats.modified;
+        document.getElementById('stat-unchanged').textContent = stats.unchanged;
+        document.getElementById('stat-errors').textContent = stats.errors;
+
+        // Build table rows
+        const tbody = document.getElementById('import-preview-body');
+        tbody.innerHTML = '';
+
+        this.importPreviewData.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            tr.dataset.index = index;
+
+            const statusColors = {
+                'new': { bg: '#e8f5e1', color: '#447638', label: 'New' },
+                'modified': { bg: '#e6f7ff', color: '#002B76', label: 'Modified' },
+                'unchanged': { bg: '#f5f5f5', color: '#999', label: 'Unchanged' },
+                'error': { bg: '#ffebee', color: '#ff5252', label: 'Error' }
+            };
+            const statusStyle = statusColors[row.status];
+
+            tr.style.backgroundColor = row.status === 'error' ? '#fff5f5' : '';
+
+            tr.innerHTML = `
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                    <input type="checkbox" class="import-row-checkbox"
+                           data-index="${index}"
+                           ${row.selected ? 'checked' : ''}
+                           ${row.status === 'error' ? 'disabled' : ''}
+                           onchange="userManagement.updateImportRowSelection(${index}, this.checked)">
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; font-family: monospace;">${row.rowNumber}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                    <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: ${statusStyle.bg}; color: ${statusStyle.color};">
+                        ${statusStyle.label}
+                    </span>
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                    ${this.renderFieldWithDiff(row, 'name')}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                    ${this.escapeHtml(row.data.email || '')}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                    ${this.renderFieldWithDiff(row, 'role')}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                    ${this.renderFieldWithDiff(row, 'status')}
+                    ${row.errors.length > 0 ? `<div style="color: #ff5252; font-size: 11px; margin-top: 4px;">${row.errors.join(', ')}</div>` : ''}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                    ${this.renderActionDropdown(row, index)}
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        // Update counts
+        this.updateSelectedCount();
+
+        // Show modal
+        modal.style.setProperty('display', 'block', 'important');
+    }
+
+    renderFieldWithDiff(row, field) {
+        const newValue = row.data[field] || '';
+
+        if (row.status === 'modified' && row.existingData) {
+            const oldValue = row.existingData[field] || '';
+            if (oldValue !== newValue) {
+                return `
+                    <div class="field-conflict">
+                        <div style="display: flex; gap: 6px; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #666; font-weight: 600;">CURRENT:</div>
+                                <div style="padding: 3px 6px; background: #fff3cd; border-radius: 3px; font-size: 12px;">${this.escapeHtml(oldValue || '(empty)')}</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #666; font-weight: 600;">IMPORT:</div>
+                                <div style="padding: 3px 6px; background: #d4edda; border-radius: 3px; font-size: 12px;">${this.escapeHtml(newValue || '(empty)')}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        return this.escapeHtml(newValue);
+    }
+
+    renderActionDropdown(row, index) {
+        if (row.status === 'error') {
+            return '<span style="color: #999; font-size: 12px;">Cannot import</span>';
+        }
+
+        if (row.status === 'new') {
+            return `
+                <select class="import-action-select" data-index="${index}" onchange="userManagement.updateImportRowAction(${index}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                    <option value="create" ${row.action === 'create' ? 'selected' : ''}>Create</option>
+                    <option value="skip" ${row.action === 'skip' ? 'selected' : ''}>Skip</option>
+                </select>
+            `;
+        }
+
+        if (row.status === 'modified') {
+            return `
+                <div style="display: flex; flex-direction: column; gap: 4px;">
+                    <select class="import-action-select" data-index="${index}" onchange="userManagement.updateImportRowAction(${index}, this.value)" style="padding: 5px 8px; border: 2px solid #002B76; border-radius: 4px; font-size: 12px; font-weight: 500;">
+                        <option value="update" ${row.action === 'update' ? 'selected' : ''}>Use Import</option>
+                        <option value="keep" ${row.action === 'keep' ? 'selected' : ''}>Keep Current</option>
+                        <option value="skip" ${row.action === 'skip' ? 'selected' : ''}>Skip Row</option>
+                    </select>
+                </div>
+            `;
+        }
+
+        if (row.status === 'unchanged') {
+            return '<span style="color: #999; font-size: 12px;">No changes</span>';
+        }
+
+        return '';
+    }
+
+    updateImportRowSelection(index, selected) {
+        this.importPreviewData[index].selected = selected;
+        if (!selected) {
+            this.importPreviewData[index].action = 'skip';
+        } else {
+            if (this.importPreviewData[index].status === 'new') {
+                this.importPreviewData[index].action = 'create';
+            } else if (this.importPreviewData[index].status === 'modified') {
+                this.importPreviewData[index].action = 'update';
+            }
+        }
+        this.updateSelectedCount();
+    }
+
+    updateImportRowAction(index, action) {
+        this.importPreviewData[index].action = action;
+        this.importPreviewData[index].selected = (action !== 'skip' && action !== 'keep');
+
+        const checkbox = document.querySelector(`input.import-row-checkbox[data-index="${index}"]`);
+        if (checkbox) {
+            checkbox.checked = (action !== 'skip' && action !== 'keep');
+        }
+
+        this.updateSelectedCount();
+    }
+
+    toggleAllImportRows(checkbox) {
+        const checked = checkbox.checked;
+        this.importPreviewData.forEach((row, index) => {
+            if (row.status !== 'error' && row.status !== 'unchanged') {
+                row.selected = checked;
+                row.action = checked ? (row.status === 'new' ? 'create' : 'update') : 'skip';
+
+                const rowCheckbox = document.querySelector(`input.import-row-checkbox[data-index="${index}"]`);
+                if (rowCheckbox) {
+                    rowCheckbox.checked = checked;
+                }
+            }
+        });
+        this.updateSelectedCount();
+    }
+
+    updateSelectedCount() {
+        const toProcessCount = this.importPreviewData.filter(r =>
+            r.action === 'create' || r.action === 'update'
+        ).length;
+        const keptCount = this.importPreviewData.filter(r => r.action === 'keep').length;
+        const totalActionable = this.importPreviewData.filter(r =>
+            r.status !== 'error' && r.status !== 'unchanged'
+        ).length;
+
+        const countContainer = document.querySelector('.import-selected-count');
+        if (countContainer) {
+            let label = `${toProcessCount} of ${totalActionable} rows will be imported`;
+            if (keptCount > 0) {
+                label += ` (${keptCount} keeping current)`;
+            }
+            countContainer.innerHTML = label;
+        }
+
+        const applyBtn = document.getElementById('apply-import-btn');
+        if (applyBtn) {
+            const hasChanges = toProcessCount > 0;
+            applyBtn.disabled = !hasChanges;
+            applyBtn.style.opacity = hasChanges ? '1' : '0.5';
+            applyBtn.innerHTML = hasChanges
+                ? `<i class="fas fa-check"></i> Apply Import (${toProcessCount})`
+                : '<i class="fas fa-check"></i> Apply Import';
+        }
+    }
+
+    closeImportPreviewModal() {
+        const modal = document.getElementById('import-preview-modal');
+        if (modal) {
+            modal.style.setProperty('display', 'none', 'important');
+        }
+        this.importPreviewData = [];
+        this.importFileName = '';
+    }
+
+    async applySelectedImport() {
+        const rowsToProcess = this.importPreviewData.filter(r =>
+            r.action === 'create' || r.action === 'update'
+        );
+
+        const keptCount = this.importPreviewData.filter(r => r.action === 'keep').length;
+
+        if (rowsToProcess.length === 0) {
+            if (keptCount > 0) {
+                this.showNotification(`No changes to apply. ${keptCount} row(s) keeping current values.`, 'info');
+            } else {
+                this.showNotification('No rows selected for import', 'warning');
+            }
+            return;
+        }
+
+        const token = this.getAntiForgeryToken();
+        let successCount = 0;
+        let errorCount = 0;
+        const errors = [];
+
+        this.showLoading(true, 'Importing users...');
+
+        for (const row of rowsToProcess) {
+            try {
+                let response;
+                const userData = {
+                    name: row.data.name,
+                    email: row.data.email,
+                    role: row.data.role,
+                    status: row.data.status,
+                    password: row.data.password || 'TempPassword123!',
+                    requirePasswordReset: row.data.requirePasswordReset || !row.data.password
+                };
+
+                if (row.action === 'create') {
+                    response = await fetch('/Admin/CreateUser', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        },
+                        body: JSON.stringify(userData)
+                    });
+                } else if (row.action === 'update' && row.existingData) {
+                    response = await fetch(`/Admin/UpdateUser/${row.existingData.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        },
+                        body: JSON.stringify(userData)
+                    });
+                }
+
+                if (response) {
+                    const result = await response.json();
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push(`Row ${row.rowNumber} (${row.data.email}): ${result.message || 'Unknown error'}`);
+                    }
+                }
+            } catch (error) {
+                errorCount++;
+                errors.push(`Row ${row.rowNumber} (${row.data.email}): ${error.message}`);
+            }
+        }
+
+        this.showLoading(false);
+        this.closeImportPreviewModal();
+        await this.loadUsers();
+        this.renderUsers();
+
+        const keptMessage = keptCount > 0 ? `, ${keptCount} kept unchanged` : '';
+        if (errorCount === 0) {
+            this.showNotification(`Import complete: ${successCount} users processed successfully${keptMessage}`, 'success');
+        } else if (successCount > 0) {
+            this.showNotification(`Import partial: ${successCount} succeeded, ${errorCount} failed${keptMessage}`, 'warning');
+            console.error('Import errors:', errors);
+        } else {
+            this.showNotification(`Import failed: ${errorCount} errors occurred`, 'error');
+            console.error('Import errors:', errors);
+        }
+    }
+
+    parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+
+            if (char === '"') {
+                if (inQuotes && line[i + 1] === '"') {
+                    current += '"';
+                    i++;
+                } else {
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === ',' && !inQuotes) {
+                result.push(current);
+                current = '';
+            } else {
+                current += char;
+            }
+        }
+        result.push(current);
+        return result;
     }
     
     showLoading(show, message = 'Loading...') {

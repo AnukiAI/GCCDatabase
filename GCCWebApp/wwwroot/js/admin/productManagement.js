@@ -6,7 +6,11 @@ class ProductManagement {
         this.currentSort = { field: 'name', direction: 'asc' };
         this.currentEditingId = null;
         this.addingNew = false;
-        
+
+        // Import preview state
+        this.importPreviewData = [];
+        this.importFileName = '';
+
         this.init();
     }
     
@@ -540,8 +544,521 @@ class ProductManagement {
     }
 
     showImportModal() {
-        // TODO: Implement import functionality
-        this.showToast('Import functionality coming soon', 'info');
+        // Create file input and trigger file selection
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.csv';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) {
+                document.body.removeChild(fileInput);
+                return;
+            }
+
+            this.importFileName = file.name;
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const contents = event.target.result;
+                await this.parseAndPreviewImport(contents);
+                document.body.removeChild(fileInput);
+            };
+            reader.onerror = () => {
+                this.showToast('Error reading file', 'error');
+                document.body.removeChild(fileInput);
+            };
+            reader.readAsText(file);
+        });
+
+        fileInput.click();
+    }
+
+    async parseAndPreviewImport(contents) {
+        try {
+            const lines = contents.split(/\r?\n/).filter(line => line.trim());
+            if (lines.length < 2) {
+                this.showToast('CSV file must have a header row and at least one data row', 'error');
+                return;
+            }
+
+            // Parse header
+            const headers = this.parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+            const requiredFields = ['name'];
+            const missingFields = requiredFields.filter(f => !headers.includes(f));
+
+            if (missingFields.length > 0) {
+                this.showToast(`Missing required fields: ${missingFields.join(', ')}`, 'error');
+                return;
+            }
+
+            // Parse data rows
+            const parsedProducts = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = this.parseCSVLine(lines[i]);
+                if (values.length === 0 || values.every(v => !v.trim())) continue;
+
+                const product = {};
+                headers.forEach((header, index) => {
+                    product[header] = values[index]?.trim() || '';
+                });
+
+                parsedProducts.push({
+                    rowNumber: i,
+                    data: {
+                        name: product.name || '',
+                        description: product.description || '',
+                        productType: product.producttype || '',
+                        company: product.company || '',
+                        status: product.status || 'Active'
+                    }
+                });
+            }
+
+            if (parsedProducts.length === 0) {
+                this.showToast('No valid data rows found in CSV', 'error');
+                return;
+            }
+
+            // Build preview with comparison to existing data
+            await this.buildImportPreview(parsedProducts);
+
+        } catch (error) {
+            console.error('Error parsing CSV:', error);
+            this.showToast('Error parsing CSV file', 'error');
+        }
+    }
+
+    async buildImportPreview(parsedProducts) {
+        this.importPreviewData = [];
+
+        // Compare with existing products
+        parsedProducts.forEach(row => {
+            const existingProduct = this.products.find(p =>
+                p.name.toLowerCase() === row.data.name.toLowerCase()
+            );
+
+            if (existingProduct) {
+                // Check if there are actual differences
+                const hasChanges =
+                    (row.data.description && row.data.description !== (existingProduct.description || '')) ||
+                    (row.data.productType && row.data.productType !== (existingProduct.productTypeName || '')) ||
+                    (row.data.company && row.data.company !== (existingProduct.companyName || ''));
+
+                if (hasChanges) {
+                    this.importPreviewData.push({
+                        rowNumber: row.rowNumber,
+                        data: row.data,
+                        existingData: {
+                            id: existingProduct.id,
+                            name: existingProduct.name,
+                            description: existingProduct.description || '',
+                            productType: existingProduct.productTypeName || '',
+                            company: existingProduct.companyName || '',
+                            status: existingProduct.isActive ? 'Active' : 'Inactive'
+                        },
+                        status: 'modified',
+                        action: 'update',
+                        selected: true
+                    });
+                } else {
+                    this.importPreviewData.push({
+                        rowNumber: row.rowNumber,
+                        data: row.data,
+                        existingData: {
+                            id: existingProduct.id,
+                            name: existingProduct.name,
+                            description: existingProduct.description || '',
+                            productType: existingProduct.productTypeName || '',
+                            company: existingProduct.companyName || '',
+                            status: existingProduct.isActive ? 'Active' : 'Inactive'
+                        },
+                        status: 'unchanged',
+                        action: 'skip',
+                        selected: false
+                    });
+                }
+            } else {
+                // New product
+                this.importPreviewData.push({
+                    rowNumber: row.rowNumber,
+                    data: row.data,
+                    existingData: null,
+                    status: 'new',
+                    action: 'create',
+                    selected: true
+                });
+            }
+        });
+
+        // Show preview modal
+        this.showImportPreviewModal();
+    }
+
+    showImportPreviewModal() {
+        const modal = document.getElementById('import-preview-modal');
+        if (!modal) {
+            this.showToast('Import preview modal not found', 'error');
+            return;
+        }
+
+        // Calculate stats
+        const stats = {
+            total: this.importPreviewData.length,
+            new: this.importPreviewData.filter(r => r.status === 'new').length,
+            modified: this.importPreviewData.filter(r => r.status === 'modified').length,
+            unchanged: this.importPreviewData.filter(r => r.status === 'unchanged').length,
+            errors: this.importPreviewData.filter(r => r.status === 'error').length
+        };
+
+        // Update stats display
+        document.getElementById('import-stat-new').textContent = stats.new;
+        document.getElementById('import-stat-modified').textContent = stats.modified;
+        document.getElementById('import-stat-unchanged').textContent = stats.unchanged;
+        document.getElementById('import-stat-errors').textContent = stats.errors;
+
+        // Update filename display
+        const filenameEl = document.getElementById('import-filename');
+        if (filenameEl) {
+            filenameEl.textContent = this.importFileName;
+        }
+
+        // Build preview table
+        const tbody = document.getElementById('import-preview-tbody');
+        tbody.innerHTML = '';
+
+        this.importPreviewData.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            tr.className = `import-row import-row-${row.status}`;
+            tr.dataset.index = index;
+
+            // Status badge
+            const statusLabels = {
+                'new': '<span class="badge badge-success">New</span>',
+                'modified': '<span class="badge badge-warning">Modified</span>',
+                'unchanged': '<span class="badge badge-secondary">Unchanged</span>',
+                'error': '<span class="badge badge-danger">Error</span>'
+            };
+
+            tr.innerHTML = `
+                <td style="text-align: center;">
+                    <input type="checkbox" class="import-row-checkbox" data-index="${index}" ${row.selected ? 'checked' : ''} ${row.status === 'error' ? 'disabled' : ''}>
+                </td>
+                <td style="text-align: center;">${row.rowNumber}</td>
+                <td>${statusLabels[row.status]}</td>
+                <td>${this.renderFieldWithDiff(row, 'name')}</td>
+                <td>${this.renderFieldWithDiff(row, 'description')}</td>
+                <td>${this.renderActionDropdown(row, index)}</td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        // Bind checkbox events
+        tbody.querySelectorAll('.import-row-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                this.updateImportRowSelection(parseInt(e.target.dataset.index), e.target.checked);
+            });
+        });
+
+        // Bind action dropdown events
+        tbody.querySelectorAll('.import-action-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                this.updateImportRowAction(parseInt(e.target.dataset.index), e.target.value);
+            });
+        });
+
+        // Bind select all checkbox
+        const selectAllCheckbox = document.getElementById('import-select-all');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.checked = this.importPreviewData.filter(r => r.status !== 'error').every(r => r.selected);
+            selectAllCheckbox.addEventListener('change', (e) => {
+                this.toggleAllImportRows(e.target.checked);
+            });
+        }
+
+        // Update selected count
+        this.updateSelectedCount();
+
+        // Show modal
+        modal.style.display = 'block';
+    }
+
+    renderFieldWithDiff(row, field) {
+        const escapeHtml = (str) => {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
+
+        const newValue = row.data[field] || '';
+
+        if (row.status === 'modified' && row.existingData) {
+            const oldValue = row.existingData[field] || '';
+            if (oldValue !== newValue) {
+                return `
+                    <div class="field-conflict" data-field="${field}" data-index="${row.rowNumber}">
+                        <div style="display: flex; gap: 8px; align-items: flex-start;">
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #666; margin-bottom: 2px; font-weight: 600;">CURRENT:</div>
+                                <div style="padding: 4px 8px; background: #fff3cd; border-radius: 4px; font-size: 13px; border: 1px solid #ffc107;">${escapeHtml(oldValue || '(empty)')}</div>
+                            </div>
+                            <div style="flex: 1;">
+                                <div style="font-size: 10px; color: #666; margin-bottom: 2px; font-weight: 600;">IMPORT:</div>
+                                <div style="padding: 4px 8px; background: #d4edda; border-radius: 4px; font-size: 13px; border: 1px solid #28a745;">${escapeHtml(newValue || '(empty)')}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        return `<span>${escapeHtml(newValue)}</span>`;
+    }
+
+    renderActionDropdown(row, index) {
+        if (row.status === 'error') {
+            return '<span class="text-muted">N/A</span>';
+        }
+
+        if (row.status === 'new') {
+            return `
+                <select class="import-action-select form-control form-control-sm" data-index="${index}">
+                    <option value="create" ${row.action === 'create' ? 'selected' : ''}>Create New</option>
+                    <option value="skip" ${row.action === 'skip' ? 'selected' : ''}>Skip Row</option>
+                </select>
+            `;
+        }
+
+        if (row.status === 'modified') {
+            return `
+                <select class="import-action-select form-control form-control-sm" data-index="${index}">
+                    <option value="update" ${row.action === 'update' ? 'selected' : ''}>Use Import Data</option>
+                    <option value="keep" ${row.action === 'keep' ? 'selected' : ''}>Keep Current</option>
+                    <option value="skip" ${row.action === 'skip' ? 'selected' : ''}>Skip Row</option>
+                </select>
+            `;
+        }
+
+        if (row.status === 'unchanged') {
+            return `
+                <select class="import-action-select form-control form-control-sm" data-index="${index}">
+                    <option value="skip" ${row.action === 'skip' ? 'selected' : ''}>Skip Row</option>
+                    <option value="update" ${row.action === 'update' ? 'selected' : ''}>Update Anyway</option>
+                </select>
+            `;
+        }
+
+        return '';
+    }
+
+    updateImportRowSelection(index, checked) {
+        if (index >= 0 && index < this.importPreviewData.length) {
+            this.importPreviewData[index].selected = checked;
+            this.updateSelectedCount();
+        }
+    }
+
+    updateImportRowAction(index, action) {
+        if (index >= 0 && index < this.importPreviewData.length) {
+            this.importPreviewData[index].action = action;
+            // Auto-select if choosing an action other than skip
+            if (action !== 'skip' && action !== 'keep') {
+                this.importPreviewData[index].selected = true;
+                const checkbox = document.querySelector(`.import-row-checkbox[data-index="${index}"]`);
+                if (checkbox) checkbox.checked = true;
+            }
+            this.updateSelectedCount();
+        }
+    }
+
+    toggleAllImportRows(checked) {
+        this.importPreviewData.forEach((row, index) => {
+            if (row.status !== 'error') {
+                row.selected = checked;
+                const checkbox = document.querySelector(`.import-row-checkbox[data-index="${index}"]`);
+                if (checkbox) checkbox.checked = checked;
+            }
+        });
+        this.updateSelectedCount();
+    }
+
+    updateSelectedCount() {
+        const selectedForImport = this.importPreviewData.filter(r =>
+            r.selected && r.action !== 'skip' && r.action !== 'keep' && r.status !== 'error'
+        ).length;
+        const keepingCurrent = this.importPreviewData.filter(r =>
+            r.selected && r.action === 'keep'
+        ).length;
+        const total = this.importPreviewData.filter(r => r.status !== 'error').length;
+
+        const countEl = document.getElementById('import-selected-count');
+        if (countEl) {
+            let text = `${selectedForImport} of ${total} rows will be imported`;
+            if (keepingCurrent > 0) {
+                text += ` (${keepingCurrent} keeping current)`;
+            }
+            countEl.textContent = text;
+        }
+
+        // Update apply button state
+        const applyBtn = document.getElementById('import-apply-btn');
+        if (applyBtn) {
+            applyBtn.disabled = selectedForImport === 0 && keepingCurrent === 0;
+        }
+    }
+
+    closeImportPreviewModal() {
+        const modal = document.getElementById('import-preview-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        this.importPreviewData = [];
+        this.importFileName = '';
+    }
+
+    async applySelectedImport() {
+        const rowsToProcess = this.importPreviewData.filter(r =>
+            r.selected && r.action !== 'skip' && r.status !== 'error'
+        );
+
+        if (rowsToProcess.length === 0) {
+            this.showToast('No rows selected for import', 'warning');
+            return;
+        }
+
+        // Separate by action type
+        const toCreate = rowsToProcess.filter(r => r.action === 'create');
+        const toUpdate = rowsToProcess.filter(r => r.action === 'update');
+        const toKeep = rowsToProcess.filter(r => r.action === 'keep');
+
+        let successCount = 0;
+        let errorCount = 0;
+        const errors = [];
+
+        this.showLoading(true, 'Importing products...');
+
+        try {
+            // Process creates
+            for (const row of toCreate) {
+                try {
+                    const productData = {
+                        name: row.data.name,
+                        description: row.data.description || '',
+                        isActive: row.data.status?.toLowerCase() !== 'inactive'
+                    };
+
+                    const response = await fetch('/Admin/CreateProduct', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': this.getAntiForgeryToken()
+                        },
+                        body: JSON.stringify(productData)
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push(`Row ${row.rowNumber} (${row.data.name}): ${result.message}`);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`Row ${row.rowNumber} (${row.data.name}): ${error.message}`);
+                }
+            }
+
+            // Process updates
+            for (const row of toUpdate) {
+                try {
+                    const productData = {
+                        name: row.data.name,
+                        description: row.data.description || row.existingData?.description || '',
+                        isActive: row.data.status?.toLowerCase() !== 'inactive'
+                    };
+
+                    const response = await fetch(`/Admin/UpdateProduct/${row.existingData.id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': this.getAntiForgeryToken()
+                        },
+                        body: JSON.stringify(productData)
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push(`Row ${row.rowNumber} (${row.data.name}): ${result.message}`);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`Row ${row.rowNumber} (${row.data.name}): ${error.message}`);
+                }
+            }
+
+            // Count keeps as success (they chose to keep current)
+            successCount += toKeep.length;
+
+            this.closeImportPreviewModal();
+            await this.loadProducts();
+            this.renderProducts();
+
+            if (errorCount === 0) {
+                this.showToast(`Successfully imported ${successCount} products`, 'success');
+            } else {
+                this.showToast(`Imported ${successCount} products with ${errorCount} errors`, 'warning');
+                console.error('Import errors:', errors);
+            }
+
+        } catch (error) {
+            console.error('Import error:', error);
+            this.showToast('Error during import. Please try again.', 'error');
+        } finally {
+            this.showLoading(false);
+        }
+    }
+
+    parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            const nextChar = line[i + 1];
+
+            if (inQuotes) {
+                if (char === '"' && nextChar === '"') {
+                    current += '"';
+                    i++;
+                } else if (char === '"') {
+                    inQuotes = false;
+                } else {
+                    current += char;
+                }
+            } else {
+                if (char === '"') {
+                    inQuotes = true;
+                } else if (char === ',') {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+        }
+        result.push(current);
+        return result;
     }
 
     async exportProducts() {

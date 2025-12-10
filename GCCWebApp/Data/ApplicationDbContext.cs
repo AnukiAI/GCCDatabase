@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
 using GCCWebApp.Models;
+using GCCWebApp.Models.Import;
 
 namespace GCCWebApp.Data
 {
@@ -24,6 +25,7 @@ namespace GCCWebApp.Data
         public DbSet<CertificateProductId> CertificateProductIds { get; set; }
         public DbSet<CertificateStatusHistory> CertificateStatusHistory { get; set; }
         public DbSet<AuditHistory> AuditHistory { get; set; }
+        public DbSet<ImportBatch> ImportBatches { get; set; }
 
         // Product related entities
         public DbSet<ProductCategory> ProductCategories { get; set; }

@@ -542,7 +542,11 @@ function downloadImportTemplate() {
     }
 }
 
-// Function to handle CSV import for tags
+// Import preview state
+let importPreviewData = [];
+let importFileName = '';
+
+// Function to handle CSV import with preview
 async function showImportModal() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
@@ -552,93 +556,464 @@ async function showImportModal() {
         const file = event.target.files[0];
         if (!file) return;
 
+        importFileName = file.name;
+
         const reader = new FileReader();
         reader.onload = async (e) => {
             const contents = e.target.result;
             const lines = contents.split('\n');
 
-            // Skip header row and process data
-            const tagsToImport = [];
+            // Skip header row and parse data
+            const parsedTags = [];
 
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                // Parse CSV properly handling quoted fields
                 const fields = parseCSVLine(line);
                 if (fields.length < 1) continue;
 
                 const name = fields[0]?.trim();
                 if (!name) continue;
 
-                // Validate tag type
                 let tagType = fields[1]?.trim().toLowerCase() || 'external';
                 if (tagType !== 'external' && tagType !== 'internal') {
-                    tagType = 'external'; // Default to external if invalid
+                    tagType = 'external';
                 }
 
-                tagsToImport.push({
+                parsedTags.push({
+                    rowNumber: i,
                     name: name,
                     tagType: tagType,
                     description: fields[2]?.trim() || ''
                 });
             }
 
-            if (tagsToImport.length === 0) {
+            if (parsedTags.length === 0) {
                 AdminCore.showNotification('No valid tags found in CSV file', 'warning');
                 return;
             }
 
-            // Save each tag to the database
-            const token = getAntiForgeryToken();
-            let successCount = 0;
-            let errorCount = 0;
-            const errors = [];
-
-            for (const tagData of tagsToImport) {
-                try {
-                    const response = await fetch('/Admin/CreateTag', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'RequestVerificationToken': token
-                        },
-                        body: JSON.stringify(tagData)
-                    });
-
-                    const result = await response.json();
-
-                    if (result.success) {
-                        successCount++;
-                    } else {
-                        errorCount++;
-                        errors.push(`${tagData.name}: ${result.message || 'Unknown error'}`);
-                    }
-                } catch (error) {
-                    errorCount++;
-                    errors.push(`${tagData.name}: ${error.message}`);
-                }
-            }
-
-            // Reload tags from database
-            await loadTags();
-
-            // Show result
-            if (errorCount === 0) {
-                AdminCore.showNotification(`Imported ${successCount} tags successfully`, 'success');
-            } else if (successCount > 0) {
-                AdminCore.showNotification(`Imported ${successCount} tags. ${errorCount} failed.`, 'warning');
-                console.error('Import errors:', errors);
-            } else {
-                AdminCore.showNotification(`Import failed. ${errorCount} errors occurred.`, 'error');
-                console.error('Import errors:', errors);
-            }
+            // Compare with existing tags and build preview
+            await buildImportPreview(parsedTags);
         };
 
         reader.readAsText(file);
     });
 
     fileInput.click();
+}
+
+// Build import preview by comparing with existing tags
+async function buildImportPreview(parsedTags) {
+    importPreviewData = [];
+
+    for (const importTag of parsedTags) {
+        const existingTag = tags.find(t => t.name.toLowerCase() === importTag.name.toLowerCase());
+
+        const previewRow = {
+            rowNumber: importTag.rowNumber,
+            data: importTag,
+            existingData: existingTag || null,
+            status: 'new',
+            changes: [],
+            errors: [],
+            selected: true,
+            action: 'create'
+        };
+
+        if (existingTag) {
+            // Compare fields and determine status
+            const changes = [];
+
+            if (existingTag.tagType !== importTag.tagType) {
+                changes.push({
+                    field: 'Type',
+                    oldValue: existingTag.tagType,
+                    newValue: importTag.tagType
+                });
+            }
+
+            if ((existingTag.description || '') !== (importTag.description || '')) {
+                changes.push({
+                    field: 'Description',
+                    oldValue: existingTag.description || '(empty)',
+                    newValue: importTag.description || '(empty)'
+                });
+            }
+
+            if (changes.length > 0) {
+                previewRow.status = 'modified';
+                previewRow.changes = changes;
+                previewRow.action = 'update';
+            } else {
+                previewRow.status = 'unchanged';
+                previewRow.selected = false;
+                previewRow.action = 'skip';
+            }
+        }
+
+        // Validate
+        if (!importTag.name) {
+            previewRow.status = 'error';
+            previewRow.errors.push('Tag name is required');
+            previewRow.selected = false;
+        }
+
+        importPreviewData.push(previewRow);
+    }
+
+    // Show preview modal
+    showImportPreviewModal();
+}
+
+// Display the import preview modal
+function showImportPreviewModal() {
+    console.log('showImportPreviewModal called, data:', importPreviewData);
+    const modal = document.getElementById('import-preview-modal');
+    console.log('Modal element:', modal);
+    if (!modal) {
+        console.error('Modal element not found!');
+        return;
+    }
+
+    // Calculate statistics
+    const stats = {
+        new: importPreviewData.filter(r => r.status === 'new').length,
+        modified: importPreviewData.filter(r => r.status === 'modified').length,
+        unchanged: importPreviewData.filter(r => r.status === 'unchanged').length,
+        errors: importPreviewData.filter(r => r.status === 'error').length
+    };
+
+    // Update stats display
+    document.getElementById('stat-new').textContent = stats.new;
+    document.getElementById('stat-modified').textContent = stats.modified;
+    document.getElementById('stat-unchanged').textContent = stats.unchanged;
+    document.getElementById('stat-errors').textContent = stats.errors;
+
+    // Build table rows
+    const tbody = document.getElementById('import-preview-body');
+    tbody.innerHTML = '';
+
+    importPreviewData.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        tr.dataset.index = index;
+
+        // Status colors and badges
+        const statusColors = {
+            'new': { bg: '#e8f5e1', color: '#447638', label: 'New' },
+            'modified': { bg: '#e6f7ff', color: '#002B76', label: 'Modified' },
+            'unchanged': { bg: '#f5f5f5', color: '#999', label: 'Unchanged' },
+            'error': { bg: '#ffebee', color: '#ff5252', label: 'Error' }
+        };
+        const statusStyle = statusColors[row.status];
+
+        // Row background based on status
+        tr.style.backgroundColor = row.status === 'error' ? '#fff5f5' : '';
+
+        tr.innerHTML = `
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                <input type="checkbox" class="import-row-checkbox"
+                       data-index="${index}"
+                       ${row.selected ? 'checked' : ''}
+                       ${row.status === 'error' ? 'disabled' : ''}
+                       onchange="updateImportRowSelection(${index}, this.checked)">
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; font-family: monospace;">${row.rowNumber}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: ${statusStyle.bg}; color: ${statusStyle.color};">
+                    ${statusStyle.label}
+                </span>
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                ${renderFieldWithDiff(row, 'name')}
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                ${renderFieldWithDiff(row, 'tagType')}
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                ${renderFieldWithDiff(row, 'description')}
+                ${row.errors.length > 0 ? `<div style="color: #ff5252; font-size: 12px; margin-top: 4px;">${row.errors.join(', ')}</div>` : ''}
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                ${renderActionDropdown(row, index)}
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+
+    // Update counts
+    updateSelectedCount();
+
+    // Show modal - use setProperty with important to override any CSS
+    console.log('Setting modal display to block');
+    modal.style.setProperty('display', 'block', 'important');
+    console.log('Modal display after setting:', modal.style.display);
+    console.log('Modal computed style display:', window.getComputedStyle(modal).display);
+}
+
+// Render field value with diff highlighting for modified rows
+function renderFieldWithDiff(row, field) {
+    const newValue = row.data[field] || '';
+
+    if (row.status === 'modified' && row.existingData) {
+        const oldValue = row.existingData[field] || '';
+        if (oldValue !== newValue) {
+            // Show side-by-side comparison for conflicts
+            return `
+                <div class="field-conflict" data-field="${field}" data-index="${row.rowNumber}">
+                    <div style="display: flex; gap: 8px; align-items: flex-start;">
+                        <div style="flex: 1;">
+                            <div style="font-size: 10px; color: #666; margin-bottom: 2px; font-weight: 600;">CURRENT:</div>
+                            <div style="padding: 4px 8px; background: #fff3cd; border-radius: 4px; font-size: 13px; border: 1px solid #ffc107;">${escapeHtml(oldValue || '(empty)')}</div>
+                        </div>
+                        <div style="flex: 1;">
+                            <div style="font-size: 10px; color: #666; margin-bottom: 2px; font-weight: 600;">IMPORT:</div>
+                            <div style="padding: 4px 8px; background: #d4edda; border-radius: 4px; font-size: 13px; border: 1px solid #28a745;">${escapeHtml(newValue || '(empty)')}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    return escapeHtml(newValue);
+}
+
+// Render action dropdown for each row
+function renderActionDropdown(row, index) {
+    if (row.status === 'error') {
+        return '<span style="color: #999; font-size: 12px;">Cannot import</span>';
+    }
+
+    if (row.status === 'new') {
+        return `
+            <select class="import-action-select" data-index="${index}" onchange="updateImportRowAction(${index}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                <option value="create" ${row.action === 'create' ? 'selected' : ''}>Create</option>
+                <option value="skip" ${row.action === 'skip' ? 'selected' : ''}>Skip</option>
+            </select>
+        `;
+    }
+
+    if (row.status === 'modified') {
+        return `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <select class="import-action-select" data-index="${index}" onchange="updateImportRowAction(${index}, this.value)" style="padding: 6px 10px; border: 2px solid #002B76; border-radius: 4px; font-size: 12px; font-weight: 500; background: white;">
+                    <option value="update" ${row.action === 'update' ? 'selected' : ''}>Use Import Data</option>
+                    <option value="keep" ${row.action === 'keep' ? 'selected' : ''}>Keep Current</option>
+                    <option value="skip" ${row.action === 'skip' ? 'selected' : ''}>Skip Row</option>
+                </select>
+                <span style="font-size: 10px; color: #666; text-align: center;">
+                    ${row.action === 'update' ? 'Will overwrite' : row.action === 'keep' ? 'No changes' : 'Ignored'}
+                </span>
+            </div>
+        `;
+    }
+
+    if (row.status === 'unchanged') {
+        return '<span style="color: #999; font-size: 12px;">No changes</span>';
+    }
+
+    return '';
+}
+
+// Update row selection
+function updateImportRowSelection(index, selected) {
+    importPreviewData[index].selected = selected;
+    if (!selected) {
+        importPreviewData[index].action = 'skip';
+    } else {
+        // Restore default action based on status
+        if (importPreviewData[index].status === 'new') {
+            importPreviewData[index].action = 'create';
+        } else if (importPreviewData[index].status === 'modified') {
+            importPreviewData[index].action = 'update';
+        }
+    }
+    updateSelectedCount();
+}
+
+// Update row action
+function updateImportRowAction(index, action) {
+    importPreviewData[index].action = action;
+    // "keep" means we're acknowledging the row but not changing anything
+    importPreviewData[index].selected = (action !== 'skip' && action !== 'keep');
+
+    // Update checkbox to match
+    const checkbox = document.querySelector(`input.import-row-checkbox[data-index="${index}"]`);
+    if (checkbox) {
+        checkbox.checked = (action !== 'skip' && action !== 'keep');
+    }
+
+    // Re-render the action dropdown to update the status text
+    const tr = document.querySelector(`tr[data-index="${index}"]`);
+    if (tr) {
+        const actionCell = tr.querySelector('td:last-child');
+        if (actionCell) {
+            actionCell.innerHTML = renderActionDropdown(importPreviewData[index], index);
+        }
+    }
+
+    updateSelectedCount();
+}
+
+// Toggle all import rows
+function toggleAllImportRows(checkbox) {
+    const checked = checkbox.checked;
+    importPreviewData.forEach((row, index) => {
+        if (row.status !== 'error' && row.status !== 'unchanged') {
+            row.selected = checked;
+            row.action = checked ? (row.status === 'new' ? 'create' : 'update') : 'skip';
+
+            const rowCheckbox = document.querySelector(`input.import-row-checkbox[data-index="${index}"]`);
+            if (rowCheckbox) {
+                rowCheckbox.checked = checked;
+            }
+        }
+    });
+    updateSelectedCount();
+}
+
+// Update selected count display
+function updateSelectedCount() {
+    // Count rows that will actually be processed (create or update actions)
+    const toProcessCount = importPreviewData.filter(r =>
+        r.action === 'create' || r.action === 'update'
+    ).length;
+    const keptCount = importPreviewData.filter(r => r.action === 'keep').length;
+    const totalActionable = importPreviewData.filter(r =>
+        r.status !== 'error' && r.status !== 'unchanged'
+    ).length;
+
+    const selectedCountEl = document.getElementById('selected-count');
+    const totalCountEl = document.getElementById('total-count');
+
+    if (selectedCountEl) selectedCountEl.textContent = toProcessCount;
+    if (totalCountEl) totalCountEl.textContent = totalActionable;
+
+    // Update the label to be more descriptive
+    const countContainer = document.querySelector('.import-selected-count');
+    if (countContainer) {
+        let label = `${toProcessCount} of ${totalActionable} rows will be imported`;
+        if (keptCount > 0) {
+            label += ` (${keptCount} keeping current)`;
+        }
+        countContainer.innerHTML = label;
+    }
+
+    // Disable apply button if nothing to process
+    const applyBtn = document.getElementById('apply-import-btn');
+    if (applyBtn) {
+        const hasChanges = toProcessCount > 0;
+        applyBtn.disabled = !hasChanges;
+        applyBtn.style.opacity = hasChanges ? '1' : '0.5';
+        applyBtn.textContent = hasChanges
+            ? `Apply Import (${toProcessCount})`
+            : 'Apply Import';
+    }
+}
+
+// Close the import preview modal
+function closeImportPreviewModal() {
+    const modal = document.getElementById('import-preview-modal');
+    if (modal) {
+        modal.style.setProperty('display', 'none', 'important');
+    }
+    importPreviewData = [];
+    importFileName = '';
+}
+
+// Apply selected imports
+async function applySelectedImport() {
+    // Only process rows that are creating or updating (not skip, keep, or error)
+    const rowsToProcess = importPreviewData.filter(r =>
+        r.action === 'create' || r.action === 'update'
+    );
+
+    const keptCount = importPreviewData.filter(r => r.action === 'keep').length;
+
+    if (rowsToProcess.length === 0) {
+        if (keptCount > 0) {
+            AdminCore.showNotification(`No changes to apply. ${keptCount} row(s) will keep current values.`, 'info');
+        } else {
+            AdminCore.showNotification('No rows selected for import', 'warning');
+        }
+        return;
+    }
+
+    const token = getAntiForgeryToken();
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+
+    // Process each selected row
+    for (const row of rowsToProcess) {
+        try {
+            let response;
+
+            if (row.action === 'create') {
+                response = await fetch('/Admin/CreateTag', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        name: row.data.name,
+                        tagType: row.data.tagType,
+                        description: row.data.description,
+                        importBatchId: null // Will be set by server
+                    })
+                });
+            } else if (row.action === 'update' && row.existingData) {
+                response = await fetch(`/Admin/UpdateTag/${row.existingData.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        id: row.existingData.id,
+                        name: row.data.name,
+                        tagType: row.data.tagType,
+                        description: row.data.description
+                    })
+                });
+            }
+
+            if (response) {
+                const result = await response.json();
+                if (result.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                    errors.push(`Row ${row.rowNumber} (${row.data.name}): ${result.message || 'Unknown error'}`);
+                }
+            }
+        } catch (error) {
+            errorCount++;
+            errors.push(`Row ${row.rowNumber} (${row.data.name}): ${error.message}`);
+        }
+    }
+
+    // Close modal
+    closeImportPreviewModal();
+
+    // Reload tags
+    await loadTags();
+
+    // Show results
+    const keptMessage = keptCount > 0 ? `, ${keptCount} kept unchanged` : '';
+    if (errorCount === 0) {
+        AdminCore.showNotification(`Import complete: ${successCount} tags processed successfully${keptMessage}`, 'success');
+    } else if (successCount > 0) {
+        AdminCore.showNotification(`Import partial: ${successCount} succeeded, ${errorCount} failed${keptMessage}`, 'warning');
+        console.error('Import errors:', errors);
+    } else {
+        AdminCore.showNotification(`Import failed: ${errorCount} errors occurred`, 'error');
+        console.error('Import errors:', errors);
+    }
 }
 
 // Parse CSV line handling quoted fields
@@ -776,3 +1151,9 @@ window.editTag = editTag;
 window.saveTag = saveTag;
 window.cancelEdit = cancelEdit;
 window.deleteTag = deleteTag;
+// Import preview functions
+window.closeImportPreviewModal = closeImportPreviewModal;
+window.applySelectedImport = applySelectedImport;
+window.toggleAllImportRows = toggleAllImportRows;
+window.updateImportRowSelection = updateImportRowSelection;
+window.updateImportRowAction = updateImportRowAction;

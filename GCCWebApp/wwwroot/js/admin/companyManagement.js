@@ -453,8 +453,10 @@ class CompanyManagement {
                 return;
             }
 
-            // Parse header
-            const headers = this.parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+            // Parse and normalize headers
+            const rawHeaders = this.parseCSVLine(lines[0]).map(h => h.trim());
+            const headers = rawHeaders.map(h => this.normalizeCompanyHeaderName(h));
+
             const requiredFields = ['name'];
             const missingFields = requiredFields.filter(f => !headers.includes(f));
 
@@ -479,7 +481,7 @@ class CompanyManagement {
                     data: {
                         name: company.name || '',
                         email: company.email || '',
-                        url: company.url || company.website || ''
+                        url: company.url || ''
                     }
                 });
             }
@@ -529,6 +531,38 @@ class CompanyManagement {
         }
         result.push(current);
         return result;
+    }
+
+    /**
+     * Normalize CSV header names for company imports.
+     * Handles common variations case-insensitively.
+     */
+    normalizeCompanyHeaderName(header) {
+        const normalized = header.toLowerCase().replace(/[\s_-]/g, '');
+
+        const headerMappings = {
+            // Name variations
+            'name': 'name',
+            'companyname': 'name',
+            'company': 'name',
+            'organization': 'name',
+
+            // Email variations
+            'email': 'email',
+            'emailaddress': 'email',
+            'companyemail': 'email',
+            'contactemail': 'email',
+
+            // URL variations
+            'url': 'url',
+            'website': 'url',
+            'websiteurl': 'url',
+            'companyurl': 'url',
+            'web': 'url',
+            'homepage': 'url'
+        };
+
+        return headerMappings[normalized] || normalized;
     }
 
     async buildImportPreview(parsedCompanies) {

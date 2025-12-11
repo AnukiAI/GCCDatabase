@@ -561,9 +561,17 @@ async function showImportModal() {
         const reader = new FileReader();
         reader.onload = async (e) => {
             const contents = e.target.result;
-            const lines = contents.split('\n');
+            const lines = contents.split('\n').filter(line => line.trim());
 
-            // Skip header row and parse data
+            if (lines.length < 2) {
+                AdminCore.showNotification('CSV file must have a header row and at least one data row', 'warning');
+                return;
+            }
+
+            // Parse and normalize headers
+            const rawHeaders = parseCSVLine(lines[0]).map(h => h.trim());
+            const headers = rawHeaders.map(h => normalizeTagHeaderName(h));
+
             const parsedTags = [];
 
             for (let i = 1; i < lines.length; i++) {
@@ -573,10 +581,16 @@ async function showImportModal() {
                 const fields = parseCSVLine(line);
                 if (fields.length < 1) continue;
 
-                const name = fields[0]?.trim();
+                // Build tag object from headers
+                const tag = {};
+                headers.forEach((header, index) => {
+                    tag[header] = fields[index]?.trim() || '';
+                });
+
+                const name = tag.name || '';
                 if (!name) continue;
 
-                let tagType = fields[1]?.trim().toLowerCase() || 'external';
+                let tagType = (tag.tagtype || 'external').toLowerCase();
                 if (tagType !== 'external' && tagType !== 'internal') {
                     tagType = 'external';
                 }
@@ -585,7 +599,7 @@ async function showImportModal() {
                     rowNumber: i,
                     name: name,
                     tagType: tagType,
-                    description: fields[2]?.trim() || ''
+                    description: tag.description || ''
                 });
             }
 
@@ -1082,6 +1096,34 @@ function parseCSVLine(line) {
     }
     result.push(current);
     return result;
+}
+
+/**
+ * Normalize CSV header names for tag imports.
+ * Handles common variations case-insensitively.
+ */
+function normalizeTagHeaderName(header) {
+    const normalized = header.toLowerCase().replace(/[\s_-]/g, '');
+
+    const headerMappings = {
+        // Name variations
+        'name': 'name',
+        'tagname': 'name',
+        'tag': 'name',
+
+        // Type variations
+        'tagtype': 'tagtype',
+        'type': 'tagtype',
+        'visibility': 'tagtype',
+        'scope': 'tagtype',
+
+        // Description variations
+        'description': 'description',
+        'desc': 'description',
+        'notes': 'description'
+    };
+
+    return headerMappings[normalized] || normalized;
 }
 
 // Initialize tag management

@@ -665,10 +665,19 @@ class UserManagement {
     }
 
     async parseAndPreviewImport(contents) {
-        const lines = contents.split('\n');
+        const lines = contents.split('\n').filter(line => line.trim());
+        if (lines.length < 2) {
+            this.showNotification('CSV file must have a header row and at least one data row', 'warning');
+            return;
+        }
+
+        // Parse and normalize headers
+        const rawHeaders = this.parseCSVLine(lines[0]).map(h => h.trim());
+        const headers = rawHeaders.map(h => this.normalizeUserHeaderName(h));
+
         const parsedUsers = [];
 
-        // Parse CSV (skip header row)
+        // Parse data rows
         for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
@@ -676,19 +685,25 @@ class UserManagement {
             const fields = this.parseCSVLine(line);
             if (fields.length < 2) continue;
 
-            const name = fields[0]?.trim();
-            const email = fields[1]?.trim();
+            // Build user object from headers
+            const user = {};
+            headers.forEach((header, index) => {
+                user[header] = fields[index]?.trim() || '';
+            });
+
+            const name = user.name || '';
+            const email = user.email || '';
             if (!name && !email) continue;
 
             parsedUsers.push({
                 rowNumber: i,
-                name: name || '',
-                email: email || '',
-                company: fields[2]?.trim() || '',
-                role: fields[3]?.trim() || 'External',
-                status: fields[4]?.trim()?.toLowerCase() || 'active',
-                password: fields[5]?.trim() || '',
-                requirePasswordReset: fields[6]?.trim()?.toLowerCase() === 'true'
+                name: name,
+                email: email,
+                company: user.company || '',
+                role: user.role || 'External',
+                status: (user.status || 'active').toLowerCase(),
+                password: user.password || '',
+                requirePasswordReset: (user.requirepasswordreset || '').toLowerCase() === 'true'
             });
         }
 
@@ -699,6 +714,55 @@ class UserManagement {
 
         // Compare with existing users and build preview
         await this.buildImportPreview(parsedUsers);
+    }
+
+    /**
+     * Normalize CSV header names for user imports.
+     * Handles common variations case-insensitively.
+     */
+    normalizeUserHeaderName(header) {
+        const normalized = header.toLowerCase().replace(/[\s_-]/g, '');
+
+        const headerMappings = {
+            // Name variations
+            'name': 'name',
+            'username': 'name',
+            'fullname': 'name',
+            'displayname': 'name',
+
+            // Email variations
+            'email': 'email',
+            'emailaddress': 'email',
+            'useremail': 'email',
+
+            // Company variations
+            'company': 'company',
+            'companyname': 'company',
+            'organization': 'company',
+
+            // Role variations
+            'role': 'role',
+            'userrole': 'role',
+            'rolename': 'role',
+
+            // Status variations
+            'status': 'status',
+            'userstatus': 'status',
+            'isactive': 'status',
+            'active': 'status',
+
+            // Password variations
+            'password': 'password',
+            'pass': 'password',
+            'pwd': 'password',
+
+            // Password reset variations
+            'requirepasswordreset': 'requirepasswordreset',
+            'resetpassword': 'requirepasswordreset',
+            'forcereset': 'requirepasswordreset'
+        };
+
+        return headerMappings[normalized] || normalized;
     }
 
     async buildImportPreview(parsedUsers) {

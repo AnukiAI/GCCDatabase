@@ -583,8 +583,10 @@ class ProductManagement {
                 return;
             }
 
-            // Parse header
-            const headers = this.parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+            // Parse header - normalize to standard field names
+            const rawHeaders = this.parseCSVLine(lines[0]).map(h => h.trim());
+            const headers = rawHeaders.map(h => this.normalizeHeaderName(h));
+
             const requiredFields = ['name'];
             const missingFields = requiredFields.filter(f => !headers.includes(f));
 
@@ -608,10 +610,10 @@ class ProductManagement {
                     rowNumber: i,
                     data: {
                         name: product.name || '',
-                        description: product.description || '',
+                        description: product.description || product.desc || '',
                         productType: product.producttype || '',
                         company: product.company || '',
-                        status: product.status || 'Active'
+                        status: product.status || product.isactive || 'Active'
                     }
                 });
             }
@@ -823,8 +825,8 @@ class ProductManagement {
         // Update selected count
         this.updateSelectedCount();
 
-        // Show modal
-        modal.style.display = 'block';
+        // Show modal with important flag to ensure visibility
+        modal.style.setProperty('display', 'block', 'important');
     }
 
     renderFieldWithDiff(row, field) {
@@ -979,7 +981,7 @@ class ProductManagement {
     closeImportPreviewModal() {
         const modal = document.getElementById('import-preview-modal');
         if (modal) {
-            modal.style.display = 'none';
+            modal.style.setProperty('display', 'none', 'important');
         }
         this.importPreviewData = [];
         this.importFileName = '';
@@ -1122,6 +1124,50 @@ class ProductManagement {
         }
         result.push(current);
         return result;
+    }
+
+    /**
+     * Normalize CSV header names to standard field names.
+     * This makes imports case-insensitive and handles common variations.
+     *
+     * Supported variations:
+     * - name, Name, NAME, ProductName, Product Name, product_name
+     * - description, Description, Desc, desc
+     * - company, Company, CompanyName, Company Name, company_name
+     * - producttype, ProductType, Product Type, Type, product_type, ProductTypeName
+     * - status, Status, IsActive, Active, is_active
+     */
+    normalizeHeaderName(header) {
+        // Remove spaces, underscores, dashes and convert to lowercase for comparison
+        const normalized = header.toLowerCase().replace(/[\s_-]/g, '');
+
+        // Map common variations to standard field names
+        const headerMappings = {
+            // Name variations
+            'name': 'name',
+            'productname': 'name',
+
+            // Description variations
+            'description': 'description',
+            'desc': 'description',
+
+            // Company variations
+            'company': 'company',
+            'companyname': 'company',
+
+            // Product Type variations
+            'producttype': 'producttype',
+            'producttypename': 'producttype',
+            'type': 'producttype',
+            'category': 'producttype',
+
+            // Status variations
+            'status': 'status',
+            'isactive': 'status',
+            'active': 'status'
+        };
+
+        return headerMappings[normalized] || normalized;
     }
 
     async exportProducts() {

@@ -4,79 +4,81 @@ namespace GCCWebApp.Models
 {
     /// <summary>
     /// Enumeration of certificate lifecycle status values
-    /// Represents the complete business process from application to completion
+    /// Aligned with DATA_VALIDATION_RULES.md - 14 documented states
     /// </summary>
     public enum CertificateStatus
     {
         [Description("Draft")]
         Draft = 0,
 
-        [Description("Application Submitted")]
-        ApplicationSubmitted = 1,
+        [Description("Pending Review")]
+        PendingReview = 1,
 
         [Description("Under Review")]
         UnderReview = 2,
 
-        [Description("Technical Review")]
-        TechnicalReview = 3,
-
-        [Description("Compliance Verification")]
-        ComplianceVerification = 4,
-
-        [Description("Final Approval")]
-        FinalApproval = 5,
+        [Description("Approved")]
+        Approved = 3,
 
         [Description("Active")]
-        Active = 6,
-
-        [Description("Expiring Soon")]
-        ExpiringSoon = 7,
-
-        [Description("Renewal In Progress")]
-        RenewalInProgress = 8,
-
-        [Description("Expired")]
-        Expired = 9,
+        Active = 4,
 
         [Description("Suspended")]
-        Suspended = 10,
+        Suspended = 5,
+
+        [Description("Revoked")]
+        Revoked = 6,
+
+        [Description("Expired")]
+        Expired = 7,
+
+        [Description("Pending Renewal")]
+        PendingRenewal = 8,
+
+        [Description("Renewed")]
+        Renewed = 9,
+
+        [Description("Cancelled")]
+        Cancelled = 10,
 
         [Description("Archived")]
         Archived = 11,
 
-        [Description("Cancelled")]
-        Cancelled = 12,
+        [Description("On Hold")]
+        OnHold = 12,
 
-        [Description("Client Won't Proceed")]
-        ClientDeclined = 13
+        [Description("Rejected")]
+        Rejected = 13
     }
 
     /// <summary>
     /// Static class for certificate status management and workflow rules
+    /// Database-driven status values aligned with DATA_VALIDATION_RULES.md
     /// </summary>
     public static class CertificateStatusHelper
     {
         /// <summary>
         /// Gets all available status values with their display names
+        /// These are the 14 documented states from DATA_VALIDATION_RULES.md
         /// </summary>
         public static Dictionary<string, string> GetAllStatuses()
         {
             return new Dictionary<string, string>
             {
-                { "draft", "Draft" },
-                { "application_submitted", "Application Submitted" },
-                { "under_review", "Under Review" },
-                { "technical_review", "Technical Review" },
-                { "compliance_verification", "Compliance Verification" },
-                { "final_approval", "Final Approval" },
-                { "active", "Active" },
-                { "expiring_soon", "Expiring Soon" },
-                { "renewal_in_progress", "Renewal In Progress" },
-                { "expired", "Expired" },
-                { "suspended", "Suspended" },
-                { "archived", "Archived" },
-                { "cancelled", "Cancelled" },
-                { "client_declined", "Client Won't Proceed" }
+                { "Draft", "Draft" },
+                { "PendingReview", "Pending Review" },
+                { "UnderReview", "Under Review" },
+                { "Approved", "Approved" },
+                { "Active", "Active" },
+                { "Suspended", "Suspended" },
+                { "Revoked", "Revoked" },
+                { "Expired", "Expired" },
+                { "PendingRenewal", "Pending Renewal" },
+                { "Renewed", "Renewed" },
+                { "Cancelled", "Cancelled" },
+                { "Archived", "Archived" },
+                { "OnHold", "On Hold" },
+                { "Rejected", "Rejected" }
             };
         }
 
@@ -87,8 +89,8 @@ namespace GCCWebApp.Models
         {
             return new Dictionary<string, string>
             {
-                { "draft", "Draft" },
-                { "application_submitted", "Application Submitted" }
+                { "Draft", "Draft" },
+                { "PendingReview", "Pending Review" }
             };
         }
 
@@ -98,12 +100,12 @@ namespace GCCWebApp.Models
         public static Dictionary<string, string> GetStatusesForRole(string role)
         {
             var allStatuses = GetAllStatuses();
-            
-            return role.ToLower() switch
+
+            return role?.ToLower() switch
             {
                 "admin" => allStatuses, // Admins can set any status
-                "analyst" => allStatuses.Where(s => 
-                    s.Key != "client_declined").ToDictionary(k => k.Key, v => v.Value),
+                "analyst" => allStatuses.Where(s =>
+                    s.Key != "Rejected" && s.Key != "Revoked").ToDictionary(k => k.Key, v => v.Value),
                 "external" => GetCreationStatuses(), // External users can only create drafts
                 _ => GetCreationStatuses()
             };
@@ -111,29 +113,30 @@ namespace GCCWebApp.Models
 
         /// <summary>
         /// Determines if a status transition is valid based on business rules
+        /// Workflow: Draft → PendingReview → UnderReview → Approved → Active
         /// </summary>
         public static bool IsValidTransition(string fromStatus, string toStatus)
         {
             // Define valid status transitions based on business workflow
             var validTransitions = new Dictionary<string, string[]>
             {
-                { "draft", new[] { "application_submitted", "cancelled" } },
-                { "application_submitted", new[] { "under_review", "draft", "cancelled" } },
-                { "under_review", new[] { "technical_review", "application_submitted", "client_declined" } },
-                { "technical_review", new[] { "compliance_verification", "under_review", "client_declined" } },
-                { "compliance_verification", new[] { "final_approval", "technical_review", "client_declined" } },
-                { "final_approval", new[] { "active", "compliance_verification" } },
-                { "active", new[] { "expiring_soon", "renewal_in_progress", "suspended", "expired", "archived" } },
-                { "expiring_soon", new[] { "renewal_in_progress", "expired", "active" } },
-                { "renewal_in_progress", new[] { "active", "expired", "expiring_soon" } },
-                { "expired", new[] { "renewal_in_progress", "archived", "active" } },
-                { "suspended", new[] { "active", "cancelled", "archived" } },
-                { "archived", new string[] { } }, // Final state - no transitions allowed
-                { "cancelled", new string[] { } }, // Final state - no transitions allowed
-                { "client_declined", new string[] { } } // Final state - no transitions allowed
+                { "Draft", new[] { "PendingReview", "Cancelled" } },
+                { "PendingReview", new[] { "UnderReview", "Draft", "Cancelled", "OnHold" } },
+                { "UnderReview", new[] { "Approved", "PendingReview", "Rejected", "OnHold" } },
+                { "Approved", new[] { "Active", "UnderReview", "OnHold" } },
+                { "Active", new[] { "Suspended", "Expired", "PendingRenewal", "Revoked", "Archived" } },
+                { "Suspended", new[] { "Active", "Revoked", "Cancelled", "Archived" } },
+                { "Revoked", new[] { "Archived" } }, // Near-final state
+                { "Expired", new[] { "PendingRenewal", "Archived", "Active" } },
+                { "PendingRenewal", new[] { "UnderReview", "Renewed", "Expired", "Cancelled" } },
+                { "Renewed", new[] { "Active" } }, // Transitions back to active
+                { "Cancelled", new string[] { } }, // Final state - no transitions allowed
+                { "Archived", new string[] { } }, // Final state - no transitions allowed
+                { "OnHold", new[] { "PendingReview", "UnderReview", "Approved", "Cancelled" } },
+                { "Rejected", new[] { "Draft", "Archived" } } // Can restart or archive
             };
 
-            return validTransitions.ContainsKey(fromStatus) && 
+            return validTransitions.ContainsKey(fromStatus) &&
                    validTransitions[fromStatus].Contains(toStatus);
         }
 
@@ -143,7 +146,7 @@ namespace GCCWebApp.Models
         public static string GetDisplayName(string statusValue)
         {
             var statuses = GetAllStatuses();
-            return statuses.ContainsKey(statusValue) ? statuses[statusValue] : statusValue;
+            return statuses.TryGetValue(statusValue, out var displayName) ? displayName : statusValue;
         }
 
         /// <summary>
@@ -151,7 +154,7 @@ namespace GCCWebApp.Models
         /// </summary>
         public static bool IsActiveStatus(string status)
         {
-            return status == "active" || status == "expiring_soon" || status == "renewal_in_progress";
+            return status == "Active" || status == "PendingRenewal" || status == "Renewed";
         }
 
         /// <summary>
@@ -159,7 +162,24 @@ namespace GCCWebApp.Models
         /// </summary>
         public static bool IsFinalStatus(string status)
         {
-            return status == "archived" || status == "cancelled" || status == "client_declined";
+            return status == "Archived" || status == "Cancelled";
+        }
+
+        /// <summary>
+        /// Checks if a status represents a negative outcome
+        /// </summary>
+        public static bool IsNegativeStatus(string status)
+        {
+            return status == "Rejected" || status == "Revoked" || status == "Cancelled";
+        }
+
+        /// <summary>
+        /// Gets statuses that indicate the certificate needs attention
+        /// </summary>
+        public static bool NeedsAttention(string status)
+        {
+            return status == "PendingReview" || status == "UnderReview" ||
+                   status == "OnHold" || status == "PendingRenewal" || status == "Expired";
         }
     }
 }

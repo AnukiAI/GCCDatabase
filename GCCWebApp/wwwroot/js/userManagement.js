@@ -768,6 +768,9 @@ class UserManagement {
     async buildImportPreview(parsedUsers) {
         this.importPreviewData = [];
 
+        // Track emails seen in this import for duplicate detection within file
+        const emailsInImport = new Map(); // email -> rowNumber
+
         for (const importUser of parsedUsers) {
             // Match by email (primary identifier for users)
             const existingUser = this.users.find(u =>
@@ -825,6 +828,15 @@ class UserManagement {
                 previewRow.errors.push('Email is required');
             } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(importUser.email.trim())) {
                 previewRow.errors.push('Invalid email format');
+            } else {
+                // Check for duplicate email within this import file
+                const emailLower = importUser.email.trim().toLowerCase();
+                if (emailsInImport.has(emailLower)) {
+                    const firstRow = emailsInImport.get(emailLower);
+                    previewRow.errors.push(`Duplicate email in import file (first seen on row ${firstRow})`);
+                } else {
+                    emailsInImport.set(emailLower, importUser.rowNumber);
+                }
             }
             // Normalize role for validation
             const normalizedRole = (importUser.role || '').trim();

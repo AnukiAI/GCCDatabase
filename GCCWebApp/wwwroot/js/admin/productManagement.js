@@ -704,11 +704,33 @@ class ProductManagement {
                 }
             }
 
-            // Validate
+            // Validate required fields
             if (!row.data.name || !row.data.name.trim()) {
                 previewRow.errors.push('Product name is required');
                 previewRow.status = 'error';
                 previewRow.selected = false;
+            }
+
+            // Validate company reference with fuzzy matching
+            if (row.data.company && row.data.company.trim()) {
+                const companyValidation = this.validateCompanyReference(row.data.company);
+
+                if (!companyValidation.valid) {
+                    // Company not found
+                    let errorMsg = companyValidation.message;
+                    if (companyValidation.suggestions && companyValidation.suggestions.length > 0) {
+                        errorMsg += `. Did you mean: ${companyValidation.suggestions.join(', ')}?`;
+                    }
+                    previewRow.errors.push(errorMsg);
+                    previewRow.status = 'error';
+                    previewRow.selected = false;
+                } else if (companyValidation.warning) {
+                    // Fuzzy match found - show warning but allow import
+                    previewRow.warnings = previewRow.warnings || [];
+                    previewRow.warnings.push(companyValidation.message);
+                    // Update the company name to the matched value for import
+                    previewRow.data.resolvedCompany = companyValidation.company.name;
+                }
             }
 
             this.importPreviewData.push(previewRow);
@@ -744,6 +766,40 @@ class ProductManagement {
         const filenameEl = document.getElementById('import-filename');
         if (filenameEl) {
             filenameEl.textContent = this.importFileName;
+        }
+
+        // Check if there are company-not-found errors and show import order guidance
+        const companyErrors = this.importPreviewData.filter(r =>
+            r.errors && r.errors.some(e => e.includes('not found in system'))
+        );
+
+        // Show/hide import order guidance banner
+        let guidanceBanner = document.getElementById('import-order-guidance');
+        if (companyErrors.length > 0) {
+            if (!guidanceBanner) {
+                guidanceBanner = document.createElement('div');
+                guidanceBanner.id = 'import-order-guidance';
+                guidanceBanner.className = 'import-guidance-banner';
+                guidanceBanner.innerHTML = `
+                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;">
+                        <i class="fas fa-info-circle" style="color: #856404; font-size: 18px; margin-top: 2px;"></i>
+                        <div>
+                            <strong style="color: #856404;">Import Order Matters</strong>
+                            <p style="margin: 4px 0 0 0; font-size: 13px; color: #856404;">
+                                Products reference Companies and Product Types. Please import in this order:<br>
+                                <strong>1. Companies</strong> (/Company) → <strong>2. Product Types</strong> (/Admin/ProductTypes) → <strong>3. Products</strong> (this page)
+                            </p>
+                        </div>
+                        <button onclick="this.parentElement.remove()" style="background: none; border: none; color: #856404; cursor: pointer; font-size: 16px; padding: 0; margin-left: auto;">&times;</button>
+                    </div>
+                `;
+                const modalBody = document.querySelector('#import-preview-modal .admin-modal-body');
+                if (modalBody) {
+                    modalBody.insertBefore(guidanceBanner, modalBody.firstChild);
+                }
+            }
+        } else if (guidanceBanner) {
+            guidanceBanner.remove();
         }
 
         // Build preview table
@@ -785,6 +841,12 @@ class ProductManagement {
                 errorDisplay = `<div style="color: #ff5252; font-size: 11px; margin-top: 4px; font-weight: 500;">${row.errors.join('<br>')}</div>`;
             }
 
+            // Warning display (for fuzzy matches)
+            let warningDisplay = '';
+            if (row.warnings && row.warnings.length > 0) {
+                warningDisplay = `<div style="color: #ff9800; font-size: 11px; margin-top: 4px; font-weight: 500;"><i class="fas fa-exclamation-triangle"></i> ${row.warnings.join('<br>')}</div>`;
+            }
+
             tr.innerHTML = `
                 <td style="text-align: center; vertical-align: top;">
                     <input type="checkbox" class="import-row-checkbox" data-index="${index}" ${row.selected ? 'checked' : ''} ${row.status === 'error' || row.status === 'unchanged' ? 'disabled' : ''}>
@@ -792,7 +854,7 @@ class ProductManagement {
                 <td style="text-align: center; vertical-align: top;">${row.rowNumber}</td>
                 <td style="vertical-align: top;">${statusLabels[row.status]}${changesSummary}</td>
                 <td style="vertical-align: top;">${this.renderFieldWithDiff(row, 'name')}</td>
-                <td style="vertical-align: top;">${this.renderFieldWithDiff(row, 'description')}${errorDisplay}</td>
+                <td style="vertical-align: top;">${this.renderFieldWithDiff(row, 'description')}${errorDisplay}${warningDisplay}</td>
                 <td style="vertical-align: top;">${this.renderActionDropdown(row, index)}</td>
             `;
 
@@ -1168,6 +1230,161 @@ class ProductManagement {
         };
 
         return headerMappings[normalized] || normalized;
+    }
+
+    /**
+     * Fuzzy match a company name against available companies
+     * Returns { match: Company|null, confidence: 'exact'|'normalized'|'fuzzy'|'none', originalValue: string }
+     */
+    findMatchingCompany(inputCompanyName) {
+        if (!inputCompanyName || !inputCompanyName.trim()) {
+            return { match: null, confidence: 'none', originalValue: inputCompanyName };
+        }
+
+        // Get companies from global scope (loaded by Management.cshtml inline script)
+        const availableCompanies = window.companies || [];
+        if (availableCompanies.length === 0) {
+            console.warn('No companies available for matching. Companies may not be loaded yet.');
+            return { match: null, confidence: 'none', originalValue: inputCompanyName };
+        }
+
+        const input = inputCompanyName.trim();
+        const inputLower = input.toLowerCase();
+        const inputNormalized = this.normalizeCompanyName(input);
+
+        // 1. Exact match (case-insensitive)
+        let exactMatch = availableCompanies.find(c =>
+            c.name && c.name.toLowerCase() === inputLower
+        );
+        if (exactMatch) {
+            return { match: exactMatch, confidence: 'exact', originalValue: input };
+        }
+
+        // 2. Normalized match (removes common suffixes, punctuation)
+        let normalizedMatch = availableCompanies.find(c =>
+            c.name && this.normalizeCompanyName(c.name) === inputNormalized
+        );
+        if (normalizedMatch) {
+            return { match: normalizedMatch, confidence: 'normalized', originalValue: input };
+        }
+
+        // 3. Fuzzy match (Levenshtein distance or substring matching)
+        let bestFuzzyMatch = null;
+        let bestFuzzyScore = 0;
+
+        for (const company of availableCompanies) {
+            if (!company.name) continue;
+
+            const companyNormalized = this.normalizeCompanyName(company.name);
+
+            // Check if one contains the other
+            if (inputNormalized.includes(companyNormalized) || companyNormalized.includes(inputNormalized)) {
+                const score = Math.min(inputNormalized.length, companyNormalized.length) /
+                             Math.max(inputNormalized.length, companyNormalized.length);
+                if (score > bestFuzzyScore && score >= 0.6) {
+                    bestFuzzyScore = score;
+                    bestFuzzyMatch = company;
+                }
+            }
+
+            // Check similarity score
+            const similarity = this.calculateSimilarity(inputNormalized, companyNormalized);
+            if (similarity > bestFuzzyScore && similarity >= 0.8) {
+                bestFuzzyScore = similarity;
+                bestFuzzyMatch = company;
+            }
+        }
+
+        if (bestFuzzyMatch) {
+            return { match: bestFuzzyMatch, confidence: 'fuzzy', originalValue: input };
+        }
+
+        return { match: null, confidence: 'none', originalValue: input };
+    }
+
+    /**
+     * Normalize company name for matching
+     * Removes common suffixes, punctuation, extra whitespace
+     */
+    normalizeCompanyName(name) {
+        if (!name) return '';
+
+        return name
+            .toLowerCase()
+            .replace(/[.,\-_'"]/g, ' ')  // Replace punctuation with spaces
+            .replace(/\b(inc|incorporated|corp|corporation|llc|ltd|limited|co|company|enterprises|group|holdings)\b/gi, '')
+            .replace(/\s+/g, ' ')  // Normalize whitespace
+            .trim();
+    }
+
+    /**
+     * Calculate string similarity (simple approach)
+     */
+    calculateSimilarity(str1, str2) {
+        if (str1 === str2) return 1;
+        if (!str1 || !str2) return 0;
+
+        const longer = str1.length > str2.length ? str1 : str2;
+        const shorter = str1.length > str2.length ? str2 : str1;
+
+        if (longer.length === 0) return 1;
+
+        // Simple character overlap score
+        let matches = 0;
+        for (let i = 0; i < shorter.length; i++) {
+            if (longer.includes(shorter[i])) matches++;
+        }
+
+        return matches / longer.length;
+    }
+
+    /**
+     * Validate company reference and return error/warning if not found
+     */
+    validateCompanyReference(companyName) {
+        const result = this.findMatchingCompany(companyName);
+
+        if (result.confidence === 'exact') {
+            return { valid: true, company: result.match, message: null };
+        }
+
+        if (result.confidence === 'normalized' || result.confidence === 'fuzzy') {
+            return {
+                valid: true,
+                company: result.match,
+                message: `Company "${result.originalValue}" matched to "${result.match.name}" (${result.confidence} match)`,
+                warning: true
+            };
+        }
+
+        // Not found
+        return {
+            valid: false,
+            company: null,
+            message: `Company "${companyName}" not found in system`,
+            suggestions: this.getSimilarCompanies(companyName)
+        };
+    }
+
+    /**
+     * Get similar company names for suggestions
+     */
+    getSimilarCompanies(inputName) {
+        if (!inputName) return [];
+
+        const availableCompanies = window.companies || [];
+        const inputNormalized = this.normalizeCompanyName(inputName);
+
+        return availableCompanies
+            .filter(c => c.name)
+            .map(c => ({
+                name: c.name,
+                similarity: this.calculateSimilarity(inputNormalized, this.normalizeCompanyName(c.name))
+            }))
+            .filter(c => c.similarity > 0.3)
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, 3)
+            .map(c => c.name);
     }
 
     async exportProducts() {

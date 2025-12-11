@@ -12,7 +12,7 @@ namespace GCCWebApp.Models
         public string Number { get; set; } = string.Empty; // Certificate number
 
         [MaxLength(50)]
-        public string Status { get; set; } = "active"; // Certificate lifecycle status
+        public string Status { get; set; } = "Draft"; // Certificate lifecycle status - aligned with DATA_VALIDATION_RULES.md
 
         public DateTime EffectiveDate { get; set; }
 

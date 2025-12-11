@@ -139,27 +139,12 @@ namespace GCCWebApp.Services
 
                 foreach (var certificate in expiringCertificates)
                 {
-                    if (certificate.Status == "active" && certificate.ExpirationDate <= expiringDate)
-                    {
-                        var oldStatus = certificate.Status;
-                        certificate.Status = "expiring_soon";
-                        certificate.UpdatedAt = DateTime.UtcNow;
-                        await _certificateRepository.UpdateAsync(certificate);
-
-                        _logger.LogInformation("Certificate {CertificateNumber} automatically updated to 'expiring_soon' status",
-                            certificate.Number);
-
-                        // Log automated status change (using system user ID 0 for automated tasks)
-                        await LogStatusChangeAsync(certificate, oldStatus, "expiring_soon", 0,
-                            "Automated transition: Certificate expires within 30 days", isAutomated: true);
-                    }
-
-                    // Check for expired certificates
-                    if ((certificate.Status == "active" || certificate.Status == "expiring_soon") &&
+                    // Check for expired certificates first (higher priority)
+                    if ((certificate.Status == "Active" || certificate.Status == "PendingRenewal") &&
                         certificate.ExpirationDate <= DateTime.UtcNow)
                     {
                         var oldStatus = certificate.Status;
-                        certificate.Status = "expired";
+                        certificate.Status = "Expired";
                         certificate.UpdatedAt = DateTime.UtcNow;
                         await _certificateRepository.UpdateAsync(certificate);
 
@@ -167,8 +152,23 @@ namespace GCCWebApp.Services
                             certificate.Number);
 
                         // Log automated status change (using system user ID 0 for automated tasks)
-                        await LogStatusChangeAsync(certificate, oldStatus, "expired", 0,
+                        await LogStatusChangeAsync(certificate, oldStatus, "Expired", 0,
                             "Automated transition: Certificate expiration date reached", isAutomated: true);
+                    }
+                    // Check for certificates expiring soon (30 day warning)
+                    else if (certificate.Status == "Active" && certificate.ExpirationDate <= expiringDate)
+                    {
+                        var oldStatus = certificate.Status;
+                        certificate.Status = "PendingRenewal";
+                        certificate.UpdatedAt = DateTime.UtcNow;
+                        await _certificateRepository.UpdateAsync(certificate);
+
+                        _logger.LogInformation("Certificate {CertificateNumber} automatically updated to 'PendingRenewal' status",
+                            certificate.Number);
+
+                        // Log automated status change (using system user ID 0 for automated tasks)
+                        await LogStatusChangeAsync(certificate, oldStatus, "PendingRenewal", 0,
+                            "Automated transition: Certificate expires within 30 days", isAutomated: true);
                     }
                 }
 
@@ -254,40 +254,71 @@ namespace GCCWebApp.Services
 
         /// <summary>
         /// Handles additional business logic when status changes
+        /// Status values aligned with DATA_VALIDATION_RULES.md (14 states)
         /// </summary>
         private Task HandleStatusChangeBusinessLogic(Certificate certificate, string oldStatus, string newStatus, int userId)
         {
             try
             {
-                // Example business logic for specific status changes
+                // Business logic for specific status changes
                 switch (newStatus)
                 {
-                    case "final_approval":
-                        // Could trigger PDF generation, notification emails, etc.
-                        _logger.LogInformation("Certificate {Number} reached final approval - triggering completion workflow", 
+                    case "Approved":
+                        // Certificate approved - ready for activation
+                        _logger.LogInformation("Certificate {Number} approved - ready for activation",
                             certificate.Number);
                         break;
 
-                    case "active":
+                    case "Active":
                         // Certificate becomes active - trigger partner notifications if needed
                         if (!string.IsNullOrEmpty(certificate.Partner) && certificate.Partner != "None")
                         {
-                            _logger.LogInformation("Certificate {Number} activated for partner {Partner}", 
+                            _logger.LogInformation("Certificate {Number} activated for partner {Partner}",
                                 certificate.Number, certificate.Partner);
                             // Could trigger partner-specific workflows here
                         }
                         break;
 
-                    case "expired":
+                    case "Expired":
                         // Handle expiration - could trigger renewal workflows
-                        _logger.LogInformation("Certificate {Number} expired - checking for renewal eligibility", 
+                        _logger.LogInformation("Certificate {Number} expired - checking for renewal eligibility",
                             certificate.Number);
                         break;
 
-                    case "cancelled":
-                    case "client_declined":
-                        // Handle cancellation/decline - could trigger refund workflows
-                        _logger.LogInformation("Certificate {Number} cancelled/declined - cleaning up resources", 
+                    case "PendingRenewal":
+                        // Certificate needs renewal attention
+                        _logger.LogInformation("Certificate {Number} marked for renewal",
+                            certificate.Number);
+                        break;
+
+                    case "Renewed":
+                        // Certificate renewed - will transition to Active
+                        _logger.LogInformation("Certificate {Number} renewed successfully",
+                            certificate.Number);
+                        break;
+
+                    case "Suspended":
+                        // Certificate suspended - notify stakeholders
+                        _logger.LogInformation("Certificate {Number} suspended",
+                            certificate.Number);
+                        break;
+
+                    case "Revoked":
+                        // Certificate revoked - serious action
+                        _logger.LogWarning("Certificate {Number} revoked by user {UserId}",
+                            certificate.Number, userId);
+                        break;
+
+                    case "Cancelled":
+                    case "Rejected":
+                        // Handle cancellation/rejection - could trigger cleanup workflows
+                        _logger.LogInformation("Certificate {Number} cancelled/rejected - cleaning up resources",
+                            certificate.Number);
+                        break;
+
+                    case "Archived":
+                        // Certificate archived - final state
+                        _logger.LogInformation("Certificate {Number} archived",
                             certificate.Number);
                         break;
                 }
@@ -305,7 +336,7 @@ namespace GCCWebApp.Services
                 // Don't fail the status update if business logic fails
                 _logger.LogError(ex, "Error in status change business logic for certificate {CertificateId}", certificate.Id);
             }
-            
+
             return Task.CompletedTask;
         }
     }

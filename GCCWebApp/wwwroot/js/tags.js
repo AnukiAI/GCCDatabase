@@ -622,6 +622,9 @@ async function showImportModal() {
 async function buildImportPreview(parsedTags) {
     importPreviewData = [];
 
+    // Track tag names seen in this import for duplicate detection within file
+    const namesInImport = new Map(); // name (lowercase) -> rowNumber
+
     for (const importTag of parsedTags) {
         // Match by name (case-insensitive)
         const existingTag = tags.find(t =>
@@ -680,6 +683,17 @@ async function buildImportPreview(parsedTags) {
             previewRow.status = 'error';
             previewRow.errors.push('Tag name is required');
             previewRow.selected = false;
+        } else {
+            // Check for duplicate name within this import file
+            const nameLower = importTag.name.trim().toLowerCase();
+            if (namesInImport.has(nameLower)) {
+                const firstRow = namesInImport.get(nameLower);
+                previewRow.errors.push(`Duplicate tag name in import file (first seen on row ${firstRow})`);
+                previewRow.status = 'error';
+                previewRow.selected = false;
+            } else {
+                namesInImport.set(nameLower, importTag.rowNumber);
+            }
         }
         // Validate tag type
         const normalizedType = (importTag.tagType || '').trim().toLowerCase();

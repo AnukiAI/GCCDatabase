@@ -125,12 +125,13 @@
                         <label asp-for="Status">Status <span class="text-danger" aria-label="required">*</span></label>
                         <select asp-for="Status" required aria-required="true">
                             <option value="">Select status...</option>
-                            <option value="Draft">Draft</option>
-                            <option value="Client Approved - Not Paid">Client Approved - Not Paid</option>
-                            <option value="Client Approved - Confidential">Client Approved - Confidential</option>
-                            <option value="Client Approved - Paid">Client Approved - Paid</option>
-                            <option value="Hold">Hold</option>
-                            <option value="Active" selected>Active</option>
+                            @if (ViewBag.Statuses != null)
+                            {
+                                foreach (var status in ViewBag.Statuses)
+                                {
+                                    <option value="@status.Key" selected="@(status.Key == "Draft")">@status.Value</option>
+                                }
+                            }
                         </select>
                         <span asp-validation-for="Status" class="text-danger" role="alert"></span>
                     </div>

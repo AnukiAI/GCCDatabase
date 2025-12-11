@@ -1301,14 +1301,16 @@
                 toast.className = 'product-toast';
                 document.body.appendChild(toast);
             }
-            
+
             toast.textContent = message;
             toast.className = `product-toast ${type} show`;
-            
+
             setTimeout(() => {
                 toast.classList.remove('show');
             }, 3000);
         }
     </script>
+    <!-- Import productManagement.js for import modal functionality -->
+    <script src="~/js/admin/productManagement.js"></script>
 }
 

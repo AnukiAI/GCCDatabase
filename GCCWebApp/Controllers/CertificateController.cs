@@ -314,13 +314,17 @@ namespace GCCWebApp.Controllers
                     // Set default dates to current year
                     EffectiveDate = DateTime.Today,
                     ExpirationDate = DateTime.Today.AddYears(2), // Default 2-year validity
-                    Status = "active" // Default status
+                    Status = "Draft" // Default status - aligned with DATA_VALIDATION_RULES.md
                 };
 
                 // Load dropdown data
                 ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
                 ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
                 ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+
+                // Load statuses based on user role (database-driven)
+                var userRole = GetUserRole();
+                ViewBag.Statuses = CertificateStatusHelper.GetStatusesForRole(userRole);
 
                 // Load tags filtered by type
                 var allTags = await _unitOfWork.Tags.GetAllAsync();
@@ -388,7 +392,7 @@ namespace GCCWebApp.Controllers
                     var certificate = new Certificate
                     {
                         Number = model.Number,
-                        Status = model.Status ?? "active",
+                        Status = model.Status ?? "Draft",
                         Partner = model.Partner ?? "None",
                         CertificationResults = model.CertificationResults,
                         EffectiveDate = model.EffectiveDate,
@@ -530,6 +534,10 @@ namespace GCCWebApp.Controllers
             ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
             ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
 
+            // Load statuses based on user role (database-driven)
+            var userRole = GetUserRole();
+            ViewBag.Statuses = CertificateStatusHelper.GetStatusesForRole(userRole);
+
             var allTags = await _unitOfWork.Tags.GetAllAsync();
             ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
             ViewBag.InternalTags = allTags.Where(t => t.TagType == "internal" && t.IsActive).ToList();
@@ -583,6 +591,10 @@ namespace GCCWebApp.Controllers
                 ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
                 ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
 
+                // Load statuses based on user role (database-driven)
+                var userRole = GetUserRole();
+                ViewBag.Statuses = CertificateStatusHelper.GetStatusesForRole(userRole);
+
                 // Load all tags filtered by type for the dropdown
                 var allTags = await _unitOfWork.Tags.GetAllAsync();
                 ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
@@ -633,7 +645,7 @@ namespace GCCWebApp.Controllers
 
                     // Update basic properties
                     certificate.Number = model.Number;
-                    certificate.Status = model.Status ?? "active";
+                    certificate.Status = model.Status ?? "Draft";
                     certificate.Partner = model.Partner;
                     certificate.CertificationResults = model.CertificationResults;
                     certificate.EffectiveDate = model.EffectiveDate;
@@ -804,6 +816,10 @@ namespace GCCWebApp.Controllers
             ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
             ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
             ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+
+            // Load statuses based on user role (database-driven)
+            var userRole = GetUserRole();
+            ViewBag.Statuses = CertificateStatusHelper.GetStatusesForRole(userRole);
 
             var allTags = await _unitOfWork.Tags.GetAllAsync();
             ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();

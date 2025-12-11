@@ -635,61 +635,81 @@ class ProductManagement {
 
         // Compare with existing products
         parsedProducts.forEach(row => {
+            // Match by name (case-insensitive)
             const existingProduct = this.products.find(p =>
-                p.name.toLowerCase() === row.data.name.toLowerCase()
+                p.name && row.data.name &&
+                p.name.trim().toLowerCase() === row.data.name.trim().toLowerCase()
             );
 
-            if (existingProduct) {
-                // Check if there are actual differences
-                const hasChanges =
-                    (row.data.description && row.data.description !== (existingProduct.description || '')) ||
-                    (row.data.productType && row.data.productType !== (existingProduct.productTypeName || '')) ||
-                    (row.data.company && row.data.company !== (existingProduct.companyName || ''));
+            const previewRow = {
+                rowNumber: row.rowNumber,
+                data: row.data,
+                existingData: null,
+                status: 'new',
+                changes: [],
+                errors: [],
+                action: 'create',
+                selected: true
+            };
 
-                if (hasChanges) {
-                    this.importPreviewData.push({
-                        rowNumber: row.rowNumber,
-                        data: row.data,
-                        existingData: {
-                            id: existingProduct.id,
-                            name: existingProduct.name,
-                            description: existingProduct.description || '',
-                            productType: existingProduct.productTypeName || '',
-                            company: existingProduct.companyName || '',
-                            status: existingProduct.isActive ? 'Active' : 'Inactive'
-                        },
-                        status: 'modified',
-                        action: 'update',
-                        selected: true
-                    });
-                } else {
-                    this.importPreviewData.push({
-                        rowNumber: row.rowNumber,
-                        data: row.data,
-                        existingData: {
-                            id: existingProduct.id,
-                            name: existingProduct.name,
-                            description: existingProduct.description || '',
-                            productType: existingProduct.productTypeName || '',
-                            company: existingProduct.companyName || '',
-                            status: existingProduct.isActive ? 'Active' : 'Inactive'
-                        },
-                        status: 'unchanged',
-                        action: 'skip',
-                        selected: false
-                    });
+            if (existingProduct) {
+                previewRow.existingData = {
+                    id: existingProduct.id,
+                    name: existingProduct.name,
+                    description: existingProduct.description || '',
+                    productType: existingProduct.productTypeName || '',
+                    company: existingProduct.companyName || '',
+                    status: existingProduct.isActive ? 'Active' : 'Inactive'
+                };
+
+                // Track which fields changed
+                const changes = [];
+
+                const existingDesc = (existingProduct.description || '').trim();
+                const importDesc = (row.data.description || '').trim();
+                if (importDesc && existingDesc !== importDesc) {
+                    changes.push({ field: 'description', oldValue: existingDesc, newValue: importDesc });
                 }
-            } else {
-                // New product
-                this.importPreviewData.push({
-                    rowNumber: row.rowNumber,
-                    data: row.data,
-                    existingData: null,
-                    status: 'new',
-                    action: 'create',
-                    selected: true
-                });
+
+                const existingType = (existingProduct.productTypeName || '').trim().toLowerCase();
+                const importType = (row.data.productType || '').trim().toLowerCase();
+                if (importType && existingType !== importType) {
+                    changes.push({ field: 'productType', oldValue: existingProduct.productTypeName || '', newValue: row.data.productType });
+                }
+
+                const existingCompany = (existingProduct.companyName || '').trim().toLowerCase();
+                const importCompany = (row.data.company || '').trim().toLowerCase();
+                if (importCompany && existingCompany !== importCompany) {
+                    changes.push({ field: 'company', oldValue: existingProduct.companyName || '', newValue: row.data.company });
+                }
+
+                const existingStatus = existingProduct.isActive ? 'active' : 'inactive';
+                const importStatus = (row.data.status || 'active').trim().toLowerCase();
+                if (importStatus && existingStatus !== importStatus) {
+                    changes.push({ field: 'status', oldValue: existingProduct.isActive ? 'Active' : 'Inactive', newValue: row.data.status });
+                }
+
+                previewRow.changes = changes;
+
+                if (changes.length > 0) {
+                    previewRow.status = 'modified';
+                    previewRow.action = 'update';
+                    previewRow.selected = true;
+                } else {
+                    previewRow.status = 'unchanged';
+                    previewRow.action = 'skip';
+                    previewRow.selected = false;
+                }
             }
+
+            // Validate
+            if (!row.data.name || !row.data.name.trim()) {
+                previewRow.errors.push('Product name is required');
+                previewRow.status = 'error';
+                previewRow.selected = false;
+            }
+
+            this.importPreviewData.push(previewRow);
         });
 
         // Show preview modal
@@ -733,7 +753,10 @@ class ProductManagement {
             tr.className = `import-row import-row-${row.status}`;
             tr.dataset.index = index;
 
-            // Status badge
+            // Row styling based on status
+            tr.style.backgroundColor = row.status === 'error' ? '#fff5f5' : (row.status === 'unchanged' ? '#fafafa' : '');
+
+            // Status badge with changes summary
             const statusLabels = {
                 'new': '<span class="badge badge-success">New</span>',
                 'modified': '<span class="badge badge-warning">Modified</span>',
@@ -741,15 +764,34 @@ class ProductManagement {
                 'error': '<span class="badge badge-danger">Error</span>'
             };
 
+            // Build changes summary for modified rows
+            let changesSummary = '';
+            if (row.status === 'modified' && row.changes && row.changes.length > 0) {
+                const fieldNames = row.changes.map(c => {
+                    if (c.field === 'productType') return 'Type';
+                    if (c.field === 'description') return 'Description';
+                    if (c.field === 'company') return 'Company';
+                    if (c.field === 'status') return 'Status';
+                    return c.field;
+                });
+                changesSummary = `<div style="font-size: 10px; color: #666; margin-top: 4px;">${fieldNames.join(', ')} changed</div>`;
+            }
+
+            // Error display
+            let errorDisplay = '';
+            if (row.errors && row.errors.length > 0) {
+                errorDisplay = `<div style="color: #ff5252; font-size: 11px; margin-top: 4px; font-weight: 500;">${row.errors.join('<br>')}</div>`;
+            }
+
             tr.innerHTML = `
-                <td style="text-align: center;">
-                    <input type="checkbox" class="import-row-checkbox" data-index="${index}" ${row.selected ? 'checked' : ''} ${row.status === 'error' ? 'disabled' : ''}>
+                <td style="text-align: center; vertical-align: top;">
+                    <input type="checkbox" class="import-row-checkbox" data-index="${index}" ${row.selected ? 'checked' : ''} ${row.status === 'error' || row.status === 'unchanged' ? 'disabled' : ''}>
                 </td>
-                <td style="text-align: center;">${row.rowNumber}</td>
-                <td>${statusLabels[row.status]}</td>
-                <td>${this.renderFieldWithDiff(row, 'name')}</td>
-                <td>${this.renderFieldWithDiff(row, 'description')}</td>
-                <td>${this.renderActionDropdown(row, index)}</td>
+                <td style="text-align: center; vertical-align: top;">${row.rowNumber}</td>
+                <td style="vertical-align: top;">${statusLabels[row.status]}${changesSummary}</td>
+                <td style="vertical-align: top;">${this.renderFieldWithDiff(row, 'name')}</td>
+                <td style="vertical-align: top;">${this.renderFieldWithDiff(row, 'description')}${errorDisplay}</td>
+                <td style="vertical-align: top;">${this.renderActionDropdown(row, index)}</td>
             `;
 
             tbody.appendChild(tr);
@@ -772,7 +814,7 @@ class ProductManagement {
         // Bind select all checkbox
         const selectAllCheckbox = document.getElementById('import-select-all');
         if (selectAllCheckbox) {
-            selectAllCheckbox.checked = this.importPreviewData.filter(r => r.status !== 'error').every(r => r.selected);
+            selectAllCheckbox.checked = this.importPreviewData.filter(r => r.status !== 'error' && r.status !== 'unchanged').every(r => r.selected);
             selectAllCheckbox.addEventListener('change', (e) => {
                 this.toggleAllImportRows(e.target.checked);
             });
@@ -798,19 +840,22 @@ class ProductManagement {
 
         const newValue = row.data[field] || '';
 
-        if (row.status === 'modified' && row.existingData) {
+        if (row.status === 'modified' && row.existingData && row.changes) {
             const oldValue = row.existingData[field] || '';
-            if (oldValue !== newValue) {
+            // Check if this specific field changed
+            const fieldChanged = row.changes.some(c => c.field.toLowerCase() === field.toLowerCase());
+
+            if (fieldChanged) {
                 return `
-                    <div class="field-conflict" data-field="${field}" data-index="${row.rowNumber}">
-                        <div style="display: flex; gap: 8px; align-items: flex-start;">
-                            <div style="flex: 1;">
-                                <div style="font-size: 10px; color: #666; margin-bottom: 2px; font-weight: 600;">CURRENT:</div>
-                                <div style="padding: 4px 8px; background: #fff3cd; border-radius: 4px; font-size: 13px; border: 1px solid #ffc107;">${escapeHtml(oldValue || '(empty)')}</div>
+                    <div class="field-conflict" style="min-width: 120px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div>
+                                <div style="font-size: 10px; color: #856404; font-weight: 600; text-transform: uppercase;">Current:</div>
+                                <div style="padding: 4px 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; word-break: break-word;">${escapeHtml(oldValue || '(empty)')}</div>
                             </div>
-                            <div style="flex: 1;">
-                                <div style="font-size: 10px; color: #666; margin-bottom: 2px; font-weight: 600;">IMPORT:</div>
-                                <div style="padding: 4px 8px; background: #d4edda; border-radius: 4px; font-size: 13px; border: 1px solid #28a745;">${escapeHtml(newValue || '(empty)')}</div>
+                            <div>
+                                <div style="font-size: 10px; color: #155724; font-weight: 600; text-transform: uppercase;">Import:</div>
+                                <div style="padding: 4px 8px; background: #d4edda; border: 1px solid #28a745; border-radius: 4px; font-size: 12px; word-break: break-word;">${escapeHtml(newValue || '(empty)')}</div>
                             </div>
                         </div>
                     </div>
@@ -818,7 +863,7 @@ class ProductManagement {
             }
         }
 
-        return `<span>${escapeHtml(newValue)}</span>`;
+        return `<span style="word-break: break-word;">${escapeHtml(newValue)}</span>`;
     }
 
     renderActionDropdown(row, index) {
@@ -867,12 +912,30 @@ class ProductManagement {
     updateImportRowAction(index, action) {
         if (index >= 0 && index < this.importPreviewData.length) {
             this.importPreviewData[index].action = action;
-            // Auto-select if choosing an action other than skip
-            if (action !== 'skip' && action !== 'keep') {
-                this.importPreviewData[index].selected = true;
-                const checkbox = document.querySelector(`.import-row-checkbox[data-index="${index}"]`);
-                if (checkbox) checkbox.checked = true;
+            // Auto-select if choosing an action other than skip/keep
+            this.importPreviewData[index].selected = (action !== 'skip' && action !== 'keep');
+
+            const checkbox = document.querySelector(`.import-row-checkbox[data-index="${index}"]`);
+            if (checkbox) {
+                checkbox.checked = (action !== 'skip' && action !== 'keep');
             }
+
+            // Update the row's visual state based on action
+            const tr = document.querySelector(`tr[data-index="${index}"]`);
+            if (tr) {
+                // Update row background color and opacity
+                if (action === 'skip') {
+                    tr.style.backgroundColor = '#f5f5f5';
+                    tr.style.opacity = '0.7';
+                } else if (action === 'keep') {
+                    tr.style.backgroundColor = '#fafafa';
+                    tr.style.opacity = '0.9';
+                } else {
+                    tr.style.backgroundColor = '';
+                    tr.style.opacity = '1';
+                }
+            }
+
             this.updateSelectedCount();
         }
     }

@@ -1,0 +1,13 @@
+Name,Type,Description
+,external,Missing name should fail
+Missing Type,,Description without type
+Invalid Type,public,Type must be internal or external
+Bad Type Tag,Private,Case sensitive type check
+Another Bad Type,EXTERNAL,Uppercase type should fail
+,,,
+Empty Tag Row,,
+SQL Injection,'; DROP TABLE Tags;--,Malicious input test
+XSS Attack Tag,<script>alert(1)</script>,Security test
+Wrong Type Value,both,Invalid enum value
+Numeric Type Only,123,Invalid type format
+Spaces Only Type,   ,Empty type after trim

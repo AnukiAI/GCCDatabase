@@ -5,7 +5,11 @@ class CompanyManagement {
         this.filteredCompanies = [];
         this.currentSort = { field: 'name', direction: 'asc' };
         this.currentEditingId = null;
-        
+
+        // Import preview state
+        this.importPreviewData = [];
+        this.importFileName = '';
+
         this.init();
     }
     
@@ -410,8 +414,489 @@ class CompanyManagement {
     }
     
     showImportModal() {
-        // TODO: Implement import functionality
-        this.showNotification('Import functionality coming soon', 'info');
+        // Create file input and trigger file selection
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.csv';
+        fileInput.style.display = 'none';
+        document.body.appendChild(fileInput);
+
+        fileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) {
+                document.body.removeChild(fileInput);
+                return;
+            }
+
+            this.importFileName = file.name;
+            const reader = new FileReader();
+            reader.onload = async (event) => {
+                const contents = event.target.result;
+                await this.parseAndPreviewImport(contents);
+                document.body.removeChild(fileInput);
+            };
+            reader.onerror = () => {
+                this.showNotification('Error reading file', 'error');
+                document.body.removeChild(fileInput);
+            };
+            reader.readAsText(file);
+        });
+
+        fileInput.click();
+    }
+
+    async parseAndPreviewImport(contents) {
+        try {
+            const lines = contents.split(/\r?\n/).filter(line => line.trim());
+            if (lines.length < 2) {
+                this.showNotification('CSV file must have a header row and at least one data row', 'error');
+                return;
+            }
+
+            // Parse header
+            const headers = this.parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+            const requiredFields = ['name'];
+            const missingFields = requiredFields.filter(f => !headers.includes(f));
+
+            if (missingFields.length > 0) {
+                this.showNotification(`Missing required fields: ${missingFields.join(', ')}`, 'error');
+                return;
+            }
+
+            // Parse data rows
+            const parsedCompanies = [];
+            for (let i = 1; i < lines.length; i++) {
+                const values = this.parseCSVLine(lines[i]);
+                if (values.length === 0 || values.every(v => !v.trim())) continue;
+
+                const company = {};
+                headers.forEach((header, index) => {
+                    company[header] = values[index]?.trim() || '';
+                });
+
+                parsedCompanies.push({
+                    rowNumber: i,
+                    data: {
+                        name: company.name || '',
+                        email: company.email || '',
+                        url: company.url || company.website || ''
+                    }
+                });
+            }
+
+            if (parsedCompanies.length === 0) {
+                this.showNotification('No valid data rows found in CSV', 'error');
+                return;
+            }
+
+            // Build preview with comparison
+            await this.buildImportPreview(parsedCompanies);
+
+        } catch (error) {
+            console.error('Error parsing CSV:', error);
+            this.showNotification('Error parsing CSV file', 'error');
+        }
+    }
+
+    parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            const nextChar = line[i + 1];
+
+            if (inQuotes) {
+                if (char === '"' && nextChar === '"') {
+                    current += '"';
+                    i++;
+                } else if (char === '"') {
+                    inQuotes = false;
+                } else {
+                    current += char;
+                }
+            } else {
+                if (char === '"') {
+                    inQuotes = true;
+                } else if (char === ',') {
+                    result.push(current);
+                    current = '';
+                } else {
+                    current += char;
+                }
+            }
+        }
+        result.push(current);
+        return result;
+    }
+
+    async buildImportPreview(parsedCompanies) {
+        this.importPreviewData = [];
+
+        parsedCompanies.forEach(row => {
+            // Match by name (case-insensitive)
+            const existingCompany = this.companies.find(c =>
+                c.name && row.data.name &&
+                c.name.trim().toLowerCase() === row.data.name.trim().toLowerCase()
+            );
+
+            const previewRow = {
+                rowNumber: row.rowNumber,
+                data: row.data,
+                existingData: null,
+                status: 'new',
+                changes: [],
+                errors: [],
+                action: 'create',
+                selected: true
+            };
+
+            if (existingCompany) {
+                previewRow.existingData = {
+                    id: existingCompany.id,
+                    name: existingCompany.name,
+                    email: existingCompany.email || '',
+                    url: existingCompany.url || ''
+                };
+
+                // Track which fields changed
+                const changes = [];
+
+                const existingEmail = (existingCompany.email || '').trim().toLowerCase();
+                const importEmail = (row.data.email || '').trim().toLowerCase();
+                if (importEmail && existingEmail !== importEmail) {
+                    changes.push({ field: 'email', oldValue: existingCompany.email || '', newValue: row.data.email });
+                }
+
+                const existingUrl = (existingCompany.url || '').trim().toLowerCase();
+                const importUrl = (row.data.url || '').trim().toLowerCase();
+                if (importUrl && existingUrl !== importUrl) {
+                    changes.push({ field: 'url', oldValue: existingCompany.url || '', newValue: row.data.url });
+                }
+
+                previewRow.changes = changes;
+
+                if (changes.length > 0) {
+                    previewRow.status = 'modified';
+                    previewRow.action = 'update';
+                    previewRow.selected = true;
+                } else {
+                    previewRow.status = 'unchanged';
+                    previewRow.action = 'skip';
+                    previewRow.selected = false;
+                }
+            }
+
+            // Validate
+            if (!row.data.name || !row.data.name.trim()) {
+                previewRow.errors.push('Company name is required');
+                previewRow.status = 'error';
+                previewRow.selected = false;
+            }
+            if (row.data.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(row.data.email)) {
+                previewRow.errors.push('Invalid email format');
+                previewRow.status = 'error';
+                previewRow.selected = false;
+            }
+
+            this.importPreviewData.push(previewRow);
+        });
+
+        this.showImportPreviewModal();
+    }
+
+    showImportPreviewModal() {
+        const modal = document.getElementById('import-preview-modal');
+        if (!modal) return;
+
+        // Calculate stats
+        const stats = {
+            new: this.importPreviewData.filter(r => r.status === 'new').length,
+            modified: this.importPreviewData.filter(r => r.status === 'modified').length,
+            unchanged: this.importPreviewData.filter(r => r.status === 'unchanged').length,
+            errors: this.importPreviewData.filter(r => r.status === 'error').length
+        };
+
+        document.getElementById('stat-new').textContent = stats.new;
+        document.getElementById('stat-modified').textContent = stats.modified;
+        document.getElementById('stat-unchanged').textContent = stats.unchanged;
+        document.getElementById('stat-errors').textContent = stats.errors;
+
+        const filenameEl = document.getElementById('import-filename');
+        if (filenameEl) filenameEl.textContent = this.importFileName;
+
+        const tbody = document.getElementById('import-preview-body');
+        tbody.innerHTML = '';
+
+        this.importPreviewData.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            tr.dataset.index = index;
+            tr.style.backgroundColor = row.status === 'error' ? '#fff5f5' : (row.status === 'unchanged' ? '#fafafa' : '');
+
+            const statusColors = {
+                'new': { bg: '#e8f5e1', color: '#447638', label: 'New' },
+                'modified': { bg: '#e6f7ff', color: '#002B76', label: 'Modified' },
+                'unchanged': { bg: '#f5f5f5', color: '#999', label: 'Unchanged' },
+                'error': { bg: '#ffebee', color: '#ff5252', label: 'Error' }
+            };
+            const statusStyle = statusColors[row.status];
+
+            let changesSummary = '';
+            if (row.status === 'modified' && row.changes.length > 0) {
+                const fieldNames = row.changes.map(c => c.field === 'url' ? 'Website' : c.field.charAt(0).toUpperCase() + c.field.slice(1));
+                changesSummary = `<div style="font-size: 10px; color: #666; margin-top: 4px;">${fieldNames.join(', ')} changed</div>`;
+            }
+
+            let errorDisplay = '';
+            if (row.errors.length > 0) {
+                errorDisplay = `<div style="color: #ff5252; font-size: 11px; margin-top: 4px; font-weight: 500;">${row.errors.join('<br>')}</div>`;
+            }
+
+            tr.innerHTML = `
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                    <input type="checkbox" class="import-row-checkbox" data-index="${index}"
+                           ${row.selected ? 'checked' : ''} ${row.status === 'error' || row.status === 'unchanged' ? 'disabled' : ''}
+                           onchange="companyManagement.updateImportRowSelection(${index}, this.checked)">
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; font-family: monospace; vertical-align: top;">${row.rowNumber}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                    <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: ${statusStyle.bg}; color: ${statusStyle.color};">
+                        ${statusStyle.label}
+                    </span>
+                    ${changesSummary}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                    ${this.renderFieldWithDiff(row, 'name')}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                    ${this.renderFieldWithDiff(row, 'email')}
+                    ${errorDisplay}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                    ${this.renderFieldWithDiff(row, 'url')}
+                </td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                    ${this.renderActionDropdown(row, index)}
+                </td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        this.updateSelectedCount();
+        modal.style.setProperty('display', 'block', 'important');
+    }
+
+    renderFieldWithDiff(row, field) {
+        const newValue = row.data[field] || '';
+
+        if (row.status === 'modified' && row.existingData && row.changes) {
+            const oldValue = row.existingData[field] || '';
+            const fieldChanged = row.changes.some(c => c.field.toLowerCase() === field.toLowerCase());
+
+            if (fieldChanged) {
+                return `
+                    <div style="min-width: 120px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div>
+                                <div style="font-size: 10px; color: #856404; font-weight: 600; text-transform: uppercase;">Current:</div>
+                                <div style="padding: 4px 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; word-break: break-word;">${this.escapeHtml(oldValue || '(empty)')}</div>
+                            </div>
+                            <div>
+                                <div style="font-size: 10px; color: #155724; font-weight: 600; text-transform: uppercase;">Import:</div>
+                                <div style="padding: 4px 8px; background: #d4edda; border: 1px solid #28a745; border-radius: 4px; font-size: 12px; word-break: break-word;">${this.escapeHtml(newValue || '(empty)')}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        return `<span style="word-break: break-word;">${this.escapeHtml(newValue)}</span>`;
+    }
+
+    renderActionDropdown(row, index) {
+        if (row.status === 'error') {
+            return '<span style="color: #999; font-size: 12px;">Cannot import</span>';
+        }
+
+        if (row.status === 'new') {
+            return `
+                <select class="import-action-select" data-index="${index}" onchange="companyManagement.updateImportRowAction(${index}, this.value)" style="padding: 5px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                    <option value="create" ${row.action === 'create' ? 'selected' : ''}>Create</option>
+                    <option value="skip" ${row.action === 'skip' ? 'selected' : ''}>Skip</option>
+                </select>
+            `;
+        }
+
+        if (row.status === 'modified') {
+            return `
+                <select class="import-action-select" data-index="${index}" onchange="companyManagement.updateImportRowAction(${index}, this.value)" style="padding: 5px 8px; border: 2px solid #002B76; border-radius: 4px; font-size: 12px; font-weight: 500;">
+                    <option value="update" ${row.action === 'update' ? 'selected' : ''}>Use Import</option>
+                    <option value="keep" ${row.action === 'keep' ? 'selected' : ''}>Keep Current</option>
+                    <option value="skip" ${row.action === 'skip' ? 'selected' : ''}>Skip Row</option>
+                </select>
+            `;
+        }
+
+        if (row.status === 'unchanged') {
+            return '<span style="color: #999; font-size: 12px;">No changes</span>';
+        }
+
+        return '';
+    }
+
+    updateImportRowSelection(index, selected) {
+        this.importPreviewData[index].selected = selected;
+        if (!selected) {
+            this.importPreviewData[index].action = 'skip';
+        } else {
+            if (this.importPreviewData[index].status === 'new') {
+                this.importPreviewData[index].action = 'create';
+            } else if (this.importPreviewData[index].status === 'modified') {
+                this.importPreviewData[index].action = 'update';
+            }
+        }
+        this.updateSelectedCount();
+    }
+
+    updateImportRowAction(index, action) {
+        this.importPreviewData[index].action = action;
+        this.importPreviewData[index].selected = (action !== 'skip' && action !== 'keep');
+
+        const checkbox = document.querySelector(`input.import-row-checkbox[data-index="${index}"]`);
+        if (checkbox) {
+            checkbox.checked = (action !== 'skip' && action !== 'keep');
+        }
+
+        const tr = document.querySelector(`tr[data-index="${index}"]`);
+        if (tr) {
+            if (action === 'skip') {
+                tr.style.backgroundColor = '#f5f5f5';
+                tr.style.opacity = '0.7';
+            } else if (action === 'keep') {
+                tr.style.backgroundColor = '#fafafa';
+                tr.style.opacity = '0.9';
+            } else {
+                tr.style.backgroundColor = '';
+                tr.style.opacity = '1';
+            }
+        }
+
+        this.updateSelectedCount();
+    }
+
+    toggleAllImportRows(checked) {
+        this.importPreviewData.forEach((row, index) => {
+            if (row.status !== 'error' && row.status !== 'unchanged') {
+                row.selected = checked;
+                row.action = checked ? (row.status === 'new' ? 'create' : 'update') : 'skip';
+
+                const checkbox = document.querySelector(`input.import-row-checkbox[data-index="${index}"]`);
+                if (checkbox) checkbox.checked = checked;
+            }
+        });
+        this.updateSelectedCount();
+    }
+
+    updateSelectedCount() {
+        const toProcessCount = this.importPreviewData.filter(r =>
+            r.action === 'create' || r.action === 'update'
+        ).length;
+        const keptCount = this.importPreviewData.filter(r => r.action === 'keep').length;
+        const totalActionable = this.importPreviewData.filter(r =>
+            r.status !== 'error' && r.status !== 'unchanged'
+        ).length;
+
+        const countContainer = document.getElementById('import-selected-count');
+        if (countContainer) {
+            let label = `${toProcessCount} of ${totalActionable} rows will be imported`;
+            if (keptCount > 0) {
+                label += ` (${keptCount} keeping current)`;
+            }
+            countContainer.innerHTML = label;
+        }
+
+        const applyBtn = document.getElementById('apply-import-btn');
+        if (applyBtn) {
+            const hasChanges = toProcessCount > 0;
+            applyBtn.disabled = !hasChanges;
+            applyBtn.style.opacity = hasChanges ? '1' : '0.5';
+        }
+    }
+
+    closeImportPreviewModal() {
+        const modal = document.getElementById('import-preview-modal');
+        if (modal) {
+            modal.style.setProperty('display', 'none', 'important');
+        }
+        this.importPreviewData = [];
+        this.importFileName = '';
+    }
+
+    async applySelectedImport() {
+        const rowsToProcess = this.importPreviewData.filter(r =>
+            r.action === 'create' || r.action === 'update'
+        );
+
+        if (rowsToProcess.length === 0) {
+            this.showNotification('No rows selected for import', 'warning');
+            return;
+        }
+
+        const token = this.getAntiForgeryToken();
+        let successCount = 0;
+        let errorCount = 0;
+        const errors = [];
+
+        this.showLoading(true, 'Importing companies...');
+
+        for (const row of rowsToProcess) {
+            try {
+                const companyData = {
+                    id: row.action === 'update' ? row.existingData.id : 0,
+                    name: row.data.name,
+                    email: row.data.email,
+                    url: row.data.url
+                };
+
+                const response = await fetch('/Company/SaveCompany', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify(companyData)
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                    errors.push(`Row ${row.rowNumber} (${row.data.name}): ${result.message || 'Unknown error'}`);
+                }
+            } catch (error) {
+                errorCount++;
+                errors.push(`Row ${row.rowNumber} (${row.data.name}): ${error.message}`);
+            }
+        }
+
+        this.showLoading(false);
+        this.closeImportPreviewModal();
+        await this.loadCompanies();
+        this.renderCompanies();
+
+        if (errorCount === 0) {
+            this.showNotification(`Import complete: ${successCount} companies processed successfully`, 'success');
+        } else if (successCount > 0) {
+            this.showNotification(`Import partial: ${successCount} succeeded, ${errorCount} failed`, 'warning');
+            console.error('Import errors:', errors);
+        } else {
+            this.showNotification(`Import failed: ${errorCount} errors occurred`, 'error');
+            console.error('Import errors:', errors);
+        }
     }
     
     isValidUrl(url) {

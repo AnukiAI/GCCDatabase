@@ -722,17 +722,24 @@ class UserManagement {
             };
 
             if (existingUser) {
-                // Compare fields and determine status
+                // Compare fields and determine status - using case-insensitive comparison where appropriate
                 const changes = [];
 
-                if (existingUser.name !== importUser.name) {
-                    changes.push({ field: 'Name', oldValue: existingUser.name, newValue: importUser.name });
+                if ((existingUser.name || '').trim().toLowerCase() !== (importUser.name || '').trim().toLowerCase()) {
+                    changes.push({ field: 'Name', oldValue: existingUser.name || '', newValue: importUser.name || '' });
                 }
-                if (existingUser.role !== importUser.role) {
-                    changes.push({ field: 'Role', oldValue: existingUser.role, newValue: importUser.role });
+                if ((existingUser.role || '').trim() !== (importUser.role || '').trim()) {
+                    changes.push({ field: 'Role', oldValue: existingUser.role || '', newValue: importUser.role || '' });
                 }
-                if (existingUser.status?.toLowerCase() !== importUser.status?.toLowerCase()) {
-                    changes.push({ field: 'Status', oldValue: existingUser.status, newValue: importUser.status });
+                if ((existingUser.status || '').trim().toLowerCase() !== (importUser.status || '').trim().toLowerCase()) {
+                    changes.push({ field: 'Status', oldValue: existingUser.status || '', newValue: importUser.status || '' });
+                }
+                // Compare company if provided
+                if (importUser.company && importUser.company.trim()) {
+                    const existingCompany = existingUser.company || existingUser.companyNames?.join(', ') || '';
+                    if (existingCompany.toLowerCase() !== importUser.company.trim().toLowerCase()) {
+                        changes.push({ field: 'Company', oldValue: existingCompany, newValue: importUser.company });
+                    }
                 }
 
                 if (changes.length > 0) {
@@ -747,16 +754,18 @@ class UserManagement {
             }
 
             // Validate
-            if (!importUser.name) {
+            if (!importUser.name || !importUser.name.trim()) {
                 previewRow.errors.push('Name is required');
             }
-            if (!importUser.email) {
+            if (!importUser.email || !importUser.email.trim()) {
                 previewRow.errors.push('Email is required');
-            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(importUser.email)) {
+            } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(importUser.email.trim())) {
                 previewRow.errors.push('Invalid email format');
             }
-            if (!['Admin', 'Analyst', 'External', 'Public'].includes(importUser.role)) {
-                previewRow.errors.push('Invalid role');
+            // Normalize role for validation
+            const normalizedRole = (importUser.role || '').trim();
+            if (normalizedRole && !['Admin', 'Analyst', 'External', 'Public'].includes(normalizedRole)) {
+                previewRow.errors.push(`Invalid role: "${normalizedRole}" (must be Admin, Analyst, External, or Public)`);
             }
 
             if (previewRow.errors.length > 0) {
@@ -805,36 +814,43 @@ class UserManagement {
             };
             const statusStyle = statusColors[row.status];
 
-            tr.style.backgroundColor = row.status === 'error' ? '#fff5f5' : '';
+            tr.style.backgroundColor = row.status === 'error' ? '#fff5f5' : (row.status === 'unchanged' ? '#fafafa' : '');
+
+            // Build changes summary for modified rows
+            let changesSummary = '';
+            if (row.status === 'modified' && row.changes.length > 0) {
+                changesSummary = `<div style="font-size: 10px; color: #666; margin-top: 4px;">${row.changes.map(c => c.field).join(', ')} changed</div>`;
+            }
 
             tr.innerHTML = `
-                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                     <input type="checkbox" class="import-row-checkbox"
                            data-index="${index}"
                            ${row.selected ? 'checked' : ''}
-                           ${row.status === 'error' ? 'disabled' : ''}
+                           ${row.status === 'error' || row.status === 'unchanged' ? 'disabled' : ''}
                            onchange="userManagement.updateImportRowSelection(${index}, this.checked)">
                 </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; font-family: monospace;">${row.rowNumber}</td>
-                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; font-family: monospace; vertical-align: top;">${row.rowNumber}</td>
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                     <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: ${statusStyle.bg}; color: ${statusStyle.color};">
                         ${statusStyle.label}
                     </span>
+                    ${changesSummary}
                 </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                     ${this.renderFieldWithDiff(row, 'name')}
                 </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                     ${this.escapeHtml(row.data.email || '')}
                 </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                     ${this.renderFieldWithDiff(row, 'role')}
                 </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                     ${this.renderFieldWithDiff(row, 'status')}
-                    ${row.errors.length > 0 ? `<div style="color: #ff5252; font-size: 11px; margin-top: 4px;">${row.errors.join(', ')}</div>` : ''}
+                    ${row.errors.length > 0 ? `<div style="color: #ff5252; font-size: 11px; margin-top: 4px; font-weight: 500;">${row.errors.join('<br>')}</div>` : ''}
                 </td>
-                <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+                <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                     ${this.renderActionDropdown(row, index)}
                 </td>
             `;
@@ -854,17 +870,20 @@ class UserManagement {
 
         if (row.status === 'modified' && row.existingData) {
             const oldValue = row.existingData[field] || '';
-            if (oldValue !== newValue) {
+            // Check if this specific field changed (case-insensitive comparison)
+            const fieldChanged = row.changes.some(c => c.field.toLowerCase() === field.toLowerCase());
+
+            if (fieldChanged) {
                 return `
-                    <div class="field-conflict">
-                        <div style="display: flex; gap: 6px; align-items: flex-start;">
-                            <div style="flex: 1;">
-                                <div style="font-size: 10px; color: #666; font-weight: 600;">CURRENT:</div>
-                                <div style="padding: 3px 6px; background: #fff3cd; border-radius: 3px; font-size: 12px;">${this.escapeHtml(oldValue || '(empty)')}</div>
+                    <div class="field-conflict" style="min-width: 140px;">
+                        <div style="display: flex; flex-direction: column; gap: 4px;">
+                            <div>
+                                <div style="font-size: 10px; color: #856404; font-weight: 600; text-transform: uppercase;">Current:</div>
+                                <div style="padding: 4px 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; word-break: break-word;">${this.escapeHtml(oldValue || '(empty)')}</div>
                             </div>
-                            <div style="flex: 1;">
-                                <div style="font-size: 10px; color: #666; font-weight: 600;">IMPORT:</div>
-                                <div style="padding: 3px 6px; background: #d4edda; border-radius: 3px; font-size: 12px;">${this.escapeHtml(newValue || '(empty)')}</div>
+                            <div>
+                                <div style="font-size: 10px; color: #155724; font-weight: 600; text-transform: uppercase;">Import:</div>
+                                <div style="padding: 4px 8px; background: #d4edda; border: 1px solid #28a745; border-radius: 4px; font-size: 12px; word-break: break-word;">${this.escapeHtml(newValue || '(empty)')}</div>
                             </div>
                         </div>
                     </div>
@@ -872,7 +891,8 @@ class UserManagement {
             }
         }
 
-        return this.escapeHtml(newValue);
+        // For unchanged fields or new rows, just show the value
+        return `<span style="word-break: break-word;">${this.escapeHtml(newValue)}</span>`;
     }
 
     renderActionDropdown(row, index) {
@@ -929,6 +949,22 @@ class UserManagement {
         const checkbox = document.querySelector(`input.import-row-checkbox[data-index="${index}"]`);
         if (checkbox) {
             checkbox.checked = (action !== 'skip' && action !== 'keep');
+        }
+
+        // Update the row's visual state based on action
+        const tr = document.querySelector(`tr[data-index="${index}"]`);
+        if (tr) {
+            // Update row background color
+            if (action === 'skip') {
+                tr.style.backgroundColor = '#f5f5f5';
+                tr.style.opacity = '0.7';
+            } else if (action === 'keep') {
+                tr.style.backgroundColor = '#fafafa';
+                tr.style.opacity = '0.9';
+            } else {
+                tr.style.backgroundColor = '';
+                tr.style.opacity = '1';
+            }
         }
 
         this.updateSelectedCount();

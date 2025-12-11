@@ -120,7 +120,7 @@
     --admin-z-modal: 1050;
     --admin-z-popover: 1060;
     --admin-z-tooltip: 1070;
-    --admin-z-toast: 1080;
+    --admin-z-toast: 10000; /* Must be higher than modal backdrop (9998) and modal content (9999) */
 
     /* Layout */
     --admin-container-max-width: 1400px;

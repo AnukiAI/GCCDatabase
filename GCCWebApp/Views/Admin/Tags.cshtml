@@ -162,19 +162,19 @@
             </div>
 
             <!-- Preview Table -->
-            <div class="import-preview-table-container" style="border: 1px solid #e9ecef; border-radius: 6px; overflow: hidden;">
-                <table class="import-preview-table" style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <div class="import-preview-table-container" style="border: 1px solid #e9ecef; border-radius: 6px; overflow: hidden; overflow-x: auto;">
+                <table class="import-preview-table" style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 800px;">
                     <thead>
                         <tr style="background: #f8f9fa;">
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 40px;">
                                 <input type="checkbox" id="select-all-import" checked onchange="toggleAllImportRows(this)">
                             </th>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 60px;">Row</th>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 100px;">Status</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 50px;">Row</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 110px;">Import Status</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef;">Tag Name</th>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef;">Type</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 140px;">Type</th>
                             <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef;">Description</th>
-                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 100px;">Action</th>
+                            <th style="padding: 12px; text-align: left; border-bottom: 2px solid #e9ecef; width: 140px;">Action</th>
                         </tr>
                     </thead>
                     <tbody id="import-preview-body">

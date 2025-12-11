@@ -1,0 +1,13 @@
+Name,Description,CompanyName,ProductTypeName
+A,Min name,Acme Corporation,Building Materials
+AB,Two chars,Acme Corporation,Building Materials
+Product Name That Is Exactly One Hundred Characters Long For Testing The Maximum Allowed Name LengthA,Exact 100 chars,Acme Corporation,Building Materials
+Product Name That Exceeds One Hundred Characters Which Is The Maximum Allowed Length For Product Names In System,Too long name,Acme Corporation,Building Materials
+Min Fields Only,,,
+No Company Or Type,Short description,,
+Company Only,With company,Acme Corporation,
+Type Only,With type,,Building Materials
+Description Max 500,This description is exactly five hundred characters long to test the maximum allowed length for product descriptions in the system. It includes enough text to fill the entire available space without exceeding it. The purpose is to verify that the validation rules correctly accept descriptions at the boundary limit. Additional filler text is needed to reach the exact character count. Lorem ipsum dolor sit amet consectetur.,Acme Corporation,Building Materials
+Numbers In Name 12345,Numeric product name,Acme Corporation,Building Materials
+Special-Chars_Product,Dashes and underscores,Acme Corporation,Building Materials
+"Product, With Comma",Quoted name with comma,Acme Corporation,Building Materials

@@ -609,7 +609,11 @@ async function buildImportPreview(parsedTags) {
     importPreviewData = [];
 
     for (const importTag of parsedTags) {
-        const existingTag = tags.find(t => t.name.toLowerCase() === importTag.name.toLowerCase());
+        // Match by name (case-insensitive)
+        const existingTag = tags.find(t =>
+            t.name && importTag.name &&
+            t.name.trim().toLowerCase() === importTag.name.trim().toLowerCase()
+        );
 
         const previewRow = {
             rowNumber: importTag.rowNumber,
@@ -623,22 +627,26 @@ async function buildImportPreview(parsedTags) {
         };
 
         if (existingTag) {
-            // Compare fields and determine status
+            // Compare fields and determine status - normalize for comparison
             const changes = [];
 
-            if (existingTag.tagType !== importTag.tagType) {
+            const existingType = (existingTag.tagType || '').trim().toLowerCase();
+            const importType = (importTag.tagType || '').trim().toLowerCase();
+            if (existingType !== importType) {
                 changes.push({
-                    field: 'Type',
-                    oldValue: existingTag.tagType,
-                    newValue: importTag.tagType
+                    field: 'tagType',
+                    oldValue: existingTag.tagType || '',
+                    newValue: importTag.tagType || ''
                 });
             }
 
-            if ((existingTag.description || '') !== (importTag.description || '')) {
+            const existingDesc = (existingTag.description || '').trim();
+            const importDesc = (importTag.description || '').trim();
+            if (existingDesc !== importDesc) {
                 changes.push({
-                    field: 'Description',
-                    oldValue: existingTag.description || '(empty)',
-                    newValue: importTag.description || '(empty)'
+                    field: 'description',
+                    oldValue: existingTag.description || '',
+                    newValue: importTag.description || ''
                 });
             }
 
@@ -654,10 +662,19 @@ async function buildImportPreview(parsedTags) {
         }
 
         // Validate
-        if (!importTag.name) {
+        if (!importTag.name || !importTag.name.trim()) {
             previewRow.status = 'error';
             previewRow.errors.push('Tag name is required');
             previewRow.selected = false;
+        }
+        // Validate tag type
+        const normalizedType = (importTag.tagType || '').trim().toLowerCase();
+        if (normalizedType && normalizedType !== 'external' && normalizedType !== 'internal') {
+            previewRow.errors.push(`Invalid tag type: "${importTag.tagType}" (must be external or internal)`);
+            if (previewRow.errors.length > 0) {
+                previewRow.status = 'error';
+                previewRow.selected = false;
+            }
         }
 
         importPreviewData.push(previewRow);
@@ -709,33 +726,41 @@ function showImportPreviewModal() {
         const statusStyle = statusColors[row.status];
 
         // Row background based on status
-        tr.style.backgroundColor = row.status === 'error' ? '#fff5f5' : '';
+        tr.style.backgroundColor = row.status === 'error' ? '#fff5f5' : (row.status === 'unchanged' ? '#fafafa' : '');
+
+        // Build changes summary for modified rows
+        let changesSummary = '';
+        if (row.status === 'modified' && row.changes.length > 0) {
+            const fieldNames = row.changes.map(c => c.field === 'tagType' ? 'Type' : (c.field === 'description' ? 'Description' : c.field));
+            changesSummary = `<div style="font-size: 10px; color: #666; margin-top: 4px;">${fieldNames.join(', ')} changed</div>`;
+        }
 
         tr.innerHTML = `
-            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                 <input type="checkbox" class="import-row-checkbox"
                        data-index="${index}"
                        ${row.selected ? 'checked' : ''}
-                       ${row.status === 'error' ? 'disabled' : ''}
+                       ${row.status === 'error' || row.status === 'unchanged' ? 'disabled' : ''}
                        onchange="updateImportRowSelection(${index}, this.checked)">
             </td>
-            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; font-family: monospace;">${row.rowNumber}</td>
-            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; font-family: monospace; vertical-align: top;">${row.rowNumber}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                 <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: ${statusStyle.bg}; color: ${statusStyle.color};">
                     ${statusStyle.label}
                 </span>
+                ${changesSummary}
             </td>
-            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                 ${renderFieldWithDiff(row, 'name')}
             </td>
-            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                 ${renderFieldWithDiff(row, 'tagType')}
             </td>
-            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                 ${renderFieldWithDiff(row, 'description')}
-                ${row.errors.length > 0 ? `<div style="color: #ff5252; font-size: 12px; margin-top: 4px;">${row.errors.join(', ')}</div>` : ''}
+                ${row.errors.length > 0 ? `<div style="color: #ff5252; font-size: 11px; margin-top: 4px; font-weight: 500;">${row.errors.join('<br>')}</div>` : ''}
             </td>
-            <td style="padding: 10px; border-bottom: 1px solid #e9ecef;">
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
                 ${renderActionDropdown(row, index)}
             </td>
         `;
@@ -750,7 +775,6 @@ function showImportPreviewModal() {
     console.log('Setting modal display to block');
     modal.style.setProperty('display', 'block', 'important');
     console.log('Modal display after setting:', modal.style.display);
-    console.log('Modal computed style display:', window.getComputedStyle(modal).display);
 }
 
 // Render field value with diff highlighting for modified rows
@@ -759,18 +783,21 @@ function renderFieldWithDiff(row, field) {
 
     if (row.status === 'modified' && row.existingData) {
         const oldValue = row.existingData[field] || '';
-        if (oldValue !== newValue) {
-            // Show side-by-side comparison for conflicts
+        // Check if this specific field changed (case-insensitive comparison for field name)
+        const fieldChanged = row.changes.some(c => c.field.toLowerCase() === field.toLowerCase());
+
+        if (fieldChanged) {
+            // Show stacked comparison for conflicts (more readable)
             return `
-                <div class="field-conflict" data-field="${field}" data-index="${row.rowNumber}">
-                    <div style="display: flex; gap: 8px; align-items: flex-start;">
-                        <div style="flex: 1;">
-                            <div style="font-size: 10px; color: #666; margin-bottom: 2px; font-weight: 600;">CURRENT:</div>
-                            <div style="padding: 4px 8px; background: #fff3cd; border-radius: 4px; font-size: 13px; border: 1px solid #ffc107;">${escapeHtml(oldValue || '(empty)')}</div>
+                <div class="field-conflict" style="min-width: 120px;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <div>
+                            <div style="font-size: 10px; color: #856404; font-weight: 600; text-transform: uppercase;">Current:</div>
+                            <div style="padding: 4px 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; word-break: break-word;">${escapeHtml(oldValue || '(empty)')}</div>
                         </div>
-                        <div style="flex: 1;">
-                            <div style="font-size: 10px; color: #666; margin-bottom: 2px; font-weight: 600;">IMPORT:</div>
-                            <div style="padding: 4px 8px; background: #d4edda; border-radius: 4px; font-size: 13px; border: 1px solid #28a745;">${escapeHtml(newValue || '(empty)')}</div>
+                        <div>
+                            <div style="font-size: 10px; color: #155724; font-weight: 600; text-transform: uppercase;">Import:</div>
+                            <div style="padding: 4px 8px; background: #d4edda; border: 1px solid #28a745; border-radius: 4px; font-size: 12px; word-break: break-word;">${escapeHtml(newValue || '(empty)')}</div>
                         </div>
                     </div>
                 </div>
@@ -778,7 +805,8 @@ function renderFieldWithDiff(row, field) {
         }
     }
 
-    return escapeHtml(newValue);
+    // For unchanged fields or new rows, just show the value
+    return `<span style="word-break: break-word;">${escapeHtml(newValue)}</span>`;
 }
 
 // Render action dropdown for each row
@@ -846,9 +874,22 @@ function updateImportRowAction(index, action) {
         checkbox.checked = (action !== 'skip' && action !== 'keep');
     }
 
-    // Re-render the action dropdown to update the status text
+    // Update the row's visual state based on action
     const tr = document.querySelector(`tr[data-index="${index}"]`);
     if (tr) {
+        // Update row background color and opacity
+        if (action === 'skip') {
+            tr.style.backgroundColor = '#f5f5f5';
+            tr.style.opacity = '0.7';
+        } else if (action === 'keep') {
+            tr.style.backgroundColor = '#fafafa';
+            tr.style.opacity = '0.9';
+        } else {
+            tr.style.backgroundColor = '';
+            tr.style.opacity = '1';
+        }
+
+        // Re-render the action dropdown to update the status text
         const actionCell = tr.querySelector('td:last-child');
         if (actionCell) {
             actionCell.innerHTML = renderActionDropdown(importPreviewData[index], index);

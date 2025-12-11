@@ -293,13 +293,22 @@ async function saveNewTag() {
 
             // Reload tags from server
             await loadTags();
-            AdminCore.showNotification('Tag added successfully', 'success');
+            await AdminCore.showSuccessModal({
+                title: 'Tag Created',
+                message: 'The tag was added successfully.'
+            });
         } else {
-            AdminCore.showNotification(result.message || 'Failed to create tag', 'error');
+            await AdminCore.showErrorModal({
+                title: 'Creation Failed',
+                message: result.message || 'Failed to create tag'
+            });
         }
     } catch (error) {
         console.error('Error creating tag:', error);
-        AdminCore.showNotification('An error occurred while creating the tag', 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'An error occurred while creating the tag'
+        });
     }
 }
 
@@ -405,13 +414,22 @@ async function saveTag(id) {
 
             // Remove edit class
             row.classList.remove('admin-inline-edit-row');
-            AdminCore.showNotification('Tag updated successfully', 'success');
+            await AdminCore.showSuccessModal({
+                title: 'Update Successful',
+                message: 'The tag was updated successfully.'
+            });
         } else {
-            AdminCore.showNotification(result.message || 'Failed to update tag', 'error');
+            await AdminCore.showErrorModal({
+                title: 'Update Failed',
+                message: result.message || 'Failed to update tag'
+            });
         }
     } catch (error) {
         console.error('Error updating tag:', error);
-        AdminCore.showNotification('An error occurred while updating the tag', 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'An error occurred while updating the tag'
+        });
     }
 }
 
@@ -465,16 +483,25 @@ async function deleteTag(id, name) {
         const result = await response.json();
 
         if (result.success) {
-            AdminCore.showNotification(result.message || 'Tag deleted successfully!', 'success');
-
             // Reload tags from server
             await loadTags();
+
+            await AdminCore.showSuccessModal({
+                title: 'Delete Successful',
+                message: 'The tag was successfully deleted.'
+            });
         } else {
-            AdminCore.showNotification(result.message || 'Failed to delete tag', 'error');
+            await AdminCore.showErrorModal({
+                title: 'Delete Failed',
+                message: result.message || 'Failed to delete tag'
+            });
         }
     } catch (error) {
         console.error('Error deleting tag:', error);
-        AdminCore.showNotification('An error occurred while deleting the tag', 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'An error occurred while deleting the tag'
+        });
     }
 }
 
@@ -489,11 +516,17 @@ async function loadTags() {
             sortData();
         } else {
             console.error('Failed to load tags:', result.message);
-            AdminCore.showNotification('Failed to load tags', 'error');
+            await AdminCore.showErrorModal({
+                title: 'Load Failed',
+                message: 'Failed to load tags from the server'
+            });
         }
     } catch (error) {
         console.error('Error loading tags:', error);
-        AdminCore.showNotification('An error occurred while loading tags', 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'An error occurred while loading tags'
+        });
     }
 }
 
@@ -564,7 +597,10 @@ async function showImportModal() {
             const lines = contents.split('\n').filter(line => line.trim());
 
             if (lines.length < 2) {
-                AdminCore.showNotification('CSV file must have a header row and at least one data row', 'warning');
+                await AdminCore.showWarningModal({
+                    title: 'Invalid File',
+                    message: 'CSV file must have a header row and at least one data row'
+                });
                 return;
             }
 
@@ -604,7 +640,10 @@ async function showImportModal() {
             }
 
             if (parsedTags.length === 0) {
-                AdminCore.showNotification('No valid tags found in CSV file', 'warning');
+                await AdminCore.showWarningModal({
+                    title: 'No Tags Found',
+                    message: 'No valid tags found in the CSV file'
+                });
                 return;
             }
 
@@ -1075,12 +1114,21 @@ async function applySelectedImport() {
     // Show results
     const keptMessage = keptCount > 0 ? `, ${keptCount} kept unchanged` : '';
     if (errorCount === 0) {
-        AdminCore.showNotification(`Import complete: ${successCount} tags processed successfully${keptMessage}`, 'success');
+        await AdminCore.showSuccessModal({
+            title: 'Import Successful',
+            message: `${successCount} tags processed successfully${keptMessage}`
+        });
     } else if (successCount > 0) {
-        AdminCore.showNotification(`Import partial: ${successCount} succeeded, ${errorCount} failed${keptMessage}`, 'warning');
+        await AdminCore.showWarningModal({
+            title: 'Import Partially Complete',
+            message: `${successCount} succeeded, ${errorCount} failed${keptMessage}`
+        });
         console.error('Import errors:', errors);
     } else {
-        AdminCore.showNotification(`Import failed: ${errorCount} errors occurred`, 'error');
+        await AdminCore.showErrorModal({
+            title: 'Import Failed',
+            message: `${errorCount} errors occurred during import`
+        });
         console.error('Import errors:', errors);
     }
 }

@@ -394,14 +394,87 @@ class ProductIdManager {
             'UPC': /^[0-9]{12}$/,
             'GTIN': /^[0-9]{8}$|^[0-9]{12}$|^[0-9]{13}$|^[0-9]{14}$/,
             'EAN': /^[0-9]{13}$/,
-            'ISBN': /^(?:ISBN(?:-1[03])?:?\s)?(?=[0-9X]{10}$|(?=(?:[0-9]+[-\s]){3})[-\s0-9X]{13}$|97[89][0-9]{10}$|(?=(?:[0-9]+[-\s]){4})[-\s0-9]{17}$)(?:97[89][-\s]?)?[0-9]{1,5}[-\s]?[0-9]+[-\s]?[0-9]+[-\s]?[0-9X]$/,
             'SKU': /^[A-Z0-9\-_]{3,50}$/i,
             'MPN': /^[A-Z0-9\-_.]{1,50}$/i,
             'OTHER': /.{1,50}/
         };
 
+        // Special handling for ISBN with checksum validation
+        if (type === 'ISBN') {
+            return this.validateIsbn(value);
+        }
+
         const pattern = patterns[type];
         return pattern ? pattern.test(value) : value.length <= 50;
+    }
+
+    /**
+     * Validates ISBN with proper checksum verification
+     * Supports ISBN-10 and ISBN-13 formats
+     */
+    validateIsbn(isbn) {
+        if (!isbn) return false;
+
+        // Clean ISBN - remove non-digits and non-X characters
+        const cleanIsbn = isbn.toUpperCase().replace(/[^0-9X]/g, '');
+
+        if (cleanIsbn.length === 10) {
+            return this.validateIsbn10Checksum(cleanIsbn);
+        } else if (cleanIsbn.length === 13) {
+            return this.validateIsbn13Checksum(cleanIsbn);
+        }
+
+        return false;
+    }
+
+    /**
+     * Validates ISBN-10 checksum using modulo 11 algorithm
+     */
+    validateIsbn10Checksum(isbn10) {
+        if (isbn10.length !== 10) return false;
+
+        let sum = 0;
+        for (let i = 0; i < 10; i++) {
+            let digit;
+            if (isbn10[i] === 'X') {
+                // X is only valid in the last position and represents 10
+                if (i !== 9) return false;
+                digit = 10;
+            } else if (/[0-9]/.test(isbn10[i])) {
+                digit = parseInt(isbn10[i], 10);
+            } else {
+                return false;
+            }
+
+            // Multiply by weight (10 - position)
+            sum += digit * (10 - i);
+        }
+
+        return sum % 11 === 0;
+    }
+
+    /**
+     * Validates ISBN-13 checksum using EAN-13 algorithm
+     */
+    validateIsbn13Checksum(isbn13) {
+        if (isbn13.length !== 13) return false;
+
+        // ISBN-13 must start with 978 or 979
+        if (!isbn13.startsWith('978') && !isbn13.startsWith('979')) return false;
+
+        // X is not valid in ISBN-13
+        if (isbn13.includes('X')) return false;
+
+        let sum = 0;
+        for (let i = 0; i < 13; i++) {
+            if (!/[0-9]/.test(isbn13[i])) return false;
+
+            const digit = parseInt(isbn13[i], 10);
+            // Alternating weights: 1 for even positions, 3 for odd positions
+            sum += (i % 2 === 0) ? digit : digit * 3;
+        }
+
+        return sum % 10 === 0;
     }
 
     setValidationState(input, isValid) {
@@ -433,7 +506,7 @@ class ProductIdManager {
             'UPC': 'UPC must be exactly 12 digits',
             'GTIN': 'GTIN must be 8, 12, 13, or 14 digits',
             'EAN': 'EAN must be exactly 13 digits',
-            'ISBN': 'Invalid ISBN format',
+            'ISBN': 'Invalid ISBN format or checksum. Use ISBN-10 (10 digits) or ISBN-13 (13 digits starting with 978/979)',
             'SKU': 'SKU must be 3-50 alphanumeric characters',
             'MPN': 'MPN must be 1-50 alphanumeric characters',
             'OTHER': 'Must be 1-50 characters'
@@ -455,7 +528,7 @@ class ProductIdManager {
             'UPC': 'Universal Product Code - 12 digits (e.g., 123456789012)',
             'GTIN': 'Global Trade Item Number - 8, 12, 13, or 14 digits',
             'EAN': 'European Article Number - 13 digits (e.g., 1234567890123)',
-            'ISBN': 'International Standard Book Number (10 or 13 digits)',
+            'ISBN': 'ISBN-10 (10 digits, e.g., 0-306-40615-2) or ISBN-13 (13 digits starting with 978/979, e.g., 978-0-306-40615-7)',
             'SKU': 'Stock Keeping Unit - 3-50 alphanumeric characters',
             'MPN': 'Manufacturer Part Number - 1-50 alphanumeric characters',
             'OTHER': 'Any identifier up to 50 characters'

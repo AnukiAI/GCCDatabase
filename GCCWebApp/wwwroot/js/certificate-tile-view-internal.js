@@ -484,7 +484,50 @@
         // Export and download buttons
         setupExportDownloadButtons();
 
+        // Sidebar collapse/expand buttons
+        setupSidebarToggle();
+
         attachFilterEventListeners();
+    }
+
+    // Setup sidebar collapse/expand functionality
+    function setupSidebarToggle() {
+        const toggleTab = document.getElementById('sidebarToggleTab');
+        const collapseBtn = document.getElementById('sidebarCollapseBtn');
+
+        if (toggleTab) {
+            toggleTab.addEventListener('click', () => {
+                expandSidebar();
+            });
+        }
+
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', () => {
+                collapseSidebar();
+            });
+        }
+    }
+
+    // Collapse the sidebar (show edge tab)
+    function collapseSidebar() {
+        const sidebar = document.getElementById('filterSidebar');
+        const toggleTab = document.getElementById('sidebarToggleTab');
+        const mainContainer = document.querySelector('.main-container');
+
+        if (sidebar) sidebar.classList.add('collapsed');
+        if (toggleTab) toggleTab.classList.add('visible');
+        if (mainContainer) mainContainer.classList.add('sidebar-collapsed');
+    }
+
+    // Expand the sidebar (hide edge tab)
+    function expandSidebar() {
+        const sidebar = document.getElementById('filterSidebar');
+        const toggleTab = document.getElementById('sidebarToggleTab');
+        const mainContainer = document.querySelector('.main-container');
+
+        if (sidebar) sidebar.classList.remove('collapsed');
+        if (toggleTab) toggleTab.classList.remove('visible');
+        if (mainContainer) mainContainer.classList.remove('sidebar-collapsed');
     }
 
     // Attach event listeners to filter checkboxes
@@ -1116,6 +1159,7 @@
             // Show tile view
             showTileView();
         }
+        // Sidebar state is preserved - user controls collapse/expand manually
     }
 
     // Show table view

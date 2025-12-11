@@ -610,9 +610,15 @@ async function saveUser(event) {
                 }
                 closeModal();
                 applyFiltersAndSort();
-                AdminCore.showNotification('User updated successfully', 'success');
+                await AdminCore.showSuccessModal({
+                    title: 'Update Successful',
+                    message: 'User updated successfully.'
+                });
             } else {
-                AdminCore.showNotification('Error: ' + (result.message || 'Failed to update user'), 'error');
+                await AdminCore.showErrorModal({
+                    title: 'Update Failed',
+                    message: result.message || 'Failed to update user'
+                });
             }
         } else {
             // Create new user
@@ -632,14 +638,23 @@ async function saveUser(event) {
                 await loadUsers();
                 closeModal();
                 applyFiltersAndSort();
-                AdminCore.showNotification('User created successfully', 'success');
+                await AdminCore.showSuccessModal({
+                    title: 'User Created',
+                    message: 'User created successfully.'
+                });
             } else {
-                AdminCore.showNotification('Error: ' + (result.message || 'Failed to create user'), 'error');
+                await AdminCore.showErrorModal({
+                    title: 'Creation Failed',
+                    message: result.message || 'Failed to create user'
+                });
             }
         }
     } catch (error) {
         console.error('Error saving user:', error);
-        AdminCore.showNotification('Error saving user: ' + error.message, 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'Error saving user: ' + error.message
+        });
     }
 }
 
@@ -670,13 +685,22 @@ async function deleteUser(id) {
             // Remove from local array only if database delete succeeded
             users = users.filter(user => user.id !== id);
             applyFiltersAndSort();
-            AdminCore.showNotification('User deleted successfully', 'success');
+            await AdminCore.showSuccessModal({
+                title: 'Delete Successful',
+                message: 'User deleted successfully.'
+            });
         } else {
-            AdminCore.showNotification('Error: ' + (result.message || 'Failed to delete user'), 'error');
+            await AdminCore.showErrorModal({
+                title: 'Delete Failed',
+                message: result.message || 'Failed to delete user'
+            });
         }
     } catch (error) {
         console.error('Error deleting user:', error);
-        AdminCore.showNotification('Error deleting user: ' + error.message, 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'Error deleting user: ' + error.message
+        });
     }
 }
 
@@ -722,7 +746,10 @@ async function importCSV() {
             }
 
             if (usersToImport.length === 0) {
-                AdminCore.showNotification('No valid users found in CSV file', 'warning');
+                await AdminCore.showWarningModal({
+                    title: 'No Data Found',
+                    message: 'No valid users found in CSV file.'
+                });
                 return;
             }
 
@@ -762,13 +789,22 @@ async function importCSV() {
 
             // Show result
             if (errorCount === 0) {
-                AdminCore.showNotification(`Imported ${successCount} users successfully`, 'success');
+                await AdminCore.showSuccessModal({
+                    title: 'Import Complete',
+                    message: `Imported ${successCount} users successfully.`
+                });
             } else if (successCount > 0) {
-                AdminCore.showNotification(`Imported ${successCount} users. ${errorCount} failed.`, 'warning');
                 console.error('Import errors:', errors);
+                await AdminCore.showWarningModal({
+                    title: 'Partial Import',
+                    message: `Imported ${successCount} users. ${errorCount} failed.`
+                });
             } else {
-                AdminCore.showNotification(`Import failed. ${errorCount} errors occurred.`, 'error');
                 console.error('Import errors:', errors);
+                await AdminCore.showErrorModal({
+                    title: 'Import Failed',
+                    message: `Import failed. ${errorCount} errors occurred.`
+                });
             }
         };
 

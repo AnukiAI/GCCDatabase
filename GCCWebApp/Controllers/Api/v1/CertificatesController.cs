@@ -515,7 +515,7 @@ namespace GCCWebApp.Controllers.Api.v1
         ///
         /// **Use Cases:**
         /// - Amazon searching for certificates by ASIN
-        /// - Wayfair finding certificates by SKU
+        /// - Novi finding certificates by SKU
         /// - Retailers verifying product certifications by UPC
         /// </remarks>
         /// <param name="productId">The product identifier value (e.g., "B08XQRT456", "012345678901")</param>
@@ -536,7 +536,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
 
 **Role-Based Filtering**: External users only see certificates they have access to based on:
 - Company associations: Certificates from their associated companies
-- Partner associations: Certificates where Partner field matches their partnership (Amazon, Wayfair, etc.)
+- Partner associations: Certificates where Partner field matches their partnership (Amazon, Novi, etc.)
 - OR logic: If associated with BOTH companies and partners, shows certificates matching EITHER
 - Admin/Analyst: See all certificates (no filtering)",
             OperationId = "SearchCertificatesByProductId",

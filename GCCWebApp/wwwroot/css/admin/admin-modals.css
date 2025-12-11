@@ -882,8 +882,23 @@
     font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
 }
 
-/* Success Modal Title - Same styling */
+/* Success Modal Title - Navy Blue */
 .gcc-modal-title--success {
+    color: #002B76;
+}
+
+/* Error Modal Title - Red */
+.gcc-modal-title--error {
+    color: #FF5252;
+}
+
+/* Warning Modal Title - Amber */
+.gcc-modal-title--warning {
+    color: #FFA000;
+}
+
+/* Info Modal Title - Navy Blue */
+.gcc-modal-title--info {
     color: #002B76;
 }
 
@@ -948,6 +963,26 @@
 
 .gcc-modal-btn--success:hover {
     background-color: #7FB835;
+}
+
+/* Warning Button - Yellow/Amber */
+.gcc-modal-btn--warning {
+    background-color: #FFC107;
+    color: #333333;
+}
+
+.gcc-modal-btn--warning:hover {
+    background-color: #E0A800;
+}
+
+/* Info Button - Navy Blue */
+.gcc-modal-btn--info {
+    background-color: #002B76;
+    color: #ffffff;
+}
+
+.gcc-modal-btn--info:hover {
+    background-color: #001A4D;
 }
 
 /* Full Width Button (for success modal) */

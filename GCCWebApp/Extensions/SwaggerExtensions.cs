@@ -63,7 +63,7 @@ All API requests must be authenticated. Anonymous access is not permitted.
 **Partner API Management & Administration**
 
 This API provides administrative endpoints for managing partner API access, API keys, and usage statistics.
-Partners (Amazon, Wayfair, etc.) use API keys to access GCC data through dedicated endpoints.
+Partners (Amazon, Novi, etc.) use API keys to access GCC data through dedicated endpoints.
 
 ### Partner API Features
 - 🔑 Generate and manage partner API keys
@@ -114,18 +114,18 @@ Partner API keys have higher rate limits:
                     Description = @"
 **Partner Data Access API - Read-Only Certificate & Product Data**
 
-This API provides secure, read-only access to certificate and product data for authorized external partners (Amazon, Wayfair, etc.).
+This API provides secure, read-only access to certificate and product data for authorized external partners (Amazon, Novi, etc.).
 
 ⚠️ **IMPORTANT - Automatic Data Filtering**
 All API responses are **automatically filtered** based on your user account's associations:
 - **Company-based filtering**: You only see data for companies you are associated with
-- **Partner-based filtering**: You only see data for your partner relationship (e.g., Amazon, Wayfair)
+- **Partner-based filtering**: You only see data for your partner relationship (e.g., Amazon, Novi)
 - **No access to other partners' data**: Data is strictly scoped to your authorized access level
 
 ### 🔐 Data Access Scope
 Your API access is determined by your user account configuration:
 1. **If associated with Companies**: See certificates/products for those specific companies only
-2. **If associated with Partners**: See certificates where Partner field matches your partnership (Amazon, Wayfair, etc.)
+2. **If associated with Partners**: See certificates where Partner field matches your partnership (Amazon, Novi, etc.)
 3. **If associated with BOTH**: See data matching EITHER company OR partner (OR logic)
 4. **If no associations**: No data access (empty results)
 
@@ -164,7 +164,7 @@ All list endpoints support pagination:
 
 ### 🔍 Additional Filtering (Optional)
 You can further filter already-scoped results by:
-- `partner` - Partner name (Amazon, Wayfair) - only shows results within your access scope
+- `partner` - Partner name (Amazon, Novi) - only shows results within your access scope
 - `status` - Certificate status (Active, Expired, Draft, etc.)
 - `companyId` - Company ID - only shows if you have access to that company
 

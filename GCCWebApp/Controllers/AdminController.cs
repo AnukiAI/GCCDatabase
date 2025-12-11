@@ -1209,7 +1209,7 @@ namespace GCCWebApp.Controllers
         // Partner API Access Management
         public IActionResult PartnerAPI()
         {
-            // Manage API keys for external partners (Amazon, Wayfair, etc.)
+            // Manage API keys for external partners (Amazon, Novi, etc.)
             // Partners use these keys to access GCC REST API endpoints
             return View();
         }

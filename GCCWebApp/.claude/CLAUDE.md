@@ -174,7 +174,7 @@ AzureAdB2C__ClientId=[client-id]
 - **User Association**: Many-to-many relationships
   - `User.Companies` collection (ICollection<Company>)
   - `User.Partners` collection (ICollection<Partner>)
-- **Partner Matching**: Certificate Partner field values: "Amazon", "Wayfair", "None"
+- **Partner Matching**: Certificate Partner field values: "Amazon", "Novi", "None"
 - **Admin/Analyst**: No filtering - see all products regardless of associations
 - **Dropdown Filtering**: See US-013 in requirements.md
   - **Companies**: FILTERED - External users see only their associated companies
@@ -203,13 +203,13 @@ AzureAdB2C__ClientId=[client-id]
 - **MISSING**: UI controls in User Management view
 
 ### Partners & Workflow
-- Partners: Amazon, Wayfair, Other (core entities, NOT bulk manageable)
+- Partners: Amazon, Novi, Other (core entities, NOT bulk manageable)
 - **Partners Page**: ONLY Export + Add New Partner buttons (NO Template/Import)
 - 14-state certificate lifecycle (`CertificateWorkflowService`)
 - Role-based permissions enforced
 
 ### Partner API Access ⚠️ **REQUIRED - NEW**
-- **REQUIREMENT**: Partners (Amazon, Wayfair, etc.) access GCC data via dedicated API keys
+- **REQUIREMENT**: Partners (Amazon, Novi, etc.) access GCC data via dedicated API keys
 - **Architecture**: Partners pull data from GCC API (not push to partner APIs)
 - **Scalability**: System must support multiple partners with individual API keys
 - **Implementation**:
@@ -219,7 +219,7 @@ AzureAdB2C__ClientId=[client-id]
   - Configure access permissions per partner (which endpoints they can access)
   - Support partner-specific rate limits and quotas
 - **Admin Interface**: `/Admin/PartnerAPI` (formerly `/Admin/AmazonAPI`)
-  - List all partners (Amazon, Wayfair, etc.)
+  - List all partners (Amazon, Novi, etc.)
   - Generate/revoke API keys for each partner
   - View usage statistics and access logs
   - Configure endpoint permissions and rate limits
@@ -456,7 +456,7 @@ downloadImportTemplate() {
 | US-006 | Bulk CSV Import/Export | ✅ Complete |
 | US-007 | Certificate Workflow (14 states) | ✅ Complete |
 | US-008 | Role-Based Access Control | ✅ Complete |
-| US-009 | Partner API Access (Amazon, Wayfair, etc.) | ⚠️ Redesign Required |
+| US-009 | Partner API Access (Amazon, Novi, etc.) | ⚠️ Redesign Required |
 | US-010 | Excel Export | ✅ Complete |
 | FILTER-001 | Database-Driven Filters (All Views) | ✅ Complete (2025-10-27) |
 
@@ -493,7 +493,7 @@ DashboardController → CertificateService → ApplicationDbContext
 Certificate (1) → (n) CertificateProductId (ASINs, UPCs, etc.)
 Certificate (n) → (1) Company
 Certificate (n) → (1) Product
-Certificate (1) → (1) Partner (enum: Amazon, Wayfair, None)
+Certificate (1) → (1) Partner (enum: Amazon, Novi, None)
 User (n) → (n) Role (via UserRoles)
 ApiKey (n) → (1) User
 ```

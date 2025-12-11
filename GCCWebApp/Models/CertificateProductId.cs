@@ -26,7 +26,7 @@ namespace GCCWebApp.Models
         public string Status { get; set; } = "Active"; // Active, Inactive, Pending, Expired
 
         [MaxLength(50)]
-        public string? Partner { get; set; } // Amazon, Wayfair, None, Other
+        public string? Partner { get; set; } // Amazon, Novi, None, Other
 
         [MaxLength(200)]
         public string? ProductName { get; set; } // Optional product name for this specific ID

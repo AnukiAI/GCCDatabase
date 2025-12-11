@@ -1,6 +1,6 @@
 /**
  * Partner API Access Management
- * Manages API keys for external partners (Amazon, Wayfair, etc.)
+ * Manages API keys for external partners (Amazon, Novi, etc.)
  */
 
 let selectedPartnerId = null;

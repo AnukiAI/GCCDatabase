@@ -54,28 +54,28 @@
     .table-grid {
         display: grid;
         grid-template-columns:
-            40px      /* Select checkbox */
-            160px     /* Actions - increased width for 3 icons */
-            120px     /* Certificate # */
-            180px     /* Certification Type */
-            150px     /* CSF Attributes */
-            80px      /* Status */
-            110px     /* Effective Date */
-            110px     /* Expiration Date */
-            200px     /* Company */
-            200px     /* Company Contact */
-            180px     /* Product Name */
-            150px     /* Product Category */
-            150px     /* Product Type */
-            170px     /* Product Subcategory */
-            120px     /* Location */
-            100px     /* Country */
-            120px     /* External Tag */
-            120px     /* Internal Tag */
-            100px     /* ASIN */
-            100px     /* UPC */
-            100px     /* GTIN */
-            100px;    /* EAN */
+            36px      /* Select checkbox */
+            140px     /* Actions - compact for 3 icons */
+            110px     /* Certificate # */
+            160px     /* Certification Type */
+            130px     /* CSF Attributes */
+            70px      /* Status */
+            95px      /* Effective Date */
+            95px      /* Expiration Date */
+            180px     /* Company */
+            180px     /* Company Contact */
+            160px     /* Product Name */
+            130px     /* Product Category */
+            130px     /* Product Type */
+            150px     /* Product Subcategory */
+            100px     /* Location */
+            90px      /* Country */
+            100px     /* External Tag */
+            100px     /* Internal Tag */
+            90px      /* ASIN */
+            90px      /* UPC */
+            90px      /* GTIN */
+            90px;     /* EAN */
         min-width: max-content;
         width: 100%;
     }
@@ -95,11 +95,155 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+
+    /* ====================================================
+       COLLAPSIBLE SIDEBAR - MATCHING MOBILE PATTERN
+       ====================================================*/
+
+    /* Show Filters button - visible when sidebar collapsed, narrow strip */
+    .sidebar-toggle-tab {
+        display: none;
+        width: 44px;
+        min-width: 44px;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+        background: var(--blue-primary, #00AEEF);
+        color: var(--white, #fff);
+        border: none;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: var(--transition-fast, 0.15s ease);
+    }
+
+    .sidebar-toggle-tab:hover {
+        background: var(--blue-dark, #002876);
+    }
+
+    .sidebar-toggle-tab i {
+        color: var(--white, #fff);
+        font-size: 16px;
+    }
+
+    .sidebar-toggle-tab span {
+        display: none;
+    }
+
+    .sidebar-toggle-tab.visible {
+        display: flex;
+    }
+
+    /* Hide Filters button - inside sidebar, full width */
+    .sidebar-collapse-btn {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding: 10px 16px;
+        margin-bottom: 15px;
+        background: var(--blue-primary, #00AEEF);
+        color: var(--white, #fff);
+        border: none;
+        border-radius: var(--border-radius-sm, 4px);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: var(--transition-fast, 0.15s ease);
+    }
+
+    .sidebar-collapse-btn:hover {
+        background: var(--blue-dark, #002876);
+    }
+
+    .sidebar-collapse-btn i {
+        margin-left: 10px;
+        transition: transform 0.3s ease;
+        font-size: 14px;
+    }
+
+    /* Sidebar collapsed state */
+    .sidebar.collapsed {
+        display: none !important;
+    }
+
+    /* Main container is already flex from base CSS */
+    .main-container.sidebar-collapsed {
+        max-width: 100% !important;
+    }
+
+    .main-container.sidebar-collapsed .main-content {
+        max-width: 100%;
+    }
+
+    .main-container.sidebar-collapsed .table-scroll-wrapper {
+        max-width: calc(100vw - 50px) !important;
+    }
+
+    /* Compact bulk actions bar */
+    #tableView .bulk-actions-bar {
+        padding: 4px 10px !important;
+        margin-bottom: 8px !important;
+        gap: 8px;
+    }
+
+    #tableView .bulk-actions-left {
+        gap: 8px !important;
+    }
+
+    #tableView .selected-count {
+        font-size: 14px !important;
+    }
+
+    #tableView .clear-selection-btn {
+        padding: 4px 10px !important;
+        font-size: 14px !important;
+    }
+
+    /* Improved Actions column alignment */
+    .grid-header-cell.actions-column,
+    .grid-cell.actions-column {
+        min-width: 140px !important;
+        width: 140px !important;
+        justify-content: center !important;
+        text-align: center;
+    }
+
+    .grid-cell.actions-column .action-buttons {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        width: 100%;
+    }
+
+    .grid-cell.actions-column .action-btn {
+        margin: 0;
+        padding: 4px 6px;
+        min-width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
 </style>
 <!-- Main Container -->
 <div class="main-container" style="width: 100%;">
+    <!-- Show Filters button (visible when sidebar collapsed) -->
+    <button class="sidebar-toggle-tab" id="sidebarToggleTab">
+        <span>Show Filters</span>
+        <i class="fas fa-chevron-right"></i>
+    </button>
+
     <!-- Sidebar (Filters) -->
-    <div class="sidebar">
+    <div class="sidebar" id="filterSidebar">
+        <!-- Hide Filters button - matches mobile toggle style -->
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn">
+            <span>Hide Filters</span>
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
         <button class="mobile-filter-toggle" style="display: none;">
             <span>Show Filters & Search</span>
             <i class="fas fa-chevron-down"></i>
@@ -374,7 +518,7 @@
                             <div class="grid-header-cell select-cell">
                                 <input type="checkbox" id="selectAll" title="Select all visible rows">
                             </div>
-                            <div class="grid-header-cell actions-column" style="min-width: 160px;">
+                            <div class="grid-header-cell actions-column" style="min-width: 140px;">
                                 Actions
                             </div>
                             <div class="grid-header-cell" data-sort-column="certificate">

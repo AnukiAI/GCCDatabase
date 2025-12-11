@@ -486,11 +486,82 @@ namespace GCCWebApp.Services
 
         private bool ValidateIsbn(string isbn)
         {
-            // Basic ISBN validation - can be enhanced
+            // Enhanced ISBN validation with checksum verification
             if (string.IsNullOrWhiteSpace(isbn)) return false;
 
-            var cleanIsbn = Regex.Replace(isbn, @"[^0-9X]", "");
-            return cleanIsbn.Length == 10 || cleanIsbn.Length == 13;
+            var cleanIsbn = Regex.Replace(isbn.ToUpperInvariant(), @"[^0-9X]", "");
+
+            if (cleanIsbn.Length == 10)
+            {
+                return ValidateIsbn10Checksum(cleanIsbn);
+            }
+            else if (cleanIsbn.Length == 13)
+            {
+                return ValidateIsbn13Checksum(cleanIsbn);
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Validates ISBN-10 checksum using modulo 11 algorithm
+        /// ISBN-10: Sum of (digit × position) mod 11 = 0
+        /// </summary>
+        private bool ValidateIsbn10Checksum(string isbn10)
+        {
+            if (isbn10.Length != 10) return false;
+
+            int sum = 0;
+            for (int i = 0; i < 10; i++)
+            {
+                int digit;
+                if (isbn10[i] == 'X')
+                {
+                    // X is only valid in the last position and represents 10
+                    if (i != 9) return false;
+                    digit = 10;
+                }
+                else if (char.IsDigit(isbn10[i]))
+                {
+                    digit = isbn10[i] - '0';
+                }
+                else
+                {
+                    return false;
+                }
+
+                // Multiply by weight (10 - position)
+                sum += digit * (10 - i);
+            }
+
+            return sum % 11 == 0;
+        }
+
+        /// <summary>
+        /// Validates ISBN-13 checksum using EAN-13 algorithm
+        /// ISBN-13: Alternating 1/3 weights, mod 10 = 0
+        /// </summary>
+        private bool ValidateIsbn13Checksum(string isbn13)
+        {
+            if (isbn13.Length != 13) return false;
+
+            // ISBN-13 must start with 978 or 979
+            if (!isbn13.StartsWith("978") && !isbn13.StartsWith("979")) return false;
+
+            // X is not valid in ISBN-13
+            if (isbn13.Contains('X')) return false;
+
+            int sum = 0;
+            for (int i = 0; i < 13; i++)
+            {
+                if (!char.IsDigit(isbn13[i])) return false;
+
+                int digit = isbn13[i] - '0';
+                // Alternating weights: 1 for even positions, 3 for odd positions
+                sum += (i % 2 == 0) ? digit : digit * 3;
+            }
+
+            return sum % 10 == 0;
         }
 
         private string? GetValueByHeader(List<string> headers, List<string> values, string headerName)

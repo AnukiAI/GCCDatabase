@@ -38,7 +38,7 @@ namespace GCCWebApp.Models
         public string? CertificateImagePath { get; set; } // Certificate preview image path (PNG/JPG)
 
         [MaxLength(100)]
-        public string? Partner { get; set; } = "None"; // Partner program: Amazon, Wayfair, None
+        public string? Partner { get; set; } = "None"; // Partner program: Amazon, Novi, None
 
         [MaxLength(1000)]
         public string? CertificationResults { get; set; } // Optional: Test results/scores for partner requirements (e.g., Amazon threshold verification)

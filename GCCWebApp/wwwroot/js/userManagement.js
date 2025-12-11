@@ -1231,45 +1231,33 @@ class UserManagement {
         loader.style.display = show ? 'flex' : 'none';
     }
     
-    showNotification(message, type = 'info') {
-        // Use AdminCore if available
-        if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
-            AdminCore.showNotification(message, type);
-            return;
+    async showNotification(message, type = 'info') {
+        // Route all notifications to AdminCore modals for consistency
+        const titleMap = {
+            'success': 'Success',
+            'error': 'Error',
+            'warning': 'Warning',
+            'info': 'Information'
+        };
+        const title = titleMap[type] || 'Information';
+
+        switch (type) {
+            case 'success':
+                await AdminCore.showSuccessModal({ title, message });
+                break;
+            case 'error':
+                await AdminCore.showErrorModal({ title, message });
+                break;
+            case 'warning':
+                await AdminCore.showWarningModal({ title, message });
+                break;
+            case 'info':
+            default:
+                await AdminCore.showInfoModal({ title, message });
+                break;
         }
-
-        // Fallback: Create notification element
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-            <div class="notification-content">
-                <i class="fas fa-${this.getNotificationIcon(type)}"></i>
-                <span class="notification-message">${this.escapeHtml(message)}</span>
-                <button class="notification-close">&times;</button>
-            </div>
-        `;
-
-        // Add to DOM
-        document.body.appendChild(notification);
-
-        // Show with animation
-        setTimeout(() => notification.classList.add('show'), 10);
-
-        // Auto-hide after 5 seconds
-        const timeout = setTimeout(() => this.hideNotification(notification), 5000);
-
-        // Close button
-        notification.querySelector('.notification-close').addEventListener('click', () => {
-            clearTimeout(timeout);
-            this.hideNotification(notification);
-        });
     }
-    
-    hideNotification(notification) {
-        notification.classList.remove('show');
-        setTimeout(() => notification.remove(), 300);
-    }
-    
+
     getNotificationIcon(type) {
         switch (type) {
             case 'success': return 'check-circle';

@@ -141,7 +141,7 @@ namespace GCCWebApp.Models
         public string? InternalTag { get; set; }
 
         /// <summary>
-        /// Partner designation (Amazon/Wayfair/None/Other)
+        /// Partner designation (Amazon/Novi/None/Other)
         /// </summary>
         [Display(Name = "Partner")]
         public string? Partner { get; set; }

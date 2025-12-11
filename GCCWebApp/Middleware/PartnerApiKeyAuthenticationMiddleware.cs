@@ -8,7 +8,7 @@ namespace GCCWebApp.Middleware
 {
     /// <summary>
     /// Middleware for authenticating Partner API requests using X-API-Key header
-    /// Partners (Amazon, Wayfair, etc.) use API keys to access GCC REST API endpoints
+    /// Partners (Amazon, Novi, etc.) use API keys to access GCC REST API endpoints
     /// </summary>
     public class PartnerApiKeyAuthenticationMiddleware
     {

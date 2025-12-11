@@ -433,28 +433,31 @@ class ProductTypeManager {
         });
     }
 
-    showNotification(message, type = 'info') {
-        // Create a simple notification system
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.textContent = message;
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 24px;
-            background: ${type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#007bff'};
-            color: white;
-            border-radius: 4px;
-            z-index: 1000;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            notification.remove();
-        }, 5000);
+    async showNotification(message, type = 'info') {
+        // Route all notifications to AdminCore modals for consistency
+        const titleMap = {
+            'success': 'Success',
+            'error': 'Error',
+            'warning': 'Warning',
+            'info': 'Information'
+        };
+        const title = titleMap[type] || 'Information';
+
+        switch (type) {
+            case 'success':
+                await AdminCore.showSuccessModal({ title, message });
+                break;
+            case 'error':
+                await AdminCore.showErrorModal({ title, message });
+                break;
+            case 'warning':
+                await AdminCore.showWarningModal({ title, message });
+                break;
+            case 'info':
+            default:
+                await AdminCore.showInfoModal({ title, message });
+                break;
+        }
     }
 
     showAddModal(entityType, parentId = null) {

@@ -14,7 +14,7 @@ namespace GCCWebApp.Controllers.Api
     /// </summary>
     /// <remarks>
     /// Provides administrative endpoints for managing partner API access, API keys, and usage statistics.
-    /// Partners (Amazon, Wayfair, etc.) use API keys to access GCC data through dedicated endpoints.
+    /// Partners (Amazon, Novi, etc.) use API keys to access GCC data through dedicated endpoints.
     ///
     /// ## Features
     /// - Generate and revoke partner API keys
@@ -55,7 +55,7 @@ namespace GCCWebApp.Controllers.Api
         /// Get all partners
         /// </summary>
         /// <remarks>
-        /// Retrieves a list of all partners (Amazon, Wayfair, etc.) configured in the system.
+        /// Retrieves a list of all partners (Amazon, Novi, etc.) configured in the system.
         /// Use this endpoint to populate partner selection dropdowns or display partner information.
         ///
         /// **Sample Request:**
@@ -76,7 +76,7 @@ namespace GCCWebApp.Controllers.Api
         ///     },
         ///     {
         ///       "id": 2,
-        ///       "name": "Wayfair",
+        ///       "name": "Novi",
         ///       "isActive": true
         ///     }
         ///   ]
@@ -481,8 +481,8 @@ namespace GCCWebApp.Controllers.Api
         ///     {
         ///       "id": 2,
         ///       "partnerId": 2,
-        ///       "partnerName": "Wayfair",
-        ///       "apiKey": "wfr_9f8e7d6c...",
+        ///       "partnerName": "Novi",
+        ///       "apiKey": "novi_9f8e7d6c...",
         ///       "description": "Staging key",
         ///       "isActive": true,
         ///       "createdAt": "2025-02-20T14:15:00Z",

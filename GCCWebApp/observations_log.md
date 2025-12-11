@@ -760,3 +760,91 @@ function initQuickAddCompany() {
 - `wwwroot/css/product-id-manager.css`
 - `Services/ProductIdService.cs`
 - `Controllers/CertificateController.cs`
+
+---
+
+## 2025-12-11 - IMPLEMENTATION: Certificate Create/Edit Usability Enhancements
+
+### Changes Made
+
+#### 1. Certification Results Field (Already Implemented)
+- **Model**: `Certificate.cs:44` - `CertificationResults` property (max 1000 chars)
+- **ViewModel**: `CertificateEditViewModel.cs:27` - `CertificationResults` property
+- **Create View**: `Create.cshtml:150-155` - Textarea with placeholder text
+- **Edit View**: `Edit.cshtml:151-156` - Textarea with existing value binding
+- **Status**: ✅ Complete (was already implemented)
+
+#### 2. Inline Company/Product Creation (NEW)
+**File Created**: `wwwroot/js/certificate-inline-create.js`
+
+**Features**:
+- "Add New Company..." option at bottom of Company dropdown
+- "Add New Product..." option at bottom of Product dropdown
+- Visual separator line (───) before the "Add New" options
+- Modal dialogs following US-015 backdrop standard (85% black, 3px blur)
+- Company creation: Name (required), Email, Website URL
+- Product creation: Name (required), Company (required), Description
+- New items inserted before separator and automatically selected
+- Toast notifications on success
+- CSRF token handling for security
+- Previous selection restored if modal cancelled
+
+**UI Pattern**: Selecting "Add New Company..." or "Add New Product..." from the dropdown opens a modal, creates the item, then selects it in the dropdown.
+
+**Files Modified**:
+- `Views/Certificate/Create.cshtml:307` - Added script reference
+- `Views/Certificate/Edit.cshtml:315` - Added script reference
+
+**Backend Endpoints Used**:
+- `/Company/SaveCompany` (POST) - Creates new company
+- `/Product/SaveProduct` (POST) - Creates new product
+
+#### 3. Enhanced ISBN Checksum Validation (NEW)
+
+**Server-Side** (`Services/ProductIdService.cs:487-565`):
+- `ValidateIsbn()` - Main validation with length check
+- `ValidateIsbn10Checksum()` - ISBN-10 modulo 11 algorithm
+- `ValidateIsbn13Checksum()` - ISBN-13 EAN-13 algorithm
+- Validates check digit properly
+- ISBN-13 must start with 978 or 979
+- X only valid as last character in ISBN-10
+
+**Client-Side** (`wwwroot/js/product-id-manager.js:411-478`):
+- `validateIsbn()` - Main validation method
+- `validateIsbn10Checksum()` - ISBN-10 checksum
+- `validateIsbn13Checksum()` - ISBN-13 checksum
+- Matches server-side validation logic
+
+**Improved Help Text** (`product-id-manager.js:531`):
+```
+'ISBN': 'ISBN-10 (10 digits, e.g., 0-306-40615-2) or ISBN-13 (13 digits starting with 978/979, e.g., 978-0-306-40615-7)'
+```
+
+**Improved Error Message** (`product-id-manager.js:509`):
+```
+'ISBN': 'Invalid ISBN format or checksum. Use ISBN-10 (10 digits) or ISBN-13 (13 digits starting with 978/979)'
+```
+
+### Test Status
+- **Build**: ✅ Succeeded (0 errors, 0 warnings)
+- **Application**: ✅ Running on http://localhost:5101
+
+### Files Changed
+| File | Type | Change |
+|------|------|--------|
+| `wwwroot/js/certificate-inline-create.js` | NEW | Inline company/product creation functionality |
+| `Views/Certificate/Create.cshtml` | MODIFIED | Added script reference |
+| `Views/Certificate/Edit.cshtml` | MODIFIED | Added script reference |
+| `Services/ProductIdService.cs` | MODIFIED | Enhanced ISBN validation with checksum |
+| `wwwroot/js/product-id-manager.js` | MODIFIED | Client-side ISBN validation, help text |
+
+### Client Review Checklist
+- [ ] Test Company quick-add from Certificate Create page
+- [ ] Test Product quick-add from Certificate Create page
+- [ ] Test Company quick-add from Certificate Edit page
+- [ ] Test Product quick-add from Certificate Edit page
+- [ ] Test ISBN-10 validation with valid ISBN (e.g., 0-306-40615-2)
+- [ ] Test ISBN-10 validation with invalid checksum
+- [ ] Test ISBN-13 validation with valid ISBN (e.g., 978-0-306-40615-7)
+- [ ] Test ISBN-13 validation with invalid checksum
+- [ ] Verify Certification Results field saves and loads correctly

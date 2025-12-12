@@ -13,21 +13,50 @@ class CertificateTileViewExternal {
     async init() {
         // Load initial state from URL
         this.loadUrlState();
-        
+
         // Setup all event listeners
         this.setupEventListeners();
-        
+
+        // Setup sidebar collapse functionality
+        this.setupSidebarCollapse();
+
         // Load filter options
         await this.loadFilterOptions();
-        
+
         // Load initial certificates
         await this.loadCertificates();
-        
+
         // Setup lazy loading
         this.setupLazyLoading();
-        
+
         // Setup autocomplete
         this.setupAutocomplete();
+    }
+
+    /**
+     * Setup sidebar collapse/expand functionality
+     */
+    setupSidebarCollapse() {
+        const collapseBtn = document.getElementById('sidebarCollapseBtn');
+        const toggleTab = document.getElementById('sidebarToggleTab');
+        const sidebar = document.querySelector('.sidebar');
+        const mainContainer = document.querySelector('.main-container');
+
+        if (collapseBtn && toggleTab && sidebar && mainContainer) {
+            // Collapse sidebar
+            collapseBtn.addEventListener('click', () => {
+                sidebar.classList.add('collapsed');
+                mainContainer.classList.add('sidebar-collapsed');
+                toggleTab.classList.add('visible');
+            });
+
+            // Expand sidebar
+            toggleTab.addEventListener('click', () => {
+                sidebar.classList.remove('collapsed');
+                mainContainer.classList.remove('sidebar-collapsed');
+                toggleTab.classList.remove('visible');
+            });
+        }
     }
 
     /**
@@ -599,6 +628,9 @@ class CertificateTileViewExternal {
             this.populateTableView();
         }
 
+        // Add class to body for wider layout in table view
+        document.body.classList.add('table-view-active');
+
         // Enable export and download buttons (only work in table view)
         this.toggleBulkActionButtons(true);
     }
@@ -612,6 +644,9 @@ class CertificateTileViewExternal {
 
         if (tableView) tableView.style.display = 'none';
         if (tileView) tileView.style.display = 'grid';
+
+        // Remove wider layout class when switching back to tile view
+        document.body.classList.remove('table-view-active');
 
         // Disable export and download buttons (only work in table view)
         this.toggleBulkActionButtons(false);

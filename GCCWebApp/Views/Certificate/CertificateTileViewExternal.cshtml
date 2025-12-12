@@ -72,11 +72,247 @@
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
     }
+
+    /* ====================================================
+       TABLE SCROLL FIX - Ensure all columns are visible
+       ====================================================*/
+
+    /* Override base CSS max-width constraint to allow full table scroll */
+    .table-scroll-wrapper {
+        max-width: none !important;
+        width: 100% !important;
+        overflow-x: scroll !important;
+        overflow-y: visible;
+        display: block !important;
+    }
+
+    /* Ensure the table grid container doesn't collapse */
+    .table-grid-container {
+        min-width: 2400px;
+        width: max-content;
+        display: block !important;
+    }
+
+    /* Table grid must maintain full width */
+    .table-grid {
+        width: max-content !important;
+        min-width: 2400px !important;
+    }
+
+    /* Ensure main content allows table to expand and scroll */
+    .main-content {
+        overflow-x: auto !important;
+        min-width: 0;
+        flex: 1;
+    }
+
+    /* Table view container needs proper overflow */
+    #tableView {
+        overflow-x: auto !important;
+        width: 100%;
+    }
+
+    /* ====================================================
+       WIDER LAYOUT FOR TABLE VIEW ONLY
+       Tiles remain at standard width
+       ====================================================*/
+
+    /* Only expand when table view is active */
+    body.table-view-active .main-container {
+        max-width: 1800px !important;
+    }
+
+    /* ====================================================
+       COLLAPSIBLE SIDEBAR - MATCHING INTERNAL VIEW
+       ====================================================*/
+
+    /* Show Filters button - visible when sidebar collapsed, narrow strip */
+    .sidebar-toggle-tab {
+        display: none;
+        width: 44px;
+        min-width: 44px;
+        height: 100%;
+        padding: 0;
+        margin: 0;
+        background: var(--blue-primary, #00AEEF);
+        color: var(--white, #fff);
+        border: none;
+        cursor: pointer;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        transition: var(--transition-fast, 0.15s ease);
+    }
+
+    .sidebar-toggle-tab:hover {
+        background: var(--blue-dark, #002876);
+    }
+
+    .sidebar-toggle-tab i {
+        color: var(--white, #fff);
+        font-size: 16px;
+    }
+
+    .sidebar-toggle-tab span {
+        display: none;
+    }
+
+    .sidebar-toggle-tab.visible {
+        display: flex;
+    }
+
+    /* Hide Filters button - inside sidebar, full width */
+    .sidebar-collapse-btn {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+        padding: 10px 16px;
+        margin-bottom: 15px;
+        background: var(--blue-primary, #00AEEF);
+        color: var(--white, #fff);
+        border: none;
+        border-radius: var(--border-radius-sm, 4px);
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: var(--transition-fast, 0.15s ease);
+    }
+
+    .sidebar-collapse-btn:hover {
+        background: var(--blue-dark, #002876);
+    }
+
+    .sidebar-collapse-btn i {
+        margin-left: 10px;
+        transition: transform 0.3s ease;
+        font-size: 14px;
+    }
+
+    /* Sidebar collapsed state */
+    .sidebar.collapsed {
+        display: none !important;
+    }
+
+    /* Main container adjustments when sidebar collapsed */
+    .main-container.sidebar-collapsed {
+        max-width: 100% !important;
+    }
+
+    .main-container.sidebar-collapsed .main-content {
+        max-width: 100%;
+    }
+
+    .main-container.sidebar-collapsed .table-scroll-wrapper {
+        max-width: calc(100vw - 50px) !important;
+    }
+
+    /* ====================================================
+       BULK ACTIONS BAR AND TABLE STYLING
+       ====================================================*/
+
+    /* Compact bulk actions bar */
+    #tableView .bulk-actions-bar {
+        padding: 4px 10px !important;
+        margin-bottom: 8px !important;
+        gap: 8px;
+    }
+
+    #tableView .bulk-actions-left {
+        gap: 8px !important;
+    }
+
+    #tableView .selected-count {
+        font-size: 14px !important;
+    }
+
+    #tableView .clear-selection-btn {
+        padding: 4px 10px !important;
+        font-size: 14px !important;
+    }
+
+    /* Improved Actions column alignment */
+    .grid-header-cell.actions-column,
+    .grid-cell.actions-column {
+        min-width: 160px !important;
+        width: 160px !important;
+        justify-content: center !important;
+        text-align: center;
+    }
+
+    .grid-cell.actions-column .action-buttons {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        width: 100%;
+    }
+
+    .grid-cell.actions-column .action-btn {
+        margin: 0;
+        padding: 4px 6px;
+        min-width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* ====================================================
+       REDUCE SPACING BETWEEN BUTTONS AND TABLE
+       ====================================================*/
+    .main-content .results-header {
+        margin-bottom: 8px !important;
+        padding-top: 5px !important;
+        padding-bottom: 0 !important;
+    }
+
+    .main-content .results-controls {
+        margin-bottom: 8px !important;
+        margin-top: 0 !important;
+        padding: 0 !important;
+    }
+
+    .main-content {
+        padding: 10px 15px 15px 15px !important;
+    }
+
+    /* Remove any extra space before tableView */
+    #tableView {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    /* Remove extra space on certificates grid too */
+    .certificates-grid {
+        margin-top: 0 !important;
+    }
+
+    /* Fix loading indicator - hide completely when not active */
+    .loading-indicator {
+        display: none !important;
+        padding: 10px !important;
+    }
+
+    .loading-indicator.active {
+        display: flex !important;
+    }
 </style>
 <!-- Main Container -->
 <div class="main-container" style="width: 100%;">
+    <!-- Sidebar Toggle Tab (visible when sidebar is collapsed) -->
+    <button class="sidebar-toggle-tab" id="sidebarToggleTab">
+        <i class="fas fa-chevron-right"></i>
+    </button>
+
     <!-- Sidebar (Filters) -->
     <div class="sidebar">
+        <!-- Hide Filters button - matches mobile toggle style -->
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn">
+            <span>Hide Filters</span>
+            <i class="fas fa-chevron-left"></i>
+        </button>
+
         <button class="mobile-filter-toggle" style="display: none;">
             <span>Show Filters & Search</span>
             <i class="fas fa-chevron-down"></i>

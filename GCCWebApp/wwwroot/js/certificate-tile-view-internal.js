@@ -1173,6 +1173,9 @@
             populateTableView();
         }
 
+        // Add class to body for wider layout in table view
+        document.body.classList.add('table-view-active');
+
         // Bulk actions bar will handle Download Selected button visibility
     }
 
@@ -1183,6 +1186,9 @@
 
         if (tableView) tableView.style.display = 'none';
         if (tileView) tileView.style.display = 'grid';
+
+        // Remove wider layout class when switching back to tile view
+        document.body.classList.remove('table-view-active');
 
         // Bulk actions bar is hidden in tile view, so Download Selected is not visible
     }

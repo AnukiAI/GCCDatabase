@@ -181,6 +181,40 @@
         max-width: calc(100vw - 50px) !important;
     }
 
+    /* ====================================================
+       TABLE SCROLL FIX - Ensure all 22 columns are visible
+       ====================================================*/
+
+    /* Override base CSS max-width constraint to allow full table scroll */
+    .table-scroll-wrapper {
+        max-width: none !important;
+        width: 100%;
+        overflow-x: auto !important;
+        overflow-y: visible;
+    }
+
+    /* Ensure the table grid container doesn't collapse */
+    .table-grid-container {
+        min-width: 2520px; /* Total of all 22 column widths */
+        width: max-content;
+    }
+
+    /* Ensure main content allows table to expand */
+    .main-content {
+        overflow-x: visible;
+        min-width: 0;
+    }
+
+    /* ====================================================
+       WIDER LAYOUT FOR TABLE VIEW ONLY
+       Tiles remain at standard width
+       ====================================================*/
+
+    /* Only expand when table view is active - use has selector or JS class */
+    body.table-view-active .main-container {
+        max-width: 1800px !important;
+    }
+
     /* Compact bulk actions bar */
     #tableView .bulk-actions-bar {
         padding: 4px 10px !important;
@@ -226,6 +260,46 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+    }
+
+    /* ====================================================
+       REDUCE SPACING BETWEEN BUTTONS AND TABLE
+       ====================================================*/
+    .main-content .results-header {
+        margin-bottom: 8px !important;
+        padding-top: 5px !important;
+        padding-bottom: 0 !important;
+    }
+
+    .main-content .results-controls {
+        margin-bottom: 8px !important;
+        margin-top: 0 !important;
+        padding: 0 !important;
+    }
+
+    .main-content {
+        padding: 10px 15px 15px 15px !important;
+    }
+
+    /* Remove any extra space before tableView */
+    #tableView {
+        margin-top: 0 !important;
+        padding-top: 0 !important;
+    }
+
+    /* Remove extra space on certificates grid too */
+    .certificates-grid {
+        margin-top: 0 !important;
+    }
+
+    /* Fix loading indicator - hide completely when not active */
+    .loading-indicator {
+        display: none !important;
+        padding: 10px !important;
+    }
+
+    .loading-indicator.active {
+        display: flex !important;
     }
 </style>
 <!-- Main Container -->

@@ -118,7 +118,7 @@ class CertificateFieldsManager {
             { id: 21, section: "Tagging & Classification", name: "Internal Tag", fieldType: "multi-select", isRequired: false, isVisible: true, notes: "Internal classification tags", sortOrder: 21 },
             
             // New Required Fields
-            { id: 22, section: "New Required Fields", name: "Partner", fieldType: "multi-select", isRequired: true, isVisible: true, notes: "Amazon/Wayfair/None/Other partners", sortOrder: 22 },
+            { id: 22, section: "New Required Fields", name: "Partner", fieldType: "multi-select", isRequired: true, isVisible: true, notes: "Amazon/Novi/None/Other partners", sortOrder: 22 },
             { id: 23, section: "New Required Fields", name: "Status Type", fieldType: "dropdown", isRequired: false, isVisible: true, notes: "To signify if client doesn't want to move forward", sortOrder: 23 },
             
             // File Management

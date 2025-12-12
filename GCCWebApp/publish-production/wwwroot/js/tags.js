@@ -293,13 +293,22 @@ async function saveNewTag() {
 
             // Reload tags from server
             await loadTags();
-            AdminCore.showNotification('Tag added successfully', 'success');
+            await AdminCore.showSuccessModal({
+                title: 'Tag Created',
+                message: 'The tag was added successfully.'
+            });
         } else {
-            AdminCore.showNotification(result.message || 'Failed to create tag', 'error');
+            await AdminCore.showErrorModal({
+                title: 'Creation Failed',
+                message: result.message || 'Failed to create tag'
+            });
         }
     } catch (error) {
         console.error('Error creating tag:', error);
-        AdminCore.showNotification('An error occurred while creating the tag', 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'An error occurred while creating the tag'
+        });
     }
 }
 
@@ -405,13 +414,22 @@ async function saveTag(id) {
 
             // Remove edit class
             row.classList.remove('admin-inline-edit-row');
-            AdminCore.showNotification('Tag updated successfully', 'success');
+            await AdminCore.showSuccessModal({
+                title: 'Update Successful',
+                message: 'The tag was updated successfully.'
+            });
         } else {
-            AdminCore.showNotification(result.message || 'Failed to update tag', 'error');
+            await AdminCore.showErrorModal({
+                title: 'Update Failed',
+                message: result.message || 'Failed to update tag'
+            });
         }
     } catch (error) {
         console.error('Error updating tag:', error);
-        AdminCore.showNotification('An error occurred while updating the tag', 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'An error occurred while updating the tag'
+        });
     }
 }
 
@@ -465,16 +483,25 @@ async function deleteTag(id, name) {
         const result = await response.json();
 
         if (result.success) {
-            AdminCore.showNotification(result.message || 'Tag deleted successfully!', 'success');
-
             // Reload tags from server
             await loadTags();
+
+            await AdminCore.showSuccessModal({
+                title: 'Delete Successful',
+                message: 'The tag was successfully deleted.'
+            });
         } else {
-            AdminCore.showNotification(result.message || 'Failed to delete tag', 'error');
+            await AdminCore.showErrorModal({
+                title: 'Delete Failed',
+                message: result.message || 'Failed to delete tag'
+            });
         }
     } catch (error) {
         console.error('Error deleting tag:', error);
-        AdminCore.showNotification('An error occurred while deleting the tag', 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'An error occurred while deleting the tag'
+        });
     }
 }
 
@@ -489,11 +516,17 @@ async function loadTags() {
             sortData();
         } else {
             console.error('Failed to load tags:', result.message);
-            AdminCore.showNotification('Failed to load tags', 'error');
+            await AdminCore.showErrorModal({
+                title: 'Load Failed',
+                message: 'Failed to load tags from the server'
+            });
         }
     } catch (error) {
         console.error('Error loading tags:', error);
-        AdminCore.showNotification('An error occurred while loading tags', 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'An error occurred while loading tags'
+        });
     }
 }
 
@@ -542,9 +575,617 @@ function downloadImportTemplate() {
     }
 }
 
-// Function to show import modal (placeholder)
-function showImportModal() {
-    AdminCore.showNotification('Import functionality coming soon', 'info');
+// Import preview state
+let importPreviewData = [];
+let importFileName = '';
+
+// Function to handle CSV import with preview
+async function showImportModal() {
+    const fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.csv';
+
+    fileInput.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        importFileName = file.name;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const contents = e.target.result;
+            const lines = contents.split('\n').filter(line => line.trim());
+
+            if (lines.length < 2) {
+                await AdminCore.showWarningModal({
+                    title: 'Invalid File',
+                    message: 'CSV file must have a header row and at least one data row'
+                });
+                return;
+            }
+
+            // Parse and normalize headers
+            const rawHeaders = parseCSVLine(lines[0]).map(h => h.trim());
+            const headers = rawHeaders.map(h => normalizeTagHeaderName(h));
+
+            const parsedTags = [];
+
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                const fields = parseCSVLine(line);
+                if (fields.length < 1) continue;
+
+                // Build tag object from headers
+                const tag = {};
+                headers.forEach((header, index) => {
+                    tag[header] = fields[index]?.trim() || '';
+                });
+
+                const name = tag.name || '';
+                if (!name) continue;
+
+                let tagType = (tag.tagtype || 'external').toLowerCase();
+                if (tagType !== 'external' && tagType !== 'internal') {
+                    tagType = 'external';
+                }
+
+                parsedTags.push({
+                    rowNumber: i,
+                    name: name,
+                    tagType: tagType,
+                    description: tag.description || ''
+                });
+            }
+
+            if (parsedTags.length === 0) {
+                await AdminCore.showWarningModal({
+                    title: 'No Tags Found',
+                    message: 'No valid tags found in the CSV file'
+                });
+                return;
+            }
+
+            // Compare with existing tags and build preview
+            await buildImportPreview(parsedTags);
+        };
+
+        reader.readAsText(file);
+    });
+
+    fileInput.click();
+}
+
+// Build import preview by comparing with existing tags
+async function buildImportPreview(parsedTags) {
+    importPreviewData = [];
+
+    // Track tag names seen in this import for duplicate detection within file
+    const namesInImport = new Map(); // name (lowercase) -> rowNumber
+
+    for (const importTag of parsedTags) {
+        // Match by name (case-insensitive)
+        const existingTag = tags.find(t =>
+            t.name && importTag.name &&
+            t.name.trim().toLowerCase() === importTag.name.trim().toLowerCase()
+        );
+
+        const previewRow = {
+            rowNumber: importTag.rowNumber,
+            data: importTag,
+            existingData: existingTag || null,
+            status: 'new',
+            changes: [],
+            errors: [],
+            selected: true,
+            action: 'create'
+        };
+
+        if (existingTag) {
+            // Compare fields and determine status - normalize for comparison
+            const changes = [];
+
+            const existingType = (existingTag.tagType || '').trim().toLowerCase();
+            const importType = (importTag.tagType || '').trim().toLowerCase();
+            if (existingType !== importType) {
+                changes.push({
+                    field: 'tagType',
+                    oldValue: existingTag.tagType || '',
+                    newValue: importTag.tagType || ''
+                });
+            }
+
+            const existingDesc = (existingTag.description || '').trim();
+            const importDesc = (importTag.description || '').trim();
+            if (existingDesc !== importDesc) {
+                changes.push({
+                    field: 'description',
+                    oldValue: existingTag.description || '',
+                    newValue: importTag.description || ''
+                });
+            }
+
+            if (changes.length > 0) {
+                previewRow.status = 'modified';
+                previewRow.changes = changes;
+                previewRow.action = 'update';
+            } else {
+                previewRow.status = 'unchanged';
+                previewRow.selected = false;
+                previewRow.action = 'skip';
+            }
+        }
+
+        // Validate
+        if (!importTag.name || !importTag.name.trim()) {
+            previewRow.status = 'error';
+            previewRow.errors.push('Tag name is required');
+            previewRow.selected = false;
+        } else {
+            // Check for duplicate name within this import file
+            const nameLower = importTag.name.trim().toLowerCase();
+            if (namesInImport.has(nameLower)) {
+                const firstRow = namesInImport.get(nameLower);
+                previewRow.errors.push(`Duplicate tag name in import file (first seen on row ${firstRow})`);
+                previewRow.status = 'error';
+                previewRow.selected = false;
+            } else {
+                namesInImport.set(nameLower, importTag.rowNumber);
+            }
+        }
+        // Validate tag type
+        const normalizedType = (importTag.tagType || '').trim().toLowerCase();
+        if (normalizedType && normalizedType !== 'external' && normalizedType !== 'internal') {
+            previewRow.errors.push(`Invalid tag type: "${importTag.tagType}" (must be external or internal)`);
+            if (previewRow.errors.length > 0) {
+                previewRow.status = 'error';
+                previewRow.selected = false;
+            }
+        }
+
+        importPreviewData.push(previewRow);
+    }
+
+    // Show preview modal
+    showImportPreviewModal();
+}
+
+// Display the import preview modal
+function showImportPreviewModal() {
+    console.log('showImportPreviewModal called, data:', importPreviewData);
+    const modal = document.getElementById('import-preview-modal');
+    console.log('Modal element:', modal);
+    if (!modal) {
+        console.error('Modal element not found!');
+        return;
+    }
+
+    // Calculate statistics
+    const stats = {
+        new: importPreviewData.filter(r => r.status === 'new').length,
+        modified: importPreviewData.filter(r => r.status === 'modified').length,
+        unchanged: importPreviewData.filter(r => r.status === 'unchanged').length,
+        errors: importPreviewData.filter(r => r.status === 'error').length
+    };
+
+    // Update stats display
+    document.getElementById('stat-new').textContent = stats.new;
+    document.getElementById('stat-modified').textContent = stats.modified;
+    document.getElementById('stat-unchanged').textContent = stats.unchanged;
+    document.getElementById('stat-errors').textContent = stats.errors;
+
+    // Build table rows
+    const tbody = document.getElementById('import-preview-body');
+    tbody.innerHTML = '';
+
+    importPreviewData.forEach((row, index) => {
+        const tr = document.createElement('tr');
+        tr.dataset.index = index;
+
+        // Status colors and badges
+        const statusColors = {
+            'new': { bg: '#e8f5e1', color: '#447638', label: 'New' },
+            'modified': { bg: '#e6f7ff', color: '#002B76', label: 'Modified' },
+            'unchanged': { bg: '#f5f5f5', color: '#999', label: 'Unchanged' },
+            'error': { bg: '#ffebee', color: '#ff5252', label: 'Error' }
+        };
+        const statusStyle = statusColors[row.status];
+
+        // Row background based on status
+        tr.style.backgroundColor = row.status === 'error' ? '#fff5f5' : (row.status === 'unchanged' ? '#fafafa' : '');
+
+        // Build changes summary for modified rows
+        let changesSummary = '';
+        if (row.status === 'modified' && row.changes.length > 0) {
+            const fieldNames = row.changes.map(c => c.field === 'tagType' ? 'Type' : (c.field === 'description' ? 'Description' : c.field));
+            changesSummary = `<div style="font-size: 10px; color: #666; margin-top: 4px;">${fieldNames.join(', ')} changed</div>`;
+        }
+
+        tr.innerHTML = `
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                <input type="checkbox" class="import-row-checkbox"
+                       data-index="${index}"
+                       ${row.selected ? 'checked' : ''}
+                       ${row.status === 'error' || row.status === 'unchanged' ? 'disabled' : ''}
+                       onchange="updateImportRowSelection(${index}, this.checked)">
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; font-family: monospace; vertical-align: top;">${row.rowNumber}</td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                <span style="display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; background: ${statusStyle.bg}; color: ${statusStyle.color};">
+                    ${statusStyle.label}
+                </span>
+                ${changesSummary}
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                ${renderFieldWithDiff(row, 'name')}
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                ${renderFieldWithDiff(row, 'tagType')}
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                ${renderFieldWithDiff(row, 'description')}
+                ${row.errors.length > 0 ? `<div style="color: #ff5252; font-size: 11px; margin-top: 4px; font-weight: 500;">${row.errors.join('<br>')}</div>` : ''}
+            </td>
+            <td style="padding: 10px; border-bottom: 1px solid #e9ecef; vertical-align: top;">
+                ${renderActionDropdown(row, index)}
+            </td>
+        `;
+
+        tbody.appendChild(tr);
+    });
+
+    // Update counts
+    updateSelectedCount();
+
+    // Show modal - use setProperty with important to override any CSS
+    console.log('Setting modal display to block');
+    modal.style.setProperty('display', 'block', 'important');
+    console.log('Modal display after setting:', modal.style.display);
+}
+
+// Render field value with diff highlighting for modified rows
+function renderFieldWithDiff(row, field) {
+    const newValue = row.data[field] || '';
+
+    if (row.status === 'modified' && row.existingData) {
+        const oldValue = row.existingData[field] || '';
+        // Check if this specific field changed (case-insensitive comparison for field name)
+        const fieldChanged = row.changes.some(c => c.field.toLowerCase() === field.toLowerCase());
+
+        if (fieldChanged) {
+            // Show stacked comparison for conflicts (more readable)
+            return `
+                <div class="field-conflict" style="min-width: 120px;">
+                    <div style="display: flex; flex-direction: column; gap: 4px;">
+                        <div>
+                            <div style="font-size: 10px; color: #856404; font-weight: 600; text-transform: uppercase;">Current:</div>
+                            <div style="padding: 4px 8px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 4px; font-size: 12px; word-break: break-word;">${escapeHtml(oldValue || '(empty)')}</div>
+                        </div>
+                        <div>
+                            <div style="font-size: 10px; color: #155724; font-weight: 600; text-transform: uppercase;">Import:</div>
+                            <div style="padding: 4px 8px; background: #d4edda; border: 1px solid #28a745; border-radius: 4px; font-size: 12px; word-break: break-word;">${escapeHtml(newValue || '(empty)')}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+
+    // For unchanged fields or new rows, just show the value
+    return `<span style="word-break: break-word;">${escapeHtml(newValue)}</span>`;
+}
+
+// Render action dropdown for each row
+function renderActionDropdown(row, index) {
+    if (row.status === 'error') {
+        return '<span style="color: #999; font-size: 12px;">Cannot import</span>';
+    }
+
+    if (row.status === 'new') {
+        return `
+            <select class="import-action-select" data-index="${index}" onchange="updateImportRowAction(${index}, this.value)" style="padding: 4px 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 12px;">
+                <option value="create" ${row.action === 'create' ? 'selected' : ''}>Create</option>
+                <option value="skip" ${row.action === 'skip' ? 'selected' : ''}>Skip</option>
+            </select>
+        `;
+    }
+
+    if (row.status === 'modified') {
+        return `
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+                <select class="import-action-select" data-index="${index}" onchange="updateImportRowAction(${index}, this.value)" style="padding: 6px 10px; border: 2px solid #002B76; border-radius: 4px; font-size: 12px; font-weight: 500; background: white;">
+                    <option value="update" ${row.action === 'update' ? 'selected' : ''}>Use Import Data</option>
+                    <option value="keep" ${row.action === 'keep' ? 'selected' : ''}>Keep Current</option>
+                    <option value="skip" ${row.action === 'skip' ? 'selected' : ''}>Skip Row</option>
+                </select>
+                <span style="font-size: 10px; color: #666; text-align: center;">
+                    ${row.action === 'update' ? 'Will overwrite' : row.action === 'keep' ? 'No changes' : 'Ignored'}
+                </span>
+            </div>
+        `;
+    }
+
+    if (row.status === 'unchanged') {
+        return '<span style="color: #999; font-size: 12px;">No changes</span>';
+    }
+
+    return '';
+}
+
+// Update row selection
+function updateImportRowSelection(index, selected) {
+    importPreviewData[index].selected = selected;
+    if (!selected) {
+        importPreviewData[index].action = 'skip';
+    } else {
+        // Restore default action based on status
+        if (importPreviewData[index].status === 'new') {
+            importPreviewData[index].action = 'create';
+        } else if (importPreviewData[index].status === 'modified') {
+            importPreviewData[index].action = 'update';
+        }
+    }
+    updateSelectedCount();
+}
+
+// Update row action
+function updateImportRowAction(index, action) {
+    importPreviewData[index].action = action;
+    // "keep" means we're acknowledging the row but not changing anything
+    importPreviewData[index].selected = (action !== 'skip' && action !== 'keep');
+
+    // Update checkbox to match
+    const checkbox = document.querySelector(`input.import-row-checkbox[data-index="${index}"]`);
+    if (checkbox) {
+        checkbox.checked = (action !== 'skip' && action !== 'keep');
+    }
+
+    // Update the row's visual state based on action
+    const tr = document.querySelector(`tr[data-index="${index}"]`);
+    if (tr) {
+        // Update row background color and opacity
+        if (action === 'skip') {
+            tr.style.backgroundColor = '#f5f5f5';
+            tr.style.opacity = '0.7';
+        } else if (action === 'keep') {
+            tr.style.backgroundColor = '#fafafa';
+            tr.style.opacity = '0.9';
+        } else {
+            tr.style.backgroundColor = '';
+            tr.style.opacity = '1';
+        }
+
+        // Re-render the action dropdown to update the status text
+        const actionCell = tr.querySelector('td:last-child');
+        if (actionCell) {
+            actionCell.innerHTML = renderActionDropdown(importPreviewData[index], index);
+        }
+    }
+
+    updateSelectedCount();
+}
+
+// Toggle all import rows
+function toggleAllImportRows(checkbox) {
+    const checked = checkbox.checked;
+    importPreviewData.forEach((row, index) => {
+        if (row.status !== 'error' && row.status !== 'unchanged') {
+            row.selected = checked;
+            row.action = checked ? (row.status === 'new' ? 'create' : 'update') : 'skip';
+
+            const rowCheckbox = document.querySelector(`input.import-row-checkbox[data-index="${index}"]`);
+            if (rowCheckbox) {
+                rowCheckbox.checked = checked;
+            }
+        }
+    });
+    updateSelectedCount();
+}
+
+// Update selected count display
+function updateSelectedCount() {
+    // Count rows that will actually be processed (create or update actions)
+    const toProcessCount = importPreviewData.filter(r =>
+        r.action === 'create' || r.action === 'update'
+    ).length;
+    const keptCount = importPreviewData.filter(r => r.action === 'keep').length;
+    const totalActionable = importPreviewData.filter(r =>
+        r.status !== 'error' && r.status !== 'unchanged'
+    ).length;
+
+    const selectedCountEl = document.getElementById('selected-count');
+    const totalCountEl = document.getElementById('total-count');
+
+    if (selectedCountEl) selectedCountEl.textContent = toProcessCount;
+    if (totalCountEl) totalCountEl.textContent = totalActionable;
+
+    // Update the label to be more descriptive
+    const countContainer = document.querySelector('.import-selected-count');
+    if (countContainer) {
+        let label = `${toProcessCount} of ${totalActionable} rows will be imported`;
+        if (keptCount > 0) {
+            label += ` (${keptCount} keeping current)`;
+        }
+        countContainer.innerHTML = label;
+    }
+
+    // Disable apply button if nothing to process
+    const applyBtn = document.getElementById('apply-import-btn');
+    if (applyBtn) {
+        const hasChanges = toProcessCount > 0;
+        applyBtn.disabled = !hasChanges;
+        applyBtn.style.opacity = hasChanges ? '1' : '0.5';
+        applyBtn.textContent = hasChanges
+            ? `Apply Import (${toProcessCount})`
+            : 'Apply Import';
+    }
+}
+
+// Close the import preview modal
+function closeImportPreviewModal() {
+    const modal = document.getElementById('import-preview-modal');
+    if (modal) {
+        modal.style.setProperty('display', 'none', 'important');
+    }
+    importPreviewData = [];
+    importFileName = '';
+}
+
+// Apply selected imports
+async function applySelectedImport() {
+    // Only process rows that are creating or updating (not skip, keep, or error)
+    const rowsToProcess = importPreviewData.filter(r =>
+        r.action === 'create' || r.action === 'update'
+    );
+
+    const keptCount = importPreviewData.filter(r => r.action === 'keep').length;
+
+    if (rowsToProcess.length === 0) {
+        if (keptCount > 0) {
+            AdminCore.showNotification(`No changes to apply. ${keptCount} row(s) will keep current values.`, 'info');
+        } else {
+            AdminCore.showNotification('No rows selected for import', 'warning');
+        }
+        return;
+    }
+
+    const token = getAntiForgeryToken();
+    let successCount = 0;
+    let errorCount = 0;
+    const errors = [];
+
+    // Process each selected row
+    for (const row of rowsToProcess) {
+        try {
+            let response;
+
+            if (row.action === 'create') {
+                response = await fetch('/Admin/CreateTag', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        name: row.data.name,
+                        tagType: row.data.tagType,
+                        description: row.data.description,
+                        importBatchId: null // Will be set by server
+                    })
+                });
+            } else if (row.action === 'update' && row.existingData) {
+                response = await fetch(`/Admin/UpdateTag/${row.existingData.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
+                    },
+                    body: JSON.stringify({
+                        id: row.existingData.id,
+                        name: row.data.name,
+                        tagType: row.data.tagType,
+                        description: row.data.description
+                    })
+                });
+            }
+
+            if (response) {
+                const result = await response.json();
+                if (result.success) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                    errors.push(`Row ${row.rowNumber} (${row.data.name}): ${result.message || 'Unknown error'}`);
+                }
+            }
+        } catch (error) {
+            errorCount++;
+            errors.push(`Row ${row.rowNumber} (${row.data.name}): ${error.message}`);
+        }
+    }
+
+    // Close modal
+    closeImportPreviewModal();
+
+    // Reload tags
+    await loadTags();
+
+    // Show results
+    const keptMessage = keptCount > 0 ? `, ${keptCount} kept unchanged` : '';
+    if (errorCount === 0) {
+        await AdminCore.showSuccessModal({
+            title: 'Import Successful',
+            message: `${successCount} tags processed successfully${keptMessage}`
+        });
+    } else if (successCount > 0) {
+        await AdminCore.showWarningModal({
+            title: 'Import Partially Complete',
+            message: `${successCount} succeeded, ${errorCount} failed${keptMessage}`
+        });
+        console.error('Import errors:', errors);
+    } else {
+        await AdminCore.showErrorModal({
+            title: 'Import Failed',
+            message: `${errorCount} errors occurred during import`
+        });
+        console.error('Import errors:', errors);
+    }
+}
+
+// Parse CSV line handling quoted fields
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current);
+    return result;
+}
+
+/**
+ * Normalize CSV header names for tag imports.
+ * Handles common variations case-insensitively.
+ */
+function normalizeTagHeaderName(header) {
+    const normalized = header.toLowerCase().replace(/[\s_-]/g, '');
+
+    const headerMappings = {
+        // Name variations
+        'name': 'name',
+        'tagname': 'name',
+        'tag': 'name',
+
+        // Type variations
+        'tagtype': 'tagtype',
+        'type': 'tagtype',
+        'visibility': 'tagtype',
+        'scope': 'tagtype',
+
+        // Description variations
+        'description': 'description',
+        'desc': 'description',
+        'notes': 'description'
+    };
+
+    return headerMappings[normalized] || normalized;
 }
 
 // Initialize tag management
@@ -655,3 +1296,9 @@ window.editTag = editTag;
 window.saveTag = saveTag;
 window.cancelEdit = cancelEdit;
 window.deleteTag = deleteTag;
+// Import preview functions
+window.closeImportPreviewModal = closeImportPreviewModal;
+window.applySelectedImport = applySelectedImport;
+window.toggleAllImportRows = toggleAllImportRows;
+window.updateImportRowSelection = updateImportRowSelection;
+window.updateImportRowAction = updateImportRowAction;

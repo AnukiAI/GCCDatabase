@@ -478,26 +478,31 @@ class RoleManagement {
         }
     }
     
-    showNotification(message, type = 'info') {
-        // Create notification element
-        const notification = document.createElement('div');
-        notification.className = `notification notification-${type}`;
-        notification.innerHTML = `
-            <i class="fas fa-${type === 'success' ? 'check' : type === 'error' ? 'exclamation' : 'info'}-circle"></i>
-            <span>${message}</span>
-        `;
-        
-        // Add to page
-        document.body.appendChild(notification);
-        
-        // Show notification
-        setTimeout(() => notification.classList.add('show'), 10);
-        
-        // Hide and remove after 3 seconds
-        setTimeout(() => {
-            notification.classList.remove('show');
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
+    async showNotification(message, type = 'info') {
+        // Route all notifications to AdminCore modals for consistency
+        const titleMap = {
+            'success': 'Success',
+            'error': 'Error',
+            'warning': 'Warning',
+            'info': 'Information'
+        };
+        const title = titleMap[type] || 'Information';
+
+        switch (type) {
+            case 'success':
+                await AdminCore.showSuccessModal({ title, message });
+                break;
+            case 'error':
+                await AdminCore.showErrorModal({ title, message });
+                break;
+            case 'warning':
+                await AdminCore.showWarningModal({ title, message });
+                break;
+            case 'info':
+            default:
+                await AdminCore.showInfoModal({ title, message });
+                break;
+        }
     }
     
     escapeHtml(text) {

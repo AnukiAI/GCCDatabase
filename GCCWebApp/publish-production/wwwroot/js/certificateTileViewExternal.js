@@ -13,21 +13,50 @@ class CertificateTileViewExternal {
     async init() {
         // Load initial state from URL
         this.loadUrlState();
-        
+
         // Setup all event listeners
         this.setupEventListeners();
-        
+
+        // Setup sidebar collapse functionality
+        this.setupSidebarCollapse();
+
         // Load filter options
         await this.loadFilterOptions();
-        
+
         // Load initial certificates
         await this.loadCertificates();
-        
+
         // Setup lazy loading
         this.setupLazyLoading();
-        
+
         // Setup autocomplete
         this.setupAutocomplete();
+    }
+
+    /**
+     * Setup sidebar collapse/expand functionality
+     */
+    setupSidebarCollapse() {
+        const collapseBtn = document.getElementById('sidebarCollapseBtn');
+        const toggleTab = document.getElementById('sidebarToggleTab');
+        const sidebar = document.querySelector('.sidebar');
+        const mainContainer = document.querySelector('.main-container');
+
+        if (collapseBtn && toggleTab && sidebar && mainContainer) {
+            // Collapse sidebar
+            collapseBtn.addEventListener('click', () => {
+                sidebar.classList.add('collapsed');
+                mainContainer.classList.add('sidebar-collapsed');
+                toggleTab.classList.add('visible');
+            });
+
+            // Expand sidebar
+            toggleTab.addEventListener('click', () => {
+                sidebar.classList.remove('collapsed');
+                mainContainer.classList.remove('sidebar-collapsed');
+                toggleTab.classList.remove('visible');
+            });
+        }
     }
 
     /**
@@ -599,6 +628,9 @@ class CertificateTileViewExternal {
             this.populateTableView();
         }
 
+        // Add class to body for wider layout in table view
+        document.body.classList.add('table-view-active');
+
         // Enable export and download buttons (only work in table view)
         this.toggleBulkActionButtons(true);
     }
@@ -612,6 +644,9 @@ class CertificateTileViewExternal {
 
         if (tableView) tableView.style.display = 'none';
         if (tileView) tileView.style.display = 'grid';
+
+        // Remove wider layout class when switching back to tile view
+        document.body.classList.remove('table-view-active');
 
         // Disable export and download buttons (only work in table view)
         this.toggleBulkActionButtons(false);
@@ -700,6 +735,23 @@ class CertificateTileViewExternal {
         const location = this.formatLocation(cert.location, cert.country);
         const statusBadge = this.getStatusBadge(cert.status);
 
+        // Build cell values for tooltips
+        const certNumber = cert.certificateNumber || '';
+        const certType = cert.certificationType || '';
+        const csfAttrs = cert.csfAttributes || '';
+        const company = cert.companyName || '';
+        const contact = cert.companyContact || '';
+        const product = cert.productName || '';
+        const category = cert.productCategory || '';
+        const type = cert.productType || '';
+        const subcategory = cert.productSubcategory || '';
+        const country = cert.country || '';
+        const extTags = cert.externalTags || '';
+        const asin = cert.asin || '';
+        const upc = cert.upc || '';
+        const gtin = cert.gtin || '';
+        const ean = cert.ean || '';
+
         return `
             <div class="grid-row" data-cert-id="${cert.id}">
                 <div class="grid-cell select-cell">
@@ -707,33 +759,33 @@ class CertificateTileViewExternal {
                 </div>
                 <div class="grid-cell actions-column">
                     <div class="action-buttons">
-                        <button class="action-btn download-btn" onclick="window.certificateTileViewExternal.handleDownload('${cert.certificateNumber}')" title="Download PDF">
+                        <button class="action-btn download-btn" onclick="window.certificateTileViewExternal.handleDownload('${certNumber}')" title="Download PDF">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="window.certificateTileViewExternal.handleView('${cert.certificateNumber}')" title="View Details">
+                        <button class="action-btn view-btn" onclick="window.certificateTileViewExternal.handleView('${certNumber}')" title="View Details">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
                     </div>
                 </div>
-                <div class="grid-cell">${this.escapeHtml(cert.certificateNumber || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.certificationType || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.csfAttributes || '')}</div>
-                <div class="grid-cell">${statusBadge}</div>
-                <div class="grid-cell">${effectiveDate}</div>
-                <div class="grid-cell">${expirationDate}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.companyName || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.companyContact || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.productName || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.productCategory || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.productType || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.productSubcategory || '')}</div>
-                <div class="grid-cell">${location}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.country || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.externalTags || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.asin || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.upc || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.gtin || '')}</div>
-                <div class="grid-cell">${this.escapeHtml(cert.ean || '')}</div>
+                <div class="grid-cell" data-column="certificateNumber" title="${this.escapeHtml(certNumber)}">${this.escapeHtml(certNumber)}</div>
+                <div class="grid-cell" data-column="certificationType" title="${this.escapeHtml(certType)}">${this.escapeHtml(certType)}</div>
+                <div class="grid-cell" data-column="csfAttributes" title="${this.escapeHtml(csfAttrs)}">${this.escapeHtml(csfAttrs)}</div>
+                <div class="grid-cell" data-column="status">${statusBadge}</div>
+                <div class="grid-cell" data-column="effectiveDate">${effectiveDate}</div>
+                <div class="grid-cell" data-column="expirationDate">${expirationDate}</div>
+                <div class="grid-cell" data-column="company" title="${this.escapeHtml(company)}">${this.escapeHtml(company)}</div>
+                <div class="grid-cell" data-column="companyContact" title="${this.escapeHtml(contact)}">${this.escapeHtml(contact)}</div>
+                <div class="grid-cell" data-column="productName" title="${this.escapeHtml(product)}">${this.escapeHtml(product)}</div>
+                <div class="grid-cell" data-column="productCategory" title="${this.escapeHtml(category)}">${this.escapeHtml(category)}</div>
+                <div class="grid-cell" data-column="productType" title="${this.escapeHtml(type)}">${this.escapeHtml(type)}</div>
+                <div class="grid-cell" data-column="productSubcategory" title="${this.escapeHtml(subcategory)}">${this.escapeHtml(subcategory)}</div>
+                <div class="grid-cell" data-column="location" title="${location}">${location}</div>
+                <div class="grid-cell" data-column="country" title="${this.escapeHtml(country)}">${this.escapeHtml(country)}</div>
+                <div class="grid-cell" data-column="externalTag" title="${this.escapeHtml(extTags)}">${this.escapeHtml(extTags)}</div>
+                <div class="grid-cell" data-column="asin" title="${this.escapeHtml(asin)}">${this.escapeHtml(asin)}</div>
+                <div class="grid-cell" data-column="upc" title="${this.escapeHtml(upc)}">${this.escapeHtml(upc)}</div>
+                <div class="grid-cell" data-column="gtin" title="${this.escapeHtml(gtin)}">${this.escapeHtml(gtin)}</div>
+                <div class="grid-cell" data-column="ean" title="${this.escapeHtml(ean)}">${this.escapeHtml(ean)}</div>
             </div>
         `;
     }

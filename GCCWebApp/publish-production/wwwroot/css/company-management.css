@@ -14,6 +14,33 @@
 /* Modern admin header structure is defined in admin-layout.css and admin-mockup-override.css */
 /* This file only contains company-specific overrides */
 
+.admin-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+    flex-wrap: wrap;
+    gap: var(--space-md);
+}
+
+.title-area {
+    display: none;
+}
+
+.buttons-area {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    align-items: center;
+    margin-left: auto;
+}
+
+/* ===== IMPORT PREVIEW MODAL ===== */
+/* Note: display is controlled by JavaScript - do not set display here */
+#import-preview-modal {
+    /* No positioning here - children are positioned fixed */
+}
+
 .admin-container h1 {
     color: var(--blue-dark);
     margin: 0;

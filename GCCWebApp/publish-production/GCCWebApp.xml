@@ -366,7 +366,7 @@
              </summary>
              <remarks>
              Provides administrative endpoints for managing partner API access, API keys, and usage statistics.
-             Partners (Amazon, Wayfair, etc.) use API keys to access GCC data through dedicated endpoints.
+             Partners (Amazon, Novi, etc.) use API keys to access GCC data through dedicated endpoints.
             
              ## Features
              - Generate and revoke partner API keys
@@ -388,7 +388,7 @@
              Get all partners
              </summary>
              <remarks>
-             Retrieves a list of all partners (Amazon, Wayfair, etc.) configured in the system.
+             Retrieves a list of all partners (Amazon, Novi, etc.) configured in the system.
              Use this endpoint to populate partner selection dropdowns or display partner information.
             
              **Sample Request:**
@@ -409,7 +409,7 @@
                  },
                  {
                    "id": 2,
-                   "name": "Wayfair",
+                   "name": "Novi",
                    "isActive": true
                  }
                ]
@@ -647,8 +647,8 @@
                  {
                    "id": 2,
                    "partnerId": 2,
-                   "partnerName": "Wayfair",
-                   "apiKey": "wfr_9f8e7d6c...",
+                   "partnerName": "Novi",
+                   "apiKey": "novi_9f8e7d6c...",
                    "description": "Staging key",
                    "isActive": true,
                    "createdAt": "2025-02-20T14:15:00Z",
@@ -932,7 +932,7 @@
             
              **Use Cases:**
              - Amazon searching for certificates by ASIN
-             - Wayfair finding certificates by SKU
+             - Novi finding certificates by SKU
              - Retailers verifying product certifications by UPC
              </remarks>
              <param name="productId">The product identifier value (e.g., "B08XQRT456", "012345678901")</param>
@@ -1482,7 +1482,7 @@
         <member name="T:GCCWebApp.Middleware.PartnerApiKeyAuthenticationMiddleware">
             <summary>
             Middleware for authenticating Partner API requests using X-API-Key header
-            Partners (Amazon, Wayfair, etc.) use API keys to access GCC REST API endpoints
+            Partners (Amazon, Novi, etc.) use API keys to access GCC REST API endpoints
             </summary>
         </member>
         <member name="M:GCCWebApp.Middleware.PartnerApiKeyAuthenticationMiddleware.IsEndpointAllowed(System.String,System.String)">
@@ -1660,6 +1660,18 @@
         <member name="M:GCCWebApp.Migrations.AddCertificationResultsToCertificate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
+        <member name="T:GCCWebApp.Migrations.AddImportBatchAndAuditImportBatchId">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddImportBatchAndAuditImportBatchId.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddImportBatchAndAuditImportBatchId.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddImportBatchAndAuditImportBatchId.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
         <member name="T:GCCWebApp.Models.Api.CertificateExportRequest">
             <summary>
             Request model for exporting certificates in various formats
@@ -1776,6 +1788,12 @@
             Session ID for correlating multiple changes in same session
             </summary>
         </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.ImportBatchId">
+            <summary>
+            Import batch ID for correlating all records from a single import operation
+            Used for Phase 2 Import History tracking
+            </summary>
+        </member>
         <member name="P:GCCWebApp.Models.AuditHistory.Metadata">
             <summary>
             Additional metadata stored as JSON
@@ -1863,17 +1881,19 @@
         <member name="T:GCCWebApp.Models.CertificateStatus">
             <summary>
             Enumeration of certificate lifecycle status values
-            Represents the complete business process from application to completion
+            Aligned with DATA_VALIDATION_RULES.md - 14 documented states
             </summary>
         </member>
         <member name="T:GCCWebApp.Models.CertificateStatusHelper">
             <summary>
             Static class for certificate status management and workflow rules
+            Database-driven status values aligned with DATA_VALIDATION_RULES.md
             </summary>
         </member>
         <member name="M:GCCWebApp.Models.CertificateStatusHelper.GetAllStatuses">
             <summary>
             Gets all available status values with their display names
+            These are the 14 documented states from DATA_VALIDATION_RULES.md
             </summary>
         </member>
         <member name="M:GCCWebApp.Models.CertificateStatusHelper.GetCreationStatuses">
@@ -1889,6 +1909,7 @@
         <member name="M:GCCWebApp.Models.CertificateStatusHelper.IsValidTransition(System.String,System.String)">
             <summary>
             Determines if a status transition is valid based on business rules
+            Workflow: Draft → PendingReview → UnderReview → Approved → Active
             </summary>
         </member>
         <member name="M:GCCWebApp.Models.CertificateStatusHelper.GetDisplayName(System.String)">
@@ -1904,6 +1925,16 @@
         <member name="M:GCCWebApp.Models.CertificateStatusHelper.IsFinalStatus(System.String)">
             <summary>
             Checks if a status represents a final/terminal state
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.IsNegativeStatus(System.String)">
+            <summary>
+            Checks if a status represents a negative outcome
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.NeedsAttention(System.String)">
+            <summary>
+            Gets statuses that indicate the certificate needs attention
             </summary>
         </member>
         <member name="T:GCCWebApp.Models.CertificateStatusHistory">
@@ -2095,7 +2126,7 @@
         </member>
         <member name="P:GCCWebApp.Models.CertificateViewModel.Partner">
             <summary>
-            Partner designation (Amazon/Wayfair/None/Other)
+            Partner designation (Amazon/Novi/None/Other)
             </summary>
         </member>
         <member name="P:GCCWebApp.Models.CertificateViewModel.CertificationResults">
@@ -2231,6 +2262,124 @@
         <member name="T:GCCWebApp.Models.Import.ApplyImportResult">
             <summary>
             Result of applying an import
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.ImportBatch">
+            <summary>
+            Tracks batch import operations for historical reporting (Phase 2)
+            Each import operation creates one ImportBatch record
+            Individual row results are tracked in AuditHistory with matching ImportBatchId
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.EntityType">
+            <summary>
+            Entity type being imported (Tag, User, Company, Product, etc.)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.FileName">
+            <summary>
+            Original filename that was imported
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.TotalRows">
+            <summary>
+            Total number of rows in the import file
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.NewCount">
+            <summary>
+            Number of new records created
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.ModifiedCount">
+            <summary>
+            Number of existing records updated
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.SkippedCount">
+            <summary>
+            Number of records skipped (user chose not to import)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.UnchangedCount">
+            <summary>
+            Number of unchanged records (already exist with same values)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.ErrorCount">
+            <summary>
+            Number of records that failed to import
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.Status">
+            <summary>
+            Status of the import batch
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.ImportedBy">
+            <summary>
+            User ID who initiated the import
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.ImportedByUsername">
+            <summary>
+            Username at time of import (denormalized for historical accuracy)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.CreatedAt">
+            <summary>
+            Timestamp when import was initiated
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.CompletedAt">
+            <summary>
+            Timestamp when import was completed (null if still processing)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.IpAddress">
+            <summary>
+            IP address of the user who initiated the import
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.ErrorMessage">
+            <summary>
+            Error message if the entire batch failed
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.User">
+            <summary>
+            Navigation property to User who imported
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.ImportBatchStatus">
+            <summary>
+            Status values for ImportBatch
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.GenericImportPreviewRow`1">
+            <summary>
+            Generic import preview row (extends base ImportRowStatus)
+            Uses existing ImportRowStatus enum from CertificateImportModels.cs
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.GenericImportPreviewResult`1">
+            <summary>
+            Generic result of an import preview operation
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.GenericImportApplyRequest">
+            <summary>
+            Request to apply import after preview
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.GenericImportApplyResult">
+            <summary>
+            Result of applying a generic import
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.GenericImportRowError">
+            <summary>
+            Error details for a specific row
             </summary>
         </member>
         <member name="T:GCCWebApp.Models.PartnerApiKey">
@@ -2532,6 +2681,7 @@
         <member name="M:GCCWebApp.Services.CertificateWorkflowService.HandleStatusChangeBusinessLogic(GCCWebApp.Models.Certificate,System.String,System.String,System.Int32)">
             <summary>
             Handles additional business logic when status changes
+            Status values aligned with DATA_VALIDATION_RULES.md (14 states)
             </summary>
         </member>
         <member name="M:GCCWebApp.Services.FileUploadService.GeneratePdfThumbnailAsync(System.String,System.String)">
@@ -2637,6 +2787,18 @@
         <member name="T:GCCWebApp.Services.Performance.CacheKeys">
             <summary>
             Cache key constants and builders for consistent cache key management
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.ProductIdService.ValidateIsbn10Checksum(System.String)">
+            <summary>
+            Validates ISBN-10 checksum using modulo 11 algorithm
+            ISBN-10: Sum of (digit × position) mod 11 = 0
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.ProductIdService.ValidateIsbn13Checksum(System.String)">
+            <summary>
+            Validates ISBN-13 checksum using EAN-13 algorithm
+            ISBN-13: Alternating 1/3 weights, mod 10 = 0
             </summary>
         </member>
         <member name="T:GCCWebApp.Services.Security.IKeyVaultService">

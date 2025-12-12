@@ -188,67 +188,31 @@ function addToHistory(trackingId, action) {
     }
 }
 
-function showNotification(message, type = 'info') {
-    // Create notification element
-    const notification = document.createElement('div');
-    notification.className = `notification notification-${type}`;
-    notification.innerHTML = `
-        <div class="notification-content">
-            <i class="fas fa-check-circle"></i>
-            <span>${message}</span>
-        </div>
-    `;
-    
-    // Add styles if not already present
-    if (!document.querySelector('#notification-styles')) {
-        const styles = document.createElement('style');
-        styles.id = 'notification-styles';
-        styles.innerHTML = `
-            .notification {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #28a745;
-                color: white;
-                padding: 15px 20px;
-                border-radius: 5px;
-                box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-                z-index: 1000;
-                opacity: 0;
-                transform: translateX(300px);
-                transition: all 0.3s ease;
-            }
-            .notification.show {
-                opacity: 1;
-                transform: translateX(0);
-            }
-            .notification.notification-error {
-                background: #dc3545;
-            }
-            .notification.notification-warning {
-                background: #ffc107;
-                color: #212529;
-            }
-            .notification-content {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-            }
-        `;
-        document.head.appendChild(styles);
+async function showNotification(message, type = 'info') {
+    // Route all notifications to AdminCore modals for consistency
+    const titleMap = {
+        'success': 'Success',
+        'error': 'Error',
+        'warning': 'Warning',
+        'info': 'Information'
+    };
+    const title = titleMap[type] || 'Information';
+
+    switch (type) {
+        case 'success':
+            await AdminCore.showSuccessModal({ title, message });
+            break;
+        case 'error':
+            await AdminCore.showErrorModal({ title, message });
+            break;
+        case 'warning':
+            await AdminCore.showWarningModal({ title, message });
+            break;
+        case 'info':
+        default:
+            await AdminCore.showInfoModal({ title, message });
+            break;
     }
-    
-    // Add to document
-    document.body.appendChild(notification);
-    
-    // Show notification
-    setTimeout(() => notification.classList.add('show'), 100);
-    
-    // Remove after 3 seconds
-    setTimeout(() => {
-        notification.classList.remove('show');
-        setTimeout(() => document.body.removeChild(notification), 300);
-    }, 3000);
 }
 
 function exportSettings() {

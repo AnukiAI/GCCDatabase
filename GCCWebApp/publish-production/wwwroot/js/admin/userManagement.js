@@ -610,9 +610,15 @@ async function saveUser(event) {
                 }
                 closeModal();
                 applyFiltersAndSort();
-                AdminCore.showNotification('User updated successfully', 'success');
+                await AdminCore.showSuccessModal({
+                    title: 'Update Successful',
+                    message: 'User updated successfully.'
+                });
             } else {
-                AdminCore.showNotification('Error: ' + (result.message || 'Failed to update user'), 'error');
+                await AdminCore.showErrorModal({
+                    title: 'Update Failed',
+                    message: result.message || 'Failed to update user'
+                });
             }
         } else {
             // Create new user
@@ -632,14 +638,23 @@ async function saveUser(event) {
                 await loadUsers();
                 closeModal();
                 applyFiltersAndSort();
-                AdminCore.showNotification('User created successfully', 'success');
+                await AdminCore.showSuccessModal({
+                    title: 'User Created',
+                    message: 'User created successfully.'
+                });
             } else {
-                AdminCore.showNotification('Error: ' + (result.message || 'Failed to create user'), 'error');
+                await AdminCore.showErrorModal({
+                    title: 'Creation Failed',
+                    message: result.message || 'Failed to create user'
+                });
             }
         }
     } catch (error) {
         console.error('Error saving user:', error);
-        AdminCore.showNotification('Error saving user: ' + error.message, 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'Error saving user: ' + error.message
+        });
     }
 }
 
@@ -670,65 +685,160 @@ async function deleteUser(id) {
             // Remove from local array only if database delete succeeded
             users = users.filter(user => user.id !== id);
             applyFiltersAndSort();
-            AdminCore.showNotification('User deleted successfully', 'success');
+            await AdminCore.showSuccessModal({
+                title: 'Delete Successful',
+                message: 'User deleted successfully.'
+            });
         } else {
-            AdminCore.showNotification('Error: ' + (result.message || 'Failed to delete user'), 'error');
+            await AdminCore.showErrorModal({
+                title: 'Delete Failed',
+                message: result.message || 'Failed to delete user'
+            });
         }
     } catch (error) {
         console.error('Error deleting user:', error);
-        AdminCore.showNotification('Error deleting user: ' + error.message, 'error');
+        await AdminCore.showErrorModal({
+            title: 'Error',
+            message: 'Error deleting user: ' + error.message
+        });
     }
 }
 
 // Function to handle CSV import
-function importCSV() {
+async function importCSV() {
     const fileInput = document.createElement('input');
     fileInput.type = 'file';
     fileInput.accept = '.csv';
 
-    fileInput.addEventListener('change', (event) => {
+    fileInput.addEventListener('change', async (event) => {
         const file = event.target.files[0];
         if (!file) return;
 
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             const contents = e.target.result;
             const lines = contents.split('\n');
 
             // Skip header row and process data
-            const newUsers = [];
-            let maxId = users.length > 0 ? Math.max(...users.map(u => u.id)) : 0;
+            const usersToImport = [];
 
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                const fields = line.split(',');
+                // Parse CSV properly handling quoted fields
+                const fields = parseCSVLine(line);
                 if (fields.length < 5) continue;  // Must have at least name, company, email, role, status
 
-                maxId++;
-                newUsers.push({
-                    id: maxId,
-                    name: fields[0].trim(),
-                    company: fields[1] ? fields[1].trim().split(';') : [],
-                    partners: fields[2] ? fields[2].trim().split(';') : [],
-                    email: fields[3].trim(),
-                    role: fields[4].trim().toLowerCase(),
-                    status: fields[5] ? fields[5].trim().toLowerCase() : 'active',
-                    lastLogin: fields[6] ? fields[6].trim() : new Date().toISOString().slice(0, 16).replace('T', ' '),
-                    password: fields[7] ? fields[7].trim() : 'defaultpassword',
+                const name = fields[0]?.trim();
+                if (!name) continue;
+
+                usersToImport.push({
+                    name: name,
+                    company: fields[1] ? fields[1].trim().split(';').filter(c => c) : [],
+                    partners: fields[2] ? fields[2].trim().split(';').filter(p => p) : [],
+                    email: fields[3]?.trim() || '',
+                    role: fields[4]?.trim().toLowerCase() || 'external',
+                    status: fields[5]?.trim().toLowerCase() || 'active',
+                    password: fields[7]?.trim() || 'TempPassword123!',
                     requirePasswordReset: fields[8] ? fields[8].trim().toLowerCase() === 'true' : true
                 });
             }
 
-            users = [...users, ...newUsers];
-            applyFiltersAndSort();
+            if (usersToImport.length === 0) {
+                await AdminCore.showWarningModal({
+                    title: 'No Data Found',
+                    message: 'No valid users found in CSV file.'
+                });
+                return;
+            }
+
+            // Save each user to the database
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            let successCount = 0;
+            let errorCount = 0;
+            const errors = [];
+
+            for (const userData of usersToImport) {
+                try {
+                    const response = await fetch('/Admin/CreateUser', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token || ''
+                        },
+                        body: JSON.stringify(userData)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        successCount++;
+                    } else {
+                        errorCount++;
+                        errors.push(`${userData.name}: ${result.message || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    errorCount++;
+                    errors.push(`${userData.name}: ${error.message}`);
+                }
+            }
+
+            // Reload users from database
+            await loadUsers();
+
+            // Show result
+            if (errorCount === 0) {
+                await AdminCore.showSuccessModal({
+                    title: 'Import Complete',
+                    message: `Imported ${successCount} users successfully.`
+                });
+            } else if (successCount > 0) {
+                console.error('Import errors:', errors);
+                await AdminCore.showWarningModal({
+                    title: 'Partial Import',
+                    message: `Imported ${successCount} users. ${errorCount} failed.`
+                });
+            } else {
+                console.error('Import errors:', errors);
+                await AdminCore.showErrorModal({
+                    title: 'Import Failed',
+                    message: `Import failed. ${errorCount} errors occurred.`
+                });
+            }
         };
 
         reader.readAsText(file);
     });
 
     fileInput.click();
+}
+
+// Parse CSV line handling quoted fields
+function parseCSVLine(line) {
+    const result = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+
+        if (char === '"') {
+            if (inQuotes && line[i + 1] === '"') {
+                current += '"';
+                i++;
+            } else {
+                inQuotes = !inQuotes;
+            }
+        } else if (char === ',' && !inQuotes) {
+            result.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    result.push(current);
+    return result;
 }
 
 // Function to export to CSV

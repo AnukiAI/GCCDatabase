@@ -117,7 +117,31 @@ const AdminCore = {
         }
     },
 
-    showNotification(message, type = 'info', options = {}) {
+    async showNotification(message, type = 'info', options = {}) {
+        // Route ALL notifications to centered modals for consistency
+        const titleMap = {
+            'success': 'Success',
+            'error': 'Error',
+            'warning': 'Warning',
+            'info': 'Information'
+        };
+        const title = options.title || titleMap[type] || 'Information';
+
+        switch (type) {
+            case 'success':
+                return await this.showSuccessModal({ title, message });
+            case 'error':
+                return await this.showErrorModal({ title, message });
+            case 'warning':
+                return await this.showWarningModal({ title, message });
+            case 'info':
+            default:
+                return await this.showInfoModal({ title, message });
+        }
+    },
+
+    // Legacy toast notification method - kept for backward compatibility if needed
+    showToastNotification(message, type = 'info', options = {}) {
         const defaults = {
             title: this.getNotificationTitle(type),
             duration: type === 'error' ? 8000 : 5000,
@@ -482,23 +506,101 @@ const AdminCore = {
 
         const config = { ...defaults, ...options };
 
+        return this._showAlertModal(config, 'success');
+    },
+
+    /**
+     * Show an error modal (for operation failures)
+     * @param {Object} options - Modal configuration options
+     * @param {string} options.title - Modal title (default: "Error")
+     * @param {string} options.message - Modal message
+     * @param {string} options.buttonText - Button text (default: "OK")
+     * @returns {Promise} Resolves when user clicks OK
+     */
+    showErrorModal(options = {}) {
+        const defaults = {
+            title: 'Error',
+            message: 'An error occurred.',
+            buttonText: 'OK'
+        };
+
+        const config = { ...defaults, ...options };
+
+        return this._showAlertModal(config, 'error');
+    },
+
+    /**
+     * Show a warning modal (for caution messages)
+     * @param {Object} options - Modal configuration options
+     * @param {string} options.title - Modal title (default: "Warning")
+     * @param {string} options.message - Modal message
+     * @param {string} options.buttonText - Button text (default: "OK")
+     * @returns {Promise} Resolves when user clicks OK
+     */
+    showWarningModal(options = {}) {
+        const defaults = {
+            title: 'Warning',
+            message: 'Please review this information.',
+            buttonText: 'OK'
+        };
+
+        const config = { ...defaults, ...options };
+
+        return this._showAlertModal(config, 'warning');
+    },
+
+    /**
+     * Show an info modal (for informational messages)
+     * @param {Object} options - Modal configuration options
+     * @param {string} options.title - Modal title (default: "Information")
+     * @param {string} options.message - Modal message
+     * @param {string} options.buttonText - Button text (default: "OK")
+     * @returns {Promise} Resolves when user clicks OK
+     */
+    showInfoModal(options = {}) {
+        const defaults = {
+            title: 'Information',
+            message: '',
+            buttonText: 'OK'
+        };
+
+        const config = { ...defaults, ...options };
+
+        return this._showAlertModal(config, 'info');
+    },
+
+    /**
+     * Internal method to show alert modals with different types
+     * @private
+     */
+    _showAlertModal(config, type) {
         return new Promise((resolve) => {
             // Create modal overlay
             const overlay = document.createElement('div');
             overlay.className = 'admin-modal-overlay gcc-modal-overlay';
-            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('role', 'alertdialog');
             overlay.setAttribute('aria-modal', 'true');
-            overlay.setAttribute('aria-labelledby', 'success-modal-title');
-            overlay.setAttribute('aria-describedby', 'success-modal-message');
+            overlay.setAttribute('aria-labelledby', `${type}-modal-title`);
+            overlay.setAttribute('aria-describedby', `${type}-modal-message`);
 
-            // Create modal HTML - Single green OK button
+            // Determine button class based on type
+            const buttonClasses = {
+                success: 'gcc-modal-btn--success',
+                error: 'gcc-modal-btn--danger',
+                warning: 'gcc-modal-btn--warning',
+                info: 'gcc-modal-btn--info'
+            };
+
+            const buttonClass = buttonClasses[type] || 'gcc-modal-btn--success';
+
+            // Create modal HTML
             overlay.innerHTML = `
                 <div class="admin-modal-dialog gcc-modal-dialog">
-                    <div class="gcc-modal-content gcc-modal-content--success">
-                        <h2 id="success-modal-title" class="gcc-modal-title gcc-modal-title--success">${this.escapeHtml(config.title)}</h2>
-                        <p id="success-modal-message" class="gcc-modal-message">${this.escapeHtml(config.message)}</p>
+                    <div class="gcc-modal-content gcc-modal-content--${type}">
+                        <h2 id="${type}-modal-title" class="gcc-modal-title gcc-modal-title--${type}">${this.escapeHtml(config.title)}</h2>
+                        <p id="${type}-modal-message" class="gcc-modal-message">${this.escapeHtml(config.message)}</p>
                         <div class="gcc-modal-buttons gcc-modal-buttons--centered">
-                            <button class="gcc-modal-btn gcc-modal-btn--success gcc-modal-btn--full" data-action="ok">
+                            <button class="gcc-modal-btn ${buttonClass} gcc-modal-btn--full" data-action="ok">
                                 ${this.escapeHtml(config.buttonText)}
                             </button>
                         </div>
@@ -517,6 +619,7 @@ const AdminCore = {
                         overlay.parentNode.removeChild(overlay);
                     }
                 }, 300);
+                document.removeEventListener('keydown', keyHandler);
                 resolve(true);
             };
 
@@ -528,7 +631,6 @@ const AdminCore = {
             const keyHandler = (e) => {
                 if (e.key === 'Escape' || e.key === 'Enter') {
                     handleOk();
-                    document.removeEventListener('keydown', keyHandler);
                 }
             };
             document.addEventListener('keydown', keyHandler);

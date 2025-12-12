@@ -408,7 +408,7 @@ class CertificateFieldsManager {
                         <i class="fas fa-edit" aria-hidden="true"></i>
                     </button>
                     <button class="action-btn delete-btn" title="Delete Field" aria-label="Delete field">
-                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                        <i class="fas fa-trash" aria-hidden="true"></i>
                     </button>
                 </div>
             </td>

@@ -378,34 +378,40 @@
     flex-shrink: 0;
 }
 
+/* Edit button - Blue (#00AEEF) - always visible */
 .action-btn.edit {
-    color: #666;
+    color: #00AEEF;
 }
 
 .action-btn.edit:hover {
-    background: #00AEEF;
-    color: white;
+    color: #0095cc;
+    background: rgba(0, 174, 239, 0.15);
     border-color: #00AEEF;
+    transform: scale(1.1);
 }
 
+/* Add button - Green (#92C83E) - always visible */
 .action-btn.add {
-    color: #666;
+    color: #92C83E;
 }
 
 .action-btn.add:hover {
-    background: #7CB342;
-    color: white;
-    border-color: #7CB342;
+    color: #7fb835;
+    background: rgba(146, 200, 62, 0.15);
+    border-color: #92C83E;
+    transform: scale(1.1);
 }
 
+/* Delete button - Red (#FF5252) - always visible */
 .action-btn.delete {
-    color: #666;
+    color: #FF5252;
 }
 
 .action-btn.delete:hover {
-    background: #ff5252;
-    color: white;
-    border-color: #ff5252;
+    color: #e04545;
+    background: rgba(255, 82, 82, 0.15);
+    border-color: #FF5252;
+    transform: scale(1.1);
 }
 
 /* =============================================================================

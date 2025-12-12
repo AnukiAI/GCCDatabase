@@ -80,11 +80,11 @@
                         </td>
                         <td class="admin-table-cell admin-table-cell--actions" data-label="Actions">
                             <div class="admin-action-group">
-                                <button class="admin-btn admin-btn--sm admin-btn--success" id="save-new-btn" aria-label="Save new product">
-                                    <i class="fas fa-check" aria-hidden="true"></i> Save
-                                </button>
                                 <button class="admin-btn admin-btn--sm admin-btn--secondary" id="cancel-new-btn" aria-label="Cancel adding product">
                                     <i class="fas fa-times" aria-hidden="true"></i> Cancel
+                                </button>
+                                <button class="admin-btn admin-btn--sm admin-btn--success" id="save-new-btn" aria-label="Save new product">
+                                    <i class="fas fa-check" aria-hidden="true"></i> Save
                                 </button>
                             </div>
                         </td>
@@ -342,10 +342,6 @@
                 });
             }
 
-            // Show initial success message
-            setTimeout(() => {
-                AdminCore.showNotification('Product management loaded successfully!', 'success', { duration: 3000 });
-            }, 500);
         });
     </script>
 }

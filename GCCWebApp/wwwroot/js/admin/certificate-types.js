@@ -205,7 +205,7 @@ function populateTable(data) {
 
             const deleteBtn = document.createElement('button');
             deleteBtn.className = 'admin-action-btn admin-action-btn--delete';
-            deleteBtn.innerHTML = '<i class="fas fa-trash-alt" aria-hidden="true"></i>';
+            deleteBtn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i>';
             deleteBtn.title = 'Delete';
             deleteBtn.setAttribute('aria-label', `Delete ${certType.name}`);
             deleteBtn.addEventListener('click', () => deleteCertType(certType.id));

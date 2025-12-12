@@ -340,10 +340,10 @@ class ProductTypeManager {
                 <td>${item.sortOrder || 0}</td>
                 <td>
                     <div class="action-buttons">
-                        <button class="btn btn-sm btn-outline-primary edit-btn" data-id="${item.id}" data-type="${typeLabel.toLowerCase()}">
+                        <button class="action-btn edit edit-btn" data-id="${item.id}" data-type="${typeLabel.toLowerCase()}" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="btn btn-sm btn-outline-danger delete-btn" data-id="${item.id}" data-type="${typeLabel.toLowerCase()}">
+                        <button class="action-btn delete delete-btn" data-id="${item.id}" data-type="${typeLabel.toLowerCase()}" title="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>

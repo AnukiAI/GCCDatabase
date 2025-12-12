@@ -70,11 +70,11 @@
                 </td>
                 <td>
                     <div class="admin-inline-add-actions">
-                        <button type="button" class="admin-inline-btn-cancel" onclick="cancelAddPartner()" aria-label="Cancel adding partner">
-                            <i class="fas fa-times" aria-hidden="true"></i> Cancel
+                        <button type="button" class="admin-action-btn admin-action-btn--save" onclick="saveNewPartner()" title="Save" aria-label="Save new partner">
+                            <i class="fas fa-check" aria-hidden="true"></i>
                         </button>
-                        <button type="button" class="admin-inline-btn-save" onclick="saveNewPartner()" aria-label="Save new partner">
-                            <i class="fas fa-check" aria-hidden="true"></i> Save
+                        <button type="button" class="admin-action-btn admin-action-btn--cancel" onclick="cancelAddPartner()" title="Cancel" aria-label="Cancel adding partner">
+                            <i class="fas fa-times" aria-hidden="true"></i>
                         </button>
                     </div>
                 </td>
@@ -215,7 +215,7 @@
                         <i class="fas fa-edit" aria-hidden="true"></i>
                     </button>
                     <button class="admin-inline-action-btn admin-inline-action-btn--delete" onclick="deletePartner(${partner.id})" title="Delete Partner" aria-label="Delete partner ${partner.name}">
-                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                        <i class="fas fa-trash" aria-hidden="true"></i>
                     </button>
                 `;
                 actionsCell.appendChild(actionButtons);
@@ -224,8 +224,8 @@
                 const editActions = document.createElement('div');
                 editActions.className = 'admin-inline-edit-actions';
                 editActions.innerHTML = `
-                    <button type="button" class="admin-inline-btn-cancel" onclick="cancelEdit(${partner.id})" aria-label="Cancel editing"><i class="fas fa-times" aria-hidden="true"></i> Cancel</button>
-                    <button type="button" class="admin-inline-btn-save" onclick="savePartner(${partner.id})" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i> Save</button>
+                    <button type="button" class="admin-action-btn admin-action-btn--save" onclick="savePartner(${partner.id})" title="Save" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i></button>
+                    <button type="button" class="admin-action-btn admin-action-btn--cancel" onclick="cancelEdit(${partner.id})" title="Cancel" aria-label="Cancel editing"><i class="fas fa-times" aria-hidden="true"></i></button>
                 `;
                 actionsCell.appendChild(editActions);
 

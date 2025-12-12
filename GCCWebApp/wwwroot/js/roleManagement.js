@@ -133,7 +133,7 @@ class RoleManagement {
                                 title="${role.name === 'Admin' ? 'Cannot delete Admin role - system protected' : 'Delete ' + this.escapeHtml(role.name) + ' role'}"
                                 aria-label="${role.name === 'Admin' ? 'Cannot delete Admin role - system protected' : 'Delete ' + this.escapeHtml(role.name) + ' role'}"
                                 ${role.name === 'Admin' ? 'disabled aria-disabled="true" style="opacity: 0.5; cursor: not-allowed;"' : ''}>
-                            <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                            <i class="fas fa-trash" aria-hidden="true"></i>
                         </button>
                     </div>
                 </td>

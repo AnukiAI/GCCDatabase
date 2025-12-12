@@ -172,23 +172,30 @@
     border: none;
     border-radius: 4px;
     background-color: transparent;
-    color: #6c757d;
     cursor: pointer;
     transition: all 0.2s ease;
 }
 
-.admin-inline-action-btn:hover {
-    background-color: #f1f3f4;
+/* Edit button - Blue (#00AEEF) - always visible */
+.admin-inline-action-btn--edit {
+    color: #00AEEF;
 }
 
 .admin-inline-action-btn--edit:hover {
-    color: #00AEEF;
-    background-color: rgba(0, 174, 239, 0.1);
+    color: #0095cc;
+    background-color: rgba(0, 174, 239, 0.15);
+    transform: scale(1.1);
+}
+
+/* Delete button - Red (#FF5252) - always visible */
+.admin-inline-action-btn--delete {
+    color: #FF5252;
 }
 
 .admin-inline-action-btn--delete:hover {
-    color: #FF5252;
-    background-color: rgba(255, 82, 82, 0.1);
+    color: #e04545;
+    background-color: rgba(255, 82, 82, 0.15);
+    transform: scale(1.1);
 }
 
 .admin-inline-action-btn i {

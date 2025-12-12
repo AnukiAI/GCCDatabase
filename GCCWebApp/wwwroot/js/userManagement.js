@@ -184,7 +184,7 @@ class UserManagement {
                                 ${user.role !== 'Admin' ? `
                                     <div class="admin-dropdown-divider"></div>
                                     <button class="admin-dropdown-item admin-dropdown-item--danger" onclick="userManagement.deleteUser(${user.id}); event.stopPropagation();">
-                                        <i class="fas fa-trash-alt"></i>
+                                        <i class="fas fa-trash"></i>
                                         <span>Delete User</span>
                                     </button>
                                 ` : `

@@ -155,7 +155,7 @@ function populateTable(data) {
                 <i class="fas fa-edit" aria-hidden="true"></i>
             </button>
             <button class="admin-inline-action-btn admin-inline-action-btn--delete" title="Delete Attribute" aria-label="Delete attribute ${escapeHtml(attribute.name)}">
-                <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                <i class="fas fa-trash" aria-hidden="true"></i>
             </button>
         `;
 
@@ -165,21 +165,21 @@ function populateTable(data) {
 
         actionsCell.appendChild(actionButtons);
 
-        // Edit mode action buttons
+        // Edit mode action buttons - icon-only to match Certificate Types
         const editActions = document.createElement('div');
         editActions.className = 'admin-inline-edit-actions';
         editActions.innerHTML = `
-            <button type="button" class="admin-inline-btn-cancel" aria-label="Cancel editing">
-                <i class="fas fa-times" aria-hidden="true"></i> Cancel
+            <button type="button" class="admin-action-btn admin-action-btn--save" title="Save" aria-label="Save changes">
+                <i class="fas fa-check" aria-hidden="true"></i>
             </button>
-            <button type="button" class="admin-inline-btn-save" aria-label="Save changes">
-                <i class="fas fa-check" aria-hidden="true"></i> Save
+            <button type="button" class="admin-action-btn admin-action-btn--cancel" title="Cancel" aria-label="Cancel editing">
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         `;
 
         // Add event listeners for edit mode buttons
-        editActions.querySelector('.admin-inline-btn-cancel').addEventListener('click', () => cancelEditCSF(attribute.id));
-        editActions.querySelector('.admin-inline-btn-save').addEventListener('click', () => saveCSFEdit(attribute.id));
+        editActions.querySelector('.admin-action-btn--save').addEventListener('click', () => saveCSFEdit(attribute.id));
+        editActions.querySelector('.admin-action-btn--cancel').addEventListener('click', () => cancelEditCSF(attribute.id));
 
         actionsCell.appendChild(editActions);
         row.appendChild(actionsCell);

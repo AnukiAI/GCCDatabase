@@ -1280,6 +1280,24 @@
         const location = formatLocation(cert.location, cert.country);
         const statusBadge = getStatusBadge(cert.status);
 
+        // Build cell values for tooltips
+        const certNumber = cert.certificateNumber || '';
+        const certType = cert.certificationType || '';
+        const csfAttrs = cert.csfAttributes || '';
+        const company = cert.companyName || '';
+        const contact = cert.companyContact || '';
+        const product = cert.productName || '';
+        const category = cert.productCategory || '';
+        const type = cert.productType || '';
+        const subcategory = cert.productSubcategory || '';
+        const country = cert.country || '';
+        const extTags = cert.externalTags || '';
+        const intTags = cert.internalTags || '';
+        const asin = cert.asin || '';
+        const upc = cert.upc || '';
+        const gtin = cert.gtin || '';
+        const ean = cert.ean || '';
+
         return `
             <div class="grid-row" data-cert-id="${cert.id}">
                 <div class="grid-cell select-cell">
@@ -1287,37 +1305,37 @@
                 </div>
                 <div class="grid-cell actions-column">
                     <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="editCertificate('${cert.certificateNumber}')" title="Edit Certificate">
+                        <button class="action-btn edit-btn" onclick="editCertificate('${certNumber}')" title="Edit Certificate">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn download-btn" onclick="downloadCertificate('${cert.certificateNumber}')" title="Download PDF">
+                        <button class="action-btn download-btn" onclick="downloadCertificate('${certNumber}')" title="Download PDF">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${cert.certificateNumber}')" title="View Details">
+                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${certNumber}')" title="View Details">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
                     </div>
                 </div>
-                <div class="grid-cell">${escapeHtml(cert.certificateNumber || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.certificationType || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.csfAttributes || '')}</div>
-                <div class="grid-cell">${statusBadge}</div>
-                <div class="grid-cell">${effectiveDate}</div>
-                <div class="grid-cell">${expirationDate}</div>
-                <div class="grid-cell">${escapeHtml(cert.companyName || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.companyContact || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.productName || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.productCategory || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.productType || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.productSubcategory || '')}</div>
-                <div class="grid-cell">${location}</div>
-                <div class="grid-cell">${escapeHtml(cert.country || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.externalTags || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.internalTags || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.asin || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.upc || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.gtin || '')}</div>
-                <div class="grid-cell">${escapeHtml(cert.ean || '')}</div>
+                <div class="grid-cell" data-column="certificateNumber" title="${escapeHtml(certNumber)}">${escapeHtml(certNumber)}</div>
+                <div class="grid-cell" data-column="certificationType" title="${escapeHtml(certType)}">${escapeHtml(certType)}</div>
+                <div class="grid-cell" data-column="csfAttributes" title="${escapeHtml(csfAttrs)}">${escapeHtml(csfAttrs)}</div>
+                <div class="grid-cell" data-column="status">${statusBadge}</div>
+                <div class="grid-cell" data-column="effectiveDate">${effectiveDate}</div>
+                <div class="grid-cell" data-column="expirationDate">${expirationDate}</div>
+                <div class="grid-cell" data-column="company" title="${escapeHtml(company)}">${escapeHtml(company)}</div>
+                <div class="grid-cell" data-column="companyContact" title="${escapeHtml(contact)}">${escapeHtml(contact)}</div>
+                <div class="grid-cell" data-column="productName" title="${escapeHtml(product)}">${escapeHtml(product)}</div>
+                <div class="grid-cell" data-column="productCategory" title="${escapeHtml(category)}">${escapeHtml(category)}</div>
+                <div class="grid-cell" data-column="productType" title="${escapeHtml(type)}">${escapeHtml(type)}</div>
+                <div class="grid-cell" data-column="productSubcategory" title="${escapeHtml(subcategory)}">${escapeHtml(subcategory)}</div>
+                <div class="grid-cell" data-column="location" title="${location}">${location}</div>
+                <div class="grid-cell" data-column="country" title="${escapeHtml(country)}">${escapeHtml(country)}</div>
+                <div class="grid-cell" data-column="externalTag" title="${escapeHtml(extTags)}">${escapeHtml(extTags)}</div>
+                <div class="grid-cell" data-column="internalTag" title="${escapeHtml(intTags)}">${escapeHtml(intTags)}</div>
+                <div class="grid-cell" data-column="asin" title="${escapeHtml(asin)}">${escapeHtml(asin)}</div>
+                <div class="grid-cell" data-column="upc" title="${escapeHtml(upc)}">${escapeHtml(upc)}</div>
+                <div class="grid-cell" data-column="gtin" title="${escapeHtml(gtin)}">${escapeHtml(gtin)}</div>
+                <div class="grid-cell" data-column="ean" title="${escapeHtml(ean)}">${escapeHtml(ean)}</div>
             </div>
         `;
     }

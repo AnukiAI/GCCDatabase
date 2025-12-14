@@ -247,7 +247,7 @@ function populateTable(data) {
         // Delete button
         const deleteButton = document.createElement('button');
         deleteButton.className = 'btn-delete';
-        deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+        deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
         deleteButton.title = 'Delete';
         deleteButton.addEventListener('click', () => deleteUser(user.id));
         actionsCell.appendChild(deleteButton);

@@ -111,7 +111,7 @@ class RoleManagement {
         tbody.innerHTML = this.filteredRoles.map(role => `
             <tr data-role-id="${role.id}" role="row" tabindex="0" aria-label="Role: ${this.escapeHtml(role.name)}">
                 <td role="cell">
-                    <strong>${this.escapeHtml(role.name)}</strong>
+                    <span class="role-name">${this.escapeHtml(role.name)}</span>
                 </td>
                 <td role="cell">${this.escapeHtml(role.description || '')}</td>
                 <td role="cell">
@@ -133,7 +133,7 @@ class RoleManagement {
                                 title="${role.name === 'Admin' ? 'Cannot delete Admin role - system protected' : 'Delete ' + this.escapeHtml(role.name) + ' role'}"
                                 aria-label="${role.name === 'Admin' ? 'Cannot delete Admin role - system protected' : 'Delete ' + this.escapeHtml(role.name) + ' role'}"
                                 ${role.name === 'Admin' ? 'disabled aria-disabled="true" style="opacity: 0.5; cursor: not-allowed;"' : ''}>
-                            <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                            <i class="fas fa-trash" aria-hidden="true"></i>
                         </button>
                     </div>
                 </td>

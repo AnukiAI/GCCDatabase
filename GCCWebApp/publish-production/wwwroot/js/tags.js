@@ -59,7 +59,7 @@ function populateTable(data) {
 
         // View mode
         const nameSpan = document.createElement('span');
-        nameSpan.className = 'tag-name';
+        nameSpan.className = 'tag-name admin-inline-view';
         nameSpan.textContent = tag.name;
         nameCell.appendChild(nameSpan);
 
@@ -77,7 +77,7 @@ function populateTable(data) {
 
         // View mode
         const typeSpan = document.createElement('span');
-        typeSpan.className = `tag-type admin-badge admin-badge--${tag.tagType === 'external' ? 'success' : 'info'}`;
+        typeSpan.className = `tag-type admin-inline-view admin-badge admin-badge--${tag.tagType === 'external' ? 'success' : 'info'}`;
         typeSpan.textContent = tag.tagType.charAt(0).toUpperCase() + tag.tagType.slice(1);
         typeCell.appendChild(typeSpan);
 
@@ -100,7 +100,7 @@ function populateTable(data) {
 
         // View mode
         const descSpan = document.createElement('span');
-        descSpan.className = 'tag-description';
+        descSpan.className = 'tag-description admin-inline-view';
         descSpan.textContent = tag.description || '';
         descCell.appendChild(descSpan);
 
@@ -124,20 +124,20 @@ function populateTable(data) {
                 <i class="fas fa-edit" aria-hidden="true"></i>
             </button>
             <button class="admin-inline-action-btn admin-inline-action-btn--delete" onclick="deleteTag(${tag.id}, '${escapeHtml(tag.name)}')" title="Delete Tag" aria-label="Delete tag ${escapeHtml(tag.name)}">
-                <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                <i class="fas fa-trash" aria-hidden="true"></i>
             </button>
         `;
         actionsCell.appendChild(actionButtons);
 
-        // Edit action buttons (Save/Cancel)
+        // Edit action buttons (Save/Cancel) - icon-only to match Certificate Types
         const editActions = document.createElement('div');
         editActions.className = 'admin-inline-edit-actions';
         editActions.innerHTML = `
-            <button type="button" class="admin-inline-btn-cancel" onclick="cancelEdit(${tag.id})" aria-label="Cancel editing">
-                <i class="fas fa-times" aria-hidden="true"></i> Cancel
+            <button type="button" class="admin-action-btn admin-action-btn--save" onclick="saveTag(${tag.id})" title="Save" aria-label="Save tag">
+                <i class="fas fa-check" aria-hidden="true"></i>
             </button>
-            <button type="button" class="admin-inline-btn-save" onclick="saveTag(${tag.id})" aria-label="Save tag">
-                <i class="fas fa-check" aria-hidden="true"></i> Save
+            <button type="button" class="admin-action-btn admin-action-btn--cancel" onclick="cancelEdit(${tag.id})" title="Cancel" aria-label="Cancel editing">
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         `;
         actionsCell.appendChild(editActions);

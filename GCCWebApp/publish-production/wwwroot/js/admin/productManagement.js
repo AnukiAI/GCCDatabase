@@ -190,22 +190,22 @@ class ProductManagement {
             actionsCell.setAttribute('data-label', 'Actions');
             
             if (this.currentEditingId === product.id) {
-                // Show save and cancel buttons
+                // Show cancel and save buttons (Cancel first, then Save for consistency)
                 const editActions = document.createElement('div');
                 editActions.className = 'edit-actions';
-                
-                const saveBtn = document.createElement('button');
-                saveBtn.className = 'save-btn';
-                saveBtn.textContent = 'Save';
-                saveBtn.addEventListener('click', () => this.saveProductEdit(product.id));
-                
+
                 const cancelBtn = document.createElement('button');
                 cancelBtn.className = 'cancel-btn';
-                cancelBtn.textContent = 'Cancel';
+                cancelBtn.innerHTML = '<i class="fas fa-times"></i> Cancel';
                 cancelBtn.addEventListener('click', () => this.cancelProductEdit());
-                
-                editActions.appendChild(saveBtn);
+
+                const saveBtn = document.createElement('button');
+                saveBtn.className = 'save-btn';
+                saveBtn.innerHTML = '<i class="fas fa-check"></i> Save';
+                saveBtn.addEventListener('click', () => this.saveProductEdit(product.id));
+
                 editActions.appendChild(cancelBtn);
+                editActions.appendChild(saveBtn);
                 actionsCell.appendChild(editActions);
             } else {
                 // Show edit and delete buttons

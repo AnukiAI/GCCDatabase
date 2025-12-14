@@ -1,6 +1,17 @@
 /* Product ID Manager Styles */
 /* Following GCC Master Design Guide - 16px minimum font size, accessible colors */
 
+/* Modal Base - Hide by default, Bootstrap JS will show when triggered */
+#productIdModal,
+#importModal {
+    display: none;
+}
+
+#productIdModal.show,
+#importModal.show {
+    display: block;
+}
+
 .product-id-manager {
     background: white;
     border-radius: 8px;

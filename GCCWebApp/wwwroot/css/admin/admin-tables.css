@@ -268,20 +268,35 @@
     box-shadow: 0 0 0 2px var(--admin-primary-light);
 }
 
-/* Action button variants */
+/* Action button variants - Base colors always visible */
+.admin-action-btn--edit {
+    color: #00AEEF;
+}
+
 .admin-action-btn--edit:hover {
-    background-color: var(--admin-info-light);
-    color: var(--admin-info);
+    color: #0095cc;
+    background-color: rgba(0, 174, 239, 0.15);
+    transform: scale(1.1);
+}
+
+.admin-action-btn--delete {
+    color: #FF5252;
 }
 
 .admin-action-btn--delete:hover {
-    background-color: var(--admin-danger-light);
-    color: var(--admin-danger);
+    color: #e04545;
+    background-color: rgba(255, 82, 82, 0.15);
+    transform: scale(1.1);
+}
+
+.admin-action-btn--view {
+    color: #27ae60;
 }
 
 .admin-action-btn--view:hover {
-    background-color: var(--admin-success-light);
-    color: var(--admin-success);
+    color: #219a52;
+    background-color: rgba(39, 174, 96, 0.15);
+    transform: scale(1.1);
 }
 
 .admin-action-btn--2fa:hover {

@@ -119,7 +119,19 @@ class CertificateCustomFields {
             case 'text':
                 control = `<input type="text" class="form-control custom-field-input"
                     id="field_${field.id}" name="field_${field.id}"
-                    value="${value}" ${required} data-field-id="${field.id}">`;
+                    value="${this.escapeHtml(value)}" ${required} data-field-id="${field.id}">`;
+                break;
+
+            case 'email':
+                control = `<input type="email" class="form-control custom-field-input"
+                    id="field_${field.id}" name="field_${field.id}"
+                    value="${this.escapeHtml(value)}" ${required} data-field-id="${field.id}">`;
+                break;
+
+            case 'phone':
+                control = `<input type="tel" class="form-control custom-field-input"
+                    id="field_${field.id}" name="field_${field.id}"
+                    value="${this.escapeHtml(value)}" ${required} data-field-id="${field.id}">`;
                 break;
 
             case 'number':
@@ -146,7 +158,7 @@ class CertificateCustomFields {
 
             case 'select':
             case 'dropdown':
-                const options = field.options ? JSON.parse(field.options) : [];
+                const options = this.parseOptions(field.options);
                 control = `<select class="form-control custom-field-input"
                     id="field_${field.id}" name="field_${field.id}"
                     ${required} data-field-id="${field.id}">
@@ -158,7 +170,8 @@ class CertificateCustomFields {
                 break;
 
             case 'multi-select':
-                const multiOptions = field.options ? JSON.parse(field.options) : [];
+            case 'multiselect':
+                const multiOptions = this.parseOptions(field.options);
                 const selectedValues = value ? value.split(',') : [];
                 control = `<select multiple class="form-control custom-field-input"
                     id="field_${field.id}" name="field_${field.id}"
@@ -167,6 +180,12 @@ class CertificateCustomFields {
                         `<option value="${opt}" ${selectedValues.includes(opt) ? 'selected' : ''}>${opt}</option>`
                     ).join('')}
                 </select>`;
+                break;
+
+            case 'textarea':
+                control = `<textarea class="form-control custom-field-input"
+                    id="field_${field.id}" name="field_${field.id}"
+                    ${required} data-field-id="${field.id}" rows="3">${this.escapeHtml(value)}</textarea>`;
                 break;
 
             case 'file':
@@ -178,7 +197,7 @@ class CertificateCustomFields {
             default:
                 control = `<input type="text" class="form-control custom-field-input"
                     id="field_${field.id}" name="field_${field.id}"
-                    value="${value}" ${required} data-field-id="${field.id}">`;
+                    value="${this.escapeHtml(value)}" ${required} data-field-id="${field.id}">`;
         }
 
         return `
@@ -452,6 +471,41 @@ class CertificateCustomFields {
                 }
             }
         });
+    }
+
+    /**
+     * Escapes HTML to prevent XSS
+     * @param {string} str - The string to escape
+     * @returns {string} The escaped string
+     */
+    escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    /**
+     * Parses options string (comma-separated or JSON array)
+     * @param {string} optionsStr - The options string
+     * @returns {array} Array of option values
+     */
+    parseOptions(optionsStr) {
+        if (!optionsStr) return [];
+
+        // Try JSON parse first
+        try {
+            const parsed = JSON.parse(optionsStr);
+            if (Array.isArray(parsed)) return parsed;
+        } catch (e) {
+            // Not JSON, try comma-separated
+        }
+
+        // Try comma-separated
+        return optionsStr.split(',').map(o => o.trim()).filter(o => o);
     }
 
     /**

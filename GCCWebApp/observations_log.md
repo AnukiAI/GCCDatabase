@@ -848,3 +848,181 @@ function initQuickAddCompany() {
 - [ ] Test ISBN-13 validation with valid ISBN (e.g., 978-0-306-40615-7)
 - [ ] Test ISBN-13 validation with invalid checksum
 - [ ] Verify Certification Results field saves and loads correctly
+
+---
+
+## 2025-12-13 - MILESTONE: Ready for UAT
+
+### Achievement
+**GCC Database Solution is officially ready for User Acceptance Testing (UAT).**
+
+This marks a significant project milestone after extensive iterations and improvements including:
+
+### Journey Summary
+- **UI/UX Overhaul**: Certificate tile views, admin pages, responsive design
+- **Database-Driven Filters**: Dynamic filter options loaded from database (all 3 views)
+- **Import Quality**: Fuzzy matching, duplicate detection, import order guidance
+- **Inline Creation**: Quick-add company/product from certificate pages
+- **Security**: Role-based access, 2FA, API key management
+- **Testing**: 624+ tests across 7 test projects (87% pass rate)
+- **Data Migration**: Comprehensive validation rules and templates
+- **Modal Standardization**: US-015 backdrop standard (85% black, 3px blur)
+- **Export Consistency**: CSV-only exports across all admin pages
+
+### What's Next
+- Client UAT review and feedback
+- Additional improvements planned post-UAT
+- Production deployment preparation
+
+### Key Metrics at UAT Milestone
+| Metric | Value |
+|--------|-------|
+| Total Tests | 624+ |
+| Pass Rate | 87% |
+| Test Projects | 7 |
+| User Stories Complete | US-001 to US-010 |
+| Admin Pages | 10+ fully functional |
+| Certificate Views | 3 (Public, Internal, External) |
+
+### Client Communication
+User informed client that the system is ready for UAT. Additional improvements are planned but the core functionality is complete and stable.
+
+---
+
+## 2025-12-13 - Custom Fields Not Displaying on Certificate Create/Edit Pages
+
+### Issue Reported
+Custom fields added from the Admin > Certificate Fields page were not appearing on:
+- Certificate Create page (`/Certificate/Create`)
+- Certificate Edit page (`/Certificate/Edit/{number}`)
+- Internal Certificate View
+
+### Root Causes Identified
+
+1. **JavaScript Admin Page Missing `section` Field**
+   - `certificate-fields.js` line 319-326: `saveInlineEdit()` function collected section from `inputs[0]` but never sent it to the server
+   - Section field was silently dropped during save operations
+
+2. **JavaScript Admin Page Sending Wrong Field Name**
+   - Admin JS was sending `notes` but the C# model uses `defaultValue` for notes
+   - Property mismatch caused notes to be lost
+
+3. **Missing Field Types in Custom Fields Rendering**
+   - `certificate-custom-fields.js` did not handle: email, phone, textarea, multiselect
+   - Seed data used these types but they weren't rendering
+
+4. **Automatic Database Seeding Disabled**
+   - `SeedData.InitializeAsync()` only runs migrations
+   - `SeedCustomFieldsAsync()` exists but is never called
+   - CustomFields table likely empty without manual seeding
+
+### Fixes Applied
+
+**File: `wwwroot/js/admin/certificate-fields.js`**
+- Added `section: inputs[0].value` to save data (line 320)
+- Changed `notes` to `defaultValue` to match C# model (line 325)
+- Updated `renderNormalRow` and `renderEditRow` to use defaultValue for notes
+- Added email, phone, textarea to control types dropdown
+- Updated `formatFieldType()` to include new types
+
+**File: `wwwroot/js/certificate-custom-fields.js`**
+- Added case handlers for: email, phone, textarea, multiselect
+- Added `escapeHtml()` helper for XSS prevention
+- Added `parseOptions()` helper that handles both JSON arrays and comma-separated strings
+- Updated options parsing to be more robust
+
+### Technical Details
+
+**Data Flow:**
+1. Admin adds field via `/Admin/CertificateFields`
+2. JS calls `/Admin/CreateCertificateField` with field data
+3. `AdminService.CreateCertificateFieldAsync()` saves to `CustomFields` table
+4. Certificate Create/Edit loads via `/Certificate/GetCustomFields?certificateTypeId={id}`
+5. `CertificateFieldService.GetFieldsAsync()` returns all visible fields
+6. `certificate-custom-fields.js` renders fields dynamically
+
+**Property Mappings:**
+| Admin UI Column | C# Model Property | JS Property |
+|-----------------|-------------------|-------------|
+| Section | Section | section |
+| Field Name | Name | name |
+| Control Type | FieldType | fieldType |
+| Required | IsRequired | isRequired |
+| Notes | DefaultValue | defaultValue |
+
+### Testing Recommendations
+1. Go to Admin > Certificate Fields
+2. Click "Add New Field"
+3. Fill in Section, Name, Type, Required, Notes
+4. Click Save - verify toast shows success
+5. Go to Certificate > Create
+6. Select a Certification Type
+7. Verify custom fields appear in Custom Fields section
+
+### Files Modified
+- `wwwroot/js/admin/certificate-fields.js`
+- `wwwroot/js/certificate-custom-fields.js`
+
+---
+
+## 2025-12-13 - FIX APPLIED: Certificate Save After PDF Upload Not Working
+
+### Issue Reported
+User reported that saving the certificate after uploading a PDF was not working. The form would not submit after drag-and-drop PDF upload.
+
+### Root Cause Analysis
+The drag-and-drop PDF upload handler in `certificate-create.js` was showing the file preview but **NOT assigning the dropped file to the input element's `files` property**.
+
+```javascript
+// BEFORE (broken):
+uploadZone.addEventListener('drop', (e) => {
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        this.handleFile(file, pdfInput, previewContainer); // Only shows preview!
+    }
+});
+```
+
+This caused:
+1. The `certificatePdf` input remained empty after drag-drop
+2. HTML5 form validation failed (input has `required` attribute)
+3. Form submission was silently blocked
+
+**Click-to-upload worked** because the native file dialog properly populates `input.files`.
+
+### Fix Applied
+Used the `DataTransfer` API to assign the dropped file to the input element:
+
+```javascript
+// AFTER (fixed):
+uploadZone.addEventListener('drop', (e) => {
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        // Assign the dropped file to the input element
+        try {
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            pdfInput.files = dataTransfer.files;
+        } catch (err) {
+            console.warn('DataTransfer not supported:', err);
+        }
+        this.handleFile(file, pdfInput, previewContainer);
+    }
+});
+```
+
+### Testing
+1. Go to Certificate > Create
+2. Drag and drop a PDF file onto the upload zone
+3. Verify the preview shows
+4. Fill in required fields and click Save
+5. Verify the certificate is created successfully with the PDF attached
+
+### Files Modified
+- `wwwroot/js/certificate-create.js` (lines 175-193)
+
+### Impact
+- Fix applies to both Certificate Create and Edit pages (shared JavaScript)
+- DataTransfer API is supported in all modern browsers (Chrome, Firefox, Edge, Safari)
+
+---

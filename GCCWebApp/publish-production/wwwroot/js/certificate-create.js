@@ -179,6 +179,15 @@
 
                 const file = e.dataTransfer.files[0];
                 if (file) {
+                    // Assign the dropped file to the input element using DataTransfer
+                    // This is required for the form submission to include the file
+                    try {
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(file);
+                        pdfInput.files = dataTransfer.files;
+                    } catch (err) {
+                        console.warn('DataTransfer not supported, drag-drop may not work:', err);
+                    }
                     this.handleFile(file, pdfInput, previewContainer);
                 }
             });

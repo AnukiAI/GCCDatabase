@@ -247,20 +247,26 @@ body.admin-role-management .admin-container * {
     transition: var(--transition);
 }
 
+/* Edit button - Light Blue (#00AEEF) - consistent across all pages */
 .btn-edit {
-    color: var(--blue-primary);
+    color: #00AEEF;
 }
 
 .btn-edit:hover {
-    background-color: rgba(0, 174, 239, 0.1);
+    color: #0095cc;
+    background-color: rgba(0, 174, 239, 0.15);
+    transform: scale(1.1);
 }
 
+/* Delete button - Red (#FF5252) - consistent across all pages */
 .btn-delete {
-    color: var(--warning);
+    color: #FF5252;
 }
 
 .btn-delete:hover {
-    background-color: rgba(255, 82, 82, 0.1);
+    color: #e04545;
+    background-color: rgba(255, 82, 82, 0.15);
+    transform: scale(1.1);
 }
 
 .btn-view {

@@ -317,11 +317,12 @@ class CertificateFieldsManager {
         const inputs = row.querySelectorAll('.edit-input, .edit-select');
 
         const updatedData = {
+            section: inputs[0].value,  // Section dropdown
             name: inputs[1].value.trim(),
             fieldType: inputs[2].value,
             isRequired: inputs[3].value === 'true',
             isVisible: true,
-            notes: inputs[4].value.trim(),
+            defaultValue: inputs[4].value.trim(),  // Notes stored in DefaultValue field
             sortOrder: this.getNextOrder()
         };
 
@@ -395,20 +396,22 @@ class CertificateFieldsManager {
 
     renderNormalRow(row, field) {
         const requiredLabel = field.isRequired ? 'Required' : 'Optional';
-        
+        // Notes are stored in defaultValue field
+        const notes = field.notes || field.defaultValue || '';
+
         row.innerHTML = `
             <td style="font-size: 16px; color: #666;">${field.section || 'Core Certificate Information'}</td>
             <td>${field.name}</td>
             <td><span class="field-type type-${field.fieldType.toLowerCase().replace(/[-\s]/g, '')}">${this.formatFieldType(field.fieldType)}</span></td>
             <td><span class="required-label required-${requiredLabel.toLowerCase().replace('-', '')}">${requiredLabel}</span></td>
-            <td>${field.notes || ''}</td>
+            <td>${notes}</td>
             <td>
                 <div class="action-buttons">
                     <button class="action-btn edit-btn" title="Edit Field" aria-label="Edit field">
                         <i class="fas fa-edit" aria-hidden="true"></i>
                     </button>
                     <button class="action-btn delete-btn" title="Delete Field" aria-label="Delete field">
-                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                        <i class="fas fa-trash" aria-hidden="true"></i>
                     </button>
                 </div>
             </td>
@@ -417,6 +420,8 @@ class CertificateFieldsManager {
 
     renderEditRow(row, field) {
         row.classList.add('edit-row');
+        // Notes are stored in defaultValue field
+        const notes = field.notes || field.defaultValue || '';
 
         const sections = [
             'Core Certificate Information',
@@ -428,7 +433,7 @@ class CertificateFieldsManager {
             'File Management',
             'Record Management'
         ];
-        const controlTypes = ['text', 'dropdown', 'multi-select', 'date', 'file', 'number', 'checkbox', 'system-generated'];
+        const controlTypes = ['text', 'email', 'phone', 'textarea', 'dropdown', 'multi-select', 'date', 'file', 'number', 'checkbox', 'system-generated'];
 
         row.innerHTML = `
             <td>
@@ -455,7 +460,7 @@ class CertificateFieldsManager {
                 </select>
             </td>
             <td>
-                <input type="text" class="edit-input" value="${field.notes || ''}" placeholder="Optional notes">
+                <input type="text" class="edit-input" value="${notes}" placeholder="Optional notes">
             </td>
             <td>
                 <div class="action-buttons edit-actions">
@@ -473,12 +478,18 @@ class CertificateFieldsManager {
     formatFieldType(type) {
         const typeMap = {
             'text': 'Text',
+            'email': 'Email',
+            'phone': 'Phone',
+            'textarea': 'Textarea',
             'dropdown': 'Dropdown',
             'multi-select': 'Multi-Select',
+            'multiselect': 'Multi-Select',
+            'select': 'Dropdown',
             'date': 'Date',
             'file': 'File',
             'number': 'Number',
             'checkbox': 'Checkbox',
+            'boolean': 'Checkbox',
             'system-generated': 'System Generated'
         };
         return typeMap[type] || type;

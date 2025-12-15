@@ -5,6 +5,7 @@ using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Repositories;
 using GCCWebApp.Services;
+using System.Text.RegularExpressions;
 
 namespace GCCWebApp.Controllers.Api
 {
@@ -33,6 +34,31 @@ namespace GCCWebApp.Controllers.Api
             _pdfService = pdfService;
             _context = context;
             _showDetailedErrors = configuration.GetValue<bool>("FeatureFlags:ShowDetailedApiErrors", false);
+        }
+
+        /// <summary>
+        /// Format certificate number to YY-NNNN format
+        /// </summary>
+        private static string FormatCertificateNumber(string? number, DateTime? effectiveDate)
+        {
+            if (string.IsNullOrEmpty(number)) return "N/A";
+
+            // If already in correct format (XX-XXXX), return as is
+            if (Regex.IsMatch(number, @"^\d{2}-\d{4}$"))
+                return number;
+
+            // Get year from effective date or current year
+            var year = effectiveDate?.Year.ToString().Substring(2)
+                       ?? DateTime.Now.Year.ToString().Substring(2);
+
+            // If certificate number is just digits, format as YY-####
+            if (Regex.IsMatch(number, @"^\d+$"))
+            {
+                var paddedNumber = number.PadLeft(4, '0');
+                return $"{year}-{paddedNumber}";
+            }
+
+            return number; // Return as-is if we can't format it
         }
 
         /// <summary>
@@ -135,7 +161,7 @@ namespace GCCWebApp.Controllers.Api
                 var result = certificates.Select(c => new
                 {
                     id = c.Id,
-                    certificateNumber = c.Number,
+                    certificateNumber = FormatCertificateNumber(c.Number, c.EffectiveDate),
                     certificationType = c.CertificationType?.Name ?? "Unknown",
                     companyName = c.Company?.Name ?? "Unknown",
                     productName = c.Product?.Name ?? "Unknown",

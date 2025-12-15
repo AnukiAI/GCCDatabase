@@ -2,28 +2,40 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using Moq;
 using GCCWebApp.Controllers;
 using GCCWebApp.Models;
 using GCCWebApp.Services;
+using GCCWebApp.Data;
 using System.Security.Claims;
 using System.Text.Json;
 using Xunit;
 
 namespace GCCWebApp.Tests.Controllers
 {
-    public class AdminControllerPartnersTests
+    public class AdminControllerPartnersTests : IDisposable
     {
         private readonly Mock<ILogger<AdminController>> _loggerMock;
         private readonly Mock<IAdminService> _adminServiceMock;
+        private readonly ApplicationDbContext _context;
         private readonly AdminController _controller;
 
         public AdminControllerPartnersTests()
         {
+            var options = new DbContextOptionsBuilder<ApplicationDbContext>()
+                .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+                .Options;
+            _context = new ApplicationDbContext(options);
             _loggerMock = new Mock<ILogger<AdminController>>();
             _adminServiceMock = new Mock<IAdminService>();
-            _controller = new AdminController(_adminServiceMock.Object, _loggerMock.Object);
+            _controller = new AdminController(_adminServiceMock.Object, _loggerMock.Object, _context);
             SetupAdminUser();
+        }
+
+        public void Dispose()
+        {
+            _context.Dispose();
         }
 
         #region Partners View Tests

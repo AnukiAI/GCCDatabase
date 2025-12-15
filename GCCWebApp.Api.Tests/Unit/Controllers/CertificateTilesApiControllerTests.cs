@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
@@ -18,6 +19,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
         private readonly Mock<ICertificateRepository> _certificateRepositoryMock;
         private readonly Mock<IUnitOfWork> _unitOfWorkMock;
         private readonly Mock<ICertificatePdfService> _pdfServiceMock;
+        private readonly Mock<IConfiguration> _configurationMock;
         private readonly ApplicationDbContext _context;
         private readonly CertificateTilesApiController _controller;
 
@@ -27,6 +29,10 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             _certificateRepositoryMock = new Mock<ICertificateRepository>();
             _unitOfWorkMock = new Mock<IUnitOfWork>();
             _pdfServiceMock = new Mock<ICertificatePdfService>();
+            _configurationMock = new Mock<IConfiguration>();
+
+            // Setup configuration mock
+            _configurationMock.Setup(c => c.GetValue<bool>("FeatureFlags:ShowDetailedApiErrors", false)).Returns(false);
 
             // Create in-memory database for testing
             _context = TestDbContextFactory.CreateInMemoryContext();
@@ -36,7 +42,8 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
                 _certificateRepositoryMock.Object,
                 _unitOfWorkMock.Object,
                 _pdfServiceMock.Object,
-                _context);
+                _context,
+                _configurationMock.Object);
         }
 
         public void Dispose()

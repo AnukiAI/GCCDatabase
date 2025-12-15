@@ -1026,3 +1026,149 @@ uploadZone.addEventListener('drop', (e) => {
 - DataTransfer API is supported in all modern browsers (Chrome, Firefox, Edge, Safari)
 
 ---
+
+## 2025-12-14 - API and Certificate Pages Testing Session
+
+### Testing Summary
+
+Today's session focused on testing:
+1. API endpoints functionality
+2. Certificate Create/Edit pages and custom fields
+3. End-to-end CRUD operations
+4. Test suite execution
+
+### API Testing Results
+
+#### Public API Endpoints - Working
+| Endpoint | Status | Notes |
+|----------|--------|-------|
+| `GET /api/certificate-tiles` | 200 | Returns paginated certificates |
+| `GET /api/certificate-tiles/filters` | 200 | Returns filter options |
+| `GET /health` | 200 | Health check working |
+
+#### Authenticated API (v1) - Working
+**API Key Used**: `gcc_partner_95961557dde1e196be074634cef252caec32c4b08e1e58dcfa63e43bbdbb63c7`
+
+| Endpoint | Status | Notes |
+|----------|--------|-------|
+| `GET /api/v1/certificates` | 200 | Returns 178 certificates |
+| `GET /api/v1/certificates/{id}` | 200 | Returns certificate by ID |
+| `GET /api/v1/certificates/number/{number}` | 200 | Returns by cert number |
+
+### Defects Found and Fixed
+
+#### 1. API Test Compilation Error - FIXED
+**File**: `GCCWebApp.Api.Tests/Unit/Controllers/CertificateTilesApiControllerTests.cs`
+
+**Issue**: Test class missing `IConfiguration` parameter in controller constructor
+
+**Error Message**:
+```
+error CS7036: There is no argument given that corresponds to the required parameter
+'configuration' of 'CertificateTilesApiController.CertificateTilesApiController(...)'
+```
+
+**Fix Applied**:
+- Added `Mock<IConfiguration> _configurationMock` field
+- Added configuration mock setup in constructor
+- Added `_configurationMock.Object` to controller instantiation
+
+**Lines Modified**: 1-47
+
+### Test Suite Results
+
+#### Unit Tests (GCCWebApp.Tests)
+| Category | Status | Notes |
+|----------|--------|-------|
+| Documentation Tests | Multiple failures | Documentation not meeting test expectations |
+| RBAC Security Tests | 1 failure | UserManagementPermissions test |
+| Configuration Tests | Passing | |
+| Model Tests | Passing | |
+
+#### API Tests (GCCWebApp.Api.Tests)
+| Category | Status | Notes |
+|----------|--------|-------|
+| CertificateTilesApiControllerTests | Failures | Mock setup issues (not related to compilation fix) |
+| MultiPartnerApiIntegrationTests | Failures | Requires running server |
+| ApiIntegrationTests | Failures | Requires running server |
+
+### Custom Fields Architecture
+
+#### Current Implementation
+- **Admin Page**: `/Admin/CertificateFields` - Manages field definitions
+- **API**: `/Certificate/GetCustomFields?certificateTypeId={id}` - Returns fields for cert type
+- **JavaScript**: `certificate-custom-fields.js` - Client-side rendering
+- **Service**: `CertificateFieldService` - Server-side field management
+
+#### Data Flow
+1. Admin creates field in CertificateFields page
+2. Field saved to `CustomFields` table via AdminService
+3. Certificate Create/Edit loads fields via `GetCustomFields` endpoint
+4. JavaScript renders fields dynamically based on type
+5. Field values saved with certificate via `SaveCustomFieldValues`
+
+### Authentication Requirements
+
+| Page/Endpoint | Authorization |
+|---------------|---------------|
+| Public Tile View | None (Anonymous) |
+| Certificate Create/Edit | AnalystOrAdmin |
+| Admin Certificate Fields | AdminOnly |
+| Custom Fields API | AnalystOrAdmin |
+| v1 API | API Key (Partner) |
+
+### Recommendations
+
+1. **Fix remaining test mock setups** - Several API tests fail due to mock configuration issues
+2. **Run Playwright tests** - E2E tests require browser installation
+3. **Documentation tests** - Update documentation to meet test expectations or adjust tests
+4. **Integration tests** - Need running application for integration tests to pass
+
+### Files Modified This Session
+- `GCCWebApp.Api.Tests/Unit/Controllers/CertificateTilesApiControllerTests.cs` - Fixed IConfiguration parameter
+
+### Application Status
+- **Build**: Successful
+- **Running**: http://localhost:5101
+- **Database**: Connected with 178 certificates
+
+---
+
+## 2025-12-14 - REQUIREMENT: Certificate Number Format Consistency
+
+### Requirement
+**Certificate Number must be displayed as formatted value (XX-XXXX) consistently across ALL pages.**
+
+Examples:
+- ✅ Correct: `25-5057`, `24-5118`, `24-0366`
+- ❌ Wrong: `85`, `146`, `75` (numeric database IDs)
+
+### Where Certificate Number Must Be Displayed (NOT ID)
+| Location | Field to Use | Status |
+|----------|--------------|--------|
+| Public Tile View | `cert.certificateNumber` | ✅ Verified |
+| Internal Tile View (Table) | `cert.certificateNumber` | ✅ Verified |
+| Internal Tile View (Cards) | `cert.certificateNumber` | ✅ Verified |
+| External Tile View (Table) | `cert.certificateNumber` | ✅ Verified |
+| External Tile View (Cards) | `cert.certificateNumber` | ✅ Verified |
+| Certificate Details Page | `@Model.Number` | ✅ Verified |
+| Certificate Edit Page | `@Model.Number` | ✅ Verified (breadcrumb, subtitle) |
+| API Responses | `certificateNumber` | ✅ Verified |
+| URL Routes | `/Certificate/Edit/{number}` | ✅ Verified (uses certificate number) |
+| Download Filenames | `Certificate_{number}.pdf` | ✅ Verified (e.g., Certificate_25-5057.pdf) |
+| ZIP Download | `Certificate_{number}.pdf` | ✅ Verified |
+| Export CSV | Certificate Number | To Verify |
+
+### Technical Implementation
+- **Database Column**: `Certificates.Number` (string, format: XX-XXXX)
+- **Database Column**: `Certificates.Id` (int, auto-increment - internal use only)
+- **API Mapping**: `CertificateNumber = c.Number`
+- **Never expose numeric ID to users** - use for internal tracking only (data attributes, checkboxes)
+
+### Verified Code Locations
+- `CertificateTilesApiController.cs:138` - `CertificateNumber = c.Number`
+- `CertificateTileInternalApiController.cs:138` - `CertificateNumber = c.Number`
+- `certificate-tile-view-internal.js:1284` - `const certNumber = cert.certificateNumber`
+- `certificate-tile-view-external.js:345` - `${escapeHtml(cert.certificateNumber)}`
+
+---

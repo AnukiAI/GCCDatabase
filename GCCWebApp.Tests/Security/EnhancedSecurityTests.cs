@@ -8,6 +8,7 @@ using Xunit;
 using FluentAssertions;
 using System.Security.Claims;
 using GCCWebApp.Services;
+using GCCWebApp.Services.Audit;
 using GCCWebApp.Controllers;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
@@ -25,6 +26,7 @@ namespace GCCWebApp.Tests.Security
         private readonly ApplicationDbContext _context;
         private readonly Mock<ILogger<AdminService>> _mockLogger;
         private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
+        private readonly Mock<IAuditService> _mockAuditService;
         private readonly AdminService _adminService;
         private readonly Mock<ILogger<AccountController>> _mockAccountLogger;
 
@@ -38,9 +40,10 @@ namespace GCCWebApp.Tests.Security
             _mockLogger = new Mock<ILogger<AdminService>>();
             _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
             _mockAccountLogger = new Mock<ILogger<AccountController>>();
-            
-            _adminService = new AdminService(_context, _mockLogger.Object);
-            
+            _mockAuditService = new Mock<IAuditService>();
+
+            _adminService = new AdminService(_context, _mockLogger.Object, _mockAuditService.Object);
+
             SeedTestData();
         }
 

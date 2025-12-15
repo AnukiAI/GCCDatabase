@@ -3,6 +3,7 @@ using Moq;
 using Xunit;
 using FluentAssertions;
 using GCCWebApp.Services;
+using GCCWebApp.Services.Audit;
 using GCCWebApp.Models;
 using GCCWebApp.Data;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,7 @@ namespace GCCWebApp.Tests.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly Mock<ILogger<AdminService>> _mockLogger;
+        private readonly Mock<IAuditService> _mockAuditService;
         private readonly AdminService _adminService;
         private readonly Mock<IHttpContextAccessor> _mockHttpContextAccessor;
 
@@ -31,7 +33,8 @@ namespace GCCWebApp.Tests.Services
             _context = new ApplicationDbContext(options);
             _mockLogger = new Mock<ILogger<AdminService>>();
             _mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-            _adminService = new AdminService(_context, _mockLogger.Object);
+            _mockAuditService = new Mock<IAuditService>();
+            _adminService = new AdminService(_context, _mockLogger.Object, _mockAuditService.Object);
 
             SeedTestData();
         }

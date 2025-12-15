@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
 using Microsoft.AspNetCore.Authorization;
+using System.Text.RegularExpressions;
 
 namespace GCCWebApp.Controllers.Api
 {
@@ -20,6 +21,31 @@ namespace GCCWebApp.Controllers.Api
         {
             _context = context;
             _logger = logger;
+        }
+
+        /// <summary>
+        /// Format certificate number to YY-NNNN format
+        /// </summary>
+        private static string FormatCertificateNumber(string? number, DateTime? effectiveDate)
+        {
+            if (string.IsNullOrEmpty(number)) return "N/A";
+
+            // If already in correct format (XX-XXXX), return as is
+            if (Regex.IsMatch(number, @"^\d{2}-\d{4}$"))
+                return number;
+
+            // Get year from effective date or current year
+            var year = effectiveDate?.Year.ToString().Substring(2)
+                       ?? DateTime.Now.Year.ToString().Substring(2);
+
+            // If certificate number is just digits, format as YY-####
+            if (Regex.IsMatch(number, @"^\d+$"))
+            {
+                var paddedNumber = number.PadLeft(4, '0');
+                return $"{year}-{paddedNumber}";
+            }
+
+            return number; // Return as-is if we can't format it
         }
 
         /// <summary>
@@ -123,14 +149,14 @@ namespace GCCWebApp.Controllers.Api
                 // Get total count
                 var totalCount = await query.CountAsync();
 
-                // Apply pagination
-                var certificates = await query
+                // Apply pagination - first fetch raw data
+                var rawCertificates = await query
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
                     .Select(c => new
                     {
                         c.Id,
-                        CertificateNumber = c.Number,
+                        RawNumber = c.Number,
                         CertificationType = c.CertificationType.Name,
                         c.EffectiveDate,
                         c.ExpirationDate,
@@ -149,6 +175,28 @@ namespace GCCWebApp.Controllers.Api
                         // Note: Status and internal fields are not exposed for external view
                     })
                     .ToListAsync();
+
+                // Format certificate numbers to YY-NNNN format
+                var certificates = rawCertificates.Select(c => new
+                {
+                    c.Id,
+                    CertificateNumber = FormatCertificateNumber(c.RawNumber, c.EffectiveDate),
+                    c.CertificationType,
+                    c.EffectiveDate,
+                    c.ExpirationDate,
+                    c.CompanyName,
+                    c.CompanyEmail,
+                    c.CompanyUrl,
+                    c.ProductName,
+                    c.ProductCategory,
+                    c.ProductType,
+                    c.ProductSubcategory,
+                    c.Location,
+                    c.Country,
+                    c.ExternalTags,
+                    c.PdfPath,
+                    c.Partner
+                }).ToList();
 
                 return Ok(new
                 {

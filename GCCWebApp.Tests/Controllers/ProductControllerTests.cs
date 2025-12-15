@@ -2,10 +2,13 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using Moq;
 using GCCWebApp.Controllers;
 using GCCWebApp.Models;
 using GCCWebApp.Data;
+using GCCWebApp.Services;
+using GCCWebApp.Services.Audit;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
@@ -15,6 +18,8 @@ namespace GCCWebApp.Tests.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly Mock<ILogger<ProductController>> _loggerMock;
+        private readonly Mock<IAuditService> _auditServiceMock;
+        private readonly Mock<IConfiguration> _configurationMock;
         private readonly ProductController _controller;
 
         public ProductControllerTests()
@@ -25,7 +30,9 @@ namespace GCCWebApp.Tests.Controllers
 
             _context = new ApplicationDbContext(options);
             _loggerMock = new Mock<ILogger<ProductController>>();
-            _controller = new ProductController(_context);
+            _auditServiceMock = new Mock<IAuditService>();
+            _configurationMock = new Mock<IConfiguration>();
+            _controller = new ProductController(_context, _auditServiceMock.Object, _loggerMock.Object, _configurationMock.Object);
 
             SeedTestData();
         }

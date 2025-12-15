@@ -161,4 +161,182 @@ public static class TestDataSeeder
             TwoFactorMethod = "Email"
         };
     }
+
+    #region Product ID Test Data Generation
+
+    private static readonly string[] ProductIdTypes = { "ASIN", "UPC", "GTIN", "EAN", "ISBN", "SKU", "MPN" };
+    private static readonly string[] Partners = { "Amazon", "Novi", "None", "Other" };
+    private static readonly string[] Statuses = { "Active", "Inactive", "Pending", "Expired" };
+
+    /// <summary>
+    /// Creates a list of test product IDs (ASINs, UPCs, etc.) for a certificate
+    /// </summary>
+    /// <param name="count">Number of product IDs to generate</param>
+    /// <param name="certificateId">Certificate to associate with</param>
+    /// <returns>List of CertificateProductId</returns>
+    public static List<CertificateProductId> CreateTestProductIds(int count = 10, int certificateId = 1)
+    {
+        var productIds = new List<CertificateProductId>();
+
+        for (int i = 0; i < count; i++)
+        {
+            var type = ProductIdTypes[_faker.Random.Int(0, ProductIdTypes.Length - 1)];
+            productIds.Add(new CertificateProductId
+            {
+                CertificateId = certificateId,
+                ProductIdType = type,
+                ProductIdValue = GenerateProductIdValue(type, i),
+                Status = Statuses[_faker.Random.Int(0, 2)], // Mostly Active/Inactive/Pending
+                Partner = Partners[_faker.Random.Int(0, Partners.Length - 1)],
+                ProductName = _faker.Commerce.ProductName(),
+                ProductSku = $"SKU-{_faker.Random.AlphaNumeric(8).ToUpper()}",
+                Description = _faker.Random.Bool(0.7f) ? _faker.Lorem.Sentence() : null,
+                IsActive = _faker.Random.Bool(0.95f),
+                IsPublic = _faker.Random.Bool(0.9f),
+                DisplayOrder = i + 1,
+                CreatedAt = _faker.Date.Past(),
+                UpdatedAt = _faker.Date.Recent()
+            });
+        }
+
+        return productIds;
+    }
+
+    /// <summary>
+    /// Creates a single test product ID with specific properties
+    /// </summary>
+    public static CertificateProductId CreateTestProductId(
+        int certificateId = 1,
+        string? type = null,
+        string? value = null,
+        string? partner = null)
+    {
+        var productIdType = type ?? "ASIN";
+        return new CertificateProductId
+        {
+            CertificateId = certificateId,
+            ProductIdType = productIdType,
+            ProductIdValue = value ?? GenerateProductIdValue(productIdType, _faker.Random.Int(1, 100000)),
+            Status = "Active",
+            Partner = partner ?? "Amazon",
+            ProductName = _faker.Commerce.ProductName(),
+            ProductSku = $"SKU-{_faker.Random.AlphaNumeric(8).ToUpper()}",
+            IsActive = true,
+            IsPublic = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>
+    /// Creates bulk test product IDs for stress testing
+    /// Distribution: Mixed types with majority being ASINs
+    /// </summary>
+    /// <param name="count">Total count (can be thousands)</param>
+    /// <param name="certificateId">Certificate to associate with</param>
+    /// <returns>List of CertificateProductId</returns>
+    public static List<CertificateProductId> CreateBulkTestProductIds(int count, int certificateId = 1)
+    {
+        var productIds = new List<CertificateProductId>(count);
+        var random = new Random(42); // Fixed seed for reproducibility
+
+        for (int i = 0; i < count; i++)
+        {
+            // Weight towards ASINs (60% ASIN, 20% UPC, 20% other)
+            var typeIndex = random.NextDouble() switch
+            {
+                < 0.6 => 0,  // ASIN
+                < 0.8 => 1,  // UPC
+                _ => random.Next(2, ProductIdTypes.Length)
+            };
+            var type = ProductIdTypes[typeIndex];
+
+            productIds.Add(new CertificateProductId
+            {
+                CertificateId = certificateId,
+                ProductIdType = type,
+                ProductIdValue = GenerateProductIdValue(type, i),
+                Status = "Active",
+                Partner = Partners[random.Next(Partners.Length)],
+                ProductName = $"Bulk Test Product {i + 1}",
+                ProductSku = $"BULK-{i + 1:D8}",
+                IsActive = true,
+                IsPublic = true,
+                DisplayOrder = i + 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        }
+
+        return productIds;
+    }
+
+    /// <summary>
+    /// Generates a valid product ID value based on type
+    /// </summary>
+    private static string GenerateProductIdValue(string type, int index)
+    {
+        return type switch
+        {
+            "ASIN" => GenerateAsin(index),
+            "UPC" => GenerateUpc(index),
+            "GTIN" => $"{10000000000000 + index:D14}",
+            "EAN" => GenerateEan(index),
+            "ISBN" => $"978{1000000000 + index:D10}",
+            "SKU" => $"SKU-{index:D8}",
+            "MPN" => $"MPN-{_faker.Random.Int(100, 999)}-{index:D6}",
+            _ => $"ID{index:D10}"
+        };
+    }
+
+    /// <summary>
+    /// Generates a valid ASIN (10 alphanumeric characters starting with B0)
+    /// </summary>
+    private static string GenerateAsin(int index)
+    {
+        var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        var seed = index + 1000000;
+        var suffix = new char[8];
+        for (int i = 0; i < 8; i++)
+        {
+            suffix[i] = chars[(seed + i * 7) % chars.Length];
+        }
+        return $"B0{new string(suffix)}";
+    }
+
+    /// <summary>
+    /// Generates a valid UPC-A (12 digits with check digit)
+    /// </summary>
+    private static string GenerateUpc(int index)
+    {
+        var baseNumber = (100000000000 + index) % 100000000000;
+        var upc = baseNumber.ToString("D11");
+        var sum = 0;
+        for (int i = 0; i < 11; i++)
+        {
+            var digit = int.Parse(upc[i].ToString());
+            sum += (i % 2 == 0) ? digit * 3 : digit;
+        }
+        var checkDigit = (10 - (sum % 10)) % 10;
+        return upc + checkDigit;
+    }
+
+    /// <summary>
+    /// Generates a valid EAN-13 (13 digits with check digit)
+    /// </summary>
+    private static string GenerateEan(int index)
+    {
+        var baseNumber = (100000000000 + index) % 1000000000000;
+        var ean = baseNumber.ToString("D12");
+        var sum = 0;
+        for (int i = 0; i < 12; i++)
+        {
+            var digit = int.Parse(ean[i].ToString());
+            sum += (i % 2 == 0) ? digit : digit * 3;
+        }
+        var checkDigit = (10 - (sum % 10)) % 10;
+        return ean + checkDigit;
+    }
+
+    #endregion
 }

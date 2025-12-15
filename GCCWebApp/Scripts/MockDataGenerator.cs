@@ -51,6 +51,9 @@ namespace GCCWebApp.Scripts
                 // Phase 2: Generate certificates with relationships
                 var certificates = await GenerateCertificatesAsync(certificateCount, companies, products);
 
+                // Phase 2.5: Generate product IDs (ASINs, UPCs, etc.) for certificates
+                await GenerateProductIdsAsync(certificates, users);
+
                 // Phase 3: Generate supporting data
                 await GenerateApiKeysAsync(50, users);
                 await GenerateAuditLogsAsync(5000, users, certificates);
@@ -312,6 +315,218 @@ namespace GCCWebApp.Scripts
             statuses.AddRange(Enumerable.Repeat("Suspended", 5));
             statuses.AddRange(Enumerable.Repeat("Withdrawn", 3));
             return statuses;
+        }
+
+        #endregion
+
+        #region Product ID Generation (ASINs, UPCs, GTINs, EANs)
+
+        /// <summary>
+        /// Generates realistic product IDs for certificates
+        /// Simulates real-world scenarios where certificates can have 100s-1000s of ASINs
+        /// Distribution: 20% have 1-10 IDs, 50% have 10-100 IDs, 25% have 100-500 IDs, 5% have 500-2000 IDs
+        /// </summary>
+        private async Task GenerateProductIdsAsync(List<Certificate> certificates, List<User> users)
+        {
+            _logger.LogInformation("Generating product IDs (ASINs, UPCs, GTINs, EANs) for certificates...");
+            var productIds = new List<CertificateProductId>();
+            var totalGenerated = 0;
+
+            var productIdTypes = new[] { "ASIN", "UPC", "GTIN", "EAN", "ISBN", "SKU", "MPN" };
+            var partners = new[] { "Amazon", "Novi", "None", "Other" };
+            var statuses = new[] { "Active", "Active", "Active", "Active", "Inactive", "Pending" }; // 67% Active
+
+            foreach (var certificate in certificates)
+            {
+                // Determine how many product IDs this certificate should have
+                var productIdCount = DetermineProductIdCount();
+                var createdBy = users[_random.Next(users.Count)];
+
+                for (int i = 0; i < productIdCount; i++)
+                {
+                    var idType = productIdTypes[_random.Next(productIdTypes.Length)];
+                    var productId = new CertificateProductId
+                    {
+                        CertificateId = certificate.Id,
+                        ProductIdType = idType,
+                        ProductIdValue = GenerateProductIdValue(idType, totalGenerated + i),
+                        Status = statuses[_random.Next(statuses.Length)],
+                        Partner = partners[_random.Next(partners.Length)],
+                        ProductName = GenerateProductNameForId(idType),
+                        ProductSku = $"SKU-{_random.Next(100000, 999999)}",
+                        Description = GenerateProductIdDescription(),
+                        IsActive = _random.NextDouble() > 0.05, // 95% active
+                        IsPublic = _random.NextDouble() > 0.1, // 90% public
+                        DisplayOrder = i + 1,
+                        CreatedBy = createdBy.Id,
+                        CreatedAt = GenerateRandomDate(365),
+                        UpdatedAt = GenerateRandomDate(30)
+                    };
+
+                    productIds.Add(productId);
+                }
+
+                totalGenerated += productIdCount;
+
+                // Batch save every 10,000 records for performance
+                if (productIds.Count >= 10000)
+                {
+                    _context.CertificateProductIds.AddRange(productIds);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Saved batch of {productIds.Count} product IDs. Total: {totalGenerated}");
+                    productIds.Clear();
+                }
+            }
+
+            // Save remaining product IDs
+            if (productIds.Any())
+            {
+                _context.CertificateProductIds.AddRange(productIds);
+                await _context.SaveChangesAsync();
+            }
+
+            _logger.LogInformation($"Successfully generated {totalGenerated} product IDs for {certificates.Count} certificates");
+        }
+
+        /// <summary>
+        /// Determines the number of product IDs for a certificate based on realistic distribution
+        /// 20% have 1-10 IDs (small products)
+        /// 50% have 10-100 IDs (medium products)
+        /// 25% have 100-500 IDs (large product lines)
+        /// 5% have 500-2000 IDs (massive product catalogs like Amazon vendors)
+        /// </summary>
+        private int DetermineProductIdCount()
+        {
+            var roll = _random.NextDouble();
+
+            if (roll < 0.20) // 20% - Small (1-10)
+                return _random.Next(1, 11);
+            else if (roll < 0.70) // 50% - Medium (10-100)
+                return _random.Next(10, 101);
+            else if (roll < 0.95) // 25% - Large (100-500)
+                return _random.Next(100, 501);
+            else // 5% - Massive (500-2000)
+                return _random.Next(500, 2001);
+        }
+
+        /// <summary>
+        /// Generates a valid product ID value based on the type
+        /// </summary>
+        private string GenerateProductIdValue(string type, int index)
+        {
+            return type switch
+            {
+                "ASIN" => GenerateAsin(index),
+                "UPC" => GenerateUpc(index),
+                "GTIN" => GenerateGtin(index),
+                "EAN" => GenerateEan(index),
+                "ISBN" => GenerateIsbn(index),
+                "SKU" => GenerateSku(index),
+                "MPN" => GenerateMpn(index),
+                _ => $"ID{index:D10}"
+            };
+        }
+
+        private string GenerateAsin(int index)
+        {
+            // ASIN format: B0 followed by 8 alphanumeric characters
+            var chars = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            var suffix = new char[8];
+            var seed = index + _random.Next(1000000);
+            for (int i = 0; i < 8; i++)
+            {
+                suffix[i] = chars[(seed + i * 7) % chars.Length];
+            }
+            return $"B0{new string(suffix)}";
+        }
+
+        private string GenerateUpc(int index)
+        {
+            // UPC format: 12 digits with valid check digit
+            var baseNumber = (index + 100000000000) % 100000000000;
+            var upc = baseNumber.ToString("D11");
+            var checkDigit = CalculateUpcCheckDigit(upc);
+            return upc + checkDigit;
+        }
+
+        private int CalculateUpcCheckDigit(string upc11)
+        {
+            var sum = 0;
+            for (int i = 0; i < 11; i++)
+            {
+                var digit = int.Parse(upc11[i].ToString());
+                sum += (i % 2 == 0) ? digit * 3 : digit;
+            }
+            return (10 - (sum % 10)) % 10;
+        }
+
+        private string GenerateGtin(int index)
+        {
+            // GTIN-14 format
+            var baseNumber = (index + 10000000000000) % 10000000000000;
+            return baseNumber.ToString("D14");
+        }
+
+        private string GenerateEan(int index)
+        {
+            // EAN-13 format with valid check digit
+            var baseNumber = (index + 100000000000) % 1000000000000;
+            var ean = baseNumber.ToString("D12");
+            var checkDigit = CalculateEanCheckDigit(ean);
+            return ean + checkDigit;
+        }
+
+        private int CalculateEanCheckDigit(string ean12)
+        {
+            var sum = 0;
+            for (int i = 0; i < 12; i++)
+            {
+                var digit = int.Parse(ean12[i].ToString());
+                sum += (i % 2 == 0) ? digit : digit * 3;
+            }
+            return (10 - (sum % 10)) % 10;
+        }
+
+        private string GenerateIsbn(int index)
+        {
+            // ISBN-13 format starting with 978
+            var baseNumber = (index + 1000000000) % 10000000000;
+            return $"978{baseNumber:D10}";
+        }
+
+        private string GenerateSku(int index)
+        {
+            var prefixes = new[] { "PRD", "SKU", "ITM", "ART", "GCC" };
+            return $"{prefixes[_random.Next(prefixes.Length)]}-{index:D8}";
+        }
+
+        private string GenerateMpn(int index)
+        {
+            var prefixes = new[] { "MFG", "MPN", "PART", "PN" };
+            return $"{prefixes[_random.Next(prefixes.Length)]}-{_random.Next(100, 999)}-{index:D6}";
+        }
+
+        private string GenerateProductNameForId(string idType)
+        {
+            var adjectives = new[] { "Premium", "Eco-Friendly", "Certified", "Organic", "Natural", "Sustainable", "Green", "Bio" };
+            var products = new[] { "Cleaner", "Material", "Component", "Product", "Item", "Solution", "System", "Package" };
+            return $"{adjectives[_random.Next(adjectives.Length)]} {products[_random.Next(products.Length)]} ({idType})";
+        }
+
+        private string GenerateProductIdDescription()
+        {
+            var descriptions = new[]
+            {
+                "Certified product for environmental compliance",
+                "Meets all GCC certification requirements",
+                "Verified sustainable sourcing",
+                "Third-party tested and approved",
+                "Compliant with industry standards",
+                "Eco-certified material",
+                "Green certified component",
+                null, null, null // 30% chance of no description
+            };
+            return descriptions[_random.Next(descriptions.Length)];
         }
 
         #endregion

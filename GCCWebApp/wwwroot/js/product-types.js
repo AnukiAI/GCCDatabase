@@ -481,7 +481,7 @@ class ProductTypeManager {
 
         const confirmed = await AdminCore.showConfirmation({
             title: 'Delete Confirmation',
-            message: `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
+            message: `Are you sure you want to delete <strong>${item.name}</strong>? This action cannot be undone.`,
             confirmText: 'Delete',
             cancelText: 'Cancel',
             type: 'danger'
@@ -508,11 +508,290 @@ class ProductTypeManager {
             z-index: 1050;
             overflow: auto;
         `;
-        
+
         const parentOptions = entityType !== 'category' ? this.getParentOptions(entityType, item?.id) : '';
-        
+
+        // Color scheme for hierarchy levels
+        const levelColors = {
+            category: '#002B76',
+            type: '#5a7bc0',
+            subcategory: '#92C83E'
+        };
+
+        // Find parent info for context display
+        let parentName = '';
+        let grandparentName = '';
+        let parentItem = null;
+
+        if (parentId) {
+            parentItem = this.findItemById(parentId);
+            if (parentItem) {
+                parentName = parentItem.name;
+                // For subcategory, also find grandparent (category)
+                if (entityType === 'subcategory') {
+                    const grandparent = this.findParentOf(parentItem);
+                    grandparentName = grandparent ? grandparent.name : '';
+                }
+            }
+        } else if (isEdit && item) {
+            parentItem = this.findParentOf(item);
+            if (parentItem) {
+                parentName = parentItem.name;
+                if (entityType === 'subcategory') {
+                    const grandparent = this.findParentOf(parentItem);
+                    grandparentName = grandparent ? grandparent.name : '';
+                }
+            }
+        }
+
+        // Get existing siblings for context
+        const existingSiblings = parentId ? this.getChildrenOf(parentId) : [];
+
+        // Build info hint content based on entity type
+        const infoHintContent = {
+            category: `<strong>What is a Category?</strong><br>
+                       Categories are the top level of product organization. They represent broad product groupings like "Personal Care" or "Household". Each category can contain multiple Types.`,
+            type: `<strong>What is a Type?</strong><br>
+                   Types are the second level of product organization. They represent product types within a category (e.g., "Skincare" under "Personal Care"). Each type can contain multiple Subcategories.`,
+            subcategory: `<strong>What is a Subcategory?</strong><br>
+                          Subcategories are the most specific level of product classification. Products are assigned to subcategories (e.g., "Moisturizers" under "Skincare").`
+        }[entityType];
+
+        // Build examples based on entity type
+        const examplesContent = {
+            category: `<div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Category Examples</div>
+                       <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #6c757d;">
+                           <li><strong>Personal Care</strong> - Skincare, hair care, body care products</li>
+                           <li><strong>Household</strong> - Cleaning supplies, home products</li>
+                           <li><strong>Baby Products</strong> - Diapers, wipes, baby care items</li>
+                           <li><strong>Food & Beverage</strong> - Food items and drinks</li>
+                           <li><strong>Pet Products</strong> - Pet food, grooming, accessories</li>
+                       </ul>`,
+            type: `<div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Type Examples${parentName ? ` for ${parentName}` : ''}</div>
+                   <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #6c757d;">
+                       <li>Skincare</li>
+                       <li>Hair Care</li>
+                       <li>Body Care</li>
+                       <li>Oral Care</li>
+                       <li>Cosmetics</li>
+                   </ul>`,
+            subcategory: `<div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Subcategory Examples${parentName ? ` for ${parentName}` : ''}</div>
+                          <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #6c757d;">
+                              <li>Moisturizers</li>
+                              <li>Cleansers</li>
+                              <li>Serums</li>
+                              <li>Sunscreen</li>
+                              <li>Face Masks</li>
+                          </ul>`
+        }[entityType];
+
+        // Build placeholder text based on entity type
+        const placeholderText = {
+            category: 'e.g., Personal Care, Household, Baby Products',
+            type: 'e.g., Skincare, Hair Care, Cleaning Products',
+            subcategory: 'e.g., Moisturizers, Shampoos, All-Purpose Cleaners'
+        }[entityType];
+
+        // Build field description based on entity type
+        const fieldDescription = {
+            category: 'Enter a broad product grouping name. This will be the top level in the product hierarchy.',
+            type: 'Enter the product type name. This groups related subcategories together.',
+            subcategory: 'Enter the specific product subcategory. Products will be assigned to this level.'
+        }[entityType];
+
+        // Build context bar for types and subcategories
+        const contextBar = (entityType !== 'category' && parentName) ? `
+            <div style="background: #e8f4fd; padding: 12px 20px; border-bottom: 1px solid #bee5eb; display: flex; align-items: center; gap: 10px;">
+                <div style="width: 32px; height: 32px; background: ${levelColors[entityType === 'type' ? 'category' : 'type']}; color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-${entityType === 'type' ? 'folder' : 'tags'}"></i>
+                </div>
+                <div style="flex: 1;">
+                    <strong style="display: block; font-size: 14px; color: #002B76;">Adding to: ${parentName}</strong>
+                    <span style="font-size: 12px; color: #6c757d;">This ${entityType} will appear under "${parentName}"${grandparentName ? ` (in ${grandparentName})` : ''}</span>
+                </div>
+            </div>
+        ` : '';
+
+        // Build breadcrumb for subcategories
+        const breadcrumb = entityType === 'subcategory' && grandparentName ? `
+            <div style="display: flex; align-items: center; gap: 8px; padding: 10px 20px; background: #f8f9fa; font-size: 13px; border-bottom: 1px solid #e9ecef;">
+                <span style="color: #6c757d;">${grandparentName}</span>
+                <i class="fas fa-chevron-right" style="font-size: 10px; color: #ccc;"></i>
+                <span style="color: #6c757d;">${parentName}</span>
+                <i class="fas fa-chevron-right" style="font-size: 10px; color: #ccc;"></i>
+                <span style="color: #002B76; font-weight: 500;">${isEdit ? item.name : 'New Subcategory'}</span>
+            </div>
+        ` : '';
+
+        // Build visual hierarchy diagram
+        const buildHierarchyDiagram = () => {
+            if (entityType === 'category') {
+                return `
+                    <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Product Hierarchy Structure</div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; background: ${levelColors.category}; color: white; box-shadow: 0 0 0 3px rgba(0, 43, 118, 0.3); animation: pulse 1.5s infinite;">
+                                    ${isEdit ? item.name : 'Your New Category'}
+                                </div>
+                                <span style="font-size: 12px; color: #6c757d;">Level 1 - ${isEdit ? 'Editing' : 'You are adding'} this</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-arrow-right" style="color: #6c757d; font-size: 12px; margin-left: 15px;"></i>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; background: ${levelColors.type}; color: white; margin-left: 30px; opacity: 0.6;">
+                                    Types go here
+                                </div>
+                                <span style="font-size: 12px; color: #6c757d;">Level 2</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-arrow-right" style="color: #6c757d; font-size: 12px; margin-left: 45px;"></i>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; background: ${levelColors.subcategory}; color: white; margin-left: 60px; opacity: 0.6;">
+                                    Subcategories go here
+                                </div>
+                                <span style="font-size: 12px; color: #6c757d;">Level 3</span>
+                            </div>
+                        </div>
+                    </div>
+                    <style>
+                        @keyframes pulse {
+                            0%, 100% { box-shadow: 0 0 0 3px rgba(0, 43, 118, 0.3); }
+                            50% { box-shadow: 0 0 0 6px rgba(0, 43, 118, 0.15); }
+                        }
+                    </style>
+                `;
+            } else if (entityType === 'type') {
+                return `
+                    <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Where This Fits in the Hierarchy</div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; background: ${levelColors.category}; color: white;">
+                                    ${parentName || 'Parent Category'}
+                                </div>
+                                <span style="font-size: 12px; color: #6c757d;">Category (Parent)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-arrow-right" style="color: #6c757d; font-size: 12px; margin-left: 15px;"></i>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; background: ${levelColors.type}; color: white; margin-left: 30px; box-shadow: 0 0 0 3px rgba(90, 123, 192, 0.4); animation: pulse-type 1.5s infinite;">
+                                    ${isEdit ? item.name : 'Your New Type'}
+                                </div>
+                                <span style="font-size: 12px; color: #6c757d;">${isEdit ? 'Editing this' : 'You are adding this'}</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-arrow-right" style="color: #6c757d; font-size: 12px; margin-left: 45px;"></i>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; background: ${levelColors.subcategory}; color: white; margin-left: 60px; opacity: 0.6;">
+                                    Subcategories go here
+                                </div>
+                                <span style="font-size: 12px; color: #6c757d;">Level 3</span>
+                            </div>
+                        </div>
+                    </div>
+                    <style>
+                        @keyframes pulse-type {
+                            0%, 100% { box-shadow: 0 0 0 3px rgba(90, 123, 192, 0.4); }
+                            50% { box-shadow: 0 0 0 6px rgba(90, 123, 192, 0.2); }
+                        }
+                    </style>
+                `;
+            } else {
+                return `
+                    <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <div style="font-size: 12px; font-weight: 600; color: #6c757d; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;">Complete Hierarchy Path</div>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            ${grandparentName ? `
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; background: ${levelColors.category}; color: white;">
+                                    ${grandparentName}
+                                </div>
+                                <span style="font-size: 12px; color: #6c757d;">Category</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-arrow-right" style="color: #6c757d; font-size: 12px; margin-left: 15px;"></i>
+                            </div>
+                            ` : ''}
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; background: ${levelColors.type}; color: white; ${grandparentName ? 'margin-left: 30px;' : ''}">
+                                    ${parentName || 'Parent Type'}
+                                </div>
+                                <span style="font-size: 12px; color: #6c757d;">Type (Parent)</span>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <i class="fas fa-arrow-right" style="color: #6c757d; font-size: 12px; margin-left: ${grandparentName ? '45px' : '15px'};"></i>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <div style="padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 500; background: ${levelColors.subcategory}; color: white; margin-left: ${grandparentName ? '60px' : '30px'}; box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.4); animation: pulse-sub 1.5s infinite;">
+                                    ${isEdit ? item.name : 'Your New Subcategory'}
+                                </div>
+                                <span style="font-size: 12px; color: #6c757d;">${isEdit ? 'Editing this' : 'You are adding this'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <style>
+                        @keyframes pulse-sub {
+                            0%, 100% { box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.4); }
+                            50% { box-shadow: 0 0 0 6px rgba(146, 200, 62, 0.2); }
+                        }
+                    </style>
+                `;
+            }
+        };
+
+        // Build existing siblings list
+        const existingSiblingsList = (entityType !== 'category' && existingSiblings.length > 0) ? `
+            <div style="margin-top: 8px; padding: 10px; background: #fff3cd; border-radius: 4px; border-left: 3px solid #ffc107;">
+                <div style="font-size: 12px; font-weight: 600; color: #856404; margin-bottom: 4px;">
+                    Existing ${entityType === 'type' ? 'Types' : 'Subcategories'} under ${parentName}
+                </div>
+                <div style="font-size: 13px; color: #856404;">
+                    ${existingSiblings.map(s => s.name).join(', ')}
+                </div>
+            </div>
+        ` : '';
+
+        // Build parent selector for types/subcategories when no parent is pre-selected
+        const parentSelectorHtml = (entityType !== 'category' && !parentId) ? `
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label for="parentId" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                    Parent ${entityType === 'type' ? 'Category' : 'Type'} <span style="color: #dc3545;">*</span>
+                </label>
+                <select class="form-control" id="parentId" name="parentId" required
+                        style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
+                    ${parentOptions}
+                </select>
+                <div style="font-size: 13px; color: #6c757d; margin-top: 6px;">
+                    Choose which ${entityType === 'type' ? 'category' : 'type'} this ${entityType} belongs to
+                </div>
+            </div>
+        ` : (entityType !== 'category' && parentId) ? `
+            <input type="hidden" id="parentId" name="parentId" value="${parentId}">
+        ` : '';
+
+        // Build locked parent display when parent is pre-selected
+        const parentDisplayHtml = (entityType !== 'category' && parentId && parentName) ? `
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                    Parent ${entityType === 'type' ? 'Category' : 'Type'}
+                </label>
+                <div style="padding: 10px 12px; background: #e9ecef; border-radius: 4px; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-${entityType === 'type' ? 'folder' : 'tags'}" style="color: #002B76;"></i>
+                    ${parentName}${grandparentName ? ` <span style="color: #6c757d; font-weight: normal;">(under ${grandparentName})</span>` : ''}
+                </div>
+                <div style="font-size: 13px; color: #6c757d; margin-top: 6px; font-style: italic;">
+                    This ${entityType} will be created under "${parentName}"
+                </div>
+            </div>
+        ` : '';
+
         modal.innerHTML = `
-            <div class="modal-dialog" style="margin: 50px auto; max-width: 650px; width: 90%;">
+            <div class="modal-dialog" style="margin: 50px auto; max-width: 700px; width: 90%;">
                 <div class="modal-content" style="background: white; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
                     <div class="modal-header" style="padding: 1rem; border-bottom: 2px solid #e9ecef; background-color: #f8f9fa;">
                         <h5 class="modal-title" style="margin: 0; font-size: 1.25rem; color: #002B76; font-weight: 600;">${title}</h5>
@@ -520,33 +799,55 @@ class ProductTypeManager {
                             <span>&times;</span>
                         </button>
                     </div>
-                    <div class="modal-body" style="padding: 1rem;">
+                    ${breadcrumb}
+                    ${contextBar}
+                    <div class="modal-body" style="padding: 1.25rem; max-height: 70vh; overflow-y: auto;">
+                        <!-- Info Hint -->
+                        <div style="display: flex; align-items: flex-start; gap: 10px; padding: 12px 14px; background: #e8f4fd; border-radius: 6px; margin-bottom: 20px; font-size: 13px; color: #0c5460;">
+                            <i class="fas fa-info-circle" style="color: #17a2b8; margin-top: 2px;"></i>
+                            <div>${infoHintContent}</div>
+                        </div>
+
+                        ${buildHierarchyDiagram()}
+
                         <form id="productTypeForm">
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="name" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Name</label>
-                                <input type="text" class="form-control" id="name" name="name" 
+                            ${parentSelectorHtml}
+                            ${parentDisplayHtml}
+
+                            <div class="form-group" style="margin-bottom: 1.25rem;">
+                                <label for="name" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                                    ${this.capitalize(entityType)} Name <span style="color: #dc3545;">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="name" name="name"
                                        value="${item?.name || ''}" required
-                                       style="width: 100%; padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
+                                       placeholder="${placeholderText}"
+                                       style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
+                                <div style="font-size: 13px; color: #6c757d; margin-top: 6px;">
+                                    ${fieldDescription}
+                                </div>
+                                ${existingSiblingsList}
                             </div>
-                            ${entityType !== 'category' ? `
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="parentId" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Parent</label>
-                                <select class="form-control" id="parentId" name="parentId" required
-                                        style="width: 100%; padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
-                                    ${parentOptions}
-                                </select>
+
+                            <!-- Examples Section -->
+                            <div style="margin-bottom: 1.25rem; padding: 12px; background: #f8f9fa; border-radius: 4px; border-left: 3px solid #92C83E;">
+                                ${examplesContent}
                             </div>
-                            ` : ''}
-                            <div class="form-group" style="margin-bottom: 1rem;">
+
+                            <div class="form-group" style="margin-bottom: 1.25rem;">
                                 <label for="sortOrder" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Sort Order</label>
-                                <input type="number" class="form-control" id="sortOrder" name="sortOrder" 
+                                <input type="number" class="form-control" id="sortOrder" name="sortOrder"
                                        value="${item?.sortOrder || 0}"
-                                       style="width: 100%; padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
+                                       style="width: 120px; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
+                                <div style="font-size: 13px; color: #6c757d; margin-top: 6px;">
+                                    Controls display order. Lower numbers appear first.
+                                </div>
                             </div>
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="description" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Description</label>
-                                <textarea class="form-control" id="description" name="description" rows="3"
-                                          style="width: 100%; padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">${item?.description || ''}</textarea>
+
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="description" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Description (Optional)</label>
+                                <textarea class="form-control" id="description" name="description" rows="2"
+                                          placeholder="Brief description of this ${entityType}..."
+                                          style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">${item?.description || ''}</textarea>
                             </div>
                         </form>
                     </div>
@@ -555,23 +856,58 @@ class ProductTypeManager {
                                 style="padding: 10px 20px; border: 1px solid #92C83E; background: #92C83E; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">Cancel</button>
                         <button type="button" class="btn btn-primary" id="saveBtn"
                                 style="padding: 10px 20px; border: 1px solid #002B76; background: #002B76; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">
-                            ${isEdit ? 'Update' : 'Create'}
+                            ${isEdit ? 'Update' : `Create ${this.capitalize(entityType)}`}
                         </button>
                     </div>
                 </div>
             </div>
         `;
-        
-        // Set parent if provided
-        if (parentId && !isEdit) {
+
+        // Set parent if provided (for edit mode without pre-selected parent)
+        if (isEdit && item && !parentId) {
             const parentSelect = modal.querySelector('#parentId');
-            if (parentSelect) parentSelect.value = parentId;
-        } else if (isEdit && item.parentId) {
-            const parentSelect = modal.querySelector('#parentId');
-            if (parentSelect) parentSelect.value = item.parentId;
+            if (parentSelect && parentItem) {
+                parentSelect.value = parentItem.id;
+            }
         }
-        
+
         return modal;
+    }
+
+    // Helper method to find an item by ID in the nested hierarchy
+    findItemById(id) {
+        const search = (items) => {
+            for (const item of items) {
+                if (item.id == id) return item;
+                if (item.children && item.children.length > 0) {
+                    const found = search(item.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return search(this.hierarchyData);
+    }
+
+    // Helper method to find the parent of an item
+    findParentOf(targetItem) {
+        const search = (items, parent = null) => {
+            for (const item of items) {
+                if (item.id == targetItem.id) return parent;
+                if (item.children && item.children.length > 0) {
+                    const found = search(item.children, item);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return search(this.hierarchyData);
+    }
+
+    // Helper method to get children of a parent by ID
+    getChildrenOf(parentId) {
+        const parent = this.findItemById(parentId);
+        return parent && parent.children ? parent.children : [];
     }
 
     getParentOptions(entityType, excludeId = null) {

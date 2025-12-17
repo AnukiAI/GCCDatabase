@@ -95,6 +95,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Include(c => c.Product)
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
+                    .Include(c => c.CertificationTypeSubcategory)
                     .AsQueryable();
 
                 if (!string.IsNullOrEmpty(parameters.SearchTerm))
@@ -145,6 +146,8 @@ namespace GCCWebApp.Controllers.Api.v1
                         CompanyId = c.CompanyId,
                         CertificationType = c.CertificationType != null ? c.CertificationType.Name : null,
                         CertificationTypeId = c.CertificationTypeId,
+                        CertificationTypeSubcategory = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
+                        CertificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
                         c.CreatedAt,
                         c.UpdatedAt
                     })
@@ -176,6 +179,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Include(c => c.Product)
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
+                    .Include(c => c.CertificationTypeSubcategory)
                     .Include(c => c.CustomFieldValues)
                         .ThenInclude(cfv => cfv.Field)
                     .FirstOrDefaultAsync(c => c.Id == id);
@@ -208,6 +212,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Include(c => c.Product)
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
+                    .Include(c => c.CertificationTypeSubcategory)
                     .Include(c => c.CustomFieldValues)
                         .ThenInclude(cfv => cfv.Field)
                     .FirstOrDefaultAsync(c => c.Number == certificateNumber);

@@ -864,3 +864,123 @@ body:has(.admin-container) .page-header {
 .toast--info {
     background: #002B76;
 }
+
+/* ===== FORM VALIDATION STYLES ===== */
+/* Bootstrap-style validation for needs-validation forms */
+
+/* Invalid field styling when form has been validated */
+.was-validated .form-group input:invalid,
+.was-validated .form-group select:invalid,
+.was-validated .form-group textarea:invalid,
+.was-validated input:invalid,
+.was-validated select:invalid,
+.was-validated textarea:invalid {
+    border-color: #FF5252 !important;
+    background-color: rgba(255, 82, 82, 0.05);
+    box-shadow: 0 0 0 3px rgba(255, 82, 82, 0.15);
+}
+
+/* Valid field styling when form has been validated */
+.was-validated .form-group input:valid,
+.was-validated .form-group select:valid,
+.was-validated .form-group textarea:valid,
+.was-validated input:valid,
+.was-validated select:valid,
+.was-validated textarea:valid {
+    border-color: #92C83E !important;
+}
+
+/* Show validation message after invalid fields */
+.was-validated .form-group input:invalid ~ .text-danger,
+.was-validated .form-group select:invalid ~ .text-danger,
+.was-validated .form-group textarea:invalid ~ .text-danger {
+    display: block;
+}
+
+/* Hide validation message for valid fields */
+.was-validated .form-group input:valid ~ .text-danger,
+.was-validated .form-group select:valid ~ .text-danger,
+.was-validated .form-group textarea:valid ~ .text-danger {
+    display: none;
+}
+
+/* Add invalid feedback message for required fields */
+.was-validated .form-group input:invalid::after,
+.was-validated .form-group select:invalid::after {
+    content: 'This field is required';
+}
+
+/* Custom validation message styling */
+.validation-message,
+.field-validation-error {
+    color: #FF5252;
+    font-size: 14px;
+    margin-top: 6px;
+    display: block;
+    font-weight: 500;
+}
+
+/* Show browser's native validation tooltip replacement */
+.was-validated .form-group:has(input:invalid)::after,
+.was-validated .form-group:has(select:invalid)::after {
+    content: 'This field is required';
+    color: #FF5252;
+    font-size: 13px;
+    margin-top: 6px;
+    display: block;
+}
+
+/* Hide the ::after pseudo-element when asp-validation-for span has content */
+.was-validated .form-group:has(.text-danger:not(:empty))::after {
+    display: none;
+}
+
+/* Shake animation for invalid fields */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.was-validated input:invalid,
+.was-validated select:invalid,
+.was-validated textarea:invalid {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* Invalid label styling */
+.was-validated .form-group:has(input:invalid) label,
+.was-validated .form-group:has(select:invalid) label,
+.was-validated .form-group:has(textarea:invalid) label {
+    color: #FF5252;
+}
+
+/* PDF upload zone validation */
+.was-validated #pdfUploadZone:has(~ input:invalid) {
+    border-color: #FF5252 !important;
+    background-color: rgba(255, 82, 82, 0.05);
+}
+
+/* Validation summary styling */
+.alert-danger:empty,
+div[asp-validation-summary]:empty {
+    display: none;
+}
+
+.alert-danger {
+    background-color: rgba(255, 82, 82, 0.1);
+    border: 1px solid #FF5252;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 20px;
+    color: #FF5252;
+}
+
+.alert-danger ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.alert-danger li {
+    margin-bottom: 4px;
+}

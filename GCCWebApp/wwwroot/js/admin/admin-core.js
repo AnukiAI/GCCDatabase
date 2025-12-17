@@ -43,7 +43,7 @@ const AdminCore = {
         if (['POST', 'PUT', 'DELETE'].includes(config.method.toUpperCase())) {
             const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
             if (token) {
-                config.headers['__RequestVerificationToken'] = token;
+                config.headers['RequestVerificationToken'] = token;
             }
         }
 
@@ -94,7 +94,7 @@ const AdminCore = {
         if (token) {
             document.addEventListener('ajaxSend', (event) => {
                 if (event.detail?.headers) {
-                    event.detail.headers['__RequestVerificationToken'] = token;
+                    event.detail.headers['RequestVerificationToken'] = token;
                 }
             });
         }
@@ -392,11 +392,15 @@ const AdminCore = {
             confirmText: 'Confirm',
             cancelText: 'Cancel',
             type: 'danger', // 'danger', 'warning', 'info'
+            allowHtml: false, // Allow HTML in message (use with caution - only for trusted content)
             onConfirm: null,
             onCancel: null
         };
 
         const config = { ...defaults, ...options };
+
+        // Process message - allow HTML if explicitly enabled, otherwise escape
+        const messageHtml = config.allowHtml ? config.message : this.escapeHtml(config.message);
 
         return new Promise((resolve) => {
             // Create modal overlay
@@ -412,7 +416,7 @@ const AdminCore = {
                 <div class="admin-modal-dialog gcc-modal-dialog">
                     <div class="gcc-modal-content">
                         <h2 id="modal-title" class="gcc-modal-title">${this.escapeHtml(config.title)}</h2>
-                        <p id="modal-message" class="gcc-modal-message">${this.escapeHtml(config.message)}</p>
+                        <p id="modal-message" class="gcc-modal-message">${messageHtml}</p>
                         <div class="gcc-modal-buttons">
                             <button class="gcc-modal-btn gcc-modal-btn--danger" data-action="confirm">
                                 ${this.escapeHtml(config.confirmText)}

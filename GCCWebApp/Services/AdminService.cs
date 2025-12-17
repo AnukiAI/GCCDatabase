@@ -667,14 +667,21 @@ namespace GCCWebApp.Services
         {
             return await _context.CertificationTypes
                 .Include(ct => ct.Certificates)
+                .Include(ct => ct.Parent)
                 .Select(ct => new CertificateTypeViewModel
                 {
                     Id = ct.Id,
                     Name = ct.Name,
                     Description = ct.Description ?? string.Empty,
                     IsActive = ct.IsActive,
-                    CertificateCount = ct.Certificates.Count()
+                    CertificateCount = ct.Certificates.Count(),
+                    ParentId = ct.ParentId,
+                    Level = ct.Level,
+                    ParentName = ct.Parent != null ? ct.Parent.Name : null
                 })
+                .OrderBy(ct => ct.ParentId == null ? ct.Name : "")
+                .ThenBy(ct => ct.ParentName)
+                .ThenBy(ct => ct.Name)
                 .ToListAsync();
         }
 
@@ -682,6 +689,7 @@ namespace GCCWebApp.Services
         {
             var certType = await _context.CertificationTypes
                 .Include(ct => ct.Certificates)
+                .Include(ct => ct.Parent)
                 .FirstOrDefaultAsync(ct => ct.Id == id);
 
             if (certType == null) return null;
@@ -692,7 +700,10 @@ namespace GCCWebApp.Services
                 Name = certType.Name,
                 Description = certType.Description ?? string.Empty,
                 IsActive = certType.IsActive,
-                CertificateCount = certType.Certificates.Count()
+                CertificateCount = certType.Certificates.Count(),
+                ParentId = certType.ParentId,
+                Level = certType.Level,
+                ParentName = certType.Parent?.Name
             };
         }
 
@@ -704,7 +715,9 @@ namespace GCCWebApp.Services
                 {
                     Name = model.Name,
                     Description = model.Description,
-                    IsActive = model.IsActive
+                    IsActive = model.IsActive,
+                    ParentId = model.ParentId,
+                    Level = model.ParentId.HasValue ? 2 : 1  // Set level based on whether it has a parent
                 };
 
                 _context.CertificationTypes.Add(certType);
@@ -727,6 +740,8 @@ namespace GCCWebApp.Services
                 certType.Name = model.Name;
                 certType.Description = model.Description;
                 certType.IsActive = model.IsActive;
+                certType.ParentId = model.ParentId;
+                certType.Level = model.ParentId.HasValue ? 2 : 1;  // Set level based on whether it has a parent
 
                 await _context.SaveChangesAsync();
                 return true;

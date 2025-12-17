@@ -46,7 +46,18 @@ namespace GCCWebApp.Models
         // Foreign Keys
         public int CompanyId { get; set; }
         public int ProductId { get; set; }
+
+        /// <summary>
+        /// Parent certification type (e.g., "Certified Energy Savings"). Required.
+        /// </summary>
         public int CertificationTypeId { get; set; }
+
+        /// <summary>
+        /// Certification type subcategory (e.g., "Consumer Behavior"). Optional.
+        /// Must belong to the selected CertificationType's children.
+        /// </summary>
+        public int? CertificationTypeSubcategoryId { get; set; }
+
         public int? CreatedBy { get; set; }
         public int? UpdatedBy { get; set; }
 
@@ -57,7 +68,17 @@ namespace GCCWebApp.Models
         // Navigation properties
         public Company Company { get; set; } = null!;
         public Product Product { get; set; } = null!;
+
+        /// <summary>
+        /// Parent certification type (required)
+        /// </summary>
         public CertificationType CertificationType { get; set; } = null!;
+
+        /// <summary>
+        /// Certification type subcategory (optional)
+        /// </summary>
+        public CertificationType? CertificationTypeSubcategory { get; set; }
+
         public User? CreatedByUser { get; set; }
         public User? UpdatedByUser { get; set; }
 

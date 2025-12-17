@@ -101,6 +101,14 @@ namespace GCCWebApp.Data
                     .HasForeignKey(e => e.CertificationTypeId)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                // Certification type subcategory (optional)
+                entity.HasIndex(e => e.CertificationTypeSubcategoryId);
+                entity.HasOne(e => e.CertificationTypeSubcategory)
+                    .WithMany()
+                    .HasForeignKey(e => e.CertificationTypeSubcategoryId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
+
                 entity.HasOne(e => e.CreatedByUser)
                     .WithMany(u => u.CreatedCertificates)
                     .HasForeignKey(e => e.CreatedBy)

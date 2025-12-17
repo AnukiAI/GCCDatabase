@@ -82,17 +82,26 @@
 
                     <div class="form-group">
                         <label asp-for="CertificationTypeId">Certification Type <span class="text-danger" aria-label="required">*</span></label>
-                        <select asp-for="CertificationTypeId" required aria-required="true">
+                        <select asp-for="CertificationTypeId" id="CertificationTypeId" required aria-required="true">
                             <option value="">Select type...</option>
-                            @if (ViewBag.CertificationTypes != null)
+                            @if (ViewBag.ParentCertificationTypes != null)
                             {
-                                @foreach (var certType in ViewBag.CertificationTypes)
+                                @foreach (var certType in ViewBag.ParentCertificationTypes)
                                 {
                                     <option value="@certType.Id" selected="@(certType.Id == Model.CertificationTypeId)">@certType.Name</option>
                                 }
                             }
                         </select>
                         <span asp-validation-for="CertificationTypeId" class="text-danger" role="alert"></span>
+                    </div>
+
+                    <div class="form-group" id="subcategory-group" style="display: none;">
+                        <label asp-for="CertificationTypeSubcategoryId">Subcategory <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <select asp-for="CertificationTypeSubcategoryId" id="CertificationTypeSubcategoryId">
+                            <option value="">Select subcategory...</option>
+                        </select>
+                        <span asp-validation-for="CertificationTypeSubcategoryId" class="text-danger" role="alert"></span>
+                        <small class="form-text text-muted">Select a subcategory if applicable (e.g., "Consumer Behavior" under "Certified Energy Savings")</small>
                     </div>
 
                     <div class="form-group">
@@ -315,9 +324,67 @@
     <script src="~/js/certificate-inline-create.js"></script>
 
     <script>
+        // Store all certification types for subcategory filtering
+        var allCertificationTypes = @Html.Raw(Json.Serialize(ViewBag.AllCertificationTypes ?? new List<object>()));
+        var initialSubcategoryId = @(Model.CertificationTypeSubcategoryId.HasValue ? Model.CertificationTypeSubcategoryId.Value.ToString() : "null");
+
         $(document).ready(async function() {
             const certificateId = @Model.Id;
             const typeId = @Model.CertificationTypeId;
+
+            // Initialize subcategory dropdown based on current type
+            function initializeSubcategory() {
+                const subcategorySelect = $('#CertificationTypeSubcategoryId');
+                const subcategoryGroup = $('#subcategory-group');
+
+                subcategorySelect.html('<option value="">Select subcategory...</option>');
+
+                if (typeId) {
+                    const subcategories = allCertificationTypes.filter(ct => ct.parentId === typeId);
+
+                    if (subcategories.length > 0) {
+                        subcategories.forEach(sub => {
+                            const selected = sub.id === initialSubcategoryId ? 'selected' : '';
+                            subcategorySelect.append(`<option value="${sub.id}" ${selected}>${sub.name}</option>`);
+                        });
+                        subcategoryGroup.show();
+                    } else {
+                        subcategoryGroup.hide();
+                    }
+                }
+            }
+
+            initializeSubcategory();
+
+            // Load subcategories when certification type changes
+            $('#CertificationTypeId').change(function() {
+                const newTypeId = parseInt($(this).val());
+                const subcategorySelect = $('#CertificationTypeSubcategoryId');
+                const subcategoryGroup = $('#subcategory-group');
+
+                subcategorySelect.html('<option value="">Select subcategory...</option>');
+
+                if (newTypeId) {
+                    const subcategories = allCertificationTypes.filter(ct => ct.parentId === newTypeId);
+
+                    if (subcategories.length > 0) {
+                        subcategories.forEach(sub => {
+                            subcategorySelect.append(`<option value="${sub.id}">${sub.name}</option>`);
+                        });
+                        subcategoryGroup.show();
+                    } else {
+                        subcategoryGroup.hide();
+                    }
+
+                    // Load custom fields for the selected type
+                    if (typeof certificateCustomFields !== 'undefined') {
+                        certificateCustomFields.loadFieldsForType(newTypeId);
+                    }
+                } else {
+                    subcategoryGroup.hide();
+                    $('#custom-fields-container').html('<p class="text-muted">Select a certification type to load custom fields.</p>');
+                }
+            });
 
             // Load custom fields for the certificate type
             async function loadCustomFields() {
@@ -329,16 +396,6 @@
             }
 
             await loadCustomFields();
-
-            // Reload fields if certification type changes
-            $('#CertificationTypeId').change(function() {
-                const newTypeId = $(this).val();
-                if (newTypeId) {
-                    certificateCustomFields.loadFieldsForType(newTypeId);
-                } else {
-                    $('#custom-fields-container').html('<p class="text-muted">Select a certification type to load custom fields.</p>');
-                }
-            });
 
             // Intercept form submission to handle custom fields
             const form = document.getElementById('certificateEditForm');

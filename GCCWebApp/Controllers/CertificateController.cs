@@ -320,7 +320,11 @@ namespace GCCWebApp.Controllers
                 // Load dropdown data
                 ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
                 ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
-                ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+
+                // Load certification types - separate parent types and all types for cascading dropdown
+                var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+                ViewBag.ParentCertificationTypes = allCertTypes.Where(ct => ct.ParentId == null && ct.IsActive).OrderBy(ct => ct.Name).ToList();
+                ViewBag.AllCertificationTypes = allCertTypes.Where(ct => ct.IsActive).Select(ct => new { id = ct.Id, name = ct.Name, parentId = ct.ParentId }).ToList();
 
                 // Load statuses based on user role (database-driven)
                 var userRole = GetUserRole();
@@ -406,6 +410,7 @@ namespace GCCWebApp.Controllers
                         CompanyId = model.CompanyId,
                         ProductId = model.ProductId,
                         CertificationTypeId = model.CertificationTypeId,
+                        CertificationTypeSubcategoryId = model.CertificationTypeSubcategoryId,
                         CreatedBy = GetCurrentUserId(),
                         CreatedAt = DateTime.UtcNow,
                         UpdatedAt = DateTime.UtcNow
@@ -532,7 +537,11 @@ namespace GCCWebApp.Controllers
         {
             ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
             ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
-            ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+
+            // Load certification types - separate parent types and all types for cascading dropdown
+            var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+            ViewBag.ParentCertificationTypes = allCertTypes.Where(ct => ct.ParentId == null && ct.IsActive).OrderBy(ct => ct.Name).ToList();
+            ViewBag.AllCertificationTypes = allCertTypes.Where(ct => ct.IsActive).Select(ct => new { id = ct.Id, name = ct.Name, parentId = ct.ParentId }).ToList();
 
             // Load statuses based on user role (database-driven)
             var userRole = GetUserRole();
@@ -582,6 +591,7 @@ namespace GCCWebApp.Controllers
                     CompanyId = certificate.CompanyId,
                     ProductId = certificate.ProductId,
                     CertificationTypeId = certificate.CertificationTypeId,
+                    CertificationTypeSubcategoryId = certificate.CertificationTypeSubcategoryId,
                     ProductIds = certificate.ProductIds?.ToList() ?? new List<CertificateProductId>(),
                     CustomFieldValues = await _certificateFieldService.GetFieldValuesForCertificateAsync(certificate.Id) ?? new Dictionary<int, string>()
                 };
@@ -589,7 +599,11 @@ namespace GCCWebApp.Controllers
                 // Load dropdown data
                 ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
                 ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
-                ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+
+                // Load certification types - separate parent types and all types for cascading dropdown
+                var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+                ViewBag.ParentCertificationTypes = allCertTypes.Where(ct => ct.ParentId == null && ct.IsActive).OrderBy(ct => ct.Name).ToList();
+                ViewBag.AllCertificationTypes = allCertTypes.Where(ct => ct.IsActive).Select(ct => new { id = ct.Id, name = ct.Name, parentId = ct.ParentId }).ToList();
 
                 // Load statuses based on user role (database-driven)
                 var userRole = GetUserRole();
@@ -659,6 +673,7 @@ namespace GCCWebApp.Controllers
                     certificate.CompanyId = model.CompanyId;
                     certificate.ProductId = model.ProductId;
                     certificate.CertificationTypeId = model.CertificationTypeId;
+                    certificate.CertificationTypeSubcategoryId = model.CertificationTypeSubcategoryId;
                     certificate.UpdatedBy = GetCurrentUserId();
                     certificate.UpdatedAt = DateTime.UtcNow;
 
@@ -815,7 +830,11 @@ namespace GCCWebApp.Controllers
         {
             ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
             ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
-            ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+
+            // Load certification types - separate parent types and all types for cascading dropdown
+            var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
+            ViewBag.ParentCertificationTypes = allCertTypes.Where(ct => ct.ParentId == null && ct.IsActive).OrderBy(ct => ct.Name).ToList();
+            ViewBag.AllCertificationTypes = allCertTypes.Where(ct => ct.IsActive).Select(ct => new { id = ct.Id, name = ct.Name, parentId = ct.ParentId }).ToList();
 
             // Load statuses based on user role (database-driven)
             var userRole = GetUserRole();

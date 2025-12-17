@@ -12,7 +12,7 @@ namespace GCCWebApp.Tests
             var certificate = new Certificate();
 
             Assert.Equal(string.Empty, certificate.Number);
-            Assert.Equal("active", certificate.Status);
+            Assert.Equal("Draft", certificate.Status); // Certificate workflow starts as Draft
             Assert.True(certificate.CreatedAt <= DateTime.UtcNow);
             Assert.True(certificate.UpdatedAt <= DateTime.UtcNow);
             Assert.NotNull(certificate.Tags);

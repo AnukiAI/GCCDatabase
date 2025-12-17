@@ -551,103 +551,368 @@ class ProductIdManager {
         if (feedback) feedback.textContent = '';
     }
 
+    // Import preview state
+    importPreviewData = [];
+    importFileName = '';
+
     showImportModal() {
-        const modal = new bootstrap.Modal(document.getElementById('importModal'));
-        modal.show();
+        // Open file picker directly
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.csv';
+        input.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                this.importFileName = file.name;
+                const reader = new FileReader();
+                reader.onload = async (event) => {
+                    const contents = event.target.result;
+                    await this.parseAndPreviewImport(contents);
+                };
+                reader.readAsText(file);
+            }
+        };
+        input.click();
     }
 
-    async handleImport() {
-        const fileInput = document.getElementById('importFile');
-        const file = fileInput.files[0];
-
-        if (!file) {
-            this.showError('Please select a CSV file to import');
+    async parseAndPreviewImport(contents) {
+        const lines = contents.split('\n').filter(line => line.trim());
+        if (lines.length < 2) {
+            this.showError('CSV file must have a header row and at least one data row');
             return;
         }
 
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('certificateId', this.certificateId);
-        formData.append('overwriteExisting', document.getElementById('overwriteExisting').checked);
+        // Parse headers
+        const rawHeaders = this.parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+        const parsedProductIds = [];
 
-        try {
-            this.showImportProgress(true);
-            const response = await fetch('/api/productids/import', {
-                method: 'POST',
-                body: formData
+        // Parse data rows
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+
+            const fields = this.parseCSVLine(line);
+            if (fields.length < 2) continue;
+
+            // Build product ID object from headers
+            const productId = {};
+            rawHeaders.forEach((header, index) => {
+                productId[header] = fields[index]?.trim() || '';
             });
 
-            const result = await response.json();
-            this.showImportResults(result);
+            const type = productId.type || '';
+            const value = productId.value || productId.productid || '';
+            if (!type && !value) continue;
 
-            if (result.successCount > 0) {
-                await this.loadProductIds();
+            parsedProductIds.push({
+                rowNumber: i,
+                productIdType: type.toUpperCase(),
+                productIdValue: value,
+                status: productId.status || 'Active',
+                partner: productId.partner || '',
+                productName: productId.productname || '',
+                productSku: productId.productsku || productId.sku || '',
+                description: productId.description || ''
+            });
+        }
+
+        if (parsedProductIds.length === 0) {
+            this.showError('No valid product IDs found in CSV file');
+            return;
+        }
+
+        // Compare with existing and build preview
+        await this.buildImportPreview(parsedProductIds);
+    }
+
+    parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                result.push(current.trim());
+                current = '';
+            } else {
+                current += char;
             }
-        } catch (error) {
-            console.error('Import error:', error);
-            this.showError('Import failed: ' + error.message);
-        } finally {
-            this.showImportProgress(false);
         }
+        result.push(current.trim());
+        return result;
     }
 
-    showImportProgress(show) {
-        const resultsDiv = document.getElementById('importResults');
-        const progressBar = document.getElementById('importProgress');
+    async buildImportPreview(parsedProductIds) {
+        this.importPreviewData = [];
 
-        if (show) {
-            resultsDiv.style.display = 'block';
-            progressBar.style.width = '0%';
-            progressBar.setAttribute('aria-valuenow', '0');
+        // Track values seen in this import for duplicate detection
+        const valuesInImport = new Map(); // "type:value" -> rowNumber
 
-            // Animate progress bar
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += 10;
-                progressBar.style.width = progress + '%';
-                progressBar.setAttribute('aria-valuenow', progress);
+        for (const importItem of parsedProductIds) {
+            // Match by type + value (unique identifier for product IDs)
+            const existingItem = this.productIds.find(p =>
+                p.productIdType?.toUpperCase() === importItem.productIdType?.toUpperCase() &&
+                p.productIdValue?.toUpperCase() === importItem.productIdValue?.toUpperCase()
+            );
 
-                if (progress >= 90) {
-                    clearInterval(interval);
+            const previewRow = {
+                rowNumber: importItem.rowNumber,
+                data: importItem,
+                existingData: existingItem || null,
+                status: 'new',
+                changes: [],
+                errors: [],
+                selected: true,
+                action: 'create'
+            };
+
+            if (existingItem) {
+                // Compare fields and determine status
+                const changes = [];
+
+                if ((existingItem.status || '').toLowerCase() !== (importItem.status || '').toLowerCase()) {
+                    changes.push({ field: 'Status', oldValue: existingItem.status || '', newValue: importItem.status || '' });
                 }
-            }, 100);
-        } else {
-            progressBar.style.width = '100%';
-            progressBar.setAttribute('aria-valuenow', '100');
+                if ((existingItem.partner || '') !== (importItem.partner || '')) {
+                    changes.push({ field: 'Partner', oldValue: existingItem.partner || '', newValue: importItem.partner || '' });
+                }
+                if ((existingItem.productName || '') !== (importItem.productName || '')) {
+                    changes.push({ field: 'Product Name', oldValue: existingItem.productName || '', newValue: importItem.productName || '' });
+                }
+                if ((existingItem.productSku || '') !== (importItem.productSku || '')) {
+                    changes.push({ field: 'SKU', oldValue: existingItem.productSku || '', newValue: importItem.productSku || '' });
+                }
+
+                if (changes.length > 0) {
+                    previewRow.status = 'modified';
+                    previewRow.changes = changes;
+                    previewRow.action = 'update';
+                } else {
+                    previewRow.status = 'unchanged';
+                    previewRow.selected = false;
+                    previewRow.action = 'skip';
+                }
+            }
+
+            // Validate
+            if (!importItem.productIdType || !importItem.productIdType.trim()) {
+                previewRow.errors.push('Type is required');
+            } else {
+                const validTypes = ['ASIN', 'UPC', 'GTIN', 'EAN', 'ISBN', 'SKU', 'MPN', 'OTHER'];
+                if (!validTypes.includes(importItem.productIdType.toUpperCase())) {
+                    previewRow.errors.push(`Invalid type: "${importItem.productIdType}"`);
+                }
+            }
+
+            if (!importItem.productIdValue || !importItem.productIdValue.trim()) {
+                previewRow.errors.push('Product ID value is required');
+            } else {
+                // Check for duplicate in this import file
+                const key = `${importItem.productIdType}:${importItem.productIdValue}`.toUpperCase();
+                if (valuesInImport.has(key)) {
+                    const firstRow = valuesInImport.get(key);
+                    previewRow.errors.push(`Duplicate in import file (first seen on row ${firstRow})`);
+                } else {
+                    valuesInImport.set(key, importItem.rowNumber);
+                }
+
+                // Validate format based on type
+                if (importItem.productIdType && !this.isValidProductId(importItem.productIdType, importItem.productIdValue)) {
+                    previewRow.errors.push(this.getValidationMessage(importItem.productIdType));
+                }
+            }
+
+            if (previewRow.errors.length > 0) {
+                previewRow.status = 'error';
+                previewRow.selected = false;
+            }
+
+            this.importPreviewData.push(previewRow);
+        }
+
+        // Show preview modal
+        this.showImportPreviewModal();
+    }
+
+    showImportPreviewModal() {
+        const modal = document.getElementById('import-preview-modal');
+        if (!modal) return;
+
+        // Calculate statistics
+        const stats = {
+            new: this.importPreviewData.filter(r => r.status === 'new').length,
+            modified: this.importPreviewData.filter(r => r.status === 'modified').length,
+            unchanged: this.importPreviewData.filter(r => r.status === 'unchanged').length,
+            errors: this.importPreviewData.filter(r => r.status === 'error').length
+        };
+
+        // Update stats display
+        document.getElementById('stat-new').textContent = stats.new;
+        document.getElementById('stat-modified').textContent = stats.modified;
+        document.getElementById('stat-unchanged').textContent = stats.unchanged;
+        document.getElementById('stat-errors').textContent = stats.errors;
+
+        // Build table rows
+        const tbody = document.getElementById('import-preview-body');
+        tbody.innerHTML = '';
+
+        this.importPreviewData.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            tr.dataset.index = index;
+
+            const statusColors = {
+                'new': { bg: '#e8f5e1', color: '#447638', label: 'New' },
+                'modified': { bg: '#e6f7ff', color: '#002B76', label: 'Modified' },
+                'unchanged': { bg: '#f5f5f5', color: '#999', label: 'Unchanged' },
+                'error': { bg: '#ffebee', color: '#ff5252', label: 'Error' }
+            };
+            const statusStyle = statusColors[row.status];
+
+            // Build changes/errors display
+            let changesHtml = '';
+            if (row.errors.length > 0) {
+                changesHtml = `<span style="color: #ff5252; font-size: 12px;">${row.errors.join('; ')}</span>`;
+            } else if (row.changes.length > 0) {
+                changesHtml = row.changes.map(c =>
+                    `<span style="font-size: 12px; color: #666;">${c.field}: <del style="color: #999;">${c.oldValue || '(empty)'}</del> → <strong style="color: #002B76;">${c.newValue || '(empty)'}</strong></span>`
+                ).join('<br>');
+            } else if (row.status === 'unchanged') {
+                changesHtml = '<span style="font-size: 12px; color: #999;">No changes</span>';
+            } else {
+                changesHtml = '<span style="font-size: 12px; color: #447638;">Will be created</span>';
+            }
+
+            tr.innerHTML = `
+                <td style="padding: 10px;">
+                    <input type="checkbox" class="import-row-checkbox" data-index="${index}"
+                        ${row.selected ? 'checked' : ''} ${row.status === 'error' ? 'disabled' : ''}
+                        onchange="productIdManager.toggleImportRow(${index}, this.checked)">
+                </td>
+                <td style="padding: 10px;">
+                    <span style="display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500;
+                        background: ${statusStyle.bg}; color: ${statusStyle.color};">${statusStyle.label}</span>
+                </td>
+                <td style="padding: 10px; font-weight: 500;">${row.data.productIdType || ''}</td>
+                <td style="padding: 10px; font-family: monospace;">${row.data.productIdValue || ''}</td>
+                <td style="padding: 10px;">${row.data.productName || '-'}</td>
+                <td style="padding: 10px;">${row.data.partner || '-'}</td>
+                <td style="padding: 10px;">${changesHtml}</td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        // Show modal
+        modal.style.display = 'block';
+        this.updateApplyButtonState();
+    }
+
+    toggleImportRow(index, checked) {
+        if (this.importPreviewData[index]) {
+            this.importPreviewData[index].selected = checked;
+            this.updateApplyButtonState();
         }
     }
 
-    showImportResults(result) {
-        const summaryDiv = document.getElementById('importSummary');
-        const errorsDiv = document.getElementById('importErrors');
+    toggleAllImportRows(checked) {
+        this.importPreviewData.forEach((row, index) => {
+            if (row.status !== 'error') {
+                row.selected = checked;
+                const checkbox = document.querySelector(`.import-row-checkbox[data-index="${index}"]`);
+                if (checkbox) checkbox.checked = checked;
+            }
+        });
+        this.updateApplyButtonState();
+    }
 
-        summaryDiv.innerHTML = `
-            <div class="row">
-                <div class="col-4">
-                    <strong>Processed:</strong> ${result.totalProcessed}
-                </div>
-                <div class="col-4">
-                    <strong class="text-success">Success:</strong> ${result.successCount}
-                </div>
-                <div class="col-4">
-                    <strong class="text-danger">Errors:</strong> ${result.errorCount}
-                </div>
-            </div>
-        `;
+    updateApplyButtonState() {
+        const selectedCount = this.importPreviewData.filter(r => r.selected && r.status !== 'error').length;
+        const applyBtn = document.getElementById('apply-import-btn');
+        if (applyBtn) {
+            applyBtn.disabled = selectedCount === 0;
+            applyBtn.innerHTML = selectedCount === 0
+                ? '<i class="fas fa-check me-1"></i> Apply Import'
+                : `<i class="fas fa-check me-1"></i> Apply Import (${selectedCount})`;
+        }
+    }
 
-        if (result.errors && result.errors.length > 0) {
-            errorsDiv.innerHTML = '<h6>Errors:</h6>' +
-                result.errors.map(error => `<div class="import-error">${error}</div>`).join('');
-        } else {
-            errorsDiv.innerHTML = '';
+    closeImportPreviewModal() {
+        const modal = document.getElementById('import-preview-modal');
+        if (modal) {
+            modal.style.display = 'none';
+        }
+        this.importPreviewData = [];
+        this.importFileName = '';
+    }
+
+    async applyImport() {
+        const selectedRows = this.importPreviewData.filter(r => r.selected && r.status !== 'error');
+        if (selectedRows.length === 0) {
+            this.showError('No rows selected for import');
+            return;
         }
 
-        if (result.successCount > 0) {
-            setTimeout(() => {
-                const modal = bootstrap.Modal.getInstance(document.getElementById('importModal'));
-                modal.hide();
-                this.showSuccess(`Successfully imported ${result.successCount} product ID(s)`);
-            }, 2000);
+        const applyBtn = document.getElementById('apply-import-btn');
+        if (applyBtn) {
+            applyBtn.disabled = true;
+            applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Importing...';
+        }
+
+        let successCount = 0;
+        let errorCount = 0;
+
+        for (const row of selectedRows) {
+            try {
+                const productIdData = {
+                    CertificateId: this.certificateId,
+                    ProductIdType: row.data.productIdType,
+                    ProductIdValue: row.data.productIdValue,
+                    Status: row.data.status || 'Active',
+                    Partner: row.data.partner || '',
+                    ProductName: row.data.productName || '',
+                    ProductSku: row.data.productSku || '',
+                    Description: row.data.description || ''
+                };
+
+                let response;
+                if (row.action === 'update' && row.existingData) {
+                    productIdData.Id = row.existingData.id;
+                    response = await fetch(`/api/productids/${row.existingData.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(productIdData)
+                    });
+                } else {
+                    response = await fetch('/api/productids', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(productIdData)
+                    });
+                }
+
+                if (response.ok) {
+                    successCount++;
+                } else {
+                    errorCount++;
+                    console.error(`Failed to import row ${row.rowNumber}`);
+                }
+            } catch (error) {
+                errorCount++;
+                console.error(`Error importing row ${row.rowNumber}:`, error);
+            }
+        }
+
+        // Close modal and refresh
+        this.closeImportPreviewModal();
+
+        if (successCount > 0) {
+            await this.loadProductIds();
+            this.showSuccess(`Successfully imported ${successCount} product ID(s)${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
+        } else {
+            this.showError(`Import failed: ${errorCount} error(s)`);
         }
     }
 

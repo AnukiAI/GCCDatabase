@@ -116,7 +116,7 @@
 .search-filter-bar {
     display: flex !important;
     align-items: center !important;
-    background-color: var(--company-light-gray) !important;
+    background-color: transparent !important;
     border-radius: 4px !important;
     padding: 10px !important;
     margin-bottom: 15px !important;

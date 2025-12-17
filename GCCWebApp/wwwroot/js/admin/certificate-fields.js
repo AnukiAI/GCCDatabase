@@ -301,7 +301,7 @@ class CertificateFieldsManager {
 
         const confirmed = await AdminCore.showConfirmation({
             title: 'Delete Confirmation',
-            message: `Are you sure you want to delete the field "${field.name}"? This action cannot be undone.`,
+            message: `Are you sure you want to delete the field <strong>${field.name}</strong>? This action cannot be undone.`,
             confirmText: 'Delete',
             cancelText: 'Cancel',
             type: 'danger'

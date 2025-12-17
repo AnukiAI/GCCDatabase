@@ -83,5 +83,8 @@ namespace GCCWebApp.Models
         [Required]
         [Display(Name = "Certification Type")]
         public int CertificationTypeId { get; set; }
+
+        [Display(Name = "Certification Type Subcategory")]
+        public int? CertificationTypeSubcategoryId { get; set; }
     }
 }

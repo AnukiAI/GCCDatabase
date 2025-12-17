@@ -437,6 +437,9 @@ namespace GCCWebApp.Migrations
                     b.Property<int>("CertificationTypeId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("CertificationTypeSubcategoryId")
+                        .HasColumnType("int");
+
                     b.Property<int>("CompanyId")
                         .HasColumnType("int");
 
@@ -495,6 +498,8 @@ namespace GCCWebApp.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CertificationTypeId");
+
+                    b.HasIndex("CertificationTypeSubcategoryId");
 
                     b.HasIndex("CompanyId");
 
@@ -2023,6 +2028,11 @@ namespace GCCWebApp.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("GCCWebApp.Models.CertificationType", "CertificationTypeSubcategory")
+                        .WithMany()
+                        .HasForeignKey("CertificationTypeSubcategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("GCCWebApp.Models.Company", "Company")
                         .WithMany("Certificates")
                         .HasForeignKey("CompanyId")
@@ -2046,6 +2056,8 @@ namespace GCCWebApp.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("CertificationType");
+
+                    b.Navigation("CertificationTypeSubcategory");
 
                     b.Navigation("Company");
 

@@ -141,17 +141,32 @@ namespace GCCWebApp.Models
     public class CertificateTypeViewModel
     {
         public int Id { get; set; }
-        
+
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         [StringLength(500)]
         public string Description { get; set; } = string.Empty;
-        
+
         public bool IsActive { get; set; } = true;
-        
+
         public int CertificateCount { get; set; }
+
+        /// <summary>
+        /// Parent certification type ID (null for top-level types)
+        /// </summary>
+        public int? ParentId { get; set; }
+
+        /// <summary>
+        /// Hierarchy level (1 = parent/top-level, 2 = subcategory/child)
+        /// </summary>
+        public int Level { get; set; } = 1;
+
+        /// <summary>
+        /// Parent type name for display purposes
+        /// </summary>
+        public string? ParentName { get; set; }
     }
 
     // Certificate Fields Models

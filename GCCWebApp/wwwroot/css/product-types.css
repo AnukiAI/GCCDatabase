@@ -1132,3 +1132,27 @@ body {
 .text-danger {
     color: var(--warning);
 }
+
+/* ===== HELP ICON BUTTON ===== */
+.help-icon-btn {
+    background: none;
+    border: none;
+    color: var(--blue-primary);
+    cursor: pointer;
+    font-size: 16px;
+    padding: 4px 8px;
+    margin-left: 8px;
+    border-radius: var(--border-radius-sm);
+    transition: var(--transition-fast);
+    vertical-align: middle;
+}
+
+.help-icon-btn:hover {
+    color: var(--blue-dark);
+    background: rgba(0, 174, 239, 0.1);
+}
+
+.help-icon-btn:focus {
+    outline: 2px solid var(--blue-primary);
+    outline-offset: 2px;
+}

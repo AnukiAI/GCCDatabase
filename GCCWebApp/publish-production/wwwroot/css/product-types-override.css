@@ -168,7 +168,7 @@
 .admin-toolbar {
     display: flex;
     flex-direction: column;
-    background-color: var(--company-light-gray);
+    background-color: transparent;
     border-radius: 4px;
     padding: 10px;
     margin-bottom: 15px;
@@ -223,7 +223,7 @@
 .search-filter-bar {
     display: flex;
     align-items: center;
-    background-color: var(--company-light-gray);
+    background-color: transparent;
     border-radius: 4px;
     padding: 10px;
     margin-bottom: 15px;
@@ -273,7 +273,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: var(--company-light-gray);
+    background-color: transparent;
     padding: 10px;
     border-radius: 4px;
     margin-bottom: 15px;

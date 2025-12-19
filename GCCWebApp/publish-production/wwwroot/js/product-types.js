@@ -481,7 +481,7 @@ class ProductTypeManager {
 
         const confirmed = await AdminCore.showConfirmation({
             title: 'Delete Confirmation',
-            message: `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
+            message: `Are you sure you want to delete <strong>${item.name}</strong>? This action cannot be undone.`,
             confirmText: 'Delete',
             cancelText: 'Cancel',
             type: 'danger'
@@ -495,9 +495,9 @@ class ProductTypeManager {
     createModal(title, entityType, item = null, parentId = null) {
         const isEdit = item !== null;
         const modal = document.createElement('div');
-        modal.className = 'modal fade show';
+        modal.className = 'modal show';
         modal.style.cssText = `
-            display: block;
+            display: block !important;
             position: fixed;
             top: 0;
             left: 0;
@@ -507,46 +507,178 @@ class ProductTypeManager {
             backdrop-filter: blur(3px);
             z-index: 1050;
             overflow: auto;
+            opacity: 1 !important;
+            visibility: visible !important;
         `;
-        
+
         const parentOptions = entityType !== 'category' ? this.getParentOptions(entityType, item?.id) : '';
-        
+
+        // Find parent info for context display
+        let parentName = '';
+        let grandparentName = '';
+        let parentItem = null;
+
+        if (parentId) {
+            parentItem = this.findItemById(parentId);
+            if (parentItem) {
+                parentName = parentItem.name;
+                // For subcategory, also find grandparent (category)
+                if (entityType === 'subcategory') {
+                    const grandparent = this.findParentOf(parentItem);
+                    grandparentName = grandparent ? grandparent.name : '';
+                }
+            }
+        } else if (isEdit && item) {
+            parentItem = this.findParentOf(item);
+            if (parentItem) {
+                parentName = parentItem.name;
+                if (entityType === 'subcategory') {
+                    const grandparent = this.findParentOf(parentItem);
+                    grandparentName = grandparent ? grandparent.name : '';
+                }
+            }
+        }
+
+        // Get existing siblings for context
+        const existingSiblings = parentId ? this.getChildrenOf(parentId) : [];
+
+        // Build compact info hint content based on entity type
+        const infoHintContent = {
+            category: `Categories are the top level of product organization (e.g., "Personal Care", "Household").`,
+            type: `Types are product groups within a category (e.g., "Skincare" under "Personal Care").`,
+            subcategory: `Subcategories are the most specific level where products are assigned (e.g., "Moisturizers" under "Skincare").`
+        }[entityType];
+
+        // Build inline examples based on entity type
+        const examplesContent = {
+            category: `Personal Care, Household, Baby Products, Food & Beverage, Pet Products`,
+            type: `Skincare, Hair Care, Body Care, Oral Care, Cosmetics`,
+            subcategory: `Moisturizers, Cleansers, Serums, Sunscreen, Face Masks`
+        }[entityType];
+
+        // Build placeholder text based on entity type
+        const placeholderText = {
+            category: 'e.g., Personal Care, Household, Baby Products',
+            type: 'e.g., Skincare, Hair Care, Cleaning Products',
+            subcategory: 'e.g., Moisturizers, Shampoos, All-Purpose Cleaners'
+        }[entityType];
+
+        // Build field description based on entity type
+        const fieldDescription = {
+            category: 'Enter a broad product grouping name. This will be the top level in the product hierarchy.',
+            type: 'Enter the product type name. This groups related subcategories together.',
+            subcategory: 'Enter the specific product subcategory. Products will be assigned to this level.'
+        }[entityType];
+
+        // Build compact context bar for types and subcategories (one line)
+        const contextBar = (entityType !== 'category' && parentName) ? `
+            <div style="background: #e8f4fd; padding: 8px 16px; border-bottom: 1px solid #bee5eb; font-size: 14px;">
+                <i class="fas fa-sitemap" style="color: #002B76; margin-right: 8px;"></i>
+                Adding ${entityType} to: <strong style="color: #002B76;">${parentName}</strong>${grandparentName ? ` (in ${grandparentName})` : ''}
+            </div>
+        ` : '';
+
+        // Simplified - no breadcrumb needed, context bar shows parent info
+        const breadcrumb = '';
+
+        // No hierarchy diagram - keep it simple
+        const hierarchyDiagram = '';
+
+        // Simplified existing siblings list (inline under name field)
+        const existingSiblingsList = (entityType !== 'category' && existingSiblings.length > 0) ? `
+            <span style="font-size: 13px; color: #856404;">
+                Existing: ${existingSiblings.map(s => s.name).join(', ')}
+            </span>
+        ` : '';
+
+        // Build parent selector for types/subcategories when no parent is pre-selected
+        const parentSelectorHtml = (entityType !== 'category' && !parentId) ? `
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label for="parentId" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                    Parent ${entityType === 'type' ? 'Category' : 'Type'} <span style="color: #dc3545;">*</span>
+                </label>
+                <select class="form-control" id="parentId" name="parentId" required
+                        style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
+                    ${parentOptions}
+                </select>
+                <div style="font-size: 13px; color: #6c757d; margin-top: 6px;">
+                    Choose which ${entityType === 'type' ? 'category' : 'type'} this ${entityType} belongs to
+                </div>
+            </div>
+        ` : (entityType !== 'category' && parentId) ? `
+            <input type="hidden" id="parentId" name="parentId" value="${parentId}">
+        ` : '';
+
+        // Build locked parent display when parent is pre-selected
+        const parentDisplayHtml = (entityType !== 'category' && parentId && parentName) ? `
+            <div class="form-group" style="margin-bottom: 1.25rem;">
+                <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                    Parent ${entityType === 'type' ? 'Category' : 'Type'}
+                </label>
+                <div style="padding: 10px 12px; background: #e9ecef; border-radius: 4px; font-weight: 500; display: flex; align-items: center; gap: 8px;">
+                    <i class="fas fa-${entityType === 'type' ? 'folder' : 'tags'}" style="color: #002B76;"></i>
+                    ${parentName}${grandparentName ? ` <span style="color: #6c757d; font-weight: normal;">(under ${grandparentName})</span>` : ''}
+                </div>
+                <div style="font-size: 13px; color: #6c757d; margin-top: 6px; font-style: italic;">
+                    This ${entityType} will be created under "${parentName}"
+                </div>
+            </div>
+        ` : '';
+
         modal.innerHTML = `
-            <div class="modal-dialog" style="margin: 50px auto; max-width: 650px; width: 90%;">
-                <div class="modal-content" style="background: white; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+            <div class="modal-dialog" style="margin: 50px auto; max-width: 800px; width: 90%;">
+                <div class="modal-content" style="background: white; border-radius: 8px; box-shadow: 0 10px 40px rgba(0,0,0,0.5); max-width: 800px !important; width: 100%;">
                     <div class="modal-header" style="padding: 1rem; border-bottom: 2px solid #e9ecef; background-color: #f8f9fa;">
                         <h5 class="modal-title" style="margin: 0; font-size: 1.25rem; color: #002B76; font-weight: 600;">${title}</h5>
                         <button type="button" class="close" data-dismiss="modal" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666;">
                             <span>&times;</span>
                         </button>
                     </div>
-                    <div class="modal-body" style="padding: 1rem;">
+                    ${contextBar}
+                    <div class="modal-body" style="padding: 1.25rem; max-height: 60vh; overflow-y: auto;">
+                        <!-- Compact Info Hint -->
+                        <div style="display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #e8f4fd; border-radius: 4px; margin-bottom: 16px; font-size: 14px; color: #0c5460;">
+                            <i class="fas fa-info-circle" style="color: #17a2b8;"></i>
+                            <span>${infoHintContent}</span>
+                        </div>
+
                         <form id="productTypeForm">
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="name" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Name</label>
-                                <input type="text" class="form-control" id="name" name="name" 
+                            ${parentSelectorHtml}
+                            ${parentDisplayHtml}
+
+                            <div class="form-group" style="margin-bottom: 1.25rem;">
+                                <label for="name" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
+                                    ${this.capitalize(entityType)} Name <span style="color: #dc3545;">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="name" name="name"
                                        value="${item?.name || ''}" required
-                                       style="width: 100%; padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
+                                       placeholder="${placeholderText}"
+                                       style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
+                                <div style="font-size: 13px; color: #6c757d; margin-top: 6px;">
+                                    ${fieldDescription}
+                                    ${existingSiblingsList ? ' | ' + existingSiblingsList : ''}
+                                </div>
+                                <!-- Inline Examples -->
+                                <div style="font-size: 13px; color: #92C83E; margin-top: 4px;">
+                                    <strong>Examples:</strong> ${examplesContent}
+                                </div>
                             </div>
-                            ${entityType !== 'category' ? `
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="parentId" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Parent</label>
-                                <select class="form-control" id="parentId" name="parentId" required
-                                        style="width: 100%; padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
-                                    ${parentOptions}
-                                </select>
-                            </div>
-                            ` : ''}
-                            <div class="form-group" style="margin-bottom: 1rem;">
+
+                            <div class="form-group" style="margin-bottom: 1.25rem;">
                                 <label for="sortOrder" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Sort Order</label>
-                                <input type="number" class="form-control" id="sortOrder" name="sortOrder" 
+                                <input type="number" class="form-control" id="sortOrder" name="sortOrder"
                                        value="${item?.sortOrder || 0}"
-                                       style="width: 100%; padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
+                                       style="width: 120px; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
+                                <div style="font-size: 13px; color: #6c757d; margin-top: 6px;">
+                                    Controls display order. Lower numbers appear first.
+                                </div>
                             </div>
-                            <div class="form-group" style="margin-bottom: 1rem;">
-                                <label for="description" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Description</label>
-                                <textarea class="form-control" id="description" name="description" rows="3"
-                                          style="width: 100%; padding: 0.375rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">${item?.description || ''}</textarea>
+
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label for="description" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Description (Optional)</label>
+                                <textarea class="form-control" id="description" name="description" rows="2"
+                                          placeholder="Brief description of this ${entityType}..."
+                                          style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">${item?.description || ''}</textarea>
                             </div>
                         </form>
                     </div>
@@ -555,23 +687,58 @@ class ProductTypeManager {
                                 style="padding: 10px 20px; border: 1px solid #92C83E; background: #92C83E; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">Cancel</button>
                         <button type="button" class="btn btn-primary" id="saveBtn"
                                 style="padding: 10px 20px; border: 1px solid #002B76; background: #002B76; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">
-                            ${isEdit ? 'Update' : 'Create'}
+                            ${isEdit ? 'Update' : `Create ${this.capitalize(entityType)}`}
                         </button>
                     </div>
                 </div>
             </div>
         `;
-        
-        // Set parent if provided
-        if (parentId && !isEdit) {
+
+        // Set parent if provided (for edit mode without pre-selected parent)
+        if (isEdit && item && !parentId) {
             const parentSelect = modal.querySelector('#parentId');
-            if (parentSelect) parentSelect.value = parentId;
-        } else if (isEdit && item.parentId) {
-            const parentSelect = modal.querySelector('#parentId');
-            if (parentSelect) parentSelect.value = item.parentId;
+            if (parentSelect && parentItem) {
+                parentSelect.value = parentItem.id;
+            }
         }
-        
+
         return modal;
+    }
+
+    // Helper method to find an item by ID in the nested hierarchy
+    findItemById(id) {
+        const search = (items) => {
+            for (const item of items) {
+                if (item.id == id) return item;
+                if (item.children && item.children.length > 0) {
+                    const found = search(item.children);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return search(this.hierarchyData);
+    }
+
+    // Helper method to find the parent of an item
+    findParentOf(targetItem) {
+        const search = (items, parent = null) => {
+            for (const item of items) {
+                if (item.id == targetItem.id) return parent;
+                if (item.children && item.children.length > 0) {
+                    const found = search(item.children, item);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return search(this.hierarchyData);
+    }
+
+    // Helper method to get children of a parent by ID
+    getChildrenOf(parentId) {
+        const parent = this.findItemById(parentId);
+        return parent && parent.children ? parent.children : [];
     }
 
     getParentOptions(entityType, excludeId = null) {

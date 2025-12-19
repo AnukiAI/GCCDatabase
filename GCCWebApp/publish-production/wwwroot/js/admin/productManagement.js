@@ -458,7 +458,7 @@ class ProductManagement {
 
         const confirmed = await AdminCore.showConfirmation({
             title: 'Delete Confirmation',
-            message: `Are you sure you want to delete "${product.name}"? This action cannot be undone.`,
+            message: `Are you sure you want to delete <strong>${product.name}</strong>? This action cannot be undone.`,
             confirmText: 'Delete',
             cancelText: 'Cancel',
             type: 'danger'

@@ -230,6 +230,14 @@
                 </div>
             `;
 
+            // Reset validation styling on the upload zone
+            const uploadZone = document.getElementById('pdfUploadZone');
+            if (uploadZone) {
+                uploadZone.style.borderColor = '#00AEEF';
+                uploadZone.style.backgroundColor = 'rgba(255, 193, 7, 0.03)';
+                uploadZone.style.animation = '';
+            }
+
             ModalSystem.showNotification('PDF uploaded successfully!', 'success');
         },
 
@@ -342,6 +350,53 @@
                 if (!form.checkValidity()) {
                     event.preventDefault();
                     event.stopPropagation();
+
+                    // Show notification about validation errors
+                    const invalidFields = form.querySelectorAll(':invalid');
+                    const fieldNames = [];
+
+                    invalidFields.forEach(field => {
+                        // Get field label or name
+                        const label = field.closest('.form-group')?.querySelector('label');
+                        if (label) {
+                            // Remove the asterisk span from label text
+                            const labelText = label.textContent.replace('*', '').trim();
+                            if (labelText && !fieldNames.includes(labelText)) {
+                                fieldNames.push(labelText);
+                            }
+                        }
+                    });
+
+                    // Check for PDF upload specifically (hidden field)
+                    const pdfInput = document.getElementById('certificatePdf');
+                    if (pdfInput && !pdfInput.files.length && pdfInput.hasAttribute('required')) {
+                        if (!fieldNames.includes('Upload PDF Certificate')) {
+                            fieldNames.push('Upload PDF Certificate');
+                        }
+                        // Highlight the PDF upload zone
+                        const pdfZone = document.getElementById('pdfUploadZone');
+                        if (pdfZone) {
+                            pdfZone.style.borderColor = '#FF5252';
+                            pdfZone.style.backgroundColor = 'rgba(255, 82, 82, 0.05)';
+                            pdfZone.style.animation = 'shake 0.5s ease-in-out';
+                        }
+                    }
+
+                    if (fieldNames.length > 0) {
+                        const message = fieldNames.length === 1
+                            ? `Please fill in the required field: ${fieldNames[0]}`
+                            : `Please fill in the required fields: ${fieldNames.slice(0, 3).join(', ')}${fieldNames.length > 3 ? ` and ${fieldNames.length - 3} more` : ''}`;
+                        ModalSystem.showNotification(message, 'error');
+                    } else {
+                        ModalSystem.showNotification('Please fill in all required fields.', 'error');
+                    }
+
+                    // Scroll to first invalid field
+                    const firstInvalid = form.querySelector(':invalid');
+                    if (firstInvalid) {
+                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        firstInvalid.focus();
+                    }
                 }
                 form.classList.add('was-validated');
             });

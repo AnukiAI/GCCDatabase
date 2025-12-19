@@ -508,7 +508,7 @@
     line-height: 1;
     text-align: center;
     white-space: nowrap;
-    border-radius: var(--admin-radius-full);
+    border-radius: var(--admin-radius-sm);
     background-color: var(--admin-bg-muted);
     color: var(--admin-text-primary);
 }

@@ -120,7 +120,7 @@
 .search-filter-bar {
     display: flex;
     align-items: center;
-    background: var(--light-gray);
+    background: transparent;
     border-radius: var(--border-radius-sm);
     padding: 10px;
     margin-bottom: var(--space-md);

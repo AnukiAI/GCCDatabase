@@ -122,7 +122,7 @@
 .search-filter-bar {
     display: flex;
     align-items: center;
-    background-color: var(--light-gray);
+    background-color: transparent;
     border-radius: var(--border-radius-sm);
     padding: var(--space-md);
     margin-bottom: var(--space-md);

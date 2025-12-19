@@ -373,7 +373,7 @@ class UserManagement {
 
         const confirmed = await AdminCore.showConfirmation({
             title: 'Delete Confirmation',
-            message: `Are you sure you want to delete user "${user.name}"? This action cannot be undone.`,
+            message: `Are you sure you want to delete user <strong>${user.name}</strong>? This action cannot be undone.`,
             confirmText: 'Delete',
             cancelText: 'Cancel',
             type: 'danger'

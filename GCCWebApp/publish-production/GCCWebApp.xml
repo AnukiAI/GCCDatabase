@@ -218,6 +218,11 @@
             Requires Analyst or Admin role
             </summary>
         </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.FormatCertificateNumber(System.String,System.Nullable{System.DateTime})">
+            <summary>
+            Format certificate number to YY-NNNN format
+            </summary>
+        </member>
         <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.GetCertificateTiles(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.Int32)">
             <summary>
             Get certificates for external partner tile view with lazy loading
@@ -250,6 +255,11 @@
             This would need to be implemented based on your authentication system
             </summary>
         </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileInternalApiController.FormatCertificateNumber(System.String,System.Nullable{System.DateTime})">
+            <summary>
+            Format certificate number to YY-NNNN format
+            </summary>
+        </member>
         <member name="M:GCCWebApp.Controllers.Api.CertificateTileInternalApiController.GetCertificateTiles(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.Int32,System.Int32,System.Int32)">
             <summary>
             Get certificates for internal tile view with lazy loading
@@ -273,6 +283,11 @@
         <member name="M:GCCWebApp.Controllers.Api.CertificateTileInternalApiController.GetShareableLink(GCCWebApp.Controllers.Api.InternalShareLinkRequest)">
             <summary>
             Get shareable link for filtered results (internal view)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTilesApiController.FormatCertificateNumber(System.String,System.Nullable{System.DateTime})">
+            <summary>
+            Format certificate number to YY-NNNN format
             </summary>
         </member>
         <member name="M:GCCWebApp.Controllers.Api.CertificateTilesApiController.GetCertificates(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.Int32,System.Int32,System.Int32,System.String,System.String,System.String,System.String,System.String)">
@@ -1672,6 +1687,33 @@
         <member name="M:GCCWebApp.Migrations.AddImportBatchAndAuditImportBatchId.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
+        <member name="T:GCCWebApp.Migrations.AddCertificationTypeSubcategoryId">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificationTypeSubcategoryId.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificationTypeSubcategoryId.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificationTypeSubcategoryId.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateTypeViewModel.ParentId">
+            <summary>
+            Parent certification type ID (null for top-level types)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateTypeViewModel.Level">
+            <summary>
+            Hierarchy level (1 = parent/top-level, 2 = subcategory/child)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateTypeViewModel.ParentName">
+            <summary>
+            Parent type name for display purposes
+            </summary>
+        </member>
         <member name="T:GCCWebApp.Models.Api.CertificateExportRequest">
             <summary>
             Request model for exporting certificates in various formats
@@ -1818,6 +1860,27 @@
         <member name="T:GCCWebApp.Models.AuditChangeSource">
             <summary>
             Enum for change sources
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Certificate.CertificationTypeId">
+            <summary>
+            Parent certification type (e.g., "Certified Energy Savings"). Required.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Certificate.CertificationTypeSubcategoryId">
+            <summary>
+            Certification type subcategory (e.g., "Consumer Behavior"). Optional.
+            Must belong to the selected CertificationType's children.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Certificate.CertificationType">
+            <summary>
+            Parent certification type (required)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Certificate.CertificationTypeSubcategory">
+            <summary>
+            Certification type subcategory (optional)
             </summary>
         </member>
         <member name="T:GCCWebApp.Models.CertificateDocument">
@@ -2825,6 +2888,13 @@
         <member name="T:GCCWebApp.Services.ValidationResult">
             <summary>
             Represents validation result with errors
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.TestData.GenerateProductIdTestData">
+            <summary>
+            Generates CSV test files for Product ID bulk import testing
+            Run with: dotnet run --project GCCWebApp -- generate-productid-testdata
+            Or compile and run directly
             </summary>
         </member>
         <member name="T:GCCWebApp.Validation.InputSanitizationAttribute">

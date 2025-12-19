@@ -50,27 +50,27 @@ BEGIN
     PRINT '  - Partner "Amazon" already exists';
 END
 
--- Seed Wayfair
-IF NOT EXISTS (SELECT 1 FROM dbo.Partners WHERE Name = 'Wayfair')
+-- Seed Novi
+IF NOT EXISTS (SELECT 1 FROM dbo.Partners WHERE Name = 'Novi')
 BEGIN
     INSERT INTO dbo.Partners (Name, Description, Website, Email, ContactInfo, IsActive, IsDeleted, SortOrder, CreatedAt, UpdatedAt)
     VALUES (
-        'Wayfair',
-        'Online furniture and home goods retailer focused on sustainable product offerings',
-        'https://www.wayfair.com',
-        'sustainability@wayfair.com',
-        'Wayfair Sustainability Program',
+        'Novi',
+        'Novi Connect - Clean beauty and ingredient verification platform',
+        'https://noviconnect.com',
+        'support@noviconnect.com',
+        'Novi Clean Beauty Standards',
         1, -- IsActive
         0, -- IsDeleted
         2, -- SortOrder
         GETUTCDATE(),
         GETUTCDATE()
     );
-    PRINT '  ✓ Inserted Partner: Wayfair';
+    PRINT '  ✓ Inserted Partner: Novi';
 END
 ELSE
 BEGIN
-    PRINT '  - Partner "Wayfair" already exists';
+    PRINT '  - Partner "Novi" already exists';
 END
 
 -- Seed Other
@@ -115,11 +115,11 @@ END
 
 -- Get Partner IDs
 DECLARE @AmazonPartnerId INT = (SELECT Id FROM dbo.Partners WHERE Name = 'Amazon');
-DECLARE @WayfairPartnerId INT = (SELECT Id FROM dbo.Partners WHERE Name = 'Wayfair');
+DECLARE @NoviPartnerId INT = (SELECT Id FROM dbo.Partners WHERE Name = 'Novi');
 
-IF @AmazonPartnerId IS NULL OR @WayfairPartnerId IS NULL
+IF @AmazonPartnerId IS NULL OR @NoviPartnerId IS NULL
 BEGIN
-    PRINT 'ERROR: Amazon or Wayfair partner not found. Run STEP 1 first.';
+    PRINT 'ERROR: Amazon or Novi partner not found. Run STEP 1 first.';
     RAISERROR('Partner not found', 16, 1);
     RETURN;
 END
@@ -220,9 +220,9 @@ BEGIN
     PRINT '    API Key: ' + @AmazonTestApiKey;
 END
 
--- Seed Wayfair Production API Key
-DECLARE @WayfairApiKey NVARCHAR(512) = 'gcc_partner_wayfair_prod_' + REPLACE(CONVERT(VARCHAR(36), NEWID()), '-', '');
-IF NOT EXISTS (SELECT 1 FROM dbo.PartnerApiKeys WHERE PartnerId = @WayfairPartnerId AND Description LIKE '%Production%')
+-- Seed Novi Production API Key
+DECLARE @NoviApiKey NVARCHAR(512) = 'gcc_partner_novi_prod_' + REPLACE(CONVERT(VARCHAR(36), NEWID()), '-', '');
+IF NOT EXISTS (SELECT 1 FROM dbo.PartnerApiKeys WHERE PartnerId = @NoviPartnerId AND Description LIKE '%Production%')
 BEGIN
     INSERT INTO dbo.PartnerApiKeys (
         PartnerId,
@@ -242,35 +242,35 @@ BEGIN
         RevokedBy
     )
     VALUES (
-        @WayfairPartnerId,
-        @WayfairApiKey,
-        'Wayfair Production API Key',
+        @NoviPartnerId,
+        @NoviApiKey,
+        'Novi Production API Key',
         1, -- IsActive
         GETUTCDATE(),
         'System Seed',
         DATEADD(YEAR, 1, GETUTCDATE()), -- Expires in 1 year
         NULL, -- LastUsedAt
         0, -- RequestCount
-        5000, -- RateLimitPerHour (Wayfair has higher limit)
+        5000, -- RateLimitPerHour (Novi has higher limit)
         '["/api/v1/certificates/*", "/api/v1/products/*"]', -- AllowedEndpoints
         '["read", "write"]', -- Permissions
-        'Production API key for Wayfair partner integration',
+        'Production API key for Novi partner integration',
         NULL, -- RevokedAt
         NULL  -- RevokedBy
     );
-    PRINT '  ✓ Inserted PartnerApiKey: Wayfair Production';
-    PRINT '    API Key: ' + @WayfairApiKey;
+    PRINT '  ✓ Inserted PartnerApiKey: Novi Production';
+    PRINT '    API Key: ' + @NoviApiKey;
 END
 ELSE
 BEGIN
-    PRINT '  - Wayfair Production API key already exists';
-    SELECT @WayfairApiKey = ApiKey FROM dbo.PartnerApiKeys WHERE PartnerId = @WayfairPartnerId AND Description LIKE '%Production%';
-    PRINT '    API Key: ' + @WayfairApiKey;
+    PRINT '  - Novi Production API key already exists';
+    SELECT @NoviApiKey = ApiKey FROM dbo.PartnerApiKeys WHERE PartnerId = @NoviPartnerId AND Description LIKE '%Production%';
+    PRINT '    API Key: ' + @NoviApiKey;
 END
 
--- Seed Wayfair Test API Key
-DECLARE @WayfairTestApiKey NVARCHAR(512) = 'gcc_partner_wayfair_test_' + REPLACE(CONVERT(VARCHAR(36), NEWID()), '-', '');
-IF NOT EXISTS (SELECT 1 FROM dbo.PartnerApiKeys WHERE PartnerId = @WayfairPartnerId AND Description LIKE '%Test%')
+-- Seed Novi Test API Key
+DECLARE @NoviTestApiKey NVARCHAR(512) = 'gcc_partner_novi_test_' + REPLACE(CONVERT(VARCHAR(36), NEWID()), '-', '');
+IF NOT EXISTS (SELECT 1 FROM dbo.PartnerApiKeys WHERE PartnerId = @NoviPartnerId AND Description LIKE '%Test%')
 BEGIN
     INSERT INTO dbo.PartnerApiKeys (
         PartnerId,
@@ -290,9 +290,9 @@ BEGIN
         RevokedBy
     )
     VALUES (
-        @WayfairPartnerId,
-        @WayfairTestApiKey,
-        'Wayfair Test API Key',
+        @NoviPartnerId,
+        @NoviTestApiKey,
+        'Novi Test API Key',
         1, -- IsActive
         GETUTCDATE(),
         'System Seed',
@@ -302,18 +302,18 @@ BEGIN
         5000, -- RateLimitPerHour
         '["/api/v1/certificates/*", "/api/v1/products/*"]', -- AllowedEndpoints
         '["read", "write"]', -- Permissions
-        'Test API key for Wayfair partner integration',
+        'Test API key for Novi partner integration',
         NULL, -- RevokedAt
         NULL  -- RevokedBy
     );
-    PRINT '  ✓ Inserted PartnerApiKey: Wayfair Test';
-    PRINT '    API Key: ' + @WayfairTestApiKey;
+    PRINT '  ✓ Inserted PartnerApiKey: Novi Test';
+    PRINT '    API Key: ' + @NoviTestApiKey;
 END
 ELSE
 BEGIN
-    PRINT '  - Wayfair Test API key already exists';
-    SELECT @WayfairTestApiKey = ApiKey FROM dbo.PartnerApiKeys WHERE PartnerId = @WayfairPartnerId AND Description LIKE '%Test%';
-    PRINT '    API Key: ' + @WayfairTestApiKey;
+    PRINT '  - Novi Test API key already exists';
+    SELECT @NoviTestApiKey = ApiKey FROM dbo.PartnerApiKeys WHERE PartnerId = @NoviPartnerId AND Description LIKE '%Test%';
+    PRINT '    API Key: ' + @NoviTestApiKey;
 END
 
 PRINT '';

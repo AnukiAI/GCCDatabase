@@ -111,6 +111,13 @@ class CertificateExternalService {
 
             const data = await response.json();
 
+            // DEBUG: Log the first certificate to verify API response structure
+            if (data.certificates && data.certificates.length > 0) {
+                console.log('DEBUG External - First certificate from API:', JSON.stringify(data.certificates[0], null, 2));
+                console.log('DEBUG External - certificateNumber value:', data.certificates[0].certificateNumber);
+                console.log('DEBUG External - id value:', data.certificates[0].id);
+            }
+
             // Update state
             this.totalCount = data.totalCount;
             this.totalPages = data.totalPages;

@@ -68,8 +68,8 @@ BEGIN
     VALUES
         ('Amazon', 'Global e-commerce marketplace specializing in certified sustainable products',
          'https://www.amazon.com', 1, 1, 0, GETDATE(), GETDATE()),
-        ('Wayfair', 'Online furniture and home goods retailer focused on sustainable product offerings',
-         'https://www.wayfair.com', 2, 1, 0, GETDATE(), GETDATE()),
+        ('Novi', 'Novi Connect - Clean beauty and ingredient verification platform',
+         'https://noviconnect.com', 2, 1, 0, GETDATE(), GETDATE()),
         ('Other', 'Other retail partners and general partner category',
          NULL, 3, 1, 0, GETDATE(), GETDATE());
 

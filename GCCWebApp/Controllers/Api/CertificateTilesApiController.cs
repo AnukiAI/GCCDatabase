@@ -254,6 +254,41 @@ namespace GCCWebApp.Controllers.Api
                     }
                 }
 
+                // Get hierarchical product categories (Level 1 -> Level 2 -> Level 3)
+                var activeCategoryIds = await baseQuery
+                    .Select(c => c.Product.CategoryId)
+                    .Distinct()
+                    .ToListAsync();
+
+                var productCategoriesHierarchy = await _context.Set<ProductCategory>()
+                    .Where(pc => pc.IsActive && activeCategoryIds.Contains(pc.Id))
+                    .Include(pc => pc.ProductTypes.Where(pt => pt.IsActive))
+                        .ThenInclude(pt => pt.ProductSubcategories.Where(ps => ps.IsActive))
+                    .OrderBy(pc => pc.SortOrder).ThenBy(pc => pc.Name)
+                    .Select(pc => new
+                    {
+                        id = pc.Id,
+                        name = pc.Name,
+                        level = 1,
+                        types = pc.ProductTypes
+                            .OrderBy(pt => pt.SortOrder).ThenBy(pt => pt.Name)
+                            .Select(pt => new
+                            {
+                                id = pt.Id,
+                                name = pt.Name,
+                                level = 2,
+                                subcategories = pt.ProductSubcategories
+                                    .OrderBy(ps => ps.SortOrder).ThenBy(ps => ps.Name)
+                                    .Select(ps => new
+                                    {
+                                        id = ps.Id,
+                                        name = ps.Name,
+                                        level = 3
+                                    }).ToList()
+                            }).ToList()
+                    })
+                    .ToListAsync();
+
                 var filters = new
                 {
                     certificationTypes = hierarchicalCertTypes,
@@ -271,6 +306,10 @@ namespace GCCWebApp.Controllers.Api
                         .OrderBy(c => c)
                         .ToListAsync(),
 
+                    // Hierarchical product categories (Level 1 -> Level 2 -> Level 3)
+                    productCategoriesHierarchy,
+
+                    // Keep flat list for backward compatibility
                     productCategories = await baseQuery
                         .Select(c => c.Product.Category.Name)
                         .Distinct()

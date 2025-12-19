@@ -273,7 +273,7 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: var(--company-light-gray);
+    background-color: transparent;
     padding: 10px;
     border-radius: 4px;
     margin-bottom: 15px;

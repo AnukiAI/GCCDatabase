@@ -70,17 +70,49 @@
             `}).join('');
         }
 
-        // Populate product categories
-        const productCategoryList = document.querySelector('#product-category-content ul');
-        if (productCategoryList && state.filterOptions.productCategories) {
-            productCategoryList.innerHTML = state.filterOptions.productCategories.map(category => `
-                <li class="filter-item">
-                    <label>
-                        <input type="checkbox" name="product-category" value="${escapeHtml(category)}">
-                        ${escapeHtml(category)}
-                    </label>
-                </li>
-            `).join('');
+        // Populate hierarchical product categories (Level 1 -> Level 2 -> Level 3)
+        const productCategoryList = document.querySelector('#product-cat-content ul');
+        if (productCategoryList && state.filterOptions.productCategoriesHierarchy) {
+            let html = '';
+
+            state.filterOptions.productCategoriesHierarchy.forEach(category => {
+                // Level 1: Category
+                html += `
+                    <li class="filter-item filter-level-1">
+                        <label>
+                            <input type="checkbox" name="product-cat" value="${escapeHtml(category.name)}">
+                            ${escapeHtml(category.name)}
+                        </label>
+                    </li>`;
+
+                // Level 2: Types
+                if (category.types && category.types.length > 0) {
+                    category.types.forEach(type => {
+                        html += `
+                            <li class="filter-item filter-level-2">
+                                <label>
+                                    <input type="checkbox" name="product-cat" value="${escapeHtml(type.name)}">
+                                    ${escapeHtml(type.name)}
+                                </label>
+                            </li>`;
+
+                        // Level 3: Subcategories
+                        if (type.subcategories && type.subcategories.length > 0) {
+                            type.subcategories.forEach(subcat => {
+                                html += `
+                                    <li class="filter-item filter-level-3">
+                                        <label>
+                                            <input type="checkbox" name="product-cat" value="${escapeHtml(subcat.name)}">
+                                            ${escapeHtml(subcat.name)}
+                                        </label>
+                                    </li>`;
+                            });
+                        }
+                    });
+                }
+            });
+
+            productCategoryList.innerHTML = html;
         }
 
         // Populate companies

@@ -1134,6 +1134,97 @@ error CS7036: There is no argument given that corresponds to the required parame
 
 ---
 
+## 2025-12-18 - OPEN ITEM: Additional Filter - Tag Management Requirements Clarification
+
+### Status: OPEN - Awaiting Requirements Clarification
+
+### Issue Summary
+The "Additional" filter section on Certificate Tile Views currently uses `TagType = 'external'` to determine which tags appear. This conflates two different concepts:
+
+1. **Visibility Control** - Who can see the tag (External users vs Internal/Admin users)
+2. **Filter Display** - Which tags appear in the "Additional" filter panel
+
+### Current Implementation
+```csharp
+// CertificateTilesApiController.cs - GetFilterOptions()
+additionalTags = await baseQuery
+    .SelectMany(c => c.Tags)
+    .Where(t => t.IsActive && t.TagType == "external")  // Uses TagType for filter display
+    .Select(t => t.Name)
+    .Distinct()
+    .ToListAsync()
+```
+
+### Current Tag Model
+```csharp
+public class Tag {
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string TagType { get; set; }  // "internal" or "external"
+    public bool IsActive { get; set; }
+    // ...
+}
+```
+
+### Problem Scenarios
+
+| Scenario | Current Behavior | Potential Issue |
+|----------|------------------|-----------------|
+| "High Priority Client" tag (internal) | Hidden from Additional filter | Cannot filter by it even in Internal view |
+| "APR" tag (external) | Shows in Additional filter | Correct behavior |
+| New internal workflow tag | Hidden from filter | May need filtering capability |
+
+### Questions Requiring Clarification
+
+1. **What is the purpose of the Additional filter?**
+   - Certification-related attributes only (APR, LEED)?
+   - All tags that aren't internal?
+   - User-selectable via admin interface?
+
+2. **Should filter visibility be separate from user visibility?**
+   - A tag could be internal (hidden from External users) but still filterable in Internal view
+   - Current design doesn't support this separation
+
+3. **Temporary Fix Applied (2025-12-18)**
+   - Set only APR and LEED as `TagType = 'external'`
+   - All other tags set to `TagType = 'internal'`
+   - This is a workaround, not a proper solution
+
+### Recommended Solution (Pending Approval)
+
+Add a `ShowInAdditionalFilter` boolean field to the Tag model:
+
+```csharp
+public class Tag {
+    public int Id { get; set; }
+    public string Name { get; set; }
+    public string TagType { get; set; }      // Controls visibility to External users
+    public bool ShowInAdditionalFilter { get; set; }  // NEW: Controls filter panel display
+    public bool IsActive { get; set; }
+}
+```
+
+**Benefits:**
+- Separates visibility control from filter display
+- Internal tags can optionally appear in Internal view's Additional filter
+- Admin can configure which tags appear in filters via Tag Management page
+- No hardcoding required
+
+### Implementation Scope (If Approved)
+
+1. Add `ShowInAdditionalFilter` column to Tags table (migration)
+2. Update Tag model with new property
+3. Update Tag Management admin page to include toggle
+4. Update all 3 API controllers to filter by `ShowInAdditionalFilter`
+5. Seed existing APR and LEED with `ShowInAdditionalFilter = true`
+
+### Action Required
+- [ ] Client to clarify requirements for Additional filter
+- [ ] Decide on recommended solution vs alternative approach
+- [ ] Prioritize implementation
+
+---
+
 ## 2025-12-14 - REQUIREMENT: Certificate Number Format Consistency
 
 ### Requirement
@@ -1170,5 +1261,42 @@ Examples:
 - `CertificateTileInternalApiController.cs:138` - `CertificateNumber = c.Number`
 - `certificate-tile-view-internal.js:1284` - `const certNumber = cert.certificateNumber`
 - `certificate-tile-view-external.js:345` - `${escapeHtml(cert.certificateNumber)}`
+
+---
+
+## 2025-12-19 - Certificate Internal View Icon Placement Fix
+
+### Requirement
+The Certificate Internal View page (`/Certificate/CertificateInternalView/{number}`) must have:
+1. Download icon positioned directly below the certificate image
+2. Search/zoom icon positioned on/near the image
+
+### Issue Identified
+The `CertificateInternalView.cshtml` had different layout from `CertificateSingleView.cshtml` (public view):
+- Internal view had action buttons (download, edit, delete) at the bottom of the card in `.card-actions` div
+- No zoom icon overlay on the image
+- No image container wrapper
+
+### Fix Applied
+Updated `CertificateInternalView.cshtml` (lines 145-204) to match `CertificateSingleView.cshtml` layout:
+
+1. **Added image container**: Wrapped image in `<div class="certificate-image-container">` with `position: relative`
+2. **Added zoom icon overlay**: Added `<div class="zoom-icon-overlay">` with search-plus icon inside the container
+3. **Moved download button**: Created `<div class="certificate-download-action">` directly below the image container
+4. **Reorganized edit/delete**: Moved to new `<div class="certificate-internal-actions">` below download
+5. **Added Image Zoom Modal**: Added modal HTML for full-screen image viewing
+6. **Added zoom JavaScript**: Added `openImageZoom()`, `closeImageZoom()`, and ESC key handler
+
+### Files Modified
+- `Views/Certificate/CertificateInternalView.cshtml` - Layout restructure and added zoom functionality
+
+### Comparison
+| Element | Before | After |
+|---------|--------|-------|
+| Image wrapper | None | `certificate-image-container` |
+| Zoom icon | Missing | Overlay on image |
+| Download icon | Bottom of card | Below image |
+| Edit/Delete | Bottom with download | Below download |
+| Zoom modal | Missing | Added |
 
 ---

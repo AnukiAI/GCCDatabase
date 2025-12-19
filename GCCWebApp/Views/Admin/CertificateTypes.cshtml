@@ -21,6 +21,32 @@
 }
 
 @Html.AntiForgeryToken()
+
+<!-- Help Modal Script - must be before button that calls it -->
+<script>
+    function openHelpModal() {
+        var modal = document.getElementById('hierarchy-help-modal');
+        if (modal) {
+            modal.style.display = 'block';
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    function closeHelpModal() {
+        var modal = document.getElementById('hierarchy-help-modal');
+        if (modal) {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+    }
+
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeHelpModal();
+        }
+    });
+</script>
+
 <div class="admin-container">
     <header class="admin-header">
         <div class="admin-header-content">
@@ -29,6 +55,9 @@
             </div>
             <div class="admin-actions-section">
                 <div class="admin-button-group">
+                    <button id="help-hierarchy-btn" class="admin-btn admin-btn--secondary" title="Learn how the hierarchy works" aria-label="Help: Understanding the certificate type hierarchy" onclick="openHelpModal()">
+                        <i class="fas fa-question-circle" aria-hidden="true"></i> Help
+                    </button>
                     <button id="export-btn" class="admin-btn admin-btn--secondary" aria-label="Export certificate types to CSV file">
                         <i class="fas fa-download" aria-hidden="true"></i> Export
                     </button>
@@ -107,6 +136,151 @@
                 <span>No certificate types found. Click "Add New Type" to create one.</span>
             </div>
             <!-- Tree nodes will be dynamically inserted here by JavaScript -->
+        </div>
+    </div>
+</div>
+
+<!-- Help Modal: Understanding the Certificate Type Hierarchy -->
+<!-- Note: Using unique class names (help-modal-*) to avoid CSS conflicts with admin framework -->
+<div id="hierarchy-help-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000;">
+    <!-- Backdrop -->
+    <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(3px); z-index: 10000;" onclick="closeHelpModal()"></div>
+
+    <!-- Modal Container - using purely inline styles to avoid CSS conflicts -->
+    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10001; max-width: 750px; width: 90%; max-height: 90vh; background-color: #ffffff; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; opacity: 1;">
+        <!-- Header -->
+        <div style="padding: 16px 20px; background-color: #f8f9fa; border-bottom: 2px solid #e9ecef; border-radius: 8px 8px 0 0; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="margin: 0; color: #002B76; font-weight: 600; font-size: 1.25rem;">
+                <i class="fas fa-sitemap" style="margin-right: 10px;"></i>Understanding the Certificate Type Hierarchy
+            </h3>
+            <button type="button" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #666; padding: 0; line-height: 1;" onclick="closeHelpModal()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <!-- Body -->
+        <div style="padding: 20px; overflow-y: auto; flex: 1; background-color: #ffffff;">
+
+            <!-- Section 1: Hierarchy Structure -->
+            <div style="margin-bottom: 24px;">
+                <h4 style="color: #002B76; font-size: 1rem; margin: 0 0 12px 0; display: flex; align-items: center; gap: 8px;">
+                    <span style="background: #002B76; color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">1</span>
+                    The 2-Level Hierarchy Structure
+                </h4>
+                <div style="background: linear-gradient(135deg, #f8f9fa, #e9ecef); border-radius: 8px; padding: 16px;">
+                    <div style="display: flex; flex-direction: column; gap: 12px;">
+                        <!-- Type Level -->
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="background: #002B76; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; min-width: 120px; text-align: center;">
+                                Type
+                            </div>
+                            <div style="flex: 1; font-size: 14px; color: #495057;">
+                                <strong>Level 1</strong> - Primary certification type (e.g., "USDA Organic", "Non-GMO", "Fair Trade")
+                            </div>
+                        </div>
+                        <div style="margin-left: 60px; color: #6c757d;"><i class="fas fa-arrow-down"></i></div>
+                        <!-- Subcategory Level -->
+                        <div style="display: flex; align-items: center; gap: 12px; margin-left: 30px;">
+                            <div style="background: #92C83E; color: white; padding: 10px 16px; border-radius: 6px; font-weight: 600; min-width: 120px; text-align: center;">
+                                Subcategory
+                            </div>
+                            <div style="flex: 1; font-size: 14px; color: #495057;">
+                                <strong>Level 2</strong> - Specific certifications within a type (e.g., "100% Organic", "Made with Organic" under USDA Organic)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Certificate Assignment -->
+            <div style="margin-bottom: 24px;">
+                <h4 style="color: #002B76; font-size: 1rem; margin: 0 0 12px 0; display: flex; align-items: center; gap: 8px;">
+                    <span style="background: #002B76; color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">2</span>
+                    How Certificates Are Assigned
+                </h4>
+                <div style="background: #e8f4fd; border-radius: 8px; padding: 16px; border-left: 4px solid #00AEEF;">
+                    <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+                        <i class="fas fa-certificate" style="color: #00AEEF; margin-top: 3px;"></i>
+                        <div>
+                            <strong style="color: #002B76;">Certificates are assigned at the Subcategory level</strong>
+                            <p style="margin: 4px 0 0 0; font-size: 14px; color: #495057;">
+                                When you assign a certificate to a subcategory, it automatically "rolls up" to the parent Type.
+                            </p>
+                        </div>
+                    </div>
+                    <div style="background: white; border-radius: 6px; padding: 12px; margin-top: 12px;">
+                        <div style="font-size: 13px; color: #495057;">
+                            <strong>Example:</strong> A certificate assigned to:
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; flex-wrap: wrap;">
+                            <span style="background: #92C83E; color: white; padding: 4px 8px; border-radius: 4px;">100% Organic</span>
+                            <i class="fas fa-arrow-right" style="color: #6c757d;"></i>
+                            <span style="color: #6c757d;">will appear under</span>
+                            <span style="background: #002B76; color: white; padding: 4px 8px; border-radius: 4px;">USDA Organic</span>
+                        </div>
+                    </div>
+                    <div style="margin-top: 12px; font-size: 13px; color: #495057;">
+                        <i class="fas fa-calculator" style="color: #00AEEF; margin-right: 6px;"></i>
+                        The <strong>certificate count</strong> shown at the Type level includes all certificates from its subcategories.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Impact of Changes -->
+            <div style="margin-bottom: 12px;">
+                <h4 style="color: #002B76; font-size: 1rem; margin: 0 0 12px 0; display: flex; align-items: center; gap: 8px;">
+                    <span style="background: #002B76; color: white; width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px;">3</span>
+                    Impact of Changes (Cascade Behavior)
+                </h4>
+                <div style="display: grid; gap: 12px;">
+                    <!-- Edit Impact -->
+                    <div style="background: #fff3cd; border-radius: 8px; padding: 14px; border-left: 4px solid #ffc107;">
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fas fa-edit" style="color: #856404; margin-top: 2px;"></i>
+                            <div>
+                                <strong style="color: #856404;">Editing a Type</strong>
+                                <p style="margin: 4px 0 0 0; font-size: 14px; color: #664d03;">
+                                    Renaming a Type updates its name everywhere, but <strong>does not affect</strong> the subcategories or certificate assignments.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Delete Impact -->
+                    <div style="background: #f8d7da; border-radius: 8px; padding: 14px; border-left: 4px solid #dc3545;">
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fas fa-trash" style="color: #842029; margin-top: 2px;"></i>
+                            <div>
+                                <strong style="color: #842029;">Deleting a Type (Cascade Delete)</strong>
+                                <p style="margin: 4px 0 0 0; font-size: 14px; color: #58151c;">
+                                    <i class="fas fa-exclamation-triangle" style="margin-right: 4px;"></i>
+                                    Deleting a Type will <strong>delete all its Subcategories</strong>.
+                                </p>
+                                <p style="margin: 8px 0 0 0; font-size: 13px; color: #58151c;">
+                                    <strong>Note:</strong> Items with assigned certificates cannot be deleted until certificates are reassigned or removed.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Move/Reassign -->
+                    <div style="background: #d1e7dd; border-radius: 8px; padding: 14px; border-left: 4px solid #198754;">
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <i class="fas fa-arrows-alt" style="color: #0f5132; margin-top: 2px;"></i>
+                            <div>
+                                <strong style="color: #0f5132;">Moving Subcategories</strong>
+                                <p style="margin: 4px 0 0 0; font-size: 14px; color: #0a3622;">
+                                    You can move a Subcategory to a different Type by editing it and changing the parent Type.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+        <!-- Footer -->
+        <div style="padding: 16px 20px; background-color: #f8f9fa; border-top: 2px solid #e9ecef; border-radius: 0 0 8px 8px; display: flex; justify-content: flex-end;">
+            <button type="button" style="padding: 10px 24px; background: #002B76; color: white; border: none; border-radius: 6px; font-weight: 500; cursor: pointer; font-size: 16px;" onclick="closeHelpModal()">
+                Got it!
+            </button>
         </div>
     </div>
 </div>

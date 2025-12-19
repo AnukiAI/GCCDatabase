@@ -167,33 +167,84 @@
                             certificateImageSrc = Url.Content("~/img/certpreview.png");
                         }
                     }
-                    <img src="@certificateImageSrc" alt="Certificate Details" class="certificate-image" onerror="this.src='@Url.Content("~/img/certpreview.png")';this.onerror=null;" />
-                </div>
-            </div>
-            <!-- Action Buttons -->
-            <div class="card-actions">
-                <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@certificateNumber')">
-                    <i class="fas fa-download"></i>
-                </div>
-                @if (Model.CanEdit)
-                {
-                    <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@certificateNumber')">
-                        <i class="fas fa-edit"></i>
+                    <div class="certificate-image-container" style="position: relative;">
+                        <img src="@certificateImageSrc" alt="Certificate Details" class="certificate-image" onerror="this.src='@Url.Content("~/img/certpreview.png")';this.onerror=null;" onclick="openImageZoom('@certificateImageSrc')" />
+
+                        <!-- Magnifying Glass Icon overlay -->
+                        <div class="zoom-icon-overlay" onclick="openImageZoom('@certificateImageSrc')" title="Click to zoom">
+                            <i class="fas fa-search-plus"></i>
+                        </div>
                     </div>
-                }
-                @if (Model.CanDelete)
-                {
-                    <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@certificateId')">
-                        <i class="fas fa-trash"></i>
+
+                    <!-- Download Button directly below image -->
+                    <div class="certificate-download-action">
+                        <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@certificateNumber')">
+                            <i class="fas fa-download"></i>
+                        </div>
                     </div>
-                }
+
+                    <!-- Edit/Delete Actions for Internal Users -->
+                    @if (Model.CanEdit || Model.CanDelete)
+                    {
+                        <div class="certificate-internal-actions" style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
+                            @if (Model.CanEdit)
+                            {
+                                <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@certificateNumber')">
+                                    <i class="fas fa-edit"></i>
+                                </div>
+                            }
+                            @if (Model.CanDelete)
+                            {
+                                <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@certificateId')">
+                                    <i class="fas fa-trash"></i>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Image Zoom Modal -->
+<div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageZoom()">
+    <span class="zoom-close">&times;</span>
+    <img class="zoom-modal-content" id="zoomedImage">
+    <div class="zoom-caption" id="imageCaption">Certificate Preview</div>
+</div>
+
 <script src="~/js/certificates.js"></script>
 <script>
+    // Image zoom functionality
+    function openImageZoom(imageSrc) {
+        const modal = document.getElementById('imageZoomModal');
+        const modalImg = document.getElementById('zoomedImage');
+        const caption = document.getElementById('imageCaption');
+
+        modal.style.display = 'block';
+        modalImg.src = imageSrc;
+        caption.innerHTML = 'Certificate @certificateNumber - Click anywhere to close';
+
+        // Prevent body scroll when modal is open
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeImageZoom() {
+        const modal = document.getElementById('imageZoomModal');
+        modal.style.display = 'none';
+
+        // Restore body scroll
+        document.body.style.overflow = 'auto';
+    }
+
+    // Close on ESC key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeImageZoom();
+        }
+    });
+
     // Make certificate action functions available globally for this page
     window.editCertificate = function(certificateNumber) {
         if (!certificateNumber) {

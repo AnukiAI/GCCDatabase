@@ -309,8 +309,13 @@ namespace GCCWebApp.Controllers
         {
             try
             {
+                // Auto-generate the next certificate number
+                var nextCertNumber = await _certificateRepository.GenerateNextCertificateNumberAsync();
+
                 var model = new CertificateEditViewModel
                 {
+                    // Auto-populate certificate number (format: YY-XXXX)
+                    Number = nextCertNumber,
                     // Set default dates to current year
                     EffectiveDate = DateTime.Today,
                     ExpirationDate = DateTime.Today.AddYears(2), // Default 2-year validity
@@ -353,8 +358,13 @@ namespace GCCWebApp.Controllers
         {
             try
             {
+                // Auto-generate the next certificate number
+                var nextCertNumber = await _certificateRepository.GenerateNextCertificateNumberAsync();
+
                 var model = new CertificateEditViewModel
                 {
+                    // Auto-populate certificate number (format: YY-XXXX)
+                    Number = nextCertNumber,
                     // Set default dates to current year
                     EffectiveDate = DateTime.Today,
                     ExpirationDate = DateTime.Today.AddYears(2), // Default 2-year validity

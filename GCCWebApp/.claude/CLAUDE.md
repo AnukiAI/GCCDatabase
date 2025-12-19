@@ -208,17 +208,17 @@ AzureAdB2C__ClientId=[client-id]
 - 14-state certificate lifecycle (`CertificateWorkflowService`)
 - Role-based permissions enforced
 
-### Partner API Access ⚠️ **REQUIRED - NEW**
+### Partner API Access ✅ **IMPLEMENTED**
 - **REQUIREMENT**: Partners (Amazon, Novi, etc.) access GCC data via dedicated API keys
 - **Architecture**: Partners pull data from GCC API (not push to partner APIs)
-- **Scalability**: System must support multiple partners with individual API keys
+- **Scalability**: System supports multiple partners with individual API keys
 - **Implementation**:
   - Each partner gets a unique API key to access GCC REST API endpoints
   - Partner API keys managed separately from general API keys
   - Track usage statistics per partner (requests, endpoints accessed, data volume)
   - Configure access permissions per partner (which endpoints they can access)
   - Support partner-specific rate limits and quotas
-- **Admin Interface**: `/Admin/PartnerAPI` (formerly `/Admin/AmazonAPI`)
+- **Admin Interface**: `/Admin/PartnerAPI`
   - List all partners (Amazon, Novi, etc.)
   - Generate/revoke API keys for each partner
   - View usage statistics and access logs
@@ -226,6 +226,68 @@ AzureAdB2C__ClientId=[client-id]
 - **Database**: `PartnerApiKey` table with partner association, key, permissions, usage stats
 - **Security**: Partner API keys use same authentication as general API keys but with partner tracking
 - **Future**: Add webhook support for partners to receive real-time updates
+
+### Novi Integration ✅ **IMPLEMENTED** (2025-12-19)
+Novi receives certification data via GCC REST API. All endpoints support API Key authentication.
+
+**Data Fields Provided (matches Novi requirements):**
+| Novi Requirement | GCC API Field | Notes |
+|------------------|---------------|-------|
+| Brand name | BrandName (Company.Name) | ✅ |
+| Variant / product name | ProductName (Product.Name) | ✅ |
+| Variant identifier (GTIN/MPN) | ProductIdentifiers[] | Use `includeProductIds=true` |
+| Certification name | CertificationName (CertificationType.Name) | ✅ |
+| Certificate / license ID | CertificateNumber (Certificate.Number) | ✅ |
+| Issue date | IssueDate (EffectiveDate) | ✅ |
+| Expiration date | ExpirationDate | ✅ |
+| Issuer | Issuer | Static: "Green Circle Certified" |
+| Standard version | StandardVersion (Subcategory) | ✅ |
+
+**API Endpoints for Novi:**
+```
+# List all certificates with product identifiers (GTIN, MPN, ASIN, UPC)
+GET /api/v1/certificates?includeProductIds=true&pageSize=100
+
+# Search by specific product ID
+GET /api/v1/certificates/search/productid?productId={GTIN}&type=GTIN
+
+# Get single certificate by number
+GET /api/v1/certificates/number/{certificateNumber}
+
+# Download certificate PDF
+GET /api/v1/certificates/{id}/download
+```
+
+**Sample Response (with includeProductIds=true):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": 123,
+      "certificateNumber": "24-0366",
+      "status": "Active",
+      "issueDate": "2024-01-15T00:00:00Z",
+      "expirationDate": "2025-01-15T00:00:00Z",
+      "brandName": "EcoProduct Co",
+      "productName": "Recycled Paper Towels",
+      "certificationName": "UL 2809",
+      "issuer": "Green Circle Certified",
+      "standardVersion": "Level 2",
+      "productIdentifiers": [
+        { "type": "GTIN", "value": "00012345678905", "partner": "Novi", "status": "Active" },
+        { "type": "MPN", "value": "ECO-PT-001", "partner": null, "status": "Active" }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/24-0366/download"
+    }
+  ],
+  "totalCount": 150,
+  "pageNumber": 1,
+  "pageSize": 100
+}
+```
+
+**Authentication:** Novi will receive a dedicated API key from Admin > Partner API Management
 
 ### User Feedback & Alert System
 
@@ -456,7 +518,7 @@ downloadImportTemplate() {
 | US-006 | Bulk CSV Import/Export | ✅ Complete |
 | US-007 | Certificate Workflow (14 states) | ✅ Complete |
 | US-008 | Role-Based Access Control | ✅ Complete |
-| US-009 | Partner API Access (Amazon, Novi, etc.) | ⚠️ Redesign Required |
+| US-009 | Partner API Access (Amazon, Novi, etc.) | ✅ Complete |
 | US-010 | Excel Export | ✅ Complete |
 | FILTER-001 | Database-Driven Filters (All Views) | ✅ Complete (2025-10-27) |
 

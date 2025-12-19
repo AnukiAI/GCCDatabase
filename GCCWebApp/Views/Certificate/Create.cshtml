@@ -75,7 +75,8 @@
 
                     <div class="form-group">
                         <label asp-for="Number">Certification # <span class="text-danger" aria-label="required">*</span></label>
-                        <input asp-for="Number" placeholder="XX-XXXX" required maxlength="7" aria-required="true" />
+                        <input asp-for="Number" readonly class="form-control-readonly" aria-required="true" style="background-color: #f8f9fa; font-weight: 600;" />
+                        <small class="form-text text-muted">Auto-generated (format: YY-XXXX)</small>
                         <span asp-validation-for="Number" class="text-danger" role="alert"></span>
                     </div>
 

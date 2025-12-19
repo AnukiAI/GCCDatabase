@@ -431,5 +431,44 @@ namespace GCCWebApp.Repositories
                 .Include(c => c.CertificationType)
                 .ToListAsync();
         }
+
+        /// <summary>
+        /// Generates the next certificate number in format YY-XXXX (e.g., "26-0001")
+        /// </summary>
+        public async Task<string> GenerateNextCertificateNumberAsync()
+        {
+            var currentYear = DateTime.Now.Year;
+            var yearPrefix = (currentYear % 100).ToString("D2"); // "25", "26", etc.
+            var pattern = $"{yearPrefix}-"; // e.g., "26-"
+
+            // Find the highest certificate number for the current year
+            var maxNumber = await _dbSet
+                .Where(c => c.Number != null && c.Number.StartsWith(pattern))
+                .Select(c => c.Number)
+                .ToListAsync();
+
+            int nextSequence = 1;
+
+            if (maxNumber.Any())
+            {
+                // Parse the sequence numbers and find the max
+                var sequences = maxNumber
+                    .Select(n => {
+                        var parts = n.Split('-');
+                        if (parts.Length == 2 && int.TryParse(parts[1], out int seq))
+                            return seq;
+                        return 0;
+                    })
+                    .Where(s => s > 0);
+
+                if (sequences.Any())
+                {
+                    nextSequence = sequences.Max() + 1;
+                }
+            }
+
+            // Format: YY-XXXX (e.g., "26-0001")
+            return $"{yearPrefix}-{nextSequence:D4}";
+        }
     }
 }

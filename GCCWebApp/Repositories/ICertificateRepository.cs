@@ -32,6 +32,9 @@ namespace GCCWebApp.Repositories
         // Additional methods for API
         Task<IEnumerable<string>> GetDistinctCountriesAsync();
         new Task<IEnumerable<Certificate>> FindAsync(System.Linq.Expressions.Expression<Func<Certificate, bool>> predicate);
+
+        // Certificate number generation
+        Task<string> GenerateNextCertificateNumberAsync();
     }
 
     public class CertificateSearchFilter

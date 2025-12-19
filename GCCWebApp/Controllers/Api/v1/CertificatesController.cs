@@ -52,6 +52,7 @@ namespace GCCWebApp.Controllers.Api.v1
         /// - Search across certificate number, product name, and company name
         /// - Sorting by multiple fields (certificate number, dates, product, company)
         /// - Response caching for improved performance
+        /// - Optional product IDs (ASIN, GTIN, MPN, etc.) for partner integrations
         ///
         /// **Search Examples:**
         /// - `searchTerm=24-` - Find certificates starting with "24-"
@@ -66,8 +67,18 @@ namespace GCCWebApp.Controllers.Api.v1
         /// - `sortBy=companyname` - Sort by company name
         ///
         /// Add `sortDescending=true` for descending order.
+        ///
+        /// **Partner Integration (Novi, Amazon, etc.):**
+        /// Add `includeProductIds=true` to include GTIN, MPN, ASIN, UPC, and other product identifiers.
+        /// This is essential for partners who need to map certificates to specific product variants.
+        ///
+        /// **Example for Novi:**
+        /// ```
+        /// GET /api/v1/certificates?includeProductIds=true&amp;pageSize=100
+        /// ```
         /// </remarks>
         /// <param name="parameters">Pagination and filtering parameters</param>
+        /// <param name="includeProductIds">Include product identifiers (ASIN, GTIN, MPN, UPC, etc.) in response. Default: false</param>
         /// <returns>Paginated list of certificates matching the search criteria</returns>
         /// <response code="200">Returns the paginated certificate list</response>
         /// <response code="400">Invalid pagination parameters</response>
@@ -78,7 +89,7 @@ namespace GCCWebApp.Controllers.Api.v1
         [ApiCache(durationInSeconds: CacheProfiles.Medium, varyByQueryParams: true)]
         [SwaggerOperation(
             Summary = "Get certificates with pagination",
-            Description = "Retrieve a paginated list of certificates with optional search and sorting",
+            Description = "Retrieve a paginated list of certificates with optional search and sorting. Use includeProductIds=true for partner integrations (Novi, Amazon).",
             OperationId = "GetCertificates",
             Tags = new[] { "Certificates" }
         )]
@@ -87,7 +98,9 @@ namespace GCCWebApp.Controllers.Api.v1
         [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status500InternalServerError)]
-        public async Task<IActionResult> GetCertificates([FromQuery] PaginationParams parameters)
+        public async Task<IActionResult> GetCertificates(
+            [FromQuery] PaginationParams parameters,
+            [FromQuery] bool includeProductIds = false)
         {
             try
             {
@@ -97,6 +110,12 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Include(c => c.CertificationType)
                     .Include(c => c.CertificationTypeSubcategory)
                     .AsQueryable();
+
+                // Include ProductIds if requested (for partner integrations like Novi)
+                if (includeProductIds)
+                {
+                    query = query.Include(c => c.ProductIds);
+                }
 
                 if (!string.IsNullOrEmpty(parameters.SearchTerm))
                 {
@@ -125,37 +144,87 @@ namespace GCCWebApp.Controllers.Api.v1
                     query = query.OrderByDescending(c => c.EffectiveDate);
                 }
 
-                // Use projection to avoid circular reference issues with navigation properties
-                var certificates = await query
+                var pagedQuery = query
                     .Skip((parameters.PageNumber - 1) * parameters.PageSize)
-                    .Take(parameters.PageSize)
-                    .Select(c => new
-                    {
-                        c.Id,
-                        CertificateNumber = c.Number,
-                        c.Status,
-                        c.EffectiveDate,
-                        c.ExpirationDate,
-                        c.Location,
-                        c.Country,
-                        c.Partner,
-                        c.CertificationResults,
-                        ProductName = c.Product != null ? c.Product.Name : null,
-                        ProductId = c.ProductId,
-                        CompanyName = c.Company != null ? c.Company.Name : null,
-                        CompanyId = c.CompanyId,
-                        CertificationType = c.CertificationType != null ? c.CertificationType.Name : null,
-                        CertificationTypeId = c.CertificationTypeId,
-                        CertificationTypeSubcategory = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
-                        CertificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
-                        c.CreatedAt,
-                        c.UpdatedAt
-                    })
-                    .ToListAsync();
+                    .Take(parameters.PageSize);
 
-                var totalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize);
+                // Different projection based on whether ProductIds are included
+                if (includeProductIds)
+                {
+                    // Full projection with ProductIds for partner integrations (Novi, Amazon, etc.)
+                    var certificatesWithProductIds = await pagedQuery
+                        .Select(c => new
+                        {
+                            c.Id,
+                            CertificateNumber = c.Number,
+                            c.Status,
+                            IssueDate = c.EffectiveDate,
+                            c.ExpirationDate,
+                            c.Location,
+                            c.Country,
+                            c.Partner,
+                            c.CertificationResults,
+                            // Novi required fields
+                            BrandName = c.Company != null ? c.Company.Name : null,
+                            ProductName = c.Product != null ? c.Product.Name : null,
+                            CertificationName = c.CertificationType != null ? c.CertificationType.Name : null,
+                            Issuer = "Green Circle Certified",
+                            StandardVersion = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
+                            // Product identifiers (GTIN, MPN, ASIN, UPC, etc.)
+                            ProductIdentifiers = c.ProductIds
+                                .Where(pi => pi.Status == "Active")
+                                .Select(pi => new
+                                {
+                                    Type = pi.ProductIdType,
+                                    Value = pi.ProductIdValue,
+                                    pi.Partner,
+                                    pi.Status
+                                })
+                                .ToList(),
+                            // Additional IDs for reference
+                            ProductId = c.ProductId,
+                            CompanyId = c.CompanyId,
+                            CertificationTypeId = c.CertificationTypeId,
+                            CertificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
+                            c.CreatedAt,
+                            c.UpdatedAt,
+                            // Download URL for certificate PDF
+                            PdfDownloadUrl = $"/api/v1/certificates/{c.Number}/download"
+                        })
+                        .ToListAsync();
 
-                return PaginatedResponse(certificates, totalCount, parameters.PageNumber, parameters.PageSize);
+                    return PaginatedResponse(certificatesWithProductIds, totalCount, parameters.PageNumber, parameters.PageSize);
+                }
+                else
+                {
+                    // Standard projection without ProductIds (backward compatible)
+                    var certificates = await pagedQuery
+                        .Select(c => new
+                        {
+                            c.Id,
+                            CertificateNumber = c.Number,
+                            c.Status,
+                            c.EffectiveDate,
+                            c.ExpirationDate,
+                            c.Location,
+                            c.Country,
+                            c.Partner,
+                            c.CertificationResults,
+                            ProductName = c.Product != null ? c.Product.Name : null,
+                            ProductId = c.ProductId,
+                            CompanyName = c.Company != null ? c.Company.Name : null,
+                            CompanyId = c.CompanyId,
+                            CertificationType = c.CertificationType != null ? c.CertificationType.Name : null,
+                            CertificationTypeId = c.CertificationTypeId,
+                            CertificationTypeSubcategory = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
+                            CertificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
+                            c.CreatedAt,
+                            c.UpdatedAt
+                        })
+                        .ToListAsync();
+
+                    return PaginatedResponse(certificates, totalCount, parameters.PageNumber, parameters.PageSize);
+                }
             }
             catch (Exception ex)
             {

@@ -66,7 +66,8 @@ class CertificateCustomFields {
     renderFields() {
         const container = document.getElementById(this.containerId);
         if (!container) {
-            console.error(`Container ${this.containerId} not found`);
+            // Silently return on pages without custom fields container
+            // This is expected behavior on non-certificate pages
             return;
         }
 

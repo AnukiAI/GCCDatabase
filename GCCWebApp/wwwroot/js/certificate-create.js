@@ -340,10 +340,171 @@
         }
     };
 
+    // Unsaved Changes Detection
+    const UnsavedChanges = {
+        originalFormData: null,
+        isSubmitting: false,
+        hasChanges: false,
+
+        init: function() {
+            const form = document.getElementById('certificateCreateForm') || document.getElementById('certificateEditForm');
+            if (!form) return;
+
+            // Store original form values
+            this.originalFormData = new FormData(form);
+            this.originalValues = this.getFormValues(form);
+
+            // Track changes on all form inputs
+            form.addEventListener('input', () => this.markAsChanged());
+            form.addEventListener('change', () => this.markAsChanged());
+
+            // Track form submission
+            form.addEventListener('submit', () => {
+                this.isSubmitting = true;
+            });
+
+            // Warn before leaving if there are unsaved changes
+            window.addEventListener('beforeunload', (e) => {
+                if (this.hasChanges && !this.isSubmitting) {
+                    e.preventDefault();
+                    e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                    return e.returnValue;
+                }
+            });
+
+            // Also handle clicks on navigation links
+            document.querySelectorAll('a[href]:not([target="_blank"])').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    if (this.hasChanges && !this.isSubmitting) {
+                        const href = link.getAttribute('href');
+                        // Skip if it's an anchor link or JavaScript
+                        if (href.startsWith('#') || href.startsWith('javascript:')) return;
+
+                        e.preventDefault();
+                        this.confirmNavigation(href);
+                    }
+                });
+            });
+        },
+
+        getFormValues: function(form) {
+            const values = {};
+            const formData = new FormData(form);
+            for (const [key, value] of formData.entries()) {
+                values[key] = value;
+            }
+            return values;
+        },
+
+        markAsChanged: function() {
+            this.hasChanges = true;
+        },
+
+        confirmNavigation: async function(href) {
+            const confirmed = await ModalSystem.showConfirmation({
+                title: 'Unsaved Changes',
+                message: 'You have unsaved changes that will be lost. Are you sure you want to leave this page?',
+                confirmText: 'Leave Page',
+                cancelText: 'Stay'
+            });
+
+            if (confirmed) {
+                this.isSubmitting = true; // Prevent double prompt
+                window.location.href = href;
+            }
+        },
+
+        reset: function() {
+            this.hasChanges = false;
+            this.isSubmitting = false;
+        }
+    };
+
+    // Loading Spinner System
+    const LoadingSpinner = {
+        overlay: null,
+
+        show: function(message = 'Saving certificate...') {
+            if (this.overlay) return; // Already showing
+
+            this.overlay = document.createElement('div');
+            this.overlay.className = 'loading-overlay';
+            this.overlay.innerHTML = `
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <p class="loading-message">${message}</p>
+                </div>
+            `;
+            this.overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(3px);
+            `;
+
+            const content = this.overlay.querySelector('.loading-content');
+            content.style.cssText = `
+                text-align: center;
+                color: white;
+            `;
+
+            const spinner = this.overlay.querySelector('.loading-spinner');
+            spinner.style.cssText = `
+                width: 50px;
+                height: 50px;
+                border: 4px solid rgba(255, 255, 255, 0.3);
+                border-top-color: #92C83E;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 16px;
+            `;
+
+            const msg = this.overlay.querySelector('.loading-message');
+            msg.style.cssText = `
+                font-size: 18px;
+                font-weight: 500;
+                margin: 0;
+            `;
+
+            // Add keyframes animation
+            if (!document.getElementById('spinner-keyframes')) {
+                const style = document.createElement('style');
+                style.id = 'spinner-keyframes';
+                style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(this.overlay);
+            document.body.style.overflow = 'hidden';
+        },
+
+        hide: function() {
+            if (this.overlay) {
+                this.overlay.remove();
+                this.overlay = null;
+                document.body.style.overflow = '';
+            }
+        },
+
+        updateMessage: function(message) {
+            if (this.overlay) {
+                const msg = this.overlay.querySelector('.loading-message');
+                if (msg) msg.textContent = message;
+            }
+        }
+    };
+
     // Form Validation
     const FormValidation = {
         init: function() {
-            const form = document.getElementById('certificateCreateForm');
+            const form = document.getElementById('certificateCreateForm') || document.getElementById('certificateEditForm');
             if (!form) return;
 
             form.addEventListener('submit', (event) => {
@@ -397,6 +558,9 @@
                         firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         firstInvalid.focus();
                     }
+                } else {
+                    // Form is valid - show loading spinner
+                    LoadingSpinner.show('Saving certificate...');
                 }
                 form.classList.add('was-validated');
             });
@@ -427,6 +591,75 @@
 
             effectiveDate.addEventListener('change', validateDates);
             expirationDate.addEventListener('change', validateDates);
+        },
+
+        /**
+         * Handle server-side validation errors on page load
+         * This handles errors returned after POST when ModelState is invalid
+         */
+        handleServerValidationErrors: function() {
+            // Check for validation summary errors (must have actual visible content)
+            const validationSummary = document.querySelector('.alert-danger, .validation-summary-errors');
+            const hasErrors = validationSummary && validationSummary.textContent.trim().length > 0
+                && validationSummary.querySelector('li'); // Must have actual error items
+
+            // Check for field-level validation errors - only count spans with actual visible text
+            const allFieldErrors = document.querySelectorAll('.field-validation-error, span.text-danger');
+            const fieldErrors = Array.from(allFieldErrors).filter(span => {
+                const text = span.textContent.trim();
+                return text.length > 0 && text !== '*'; // Ignore asterisks and empty spans
+            });
+            const hasFieldErrors = fieldErrors.length > 0;
+
+            // Only process if there are ACTUAL server-side errors (not empty validation spans)
+            if (!hasErrors && !hasFieldErrors) return;
+
+            // Add was-validated class to show validation styles
+            const form = document.getElementById('certificateCreateForm') || document.getElementById('certificateEditForm');
+            if (form) {
+                form.classList.add('was-validated');
+            }
+
+            // Highlight fields with server-side errors
+            fieldErrors.forEach(errorSpan => {
+                if (errorSpan.textContent.trim()) {
+                    const formGroup = errorSpan.closest('.form-group');
+                    if (formGroup) {
+                        const input = formGroup.querySelector('input, select, textarea');
+                        if (input) {
+                            input.classList.add('is-invalid');
+                            input.style.borderColor = '#FF5252';
+                            input.style.backgroundColor = 'rgba(255, 82, 82, 0.05)';
+                            input.style.boxShadow = '0 0 0 3px rgba(255, 82, 82, 0.15)';
+                        }
+                        // Highlight label
+                        const label = formGroup.querySelector('label');
+                        if (label) {
+                            label.style.color = '#FF5252';
+                        }
+                    }
+                }
+            });
+
+            // Scroll to validation summary or first error
+            if (validationSummary && hasErrors) {
+                validationSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Add attention animation
+                validationSummary.style.animation = 'shake 0.5s ease-in-out';
+
+                // Show toast notification
+                const errorCount = validationSummary.querySelectorAll('li').length || 1;
+                ModalSystem.showNotification(
+                    `Please fix ${errorCount} validation error${errorCount > 1 ? 's' : ''} before saving.`,
+                    'error'
+                );
+            } else if (hasFieldErrors) {
+                const firstError = document.querySelector('.field-validation-error:not(:empty), .text-danger:not(:empty)');
+                if (firstError) {
+                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                ModalSystem.showNotification('Please correct the highlighted fields.', 'error');
+            }
         }
     };
 
@@ -436,12 +669,13 @@
         PdfUpload.init();
         TagManager.init();
         FormValidation.init();
+        UnsavedChanges.init();
 
-        // Initialize Product ID Manager (if present)
-        const productIdManagerElement = document.querySelector('.product-id-manager');
-        if (productIdManagerElement && typeof ProductIdManager !== 'undefined') {
-            new ProductIdManager('.product-id-manager', 0, false);
-        }
+        // Handle server-side validation errors (displayed after POST failure)
+        FormValidation.handleServerValidationErrors();
+
+        // Product ID Manager is auto-initialized by product-id-manager.js
+        // No need to initialize here - it handles its own DOMContentLoaded event
 
         // Show success message if present (for "Save & Add Another")
         const successMessage = document.querySelector('[data-success-message]');
@@ -455,7 +689,11 @@
         removePdfPreview: PdfUpload.removePdfPreview,
         removeTag: TagManager.removeTag.bind(TagManager),
         showNotification: ModalSystem.showNotification,
-        showConfirmation: ModalSystem.showConfirmation
+        showConfirmation: ModalSystem.showConfirmation,
+        resetUnsavedChanges: UnsavedChanges.reset.bind(UnsavedChanges),
+        markAsChanged: UnsavedChanges.markAsChanged.bind(UnsavedChanges),
+        showLoading: LoadingSpinner.show.bind(LoadingSpinner),
+        hideLoading: LoadingSpinner.hide.bind(LoadingSpinner)
     };
 
 })();

@@ -10,7 +10,7 @@ namespace GCCWebApp.Controllers.Api
     /// API Controller for Product ID CRUD operations
     /// Handles all Product ID management for certificates
     /// </summary>
-    [Route("api/[controller]")]
+    [Route("api/productids")]
     [ApiController]
     [Authorize(Policy = "AnalystOrAdmin")]
     public class ProductIdApiController : ControllerBase

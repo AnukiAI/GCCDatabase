@@ -26,7 +26,7 @@
     <header class="admin-header">
         <div class="admin-header-content">
             <div class="admin-title-section">
-                <h1 class="page-title">Add Certificate</h1>
+                <h1 class="admin-page-title">Create Certificate</h1>
                 <p class="admin-page-subtitle">Add a new certificate to the GreenCircle Certified database</p>
             </div>
             <div class="admin-actions-section">
@@ -396,6 +396,37 @@
 
                         console.log('Custom field values added to form:', fieldValues);
                     }
+
+                    // Add Product IDs to the form (from Product ID Manager)
+                    if (typeof window.productIdManager !== 'undefined' && window.productIdManager.productIds) {
+                        // Remove any existing product ID hidden inputs
+                        form.querySelectorAll('input[name^="ProductIds"]').forEach(input => input.remove());
+
+                        // Add product IDs as hidden inputs for model binding
+                        // Format: ProductIds[0].PropertyName, ProductIds[1].PropertyName, etc.
+                        window.productIdManager.productIds.forEach((pid, index) => {
+                            const fields = {
+                                'ProductIdType': pid.productIdType || '',
+                                'ProductIdValue': pid.productIdValue || '',
+                                'Status': pid.status || 'Active',
+                                'Partner': pid.partner || '',
+                                'ProductName': pid.productName || '',
+                                'ProductSku': pid.productSku || '',
+                                'Description': pid.description || ''
+                            };
+
+                            Object.entries(fields).forEach(([key, value]) => {
+                                const hiddenInput = document.createElement('input');
+                                hiddenInput.type = 'hidden';
+                                hiddenInput.name = `ProductIds[${index}].${key}`;
+                                hiddenInput.value = value;
+                                form.appendChild(hiddenInput);
+                            });
+                        });
+
+                        console.log('Product IDs added to form:', window.productIdManager.productIds.length);
+                    }
+
                     // If no custom fields or validation passes, allow form to submit normally
                     return true;
                 } catch (error) {

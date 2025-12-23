@@ -198,6 +198,12 @@ namespace GCCWebApp.Models
 
         [StringLength(100)]
         public string? Section { get; set; }
+
+        /// <summary>
+        /// Role-based visibility: "Public", "External", "Internal"
+        /// </summary>
+        [StringLength(20)]
+        public string RoleVisibility { get; set; } = "Public";
     }
 
     // CSF Attributes Models

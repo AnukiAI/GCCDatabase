@@ -36,15 +36,33 @@ namespace GCCWebApp.Services
 
         public async Task<List<CustomField>> GetFieldsAsync(bool includeInternalFields = true)
         {
+            // Default behavior for backward compatibility - use role-based method with Admin access
+            return await GetFieldsForRoleAsync(includeInternalFields ? "Admin" : "Public");
+        }
+
+        /// <summary>
+        /// Get custom fields filtered by user role visibility
+        /// </summary>
+        /// <param name="userRole">User role: Public, External, Analyst, Admin</param>
+        public async Task<List<CustomField>> GetFieldsForRoleAsync(string userRole)
+        {
             try
             {
                 var query = _context.CustomFields.Where(cf => cf.IsVisible);
 
-                // If not including internal fields, filter to only public fields
-                if (!includeInternalFields)
+                // Filter by role visibility
+                // Public users: Only "Public" visibility fields
+                // External users: "Public" and "External" visibility fields
+                // Analyst/Admin users: All visible fields (Public, External, Internal)
+                if (userRole == "Public")
                 {
-                    query = query.Where(cf => cf.IsPublic);
+                    query = query.Where(cf => cf.RoleVisibility == "Public");
                 }
+                else if (userRole == "External")
+                {
+                    query = query.Where(cf => cf.RoleVisibility == "Public" || cf.RoleVisibility == "External");
+                }
+                // Analyst and Admin see all visible fields (no additional filter)
 
                 return await query
                     .OrderBy(cf => cf.SortOrder)
@@ -52,7 +70,7 @@ namespace GCCWebApp.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting custom fields (includeInternal={IncludeInternal})", includeInternalFields);
+                _logger.LogError(ex, "Error getting custom fields for role {UserRole}", userRole);
                 return new List<CustomField>();
             }
         }

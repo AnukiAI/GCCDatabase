@@ -18,6 +18,13 @@ namespace GCCWebApp.Models
 
         public bool IsVisible { get; set; } = true;
 
+        /// <summary>
+        /// Role-based visibility: "Public" (all users), "External" (External+), "Internal" (Analyst/Admin only)
+        /// </summary>
+        [MaxLength(20)]
+        public string RoleVisibility { get; set; } = "Public";
+
+        [Obsolete("Use RoleVisibility instead")]
         public bool IsPublic { get; set; } = true;
 
         public int SortOrder { get; set; } = 0;

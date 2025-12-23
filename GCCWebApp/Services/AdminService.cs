@@ -780,6 +780,7 @@ namespace GCCWebApp.Services
                     FieldType = cf.FieldType,
                     IsRequired = cf.IsRequired,
                     IsVisible = cf.IsVisible,
+                    RoleVisibility = cf.RoleVisibility ?? "Public",
                     SortOrder = cf.SortOrder,
                     Options = cf.Options ?? "",
                     DefaultValue = cf.DefaultValue ?? "",
@@ -819,6 +820,7 @@ namespace GCCWebApp.Services
                     FieldType = model.FieldType,
                     IsRequired = model.IsRequired,
                     IsVisible = model.IsVisible,
+                    RoleVisibility = model.RoleVisibility ?? "Public",
                     SortOrder = model.SortOrder,
                     Options = model.Options,
                     DefaultValue = model.DefaultValue,
@@ -848,6 +850,7 @@ namespace GCCWebApp.Services
                 field.FieldType = model.FieldType;
                 field.IsRequired = model.IsRequired;
                 field.IsVisible = model.IsVisible;
+                field.RoleVisibility = model.RoleVisibility ?? "Public";
                 field.SortOrder = model.SortOrder;
                 field.Options = model.Options;
                 field.DefaultValue = model.DefaultValue;

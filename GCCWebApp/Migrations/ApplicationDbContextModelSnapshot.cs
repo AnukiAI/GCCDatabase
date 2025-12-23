@@ -992,6 +992,11 @@ namespace GCCWebApp.Migrations
                     b.Property<string>("Options")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("RoleVisibility")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Section")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");

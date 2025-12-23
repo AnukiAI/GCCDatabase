@@ -401,16 +401,23 @@
         },
 
         confirmNavigation: async function(href) {
-            const confirmed = await ModalSystem.showConfirmation({
-                title: 'Unsaved Changes',
-                message: 'You have unsaved changes that will be lost. Are you sure you want to leave this page?',
-                confirmText: 'Leave Page',
-                cancelText: 'Stay'
-            });
+            console.log('[UnsavedChanges] Showing navigation confirmation for:', href);
+            try {
+                const confirmed = await ModalSystem.showConfirmation({
+                    title: 'Unsaved Changes',
+                    message: 'You have unsaved changes that will be lost. Are you sure you want to leave this page?',
+                    confirmText: 'Leave Page',
+                    cancelText: 'Stay'
+                });
 
-            if (confirmed) {
-                this.isSubmitting = true; // Prevent double prompt
-                window.location.href = href;
+                console.log('[UnsavedChanges] User confirmed:', confirmed);
+                if (confirmed) {
+                    this.isSubmitting = true; // Prevent double prompt
+                    console.log('[UnsavedChanges] Navigating to:', href);
+                    window.location.href = href;
+                }
+            } catch (error) {
+                console.error('[UnsavedChanges] Error in confirmNavigation:', error);
             }
         },
 
@@ -501,90 +508,264 @@
         }
     };
 
-    // Form Validation
+    // Form Validation - Minimal, delegates to jQuery Unobtrusive Validation
+    // Custom dropdowns have their own validation in certificate-inline-create.js
     const FormValidation = {
         init: function() {
             const form = document.getElementById('certificateCreateForm') || document.getElementById('certificateEditForm');
             if (!form) return;
 
-            form.addEventListener('submit', (event) => {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
+            // Add inline validation styles
+            this.addInlineValidationStyles();
 
-                    // Show notification about validation errors
-                    const invalidFields = form.querySelectorAll(':invalid');
-                    const fieldNames = [];
-
-                    invalidFields.forEach(field => {
-                        // Get field label or name
-                        const label = field.closest('.form-group')?.querySelector('label');
-                        if (label) {
-                            // Remove the asterisk span from label text
-                            const labelText = label.textContent.replace('*', '').trim();
-                            if (labelText && !fieldNames.includes(labelText)) {
-                                fieldNames.push(labelText);
-                            }
-                        }
-                    });
-
-                    // Check for PDF upload specifically (hidden field)
-                    const pdfInput = document.getElementById('certificatePdf');
-                    if (pdfInput && !pdfInput.files.length && pdfInput.hasAttribute('required')) {
-                        if (!fieldNames.includes('Upload PDF Certificate')) {
-                            fieldNames.push('Upload PDF Certificate');
-                        }
-                        // Highlight the PDF upload zone
-                        const pdfZone = document.getElementById('pdfUploadZone');
-                        if (pdfZone) {
-                            pdfZone.style.borderColor = '#FF5252';
-                            pdfZone.style.backgroundColor = 'rgba(255, 82, 82, 0.05)';
-                            pdfZone.style.animation = 'shake 0.5s ease-in-out';
-                        }
-                    }
-
-                    if (fieldNames.length > 0) {
-                        const message = fieldNames.length === 1
-                            ? `Please fill in the required field: ${fieldNames[0]}`
-                            : `Please fill in the required fields: ${fieldNames.slice(0, 3).join(', ')}${fieldNames.length > 3 ? ` and ${fieldNames.length - 3} more` : ''}`;
-                        ModalSystem.showNotification(message, 'error');
-                    } else {
-                        ModalSystem.showNotification('Please fill in all required fields.', 'error');
-                    }
-
-                    // Scroll to first invalid field
-                    const firstInvalid = form.querySelector(':invalid');
-                    if (firstInvalid) {
-                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        firstInvalid.focus();
-                    }
-                } else {
-                    // Form is valid - show loading spinner
-                    LoadingSpinner.show('Saving certificate...');
-                }
-                form.classList.add('was-validated');
-            });
-
-            // Date validation
+            // Date validation (additional custom validation)
             this.initDateValidation();
+
+            // Note: Loading spinner is NOT shown here - form submits normally
+            // jQuery Unobtrusive Validation handles required field validation
         },
 
+        /**
+         * Validate all required fields and return list of errors
+         */
+        validateRequiredFields: function(form) {
+            const errors = [];
+
+            // Check Company (required in UI)
+            const companySelect = form.querySelector('#CompanyId');
+            if (companySelect && !companySelect.value) {
+                errors.push({
+                    formGroup: companySelect.closest('.form-group'),
+                    field: companySelect,
+                    message: 'Company is required'
+                });
+            }
+
+            // Check Certification Type
+            const certTypeSelect = form.querySelector('#CertificationTypeId');
+            if (certTypeSelect && !certTypeSelect.value) {
+                errors.push({
+                    formGroup: certTypeSelect.closest('.form-group'),
+                    field: certTypeSelect,
+                    message: 'Certification Type is required'
+                });
+            }
+
+            // Check Product Name
+            const productSelect = form.querySelector('#ProductId');
+            if (productSelect && !productSelect.value) {
+                errors.push({
+                    formGroup: productSelect.closest('.form-group'),
+                    field: productSelect,
+                    message: 'Product Name is required'
+                });
+            }
+
+            // Check Effective Date
+            const effectiveDate = form.querySelector('input[name="EffectiveDate"]');
+            if (effectiveDate && !effectiveDate.value) {
+                errors.push({
+                    formGroup: effectiveDate.closest('.form-group'),
+                    field: effectiveDate,
+                    message: 'Effective Date is required'
+                });
+            }
+
+            // Check Expiration Date
+            const expirationDate = form.querySelector('input[name="ExpirationDate"]');
+            if (expirationDate && !expirationDate.value) {
+                errors.push({
+                    formGroup: expirationDate.closest('.form-group'),
+                    field: expirationDate,
+                    message: 'Expiration Date is required'
+                });
+            }
+
+            // Check Status
+            const statusSelect = form.querySelector('#Status, select[name="Status"]');
+            if (statusSelect && !statusSelect.value) {
+                errors.push({
+                    formGroup: statusSelect.closest('.form-group'),
+                    field: statusSelect,
+                    message: 'Status is required'
+                });
+            }
+
+            // Check PDF Upload
+            const pdfInput = document.getElementById('certificatePdf');
+            if (pdfInput && pdfInput.hasAttribute('required') && !pdfInput.files.length) {
+                const pdfZone = document.getElementById('pdfUploadZone');
+                errors.push({
+                    formGroup: pdfZone?.closest('.form-group'),
+                    field: pdfInput,
+                    message: 'Please upload a PDF certificate'
+                });
+                // Highlight PDF zone
+                if (pdfZone) {
+                    pdfZone.style.borderColor = '#FF5252';
+                    pdfZone.style.backgroundColor = 'rgba(255, 82, 82, 0.05)';
+                }
+            }
+
+            return errors;
+        },
+
+        /**
+         * Show error for a form group - uses existing asp-validation-for spans
+         */
+        showError: function(formGroup, message) {
+            if (!formGroup) return;
+
+            formGroup.classList.add('has-error');
+
+            // Highlight custom dropdown trigger if present
+            const trigger = formGroup.querySelector('.custom-dropdown-trigger');
+            if (trigger) {
+                trigger.style.borderColor = '#FF5252';
+                trigger.style.backgroundColor = 'rgba(255, 82, 82, 0.05)';
+            }
+
+            // Use existing asp-validation-for span if present
+            const existingValidationSpan = formGroup.querySelector('.text-danger[data-valmsg-for], span.text-danger[role="alert"]');
+            if (existingValidationSpan) {
+                existingValidationSpan.textContent = message;
+                existingValidationSpan.classList.remove('field-validation-valid');
+                existingValidationSpan.classList.add('field-validation-error');
+                return; // Don't create duplicate
+            }
+
+            // Fallback: Add error message only if no existing validation span
+            if (!formGroup.querySelector('.inline-validation-error')) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'inline-validation-error';
+                errorDiv.textContent = message;
+
+                // Insert after the input/dropdown wrapper
+                const insertAfter = formGroup.querySelector('.custom-dropdown-wrapper') ||
+                                   formGroup.querySelector('.pdf-upload') ||
+                                   formGroup.querySelector('input, select, textarea');
+                if (insertAfter) {
+                    insertAfter.insertAdjacentElement('afterend', errorDiv);
+                } else {
+                    formGroup.appendChild(errorDiv);
+                }
+            }
+        },
+
+        /**
+         * Add CSS styles for inline validation
+         */
+        addInlineValidationStyles: function() {
+            if (document.getElementById('inline-validation-styles')) return;
+
+            const style = document.createElement('style');
+            style.id = 'inline-validation-styles';
+            style.textContent = `
+                .inline-validation-error {
+                    display: block;
+                    margin-top: 8px;
+                    padding: 0;
+                }
+                .form-group.has-error label {
+                    color: #FF5252;
+                }
+            `;
+            document.head.appendChild(style);
+        },
+
+        /**
+         * Clear inline error for a specific form group
+         */
+        clearInlineError: function(formGroup) {
+            formGroup.classList.remove('has-error');
+
+            // Clear existing asp-validation-for spans
+            const existingValidationSpan = formGroup.querySelector('.text-danger[data-valmsg-for], span.text-danger[role="alert"]');
+            if (existingValidationSpan) {
+                existingValidationSpan.textContent = '';
+                existingValidationSpan.classList.remove('field-validation-error');
+                existingValidationSpan.classList.add('field-validation-valid');
+            }
+
+            // Remove any inline-validation-error divs
+            const errorDiv = formGroup.querySelector('.inline-validation-error');
+            if (errorDiv) errorDiv.remove();
+
+            // Reset custom dropdown trigger
+            const trigger = formGroup.querySelector('.custom-dropdown-trigger');
+            if (trigger) {
+                trigger.style.borderColor = '#ced4da';
+                trigger.style.backgroundColor = '';
+            }
+
+            // Reset PDF zone
+            const pdfZone = formGroup.querySelector('.pdf-upload, #pdfUploadZone');
+            if (pdfZone) {
+                pdfZone.style.borderColor = '';
+                pdfZone.style.backgroundColor = '';
+            }
+        },
+
+        /**
+         * Clear all inline errors from the form
+         */
+        clearAllInlineErrors: function(form) {
+            form.querySelectorAll('.form-group.has-error').forEach(fg => {
+                this.clearInlineError(fg);
+            });
+            form.querySelectorAll('.inline-validation-error').forEach(e => e.remove());
+            // Also clear any asp-validation-for spans
+            form.querySelectorAll('.field-validation-error').forEach(span => {
+                span.textContent = '';
+                span.classList.remove('field-validation-error');
+                span.classList.add('field-validation-valid');
+            });
+        },
+
+        /**
+         * Add input listeners to clear errors when user interacts
+         */
+        addInputListeners: function(form) {
+            const self = this;
+            form.querySelectorAll('input, select, textarea').forEach(field => {
+                ['input', 'change'].forEach(eventType => {
+                    field.addEventListener(eventType, function() {
+                        const formGroup = this.closest('.form-group') ||
+                                         this.closest('.custom-dropdown-wrapper')?.closest('.form-group');
+                        if (formGroup && formGroup.classList.contains('has-error')) {
+                            self.clearInlineError(formGroup);
+                        }
+                    });
+                });
+            });
+        },
+
+        /**
+         * Date validation - check expiration is after effective
+         */
         initDateValidation: function() {
             const effectiveDate = document.querySelector('input[name="EffectiveDate"]');
             const expirationDate = document.querySelector('input[name="ExpirationDate"]');
 
             if (!effectiveDate || !expirationDate) return;
 
+            const self = this;
+
             const validateDates = () => {
+                const expirationFormGroup = expirationDate.closest('.form-group');
+
                 if (effectiveDate.value && expirationDate.value) {
                     const effective = new Date(effectiveDate.value);
                     const expiration = new Date(expirationDate.value);
 
                     if (expiration <= effective) {
-                        expirationDate.setCustomValidity('Expiration date must be after effective date');
-                        ModalSystem.showNotification('Expiration date must be after effective date.', 'warning');
+                        if (expirationFormGroup) {
+                            self.showError(expirationFormGroup, 'Expiration date must be after effective date');
+                        }
                     } else {
-                        expirationDate.setCustomValidity('');
+                        if (expirationFormGroup) {
+                            self.clearInlineError(expirationFormGroup);
+                        }
                     }
                 }
             };
@@ -595,70 +776,11 @@
 
         /**
          * Handle server-side validation errors on page load
-         * This handles errors returned after POST when ModelState is invalid
          */
         handleServerValidationErrors: function() {
-            // Check for validation summary errors (must have actual visible content)
             const validationSummary = document.querySelector('.alert-danger, .validation-summary-errors');
-            const hasErrors = validationSummary && validationSummary.textContent.trim().length > 0
-                && validationSummary.querySelector('li'); // Must have actual error items
-
-            // Check for field-level validation errors - only count spans with actual visible text
-            const allFieldErrors = document.querySelectorAll('.field-validation-error, span.text-danger');
-            const fieldErrors = Array.from(allFieldErrors).filter(span => {
-                const text = span.textContent.trim();
-                return text.length > 0 && text !== '*'; // Ignore asterisks and empty spans
-            });
-            const hasFieldErrors = fieldErrors.length > 0;
-
-            // Only process if there are ACTUAL server-side errors (not empty validation spans)
-            if (!hasErrors && !hasFieldErrors) return;
-
-            // Add was-validated class to show validation styles
-            const form = document.getElementById('certificateCreateForm') || document.getElementById('certificateEditForm');
-            if (form) {
-                form.classList.add('was-validated');
-            }
-
-            // Highlight fields with server-side errors
-            fieldErrors.forEach(errorSpan => {
-                if (errorSpan.textContent.trim()) {
-                    const formGroup = errorSpan.closest('.form-group');
-                    if (formGroup) {
-                        const input = formGroup.querySelector('input, select, textarea');
-                        if (input) {
-                            input.classList.add('is-invalid');
-                            input.style.borderColor = '#FF5252';
-                            input.style.backgroundColor = 'rgba(255, 82, 82, 0.05)';
-                            input.style.boxShadow = '0 0 0 3px rgba(255, 82, 82, 0.15)';
-                        }
-                        // Highlight label
-                        const label = formGroup.querySelector('label');
-                        if (label) {
-                            label.style.color = '#FF5252';
-                        }
-                    }
-                }
-            });
-
-            // Scroll to validation summary or first error
-            if (validationSummary && hasErrors) {
+            if (validationSummary && validationSummary.textContent.trim().length > 0) {
                 validationSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // Add attention animation
-                validationSummary.style.animation = 'shake 0.5s ease-in-out';
-
-                // Show toast notification
-                const errorCount = validationSummary.querySelectorAll('li').length || 1;
-                ModalSystem.showNotification(
-                    `Please fix ${errorCount} validation error${errorCount > 1 ? 's' : ''} before saving.`,
-                    'error'
-                );
-            } else if (hasFieldErrors) {
-                const firstError = document.querySelector('.field-validation-error:not(:empty), .text-danger:not(:empty)');
-                if (firstError) {
-                    firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }
-                ModalSystem.showNotification('Please correct the highlighted fields.', 'error');
             }
         }
     };

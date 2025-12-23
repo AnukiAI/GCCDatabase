@@ -532,6 +532,15 @@
     font-size: 16px;
     color: #666;
     margin-top: 10px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.certificate-location i {
+    color: var(--green-primary, #92C83E);
+    flex-shrink: 0;
+    margin-top: 2px;
 }
 
 .certificate-actions {

@@ -401,6 +401,21 @@ namespace GCCWebApp.Controllers
         {
             try
             {
+                // Debug logging for Product IDs
+                _logger.LogInformation("Create POST received. ProductIds count: {Count}", model.ProductIds?.Count ?? 0);
+                if (model.ProductIds != null && model.ProductIds.Any())
+                {
+                    foreach (var pid in model.ProductIds)
+                    {
+                        _logger.LogInformation("ProductId received: Type={Type}, Value={Value}, CertId={CertId}",
+                            pid.ProductIdType, pid.ProductIdValue, pid.CertificateId);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("No ProductIds received in model");
+                }
+
                 if (ModelState.IsValid)
                 {
                     var certificate = new Certificate
@@ -524,7 +539,7 @@ namespace GCCWebApp.Controllers
                         return RedirectToAction(nameof(Create));
                     }
 
-                    return RedirectToAction(nameof(Details), new { id = certificate.Id });
+                    return RedirectToAction(nameof(Details), new { id = certificate.Number });
                 }
 
                 // If we got here, something failed, reload the form
@@ -816,7 +831,7 @@ namespace GCCWebApp.Controllers
                     _logger.LogInformation("Certificate {Number} updated by user {UserId}", certificate.Number, GetCurrentUserId());
 
                     TempData["SuccessMessage"] = $"Certificate {certificate.Number} updated successfully!";
-                    return RedirectToAction(nameof(Details), new { id = certificate.Id });
+                    return RedirectToAction(nameof(Details), new { id = certificate.Number });
                 }
 
                 // If we got here, something failed, reload the form
@@ -1720,11 +1735,19 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                // Determine if user can see internal fields
-                // External users can only see public fields
-                bool includeInternalFields = !User.IsInRole("External");
+                // Determine user role for field visibility filtering
+                // RoleVisibility: Public (all), External (External+), Internal (Analyst/Admin only)
+                string userRole = "Public";
+                if (User.IsInRole("Admin") || User.IsInRole("Analyst"))
+                {
+                    userRole = "Admin"; // Admin and Analyst see all fields
+                }
+                else if (User.IsInRole("External"))
+                {
+                    userRole = "External"; // External sees Public + External fields
+                }
 
-                var fields = await _certificateFieldService.GetFieldsAsync(includeInternalFields);
+                var fields = await _certificateFieldService.GetFieldsForRoleAsync(userRole);
                 return Json(new { success = true, data = fields });
             }
             catch (Exception ex)
@@ -1802,6 +1825,100 @@ namespace GCCWebApp.Controllers
             {
                 _logger.LogError(ex, "Error saving custom field values for certificate {CertificateId}", request?.CertificateId);
                 return Json(new { success = false, message = "Error saving field values" });
+            }
+        }
+
+        #endregion
+
+        #region Product Type/Subcategory Cascading Dropdowns
+
+        /// <summary>
+        /// Gets all product types for cascading dropdown
+        /// GET: /Certificate/GetProductTypes
+        /// </summary>
+        [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> GetProductTypes()
+        {
+            try
+            {
+                var allProductTypes = await _unitOfWork.ProductTypes.GetAllAsync();
+                var productTypes = allProductTypes
+                    .Where(pt => pt.IsActive)
+                    .OrderBy(pt => pt.SortOrder)
+                    .ThenBy(pt => pt.Name)
+                    .Select(pt => new { id = pt.Id, name = pt.Name, parentId = pt.ParentId, level = pt.Level })
+                    .ToList();
+
+                return Json(new { success = true, data = productTypes });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting product types");
+                return Json(new { success = false, message = "Error loading product types" });
+            }
+        }
+
+        /// <summary>
+        /// Gets product subcategories for a specific product type
+        /// GET: /Certificate/GetProductSubcategories?productTypeId={id}
+        /// </summary>
+        [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> GetProductSubcategories(int productTypeId)
+        {
+            try
+            {
+                var allSubcategories = await _unitOfWork.ProductSubcategories.GetAllAsync();
+                var subcategories = allSubcategories
+                    .Where(ps => ps.ProductTypeId == productTypeId && ps.IsActive)
+                    .OrderBy(ps => ps.SortOrder)
+                    .ThenBy(ps => ps.Name)
+                    .Select(ps => new { id = ps.Id, name = ps.Name })
+                    .ToList();
+
+                return Json(new { success = true, data = subcategories });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting product subcategories for type {ProductTypeId}", productTypeId);
+                return Json(new { success = false, message = "Error loading product subcategories" });
+            }
+        }
+
+        /// <summary>
+        /// Gets products filtered by product type and/or subcategory
+        /// GET: /Certificate/GetProductsByType?productTypeId={typeId}&subcategoryId={subId}
+        /// </summary>
+        [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> GetProductsByType(int? productTypeId, int? subcategoryId)
+        {
+            try
+            {
+                var allProducts = await _unitOfWork.Products.GetAllAsync();
+                var query = allProducts.Where(p => p.IsActive && !p.IsDeleted);
+
+                if (subcategoryId.HasValue)
+                {
+                    query = query.Where(p => p.ProductSubcategoryId == subcategoryId.Value);
+                }
+                else if (productTypeId.HasValue)
+                {
+                    query = query.Where(p => p.ProductTypeId == productTypeId.Value);
+                }
+
+                var products = query
+                    .OrderBy(p => p.Name)
+                    .Select(p => new { id = p.Id, name = p.Name })
+                    .ToList();
+
+                return Json(new { success = true, data = products });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting products by type {ProductTypeId}, subcategory {SubcategoryId}", productTypeId, subcategoryId);
+                return Json(new { success = false, message = "Error loading products" });
             }
         }
 

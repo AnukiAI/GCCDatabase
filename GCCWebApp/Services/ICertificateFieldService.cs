@@ -11,11 +11,18 @@ namespace GCCWebApp.Services
         Task<List<CustomField>> GetFieldsForCertificateTypeAsync(int certificateTypeId);
 
         /// <summary>
-        /// Gets all visible custom fields with role-based filtering
+        /// Gets all visible custom fields with role-based filtering (deprecated - use GetFieldsForRoleAsync)
         /// </summary>
         /// <param name="includeInternalFields">If true, includes fields where IsPublic=false. If false, only returns public fields.</param>
         /// <returns>List of custom fields filtered by visibility and public/internal status</returns>
         Task<List<CustomField>> GetFieldsAsync(bool includeInternalFields = true);
+
+        /// <summary>
+        /// Gets custom fields filtered by user role visibility
+        /// </summary>
+        /// <param name="userRole">User role: Public, External, Analyst, Admin</param>
+        /// <returns>List of custom fields visible to the specified role</returns>
+        Task<List<CustomField>> GetFieldsForRoleAsync(string userRole);
 
         /// <summary>
         /// Gets all field values for a specific certificate

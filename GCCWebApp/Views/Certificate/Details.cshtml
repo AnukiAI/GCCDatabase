@@ -1,42 +1,37 @@
-﻿@model GCCWebApp.Models.CertificateDetailsViewModelSimple
-
+@model GCCWebApp.Models.CertificateDetailsViewModelSimple
 @{
     ViewData["Title"] = $"Certificate {Model.Certificate.Number} - {Model.Certificate.Product?.Name ?? "N/A"}";
-    ViewData["BodyClass"] = "role-admin";
-    ViewData["UserName"] = "Jane Smith";
+    ViewData["BodyClass"] = "certificate-single-view";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+
+    // Get data from model with safe defaults
+    var certificateId = Model.Certificate?.Id.ToString() ?? "0";
+    var certificateNumber = Model.Certificate?.Number ?? "";
+    var certificationType = Model.Certificate?.CertificationType?.Name ?? "Certified Environmental Facts";
+    var company = Model.Certificate?.Company?.Name ?? "Unknown Company";
+    var productName = Model.Certificate?.Product?.Name ?? "Unknown Product";
+    var productType = Model.Certificate?.Product?.ProductType?.Name ?? "General Product";
+    var location = Model.Certificate?.Location ?? "Unknown Location";
+    var country = Model.Certificate?.Country ?? "Unknown Country";
+    var effectiveDate = Model.Certificate?.EffectiveDate.ToString("M/d/yyyy") ?? "Unknown";
+    var expirationDate = Model.Certificate?.ExpirationDate.ToString("M/d/yyyy") ?? "Unknown";
+    var status = Model.Certificate?.Status ?? "Unknown";
 }
 
-@section Styles {
-    <link href="~/css/certificates.css" rel="stylesheet" />
-    <style>
-        .section-header {
-            font-size: 16px;
-            font-weight: 600;
-            color: #002B76;
-            margin-top: 20px;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e0e0e0;
-        }
-
-        .section-header:first-child {
-            margin-top: 0;
-        }
-    </style>
-}
+@* No additional styles needed - uses main.css for certificate-single-card styling *@
 
 @section Breadcrumbs {
     <span class="role-element role-public-show">
         <a href="/">Home</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
-        <a href="/Certificate">Certificates</a>
+        <a href="/Certificate/CertificateTileView">Certificates</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span class="current">Certificate Details</span>
     </span>
     <span class="role-element role-external-show">
         <a href="/">Home</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
-        <a asp-controller="Certificate" asp-action="Index">Certificates</a>
+        <a asp-controller="Certificate" asp-action="CertificateTileViewExternal">Certificates</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span class="current">Certificate Details</span>
     </span>
@@ -44,155 +39,282 @@
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <a href="#">Administration</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
-        <a asp-controller="Certificate" asp-action="Management">Certificate Management</a>
+        <a asp-controller="Certificate" asp-action="CertificateTileViewInternal">Certificate Management</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span class="current">Certificate Details</span>
     </span>
 }
 
-@section PageActions {
-    <button class="btn btn-outline role-element role-public-show role-external-show" onclick="window.history.back()">
-        <i class="fas fa-arrow-left"></i> Back to Search
-    </button>
-    <button class="btn btn-outline role-element role-public-show role-external-show" onclick="downloadCertificate()">
-        <i class="fas fa-download"></i> Download Certificate
-    </button>
-    <button class="btn btn-outline role-element role-public-show role-external-show" onclick="printCertificate()">
-        <i class="fas fa-print"></i> Print
-    </button>
-
-    <button class="btn btn-outline role-element role-analyst-show role-admin-show" onclick="window.history.back()">
-        <i class="fas fa-arrow-left"></i> Back to Management
-    </button>
-    <button class="btn btn-outline role-element role-analyst-show role-admin-show" onclick="downloadCertificate()">
-        <i class="fas fa-download"></i> Download PDF
-    </button>
-    <button class="btn btn-outline role-element role-analyst-show role-admin-show" onclick="exportCertificateData()">
-        <i class="fas fa-file-export"></i> Export Data
-    </button>
-    <button class="btn btn-primary role-element role-analyst-show role-admin-show" onclick="editCertificate()">
-        <i class="fas fa-edit"></i> Edit Certificate
-    </button>
-
-    <div class="btn-group role-element role-admin-show">
-        <button class="btn btn-outline dropdown-toggle" data-bs-toggle="dropdown">
-            <i class="fas fa-cog"></i> Admin Actions
-        </button>
-        <ul class="dropdown-menu">
-            <li><a class="dropdown-item" href="#" onclick="duplicateCertificate()"><i class="fas fa-copy"></i> Duplicate</a></li>
-            <li><a class="dropdown-item" href="#" onclick="addInternalNote()"><i class="fas fa-sticky-note"></i> Add Note</a></li>
-            <li><hr class="dropdown-divider"></li>
-            <li><a class="dropdown-item" href="#" onclick="updateCertificateStatus('Suspended')"><i class="fas fa-pause"></i> Suspend</a></li>
-            <li><a class="dropdown-item text-danger" href="#" onclick="updateCertificateStatus('Revoked')"><i class="fas fa-ban"></i> Revoke</a></li>
-        </ul>
-    </div>
-}
-
-<div class="certificate-badge">Certificate 1.1</div>
-
-<div class="certificate-details">
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h3>@Model.Certificate.Number</h3>
-                </div>
-                <div class="card-body">
-                    <dl class="row">
-                        <dt class="col-sm-3">Company:</dt>
-                        <dd class="col-sm-9">@(Model.Certificate.Company?.Name ?? "N/A")</dd>
-
-                        <dt class="col-sm-3">Product:</dt>
-                        <dd class="col-sm-9">@(Model.Certificate.Product?.Name ?? "N/A")</dd>
-
-                        <dt class="col-sm-3">Certification Type:</dt>
-                        <dd class="col-sm-9">@(Model.Certificate.CertificationType?.Name ?? "N/A")</dd>
-
-                        <dt class="col-sm-3">Effective Date:</dt>
-                        <dd class="col-sm-9">@Model.Certificate.EffectiveDate.ToString("MMMM dd, yyyy")</dd>
-
-                        <dt class="col-sm-3">Expiration Date:</dt>
-                        <dd class="col-sm-9">@Model.Certificate.ExpirationDate.ToString("MMMM dd, yyyy")</dd>
-
-                        <dt class="col-sm-3">Country:</dt>
-                        <dd class="col-sm-9">@Model.Certificate.Country</dd>
-
-                        <dt class="col-sm-3">Status:</dt>
-                        <dd class="col-sm-9"><span class="badge badge-@(Model.Certificate.Status == "Active" ? "success" : "secondary")">@Model.Certificate.Status</span></dd>
-
-                        @* Certification Results - Admin/Analyst only *@
-                        @if (Model.ShowInternalData && !string.IsNullOrWhiteSpace(Model.Certificate.CertificationResults))
-                        {
-                            <dt class="col-sm-3 role-element role-analyst-show role-admin-show">Certification Results:</dt>
-                            <dd class="col-sm-9 role-element role-analyst-show role-admin-show">@Model.Certificate.CertificationResults</dd>
-                        }
-                    </dl>
-                </div>
+<!-- Certificate Details -->
+<div class="certificate-single-container" data-id="@certificateId">
+    <!-- Certificate Card styled like tile view -->
+    <div class="certificate-card certificate-single-card">
+        <div class="card-header">
+            <div class="header-row">
+                <div class="certificate-category">@certificationType.ToUpper()</div>
+                <div class="certificate-id">@certificateNumber</div>
             </div>
-
-            @* Custom Fields Section *@
-            @if (Model.CustomFieldValues != null && Model.CustomFieldValues.Any())
-            {
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h3>Additional Information</h3>
+            <div class="company-name">@company</div>
+        </div>
+        <div class="card-body">
+            <div class="product-info">
+                <div class="product-name" style="font-size: 22px; font-weight: 700;">@productName</div>
+                <div class="product-type" style="font-size: 18px;">@productType</div>
+            </div>
+            <!-- Main Detail Grid -->
+            <div class="certificate-details-grid">
+                <!-- Left Column: Certificate Info -->
+                <div class="details-column">
+                    <!-- Certification Details -->
+                    <div class="detail-section">
+                        <h3 class="certificate-section-title">Certification Details</h3>
+                        <div class="certificate-field"><strong>Status:</strong> <span class="status-@status.ToLower()">@status</span></div>
+                        <div class="certificate-field"><strong>Product Type:</strong> <span>@productType</span></div>
+                        @if (!string.IsNullOrEmpty(Model.Certificate?.Partner) && Model.Certificate.Partner != "None")
+                        {
+                            <div class="certificate-field"><strong>Partner:</strong> <span>@Model.Certificate.Partner</span></div>
+                        }
+                        <div class="certificate-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            @location@if (!string.IsNullOrEmpty(country))
+                            {
+                                <text>, @country</text>
+                            }
+                        </div>
                     </div>
-                    <div class="card-body">
+
+                    <!-- Certification Period -->
+                    <div class="detail-section">
+                        <h3 class="certificate-section-title">Certification Period</h3>
+                        <div class="certificate-period">
+                            <strong>Effective Date:</strong> @effectiveDate<br>
+                            <strong>Expiration Date:</strong> @expirationDate
+                        </div>
+                    </div>
+
+                    <!-- Contact Info -->
+                    <div class="detail-section">
+                        <h3 class="certificate-section-title">Contact Information</h3>
+                        <div class="certificate-field">
+                            <strong>Company Email:</strong>
+                            <span>
+                                @if (!string.IsNullOrEmpty(Model.Certificate?.Company?.Email))
+                                {
+                                    <a href="mailto:@Model.Certificate.Company.Email">@Model.Certificate.Company.Email</a>
+                                }
+                                else
+                                {
+                                    <text>Available upon request</text>
+                                }
+                            </span>
+                        </div>
+                        <div class="certificate-field">
+                            <strong>Company URL:</strong>
+                            <span>
+                                @if (!string.IsNullOrEmpty(Model.Certificate?.Company?.Website))
+                                {
+                                    <a href="@Model.Certificate.Company.Website" target="_blank" rel="noopener">@Model.Certificate.Company.Website</a>
+                                }
+                                else
+                                {
+                                    <text>Not provided</text>
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                    @* Certification Results - Admin/Analyst only *@
+                    @if (Model.ShowInternalData && !string.IsNullOrWhiteSpace(Model.Certificate?.CertificationResults))
+                    {
+                        <div class="detail-section role-element role-analyst-show role-admin-show">
+                            <h3 class="certificate-section-title">Certification Results</h3>
+                            <div class="certificate-field">@Model.Certificate.CertificationResults</div>
+                        </div>
+                    }
+
+                    @* Custom Fields Section *@
+                    @if (Model.CustomFieldValues != null && Model.CustomFieldValues.Any())
+                    {
                         @foreach (var section in Model.CustomFieldValues.GroupBy(f => f.Field.Section))
                         {
-                            <h4 class="section-header">@(section.Key)</h4>
-                            <dl class="row mb-4">
+                            <div class="detail-section">
+                                <h3 class="certificate-section-title">@(section.Key)</h3>
                                 @foreach (var fieldValue in section)
                                 {
                                     @if (!string.IsNullOrWhiteSpace(fieldValue.Value))
                                     {
-                                        <dt class="col-sm-3">@fieldValue.Field.Name:</dt>
-                                        <dd class="col-sm-9">@fieldValue.DisplayValue</dd>
+                                        <div class="certificate-field"><strong>@fieldValue.Field.Name:</strong> <span>@fieldValue.DisplayValue</span></div>
                                     }
                                 }
-                            </dl>
+                            </div>
                         }
-                    </div>
+                    }
+
+                    <!-- Tags -->
+                    @if (Model.Certificate?.Tags != null && Model.Certificate.Tags.Any())
+                    {
+                        <div class="certificate-tags">
+                            @foreach (var tag in Model.Certificate.Tags)
+                            {
+                                <div class="tag @(tag.TagType?.ToLower() ?? "external")">@tag.Name</div>
+                            }
+                        </div>
+                    }
                 </div>
-            }
+
+                <!-- Right Column: Certificate Image/PDF Preview -->
+                <div class="certificate-image-column">
+                    @{
+                        string certificateImageSrc;
+                        if (!string.IsNullOrEmpty(Model.Certificate?.CertificateImagePath))
+                        {
+                            certificateImageSrc = Model.Certificate.CertificateImagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                                ? Model.Certificate.CertificateImagePath
+                                : Model.Certificate.CertificateImagePath.StartsWith("/")
+                                    ? Model.Certificate.CertificateImagePath
+                                    : $"/uploads/{Model.Certificate.CertificateImagePath}";
+                        }
+                        else if (!string.IsNullOrEmpty(Model.Certificate?.CertificateFile))
+                        {
+                            certificateImageSrc = Model.Certificate.CertificateFile.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                                ? Model.Certificate.CertificateFile
+                                : Model.Certificate.CertificateFile.StartsWith("/")
+                                    ? Model.Certificate.CertificateFile
+                                    : $"/uploads/{Model.Certificate.CertificateFile}";
+                        }
+                        else
+                        {
+                            certificateImageSrc = Url.Content("~/img/certpreview.png");
+                        }
+                    }
+                    <div class="certificate-image-container" style="position: relative;">
+                        <img src="@certificateImageSrc" alt="Certificate @certificateNumber" class="certificate-image" onerror="this.src='@Url.Content("~/img/certpreview.png")';this.onerror=null;" onclick="openImageZoom('@certificateImageSrc')" />
+
+                        <!-- Magnifying Glass Icon overlay -->
+                        <div class="zoom-icon-overlay" onclick="openImageZoom('@certificateImageSrc')" title="Click to zoom">
+                            <i class="fas fa-search-plus"></i>
+                        </div>
+                    </div>
+
+                    <!-- Download Button directly below image -->
+                    <div class="certificate-download-action">
+                        <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@certificateNumber')">
+                            <i class="fas fa-download"></i>
+                        </div>
+                    </div>
+
+                    <!-- Edit/Delete Actions for Admin/Analyst -->
+                    @if (Model.CanEdit || Model.CanDelete)
+                    {
+                        <div class="certificate-internal-actions" style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
+                            @if (Model.CanEdit)
+                            {
+                                <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@certificateNumber')">
+                                    <i class="fas fa-edit"></i>
+                                </div>
+                            }
+                            @if (Model.CanDelete)
+                            {
+                                <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@certificateId')">
+                                    <i class="fas fa-trash"></i>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<!-- Image Zoom Modal -->
+<div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageZoom()">
+    <span class="zoom-close">&times;</span>
+    <img class="zoom-modal-content" id="zoomedImage">
+    <div class="zoom-caption" id="imageCaption">Certificate Preview</div>
+</div>
+
 @section Scripts {
+    <script src="~/js/certificates.js"></script>
     <script>
-        function downloadCertificate() {
-            window.location.href = '@Url.Action("Download", "Certificate", new { id = Model.Certificate.Id })';
+        // Image zoom functionality
+        function openImageZoom(imageSrc) {
+            const modal = document.getElementById('imageZoomModal');
+            const modalImg = document.getElementById('zoomedImage');
+            const caption = document.getElementById('imageCaption');
+
+            modal.style.display = 'block';
+            modalImg.src = imageSrc;
+            caption.innerHTML = 'Certificate @certificateNumber - Click anywhere to close';
+
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
         }
 
-        function printCertificate() {
-            window.print();
+        function closeImageZoom() {
+            const modal = document.getElementById('imageZoomModal');
+            modal.style.display = 'none';
+
+            // Restore body scroll
+            document.body.style.overflow = 'auto';
         }
 
-        function exportCertificateData() {
-            window.location.href = '@Url.Action("Export", "Certificate", new { id = Model.Certificate.Id })';
-        }
-
-        function editCertificate() {
-            window.location.href = '@Url.Action("Edit", "Certificate", new { id = Model.Certificate.Id })';
-        }
-
-        function duplicateCertificate() {
-            if (confirm('Are you sure you want to duplicate this certificate?')) {
-                window.location.href = '@Url.Action("Duplicate", "Certificate", new { id = Model.Certificate.Id })';
+        // Close on ESC key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeImageZoom();
             }
-        }
+        });
 
-        function addInternalNote() {
-            // TODO: Implement add internal note functionality
-            alert('Add internal note functionality coming soon');
-        }
-
-        function updateCertificateStatus(status) {
-            if (confirm('Are you sure you want to change the certificate status to ' + status + '?')) {
-                // TODO: Implement status update
-                alert('Status update functionality coming soon');
+        // Certificate action functions
+        window.downloadCertificate = function(certificateNumber) {
+            if (!certificateNumber) {
+                console.error('Certificate number is missing');
+                return;
             }
-        }
+            try {
+                window.open(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, '_blank');
+                console.log('Certificate download started');
+            } catch (error) {
+                console.error('Error downloading certificate:', error);
+            }
+        };
+
+        window.editCertificate = function(certificateNumber) {
+            if (!certificateNumber) {
+                console.error('Certificate number is missing');
+                return;
+            }
+            window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
+        };
+
+        window.deleteCertificate = function(certificateId) {
+            if (!certificateId) {
+                console.error('Certificate ID is missing');
+                return;
+            }
+
+            if (confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
+                fetch(`/Certificate/Delete/${certificateId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    }
+                })
+                .then(response => {
+                    if (response.ok) {
+                        alert('Certificate deleted successfully');
+                        window.location.href = '/Certificate/CertificateTileViewInternal';
+                    } else {
+                        alert('Failed to delete certificate');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting certificate:', error);
+                    alert('An error occurred while deleting the certificate');
+                });
+            }
+        };
     </script>
 }

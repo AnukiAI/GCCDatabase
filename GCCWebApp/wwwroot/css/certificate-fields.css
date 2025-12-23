@@ -302,6 +302,30 @@
     color: #9c27b0;
 }
 
+/* Role Visibility Labels - Public, External, Internal */
+.visibility-label {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 100px;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.visibility-public {
+    background-color: #e8f5e9;
+    color: #4caf50;
+}
+
+.visibility-external {
+    background-color: #fff3e0;
+    color: #ff9800;
+}
+
+.visibility-internal {
+    background-color: #fce4ec;
+    color: #e91e63;
+}
+
 /* Visibility Indicator */
 .visibility-badge {
     padding: 2px 6px;

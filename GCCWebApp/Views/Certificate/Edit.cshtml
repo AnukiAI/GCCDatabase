@@ -26,7 +26,6 @@
     <header class="admin-header">
         <div class="admin-header-content">
             <div class="admin-title-section">
-                <h1 class="admin-page-title">Edit Certificate</h1>
                 <p class="admin-page-subtitle">Edit certificate @Model.Number in the GreenCircle Certified database</p>
             </div>
             <div class="admin-actions-section">
@@ -76,7 +75,8 @@
 
                     <div class="form-group">
                         <label asp-for="Number">Certification # <span class="text-danger" aria-label="required">*</span></label>
-                        <input asp-for="Number" placeholder="XX-XXXX" required maxlength="7" aria-required="true" />
+                        <input asp-for="Number" readonly class="form-control-readonly" aria-required="true" style="background-color: #f8f9fa; font-weight: 600;" />
+                        <small class="form-text text-muted">Certificate number cannot be changed</small>
                         <span asp-validation-for="Number" class="text-danger" role="alert"></span>
                     </div>
 
@@ -96,12 +96,28 @@
                     </div>
 
                     <div class="form-group" id="subcategory-group" style="display: none;">
-                        <label asp-for="CertificationTypeSubcategoryId">Subcategory <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <label asp-for="CertificationTypeSubcategoryId">Certificate Subcategory <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
                         <select asp-for="CertificationTypeSubcategoryId" id="CertificationTypeSubcategoryId">
                             <option value="">Select subcategory...</option>
                         </select>
                         <span asp-validation-for="CertificationTypeSubcategoryId" class="text-danger" role="alert"></span>
                         <small class="form-text text-muted">Select a subcategory if applicable (e.g., "Consumer Behavior" under "Certified Energy Savings")</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ProductTypeId">Product Type <span class="text-muted" style="font-size: 12px;">(Optional - filters products)</span></label>
+                        <select id="ProductTypeId" name="ProductTypeId">
+                            <option value="">All Product Types</option>
+                        </select>
+                        <small class="form-text text-muted">Select to filter products by type</small>
+                    </div>
+
+                    <div class="form-group" id="product-subcategory-group">
+                        <label for="ProductSubcategoryId">Product Subcategory <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <select id="ProductSubcategoryId" name="ProductSubcategoryId">
+                            <option value="">All Subcategories</option>
+                        </select>
+                        <small class="form-text text-muted">Select to further filter products</small>
                     </div>
 
                     <div class="form-group">
@@ -316,7 +332,7 @@
             </div>
 
             <div class="action-buttons">
-                <button type="submit" name="action" value="save" class="btn btn-primary" aria-label="Save certificate changes">
+                <button type="submit" name="action" value="save" class="btn btn-primary" aria-label="Save certificate changes" id="saveButton" onclick="console.log('[Edit] Save button clicked!');">
                     <i class="fas fa-save" aria-hidden="true"></i> Save Changes
                 </button>
                 <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="btn btn-outline" aria-label="Cancel and return to certificate management">
@@ -341,13 +357,128 @@
     <script src="~/js/certificate-inline-create.js"></script>
 
     <script>
+        console.log('[Edit.cshtml] Script section loaded');
+
         // Store all certification types for subcategory filtering
         var allCertificationTypes = @Html.Raw(Json.Serialize(ViewBag.AllCertificationTypes ?? new List<object>()));
         var initialSubcategoryId = @(Model.CertificationTypeSubcategoryId.HasValue ? Model.CertificationTypeSubcategoryId.Value.ToString() : "null");
 
+        // Add form submit handler BEFORE document.ready to ensure it's attached early
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[Edit.cshtml] DOMContentLoaded - Attaching early form handler');
+            const earlyForm = document.getElementById('certificateEditForm');
+            if (earlyForm) {
+                console.log('[Edit.cshtml] Form found, attaching submit handler');
+                earlyForm.addEventListener('submit', function(e) {
+                    console.log('[Edit.cshtml] EARLY SUBMIT HANDLER - Form submit event captured!');
+                });
+            } else {
+                console.error('[Edit.cshtml] ERROR: Form not found!');
+            }
+        });
+
         $(document).ready(async function() {
+            console.log('[Edit.cshtml] jQuery document.ready fired');
             const certificateId = @Model.Id;
             const typeId = @Model.CertificationTypeId;
+            console.log('[Edit.cshtml] Certificate ID:', certificateId, 'Type ID:', typeId);
+
+            // ===== Product Type/Subcategory Cascading Dropdowns =====
+
+            // Load product types on page load
+            async function loadProductTypes() {
+                try {
+                    const response = await fetch('/Certificate/GetProductTypes');
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        const productTypeSelect = $('#ProductTypeId');
+                        productTypeSelect.html('<option value="">All Product Types</option>');
+
+                        // Filter to only show parent types (level 0 or no parent)
+                        const parentTypes = result.data.filter(pt => !pt.parentId || pt.level === 0);
+                        parentTypes.forEach(pt => {
+                            productTypeSelect.append(`<option value="${pt.id}">${pt.name}</option>`);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading product types:', error);
+                }
+            }
+
+            // Load product types on page load
+            await loadProductTypes();
+
+            // When product type changes, load subcategories and filter products
+            $('#ProductTypeId').change(async function() {
+                const typeId = $(this).val();
+                const subcategorySelect = $('#ProductSubcategoryId');
+
+                // Clear subcategory options
+                subcategorySelect.html('<option value="">All Subcategories</option>');
+
+                if (typeId) {
+                    // Load subcategories for the selected type
+                    try {
+                        const response = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${typeId}`);
+                        const result = await response.json();
+                        if (result.success && result.data && result.data.length > 0) {
+                            result.data.forEach(sub => {
+                                subcategorySelect.append(`<option value="${sub.id}">${sub.name}</option>`);
+                            });
+                            $('#product-subcategory-group').show();
+                        } else {
+                            $('#product-subcategory-group').hide();
+                        }
+                    } catch (error) {
+                        console.error('Error loading product subcategories:', error);
+                    }
+
+                    // Filter products by type
+                    await filterProducts(typeId, null);
+                } else {
+                    $('#product-subcategory-group').hide();
+                    // Show all products
+                    await filterProducts(null, null);
+                }
+            });
+
+            // When product subcategory changes, filter products
+            $('#ProductSubcategoryId').change(async function() {
+                const typeId = $('#ProductTypeId').val();
+                const subcategoryId = $(this).val();
+                await filterProducts(typeId, subcategoryId);
+            });
+
+            // Filter products by type and/or subcategory
+            async function filterProducts(typeId, subcategoryId) {
+                const productSelect = $('#ProductId');
+                const currentValue = productSelect.val();
+
+                try {
+                    let url = '/Certificate/GetProductsByType?';
+                    if (typeId) url += `productTypeId=${typeId}&`;
+                    if (subcategoryId) url += `subcategoryId=${subcategoryId}`;
+
+                    const response = await fetch(url);
+                    const result = await response.json();
+
+                    if (result.success && result.data) {
+                        productSelect.html('<option value="">Select a product...</option>');
+                        result.data.forEach(p => {
+                            productSelect.append(`<option value="${p.id}">${p.name}</option>`);
+                        });
+
+                        // Restore selection if still valid
+                        if (currentValue && productSelect.find(`option[value="${currentValue}"]`).length) {
+                            productSelect.val(currentValue);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error filtering products:', error);
+                }
+            }
+
+            // ===== Certification Type Subcategories =====
 
             // Initialize subcategory dropdown based on current type
             function initializeSubcategory() {
@@ -418,21 +549,61 @@
             const form = document.getElementById('certificateEditForm');
 
             form.addEventListener('submit', function(e) {
-                // First validate custom fields
-                const validation = certificateCustomFields.validateFields();
-                if (!validation.isValid) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
-                        AdminCore.showNotification('Please fix validation errors: ' + validation.errors.join(', '), 'error');
-                    } else {
-                        console.error('Validation errors: ' + validation.errors.join(', '));
+                console.log('[Edit.cshtml] Form submit handler triggered');
+
+                try {
+                    // Only validate custom fields if they exist and are loaded
+                    if (typeof certificateCustomFields !== 'undefined' && certificateCustomFields.fields && certificateCustomFields.fields.length > 0) {
+                        const validation = certificateCustomFields.validateFields();
+                        if (!validation.isValid) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            // Show inline errors for custom fields
+                            const customFieldsContainer = document.getElementById('custom-fields-container');
+                            if (customFieldsContainer) {
+                                // Clear previous custom field errors
+                                customFieldsContainer.querySelectorAll('.inline-validation-error').forEach(el => el.remove());
+                                customFieldsContainer.querySelectorAll('.form-group.has-error').forEach(fg => fg.classList.remove('has-error'));
+
+                                // Add inline error for each invalid custom field
+                                validation.errors.forEach(error => {
+                                    // Find the field by its error message
+                                    const formGroups = customFieldsContainer.querySelectorAll('.form-group');
+                                    formGroups.forEach(fg => {
+                                        const label = fg.querySelector('label');
+                                        if (label && error.includes(label.textContent.replace('*', '').trim())) {
+                                            fg.classList.add('has-error');
+                                            const errorDiv = document.createElement('div');
+                                            errorDiv.className = 'inline-validation-error';
+                                            errorDiv.textContent = error;
+                                            const input = fg.querySelector('input, select, textarea');
+                                            if (input) {
+                                                input.insertAdjacentElement('afterend', errorDiv);
+                                            }
+                                        }
+                                    });
+                                });
+
+                                // Scroll to custom fields section
+                                customFieldsContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                            return false;
+                        }
                     }
-                    return false;
+                } catch (error) {
+                    console.error('[Edit.cshtml] Error validating custom fields:', error);
+                    // Continue with form submission even if validation has an error
                 }
 
-                // Get custom field values
-                const fieldValues = certificateCustomFields.getFieldValues();
+                // Get custom field values (with error handling)
+                let fieldValues = {};
+                try {
+                    if (typeof certificateCustomFields !== 'undefined' && typeof certificateCustomFields.getFieldValues === 'function') {
+                        fieldValues = certificateCustomFields.getFieldValues();
+                    }
+                } catch (error) {
+                    console.error('[Edit.cshtml] Error getting custom field values:', error);
+                }
 
                 // Remove any existing custom field hidden inputs
                 form.querySelectorAll('input[name^="CustomFieldValues"]').forEach(input => input.remove());

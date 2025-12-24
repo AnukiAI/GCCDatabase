@@ -98,6 +98,14 @@ body:has(.admin-container) .page-header {
     flex: 1;
 }
 
+.admin-page-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #002B76;
+    margin: 0;
+    line-height: 1.2;
+}
+
 .admin-actions-section {
     flex-shrink: 0;
 }
@@ -874,10 +882,25 @@ body:has(.admin-container) .page-header {
 .was-validated .form-group textarea:invalid,
 .was-validated input:invalid,
 .was-validated select:invalid,
-.was-validated textarea:invalid {
+.was-validated textarea:invalid,
+.form-group.has-error input,
+.form-group.has-error select,
+.form-group.has-error textarea,
+.input-validation-error {
     border-color: #FF5252 !important;
     background-color: rgba(255, 82, 82, 0.05);
     box-shadow: 0 0 0 3px rgba(255, 82, 82, 0.15);
+}
+
+/* Custom dropdown trigger error state */
+.form-group.has-error .custom-dropdown-trigger {
+    border-color: #FF5252 !important;
+    background-color: rgba(255, 82, 82, 0.05);
+}
+
+/* Error label styling */
+.form-group.has-error > label {
+    color: #FF5252;
 }
 
 /* Valid field styling when form has been validated */
@@ -890,24 +913,29 @@ body:has(.admin-container) .page-header {
     border-color: #92C83E !important;
 }
 
-/* Show validation message after invalid fields */
-.was-validated .form-group input:invalid ~ .text-danger,
-.was-validated .form-group select:invalid ~ .text-danger,
-.was-validated .form-group textarea:invalid ~ .text-danger {
-    display: block;
+/* ALWAYS show validation messages when they have content */
+.form-group .text-danger:not(:empty),
+.form-group .field-validation-error:not(:empty),
+.form-group .inline-validation-error {
+    display: block !important;
+    color: #FF5252 !important;
+    font-size: 14px;
+    margin-top: 8px;
+    font-weight: 500;
 }
 
-/* Hide validation message for valid fields */
-.was-validated .form-group input:valid ~ .text-danger,
-.was-validated .form-group select:valid ~ .text-danger,
-.was-validated .form-group textarea:valid ~ .text-danger {
-    display: none;
+/* Add warning icon before error messages */
+.form-group .text-danger:not(:empty)::before,
+.form-group .field-validation-error:not(:empty)::before,
+.form-group .inline-validation-error::before {
+    content: '⚠ ';
 }
 
-/* Add invalid feedback message for required fields */
-.was-validated .form-group input:invalid::after,
-.was-validated .form-group select:invalid::after {
-    content: 'This field is required';
+/* Hide empty validation messages */
+.form-group .text-danger:empty,
+.form-group .field-validation-error:empty,
+.field-validation-valid {
+    display: none !important;
 }
 
 /* Custom validation message styling */

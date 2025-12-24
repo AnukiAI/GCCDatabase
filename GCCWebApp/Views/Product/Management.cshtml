@@ -199,92 +199,96 @@
     </div>
 </div>
 
-<!-- Add/Edit Product Modal -->
-<div id="product-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title" id="modal-title">Add New Product</h3>
-            <span class="modal-close">&times;</span>
+<!-- Add/Edit Product Modal (US-015 Backdrop Standard) -->
+<div id="product-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9997;">
+    <!-- Backdrop (sibling) -->
+    <div class="product-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 9998; backdrop-filter: blur(3px);"></div>
+
+    <!-- Modal Container (sibling) -->
+    <div class="product-modal-container" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; width: 95%; max-width: 650px; max-height: 90vh; background-color: white; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; opacity: 1;">
+        <div class="admin-modal-header" style="background-color: #f8f9fa; border-bottom: 2px solid #e9ecef; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;">
+            <h3 class="admin-modal-title" id="modal-title" style="color: #002B76; font-weight: 600; margin: 0; font-size: 18px;">
+                <i class="fas fa-box" style="margin-right: 8px;"></i> Add New Product
+            </h3>
+            <button class="admin-modal-close modal-close" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #666; padding: 4px 8px;">
+                <i class="fas fa-times"></i>
+            </button>
         </div>
-        <form id="product-form">
-            <input type="hidden" id="product-id">
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="product-name">Product Name *</label>
-                    <input type="text" id="product-name" required>
-                </div>
-                <div class="form-group">
-                    <label for="product-company">Company *</label>
-                    <select id="product-company" required>
-                        <option value="">Select Company</option>
-                    </select>
-                </div>
-            </div>
+        <div class="admin-modal-body" style="background-color: white; padding: 20px; overflow-y: auto; flex: 1;">
+            <form id="product-form">
+                <input type="hidden" id="product-id">
 
-            <div class="form-group">
-                <label for="product-description">Description</label>
-                <textarea id="product-description" rows="3" placeholder="Enter product description..."></textarea>
-            </div>
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="form-group">
+                        <label for="product-name" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Product Name *</label>
+                        <input type="text" id="product-name" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="product-company" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Company *</label>
+                        <select id="product-company" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                            <option value="">Select Company</option>
+                        </select>
+                    </div>
+                </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="product-category">Category</label>
-                    <select id="product-category">
-                        <option value="">Select Category</option>
-                    </select>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="product-description" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Description</label>
+                    <textarea id="product-description" rows="3" placeholder="Enter product description..." style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; resize: vertical;"></textarea>
                 </div>
-                <div class="form-group">
-                    <label for="product-type">Product Type</label>
-                    <select id="product-type">
-                        <option value="">Select Type</option>
-                    </select>
-                </div>
-            </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="product-subcategory">Subcategory</label>
-                    <select id="product-subcategory">
-                        <option value="">Select Subcategory</option>
-                    </select>
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="form-group">
+                        <label for="product-category" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Category</label>
+                        <select id="product-category" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                            <option value="">Select Category</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-type" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Product Type</label>
+                        <select id="product-type" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                            <option value="">Select Type</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="product-status">Status *</label>
-                    <select id="product-status" required>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
-            </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="product-sku">SKU</label>
-                    <input type="text" id="product-sku" placeholder="Product SKU">
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="form-group">
+                        <label for="product-subcategory" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Subcategory</label>
+                        <select id="product-subcategory" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                            <option value="">Select Subcategory</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-status" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Status *</label>
+                        <select id="product-status" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="product-model">Model Number</label>
-                    <input type="text" id="product-model" placeholder="Model number">
-                </div>
-            </div>
 
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="product-manufacturer">Manufacturer</label>
-                    <input type="text" id="product-manufacturer" placeholder="Manufacturer name">
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+                    <div class="form-group">
+                        <label for="product-sku" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">SKU</label>
+                        <input type="text" id="product-sku" placeholder="Product SKU" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                    </div>
+                    <div class="form-group">
+                        <label for="product-model" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Model Number</label>
+                        <input type="text" id="product-model" placeholder="Model number" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px;">
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="product-country">Country of Origin</label>
-                    <input type="text" id="product-country" placeholder="Country">
-                </div>
-            </div>
+            </form>
+        </div>
 
-            <div class="form-actions">
-                <button type="button" class="btn" id="cancel-btn">Cancel</button>
-                <button type="submit" class="btn btn-primary" id="save-btn">Save Product</button>
-            </div>
-        </form>
+        <div class="admin-modal-footer" style="background-color: #f8f9fa; border-top: 2px solid #e9ecef; padding: 16px 20px; display: flex; justify-content: flex-end; gap: 12px; border-radius: 0 0 8px 8px;">
+            <button type="button" class="admin-btn admin-btn--secondary" id="cancel-btn" style="padding: 10px 20px; border: 1px solid #ccc; background: white; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                Cancel
+            </button>
+            <button type="submit" class="admin-btn admin-btn--primary" id="save-btn" form="product-form" style="padding: 10px 20px; background: #92C83E; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                <i class="fas fa-check" style="margin-right: 6px;"></i> Save Product
+            </button>
+        </div>
     </div>
 </div>
 
@@ -618,27 +622,29 @@
         }
 
         function showAddProductModal() {
-            modalTitle.textContent = 'Add New Product';
+            modalTitle.innerHTML = '<i class="fas fa-box" style="margin-right: 8px;"></i> Add New Product';
             document.getElementById('product-id').value = '';
             productForm.reset();
-            productModal.style.display = 'block';
+            productModal.style.display = 'flex';
+            productModal.style.alignItems = 'center';
+            productModal.style.justifyContent = 'center';
         }
 
         function editProduct(id) {
             const product = products.find(p => p.id === id);
             if (!product) return;
 
-            modalTitle.textContent = 'Edit Product';
+            modalTitle.innerHTML = '<i class="fas fa-edit" style="margin-right: 8px;"></i> Edit Product';
             document.getElementById('product-id').value = product.id;
             document.getElementById('product-name').value = product.name;
             document.getElementById('product-description').value = product.description || '';
             document.getElementById('product-status').value = product.status.toLowerCase();
             document.getElementById('product-sku').value = product.sku || '';
             document.getElementById('product-model').value = product.model || '';
-            document.getElementById('product-manufacturer').value = product.manufacturer || '';
-            document.getElementById('product-country').value = product.country || '';
-            
-            productModal.style.display = 'block';
+
+            productModal.style.display = 'flex';
+            productModal.style.alignItems = 'center';
+            productModal.style.justifyContent = 'center';
         }
 
 

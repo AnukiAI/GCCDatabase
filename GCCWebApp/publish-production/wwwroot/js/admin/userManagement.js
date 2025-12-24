@@ -567,8 +567,8 @@ async function saveUser(event) {
 
     const userData = {
         name: userNameInput.value,
-        company: selectedCompanies,
-        partners: selectedPartners,
+        companyIds: selectedCompanies.map(c => parseInt(c, 10)),
+        partnerIds: selectedPartners.map(p => parseInt(p, 10)),
         email: userEmailInput.value,
         role: userRoleInput.value,
         status: userStatusInput.value,

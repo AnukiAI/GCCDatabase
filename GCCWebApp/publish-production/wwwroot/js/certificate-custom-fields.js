@@ -66,7 +66,8 @@ class CertificateCustomFields {
     renderFields() {
         const container = document.getElementById(this.containerId);
         if (!container) {
-            console.error(`Container ${this.containerId} not found`);
+            // Silently return on pages without custom fields container
+            // This is expected behavior on non-certificate pages
             return;
         }
 
@@ -403,12 +404,11 @@ class CertificateCustomFields {
             // Default: show field
             let shouldShow = true;
 
-            // Check if field has visibility rules
-            if (field.validationRules) {
+            // Check if field has visibility rules (must be JSON object with showIf/hideIf)
+            // Skip simple validation rules like "maxLength:255" which are not JSON
+            if (field.validationRules && typeof field.validationRules === 'string' && field.validationRules.trim().startsWith('{')) {
                 try {
-                    const rules = typeof field.validationRules === 'string'
-                        ? JSON.parse(field.validationRules)
-                        : field.validationRules;
+                    const rules = JSON.parse(field.validationRules);
 
                     // Check "showIf" condition
                     if (rules.showIf) {

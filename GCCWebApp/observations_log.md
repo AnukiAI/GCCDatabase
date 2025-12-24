@@ -1300,3 +1300,186 @@ Updated `CertificateInternalView.cshtml` (lines 145-204) to match `CertificateSi
 | Zoom modal | Missing | Added |
 
 ---
+
+## 2025-12-23 - Product Management Pages Review & Fixes
+
+### Overview
+Comprehensive review of all Product-related pages to assess purpose, functionality, and integration.
+
+### Three Product-Related Pages Identified
+
+| Page | URL | Access | Purpose | Status |
+|------|-----|--------|---------|--------|
+| **Product Management** | `/Product/Management` | All Auth (External filtered) | Full product CRUD with company, category, identifiers | ✅ Functional |
+| **Admin Product Management** | `/Admin/ProductManagement` | Admin only | Simplified quick product add | ⚠️ Had stub code |
+| **Product Types** | `/Admin/ProductTypes` | Admin only | 3-level hierarchy management | ✅ Functional |
+
+### Issues Found & Fixed
+
+#### 1. Admin Product Management - Stub Implementations → Real APIs
+
+**Issue**: The inline script (lines 236-248, 318-329, 334-342) used `setTimeout()` stubs instead of real API calls.
+
+**Root Cause**: The page loaded `productManagement.js` (with real APIs) but the inline script overrode handlers with fake implementations.
+
+**Fix Applied**:
+- `saveNewBtn.click` handler → Now calls `/Admin/CreateProduct` API
+- `deleteProduct()` function → Now calls `/Admin/DeleteProduct` API
+- `exportBtn.click` handler → Now generates real CSV export
+
+**File Modified**: `Views/Admin/ProductManagement.cshtml`
+
+#### 2. Product Management Modal - US-015 Compliance
+
+**Issue**: Add/Edit Product modal used 50% opacity backdrop instead of required 85%.
+
+**Before**:
+```css
+.modal {
+    background-color: rgba(0, 0, 0, 0.5);  /* 50% opacity */
+}
+```
+
+**After** (US-015 Standard):
+```html
+<div style="background-color: rgba(0, 0, 0, 0.85); backdrop-filter: blur(3px);">
+```
+
+**Structure Change**:
+- Old: Nested `.modal > .modal-content`
+- New: Sibling structure with backdrop and container as siblings
+
+**File Modified**: `Views/Product/Management.cshtml`
+
+#### 3. Unused Form Fields Removed
+
+**Issue**: Modal had `product-manufacturer` and `product-country` fields that captured data but never saved it (not in Product model).
+
+**Fix**: Removed these fields from the modal form.
+
+**Product Model Fields Confirmed**:
+- Name, Description, Model, SKU, Upc, Asin
+- CategoryId, ProductTypeId, ProductSubcategoryId, CompanyId
+- IsActive, IsDeleted, CreatedAt, UpdatedAt
+
+**NOT in Model** (removed from form):
+- Manufacturer
+- Country of Origin
+
+### Files Modified
+
+| File | Changes |
+|------|---------|
+| `Views/Admin/ProductManagement.cshtml` | Replaced stub handlers with real API calls |
+| `Views/Product/Management.cshtml` | US-015 modal compliance, removed unused fields |
+
+### API Endpoints Used
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/Admin/GetProducts` | GET | Load products list |
+| `/Admin/CreateProduct` | POST | Create new product |
+| `/Admin/UpdateProduct/{id}` | PUT | Update existing product |
+| `/Admin/DeleteProduct/{id}` | DELETE | Delete product |
+| `/Product/GetProducts` | GET | Load products (with External user filtering) |
+| `/Product/SaveProduct` | POST | Create/Update product |
+| `/Product/DeleteProduct` | DELETE | Delete product |
+
+### Clarification: Two Product Management Pages
+
+**User confirmed both pages serve separate purposes**:
+
+1. **`/Product/Management`** - Full-featured for all authenticated users
+   - Complex filters, search, sorting
+   - Company, Category, Product Type assignments
+   - Product Identifiers management
+   - Import/Export CSV
+   - External users see filtered data by company/partner
+
+2. **`/Admin/ProductManagement`** - Simplified Admin-only quick add
+   - Inline add with just product name
+   - Shows product identifiers summary
+   - Streamlined for quick data entry
+
+### Build Status
+- **Build**: ✅ Succeeded
+- **Errors**: 0
+- **Warnings**: 0 (relevant)
+
+---
+
+## 2025-12-23 - NEW PAGE: Product ID Manager Requirements Gathering
+
+### Background
+User shared notes from business discussions about the Product Management page. Requirements were vague because the business wasn't sure how the page should work.
+
+### User's Original Notes (Captured)
+```
+- Partners and Clients should have access without add, edit, delete, import
+- They would see based on their permissions
+- Transform Type to individual columns (ASIN, EAN, GTIN, UPC)
+- Column order: Identifiers first, then Product Name, Company, Status, Partner, numbers
+- Would need to allow multiple partners
+- The API would identify what gets passed per...????
+- Multi-select for deletion and status change
+- Page 59 reference - is this same as Product ID Manager on cert page?
+```
+
+### Clarifications Obtained
+
+| Question | Answer |
+|----------|--------|
+| Identifier display format | Multiple values with "..." and count, expandable |
+| Partners relationship | Partner is per Certificate, NOT Product |
+| Page 59 reference | Product ID Manager (on Certificate page) |
+| Mockup provided | `5_2_Product.png` - shows Certificate # as first column |
+| Data source | CertificateProductIds table (certificate-level), not Products table |
+| Existing page | Keep `/Product/Management` for standalone Products |
+| New page needed | Create new Product ID Manager page for certificate product IDs |
+
+### Key Distinction Clarified
+
+**Three Product-Related Concepts:**
+
+| Concept | Table | Purpose |
+|---------|-------|---------|
+| Products | `Products` | Standalone product entities |
+| Product Identifiers | `ProductIdentifiers` | Product-level identifiers |
+| Certificate Product IDs | `CertificateProductIds` | Certificate-specific identifiers (ASINs, UPCs per certificate) |
+
+The mockup is for **Certificate Product IDs** - a centralized view of all product identifiers across all certificates.
+
+### Requirements Document Created
+
+**File**: `docs/PRODUCT_ID_MANAGER_PAGE_REQUIREMENTS.md`
+
+**Sections**:
+1. Overview & Purpose
+2. Page Layout (from mockup)
+3. Access Control (Analyst vs External)
+4. Bulk Operations (multi-select, delete, status change)
+5. Search & Filtering
+6. Import/Export
+7. API Endpoints
+8. Data Model
+9. UI/UX Considerations
+10. Implementation Notes
+11. Open Questions
+12. Acceptance Criteria (MVP/Should Have/Nice to Have)
+
+### Open Questions Requiring Business Input
+
+| # | Question |
+|---|----------|
+| 1 | Should inline add create new Certificate if number doesn't exist? |
+| 2 | How to handle multiple values per identifier type (e.g., 3 ASINs)? |
+| 3 | Should Partners support "Other" with custom value? |
+| 4 | Pagination: Fixed page size or user-selectable? |
+| 5 | Soft-delete or hard-delete for removed items? |
+
+### Next Steps
+1. Review open questions with business
+2. Finalize acceptance criteria
+3. Begin implementation when requirements approved
+
+---

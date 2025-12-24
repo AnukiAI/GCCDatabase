@@ -19,7 +19,7 @@ namespace GCCWebApp.Tests.Controllers
         private readonly ApplicationDbContext _context;
         private readonly Mock<ILogger<ProductController>> _loggerMock;
         private readonly Mock<IAuditService> _auditServiceMock;
-        private readonly Mock<IConfiguration> _configurationMock;
+        private readonly IConfiguration _configuration;
         private readonly ProductController _controller;
 
         public ProductControllerTests()
@@ -31,8 +31,17 @@ namespace GCCWebApp.Tests.Controllers
             _context = new ApplicationDbContext(options);
             _loggerMock = new Mock<ILogger<ProductController>>();
             _auditServiceMock = new Mock<IAuditService>();
-            _configurationMock = new Mock<IConfiguration>();
-            _controller = new ProductController(_context, _auditServiceMock.Object, _loggerMock.Object, _configurationMock.Object);
+
+            // Build real configuration instead of mocking extension methods
+            var configValues = new Dictionary<string, string?>
+            {
+                { "FeatureFlags:ShowDetailedApiErrors", "false" }
+            };
+            _configuration = new ConfigurationBuilder()
+                .AddInMemoryCollection(configValues)
+                .Build();
+
+            _controller = new ProductController(_context, _auditServiceMock.Object, _loggerMock.Object, _configuration);
 
             SeedTestData();
         }

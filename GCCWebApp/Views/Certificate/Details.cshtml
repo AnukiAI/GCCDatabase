@@ -45,6 +45,13 @@
     </span>
 }
 
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success" style="margin-bottom: 24px;">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
 <!-- Certificate Details -->
 <div class="certificate-single-container" data-id="@certificateId">
     <!-- Certificate Card styled like tile view -->

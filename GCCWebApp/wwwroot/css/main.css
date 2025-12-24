@@ -1944,7 +1944,8 @@ body.theme-option4 .certificate-single-card .card-body {
 
 .certificate-download-action {
     display: flex;
-    justify-content: flex-end; /* Right-align the download icon */
+    justify-content: flex-end; /* Right-align the icons */
+    gap: 10px; /* Space between icons */
     margin-top: 12px; /* Increased from 10px */
 }
 

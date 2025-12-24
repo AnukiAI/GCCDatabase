@@ -297,18 +297,47 @@ class CertificateFieldsManager {
 
     async confirmDeleteField(id) {
         const field = this.fields.find(f => f.id === id);
-        if (!field) return;
+        if (!field) {
+            console.error('Field not found for id:', id);
+            return;
+        }
 
-        const confirmed = await AdminCore.showConfirmation({
-            title: 'Delete Confirmation',
-            message: `Are you sure you want to delete the field <strong>${field.name}</strong>? This action cannot be undone.`,
-            confirmText: 'Delete',
-            cancelText: 'Cancel',
-            type: 'danger'
-        });
+        console.log('confirmDeleteField called for:', field.name);
+        console.log('AdminCore available:', typeof AdminCore !== 'undefined');
+        console.log('showConfirmation available:', typeof AdminCore !== 'undefined' && typeof AdminCore.showConfirmation === 'function');
 
-        if (confirmed) {
-            await this.deleteField(id);
+        try {
+            // Check if AdminCore exists
+            if (typeof AdminCore === 'undefined' || typeof AdminCore.showConfirmation !== 'function') {
+                console.warn('AdminCore.showConfirmation not available, using native confirm');
+                const confirmed = confirm(`Are you sure you want to delete the field "${field.name}"? This action cannot be undone.`);
+                if (confirmed) {
+                    await this.deleteField(id);
+                }
+                return;
+            }
+
+            console.log('Calling AdminCore.showConfirmation...');
+            const confirmed = await AdminCore.showConfirmation({
+                title: 'Delete Confirmation',
+                message: `Are you sure you want to delete the field <strong>${field.name}</strong>? This action cannot be undone.`,
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                type: 'danger',
+                allowHtml: true
+            });
+            console.log('Confirmation result:', confirmed);
+
+            if (confirmed) {
+                await this.deleteField(id);
+            }
+        } catch (error) {
+            console.error('Error showing confirmation:', error);
+            // Fallback to native confirm
+            const confirmed = confirm(`Are you sure you want to delete the field "${field.name}"? This action cannot be undone.`);
+            if (confirmed) {
+                await this.deleteField(id);
+            }
         }
     }
 
@@ -321,8 +350,9 @@ class CertificateFieldsManager {
             name: inputs[1].value.trim(),
             fieldType: inputs[2].value,
             isRequired: inputs[3].value === 'true',
+            roleVisibility: inputs[4].value,  // Visibility dropdown (Public/External/Internal)
             isVisible: true,
-            defaultValue: inputs[4].value.trim(),  // Notes stored in DefaultValue field
+            defaultValue: inputs[5].value.trim(),  // Notes stored in DefaultValue field
             sortOrder: this.getNextOrder()
         };
 
@@ -398,12 +428,15 @@ class CertificateFieldsManager {
         const requiredLabel = field.isRequired ? 'Required' : 'Optional';
         // Notes are stored in defaultValue field
         const notes = field.notes || field.defaultValue || '';
+        const visibility = field.roleVisibility || 'Public';
+        const visibilityClass = visibility.toLowerCase();
 
         row.innerHTML = `
             <td style="font-size: 16px; color: #666;">${field.section || 'Core Certificate Information'}</td>
             <td>${field.name}</td>
             <td><span class="field-type type-${field.fieldType.toLowerCase().replace(/[-\s]/g, '')}">${this.formatFieldType(field.fieldType)}</span></td>
             <td><span class="required-label required-${requiredLabel.toLowerCase().replace('-', '')}">${requiredLabel}</span></td>
+            <td><span class="visibility-label visibility-${visibilityClass}">${visibility}</span></td>
             <td>${notes}</td>
             <td>
                 <div class="action-buttons">
@@ -422,6 +455,7 @@ class CertificateFieldsManager {
         row.classList.add('edit-row');
         // Notes are stored in defaultValue field
         const notes = field.notes || field.defaultValue || '';
+        const visibility = field.roleVisibility || 'Public';
 
         const sections = [
             'Core Certificate Information',
@@ -434,6 +468,7 @@ class CertificateFieldsManager {
             'Record Management'
         ];
         const controlTypes = ['text', 'email', 'phone', 'textarea', 'dropdown', 'multi-select', 'date', 'file', 'number', 'checkbox', 'system-generated'];
+        const visibilityOptions = ['Public', 'External', 'Internal'];
 
         row.innerHTML = `
             <td>
@@ -457,6 +492,13 @@ class CertificateFieldsManager {
                 <select class="edit-select" required>
                     <option value="true" ${field.isRequired ? 'selected' : ''}>Required</option>
                     <option value="false" ${!field.isRequired ? 'selected' : ''}>Optional</option>
+                </select>
+            </td>
+            <td>
+                <select class="edit-select" required>
+                    ${visibilityOptions.map(opt =>
+                        `<option value="${opt}" ${visibility === opt ? 'selected' : ''}>${opt}</option>`
+                    ).join('')}
                 </select>
             </td>
             <td>

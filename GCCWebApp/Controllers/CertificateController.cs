@@ -147,6 +147,9 @@ namespace GCCWebApp.Controllers
                 _logger.LogInformation("Certificate found: {CertificateNumber}, Company: {CompanyName}, Product: {ProductName}",
                     certificate.Number, certificate.Company?.Name ?? "N/A", certificate.Product?.Name ?? "N/A");
 
+                // Generate thumbnail if missing (for imported certificates without thumbnails)
+                await EnsureCertificateThumbnailAsync(certificate);
+
                 var model = new CertificateDetailsViewModelSimple
                 {
                     Certificate = certificate,
@@ -193,6 +196,9 @@ namespace GCCWebApp.Controllers
                 _logger.LogInformation("Certificate found: {CertificateNumber}, Company: {CompanyName}, Product: {ProductName}",
                     certificate.Number, certificate.Company?.Name ?? "N/A", certificate.Product?.Name ?? "N/A");
 
+                // Generate thumbnail if missing (for imported certificates without thumbnails)
+                await EnsureCertificateThumbnailAsync(certificate);
+
                 var model = new CertificateDetailsViewModelSimple
                 {
                     Certificate = certificate,
@@ -237,8 +243,11 @@ namespace GCCWebApp.Controllers
                     return NotFound($"Certificate {id} not found");
                 }
 
-                _logger.LogInformation("Certificate found: {CertificateNumber}, Company: {CompanyName}, Product: {ProductName}", 
+                _logger.LogInformation("Certificate found: {CertificateNumber}, Company: {CompanyName}, Product: {ProductName}",
                     certificate.Number, certificate.Company?.Name ?? "N/A", certificate.Product?.Name ?? "N/A");
+
+                // Generate thumbnail if missing (for imported certificates without thumbnails)
+                await EnsureCertificateThumbnailAsync(certificate);
 
                 var model = new CertificateDetailsViewModelSimple
                 {
@@ -596,6 +605,9 @@ namespace GCCWebApp.Controllers
                 {
                     return NotFound($"Certificate {number} not found");
                 }
+
+                // Generate thumbnail if missing (for imported certificates without thumbnails)
+                await EnsureCertificateThumbnailAsync(certificate);
 
                 var model = new CertificateEditViewModel
                 {
@@ -1086,6 +1098,58 @@ namespace GCCWebApp.Controllers
                 return "Internal";
             
             return "Public"; // Default role for anonymous users
+        }
+
+        /// <summary>
+        /// Generates a thumbnail from the PDF if one doesn't exist
+        /// </summary>
+        private async Task EnsureCertificateThumbnailAsync(Certificate certificate)
+        {
+            try
+            {
+                // Check if certificate has a PDF file but no thumbnail
+                if (string.IsNullOrEmpty(certificate.CertificateFile))
+                {
+                    return; // No PDF to generate thumbnail from
+                }
+
+                // Check if thumbnail already exists and file is valid
+                if (!string.IsNullOrEmpty(certificate.CertificateImagePath))
+                {
+                    var existingThumbnailPath = Path.Combine(_hostingEnvironment.WebRootPath,
+                        certificate.CertificateImagePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                    if (System.IO.File.Exists(existingThumbnailPath))
+                    {
+                        return; // Thumbnail already exists
+                    }
+                }
+
+                // Check if PDF file exists
+                var pdfPath = Path.Combine(_hostingEnvironment.WebRootPath,
+                    certificate.CertificateFile.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                if (!System.IO.File.Exists(pdfPath))
+                {
+                    _logger.LogWarning("PDF file not found for thumbnail generation: {PdfPath}", pdfPath);
+                    return;
+                }
+
+                // Generate thumbnail from PDF
+                _logger.LogInformation("Generating missing thumbnail for certificate {Number}", certificate.Number);
+                var thumbnailPath = await _fileUploadService.GeneratePdfThumbnailAsync(certificate.CertificateFile, certificate.Number);
+
+                if (!string.IsNullOrEmpty(thumbnailPath))
+                {
+                    certificate.CertificateImagePath = thumbnailPath;
+                    await _certificateRepository.UpdateAsync(certificate);
+                    _logger.LogInformation("Thumbnail generated and saved for certificate {Number}: {ThumbnailPath}",
+                        certificate.Number, thumbnailPath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating thumbnail for certificate {Number}", certificate.Number);
+                // Don't throw - thumbnail generation failure shouldn't break the view
+            }
         }
 
         private int? GetCurrentUserId()

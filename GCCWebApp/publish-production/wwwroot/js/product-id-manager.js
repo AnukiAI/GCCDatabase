@@ -76,12 +76,26 @@ class ProductIdManager {
     }
 
     async loadProductIds() {
+        // Skip loading if certificate ID is 0 (new certificate being created)
+        if (!this.certificateId || this.certificateId === 0 || this.certificateId === '0') {
+            this.productIds = [];
+            this.filteredProductIds = [];
+            this.renderTable();
+            this.updateCount();
+            return;
+        }
+
         try {
             this.showLoading(true);
             const response = await fetch(`/api/productids/certificate/${this.certificateId}`);
 
             if (response.ok) {
-                this.productIds = await response.json();
+                const result = await response.json();
+                // Handle both ApiResponse wrapper and raw array format
+                this.productIds = result.data || result;
+                if (!Array.isArray(this.productIds)) {
+                    this.productIds = [];
+                }
                 this.filteredProductIds = [...this.productIds];
                 this.renderTable();
                 this.updateCount();
@@ -285,6 +299,53 @@ class ProductIdManager {
         productId.Id = parseInt(productId.Id);
         productId.CertificateId = parseInt(productId.CertificateId);
 
+        // For new certificates (Create page), store in memory instead of API
+        if (!this.certificateId || this.certificateId === 0) {
+            const isEdit = productId.Id < 0; // Temp IDs are negative
+
+            if (isEdit) {
+                // Update existing temp item
+                const index = this.productIds.findIndex(p => p.id === productId.Id);
+                if (index !== -1) {
+                    this.productIds[index] = {
+                        ...this.productIds[index],
+                        productIdType: productId.ProductIdType,
+                        productIdValue: productId.ProductIdValue,
+                        status: productId.Status || 'Active',
+                        partner: productId.Partner || '',
+                        productName: productId.ProductName || '',
+                        productSku: productId.ProductSku || '',
+                        description: productId.Description || ''
+                    };
+                }
+            } else {
+                // Add new temp item
+                const tempId = -(Date.now());
+                this.productIds.push({
+                    id: tempId,
+                    certificateId: 0,
+                    productIdType: productId.ProductIdType,
+                    productIdValue: productId.ProductIdValue,
+                    status: productId.Status || 'Active',
+                    partner: productId.Partner || '',
+                    productName: productId.ProductName || '',
+                    productSku: productId.ProductSku || '',
+                    description: productId.Description || '',
+                    isNew: true
+                });
+            }
+
+            this.filteredProductIds = [...this.productIds];
+            this.renderTable();
+            this.updateCount();
+
+            const modal = bootstrap.Modal.getInstance(document.getElementById('productIdModal'));
+            if (modal) modal.hide();
+
+            this.showSuccess(isEdit ? 'Product ID updated' : 'Product ID added (will be saved with certificate)');
+            return;
+        }
+
         try {
             this.showLoading(true);
             const isEdit = productId.Id > 0;
@@ -329,6 +390,16 @@ class ProductIdManager {
             return;
         }
 
+        // For temp items (negative IDs) or new certificates, remove from memory
+        if (productIdId < 0 || !this.certificateId || this.certificateId === 0) {
+            this.productIds = this.productIds.filter(p => p.id !== productIdId);
+            this.filteredProductIds = [...this.productIds];
+            this.renderTable();
+            this.updateCount();
+            this.showSuccess('Product ID removed');
+            return;
+        }
+
         try {
             this.showLoading(true);
             const response = await fetch(`/api/productids/${productIdId}`, {
@@ -347,6 +418,22 @@ class ProductIdManager {
         } finally {
             this.showLoading(false);
         }
+    }
+
+    /**
+     * Get all product IDs for form submission (used on Create page)
+     * Returns array suitable for posting with the certificate form
+     */
+    getProductIdsForSubmission() {
+        return this.productIds.map(p => ({
+            ProductIdType: p.productIdType,
+            ProductIdValue: p.productIdValue,
+            Status: p.status || 'Active',
+            Partner: p.partner || '',
+            ProductName: p.productName || '',
+            ProductSku: p.productSku || '',
+            Description: p.description || ''
+        }));
     }
 
     handleTableAction(e) {
@@ -861,6 +948,36 @@ class ProductIdManager {
             applyBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Importing...';
         }
 
+        // For new certificates (Create page), store in memory instead of API
+        if (!this.certificateId || this.certificateId === 0) {
+            let successCount = 0;
+            for (const row of selectedRows) {
+                // Generate a temporary negative ID for new items
+                const tempId = -(Date.now() + successCount);
+                const newItem = {
+                    id: tempId,
+                    certificateId: 0,
+                    productIdType: row.data.productIdType,
+                    productIdValue: row.data.productIdValue,
+                    status: row.data.status || 'Active',
+                    partner: row.data.partner || '',
+                    productName: row.data.productName || '',
+                    productSku: row.data.productSku || '',
+                    description: row.data.description || '',
+                    isNew: true // Flag for items to be saved with certificate
+                };
+                this.productIds.push(newItem);
+                successCount++;
+            }
+
+            this.filteredProductIds = [...this.productIds];
+            this.renderTable();
+            this.updateCount();
+            this.closeImportPreviewModal();
+            this.showSuccess(`Added ${successCount} product ID(s) to be saved with certificate`);
+            return;
+        }
+
         let successCount = 0;
         let errorCount = 0;
 
@@ -1037,10 +1154,15 @@ class ProductIdManager {
 
 // Initialize when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    const productIdManager = document.querySelector('.product-id-manager');
-    if (productIdManager) {
-        const certificateId = productIdManager.getAttribute('data-certificate-id');
-        const isReadOnly = productIdManager.hasAttribute('data-readonly');
+    // Guard against double initialization
+    if (window.productIdManager) {
+        return;
+    }
+
+    const productIdManagerEl = document.querySelector('.product-id-manager');
+    if (productIdManagerEl) {
+        const certificateId = productIdManagerEl.getAttribute('data-certificate-id');
+        const isReadOnly = productIdManagerEl.hasAttribute('data-readonly');
 
         // Initialize even if certificateId is 0 (new certificate on Create page)
         if (certificateId !== null && certificateId !== undefined) {

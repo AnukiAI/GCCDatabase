@@ -180,15 +180,13 @@
                     }
                     <div class="certificate-image-container" style="position: relative;">
                         <img src="@certificateImageSrc" alt="@altText" class="certificate-image" onerror="this.src='@Url.Content("~/img/certpreview.png")';this.onerror=null;" onclick="openImageZoom('@certificateImageSrc')" />
-
-                        <!-- Magnifying Glass Icon overlay -->
-                        <div class="zoom-icon-overlay" onclick="openImageZoom('@certificateImageSrc')" title="Click to zoom">
-                            <i class="fas fa-search-plus"></i>
-                        </div>
                     </div>
 
-                    <!-- Download Button directly below image -->
+                    <!-- Action Buttons directly below image -->
                     <div class="certificate-download-action">
+                        <div class="action-icon view" title="Zoom Image" onclick="openImageZoom('@certificateImageSrc')">
+                            <i class="fas fa-search-plus"></i>
+                        </div>
                         <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@GetFormattedCertificateNumber()')">
                             <i class="fas fa-download"></i>
                         </div>

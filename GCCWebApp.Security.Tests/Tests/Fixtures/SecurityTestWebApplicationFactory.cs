@@ -46,10 +46,10 @@ namespace GCCWebApp.Security.Tests.Fixtures
                     services.Remove(descriptor);
                 }
 
-                // Add an in-memory database for testing
+                // Add an in-memory database for testing with unique name to avoid parallel test conflicts
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("SecurityTestDb");
+                    options.UseInMemoryDatabase($"SecurityTestDb_{Guid.NewGuid()}");
                     options.EnableSensitiveDataLogging();
                 });
 
@@ -70,7 +70,8 @@ namespace GCCWebApp.Security.Tests.Fixtures
         private static void SeedSecurityTestData(ApplicationDbContext context)
         {
             // Add test users with different roles for security testing
-            if (!context.Users.Any())
+            // Check both Users and Roles to avoid duplicate key issues with shared InMemory database
+            if (!context.Users.Any() && !context.Roles.Any())
             {
                 var adminRole = new Models.Role { Id = 1, Name = "Admin", Description = "Administrator role" };
                 var userRole = new Models.Role { Id = 2, Name = "User", Description = "Regular user role" };

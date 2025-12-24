@@ -340,93 +340,448 @@
         }
     };
 
-    // Form Validation
-    const FormValidation = {
+    // Unsaved Changes Detection
+    const UnsavedChanges = {
+        originalFormData: null,
+        isSubmitting: false,
+        hasChanges: false,
+
         init: function() {
-            const form = document.getElementById('certificateCreateForm');
+            const form = document.getElementById('certificateCreateForm') || document.getElementById('certificateEditForm');
             if (!form) return;
 
-            form.addEventListener('submit', (event) => {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
+            // Store original form values
+            this.originalFormData = new FormData(form);
+            this.originalValues = this.getFormValues(form);
 
-                    // Show notification about validation errors
-                    const invalidFields = form.querySelectorAll(':invalid');
-                    const fieldNames = [];
+            // Track changes on all form inputs
+            form.addEventListener('input', () => this.markAsChanged());
+            form.addEventListener('change', () => this.markAsChanged());
 
-                    invalidFields.forEach(field => {
-                        // Get field label or name
-                        const label = field.closest('.form-group')?.querySelector('label');
-                        if (label) {
-                            // Remove the asterisk span from label text
-                            const labelText = label.textContent.replace('*', '').trim();
-                            if (labelText && !fieldNames.includes(labelText)) {
-                                fieldNames.push(labelText);
-                            }
-                        }
-                    });
-
-                    // Check for PDF upload specifically (hidden field)
-                    const pdfInput = document.getElementById('certificatePdf');
-                    if (pdfInput && !pdfInput.files.length && pdfInput.hasAttribute('required')) {
-                        if (!fieldNames.includes('Upload PDF Certificate')) {
-                            fieldNames.push('Upload PDF Certificate');
-                        }
-                        // Highlight the PDF upload zone
-                        const pdfZone = document.getElementById('pdfUploadZone');
-                        if (pdfZone) {
-                            pdfZone.style.borderColor = '#FF5252';
-                            pdfZone.style.backgroundColor = 'rgba(255, 82, 82, 0.05)';
-                            pdfZone.style.animation = 'shake 0.5s ease-in-out';
-                        }
-                    }
-
-                    if (fieldNames.length > 0) {
-                        const message = fieldNames.length === 1
-                            ? `Please fill in the required field: ${fieldNames[0]}`
-                            : `Please fill in the required fields: ${fieldNames.slice(0, 3).join(', ')}${fieldNames.length > 3 ? ` and ${fieldNames.length - 3} more` : ''}`;
-                        ModalSystem.showNotification(message, 'error');
-                    } else {
-                        ModalSystem.showNotification('Please fill in all required fields.', 'error');
-                    }
-
-                    // Scroll to first invalid field
-                    const firstInvalid = form.querySelector(':invalid');
-                    if (firstInvalid) {
-                        firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        firstInvalid.focus();
-                    }
-                }
-                form.classList.add('was-validated');
+            // Track form submission
+            form.addEventListener('submit', () => {
+                this.isSubmitting = true;
             });
 
-            // Date validation
-            this.initDateValidation();
+            // Warn before leaving if there are unsaved changes
+            window.addEventListener('beforeunload', (e) => {
+                if (this.hasChanges && !this.isSubmitting) {
+                    e.preventDefault();
+                    e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
+                    return e.returnValue;
+                }
+            });
+
+            // Also handle clicks on navigation links
+            document.querySelectorAll('a[href]:not([target="_blank"])').forEach(link => {
+                link.addEventListener('click', (e) => {
+                    if (this.hasChanges && !this.isSubmitting) {
+                        const href = link.getAttribute('href');
+                        // Skip if it's an anchor link or JavaScript
+                        if (href.startsWith('#') || href.startsWith('javascript:')) return;
+
+                        e.preventDefault();
+                        this.confirmNavigation(href);
+                    }
+                });
+            });
         },
 
+        getFormValues: function(form) {
+            const values = {};
+            const formData = new FormData(form);
+            for (const [key, value] of formData.entries()) {
+                values[key] = value;
+            }
+            return values;
+        },
+
+        markAsChanged: function() {
+            this.hasChanges = true;
+        },
+
+        confirmNavigation: async function(href) {
+            console.log('[UnsavedChanges] Showing navigation confirmation for:', href);
+            try {
+                const confirmed = await ModalSystem.showConfirmation({
+                    title: 'Unsaved Changes',
+                    message: 'You have unsaved changes that will be lost. Are you sure you want to leave this page?',
+                    confirmText: 'Leave Page',
+                    cancelText: 'Stay'
+                });
+
+                console.log('[UnsavedChanges] User confirmed:', confirmed);
+                if (confirmed) {
+                    this.isSubmitting = true; // Prevent double prompt
+                    console.log('[UnsavedChanges] Navigating to:', href);
+                    window.location.href = href;
+                }
+            } catch (error) {
+                console.error('[UnsavedChanges] Error in confirmNavigation:', error);
+            }
+        },
+
+        reset: function() {
+            this.hasChanges = false;
+            this.isSubmitting = false;
+        }
+    };
+
+    // Loading Spinner System
+    const LoadingSpinner = {
+        overlay: null,
+
+        show: function(message = 'Saving certificate...') {
+            if (this.overlay) return; // Already showing
+
+            this.overlay = document.createElement('div');
+            this.overlay.className = 'loading-overlay';
+            this.overlay.innerHTML = `
+                <div class="loading-content">
+                    <div class="loading-spinner"></div>
+                    <p class="loading-message">${message}</p>
+                </div>
+            `;
+            this.overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10000;
+                backdrop-filter: blur(3px);
+            `;
+
+            const content = this.overlay.querySelector('.loading-content');
+            content.style.cssText = `
+                text-align: center;
+                color: white;
+            `;
+
+            const spinner = this.overlay.querySelector('.loading-spinner');
+            spinner.style.cssText = `
+                width: 50px;
+                height: 50px;
+                border: 4px solid rgba(255, 255, 255, 0.3);
+                border-top-color: #92C83E;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 16px;
+            `;
+
+            const msg = this.overlay.querySelector('.loading-message');
+            msg.style.cssText = `
+                font-size: 18px;
+                font-weight: 500;
+                margin: 0;
+            `;
+
+            // Add keyframes animation
+            if (!document.getElementById('spinner-keyframes')) {
+                const style = document.createElement('style');
+                style.id = 'spinner-keyframes';
+                style.textContent = '@keyframes spin { to { transform: rotate(360deg); } }';
+                document.head.appendChild(style);
+            }
+
+            document.body.appendChild(this.overlay);
+            document.body.style.overflow = 'hidden';
+        },
+
+        hide: function() {
+            if (this.overlay) {
+                this.overlay.remove();
+                this.overlay = null;
+                document.body.style.overflow = '';
+            }
+        },
+
+        updateMessage: function(message) {
+            if (this.overlay) {
+                const msg = this.overlay.querySelector('.loading-message');
+                if (msg) msg.textContent = message;
+            }
+        }
+    };
+
+    // Form Validation - Minimal, delegates to jQuery Unobtrusive Validation
+    // Custom dropdowns have their own validation in certificate-inline-create.js
+    const FormValidation = {
+        init: function() {
+            const form = document.getElementById('certificateCreateForm') || document.getElementById('certificateEditForm');
+            if (!form) return;
+
+            // Add inline validation styles
+            this.addInlineValidationStyles();
+
+            // Date validation (additional custom validation)
+            this.initDateValidation();
+
+            // Note: Loading spinner is NOT shown here - form submits normally
+            // jQuery Unobtrusive Validation handles required field validation
+        },
+
+        /**
+         * Validate all required fields and return list of errors
+         */
+        validateRequiredFields: function(form) {
+            const errors = [];
+
+            // Check Company (required in UI)
+            const companySelect = form.querySelector('#CompanyId');
+            if (companySelect && !companySelect.value) {
+                errors.push({
+                    formGroup: companySelect.closest('.form-group'),
+                    field: companySelect,
+                    message: 'Company is required'
+                });
+            }
+
+            // Check Certification Type
+            const certTypeSelect = form.querySelector('#CertificationTypeId');
+            if (certTypeSelect && !certTypeSelect.value) {
+                errors.push({
+                    formGroup: certTypeSelect.closest('.form-group'),
+                    field: certTypeSelect,
+                    message: 'Certification Type is required'
+                });
+            }
+
+            // Check Product Name
+            const productSelect = form.querySelector('#ProductId');
+            if (productSelect && !productSelect.value) {
+                errors.push({
+                    formGroup: productSelect.closest('.form-group'),
+                    field: productSelect,
+                    message: 'Product Name is required'
+                });
+            }
+
+            // Check Effective Date
+            const effectiveDate = form.querySelector('input[name="EffectiveDate"]');
+            if (effectiveDate && !effectiveDate.value) {
+                errors.push({
+                    formGroup: effectiveDate.closest('.form-group'),
+                    field: effectiveDate,
+                    message: 'Effective Date is required'
+                });
+            }
+
+            // Check Expiration Date
+            const expirationDate = form.querySelector('input[name="ExpirationDate"]');
+            if (expirationDate && !expirationDate.value) {
+                errors.push({
+                    formGroup: expirationDate.closest('.form-group'),
+                    field: expirationDate,
+                    message: 'Expiration Date is required'
+                });
+            }
+
+            // Check Status
+            const statusSelect = form.querySelector('#Status, select[name="Status"]');
+            if (statusSelect && !statusSelect.value) {
+                errors.push({
+                    formGroup: statusSelect.closest('.form-group'),
+                    field: statusSelect,
+                    message: 'Status is required'
+                });
+            }
+
+            // Check PDF Upload
+            const pdfInput = document.getElementById('certificatePdf');
+            if (pdfInput && pdfInput.hasAttribute('required') && !pdfInput.files.length) {
+                const pdfZone = document.getElementById('pdfUploadZone');
+                errors.push({
+                    formGroup: pdfZone?.closest('.form-group'),
+                    field: pdfInput,
+                    message: 'Please upload a PDF certificate'
+                });
+                // Highlight PDF zone
+                if (pdfZone) {
+                    pdfZone.style.borderColor = '#FF5252';
+                    pdfZone.style.backgroundColor = 'rgba(255, 82, 82, 0.05)';
+                }
+            }
+
+            return errors;
+        },
+
+        /**
+         * Show error for a form group - uses existing asp-validation-for spans
+         */
+        showError: function(formGroup, message) {
+            if (!formGroup) return;
+
+            formGroup.classList.add('has-error');
+
+            // Highlight custom dropdown trigger if present
+            const trigger = formGroup.querySelector('.custom-dropdown-trigger');
+            if (trigger) {
+                trigger.style.borderColor = '#FF5252';
+                trigger.style.backgroundColor = 'rgba(255, 82, 82, 0.05)';
+            }
+
+            // Use existing asp-validation-for span if present
+            const existingValidationSpan = formGroup.querySelector('.text-danger[data-valmsg-for], span.text-danger[role="alert"]');
+            if (existingValidationSpan) {
+                existingValidationSpan.textContent = message;
+                existingValidationSpan.classList.remove('field-validation-valid');
+                existingValidationSpan.classList.add('field-validation-error');
+                return; // Don't create duplicate
+            }
+
+            // Fallback: Add error message only if no existing validation span
+            if (!formGroup.querySelector('.inline-validation-error')) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'inline-validation-error';
+                errorDiv.textContent = message;
+
+                // Insert after the input/dropdown wrapper
+                const insertAfter = formGroup.querySelector('.custom-dropdown-wrapper') ||
+                                   formGroup.querySelector('.pdf-upload') ||
+                                   formGroup.querySelector('input, select, textarea');
+                if (insertAfter) {
+                    insertAfter.insertAdjacentElement('afterend', errorDiv);
+                } else {
+                    formGroup.appendChild(errorDiv);
+                }
+            }
+        },
+
+        /**
+         * Add CSS styles for inline validation
+         */
+        addInlineValidationStyles: function() {
+            if (document.getElementById('inline-validation-styles')) return;
+
+            const style = document.createElement('style');
+            style.id = 'inline-validation-styles';
+            style.textContent = `
+                .inline-validation-error {
+                    display: block;
+                    margin-top: 8px;
+                    padding: 0;
+                }
+                .form-group.has-error label {
+                    color: #FF5252;
+                }
+            `;
+            document.head.appendChild(style);
+        },
+
+        /**
+         * Clear inline error for a specific form group
+         */
+        clearInlineError: function(formGroup) {
+            formGroup.classList.remove('has-error');
+
+            // Clear existing asp-validation-for spans
+            const existingValidationSpan = formGroup.querySelector('.text-danger[data-valmsg-for], span.text-danger[role="alert"]');
+            if (existingValidationSpan) {
+                existingValidationSpan.textContent = '';
+                existingValidationSpan.classList.remove('field-validation-error');
+                existingValidationSpan.classList.add('field-validation-valid');
+            }
+
+            // Remove any inline-validation-error divs
+            const errorDiv = formGroup.querySelector('.inline-validation-error');
+            if (errorDiv) errorDiv.remove();
+
+            // Reset custom dropdown trigger
+            const trigger = formGroup.querySelector('.custom-dropdown-trigger');
+            if (trigger) {
+                trigger.style.borderColor = '#ced4da';
+                trigger.style.backgroundColor = '';
+            }
+
+            // Reset PDF zone
+            const pdfZone = formGroup.querySelector('.pdf-upload, #pdfUploadZone');
+            if (pdfZone) {
+                pdfZone.style.borderColor = '';
+                pdfZone.style.backgroundColor = '';
+            }
+        },
+
+        /**
+         * Clear all inline errors from the form
+         */
+        clearAllInlineErrors: function(form) {
+            form.querySelectorAll('.form-group.has-error').forEach(fg => {
+                this.clearInlineError(fg);
+            });
+            form.querySelectorAll('.inline-validation-error').forEach(e => e.remove());
+            // Also clear any asp-validation-for spans
+            form.querySelectorAll('.field-validation-error').forEach(span => {
+                span.textContent = '';
+                span.classList.remove('field-validation-error');
+                span.classList.add('field-validation-valid');
+            });
+        },
+
+        /**
+         * Add input listeners to clear errors when user interacts
+         */
+        addInputListeners: function(form) {
+            const self = this;
+            form.querySelectorAll('input, select, textarea').forEach(field => {
+                ['input', 'change'].forEach(eventType => {
+                    field.addEventListener(eventType, function() {
+                        const formGroup = this.closest('.form-group') ||
+                                         this.closest('.custom-dropdown-wrapper')?.closest('.form-group');
+                        if (formGroup && formGroup.classList.contains('has-error')) {
+                            self.clearInlineError(formGroup);
+                        }
+                    });
+                });
+            });
+        },
+
+        /**
+         * Date validation - check expiration is after effective
+         */
         initDateValidation: function() {
             const effectiveDate = document.querySelector('input[name="EffectiveDate"]');
             const expirationDate = document.querySelector('input[name="ExpirationDate"]');
 
             if (!effectiveDate || !expirationDate) return;
 
+            const self = this;
+
             const validateDates = () => {
+                const expirationFormGroup = expirationDate.closest('.form-group');
+
                 if (effectiveDate.value && expirationDate.value) {
                     const effective = new Date(effectiveDate.value);
                     const expiration = new Date(expirationDate.value);
 
                     if (expiration <= effective) {
-                        expirationDate.setCustomValidity('Expiration date must be after effective date');
-                        ModalSystem.showNotification('Expiration date must be after effective date.', 'warning');
+                        if (expirationFormGroup) {
+                            self.showError(expirationFormGroup, 'Expiration date must be after effective date');
+                        }
                     } else {
-                        expirationDate.setCustomValidity('');
+                        if (expirationFormGroup) {
+                            self.clearInlineError(expirationFormGroup);
+                        }
                     }
                 }
             };
 
             effectiveDate.addEventListener('change', validateDates);
             expirationDate.addEventListener('change', validateDates);
+        },
+
+        /**
+         * Handle server-side validation errors on page load
+         */
+        handleServerValidationErrors: function() {
+            const validationSummary = document.querySelector('.alert-danger, .validation-summary-errors');
+            if (validationSummary && validationSummary.textContent.trim().length > 0) {
+                validationSummary.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
     };
 
@@ -436,12 +791,13 @@
         PdfUpload.init();
         TagManager.init();
         FormValidation.init();
+        UnsavedChanges.init();
 
-        // Initialize Product ID Manager (if present)
-        const productIdManagerElement = document.querySelector('.product-id-manager');
-        if (productIdManagerElement && typeof ProductIdManager !== 'undefined') {
-            new ProductIdManager('.product-id-manager', 0, false);
-        }
+        // Handle server-side validation errors (displayed after POST failure)
+        FormValidation.handleServerValidationErrors();
+
+        // Product ID Manager is auto-initialized by product-id-manager.js
+        // No need to initialize here - it handles its own DOMContentLoaded event
 
         // Show success message if present (for "Save & Add Another")
         const successMessage = document.querySelector('[data-success-message]');
@@ -455,7 +811,11 @@
         removePdfPreview: PdfUpload.removePdfPreview,
         removeTag: TagManager.removeTag.bind(TagManager),
         showNotification: ModalSystem.showNotification,
-        showConfirmation: ModalSystem.showConfirmation
+        showConfirmation: ModalSystem.showConfirmation,
+        resetUnsavedChanges: UnsavedChanges.reset.bind(UnsavedChanges),
+        markAsChanged: UnsavedChanges.markAsChanged.bind(UnsavedChanges),
+        showLoading: LoadingSpinner.show.bind(LoadingSpinner),
+        hideLoading: LoadingSpinner.hide.bind(LoadingSpinner)
     };
 
 })();

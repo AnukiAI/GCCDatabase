@@ -838,7 +838,7 @@
              Rate limits apply based on authentication method.
              </remarks>
         </member>
-        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.GetCertificates(GCCWebApp.Models.Api.PaginationParams)">
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.GetCertificates(GCCWebApp.Models.Api.PaginationParams,System.Boolean)">
              <summary>
              Retrieve certificates with pagination and filtering
              </summary>
@@ -850,6 +850,7 @@
              - Search across certificate number, product name, and company name
              - Sorting by multiple fields (certificate number, dates, product, company)
              - Response caching for improved performance
+             - Optional product IDs (ASIN, GTIN, MPN, etc.) for partner integrations
             
              **Search Examples:**
              - `searchTerm=24-` - Find certificates starting with "24-"
@@ -864,8 +865,18 @@
              - `sortBy=companyname` - Sort by company name
             
              Add `sortDescending=true` for descending order.
+            
+             **Partner Integration (Novi, Amazon, etc.):**
+             Add `includeProductIds=true` to include GTIN, MPN, ASIN, UPC, and other product identifiers.
+             This is essential for partners who need to map certificates to specific product variants.
+            
+             **Example for Novi:**
+             ```
+             GET /api/v1/certificates?includeProductIds=true&amp;pageSize=100
+             ```
              </remarks>
              <param name="parameters">Pagination and filtering parameters</param>
+             <param name="includeProductIds">Include product identifiers (ASIN, GTIN, MPN, UPC, etc.) in response. Default: false</param>
              <returns>Paginated list of certificates matching the search criteria</returns>
              <response code="200">Returns the paginated certificate list</response>
              <response code="400">Invalid pagination parameters</response>
@@ -1246,6 +1257,11 @@
             API endpoint for certificate statistics
             </summary>
         </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.EnsureCertificateThumbnailAsync(GCCWebApp.Models.Certificate)">
+            <summary>
+            Generates a thumbnail from the PDF if one doesn't exist
+            </summary>
+        </member>
         <member name="M:GCCWebApp.Controllers.CertificateController.Download(System.String)">
             <summary>
             Download certificate PDF
@@ -1303,6 +1319,19 @@
             POST: /Certificate/SaveCustomFieldValues
             </summary>
         </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.GetProductTypes">
+            <summary>
+            Gets all product types for cascading dropdown
+            GET: /Certificate/GetProductTypes
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.GetProductSubcategories(System.Int32)">
+            <summary>
+            Gets product subcategories for a specific product type
+            GET: /Certificate/GetProductSubcategories?productTypeId={id}
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:GCCWebApp.Controllers.CertificateController.GetProductsByType(System.Nullable{System.Int32},System.Nullable{System.Int32})" -->
         <member name="T:GCCWebApp.Controllers.CertificateImportController">
             <summary>
             Admin-only controller for certificate CSV import with preview and comparison
@@ -1699,6 +1728,18 @@
         <member name="M:GCCWebApp.Migrations.AddCertificationTypeSubcategoryId.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
+        <member name="T:GCCWebApp.Migrations.AddRoleVisibilityToCustomFields">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddRoleVisibilityToCustomFields.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddRoleVisibilityToCustomFields.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddRoleVisibilityToCustomFields.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
         <member name="P:GCCWebApp.Models.CertificateTypeViewModel.ParentId">
             <summary>
             Parent certification type ID (null for top-level types)
@@ -1712,6 +1753,11 @@
         <member name="P:GCCWebApp.Models.CertificateTypeViewModel.ParentName">
             <summary>
             Parent type name for display purposes
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateFieldViewModel.RoleVisibility">
+            <summary>
+            Role-based visibility: "Public", "External", "Internal"
             </summary>
         </member>
         <member name="T:GCCWebApp.Models.Api.CertificateExportRequest">
@@ -2267,6 +2313,11 @@
             Child certification types (sub-types)
             </summary>
         </member>
+        <member name="P:GCCWebApp.Models.CustomField.RoleVisibility">
+            <summary>
+            Role-based visibility: "Public" (all users), "External" (External+), "Internal" (Analyst/Admin only)
+            </summary>
+        </member>
         <member name="T:GCCWebApp.Models.CertificateDocumentUploadViewModel">
             <summary>
             View model for file upload form
@@ -2528,6 +2579,11 @@
             User who revoked this API key
             </summary>
         </member>
+        <member name="M:GCCWebApp.Repositories.CertificateRepository.GenerateNextCertificateNumberAsync">
+            <summary>
+            Generates the next certificate number in format YY-XXXX (e.g., "26-0001")
+            </summary>
+        </member>
         <member name="T:GCCWebApp.Services.Audit.AuditService">
             <summary>
             Service for comprehensive audit logging with automatic field-level change detection
@@ -2670,6 +2726,12 @@
             Summary of a user's audit activity
             </summary>
         </member>
+        <member name="M:GCCWebApp.Services.CertificateFieldService.GetFieldsForRoleAsync(System.String)">
+            <summary>
+            Get custom fields filtered by user role visibility
+            </summary>
+            <param name="userRole">User role: Public, External, Analyst, Admin</param>
+        </member>
         <member name="M:GCCWebApp.Services.CertificateService.SearchCertificatesAsync(GCCWebApp.Models.CertificateListRequest)">
             <summary>
             Advanced search functionality for certificates with multi-criteria support
@@ -2783,10 +2845,17 @@
         </member>
         <member name="M:GCCWebApp.Services.ICertificateFieldService.GetFieldsAsync(System.Boolean)">
             <summary>
-            Gets all visible custom fields with role-based filtering
+            Gets all visible custom fields with role-based filtering (deprecated - use GetFieldsForRoleAsync)
             </summary>
             <param name="includeInternalFields">If true, includes fields where IsPublic=false. If false, only returns public fields.</param>
             <returns>List of custom fields filtered by visibility and public/internal status</returns>
+        </member>
+        <member name="M:GCCWebApp.Services.ICertificateFieldService.GetFieldsForRoleAsync(System.String)">
+            <summary>
+            Gets custom fields filtered by user role visibility
+            </summary>
+            <param name="userRole">User role: Public, External, Analyst, Admin</param>
+            <returns>List of custom fields visible to the specified role</returns>
         </member>
         <member name="M:GCCWebApp.Services.ICertificateFieldService.GetFieldValuesForCertificateAsync(System.Int32)">
             <summary>

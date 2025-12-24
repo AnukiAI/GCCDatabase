@@ -38,13 +38,6 @@
         </div>
     </header>
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success" data-success-message="@TempData["SuccessMessage"]" style="margin-bottom: 24px;">
-            @TempData["SuccessMessage"]
-        </div>
-    }
-
     <div class="admin-content">
         <form asp-action="Edit" method="post" enctype="multipart/form-data" class="needs-validation" novalidate id="certificateEditForm">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>

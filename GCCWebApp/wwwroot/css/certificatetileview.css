@@ -187,6 +187,48 @@
     }
 }
 
+/* ====================================================
+   FULL WIDTH FOR TABLE VIEW ONLY
+   These styles apply when body has 'table-view-active' class
+   ==================================================== */
+body.table-view-active .page-container,
+html body.table-view-active .page-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 15px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+body.table-view-active .main-container,
+html body.table-view-active .main-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+body.table-view-active .main-content,
+html body.table-view-active .main-content {
+    max-width: 100% !important;
+    width: 100% !important;
+    padding: 15px !important;
+    box-sizing: border-box !important;
+}
+
+body.table-view-active .table-scroll-wrapper,
+html body.table-view-active .table-scroll-wrapper {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
+body.table-view-active #tableView,
+html body.table-view-active #tableView {
+    max-width: 100% !important;
+    width: 100% !important;
+}
+
 /* Sidebar */
 .sidebar {
     width: 350px;
@@ -1483,9 +1525,10 @@
     max-width: 100vw; /* Allow full viewport width */
 }
 
-/* Table scroll wrapper width calculation */
-.table-scroll-wrapper {
-    max-width: calc(100vw - 360px); /* Account for sidebar width ~340px plus padding */
+/* Table scroll wrapper width calculation - full width for table view */
+body.table-view-active .table-scroll-wrapper {
+    max-width: 100% !important;
+    width: 100%;
 }
 
 /* Improved table grid header styling */

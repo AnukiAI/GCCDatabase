@@ -178,7 +178,8 @@
     }
 
     .main-container.sidebar-collapsed .table-scroll-wrapper {
-        max-width: calc(100vw - 50px) !important;
+        max-width: 100% !important;
+        width: 100%;
     }
 
     /* ====================================================
@@ -211,8 +212,22 @@
        ====================================================*/
 
     /* Only expand when table view is active - use has selector or JS class */
+    body.table-view-active .page-container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding: 0 15px !important;
+        margin: 0 !important;
+    }
+
     body.table-view-active .main-container {
-        max-width: 1800px !important;
+        max-width: 100% !important;
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
+    body.table-view-active .main-content {
+        max-width: 100% !important;
+        width: 100% !important;
     }
 
     /* Compact bulk actions bar */

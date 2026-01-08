@@ -28,33 +28,48 @@
         white-space: normal !important;
     }
 
-    /* Grid layout for table - External view (NO Internal Tag column, 2 action buttons) */
+    /* Grid layout for External view (21 columns - NO Internal Tag) - SINGLE DEFINITION */
     .table-grid {
         display: grid;
         grid-template-columns:
-            40px      /* Select checkbox */
-            160px     /* Actions (Download + View) */
-            120px     /* Certificate # */
-            180px     /* Certification Type */
-            150px     /* CSF Attributes */
-            80px      /* Status */
-            110px     /* Effective Date */
-            110px     /* Expiration Date */
-            200px     /* Company */
-            200px     /* Company Contact */
-            180px     /* Product Name */
-            150px     /* Product Category */
-            150px     /* Product Type */
-            170px     /* Product Subcategory */
-            120px     /* Location */
-            100px     /* Country */
-            120px     /* External Tag */
-            100px     /* ASIN */
-            100px     /* UPC */
-            100px     /* GTIN */
-            100px;    /* EAN */
+            36px      /* 1. Select checkbox - centered */
+            80px      /* 2. Actions (Download + View) - 2 buttons centered */
+            110px     /* 3. Certificate # */
+            160px     /* 4. Certification Type */
+            130px     /* 5. CSF Attributes */
+            75px      /* 6. Status */
+            95px      /* 7. Effective Date */
+            95px      /* 8. Expiration Date */
+            170px     /* 9. Company */
+            170px     /* 10. Company Contact */
+            170px     /* 11. Product Name */
+            130px     /* 12. Product Category */
+            130px     /* 13. Product Type */
+            140px     /* 14. Product Subcategory */
+            100px     /* 15. Location */
+            80px      /* 16. Country */
+            100px     /* 17. External Tag */
+            85px      /* 18. ASIN */
+            85px      /* 19. UPC */
+            85px      /* 20. GTIN */
+            85px;     /* 21. EAN */
         min-width: max-content;
         width: 100%;
+    }
+
+    /* Ensure grid rows and header inherit the template */
+    .table-grid .grid-header,
+    .table-grid .grid-body,
+    .table-grid .grid-row {
+        display: contents;
+    }
+
+    /* Force all grid cells to respect column widths */
+    .table-grid .grid-cell,
+    .table-grid .grid-header-cell {
+        box-sizing: border-box;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     /* Loading spinner animation specific to this view */
@@ -86,17 +101,10 @@
         display: block !important;
     }
 
-    /* Ensure the table grid container doesn't collapse */
+    /* Ensure the table grid container doesn't collapse - sum of 21 columns = ~2280px */
     .table-grid-container {
-        min-width: 2400px;
+        min-width: 2300px;
         width: max-content;
-        display: block !important;
-    }
-
-    /* Table grid must maintain full width */
-    .table-grid {
-        width: max-content !important;
-        min-width: 2400px !important;
     }
 
     /* Ensure main content allows table to expand and scroll */
@@ -246,31 +254,68 @@
         font-size: 14px !important;
     }
 
-    /* Improved Actions column alignment */
-    .grid-header-cell.actions-column,
-    .grid-cell.actions-column {
-        min-width: 160px !important;
-        width: 160px !important;
+    /* ====================================================
+       SELECT & ACTIONS COLUMNS - CENTERED LAYOUT
+       Width controlled by grid-template-columns above
+       ====================================================*/
+
+    /* Select cell - header & body */
+    .table-grid .grid-header-cell.select-cell,
+    .table-grid .grid-cell.select-cell {
+        display: flex !important;
+        align-items: center !important;
         justify-content: center !important;
-        text-align: center;
+        padding: 4px !important;
     }
 
+    /* Actions column - header & body */
+    .table-grid .grid-header-cell.actions-column,
+    .table-grid .grid-cell.actions-column {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 4px !important;
+        overflow: visible !important;
+    }
+
+    /* Action buttons container */
     .grid-cell.actions-column .action-buttons {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 4px;
-        width: 100%;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 2px !important;
     }
 
+    /* Individual action buttons */
     .grid-cell.actions-column .action-btn {
-        margin: 0;
-        padding: 4px 6px;
-        min-width: 28px;
-        height: 28px;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+        padding: 4px !important;
+        min-width: 26px !important;
+        height: 26px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: none !important;
+        background: transparent !important;
+        border-radius: 4px !important;
+        color: #666 !important;
+    }
+
+    .grid-cell.actions-column .action-btn:hover {
+        background: #e3f2fd !important;
+        color: #007bff !important;
+    }
+
+    .grid-cell.actions-column .action-btn i {
+        font-size: 14px !important;
+    }
+
+    /* Checkbox styling */
+    .table-grid .grid-cell.select-cell input[type="checkbox"],
+    .table-grid .grid-header-cell.select-cell input[type="checkbox"] {
+        margin: 0 !important;
+        cursor: pointer;
+        width: 16px !important;
+        height: 16px !important;
     }
 
     /* ====================================================
@@ -340,19 +385,6 @@
         max-width: 100% !important;
     }
 
-    /* Actions column stays single line */
-    .table-grid .grid-cell.actions-column {
-        white-space: nowrap !important;
-        overflow: visible !important;
-    }
-
-    /* Select column stays single line */
-    .table-grid .grid-cell.select-cell,
-    .table-grid .grid-header-cell.select-cell {
-        white-space: nowrap !important;
-        overflow: visible !important;
-    }
-
     /* Short data columns stay single line */
     .table-grid .grid-cell[data-column="status"],
     .table-grid .grid-cell[data-column="effectiveDate"],
@@ -365,47 +397,11 @@
         white-space: nowrap !important;
     }
 
-    /* Wider column widths for External view (21 columns - no Internal Tag) - READABLE */
-    .table-grid {
-        grid-template-columns:
-            36px      /* Select checkbox */
-            100px     /* Actions - 2 icons */
-            100px     /* Certificate # */
-            160px     /* Certification Type */
-            140px     /* CSF Attributes */
-            70px      /* Status */
-            95px      /* Effective Date */
-            95px      /* Expiration Date */
-            180px     /* Company */
-            180px     /* Company Contact */
-            180px     /* Product Name */
-            140px     /* Product Category */
-            140px     /* Product Type */
-            150px     /* Product Subcategory */
-            100px     /* Location */
-            80px      /* Country */
-            100px     /* External Tag */
-            90px      /* ASIN */
-            90px      /* UPC */
-            90px      /* GTIN */
-            90px !important; /* EAN */
-    }
-
-    /* Update min-width for table container */
-    .table-grid-container {
-        min-width: 2500px !important;
-    }
-
-    /* Action buttons - readable size */
-    .table-grid .grid-cell.actions-column .action-btn {
-        padding: 4px 6px !important;
-        min-width: 28px !important;
-        height: 28px !important;
-        font-size: 14px !important;
-    }
-
-    .table-grid .grid-cell.actions-column .action-buttons {
-        gap: 4px !important;
+    /* Certificate # column - ensure visibility */
+    .grid-cell[data-column="certificateNumber"],
+    .grid-header-cell[data-sort-column="certificate"] {
+        padding-left: 8px !important;
+        font-weight: 600;
     }
 
     /* Zebra striping */
@@ -434,12 +430,17 @@
         font-size: 13px !important;
     }
 
-    /* Certificate number styling */
+    /* Certificate number styling - same color as all other text */
     .table-grid .grid-cell[data-column="certificateNumber"] {
-        font-family: 'Consolas', 'Courier New', monospace !important;
-        font-weight: 600 !important;
-        color: #007bff !important;
-        font-size: 13px !important;
+        font-family: inherit !important;
+        font-weight: 500 !important;
+        color: inherit !important;
+        font-size: 14px !important;
+    }
+
+    /* Ensure all grid cells have consistent text color */
+    .table-grid .grid-cell {
+        color: #333 !important;
     }
 </style>
 <!-- Main Container -->
@@ -729,8 +730,8 @@
                             <div class="grid-header-cell select-cell">
                                 <input type="checkbox" id="selectAll" title="Select all visible rows">
                             </div>
-                            <div class="grid-header-cell actions-column" style="min-width: 160px;">
-                                Actions
+                            <div class="grid-header-cell actions-column">
+                                <span>Actions</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="certificate">
                                 Certificate #

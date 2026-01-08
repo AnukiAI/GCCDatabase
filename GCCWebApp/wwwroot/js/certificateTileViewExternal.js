@@ -597,7 +597,7 @@ class CertificateTileViewExternal {
     /**
      * Handle view toggle
      */
-    handleViewToggle(button) {
+    async handleViewToggle(button) {
         const viewType = button.getAttribute('data-view');
         if (!viewType) return;
 
@@ -609,7 +609,7 @@ class CertificateTileViewExternal {
 
         // Toggle between tile and table view
         if (viewType === 'list') {
-            this.showTableView();
+            await this.showTableView();
         } else {
             this.showTileView();
         }
@@ -618,13 +618,21 @@ class CertificateTileViewExternal {
     /**
      * Show table view
      */
-    showTableView() {
+    async showTableView() {
         const tileView = document.getElementById('certificatesGrid');
         const tableView = document.getElementById('tableView');
 
         if (tileView) tileView.style.display = 'none';
         if (tableView) {
             tableView.style.display = 'block';
+
+            // If certificates aren't loaded yet, load them first
+            const certificates = this.service.certificates || [];
+            if (certificates.length === 0) {
+                console.log('DEBUG showTableView (External): No certificates in service, loading...');
+                await this.loadCertificates();
+            }
+
             this.populateTableView();
         }
 
@@ -754,20 +762,20 @@ class CertificateTileViewExternal {
 
         return `
             <div class="grid-row" data-cert-id="${cert.id}">
-                <div class="grid-cell select-cell">
-                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}">
+                <div class="grid-cell select-cell" style="display:flex;align-items:center;justify-content:center;padding:4px;">
+                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" style="margin:0;width:16px;height:16px;">
                 </div>
-                <div class="grid-cell actions-column">
-                    <div class="action-buttons">
-                        <button class="action-btn download-btn" onclick="window.certificateTileViewExternal.handleDownload('${certNumber}')" title="Download PDF">
+                <div class="grid-cell actions-column" style="display:flex;align-items:center;justify-content:center;padding:4px;">
+                    <div class="action-buttons" style="display:inline-flex;align-items:center;gap:2px;">
+                        <button class="action-btn download-btn" onclick="window.certificateTileViewExternal.handleDownload('${certNumber}')" title="Download PDF" style="padding:4px;border:none;background:transparent;color:#666;cursor:pointer;">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="window.certificateTileViewExternal.handleView('${certNumber}')" title="View Details">
+                        <button class="action-btn view-btn" onclick="window.certificateTileViewExternal.handleView('${certNumber}')" title="View Details" style="padding:4px;border:none;background:transparent;color:#666;cursor:pointer;">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
                     </div>
                 </div>
-                <div class="grid-cell" data-column="certificateNumber" title="${this.escapeHtml(certNumber)}">${this.escapeHtml(certNumber)}</div>
+                <div class="grid-cell" data-column="certificateNumber" title="${this.escapeHtml(certNumber)}" style="color:#333;">${this.escapeHtml(certNumber)}</div>
                 <div class="grid-cell" data-column="certificationType" title="${this.escapeHtml(certType)}">${this.escapeHtml(certType)}</div>
                 <div class="grid-cell" data-column="csfAttributes" title="${this.escapeHtml(csfAttrs)}">${this.escapeHtml(csfAttrs)}</div>
                 <div class="grid-cell" data-column="status">${statusBadge}</div>

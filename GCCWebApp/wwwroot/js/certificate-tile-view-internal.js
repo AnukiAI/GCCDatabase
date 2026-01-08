@@ -216,7 +216,10 @@
                 } else {
                     state.certificates = data.certificates;
                 }
-                
+
+                // DEBUG: Verify certificates are stored
+                console.log('DEBUG loadCertificates: Stored', state.certificates.length, 'certificates in state');
+
                 state.totalCount = data.totalCount;
                 state.totalPages = data.totalPages;
                 state.hasMore = data.hasMore;
@@ -1152,7 +1155,7 @@
         }
     }
 
-    function handleViewTypeChange(viewType) {
+    async function handleViewTypeChange(viewType) {
         // Update active button state
         document.querySelectorAll('.toggle-btn[data-view]').forEach(btn => {
             btn.classList.remove('active');
@@ -1161,7 +1164,7 @@
 
         if (viewType === 'list') {
             // Show table view within same page
-            showTableView();
+            await showTableView();
         } else {
             // Show tile view
             showTileView();
@@ -1170,13 +1173,20 @@
     }
 
     // Show table view
-    function showTableView() {
+    async function showTableView() {
         const tileView = document.getElementById('certificatesGrid');
         const tableView = document.getElementById('tableView');
 
         if (tileView) tileView.style.display = 'none';
         if (tableView) {
             tableView.style.display = 'block';
+
+            // If certificates aren't loaded yet, load them first
+            if (!state.certificates || state.certificates.length === 0) {
+                console.log('DEBUG showTableView: No certificates in state, loading...');
+                await loadCertificates();
+            }
+
             populateTableView();
         }
 
@@ -1203,15 +1213,24 @@
     // Populate table view with certificates
     function populateTableView() {
         const gridBody = document.getElementById('gridBody');
-        if (!gridBody) return;
+        if (!gridBody) {
+            console.error('DEBUG populateTableView: gridBody element not found!');
+            return;
+        }
 
         // Clear existing content
         gridBody.innerHTML = '';
 
+        // DEBUG: Log state to trace the issue
+        console.log('DEBUG populateTableView: state.certificates length =', state.certificates ? state.certificates.length : 'undefined');
+        console.log('DEBUG populateTableView: state.totalCount =', state.totalCount);
+
         // Use current certificates data
         if (state.certificates && state.certificates.length > 0) {
+            console.log('DEBUG populateTableView: Rendering', state.certificates.length, 'rows');
             renderTableRows(state.certificates);
         } else {
+            console.log('DEBUG populateTableView: No certificates in state, showing empty message');
             gridBody.innerHTML = '<div class="no-results">No certificates found</div>';
         }
 
@@ -1307,23 +1326,23 @@
 
         return `
             <div class="grid-row" data-cert-id="${cert.id}">
-                <div class="grid-cell select-cell">
-                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}">
+                <div class="grid-cell select-cell" style="display:flex;align-items:center;justify-content:center;padding:4px;">
+                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" style="margin:0;width:16px;height:16px;">
                 </div>
-                <div class="grid-cell actions-column">
-                    <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="editCertificate('${certNumber}')" title="Edit Certificate">
+                <div class="grid-cell actions-column" style="display:flex;align-items:center;justify-content:center;padding:4px;">
+                    <div class="action-buttons" style="display:inline-flex;align-items:center;gap:2px;">
+                        <button class="action-btn edit-btn" onclick="editCertificate('${certNumber}')" title="Edit Certificate" style="padding:4px;border:none;background:transparent;color:#666;cursor:pointer;">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn download-btn" onclick="downloadCertificate('${certNumber}')" title="Download PDF">
+                        <button class="action-btn download-btn" onclick="downloadCertificate('${certNumber}')" title="Download PDF" style="padding:4px;border:none;background:transparent;color:#666;cursor:pointer;">
                             <i class="fas fa-download"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${certNumber}')" title="View Details">
+                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${certNumber}')" title="View Details" style="padding:4px;border:none;background:transparent;color:#666;cursor:pointer;">
                             <i class="fas fa-external-link-alt"></i>
                         </button>
                     </div>
                 </div>
-                <div class="grid-cell" data-column="certificateNumber" title="${escapeHtml(certNumber)}">${escapeHtml(certNumber)}</div>
+                <div class="grid-cell" data-column="certificateNumber" title="${escapeHtml(certNumber)}" style="color:#333;">${escapeHtml(certNumber)}</div>
                 <div class="grid-cell" data-column="certificationType" title="${escapeHtml(certType)}">${escapeHtml(certType)}</div>
                 <div class="grid-cell" data-column="csfAttributes" title="${escapeHtml(csfAttrs)}">${escapeHtml(csfAttrs)}</div>
                 <div class="grid-cell" data-column="status">${statusBadge}</div>

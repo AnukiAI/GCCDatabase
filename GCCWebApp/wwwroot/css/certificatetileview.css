@@ -1235,15 +1235,17 @@ html body.table-view-active #tableView {
 .action-btn {
     border: none;
     background: transparent;
-    padding: 6px 8px;
-    margin: 0 3px;
+    padding: 4px 5px;
+    margin: 0 1px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 14px;
     transition: all 0.2s;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    min-width: 28px;
+    height: 28px;
 }
 
 .action-btn.download,
@@ -1273,7 +1275,7 @@ html body.table-view-active #tableView {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
+    gap: 2px;
 }
 
 /* Hierarchical filter indentation */
@@ -1501,19 +1503,28 @@ html body.table-view-active #tableView {
     cursor: pointer;
 }
 
-/* Select cell */
-.select-cell {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* Select cell - CENTERED */
+.select-cell,
+.grid-cell.select-cell,
+.grid-header-cell.select-cell {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding-left: 8px !important;
+    padding-right: 8px !important;
 }
 
-/* Actions column */
-.actions-column {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
+/* Actions column - CENTERED */
+.actions-column,
+.grid-cell.actions-column,
+.grid-header-cell.actions-column {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px;
+    overflow: visible !important;
+    padding-left: 4px !important;
+    padding-right: 4px !important;
 }
 
 /* Main content width */
@@ -1542,7 +1553,7 @@ body.table-view-active .table-scroll-wrapper {
 
 /* Ensure action column buttons are properly spaced */
 .actions-column .action-btn {
-    margin: 0 2px;
+    margin: 0;
 }
 
 /* Improve cell text alignment for specific columns */

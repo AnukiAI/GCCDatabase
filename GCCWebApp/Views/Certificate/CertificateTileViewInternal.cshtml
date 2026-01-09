@@ -371,7 +371,19 @@
         padding: 8px 10px !important;
         font-size: 16px !important;
         font-weight: 600 !important;
+        white-space: normal !important;  /* Allow header text to wrap */
+        word-wrap: break-word !important;
+        line-height: 1.3 !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 4px !important;
+    }
+
+    /* Sort icon - stays inline, never wraps separately */
+    .table-grid .grid-header-cell .sort-indicator {
+        flex-shrink: 0 !important;  /* Prevent icon from shrinking */
         white-space: nowrap !important;
+        margin-left: 4px !important;
     }
 
     /* Body cells - allow wrapping for readability (16px min per Master Design Guide) */

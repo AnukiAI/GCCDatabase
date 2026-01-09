@@ -1283,10 +1283,10 @@ namespace GCCWebApp.Controllers
             }
         }
 
-        // Legacy action for existing view
+        // Legacy CreateUser view was a mockup - redirect to User Management page
         public IActionResult CreateUser()
         {
-            return View();
+            return RedirectToAction("UserManagement");
         }
 
         // 2FA Management Actions

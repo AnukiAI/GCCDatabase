@@ -761,39 +761,39 @@ class CertificateTileViewExternal {
         const ean = cert.ean || '';
 
         return `
-            <div class="grid-row" data-cert-id="${cert.id}">
-                <div class="grid-cell select-cell" style="display:flex;align-items:center;justify-content:center;padding:4px;">
-                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" style="margin:0;width:16px;height:16px;">
+            <div class="grid-row" data-cert-id="${cert.id}" role="row">
+                <div class="grid-cell select-cell" role="gridcell">
+                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" aria-label="Select certificate ${this.escapeHtml(certNumber)}">
                 </div>
-                <div class="grid-cell actions-column" style="display:flex;align-items:center;justify-content:center;padding:4px;">
-                    <div class="action-buttons" style="display:inline-flex;align-items:center;gap:2px;">
-                        <button class="action-btn download-btn" onclick="window.certificateTileViewExternal.handleDownload('${certNumber}')" title="Download PDF" style="padding:4px;border:none;background:transparent;color:#666;cursor:pointer;">
-                            <i class="fas fa-download"></i>
+                <div class="grid-cell actions-column" role="gridcell">
+                    <div class="action-buttons">
+                        <button class="action-btn download-btn" onclick="window.certificateTileViewExternal.handleDownload('${certNumber}')" title="Download PDF" aria-label="Download PDF for certificate ${this.escapeHtml(certNumber)}">
+                            <i class="fas fa-download" aria-hidden="true"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="window.certificateTileViewExternal.handleView('${certNumber}')" title="View Details" style="padding:4px;border:none;background:transparent;color:#666;cursor:pointer;">
-                            <i class="fas fa-external-link-alt"></i>
+                        <button class="action-btn view-btn" onclick="window.certificateTileViewExternal.handleView('${certNumber}')" title="View Details" aria-label="View details for certificate ${this.escapeHtml(certNumber)}">
+                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
-                <div class="grid-cell" data-column="certificateNumber" title="${this.escapeHtml(certNumber)}" style="color:#333;">${this.escapeHtml(certNumber)}</div>
-                <div class="grid-cell" data-column="certificationType" title="${this.escapeHtml(certType)}">${this.escapeHtml(certType)}</div>
-                <div class="grid-cell" data-column="csfAttributes" title="${this.escapeHtml(csfAttrs)}">${this.escapeHtml(csfAttrs)}</div>
-                <div class="grid-cell" data-column="status">${statusBadge}</div>
-                <div class="grid-cell" data-column="effectiveDate">${effectiveDate}</div>
-                <div class="grid-cell" data-column="expirationDate">${expirationDate}</div>
-                <div class="grid-cell" data-column="company" title="${this.escapeHtml(company)}">${this.escapeHtml(company)}</div>
-                <div class="grid-cell" data-column="companyContact" title="${this.escapeHtml(contact)}">${this.escapeHtml(contact)}</div>
-                <div class="grid-cell" data-column="productName" title="${this.escapeHtml(product)}">${this.escapeHtml(product)}</div>
-                <div class="grid-cell" data-column="productCategory" title="${this.escapeHtml(category)}">${this.escapeHtml(category)}</div>
-                <div class="grid-cell" data-column="productType" title="${this.escapeHtml(type)}">${this.escapeHtml(type)}</div>
-                <div class="grid-cell" data-column="productSubcategory" title="${this.escapeHtml(subcategory)}">${this.escapeHtml(subcategory)}</div>
-                <div class="grid-cell" data-column="location" title="${location}">${location}</div>
-                <div class="grid-cell" data-column="country" title="${this.escapeHtml(country)}">${this.escapeHtml(country)}</div>
-                <div class="grid-cell" data-column="externalTag" title="${this.escapeHtml(extTags)}">${this.escapeHtml(extTags)}</div>
-                <div class="grid-cell" data-column="asin" title="${this.escapeHtml(asin)}">${this.escapeHtml(asin)}</div>
-                <div class="grid-cell" data-column="upc" title="${this.escapeHtml(upc)}">${this.escapeHtml(upc)}</div>
-                <div class="grid-cell" data-column="gtin" title="${this.escapeHtml(gtin)}">${this.escapeHtml(gtin)}</div>
-                <div class="grid-cell" data-column="ean" title="${this.escapeHtml(ean)}">${this.escapeHtml(ean)}</div>
+                <div class="grid-cell" data-column="certificateNumber" title="${this.escapeHtml(certNumber)}" role="gridcell">${this.escapeHtml(certNumber)}</div>
+                <div class="grid-cell" data-column="certificationType" title="${this.escapeHtml(certType)}" role="gridcell">${this.escapeHtml(certType)}</div>
+                <div class="grid-cell" data-column="csfAttributes" title="${this.escapeHtml(csfAttrs)}" role="gridcell">${this.escapeHtml(csfAttrs)}</div>
+                <div class="grid-cell" data-column="status" role="gridcell">${statusBadge}</div>
+                <div class="grid-cell" data-column="effectiveDate" role="gridcell">${effectiveDate}</div>
+                <div class="grid-cell" data-column="expirationDate" role="gridcell">${expirationDate}</div>
+                <div class="grid-cell" data-column="company" title="${this.escapeHtml(company)}" role="gridcell">${this.escapeHtml(company)}</div>
+                <div class="grid-cell" data-column="companyContact" title="${this.escapeHtml(contact)}" role="gridcell">${this.escapeHtml(contact)}</div>
+                <div class="grid-cell" data-column="productName" title="${this.escapeHtml(product)}" role="gridcell">${this.escapeHtml(product)}</div>
+                <div class="grid-cell" data-column="productCategory" title="${this.escapeHtml(category)}" role="gridcell">${this.escapeHtml(category)}</div>
+                <div class="grid-cell" data-column="productType" title="${this.escapeHtml(type)}" role="gridcell">${this.escapeHtml(type)}</div>
+                <div class="grid-cell" data-column="productSubcategory" title="${this.escapeHtml(subcategory)}" role="gridcell">${this.escapeHtml(subcategory)}</div>
+                <div class="grid-cell" data-column="location" title="${location}" role="gridcell">${location}</div>
+                <div class="grid-cell" data-column="country" title="${this.escapeHtml(country)}" role="gridcell">${this.escapeHtml(country)}</div>
+                <div class="grid-cell" data-column="externalTag" title="${this.escapeHtml(extTags)}" role="gridcell">${this.escapeHtml(extTags)}</div>
+                <div class="grid-cell" data-column="asin" title="${this.escapeHtml(asin)}" role="gridcell">${this.escapeHtml(asin)}</div>
+                <div class="grid-cell" data-column="upc" title="${this.escapeHtml(upc)}" role="gridcell">${this.escapeHtml(upc)}</div>
+                <div class="grid-cell" data-column="gtin" title="${this.escapeHtml(gtin)}" role="gridcell">${this.escapeHtml(gtin)}</div>
+                <div class="grid-cell" data-column="ean" title="${this.escapeHtml(ean)}" role="gridcell">${this.escapeHtml(ean)}</div>
             </div>
         `;
     }
@@ -987,7 +987,13 @@ class CertificateTileViewExternal {
     toggleSortDropdown() {
         const dropdown = document.getElementById('sortDropdown');
         if (dropdown) {
+            const isOpen = dropdown.classList.contains('open');
             dropdown.classList.toggle('open');
+            // Update aria-expanded for accessibility
+            const button = dropdown.querySelector('.sort-dropdown-button');
+            if (button) {
+                button.setAttribute('aria-expanded', !isOpen);
+            }
         }
     }
 
@@ -998,6 +1004,11 @@ class CertificateTileViewExternal {
         const dropdown = document.getElementById('sortDropdown');
         if (dropdown) {
             dropdown.classList.remove('open');
+            // Update aria-expanded for accessibility
+            const button = dropdown.querySelector('.sort-dropdown-button');
+            if (button) {
+                button.setAttribute('aria-expanded', 'false');
+            }
         }
     }
 

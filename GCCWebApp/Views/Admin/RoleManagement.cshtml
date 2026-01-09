@@ -548,7 +548,7 @@
                 }
             });
 
-            // Sample functions for demonstration (replace with actual implementations)
+            // Role management functions - connected to database via API
             window.editRole = function(roleId) {
                 document.getElementById('modal-title').textContent = 'Edit Role';
 
@@ -561,14 +561,45 @@
                 AdminCore.openModal('role-modal');
             };
 
-            window.deleteRole = function(roleId) {
+            window.deleteRole = async function(roleId) {
+                // Confirm deletion first
+                const confirmed = await AdminCore.showConfirmation({
+                    title: 'Delete Role',
+                    message: 'Are you sure you want to delete this role? This action cannot be undone.',
+                    confirmText: 'Delete',
+                    type: 'danger'
+                });
+
+                if (!confirmed) return;
+
                 AdminCore.showLoading(`#role-row-${roleId}`);
 
-                // Simulate deletion
-                setTimeout(() => {
-                    AdminCore.showNotification('Role deleted successfully!', 'success');
-                    // Remove row or refresh list
-                }, 1000);
+                try {
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                    const response = await fetch(`/Admin/DeleteRole/${roleId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token
+                        }
+                    });
+
+                    const result = await response.json();
+                    AdminCore.hideLoading(`#role-row-${roleId}`);
+
+                    if (result.success) {
+                        AdminCore.showNotification('Role deleted successfully!', 'success');
+                        // Remove the row from the table
+                        const row = document.querySelector(`[data-id="${roleId}"]`);
+                        if (row) row.remove();
+                    } else {
+                        AdminCore.showNotification(result.message || 'Failed to delete role', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error deleting role:', error);
+                    AdminCore.hideLoading(`#role-row-${roleId}`);
+                    AdminCore.showNotification('Error deleting role. Please try again.', 'error');
+                }
             };
 
         });

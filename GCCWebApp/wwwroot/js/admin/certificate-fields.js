@@ -65,71 +65,25 @@ class CertificateFieldsManager {
         try {
             const response = await fetch('/Admin/GetCertificateFields');
             const result = await response.json();
-            
+
             if (result.success) {
                 this.fields = result.data || [];
                 this.filteredFields = [...this.fields];
-                console.log('Loaded fields:', this.fields);
+                console.log('Loaded fields from database:', this.fields);
             } else {
                 console.error('Failed to load fields:', result.message);
-                this.showToast('Failed to load certificate fields', 'error');
-                this.fields = this.getSampleFields(); // Fallback to sample data
-                this.filteredFields = [...this.fields];
+                this.showToast('Failed to load certificate fields from database', 'error');
+                // Show empty state - no fallback to mock data
+                this.fields = [];
+                this.filteredFields = [];
             }
         } catch (error) {
             console.error('Error loading fields:', error);
-            this.showToast('Error loading certificate fields', 'error');
-            this.fields = this.getSampleFields(); // Fallback to sample data
-            this.filteredFields = [...this.fields];
+            this.showToast('Error connecting to database. Please try again.', 'error');
+            // Show empty state - no fallback to mock data
+            this.fields = [];
+            this.filteredFields = [];
         }
-    }
-
-    getSampleFields() {
-        return [
-            // Core Certificate Information
-            { id: 1, section: "Core Certificate Information", name: "Certificate #", fieldType: "text", isRequired: false, isVisible: true, notes: "Auto-generated if left blank", sortOrder: 1 },
-            { id: 2, section: "Core Certificate Information", name: "Certification Type", fieldType: "dropdown", isRequired: true, isVisible: true, notes: "Type of certification issued", sortOrder: 2 },
-            { id: 3, section: "Core Certificate Information", name: "CSF Attributes", fieldType: "multi-select", isRequired: false, isVisible: true, notes: "Certification specific framework attributes", sortOrder: 3 },
-            { id: 4, section: "Core Certificate Information", name: "Status", fieldType: "dropdown", isRequired: true, isVisible: true, notes: "Required for public visibility", sortOrder: 4 },
-            { id: 5, section: "Core Certificate Information", name: "Effective Date", fieldType: "date", isRequired: true, isVisible: true, notes: "When the certification becomes effective", sortOrder: 5 },
-            { id: 6, section: "Core Certificate Information", name: "Expiration Date", fieldType: "date", isRequired: true, isVisible: true, notes: "When the certification expires", sortOrder: 6 },
-            
-            // Company Information
-            { id: 7, section: "Company Information", name: "Company", fieldType: "text", isRequired: true, isVisible: true, notes: "Company receiving certification", sortOrder: 7 },
-            { id: 8, section: "Company Information", name: "Company Contact Email", fieldType: "text", isRequired: false, isVisible: true, notes: "Company email contact", sortOrder: 8 },
-            { id: 9, section: "Company Information", name: "Company Contact URL", fieldType: "text", isRequired: false, isVisible: true, notes: "Company website URL", sortOrder: 9 },
-            
-            // Product Information
-            { id: 10, section: "Product Information", name: "Product Name", fieldType: "text", isRequired: true, isVisible: true, notes: "Name of the certified product", sortOrder: 10 },
-            { id: 11, section: "Product Information", name: "Product Category", fieldType: "dropdown", isRequired: true, isVisible: true, notes: "Main category of the product", sortOrder: 11 },
-            { id: 12, section: "Product Information", name: "Product Type", fieldType: "dropdown", isRequired: true, isVisible: true, notes: "Specific type within category", sortOrder: 12 },
-            { id: 13, section: "Product Information", name: "Product Type Subcategory", fieldType: "dropdown", isRequired: true, isVisible: true, notes: "Subcategory within product type", sortOrder: 13 },
-            { id: 14, section: "Product Information", name: "Location", fieldType: "text", isRequired: false, isVisible: true, notes: "Manufacturing or certification location", sortOrder: 14 },
-            { id: 15, section: "Product Information", name: "Country", fieldType: "dropdown", isRequired: true, isVisible: true, notes: "Country of origin", sortOrder: 15 },
-            
-            // Product Identifiers
-            { id: 16, section: "Product Identifiers", name: "ASIN", fieldType: "text", isRequired: false, isVisible: true, notes: "Amazon Standard Identification Number", sortOrder: 16 },
-            { id: 17, section: "Product Identifiers", name: "UPC", fieldType: "text", isRequired: false, isVisible: true, notes: "Universal Product Code", sortOrder: 17 },
-            { id: 18, section: "Product Identifiers", name: "GTIN", fieldType: "text", isRequired: false, isVisible: true, notes: "Global Trade Item Number", sortOrder: 18 },
-            { id: 19, section: "Product Identifiers", name: "EAN", fieldType: "text", isRequired: false, isVisible: true, notes: "European Article Number", sortOrder: 19 },
-            
-            // Tagging & Classification
-            { id: 20, section: "Tagging & Classification", name: "External Tag", fieldType: "multi-select", isRequired: false, isVisible: true, notes: "External classification tags", sortOrder: 20 },
-            { id: 21, section: "Tagging & Classification", name: "Internal Tag", fieldType: "multi-select", isRequired: false, isVisible: true, notes: "Internal classification tags", sortOrder: 21 },
-            
-            // New Required Fields
-            { id: 22, section: "New Required Fields", name: "Partner", fieldType: "multi-select", isRequired: true, isVisible: true, notes: "Amazon/Novi/None/Other partners", sortOrder: 22 },
-            { id: 23, section: "New Required Fields", name: "Status Type", fieldType: "dropdown", isRequired: false, isVisible: true, notes: "To signify if client doesn't want to move forward", sortOrder: 23 },
-            
-            // File Management
-            { id: 24, section: "File Management", name: "Certificate Upload", fieldType: "file", isRequired: false, isVisible: true, notes: "Upload certificate document", sortOrder: 24 },
-            { id: 25, section: "File Management", name: "Preview", fieldType: "system-generated", isRequired: false, isVisible: true, notes: "Certificate preview/thumbnail", sortOrder: 25 },
-            
-            // Record Management
-            { id: 26, section: "Record Management", name: "Record Created Date", fieldType: "date", isRequired: false, isVisible: true, notes: "When record was created", sortOrder: 26 },
-            { id: 27, section: "Record Management", name: "Record Last Updated Date", fieldType: "date", isRequired: false, isVisible: true, notes: "When record was last modified", sortOrder: 27 },
-            { id: 28, section: "Record Management", name: "Last Edited By", fieldType: "system-generated", isRequired: false, isVisible: true, notes: "User who last edited the record", sortOrder: 28 }
-        ];
     }
 
     async createField(fieldData) {

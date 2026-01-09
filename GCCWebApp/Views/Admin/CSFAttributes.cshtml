@@ -105,38 +105,5 @@
     <script src="~/js/admin/exportUtils.js"></script>
     <script src="~/js/validation.js"></script>
     <script src="~/js/admin/csfAttributes.js"></script>
-    <script>
-        // Add export functionality to CSF Attributes
-        document.addEventListener('DOMContentLoaded', function() {
-            const exportBtn = document.getElementById('export-btn');
-            if (exportBtn) {
-                exportBtn.addEventListener('click', function() {
-                    // Sample data structure for CSF Attributes
-                    const sampleData = [
-                        { id: 1, name: 'Biobased Content', certificationType: 'GREENGUARD', dataType: 'number', description: 'Percentage of biobased materials' },
-                        { id: 2, name: 'VOC Emissions', certificationType: 'GREENGUARD Gold', dataType: 'number', description: 'Volatile organic compound emissions level' },
-                        { id: 3, name: 'Formaldehyde Free', certificationType: 'GREENGUARD', dataType: 'boolean', description: 'Contains no formaldehyde' },
-                        { id: 4, name: 'Recycled Content', certificationType: 'Cradle to Cradle', dataType: 'number', description: 'Percentage of recycled materials' },
-                        { id: 5, name: 'Biodegradable', certificationType: 'GREENGUARD', dataType: 'boolean', description: 'Material is biodegradable' }
-                    ];
-
-                    const columns = [
-                        { key: 'id', header: 'ID' },
-                        { key: 'name', header: 'Attribute Name' },
-                        { key: 'certificationType', header: 'Certification Type' },
-                        { key: 'dataType', header: 'Data Type' },
-                        { key: 'description', header: 'Description' }
-                    ];
-                    
-                    // US-015: Use AdminCore.showNotification instead of alert()
-                    ExportUtils.showExportModal(
-                        sampleData,
-                        columns,
-                        'csf_attributes',
-                        (message, type) => AdminCore.showNotification(message, type)
-                    );
-                });
-            }
-        });
-    </script>
+    @* Export functionality is handled by csfAttributes.js using real database data *@
 }

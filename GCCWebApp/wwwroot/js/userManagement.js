@@ -115,7 +115,7 @@ class UserManagement {
         if (this.filteredUsers.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="no-data">
+                    <td colspan="8" class="no-data">
                         <div class="no-data-message">
                             <i class="fas fa-users"></i>
                             <p>No users found</p>
@@ -150,6 +150,12 @@ class UserManagement {
                     <span class="admin-badge ${statusClass}">${this.escapeHtml(user.status || '')}</span>
                 </td>
                 <td class="admin-table-td admin-table-td--hidden-mobile user-last-login">${lastLogin}</td>
+                <td class="admin-table-td user-2fa-status">
+                    ${user.twoFactorEnabled ?
+                        `<span class="admin-badge admin-badge--success" title="2FA Method: ${this.escapeHtml(user.twoFactorMethod || 'TOTP')}"><i class="fas fa-shield-alt"></i> Enabled</span>` :
+                        `<span class="admin-badge admin-badge--inactive" title="Two-factor authentication is not enabled"><i class="fas fa-unlock"></i> Disabled</span>`
+                    }
+                </td>
                 <td class="admin-table-td admin-table-td--actions">
                     <div class="admin-action-buttons">
                         <div class="admin-dropdown" style="display: inline-block;">

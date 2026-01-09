@@ -802,6 +802,12 @@
             const isOpen = dropdown.classList.contains('open');
             dropdown.classList.toggle('open');
 
+            // Update aria-expanded for accessibility
+            const button = dropdown.querySelector('.sort-dropdown-button');
+            if (button) {
+                button.setAttribute('aria-expanded', !isOpen);
+            }
+
             // Add/remove click outside listener
             if (!isOpen) {
                 setTimeout(() => {
@@ -818,6 +824,11 @@
         const dropdown = document.getElementById('sortDropdown');
         if (dropdown && !dropdown.contains(event.target)) {
             dropdown.classList.remove('open');
+            // Update aria-expanded for accessibility
+            const button = dropdown.querySelector('.sort-dropdown-button');
+            if (button) {
+                button.setAttribute('aria-expanded', 'false');
+            }
             document.removeEventListener('click', closeSortDropdownOutside);
         }
     }
@@ -826,8 +837,14 @@
     function selectSort(value, label) {
         state.filters.sortBy = value;
         document.getElementById('sortLabel').textContent = label;
-        document.getElementById('sortDropdown').classList.remove('open');
-        
+        const dropdown = document.getElementById('sortDropdown');
+        dropdown.classList.remove('open');
+        // Update aria-expanded for accessibility
+        const button = dropdown.querySelector('.sort-dropdown-button');
+        if (button) {
+            button.setAttribute('aria-expanded', 'false');
+        }
+
         loadInitialCertificates();
         updateUrl();
         showToast(`Sorted by ${label}`, 'info');
@@ -1325,43 +1342,43 @@
         const ean = cert.ean || '';
 
         return `
-            <div class="grid-row" data-cert-id="${cert.id}">
-                <div class="grid-cell select-cell" style="display:flex;align-items:center;justify-content:center;padding:4px;">
-                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" style="margin:0;width:16px;height:16px;">
+            <div class="grid-row" data-cert-id="${cert.id}" role="row">
+                <div class="grid-cell select-cell" role="gridcell">
+                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" aria-label="Select certificate ${escapeHtml(certNumber)}">
                 </div>
-                <div class="grid-cell actions-column" style="display:flex;align-items:center;justify-content:center;padding:4px;">
-                    <div class="action-buttons" style="display:inline-flex;align-items:center;gap:2px;">
-                        <button class="action-btn edit-btn" onclick="editCertificate('${certNumber}')" title="Edit Certificate" style="padding:4px;border:none;background:transparent;color:#666;cursor:pointer;">
-                            <i class="fas fa-edit"></i>
+                <div class="grid-cell actions-column" role="gridcell">
+                    <div class="action-buttons">
+                        <button class="action-btn edit-btn" onclick="editCertificate('${certNumber}')" title="Edit Certificate" aria-label="Edit certificate ${escapeHtml(certNumber)}">
+                            <i class="fas fa-edit" aria-hidden="true"></i>
                         </button>
-                        <button class="action-btn download-btn" onclick="downloadCertificate('${certNumber}')" title="Download PDF" style="padding:4px;border:none;background:transparent;color:#666;cursor:pointer;">
-                            <i class="fas fa-download"></i>
+                        <button class="action-btn download-btn" onclick="downloadCertificate('${certNumber}')" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(certNumber)}">
+                            <i class="fas fa-download" aria-hidden="true"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${certNumber}')" title="View Details" style="padding:4px;border:none;background:transparent;color:#666;cursor:pointer;">
-                            <i class="fas fa-external-link-alt"></i>
+                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${certNumber}')" title="View Details" aria-label="View details for certificate ${escapeHtml(certNumber)}">
+                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
-                <div class="grid-cell" data-column="certificateNumber" title="${escapeHtml(certNumber)}" style="color:#333;">${escapeHtml(certNumber)}</div>
-                <div class="grid-cell" data-column="certificationType" title="${escapeHtml(certType)}">${escapeHtml(certType)}</div>
-                <div class="grid-cell" data-column="csfAttributes" title="${escapeHtml(csfAttrs)}">${escapeHtml(csfAttrs)}</div>
-                <div class="grid-cell" data-column="status">${statusBadge}</div>
-                <div class="grid-cell" data-column="effectiveDate">${effectiveDate}</div>
-                <div class="grid-cell" data-column="expirationDate">${expirationDate}</div>
-                <div class="grid-cell" data-column="company" title="${escapeHtml(company)}">${escapeHtml(company)}</div>
-                <div class="grid-cell" data-column="companyContact" title="${escapeHtml(contact)}">${escapeHtml(contact)}</div>
-                <div class="grid-cell" data-column="productName" title="${escapeHtml(product)}">${escapeHtml(product)}</div>
-                <div class="grid-cell" data-column="productCategory" title="${escapeHtml(category)}">${escapeHtml(category)}</div>
-                <div class="grid-cell" data-column="productType" title="${escapeHtml(type)}">${escapeHtml(type)}</div>
-                <div class="grid-cell" data-column="productSubcategory" title="${escapeHtml(subcategory)}">${escapeHtml(subcategory)}</div>
-                <div class="grid-cell" data-column="location" title="${location}">${location}</div>
-                <div class="grid-cell" data-column="country" title="${escapeHtml(country)}">${escapeHtml(country)}</div>
-                <div class="grid-cell" data-column="externalTag" title="${escapeHtml(extTags)}">${escapeHtml(extTags)}</div>
-                <div class="grid-cell" data-column="internalTag" title="${escapeHtml(intTags)}">${escapeHtml(intTags)}</div>
-                <div class="grid-cell" data-column="asin" title="${escapeHtml(asin)}">${escapeHtml(asin)}</div>
-                <div class="grid-cell" data-column="upc" title="${escapeHtml(upc)}">${escapeHtml(upc)}</div>
-                <div class="grid-cell" data-column="gtin" title="${escapeHtml(gtin)}">${escapeHtml(gtin)}</div>
-                <div class="grid-cell" data-column="ean" title="${escapeHtml(ean)}">${escapeHtml(ean)}</div>
+                <div class="grid-cell" data-column="certificateNumber" title="${escapeHtml(certNumber)}" role="gridcell">${escapeHtml(certNumber)}</div>
+                <div class="grid-cell" data-column="certificationType" title="${escapeHtml(certType)}" role="gridcell">${escapeHtml(certType)}</div>
+                <div class="grid-cell" data-column="csfAttributes" title="${escapeHtml(csfAttrs)}" role="gridcell">${escapeHtml(csfAttrs)}</div>
+                <div class="grid-cell" data-column="status" role="gridcell">${statusBadge}</div>
+                <div class="grid-cell" data-column="effectiveDate" role="gridcell">${effectiveDate}</div>
+                <div class="grid-cell" data-column="expirationDate" role="gridcell">${expirationDate}</div>
+                <div class="grid-cell" data-column="company" title="${escapeHtml(company)}" role="gridcell">${escapeHtml(company)}</div>
+                <div class="grid-cell" data-column="companyContact" title="${escapeHtml(contact)}" role="gridcell">${escapeHtml(contact)}</div>
+                <div class="grid-cell" data-column="productName" title="${escapeHtml(product)}" role="gridcell">${escapeHtml(product)}</div>
+                <div class="grid-cell" data-column="productCategory" title="${escapeHtml(category)}" role="gridcell">${escapeHtml(category)}</div>
+                <div class="grid-cell" data-column="productType" title="${escapeHtml(type)}" role="gridcell">${escapeHtml(type)}</div>
+                <div class="grid-cell" data-column="productSubcategory" title="${escapeHtml(subcategory)}" role="gridcell">${escapeHtml(subcategory)}</div>
+                <div class="grid-cell" data-column="location" title="${location}" role="gridcell">${location}</div>
+                <div class="grid-cell" data-column="country" title="${escapeHtml(country)}" role="gridcell">${escapeHtml(country)}</div>
+                <div class="grid-cell" data-column="externalTag" title="${escapeHtml(extTags)}" role="gridcell">${escapeHtml(extTags)}</div>
+                <div class="grid-cell" data-column="internalTag" title="${escapeHtml(intTags)}" role="gridcell">${escapeHtml(intTags)}</div>
+                <div class="grid-cell" data-column="asin" title="${escapeHtml(asin)}" role="gridcell">${escapeHtml(asin)}</div>
+                <div class="grid-cell" data-column="upc" title="${escapeHtml(upc)}" role="gridcell">${escapeHtml(upc)}</div>
+                <div class="grid-cell" data-column="gtin" title="${escapeHtml(gtin)}" role="gridcell">${escapeHtml(gtin)}</div>
+                <div class="grid-cell" data-column="ean" title="${escapeHtml(ean)}" role="gridcell">${escapeHtml(ean)}</div>
             </div>
         `;
     }

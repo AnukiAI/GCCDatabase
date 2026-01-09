@@ -192,25 +192,44 @@ namespace GCCWebApp.Controllers
                 }
                 // Admin and Analyst can see all products (no additional filtering needed)
 
-                var products = await query
-                    .Select(p => new ProductListViewModel
+                // First, get the products with related data
+                var productsData = await query
+                    .Select(p => new
                     {
-                        Id = p.Id,
-                        Name = p.Name,
-                        Description = p.Description,
-                        Model = p.Model,
-                        Sku = p.Sku,
+                        p.Id,
+                        p.Name,
+                        p.Description,
+                        p.Model,
+                        p.Sku,
                         CompanyName = p.Company != null ? p.Company.Name : "",
                         CategoryName = p.Category != null ? p.Category.Name : "",
                         ProductTypeName = p.ProductType != null ? p.ProductType.Name : "",
-                        Status = p.IsActive ? "Active" : "Inactive",
+                        p.IsActive,
                         CertificateCount = p.Certificates.Count(),
-                        CreatedAt = p.CreatedAt,
-                        Identifiers = p.ProductIdentifiers
-                            .GroupBy(pi => pi.IdentifierType)
-                            .ToDictionary(g => g.Key.ToLower(), g => g.Select(pi => pi.IdentifierValue).ToList())
+                        p.CreatedAt,
+                        // Get identifiers as flat list - will group client-side
+                        ProductIdentifiers = p.ProductIdentifiers.Select(pi => new { pi.IdentifierType, pi.IdentifierValue }).ToList()
                     })
                     .ToListAsync();
+
+                // Now transform to view model with client-side grouping of identifiers
+                var products = productsData.Select(p => new ProductListViewModel
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description,
+                    Model = p.Model,
+                    Sku = p.Sku,
+                    CompanyName = p.CompanyName,
+                    CategoryName = p.CategoryName,
+                    ProductTypeName = p.ProductTypeName,
+                    Status = p.IsActive ? "Active" : "Inactive",
+                    CertificateCount = p.CertificateCount,
+                    CreatedAt = p.CreatedAt,
+                    Identifiers = p.ProductIdentifiers
+                        .GroupBy(pi => pi.IdentifierType)
+                        .ToDictionary(g => g.Key.ToLower(), g => g.Select(pi => pi.IdentifierValue).ToList())
+                }).ToList();
 
                 return Json(new ApiResponse<List<ProductListViewModel>> { Success = true, Data = products });
             }

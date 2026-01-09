@@ -289,27 +289,43 @@
             initializePageActions();
         }
 
-        function loadCertificates() {
+        async function loadCertificates() {
             const grid = document.getElementById('certificates-grid');
             if (!grid) return;
 
-            // Sample certificate data - in real app, this would come from the server
-            const certificates = [
-                {
-                    id: 1,
-                    number: "24-1605",
-                    type: "CERTIFIED SUSTAINABILITY FACTS",
-                    company: "ASSA ABLOY Access & Egress Hardware Group, Inc. - Corbin Russwin Division",
-                    product: "900ET Exit Device Trim with EcoFlex®",
-                    category: "Construction / Building Products",
-                    effectiveDate: "7/1/2024",
-                    expirationDate: "6/31/2027",
-                    location: "Berlin, CT",
-                    country: "United States"
-                }
-            ];
+            // Show loading state
+            grid.innerHTML = '<div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Loading certificates...</div>';
 
-            grid.innerHTML = certificates.map(cert => createCertificateCard(cert)).join('');
+            try {
+                // Fetch certificates from database via API
+                const response = await fetch('/api/certificate-tiles?pageNumber=1&pageSize=50');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const result = await response.json();
+
+                if (result.success && result.certificates && result.certificates.length > 0) {
+                    // Map API response to card format
+                    const certificates = result.certificates.map(cert => ({
+                        id: cert.id,
+                        number: cert.certificateNumber || 'N/A',
+                        type: cert.certificationType || 'Certificate',
+                        company: cert.companyName || 'N/A',
+                        product: cert.productName || 'N/A',
+                        category: cert.productType || 'N/A',
+                        effectiveDate: cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A',
+                        expirationDate: cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A',
+                        location: cert.location || '',
+                        country: cert.country || ''
+                    }));
+                    grid.innerHTML = certificates.map(cert => createCertificateCard(cert)).join('');
+                } else {
+                    grid.innerHTML = '<div class="no-results">No certificates found in the database.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading certificates:', error);
+                grid.innerHTML = '<div class="error-message">Error loading certificates. Please try again later.</div>';
+            }
         }
 
         function createCertificateCard(cert) {

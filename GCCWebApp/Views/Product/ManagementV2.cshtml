@@ -211,114 +211,43 @@
 
 @section Scripts {
     <script>
-        // Sample data with complex identifier sets
-        let products = [
-            {
-                id: 1,
-                name: 'Premium Door Handle',
-                company: 'Acme Corporation',
-                category: 'Building Materials',
-                type: 'Door Hardware',
-                status: 'Active',
-                certificates: 2,
-                description: 'High-quality door handle with stainless steel finish',
-                sku: 'ACM-DH-001',
-                model: 'DH-Premium-2024',
-                manufacturer: 'Acme Corp',
-                country: 'USA',
-                identifiers: {
-                    asin: ['B08XYZ1234', 'B09ABC5678', 'B07DEF9012'],
-                    upc: ['123456789012', '234567890123', '345678901234'],
-                    gtin: ['01234567890128', '12345678901235', '23456789012342'],
-                    ean: ['1234567890128', '2345678901235', '3456789012342']
-                }
-            },
-            {
-                id: 2,
-                name: 'Thermal Insulation Board',
-                company: 'Globex Industries',
-                category: 'Building Materials',
-                type: 'Insulation',
-                status: 'Active',
-                certificates: 3,
-                description: 'Energy-efficient insulation board for construction',
-                sku: 'GLX-INS-002',
-                model: 'Thermal-Pro-X1',
-                manufacturer: 'Globex Inc',
-                country: 'Canada',
-                identifiers: {
-                    asin: ['B10MNO3456', 'B11PQR7890', 'B12STU1234', 'B13VWX5678', 'B14YZA9012'],
-                    upc: ['456789012345', '567890123456', '678901234567', '789012345678', '890123456789'],
-                    gtin: ['34567890123456', '45678901234567', '56789012345678', '67890123456789', '78901234567890'],
-                    ean: ['4567890123456', '5678901234567', '6789012345678', '7890123456789', '8901234567890']
-                }
-            },
-            {
-                id: 3,
-                name: 'LED Light Fixture',
-                company: 'Stark Enterprises',
-                category: 'Electronics / Electrical',
-                type: 'Lighting',
-                status: 'Active',
-                certificates: 1,
-                description: 'Energy-efficient LED lighting solution',
-                sku: 'STK-LED-003',
-                model: 'LED-Bright-500',
-                manufacturer: 'Stark Tech',
-                country: 'Germany',
-                identifiers: {
-                    asin: ['B14YZA9012', 'B15BCD3456'],
-                    upc: ['890123456789', '901234567890'],
-                    gtin: ['78901234567890', '89012345678901'],
-                    ean: ['8901234567890', '9012345678901']
-                }
-            },
-            {
-                id: 4,
-                name: 'Network Cable Cat6',
-                company: 'Wayne Technologies',
-                category: 'Electronics / Electrical',
-                type: 'Network Cables',
-                status: 'Inactive',
-                certificates: 0,
-                description: 'High-speed network cable for data transmission',
-                sku: 'WYN-CAB-004',
-                model: 'Cat6-Ultra-100m',
-                manufacturer: 'Wayne Tech',
-                country: 'Japan',
-                identifiers: {
-                    asin: ['B16EFG7890', 'B17HIJ1234', 'B18KLM5678', 'B19NOP9012', 'B20QRS3456', 'B21TUV7890', 'B22WXY1234'],
-                    upc: ['012345678901', '123456789012', '234567890123', '345678901234', '456789012345', '567890123456', '678901234567'],
-                    gtin: ['90123456789012', '01234567890123', '12345678901234', '23456789012345', '34567890123456', '45678901234567', '56789012345678'],
-                    ean: ['0123456789012', '1234567890123', '2345678901234', '3456789012345', '4567890123456', '5678901234567', '6789012345678']
-                }
-            },
-            {
-                id: 5,
-                name: 'Smart Thermostat Pro',
-                company: 'TechHome Solutions',
-                category: 'Electronics / Electrical',
-                type: 'HVAC Controls',
-                status: 'Active',
-                certificates: 4,
-                description: 'WiFi-enabled smart thermostat with energy optimization',
-                sku: 'THS-STP-005',
-                model: 'SmartTherm-Pro-2024',
-                manufacturer: 'TechHome',
-                country: 'China',
-                identifiers: {
-                    asin: ['B23ABC1234', 'B24DEF5678', 'B25GHI9012', 'B26JKL3456'],
-                    upc: ['789012345678', '890123456789', '901234567890', '012345678901'],
-                    gtin: ['67890123456789', '78901234567890', '89012345678901', '90123456789012'],
-                    ean: ['7890123456789', '8901234567890', '9012345678901', '0123456789012']
-                }
-            }
-        ];
+        // Products loaded from database via API
+        let products = [];
 
         let companies = [];
         let categories = [];
         let productTypes = [];
         let exportingProductId = null;
+
+        // Load products from database
+        async function loadProductsFromDatabase() {
+            try {
+                const response = await fetch('/Product/GetProducts');
+                const result = await response.json();
+                if (result.success && result.data) {
+                    products = result.data.map(p => ({
+                        id: p.id,
+                        name: p.name || '',
+                        company: p.company || '',
+                        category: p.category || '',
+                        type: p.productType || '',
+                        status: p.isActive ? 'Active' : 'Inactive',
+                        certificates: p.certificateCount || 0,
+                        description: p.description || '',
+                        sku: '',
+                        model: '',
+                        manufacturer: '',
+                        country: '',
+                        identifiers: p.identifiers || {}
+                    }));
+                    populateTable();
+                } else {
+                    console.error('Failed to load products:', result.message);
+                }
+            } catch (error) {
+                console.error('Error loading products:', error);
+            }
+        }
 
         // DOM Elements
         const productTable = document.getElementById('product-table');
@@ -346,11 +275,11 @@
         let currentEditingId = null;
 
         // Initialize page
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadProductsFromDatabase();
             loadInitialData();
             initializeEventListeners();
             initializeSortableHeaders();
-            populateTable();
         });
 
         async function loadInitialData() {

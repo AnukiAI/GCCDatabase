@@ -979,12 +979,19 @@ namespace GCCWebApp.Controllers
     #region Diagnostic Endpoints
 
     /// <summary>
-    /// DIAGNOSTIC: Test authentication flow - REMOVE IN PRODUCTION
+    /// DIAGNOSTIC: Test authentication flow - Development environment only
     /// </summary>
     [HttpGet]
     [AllowAnonymous]
     public async Task<IActionResult> TestAuth(string username = "admin", string password = "TestPass123!")
     {
+        // SECURITY: Only allow in Development environment
+        var env = HttpContext.RequestServices.GetService<IWebHostEnvironment>();
+        if (env == null || !env.IsDevelopment())
+        {
+            return NotFound(); // Hide endpoint in non-development environments
+        }
+
         try
         {
             var result = new

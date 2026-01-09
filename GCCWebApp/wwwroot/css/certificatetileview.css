@@ -112,6 +112,14 @@
         border-color: var(--blue-primary);
     }
 
+    /* Focus indicator for accessibility (WCAG 2.1 AA compliance) */
+    .sort-dropdown-button:focus,
+    .sort-dropdown-button:focus-visible {
+        outline: 2px solid #007bff;
+        outline-offset: 2px;
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+    }
+
 .sort-dropdown-content {
     display: none;
     position: absolute;
@@ -345,6 +353,22 @@ html body.table-view-active #tableView {
         height: 16px;
         flex-shrink: 0; /* Prevent checkbox from shrinking */
         position: relative; /* Ensure checkbox stays in place */
+    }
+
+    /* Focus indicator for filter checkboxes (WCAG 2.1 AA compliance) */
+    .filter-item input[type="checkbox"]:focus,
+    .filter-item input[type="checkbox"]:focus-visible {
+        outline: 2px solid #007bff;
+        outline-offset: 2px;
+    }
+
+    /* Focus indicator for table checkboxes (WCAG 2.1 AA compliance) */
+    .row-checkbox:focus,
+    .row-checkbox:focus-visible,
+    #selectAll:focus,
+    #selectAll:focus-visible {
+        outline: 2px solid #007bff;
+        outline-offset: 2px;
     }
 
     .filter-item label span {

@@ -23,26 +23,25 @@ PRINT 'ISSUE-005: Checking for "test3" partner...';
 
 IF EXISTS (SELECT 1 FROM dbo.Partners WHERE Name = 'test3')
 BEGIN
-    -- First check if any certificates reference this partner
-    DECLARE @Test3PartnerId INT = (SELECT Id FROM dbo.Partners WHERE Name = 'test3');
-    DECLARE @CertCount INT = (SELECT COUNT(*) FROM dbo.Certificates WHERE PartnerId = @Test3PartnerId);
+    -- First check if any certificates reference this partner (Partner is a string field, not FK)
+    DECLARE @CertCount INT = (SELECT COUNT(*) FROM dbo.Certificates WHERE Partner = 'test3');
 
     IF @CertCount > 0
     BEGIN
         PRINT '  WARNING: Partner "test3" has ' + CAST(@CertCount AS VARCHAR) + ' associated certificates.';
         PRINT '  Reassigning to "Other" partner before deletion...';
 
-        DECLARE @OtherPartnerId INT = (SELECT Id FROM dbo.Partners WHERE Name = 'Other');
-        IF @OtherPartnerId IS NOT NULL
-        BEGIN
-            UPDATE dbo.Certificates SET PartnerId = @OtherPartnerId WHERE PartnerId = @Test3PartnerId;
-            PRINT '  ✓ Reassigned ' + CAST(@CertCount AS VARCHAR) + ' certificates to "Other" partner.';
-        END
+        UPDATE dbo.Certificates SET Partner = 'Other' WHERE Partner = 'test3';
+        PRINT '  ✓ Reassigned ' + CAST(@CertCount AS VARCHAR) + ' certificates to "Other" partner.';
     END
 
-    -- Check for PartnerApiKeys
-    DELETE FROM dbo.PartnerApiKeys WHERE PartnerId = @Test3PartnerId;
-    PRINT '  ✓ Removed any API keys for "test3" partner.';
+    -- Check for PartnerApiKeys (uses PartnerId FK)
+    DECLARE @Test3PartnerId INT = (SELECT Id FROM dbo.Partners WHERE Name = 'test3');
+    IF @Test3PartnerId IS NOT NULL
+    BEGIN
+        DELETE FROM dbo.PartnerApiKeys WHERE PartnerId = @Test3PartnerId;
+        PRINT '  ✓ Removed any API keys for "test3" partner.';
+    END
 
     -- Delete the partner
     DELETE FROM dbo.Partners WHERE Name = 'test3';

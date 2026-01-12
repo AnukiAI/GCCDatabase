@@ -195,12 +195,16 @@ AzureAdB2C__ClientId=[client-id]
   - External users can only view and download certificates they have access to
 - **Implementation**: Role-based UI hiding via CSS classes and backend authorization checks
 
-### Two-Factor Authentication Admin Management ⚠️ REQUIRED
-- **PRIORITY: HIGH** - Admins help users locked out by 2FA
-- Admin can view 2FA status, reset 2FA, disable 2FA
-- Backend endpoints exist: `/Admin/Reset2FA`, `/Admin/Disable2FA`
-- JavaScript methods in `userManagement.js:712-838`
-- **MISSING**: UI controls in User Management view
+### Two-Factor Authentication Admin Management ✅ COMPLETE
+- Admin can view 2FA status, reset 2FA, disable 2FA, enable 2FA
+- **Backend**: `/Admin/Reset2FA`, `/Admin/Disable2FA`, `/Admin/Enable2FA` (AdminController.cs:1293-1357)
+- **Service**: `AdminService.cs:1683-1747` - Reset2FAAsync, Disable2FAAsync, Enable2FAAsync
+- **UI**: Actions dropdown menu in User Management table (userManagement.js:153-204, 1421-1591)
+  - 2FA status badge displayed in table column
+  - View 2FA Status - shows current status and method
+  - Reset 2FA - clears user's 2FA setup (user must reconfigure)
+  - Disable 2FA - turns off 2FA requirement
+  - Enable 2FA - turns on 2FA requirement for user
 
 ### Partners & Workflow
 - Partners: Amazon, Novi, Other (core entities, NOT bulk manageable)

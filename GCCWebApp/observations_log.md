@@ -1483,3 +1483,147 @@ The mockup is for **Certificate Product IDs** - a centralized view of all produc
 3. Begin implementation when requirements approved
 
 ---
+
+## 2026-01-09 - REQUIREMENT: Certificate Views Whitespace Consistency
+
+### Requirement
+**Location row and action bar (download/view detail icons) need additional whitespace. This must be consistent across ALL certificate views.**
+
+This is a design consistency requirement to ensure 100% layout consistency across the application.
+
+### Views Affected
+1. **Public Certificate Tile View** - `/Certificate/CertificateTileView`
+2. **External Certificate Tile View** - `/Certificate/CertificateTileViewExternal`
+3. **Internal Certificate Tile View** - `/Certificate/CertificateTileViewInternal`
+
+Each view has two display modes:
+- **Tile/Card View** - Uses `.certificate-location` and `.card-actions` classes
+- **Table View** (External/Internal only) - Uses `.grid-cell[data-column="location"]` and `.actions-column` classes
+
+### Changes Applied
+
+#### 1. Tile/Card View - Location Row
+**File**: `wwwroot/css/certificatetileview.css`
+
+**Before**:
+```css
+.certificate-location {
+    margin-top: 10px;
+}
+```
+
+**After**:
+```css
+.certificate-location {
+    margin-top: 15px;
+    margin-bottom: 8px;
+    padding-top: 10px;
+}
+```
+
+#### 2. Tile/Card View - Action Bar
+**File**: `wwwroot/css/certificatetileview.css`
+
+**Before**:
+```css
+.card-actions {
+    gap: 10px;
+    padding: 12px 15px;
+}
+```
+
+**After**:
+```css
+.card-actions {
+    gap: 12px;
+    padding: 16px 18px;
+}
+```
+
+#### 3. Table View - Actions Column
+**Files**:
+- `wwwroot/css/certificatetileview.css`
+- `Views/Certificate/CertificateTileViewExternal.cshtml`
+- `Views/Certificate/CertificateTileViewInternal.cshtml`
+
+**Before**:
+```css
+.actions-column {
+    gap: 4px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+```
+
+**After**:
+```css
+.actions-column {
+    gap: 6px;
+    padding: 8px 10px;
+}
+```
+
+#### 4. Table View - Location Column
+**Files**:
+- `wwwroot/css/certificatetileview.css`
+- `Views/Certificate/CertificateTileViewExternal.cshtml`
+- `Views/Certificate/CertificateTileViewInternal.cshtml`
+
+**Added**:
+```css
+.grid-cell[data-column="location"] {
+    padding: 10px 12px;
+}
+```
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `wwwroot/css/certificatetileview.css` | Updated `.certificate-location`, `.card-actions`, `.actions-column`, added location column styling |
+| `Views/Certificate/CertificateTileViewExternal.cshtml` | Updated inline styles for actions and location columns |
+| `Views/Certificate/CertificateTileViewInternal.cshtml` | Updated inline styles for actions and location columns |
+
+### Build Status
+- **Build**: ✅ Succeeded (0 errors, 0 warnings)
+
+### Design Consistency Reminder
+This requirement reinforces the need for **100% consistency in layout and design across the application**. All certificate views must have identical spacing for:
+- Location information display
+- Action buttons (download, view, edit icons)
+
+---
+
+## 2026-01-09 - VERIFICATION: Two-Factor Authentication Admin Management - COMPLETE
+
+### Issue Investigated
+The issues list indicated "Two-Factor Authentication Admin Management" as "UI Missing" with HIGH priority. Upon investigation, this feature is **fully implemented**.
+
+### Implementation Found
+
+| Layer | Location | Status |
+|-------|----------|--------|
+| **Model** | `AdminModels.cs:32-34` | ✅ `TwoFactorEnabled`, `TwoFactorMethod` properties |
+| **Service** | `AdminService.cs:1683-1747` | ✅ `Reset2FAAsync()`, `Disable2FAAsync()`, `Enable2FAAsync()` |
+| **Controller** | `AdminController.cs:1293-1357` | ✅ POST endpoints for all 3 operations |
+| **View** | `UserManagement.cshtml:109-111` | ✅ 2FA column in table header |
+| **JavaScript** | `userManagement.js:153-204` | ✅ Renders dropdown with 2FA actions |
+| **JavaScript** | `userManagement.js:1421-1591` | ✅ API calls for view/reset/disable/enable |
+| **CSS** | `admin-modals.css:440-594` | ✅ Dropdown menu styling |
+
+### UI Features Available
+
+1. **2FA Status Badge** - Shows "Enabled" (green shield) or "Disabled" (gray unlock) in table
+2. **Actions Dropdown Menu** - Click ellipsis icon to see:
+   - View 2FA Status - Shows user's current 2FA status and method
+   - Reset 2FA (if enabled) - Clears user's 2FA setup, requires reconfiguration
+   - Disable 2FA (if enabled) - Turns off 2FA for user
+   - Enable 2FA (if disabled) - Turns on 2FA requirement
+
+### Documentation Updated
+- Updated CLAUDE.md to mark feature as ✅ COMPLETE
+- Changed from "⚠️ REQUIRED - MISSING: UI controls" to "✅ COMPLETE"
+
+### Conclusion
+The CLAUDE.md documentation was outdated. The Two-Factor Authentication Admin Management feature is fully functional and can be removed from the issues list.
+
+---

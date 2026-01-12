@@ -252,14 +252,14 @@
         padding: 4px !important;
     }
 
-    /* Actions column - header & body - ensure consistent centering */
+    /* Actions column - header & body - improved whitespace and centering */
     .table-grid .grid-header-cell.actions-column,
     .table-grid .grid-cell.actions-column {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
         text-align: center !important;
-        padding: 4px 8px !important;
+        padding: 8px 10px !important;
         overflow: visible !important;
     }
 
@@ -318,6 +318,11 @@
         font-weight: 600;
         justify-content: flex-start !important;
         text-align: left !important;
+    }
+
+    /* Location column - improved whitespace */
+    .table-grid .grid-cell[data-column="location"] {
+        padding: 10px 12px !important;
     }
 
     /* ====================================================

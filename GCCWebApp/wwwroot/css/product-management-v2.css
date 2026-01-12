@@ -49,7 +49,7 @@
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     transition: all 0.3s ease;
     display: inline-flex;
     align-items: center;
@@ -97,7 +97,7 @@
 
 .filter-group label {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 14px;
     margin-bottom: 5px;
     font-weight: 500;
 }
@@ -107,7 +107,7 @@
     padding: 8px 12px;
     border: 1px solid var(--gray-medium);
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .filter-actions {
@@ -138,7 +138,7 @@
     font-weight: 600;
     color: var(--blue-dark);
     border-bottom: 2px solid var(--gray-medium);
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .products-table tbody tr {
@@ -153,14 +153,14 @@
 .products-table td {
     padding: 15px;
     color: var(--text-primary);
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .status-badge {
     display: inline-block;
     padding: 4px 12px;
     border-radius: 12px;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
 }
 
@@ -192,7 +192,7 @@
     padding: 4px 8px;
     background: var(--gray-light);
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 14px;
 }
 
 .expand-btn {
@@ -270,7 +270,7 @@
 
 .identifier-group h4 {
     color: var(--blue-dark);
-    font-size: 14px;
+    font-size: 16px;
     margin: 0 0 10px 0;
     font-weight: 600;
 }
@@ -285,7 +285,7 @@
     background: var(--gray-light);
     padding: 4px 10px;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-primary);
     font-family: 'Courier New', monospace;
 }
@@ -301,7 +301,7 @@
 
 .pagination-info {
     color: var(--text-secondary);
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .pagination-controls {
@@ -316,7 +316,7 @@
     color: var(--text-primary);
     cursor: pointer;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 16px;
     transition: background-color 0.2s;
 }
 
@@ -371,20 +371,20 @@
         flex-direction: column;
         align-items: flex-start;
     }
-    
+
     .filters-grid {
         grid-template-columns: 1fr;
     }
-    
+
     .products-table {
-        font-size: 12px;
+        font-size: 14px;
     }
-    
+
     .products-table th,
     .products-table td {
         padding: 10px;
     }
-    
+
     .action-buttons {
         flex-direction: column;
     }

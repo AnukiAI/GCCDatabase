@@ -459,8 +459,8 @@ html body.table-view-active #tableView {
 .card-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
-    padding: 12px 15px;
+    gap: 12px;
+    padding: 16px 18px;
     border-top: 1px solid var(--border-color);
     background-color: rgba(0, 0, 0, 0.02);
     margin-top: auto;
@@ -597,7 +597,9 @@ html body.table-view-active #tableView {
 .certificate-location {
     font-size: 16px;
     color: #666;
-    margin-top: 10px;
+    margin-top: 15px;
+    margin-bottom: 8px;
+    padding-top: 10px;
     display: flex;
     align-items: flex-start;
     gap: 8px;
@@ -660,7 +662,7 @@ html body.table-view-active #tableView {
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 14px;
+    font-size: 16px;
     font-family: inherit;
 }
 
@@ -743,7 +745,7 @@ html body.table-view-active #tableView {
 .certificates-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .certificates-table thead {
@@ -756,7 +758,7 @@ html body.table-view-active #tableView {
     text-align: left;
     font-weight: 600;
     color: var(--dark-gray);
-    font-size: 13px;
+    font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border-right: 1px solid var(--border-color);
@@ -799,7 +801,7 @@ html body.table-view-active #tableView {
     font-weight: 600;
     color: var(--blue-primary);
     font-family: 'Courier New', monospace;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 .company-name {
@@ -815,7 +817,7 @@ html body.table-view-active #tableView {
 }
 
 .cert-type {
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-color);
     max-width: 140px;
 }
@@ -823,22 +825,28 @@ html body.table-view-active #tableView {
 .effective-date,
 .expiration-date {
     font-family: 'Courier New', monospace;
-    font-size: 12px;
+    font-size: 14px;
     color: var(--text-muted);
     white-space: nowrap;
 }
 
 .location {
     color: var(--text-muted);
-    font-size: 12px;
+    font-size: 16px;
     max-width: 150px;
+    padding: 8px 10px;
+}
+
+/* Table view location column - improved whitespace */
+.grid-cell[data-column="location"] {
+    padding: 10px 12px !important;
 }
 
 .partner .partner-badge {
     display: inline-block;
     padding: 4px 8px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -870,7 +878,7 @@ html body.table-view-active #tableView {
     border-radius: 4px;
     color: var(--text-muted);
     transition: all 0.2s ease;
-    font-size: 14px;
+    font-size: 16px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1193,7 +1201,7 @@ html body.table-view-active #tableView {
     flex-shrink: 0;
     min-width: auto;
     padding: 8px 12px;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .right-controls {
@@ -1263,7 +1271,7 @@ html body.table-view-active #tableView {
     margin: 0 1px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     transition: all 0.2s;
     display: inline-flex;
     align-items: center;
@@ -1538,17 +1546,16 @@ html body.table-view-active #tableView {
     padding-right: 8px !important;
 }
 
-/* Actions column - CENTERED */
+/* Actions column - CENTERED with improved whitespace */
 .actions-column,
 .grid-cell.actions-column,
 .grid-header-cell.actions-column {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: 4px;
+    gap: 6px;
     overflow: visible !important;
-    padding-left: 4px !important;
-    padding-right: 4px !important;
+    padding: 8px 10px !important;
 }
 
 /* Main content width */
@@ -1605,7 +1612,7 @@ body.table-view-active .table-scroll-wrapper {
     display: inline-block;
     padding: 4px 10px;
     border-radius: 4px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: 0.5px;

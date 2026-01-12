@@ -284,13 +284,13 @@
         padding: 4px !important;
     }
 
-    /* Actions column - header & body */
+    /* Actions column - header & body - improved whitespace */
     .table-grid .grid-header-cell.actions-column,
     .table-grid .grid-cell.actions-column {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        padding: 4px !important;
+        padding: 8px 10px !important;
         overflow: visible !important;
     }
 
@@ -438,6 +438,11 @@
     .grid-header-cell[data-sort-column="certificate"] {
         padding-left: 8px !important;
         font-weight: 600;
+    }
+
+    /* Location column - improved whitespace */
+    .table-grid .grid-cell[data-column="location"] {
+        padding: 10px 12px !important;
     }
 
     /* Zebra striping */

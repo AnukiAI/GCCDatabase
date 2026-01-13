@@ -1893,8 +1893,15 @@ body.theme-option4 .certificate-single-card .card-body {
 .zoom-modal-content {
     margin: auto;
     display: block;
-    width: 90%;
-    max-width: 1200px;
+    max-width: 90%;
+    max-height: 85vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    background: white;
+    padding: 10px;
+    border-radius: 4px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     animation: zoomIn 0.3s ease;
 }
 

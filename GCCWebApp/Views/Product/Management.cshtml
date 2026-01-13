@@ -358,6 +358,8 @@
                     const companyData = await companyResponse.json();
                     if (companyData.success) {
                         companies = companyData.data;
+                        // Expose to global scope for productManagement.js import validation
+                        window.companies = companies;
                         populateCompanyDropdowns();
                     }
                 }
@@ -368,6 +370,8 @@
                     const categoryData = await categoryResponse.json();
                     if (categoryData.success) {
                         categories = categoryData.data;
+                        // Expose to global scope for productManagement.js import validation
+                        window.categories = categories;
                         populateCategoryDropdowns();
                     }
                 }
@@ -378,6 +382,8 @@
                     const typesData = await typesResponse.json();
                     if (typesData.success) {
                         productTypes = typesData.data;
+                        // Expose to global scope for productManagement.js import validation
+                        window.productTypes = productTypes;
                         buildSearchSuggestionsData();
                     }
                 }

@@ -196,11 +196,15 @@
                 <!-- Sidebar -->
                 <div class="certificate-sidebar">
                     <div class="upload-section card-style">
-                        <div class="section-icon">
-                            <i class="fas fa-image"></i>
+                        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+                            <div class="section-icon" style="margin-bottom: 0;">
+                                <i class="fas fa-image"></i>
+                            </div>
+                            <div>
+                                <h3 id="certificate-image-label" style="margin: 0 0 4px 0;">Certificate Preview</h3>
+                                <p id="certificate-image-help" class="text-muted" style="font-size: 13px; margin: 0;">Auto-generated from uploaded PDF</p>
+                            </div>
                         </div>
-                        <h3 id="certificate-image-label">Certificate Preview</h3>
-                        <p id="certificate-image-help" class="text-muted" style="font-size: 13px;">Auto-generated from uploaded PDF</p>
                         @{
                             var editImagePath = Model.CertificateImagePath ?? "";
                             bool editHasValidSnapshot = !string.IsNullOrEmpty(editImagePath) &&
@@ -215,12 +219,8 @@
                             @if (editHasValidSnapshot)
                             {
                                 <img id="certificateImagePreviewImg" src="@editImageSrc" alt="Certificate Preview"
-                                     style="max-width: 100%; max-height: 100%; object-fit: contain;"
-                                     onclick="openImageZoom('@editImageSrc')" />
-                                <div class="zoom-icon-overlay" onclick="openImageZoom('@editImageSrc')" title="Click to zoom"
-                                     style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 6px 10px; border-radius: 4px; font-size: 12px;">
-                                    <i class="fas fa-search-plus"></i>
-                                </div>
+                                     style="max-width: 100%; max-height: 100%; object-fit: contain; cursor: pointer;"
+                                     onclick="openImageZoom('@editImageSrc')" title="Click to view full size" />
                             }
                             else
                             {
@@ -235,10 +235,12 @@
                     </div>
 
                     <div class="tags-section card-style">
-                        <div class="section-icon">
-                            <i class="fas fa-tags"></i>
+                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                            <div class="section-icon" style="margin-bottom: 0;">
+                                <i class="fas fa-tags"></i>
+                            </div>
+                            <h3 style="margin: 0;">Certificate Tags</h3>
                         </div>
-                        <h3>Certificate Tags</h3>
 
                         <div class="tags-group">
                             <label for="externalTagSelect">External Tags</label>
@@ -360,11 +362,11 @@
     </div>
 </div>
 
-<!-- Image Zoom Modal -->
-<div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageZoom()" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); overflow: auto;">
-    <span class="zoom-close" style="position: absolute; top: 15px; right: 35px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer;">&times;</span>
-    <img class="zoom-modal-content" id="zoomedImage" style="margin: auto; display: block; max-width: 90%; max-height: 90%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 10px; border-radius: 4px;">
-    <div class="zoom-caption" id="imageCaption" style="margin: auto; display: block; width: 80%; max-width: 700px; text-align: center; color: #ccc; padding: 10px 0; position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">Certificate Preview - Click anywhere to close</div>
+<!-- Image Zoom Modal - Uses CSS from main.css for consistent styling -->
+<div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageZoom()">
+    <span class="zoom-close">&times;</span>
+    <img class="zoom-modal-content" id="zoomedImage" alt="Certificate Preview">
+    <div class="zoom-caption" id="imageCaption">Certificate Preview - Click anywhere to close</div>
 </div>
 
 @section Scripts {

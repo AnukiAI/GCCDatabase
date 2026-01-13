@@ -143,44 +143,55 @@
                     </div>
                 </div>
                 <!-- Right Column: Certificate Image -->
-                <div class="certificate-image-column">
+                <div class="certificate-image-column" style="padding-right: 30px;">
                     @{
-                        string certificateImageSrc;
-                        if (!string.IsNullOrEmpty(Model.Certificate?.CertificateImagePath))
+                        // Only consider it a valid snapshot if it's a generated thumbnail (contains "_thumb_" or is in uploads/images/)
+                        var imagePath = Model.Certificate?.CertificateImagePath ?? "";
+                        bool hasValidSnapshot = !string.IsNullOrEmpty(imagePath) &&
+                            (imagePath.Contains("_thumb_") || imagePath.Contains("uploads/images/"));
+                        string certificateImageSrc = "";
+                        if (hasValidSnapshot)
                         {
-                            certificateImageSrc = Model.Certificate.CertificateImagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
-                                ? Model.Certificate.CertificateImagePath
-                                : Model.Certificate.CertificateImagePath.StartsWith("/")
-                                    ? Model.Certificate.CertificateImagePath
-                                    : $"/uploads/{Model.Certificate.CertificateImagePath}";
+                            certificateImageSrc = imagePath.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                                ? imagePath
+                                : imagePath.StartsWith("/")
+                                    ? imagePath
+                                    : $"/{imagePath}";
                         }
-                        else if (!string.IsNullOrEmpty(Model.Certificate?.CertificateFile))
+                    }
+                    <!-- Consistent square preview container -->
+                    <div class="certificate-preview-box" style="width: 350px; height: 350px; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; background: #f8f9fa; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative;">
+                        @if (hasValidSnapshot)
                         {
-                            certificateImageSrc = Model.Certificate.CertificateFile.StartsWith("http", StringComparison.OrdinalIgnoreCase)
-                                ? Model.Certificate.CertificateFile
-                                : Model.Certificate.CertificateFile.StartsWith("/")
-                                    ? Model.Certificate.CertificateFile
-                                    : $"/uploads/{Model.Certificate.CertificateFile}";
+                            <img src="@certificateImageSrc" alt="Certificate @certificateNumber"
+                                 style="max-width: 100%; max-height: 100%; object-fit: contain;"
+                                 onclick="openImageZoom('@certificateImageSrc')" />
+                            <!-- Magnifying Glass Icon overlay -->
+                            <div class="zoom-icon-overlay" onclick="openImageZoom('@certificateImageSrc')" title="Click to zoom"
+                                 style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 6px 10px; border-radius: 4px; font-size: 12px;">
+                                <i class="fas fa-search-plus"></i>
+                            </div>
                         }
                         else
                         {
-                            certificateImageSrc = Url.Content("~/img/certpreview.png");
+                            <!-- Certificate Unavailable placeholder -->
+                            <div style="text-align: center; padding: 20px;">
+                                <i class="fas fa-file-pdf" style="font-size: 48px; color: #adb5bd; margin-bottom: 12px; display: block;"></i>
+                                <p style="font-size: 14px; font-weight: 600; color: #6c757d; margin: 0 0 4px 0;">Certificate Unavailable</p>
+                                <small style="color: #adb5bd; font-size: 11px;">Preview not generated</small>
+                            </div>
                         }
+                    </div>
+
+                    <!-- Download Button directly below image (only if PDF exists) -->
+                    @if (!string.IsNullOrEmpty(Model.Certificate?.CertificateFile))
+                    {
+                        <div class="certificate-download-action">
+                            <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@certificateNumber')">
+                                <i class="fas fa-download"></i>
+                            </div>
+                        </div>
                     }
-                    <div class="certificate-image-container" style="position: relative;">
-                        <img src="@certificateImageSrc" alt="Certificate Details" class="certificate-image" onerror="this.src='@Url.Content("~/img/certpreview.png")';this.onerror=null;" onclick="openImageZoom('@certificateImageSrc')" />
-                    </div>
-
-                    <!-- Action Buttons directly below image -->
-                    <div class="certificate-download-action">
-                        <div class="action-icon view" title="Zoom Image" onclick="openImageZoom('@certificateImageSrc')">
-                            <i class="fas fa-search-plus"></i>
-                        </div>
-                        <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@certificateNumber')">
-                            <i class="fas fa-download"></i>
-                        </div>
-                    </div>
-
                 </div>
             </div>
 

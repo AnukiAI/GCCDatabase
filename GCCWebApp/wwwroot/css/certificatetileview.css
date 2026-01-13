@@ -1190,7 +1190,7 @@ html body.table-view-active #tableView {
     flex-wrap: wrap;
     min-width: 0;
     flex: 1;
-    margin-left: 0;
+    margin-left: 10px; /* Align with first tile/table column */
     padding-left: 0;
 }
 
@@ -1922,18 +1922,26 @@ body.table-view-active .main-content {
 }
 
 /* Explicit left alignment for buttons and table */
-.main-content .left-controls,
-.main-content .export-options,
+.main-content .left-controls {
+    margin-left: 10px; /* Align with first tile/table column */
+    padding-left: 0;
+}
+
+.main-content .export-options {
+    margin-left: 0;
+    padding-left: 0;
+}
+
 .main-content .table-scroll-wrapper,
 .main-content #tableView {
-    margin-left: 0;
+    margin-left: 5px; /* Align table with buttons */
     padding-left: 0;
 }
 
 #tableView {
     margin-top: 0;
     padding-top: 0;
-    margin-left: 0;
+    margin-left: 5px; /* Align with buttons */
 }
 
 .certificates-grid {

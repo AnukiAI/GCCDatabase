@@ -201,17 +201,33 @@
                         </div>
                         <h3 id="certificate-image-label">Certificate Preview</h3>
                         <p id="certificate-image-help" class="text-muted" style="font-size: 13px;">Auto-generated from uploaded PDF</p>
-                        <div class="preview-container" style="min-height: 150px; display: flex; align-items: center; justify-content: center; background: #f8f9fa; border: 1px dashed #dee2e6; border-radius: 6px; padding: 16px;">
-                            @if (!string.IsNullOrEmpty(Model.CertificateImagePath))
+                        @{
+                            var editImagePath = Model.CertificateImagePath ?? "";
+                            bool editHasValidSnapshot = !string.IsNullOrEmpty(editImagePath) &&
+                                (editImagePath.Contains("_thumb_") || editImagePath.Contains("uploads/images/"));
+                            string editImageSrc = "";
+                            if (editHasValidSnapshot)
                             {
-                                <img id="certificateImagePreviewImg" src="/@Model.CertificateImagePath" alt="Certificate Preview" style="max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 4px;" />
+                                editImageSrc = editImagePath.StartsWith("/") ? editImagePath : $"/{editImagePath}";
+                            }
+                        }
+                        <div class="preview-container" style="width: 350px; height: 350px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; position: relative; cursor: pointer;">
+                            @if (editHasValidSnapshot)
+                            {
+                                <img id="certificateImagePreviewImg" src="@editImageSrc" alt="Certificate Preview"
+                                     style="max-width: 100%; max-height: 100%; object-fit: contain;"
+                                     onclick="openImageZoom('@editImageSrc')" />
+                                <div class="zoom-icon-overlay" onclick="openImageZoom('@editImageSrc')" title="Click to zoom"
+                                     style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 6px 10px; border-radius: 4px; font-size: 12px;">
+                                    <i class="fas fa-search-plus"></i>
+                                </div>
                             }
                             else
                             {
                                 <div class="no-preview" style="text-align: center; color: #6c757d;">
-                                    <i class="fas fa-file-pdf" style="font-size: 48px; margin-bottom: 8px;"></i>
-                                    <p style="margin: 0;">No preview available</p>
-                                    <small>Upload a PDF certificate to generate preview</small>
+                                    <i class="fas fa-file-pdf" style="font-size: 48px; color: #adb5bd; margin-bottom: 12px; display: block;"></i>
+                                    <p style="font-size: 14px; font-weight: 600; color: #6c757d; margin: 0 0 4px 0;">Certificate Unavailable</p>
+                                    <small style="color: #adb5bd; font-size: 11px;">Preview not generated</small>
                                 </div>
                             }
                         </div>
@@ -277,13 +293,15 @@
                             <strong style="color: #2e7d32;">Current PDF:</strong>
                             <span style="color: #1b5e20; margin-left: 8px;">@System.IO.Path.GetFileName(Model.CertificateImagePath)</span>
                         </div>
-                        <a href="@Url.Action("Download", "Certificate", new { id = Model.Id })"
-                           class="btn btn-sm"
-                           style="background-color: #4caf50; color: white; padding: 4px 12px; border-radius: 4px; text-decoration: none;"
-                           target="_blank"
-                           title="Download current PDF">
-                            <i class="fas fa-download"></i> View
-                        </a>
+                        @if (editHasValidSnapshot)
+                        {
+                            <button type="button" onclick="openImageZoom('@editImageSrc')"
+                                    class="btn btn-sm"
+                                    style="background-color: #4caf50; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;"
+                                    title="View Certificate Preview">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                        }
                     </div>
                 }
                 <div class="form-group">
@@ -342,6 +360,13 @@
     </div>
 </div>
 
+<!-- Image Zoom Modal -->
+<div id="imageZoomModal" class="image-zoom-modal" onclick="closeImageZoom()" style="display: none; position: fixed; z-index: 9999; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.9); overflow: auto;">
+    <span class="zoom-close" style="position: absolute; top: 15px; right: 35px; color: #f1f1f1; font-size: 40px; font-weight: bold; cursor: pointer;">&times;</span>
+    <img class="zoom-modal-content" id="zoomedImage" style="margin: auto; display: block; max-width: 90%; max-height: 90%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 10px; border-radius: 4px;">
+    <div class="zoom-caption" id="imageCaption" style="margin: auto; display: block; width: 80%; max-width: 700px; text-align: center; color: #ccc; padding: 10px 0; position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%);">Certificate Preview - Click anywhere to close</div>
+</div>
+
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script src="~/js/product-id-manager.js"></script>
@@ -351,6 +376,35 @@
 
     <script>
         console.log('[Edit.cshtml] Script section loaded');
+
+        // Image zoom functionality
+        function openImageZoom(imageSrc) {
+            const modal = document.getElementById('imageZoomModal');
+            const modalImg = document.getElementById('zoomedImage');
+            const caption = document.getElementById('imageCaption');
+
+            modal.style.display = 'block';
+            modalImg.src = imageSrc;
+            caption.innerHTML = 'Certificate @Model.Number - Click anywhere to close';
+
+            // Prevent body scroll when modal is open
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageZoom() {
+            const modal = document.getElementById('imageZoomModal');
+            modal.style.display = 'none';
+
+            // Restore body scroll
+            document.body.style.overflow = 'auto';
+        }
+
+        // Close on ESC key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape') {
+                closeImageZoom();
+            }
+        });
 
         // Store all certification types for subcategory filtering
         var allCertificationTypes = @Html.Raw(Json.Serialize(ViewBag.AllCertificationTypes ?? new List<object>()));

@@ -280,14 +280,19 @@
                 const result = await response.json();
 
                 if (response.ok && result.success && result.thumbnailUrl) {
-                    // Display thumbnail in sidebar
+                    // Display thumbnail in sidebar with zoom functionality
                     if (sidebarPreview) {
                         sidebarPreview.innerHTML = `
                             <img id="certificateImagePreviewImg"
                                  src="${result.thumbnailUrl}"
                                  alt="Certificate Preview"
-                                 style="max-width: 100%; max-height: 300px; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+                                 style="max-width: 100%; max-height: 100%; object-fit: contain; cursor: pointer;"
+                                 onclick="typeof openImageZoom === 'function' && openImageZoom('${result.thumbnailUrl}')"
                             />
+                            <div class="zoom-icon-overlay" onclick="typeof openImageZoom === 'function' && openImageZoom('${result.thumbnailUrl}')" title="Click to zoom"
+                                 style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 6px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                                <i class="fas fa-search-plus"></i>
+                            </div>
                         `;
                     }
 
@@ -307,10 +312,10 @@
                 // Show fallback state but keep the file selected
                 if (sidebarPreview) {
                     sidebarPreview.innerHTML = `
-                        <div class="no-preview" style="text-align: center; color: #6c757d; padding: 20px;">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 8px; color: #FFC107;"></i>
-                            <p style="margin: 0;">Preview unavailable</p>
-                            <small>Preview will be generated when you save</small>
+                        <div class="no-preview" style="text-align: center; color: #6c757d;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #FFC107; margin-bottom: 12px; display: block;"></i>
+                            <p style="font-size: 14px; font-weight: 600; color: #6c757d; margin: 0 0 4px 0;">Preview unavailable</p>
+                            <small style="color: #adb5bd; font-size: 11px;">Preview will be generated when you save</small>
                         </div>
                     `;
                 }
@@ -333,9 +338,9 @@
             if (sidebarPreview) {
                 sidebarPreview.innerHTML = `
                     <div class="no-preview" style="text-align: center; color: #6c757d;">
-                        <i class="fas fa-file-pdf" style="font-size: 48px; margin-bottom: 8px;"></i>
-                        <p style="margin: 0;">No preview available</p>
-                        <small>Upload a PDF certificate below to generate preview</small>
+                        <i class="fas fa-file-pdf" style="font-size: 48px; color: #adb5bd; margin-bottom: 12px; display: block;"></i>
+                        <p style="font-size: 14px; font-weight: 600; color: #6c757d; margin: 0 0 4px 0;">Certificate Unavailable</p>
+                        <small style="color: #adb5bd; font-size: 11px;">Upload a PDF to generate preview</small>
                     </div>
                 `;
             }

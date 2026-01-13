@@ -216,7 +216,10 @@
                 } else {
                     state.certificates = data.certificates;
                 }
-                
+
+                // DEBUG: Verify certificates are stored
+                console.log('DEBUG loadCertificates: Stored', state.certificates.length, 'certificates in state');
+
                 state.totalCount = data.totalCount;
                 state.totalPages = data.totalPages;
                 state.hasMore = data.hasMore;
@@ -799,6 +802,12 @@
             const isOpen = dropdown.classList.contains('open');
             dropdown.classList.toggle('open');
 
+            // Update aria-expanded for accessibility
+            const button = dropdown.querySelector('.sort-dropdown-button');
+            if (button) {
+                button.setAttribute('aria-expanded', !isOpen);
+            }
+
             // Add/remove click outside listener
             if (!isOpen) {
                 setTimeout(() => {
@@ -815,6 +824,11 @@
         const dropdown = document.getElementById('sortDropdown');
         if (dropdown && !dropdown.contains(event.target)) {
             dropdown.classList.remove('open');
+            // Update aria-expanded for accessibility
+            const button = dropdown.querySelector('.sort-dropdown-button');
+            if (button) {
+                button.setAttribute('aria-expanded', 'false');
+            }
             document.removeEventListener('click', closeSortDropdownOutside);
         }
     }
@@ -823,8 +837,14 @@
     function selectSort(value, label) {
         state.filters.sortBy = value;
         document.getElementById('sortLabel').textContent = label;
-        document.getElementById('sortDropdown').classList.remove('open');
-        
+        const dropdown = document.getElementById('sortDropdown');
+        dropdown.classList.remove('open');
+        // Update aria-expanded for accessibility
+        const button = dropdown.querySelector('.sort-dropdown-button');
+        if (button) {
+            button.setAttribute('aria-expanded', 'false');
+        }
+
         loadInitialCertificates();
         updateUrl();
         showToast(`Sorted by ${label}`, 'info');
@@ -1152,7 +1172,7 @@
         }
     }
 
-    function handleViewTypeChange(viewType) {
+    async function handleViewTypeChange(viewType) {
         // Update active button state
         document.querySelectorAll('.toggle-btn[data-view]').forEach(btn => {
             btn.classList.remove('active');
@@ -1161,7 +1181,7 @@
 
         if (viewType === 'list') {
             // Show table view within same page
-            showTableView();
+            await showTableView();
         } else {
             // Show tile view
             showTileView();
@@ -1170,13 +1190,20 @@
     }
 
     // Show table view
-    function showTableView() {
+    async function showTableView() {
         const tileView = document.getElementById('certificatesGrid');
         const tableView = document.getElementById('tableView');
 
         if (tileView) tileView.style.display = 'none';
         if (tableView) {
             tableView.style.display = 'block';
+
+            // If certificates aren't loaded yet, load them first
+            if (!state.certificates || state.certificates.length === 0) {
+                console.log('DEBUG showTableView: No certificates in state, loading...');
+                await loadCertificates();
+            }
+
             populateTableView();
         }
 
@@ -1203,15 +1230,24 @@
     // Populate table view with certificates
     function populateTableView() {
         const gridBody = document.getElementById('gridBody');
-        if (!gridBody) return;
+        if (!gridBody) {
+            console.error('DEBUG populateTableView: gridBody element not found!');
+            return;
+        }
 
         // Clear existing content
         gridBody.innerHTML = '';
 
+        // DEBUG: Log state to trace the issue
+        console.log('DEBUG populateTableView: state.certificates length =', state.certificates ? state.certificates.length : 'undefined');
+        console.log('DEBUG populateTableView: state.totalCount =', state.totalCount);
+
         // Use current certificates data
         if (state.certificates && state.certificates.length > 0) {
+            console.log('DEBUG populateTableView: Rendering', state.certificates.length, 'rows');
             renderTableRows(state.certificates);
         } else {
+            console.log('DEBUG populateTableView: No certificates in state, showing empty message');
             gridBody.innerHTML = '<div class="no-results">No certificates found</div>';
         }
 
@@ -1306,43 +1342,43 @@
         const ean = cert.ean || '';
 
         return `
-            <div class="grid-row" data-cert-id="${cert.id}">
-                <div class="grid-cell select-cell">
-                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}">
+            <div class="grid-row" data-cert-id="${cert.id}" role="row">
+                <div class="grid-cell select-cell" role="gridcell">
+                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" aria-label="Select certificate ${escapeHtml(certNumber)}">
                 </div>
-                <div class="grid-cell actions-column">
+                <div class="grid-cell actions-column" role="gridcell">
                     <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="editCertificate('${certNumber}')" title="Edit Certificate">
-                            <i class="fas fa-edit"></i>
+                        <button class="action-btn edit-btn" onclick="editCertificate('${certNumber}')" title="Edit Certificate" aria-label="Edit certificate ${escapeHtml(certNumber)}">
+                            <i class="fas fa-edit" aria-hidden="true"></i>
                         </button>
-                        <button class="action-btn download-btn" onclick="downloadCertificate('${certNumber}')" title="Download PDF">
-                            <i class="fas fa-download"></i>
+                        <button class="action-btn download-btn" onclick="downloadCertificate('${certNumber}')" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(certNumber)}">
+                            <i class="fas fa-download" aria-hidden="true"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${certNumber}')" title="View Details">
-                            <i class="fas fa-external-link-alt"></i>
+                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${certNumber}')" title="View Details" aria-label="View details for certificate ${escapeHtml(certNumber)}">
+                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                         </button>
                     </div>
                 </div>
-                <div class="grid-cell" data-column="certificateNumber" title="${escapeHtml(certNumber)}">${escapeHtml(certNumber)}</div>
-                <div class="grid-cell" data-column="certificationType" title="${escapeHtml(certType)}">${escapeHtml(certType)}</div>
-                <div class="grid-cell" data-column="csfAttributes" title="${escapeHtml(csfAttrs)}">${escapeHtml(csfAttrs)}</div>
-                <div class="grid-cell" data-column="status">${statusBadge}</div>
-                <div class="grid-cell" data-column="effectiveDate">${effectiveDate}</div>
-                <div class="grid-cell" data-column="expirationDate">${expirationDate}</div>
-                <div class="grid-cell" data-column="company" title="${escapeHtml(company)}">${escapeHtml(company)}</div>
-                <div class="grid-cell" data-column="companyContact" title="${escapeHtml(contact)}">${escapeHtml(contact)}</div>
-                <div class="grid-cell" data-column="productName" title="${escapeHtml(product)}">${escapeHtml(product)}</div>
-                <div class="grid-cell" data-column="productCategory" title="${escapeHtml(category)}">${escapeHtml(category)}</div>
-                <div class="grid-cell" data-column="productType" title="${escapeHtml(type)}">${escapeHtml(type)}</div>
-                <div class="grid-cell" data-column="productSubcategory" title="${escapeHtml(subcategory)}">${escapeHtml(subcategory)}</div>
-                <div class="grid-cell" data-column="location" title="${location}">${location}</div>
-                <div class="grid-cell" data-column="country" title="${escapeHtml(country)}">${escapeHtml(country)}</div>
-                <div class="grid-cell" data-column="externalTag" title="${escapeHtml(extTags)}">${escapeHtml(extTags)}</div>
-                <div class="grid-cell" data-column="internalTag" title="${escapeHtml(intTags)}">${escapeHtml(intTags)}</div>
-                <div class="grid-cell" data-column="asin" title="${escapeHtml(asin)}">${escapeHtml(asin)}</div>
-                <div class="grid-cell" data-column="upc" title="${escapeHtml(upc)}">${escapeHtml(upc)}</div>
-                <div class="grid-cell" data-column="gtin" title="${escapeHtml(gtin)}">${escapeHtml(gtin)}</div>
-                <div class="grid-cell" data-column="ean" title="${escapeHtml(ean)}">${escapeHtml(ean)}</div>
+                <div class="grid-cell" data-column="certificateNumber" title="${escapeHtml(certNumber)}" role="gridcell">${escapeHtml(certNumber)}</div>
+                <div class="grid-cell" data-column="certificationType" title="${escapeHtml(certType)}" role="gridcell">${escapeHtml(certType)}</div>
+                <div class="grid-cell" data-column="csfAttributes" title="${escapeHtml(csfAttrs)}" role="gridcell">${escapeHtml(csfAttrs)}</div>
+                <div class="grid-cell" data-column="status" role="gridcell">${statusBadge}</div>
+                <div class="grid-cell" data-column="effectiveDate" role="gridcell">${effectiveDate}</div>
+                <div class="grid-cell" data-column="expirationDate" role="gridcell">${expirationDate}</div>
+                <div class="grid-cell" data-column="company" title="${escapeHtml(company)}" role="gridcell">${escapeHtml(company)}</div>
+                <div class="grid-cell" data-column="companyContact" title="${escapeHtml(contact)}" role="gridcell">${escapeHtml(contact)}</div>
+                <div class="grid-cell" data-column="productName" title="${escapeHtml(product)}" role="gridcell">${escapeHtml(product)}</div>
+                <div class="grid-cell" data-column="productCategory" title="${escapeHtml(category)}" role="gridcell">${escapeHtml(category)}</div>
+                <div class="grid-cell" data-column="productType" title="${escapeHtml(type)}" role="gridcell">${escapeHtml(type)}</div>
+                <div class="grid-cell" data-column="productSubcategory" title="${escapeHtml(subcategory)}" role="gridcell">${escapeHtml(subcategory)}</div>
+                <div class="grid-cell" data-column="location" title="${location}" role="gridcell">${location}</div>
+                <div class="grid-cell" data-column="country" title="${escapeHtml(country)}" role="gridcell">${escapeHtml(country)}</div>
+                <div class="grid-cell" data-column="externalTag" title="${escapeHtml(extTags)}" role="gridcell">${escapeHtml(extTags)}</div>
+                <div class="grid-cell" data-column="internalTag" title="${escapeHtml(intTags)}" role="gridcell">${escapeHtml(intTags)}</div>
+                <div class="grid-cell" data-column="asin" title="${escapeHtml(asin)}" role="gridcell">${escapeHtml(asin)}</div>
+                <div class="grid-cell" data-column="upc" title="${escapeHtml(upc)}" role="gridcell">${escapeHtml(upc)}</div>
+                <div class="grid-cell" data-column="gtin" title="${escapeHtml(gtin)}" role="gridcell">${escapeHtml(gtin)}</div>
+                <div class="grid-cell" data-column="ean" title="${escapeHtml(ean)}" role="gridcell">${escapeHtml(ean)}</div>
             </div>
         `;
     }

@@ -102,7 +102,7 @@
 }
 
 .form-help {
-    font-size: 14px;
+    font-size: 16px;
     color: #666;
     margin-top: 8px;
     line-height: 1.4;
@@ -211,7 +211,7 @@ pre {
     width: 100%;
     border-collapse: collapse;
     margin: 0;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 #history-table th,
@@ -225,7 +225,7 @@ pre {
     background-color: #f8f9fa;
     color: var(--blue-dark);
     font-weight: 600;
-    font-size: 14px;
+    font-size: 16px;
     position: sticky;
     top: 0;
     border-bottom: 2px solid var(--border-color);
@@ -256,7 +256,7 @@ pre {
     background-color: #fff8e1;
     border: 1px solid #ffcc02;
     border-radius: 6px;
-    font-size: 14px;
+    font-size: 16px;
     color: #b8860b;
     display: flex;
     align-items: flex-start;
@@ -285,28 +285,28 @@ pre {
         margin: 0 10px;
         padding: 20px;
     }
-    
+
     .form-group input[type="text"] {
         font-size: 16px; /* Prevents zoom on iOS */
     }
-    
+
     pre {
-        font-size: 12px;
+        font-size: 14px;
         padding: 12px;
     }
-    
+
     #history-table th,
     #history-table td {
         padding: 8px 10px;
-        font-size: 13px;
+        font-size: 14px;
     }
-    
+
     .toggle-label {
-        font-size: 15px;
+        font-size: 16px;
     }
-    
+
     .status-display {
-        font-size: 15px;
+        font-size: 16px;
         padding: 12px;
     }
 }
@@ -315,27 +315,27 @@ pre {
     .analytics-container {
         padding: 15px;
     }
-    
+
     .history-section {
         margin-top: 30px;
         padding-top: 20px;
     }
-    
+
     .history-section h3 {
         font-size: 18px;
     }
-    
+
     #history-table {
-        font-size: 12px;
+        font-size: 14px;
     }
-    
+
     #history-table th,
     #history-table td {
         padding: 6px 8px;
     }
-    
+
     .privacy-notice {
         padding: 12px;
-        font-size: 13px;
+        font-size: 14px;
     }
 }

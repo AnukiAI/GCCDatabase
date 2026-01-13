@@ -397,9 +397,124 @@ namespace GCCWebApp.Controllers.Api
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error uploading file for certificate {CertificateId} via API", id);
-                return StatusCode(500, new ApiErrorResponse 
-                { 
-                    Message = "An internal server error occurred while uploading the file." 
+                return StatusCode(500, new ApiErrorResponse
+                {
+                    Message = "An internal server error occurred while uploading the file."
+                });
+            }
+        }
+
+        /// <summary>
+        /// Generate a thumbnail preview from a PDF file (AJAX endpoint for real-time preview)
+        /// </summary>
+        /// <remarks>
+        /// This endpoint generates a thumbnail from the first page of a PDF file
+        /// without requiring the certificate to be saved first. Used for real-time
+        /// preview during certificate creation/editing.
+        /// </remarks>
+        [HttpPost("GenerateThumbnail")]
+        [Authorize(Roles = "Admin,Analyst")]
+        [ProducesResponseType(typeof(ThumbnailGenerationResponse), 200)]
+        [ProducesResponseType(typeof(ApiErrorResponse), 400)]
+        public async Task<ActionResult<ThumbnailGenerationResponse>> GenerateThumbnail(
+            IFormFile file,
+            [FromForm] string? certificateNumber = null)
+        {
+            try
+            {
+                _logger.LogInformation("API request to generate thumbnail for certificate {CertificateNumber}",
+                    certificateNumber ?? "TEMP");
+
+                // Validate file
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest(new ApiErrorResponse
+                    {
+                        Message = "No file was uploaded."
+                    });
+                }
+
+                // Validate file type (must be PDF)
+                var allowedContentTypes = new[] { "application/pdf" };
+                if (!allowedContentTypes.Contains(file.ContentType.ToLower()))
+                {
+                    return BadRequest(new ApiErrorResponse
+                    {
+                        Message = "Invalid file type. Only PDF files are allowed."
+                    });
+                }
+
+                // Validate file size (10MB max)
+                const long maxFileSize = 10 * 1024 * 1024; // 10MB
+                if (file.Length > maxFileSize)
+                {
+                    return BadRequest(new ApiErrorResponse
+                    {
+                        Message = "File size exceeds the maximum limit of 10MB."
+                    });
+                }
+
+                // Generate a temporary identifier for naming
+                var tempIdentifier = certificateNumber ?? $"TEMP_{DateTime.UtcNow:yyyyMMdd_HHmmss}";
+
+                // Upload PDF to temporary location
+                var uploadResult = await _fileUploadService.UploadCertificateAsync(file, tempIdentifier);
+                if (!uploadResult.IsSuccess)
+                {
+                    return BadRequest(new ApiErrorResponse
+                    {
+                        Message = "Failed to upload file for processing.",
+                        Errors = uploadResult.Errors
+                    });
+                }
+
+                try
+                {
+                    // Generate thumbnail from PDF
+                    var thumbnailPath = await _fileUploadService.GeneratePdfThumbnailAsync(
+                        uploadResult.FilePath!,
+                        tempIdentifier);
+
+                    if (string.IsNullOrEmpty(thumbnailPath))
+                    {
+                        return BadRequest(new ApiErrorResponse
+                        {
+                            Message = "Failed to generate thumbnail from PDF. The PDF may be empty or corrupted."
+                        });
+                    }
+
+                    _logger.LogInformation("Thumbnail generated successfully: {ThumbnailPath}", thumbnailPath);
+
+                    return Ok(new ThumbnailGenerationResponse
+                    {
+                        Success = true,
+                        ThumbnailPath = thumbnailPath,
+                        ThumbnailUrl = $"/{thumbnailPath}",
+                        Message = "Thumbnail generated successfully"
+                    });
+                }
+                finally
+                {
+                    // Clean up temporary PDF file if it was a temp upload (not the final certificate)
+                    if (string.IsNullOrEmpty(certificateNumber))
+                    {
+                        try
+                        {
+                            await _fileUploadService.DeleteFileAsync(uploadResult.FilePath!);
+                        }
+                        catch (Exception deleteEx)
+                        {
+                            _logger.LogWarning(deleteEx, "Failed to delete temporary PDF file: {FilePath}", uploadResult.FilePath);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating thumbnail via API");
+                return StatusCode(500, new ApiErrorResponse
+                {
+                    Message = "An internal server error occurred while generating the thumbnail."
                 });
             }
         }
@@ -639,6 +754,14 @@ namespace GCCWebApp.Controllers.Api
         public string? FilePath { get; set; }
         public string? FileName { get; set; }
         public long FileSize { get; set; }
+        public required string Message { get; set; }
+    }
+
+    public class ThumbnailGenerationResponse
+    {
+        public bool Success { get; set; }
+        public string? ThumbnailPath { get; set; }
+        public string? ThumbnailUrl { get; set; }
         public required string Message { get; set; }
     }
 

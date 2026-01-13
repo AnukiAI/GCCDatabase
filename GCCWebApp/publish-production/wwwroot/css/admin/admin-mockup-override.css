@@ -185,7 +185,7 @@
     background-color: #ffffff !important;
     font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
     box-sizing: border-box;
-    font-size: 14px;
+    font-size: 16px;
     min-height: 40px;
 }
 
@@ -212,7 +212,7 @@
     border-radius: 4px;
     border: 1px solid var(--mockup-border-color);
     background-color: white;
-    font-size: 14px;
+    font-size: 16px;
     font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
     min-width: 140px;
     color: var(--mockup-text-color);
@@ -248,7 +248,7 @@
 #products-table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .admin-table-header th,
@@ -264,7 +264,7 @@
     background-color: #f9f9f9;
     color: var(--mockup-blue-dark);
     font-weight: 500;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .admin-table-body td,
@@ -277,7 +277,7 @@
     padding: 10px;
     text-align: left;
     border-bottom: 1px solid #eee;
-    font-size: 14px;
+    font-size: 16px;
     color: var(--mockup-text-color);
 }
 
@@ -363,7 +363,7 @@
 .footer-info {
     text-align: right;
     color: #777;
-    font-size: 13px;
+    font-size: 14px;
     margin-top: 5px;
     padding: 0;
     background: none;
@@ -374,7 +374,7 @@
 
 .admin-count-display {
     color: #777;
-    font-size: 13px;
+    font-size: 14px;
 }
 
 /* =============================================================================
@@ -448,7 +448,7 @@
     display: block;
     margin-bottom: 5px;
     color: var(--mockup-text-color);
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 500;
 }
 
@@ -464,7 +464,7 @@
     border-radius: 4px;
     font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
     box-sizing: border-box;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .admin-input:focus,

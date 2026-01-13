@@ -57,8 +57,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     } catch (error) {
                         console.error('Error loading external certificates:', error);
-                        // Fallback to hardcoded data or show error
-                        this.loadFallbackCertificates();
+                        // Show error state - no fallback to mock data
+                        this.showErrorState('Unable to load certificates. Please try again later.');
                     }
                 }
             }
@@ -132,48 +132,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 return card;
             }
 
-            loadFallbackCertificates() {
-                // Provide fallback certificate data that matches the existing structure
-                const fallbackData = [
-                    {
-                        certificateNumber: '21-0476',
-                        certificationType: 'CERTIFIED SUSTAINABILITY FACTS',
-                        companyName: 'ASSA ABLOY',
-                        productName: 'Mercury Thermal Break Frame, Fleming Adjustable Thermal Resistant Frame',
-                        productType: 'Door Hardware',
-                        effectiveDate: '2021-05-01',
-                        expirationDate: '2025-04-30',
-                        location: 'New Haven, CT',
-                        country: 'United States',
-                        productCategory: 'construction'
-                    },
-                    {
-                        certificateNumber: '24-1605',
-                        certificationType: 'ENVIRONMENTAL FACTS',
-                        companyName: 'Superior Essex',
-                        productName: 'Category 6A U/UTP Cable',
-                        productType: 'Networking Cable',
-                        effectiveDate: '2024-10-01',
-                        expirationDate: '2026-09-30',
-                        location: 'Fort Wayne, IN',
-                        country: 'United States',
-                        productCategory: 'electronics'
-                    },
-                    {
-                        certificateNumber: '24-1701',
-                        certificationType: 'RECYCLED CONTENT',
-                        companyName: 'GAF Materials Corporation',
-                        productName: 'Timberline HD Shingles',
-                        productType: 'Roofing Materials',
-                        effectiveDate: '2024-11-01',
-                        expirationDate: '2026-10-31',
-                        location: 'Parsippany, NJ',
-                        country: 'United States',
-                        productCategory: 'construction'
-                    }
-                ];
-
-                this.renderCertificatesFromApi(fallbackData);
+            showErrorState(message) {
+                // Show error message instead of fallback data
+                const grid = document.getElementById('certificatesGrid');
+                if (grid) {
+                    grid.innerHTML = `
+                        <div class="error-state" style="text-align: center; padding: 40px; color: #666;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #ff6b6b; margin-bottom: 16px;"></i>
+                            <h3 style="margin-bottom: 8px;">Unable to Load Certificates</h3>
+                            <p>${message}</p>
+                            <button onclick="location.reload()" class="btn btn-primary" style="margin-top: 16px;">
+                                <i class="fas fa-sync-alt"></i> Try Again
+                            </button>
+                        </div>
+                    `;
+                }
+                this.updateResultsCount(0);
             }
 
             // Override the table view functionality to hide edit columns

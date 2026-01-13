@@ -307,7 +307,8 @@
 }
 
 .certificate-card-certification-period {
-    margin-top: 15px;
+    margin: 10px 0 0 0;
+    padding-bottom: 0;
     font-size: 16px;
     color: var(--dark-gray);
 }
@@ -320,8 +321,8 @@
 .certificate-card-actions {
     display: flex;
     justify-content: flex-end;
-    padding: 10px;
-    border-top: 1px solid var(--medium-gray);
+    padding: 15px 10px 10px 10px;
+    border-top: none;
 }
 
 .certificate-action-button {

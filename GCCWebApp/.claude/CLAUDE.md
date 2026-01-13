@@ -153,6 +153,28 @@ AzureAdB2C__ClientId=[client-id]
   - **External JS**: `certificateTileViewExternal.js:1199-1260` - `downloadSelected()` method
   - **Internal JS**: `certificate-tile-view-internal.js:1114-1173` - `handleDownloadSelected()` function
 
+### Certificate Preview/Snapshot ✅ COMPLETE (2026-01-13)
+- **Real-time PDF preview generation** during Create/Edit
+  - When PDF uploaded, loading spinner shows "Generating preview..."
+  - Thumbnail auto-generated from first page via AJAX call
+  - Preview displayed in sidebar before form submission
+  - **API Endpoint**: `POST /api/CertificatesApi/GenerateThumbnail`
+  - **Backend**: `CertificatesApiController.cs:407-520`
+  - **Frontend**: `certificate-create.js:204-320` (async handleFile)
+- **Details Page Preview**
+  - **Consistent 200x200 square container** for all previews (regardless of upload size)
+  - Only shows snapshot if valid generated thumbnail (path contains `_thumb_` or `uploads/images/`)
+  - Shows "Certificate Unavailable" placeholder if no valid snapshot exists
+  - **Click-to-zoom** functionality opens full-size image in modal
+  - Download button only shown if PDF file exists
+  - **View**: `Views/Certificate/Details.cshtml:177-223`
+- **Thumbnail Generation**
+  - Uses Docnet + ImageSharp libraries
+  - Renders first page at A4 dimensions (1240x1754 @ 150 DPI)
+  - Resizes to max 600px width
+  - Saves as PNG to `/uploads/images/`
+  - **Service**: `FileUploadService.cs:451-531` (GeneratePdfThumbnailAsync)
+
 ### Product ID Management ✅
 - Multiple ASINs per certificate (100s supported)
 - Product types: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN

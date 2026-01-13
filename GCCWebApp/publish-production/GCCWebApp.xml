@@ -126,7 +126,7 @@
         </member>
         <member name="M:GCCWebApp.Controllers.AccountController.TestAuth(System.String,System.String)">
             <summary>
-            DIAGNOSTIC: Test authentication flow - REMOVE IN PRODUCTION
+            DIAGNOSTIC: Test authentication flow - Development environment only
             </summary>
         </member>
         <member name="M:GCCWebApp.Controllers.Api.AmazonApiController.GetSettings">

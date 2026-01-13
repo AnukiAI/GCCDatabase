@@ -704,9 +704,10 @@ namespace GCCWebApp.Controllers
             {
                 new Claim(ClaimTypes.Name, email),
                 new Claim(ClaimTypes.Email, email),
+                new Claim(ClaimTypes.Role, role), // Standard role claim for [Authorize(Roles = "...")]
                 new Claim("Email", email),
                 new Claim("Name", email), // Using email as name for simplicity
-                new Claim("Role", role),
+                new Claim("Role", role), // Custom role claim for policies
                 new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
             };
 

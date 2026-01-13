@@ -1106,8 +1106,9 @@ html body.table-view-active #tableView {
     width: 100%;
     overflow-x: scroll !important; /* Force scrollbar to always show */
     overflow-y: visible;
-    margin-top: 20px;
+    margin-top: 10px;
     margin-bottom: 20px; /* Add space below for scrollbar */
+    margin-left: 0; /* Align with buttons above */
     border: 1px solid #ddd;
     border-radius: 8px;
     background: white;
@@ -1170,13 +1171,15 @@ html body.table-view-active #tableView {
     background: #f8f9fa !important;
 }
 
-/* Results controls alignment */
+/* Results controls alignment - explicit left alignment with table */
 .results-controls {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
     margin-bottom: 20px;
     padding: 10px 0;
+    padding-left: 0;
+    margin-left: 0;
     min-width: 0;
     gap: 20px;
 }
@@ -1187,6 +1190,8 @@ html body.table-view-active #tableView {
     flex-wrap: wrap;
     min-width: 0;
     flex: 1;
+    margin-left: 0;
+    padding-left: 0;
 }
 
 .export-options {
@@ -1195,6 +1200,13 @@ html body.table-view-active #tableView {
     flex-wrap: wrap;
     align-items: center;
     min-width: 0;
+    margin-left: 0;
+    padding-left: 0;
+}
+
+/* First button aligns with table left edge */
+.export-options > *:first-child {
+    margin-left: 0;
 }
 
 .export-options .btn {
@@ -1898,21 +1910,35 @@ body.table-view-active .main-content {
     margin-bottom: 8px;
     padding-top: 5px;
     padding-bottom: 0;
+    margin-left: 0;
+    padding-left: 0;
 }
 
 .main-content .results-controls {
     margin-bottom: 8px;
     margin-top: 0;
     padding: 0;
+    margin-left: 0;
+}
+
+/* Explicit left alignment for buttons and table */
+.main-content .left-controls,
+.main-content .export-options,
+.main-content .table-scroll-wrapper,
+.main-content #tableView {
+    margin-left: 0;
+    padding-left: 0;
 }
 
 #tableView {
     margin-top: 0;
     padding-top: 0;
+    margin-left: 0;
 }
 
 .certificates-grid {
     margin-top: 0;
+    margin-left: 0;
 }
 
 /* Loading indicator visibility */

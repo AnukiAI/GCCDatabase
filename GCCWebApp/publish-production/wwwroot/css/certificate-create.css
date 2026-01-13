@@ -78,7 +78,7 @@ body:has(.admin-container) .page-header {
 .form-header .text-muted,
 .admin-page-subtitle {
     color: #6c757d;
-    font-size: 14px;
+    font-size: 16px;
 }
 
 .form-content,
@@ -131,7 +131,7 @@ body:has(.admin-container) .page-header {
 
 .section-description {
     color: #6c757d;
-    font-size: 14px;
+    font-size: 16px;
     margin-top: -12px;
     margin-bottom: 20px;
     line-height: 1.5;
@@ -269,7 +269,7 @@ body:has(.admin-container) .page-header {
 
 .form-group .text-danger {
     color: #FF5252;
-    font-size: 14px;
+    font-size: 16px;
     margin-top: 8px;
 }
 
@@ -313,7 +313,7 @@ body:has(.admin-container) .page-header {
 
 .upload-section p {
     color: #6c757d;
-    font-size: 13px;
+    font-size: 14px;
     margin-bottom: 16px;
     line-height: 1.5;
 }
@@ -329,7 +329,7 @@ body:has(.admin-container) .page-header {
     align-items: center;
     justify-content: center;
     color: #002B76;
-    font-size: 14px;
+    font-size: 16px;
     background: rgba(0, 174, 239, 0.03);
     cursor: pointer;
     transition: all 0.3s ease;
@@ -406,7 +406,7 @@ body:has(.admin-container) .page-header {
 .tag {
     padding: 8px 12px;
     border-radius: 16px;
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 500;
     cursor: default;
     transition: all 0.3s ease;
@@ -530,7 +530,7 @@ body:has(.admin-container) .page-header {
 }
 
 #pdfPreviewContainer .preview-item .file-size {
-    font-size: 14px;
+    font-size: 16px;
     color: #6c757d;
 }
 
@@ -924,11 +924,13 @@ body:has(.admin-container) .page-header {
     font-weight: 500;
 }
 
-/* Add warning icon before error messages */
-.form-group .text-danger:not(:empty)::before,
-.form-group .field-validation-error:not(:empty)::before,
-.form-group .inline-validation-error::before {
-    content: '⚠ ';
+/* Required field asterisk styling - Red asterisk for required fields */
+.form-group label .text-danger,
+.form-group label span.text-danger {
+    color: #FF5252 !important;
+    font-weight: 600;
+    font-size: inherit;
+    margin-left: 2px;
 }
 
 /* Hide empty validation messages */

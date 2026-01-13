@@ -733,6 +733,52 @@ class ProductManagement {
                 }
             }
 
+            // Validate ProductType reference with fuzzy matching
+            if (row.data.productType && row.data.productType.trim()) {
+                const typeValidation = this.validateProductTypeReference(row.data.productType);
+
+                if (!typeValidation.valid) {
+                    // ProductType not found
+                    let errorMsg = typeValidation.message;
+                    if (typeValidation.suggestions && typeValidation.suggestions.length > 0) {
+                        errorMsg += `. Did you mean: ${typeValidation.suggestions.join(', ')}?`;
+                    }
+                    previewRow.errors.push(errorMsg);
+                    previewRow.status = 'error';
+                    previewRow.selected = false;
+                } else if (typeValidation.warning) {
+                    // Fuzzy match found - show warning but allow import
+                    previewRow.warnings = previewRow.warnings || [];
+                    previewRow.warnings.push(typeValidation.message);
+                    // Update to the matched value for import
+                    previewRow.data.resolvedProductType = typeValidation.productType.name;
+                    previewRow.data.resolvedProductTypeId = typeValidation.productType.id;
+                }
+            }
+
+            // Validate Category reference with fuzzy matching
+            if (row.data.category && row.data.category.trim()) {
+                const categoryValidation = this.validateCategoryReference(row.data.category);
+
+                if (!categoryValidation.valid) {
+                    // Category not found
+                    let errorMsg = categoryValidation.message;
+                    if (categoryValidation.suggestions && categoryValidation.suggestions.length > 0) {
+                        errorMsg += `. Did you mean: ${categoryValidation.suggestions.join(', ')}?`;
+                    }
+                    previewRow.errors.push(errorMsg);
+                    previewRow.status = 'error';
+                    previewRow.selected = false;
+                } else if (categoryValidation.warning) {
+                    // Fuzzy match found - show warning but allow import
+                    previewRow.warnings = previewRow.warnings || [];
+                    previewRow.warnings.push(categoryValidation.message);
+                    // Update to the matched value for import
+                    previewRow.data.resolvedCategory = categoryValidation.category.name;
+                    previewRow.data.resolvedCategoryId = categoryValidation.category.id;
+                }
+            }
+
             this.importPreviewData.push(previewRow);
         });
 
@@ -835,10 +881,38 @@ class ProductManagement {
                 changesSummary = `<div style="font-size: 10px; color: #666; margin-top: 4px;">${fieldNames.join(', ')} changed</div>`;
             }
 
-            // Error display
+            // Error display with clickable suggestions
             let errorDisplay = '';
             if (row.errors && row.errors.length > 0) {
-                errorDisplay = `<div style="color: #ff5252; font-size: 11px; margin-top: 4px; font-weight: 500;">${row.errors.join('<br>')}</div>`;
+                errorDisplay = '<div style="margin-top: 4px;">';
+                row.errors.forEach(error => {
+                    // Check if error has suggestions
+                    const suggestionMatch = error.match(/\. Did you mean: (.+)\?$/);
+                    if (suggestionMatch) {
+                        const baseError = error.replace(/\. Did you mean:.+$/, '');
+                        const suggestions = suggestionMatch[1].split(', ').map(s => s.trim());
+                        const field = this.detectFieldFromError(baseError);
+
+                        errorDisplay += `
+                            <div style="color: #ff5252; font-size: 11px; font-weight: 500; margin-bottom: 4px;">
+                                ${baseError}
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+                                <span style="font-size: 10px; color: #666;">Click to apply:</span>
+                                ${suggestions.map(s => `
+                                    <button type="button" class="suggestion-btn"
+                                            onclick="productManagement.applySuggestion(${index}, '${field}', '${s.replace(/'/g, "\\'")}')"
+                                            style="padding: 2px 8px; font-size: 11px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 12px; cursor: pointer; color: #1976d2; font-weight: 500;">
+                                        ${s}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        `;
+                    } else {
+                        errorDisplay += `<div style="color: #ff5252; font-size: 11px; font-weight: 500;">${error}</div>`;
+                    }
+                });
+                errorDisplay += '</div>';
             }
 
             // Warning display (for fuzzy matches)
@@ -1047,6 +1121,339 @@ class ProductManagement {
         }
         this.importPreviewData = [];
         this.importFileName = '';
+    }
+
+    // ============================================
+    // Auto-Suggest Click-to-Apply Functions
+    // ============================================
+
+    /**
+     * Detect which field an error message is about
+     */
+    detectFieldFromError(errorMessage) {
+        const msg = errorMessage.toLowerCase();
+        if (msg.includes('company')) return 'company';
+        if (msg.includes('producttype') || msg.includes('product type')) return 'productType';
+        if (msg.includes('category')) return 'category';
+        return 'unknown';
+    }
+
+    /**
+     * Apply a suggested value to a specific field in a preview row
+     */
+    applySuggestion(rowIndex, field, suggestedValue) {
+        if (rowIndex < 0 || rowIndex >= this.importPreviewData.length) {
+            console.error('Invalid row index for suggestion:', rowIndex);
+            return;
+        }
+
+        const row = this.importPreviewData[rowIndex];
+
+        // Update the field value
+        row.data[field] = suggestedValue;
+
+        // Clear errors related to this field
+        row.errors = row.errors.filter(e => {
+            const errorField = this.detectFieldFromError(e);
+            return errorField !== field && errorField !== 'unknown';
+        });
+
+        // Re-validate the specific field
+        if (field === 'company') {
+            const validation = this.validateCompanyReference(suggestedValue);
+            if (validation.valid) {
+                row.data.resolvedCompany = validation.company.name;
+                if (validation.warning) {
+                    row.warnings = row.warnings || [];
+                    if (!row.warnings.some(w => w.includes(suggestedValue))) {
+                        row.warnings.push(validation.message);
+                    }
+                }
+            }
+        } else if (field === 'productType') {
+            const validation = this.validateProductTypeReference(suggestedValue);
+            if (validation.valid) {
+                row.data.resolvedProductType = validation.productType.name;
+                row.data.resolvedProductTypeId = validation.productType.id;
+                if (validation.warning) {
+                    row.warnings = row.warnings || [];
+                    if (!row.warnings.some(w => w.includes(suggestedValue))) {
+                        row.warnings.push(validation.message);
+                    }
+                }
+            }
+        } else if (field === 'category') {
+            const validation = this.validateCategoryReference(suggestedValue);
+            if (validation.valid) {
+                row.data.resolvedCategory = validation.category.name;
+                row.data.resolvedCategoryId = validation.category.id;
+                if (validation.warning) {
+                    row.warnings = row.warnings || [];
+                    if (!row.warnings.some(w => w.includes(suggestedValue))) {
+                        row.warnings.push(validation.message);
+                    }
+                }
+            }
+        }
+
+        // Update row status if no more errors
+        if (row.errors.length === 0) {
+            row.status = row.existingData ? 'modified' : 'new';
+            row.action = row.existingData ? 'update' : 'create';
+            row.selected = true;
+        }
+
+        // Re-render the preview table
+        this.refreshPreviewTable();
+
+        // Show notification
+        if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+            AdminCore.showNotification(`Applied "${suggestedValue}" for ${field}`, 'success');
+        } else {
+            this.showToast(`Applied "${suggestedValue}" for ${field}`, 'success');
+        }
+    }
+
+    /**
+     * Apply all available suggestions at once
+     */
+    applyAllSuggestions() {
+        let appliedCount = 0;
+
+        this.importPreviewData.forEach((row, index) => {
+            if (row.errors && row.errors.length > 0) {
+                row.errors.forEach(error => {
+                    const suggestionMatch = error.match(/\. Did you mean: (.+)\?$/);
+                    if (suggestionMatch) {
+                        const suggestions = suggestionMatch[1].split(', ').map(s => s.trim());
+                        if (suggestions.length > 0) {
+                            const baseError = error.replace(/\. Did you mean:.+$/, '');
+                            const field = this.detectFieldFromError(baseError);
+                            // Apply the first (best) suggestion
+                            this.applySuggestionSilent(index, field, suggestions[0]);
+                            appliedCount++;
+                        }
+                    }
+                });
+            }
+        });
+
+        // Re-render after all suggestions applied
+        this.refreshPreviewTable();
+
+        // Show notification
+        if (appliedCount > 0) {
+            if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+                AdminCore.showNotification(`Applied ${appliedCount} suggestion(s)`, 'success');
+            } else {
+                this.showToast(`Applied ${appliedCount} suggestion(s)`, 'success');
+            }
+        } else {
+            if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+                AdminCore.showNotification('No suggestions to apply', 'info');
+            } else {
+                this.showToast('No suggestions to apply', 'info');
+            }
+        }
+    }
+
+    /**
+     * Apply suggestion without showing notification (for bulk apply)
+     */
+    applySuggestionSilent(rowIndex, field, suggestedValue) {
+        if (rowIndex < 0 || rowIndex >= this.importPreviewData.length) return;
+
+        const row = this.importPreviewData[rowIndex];
+        row.data[field] = suggestedValue;
+
+        // Clear errors related to this field
+        row.errors = row.errors.filter(e => {
+            const errorField = this.detectFieldFromError(e);
+            return errorField !== field && errorField !== 'unknown';
+        });
+
+        // Re-validate and update resolved values
+        if (field === 'company') {
+            const validation = this.validateCompanyReference(suggestedValue);
+            if (validation.valid) {
+                row.data.resolvedCompany = validation.company.name;
+            }
+        } else if (field === 'productType') {
+            const validation = this.validateProductTypeReference(suggestedValue);
+            if (validation.valid) {
+                row.data.resolvedProductType = validation.productType.name;
+                row.data.resolvedProductTypeId = validation.productType.id;
+            }
+        } else if (field === 'category') {
+            const validation = this.validateCategoryReference(suggestedValue);
+            if (validation.valid) {
+                row.data.resolvedCategory = validation.category.name;
+                row.data.resolvedCategoryId = validation.category.id;
+            }
+        }
+
+        // Update row status if no more errors
+        if (row.errors.length === 0) {
+            row.status = row.existingData ? 'modified' : 'new';
+            row.action = row.existingData ? 'update' : 'create';
+            row.selected = true;
+        }
+    }
+
+    /**
+     * Re-render the preview table without closing the modal
+     */
+    refreshPreviewTable() {
+        const tbody = document.getElementById('import-preview-tbody');
+        if (!tbody) return;
+
+        // Re-render all rows by calling showImportPreviewModal logic
+        // but just for the table body
+        const statusLabels = {
+            'new': '<span style="background: #92C83E; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">New</span>',
+            'modified': '<span style="background: #002B76; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">Modified</span>',
+            'unchanged': '<span style="background: #9e9e9e; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">Unchanged</span>',
+            'error': '<span style="background: #ff5252; color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;">Error</span>'
+        };
+
+        tbody.innerHTML = '';
+
+        this.importPreviewData.forEach((row, index) => {
+            const tr = document.createElement('tr');
+            tr.className = `import-row import-row-${row.status}`;
+            tr.dataset.index = index;
+
+            if (row.status === 'error') {
+                tr.style.backgroundColor = '#ffebee';
+            } else if (row.status === 'modified') {
+                tr.style.backgroundColor = '#e8f5e9';
+            }
+
+            let changesSummary = '';
+            if (row.status === 'modified' && row.changes && row.changes.length > 0) {
+                const fieldNames = row.changes.map(c => {
+                    if (c.field === 'productType') return 'Type';
+                    if (c.field === 'description') return 'Description';
+                    if (c.field === 'company') return 'Company';
+                    if (c.field === 'status') return 'Status';
+                    return c.field;
+                });
+                changesSummary = `<div style="font-size: 10px; color: #666; margin-top: 4px;">${fieldNames.join(', ')} changed</div>`;
+            }
+
+            // Error display with clickable suggestions
+            let errorDisplay = '';
+            if (row.errors && row.errors.length > 0) {
+                errorDisplay = '<div style="margin-top: 4px;">';
+                row.errors.forEach(error => {
+                    const suggestionMatch = error.match(/\. Did you mean: (.+)\?$/);
+                    if (suggestionMatch) {
+                        const baseError = error.replace(/\. Did you mean:.+$/, '');
+                        const suggestions = suggestionMatch[1].split(', ').map(s => s.trim());
+                        const field = this.detectFieldFromError(baseError);
+
+                        errorDisplay += `
+                            <div style="color: #ff5252; font-size: 11px; font-weight: 500; margin-bottom: 4px;">
+                                ${baseError}
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 4px; align-items: center;">
+                                <span style="font-size: 10px; color: #666;">Click to apply:</span>
+                                ${suggestions.map(s => `
+                                    <button type="button" class="suggestion-btn"
+                                            onclick="productManagement.applySuggestion(${index}, '${field}', '${s.replace(/'/g, "\\'")}')"
+                                            style="padding: 2px 8px; font-size: 11px; background: #e3f2fd; border: 1px solid #2196f3; border-radius: 12px; cursor: pointer; color: #1976d2; font-weight: 500;">
+                                        ${s}
+                                    </button>
+                                `).join('')}
+                            </div>
+                        `;
+                    } else {
+                        errorDisplay += `<div style="color: #ff5252; font-size: 11px; font-weight: 500;">${error}</div>`;
+                    }
+                });
+                errorDisplay += '</div>';
+            }
+
+            let warningDisplay = '';
+            if (row.warnings && row.warnings.length > 0) {
+                warningDisplay = `<div style="color: #ff9800; font-size: 11px; margin-top: 4px; font-weight: 500;"><i class="fas fa-exclamation-triangle"></i> ${row.warnings.join('<br>')}</div>`;
+            }
+
+            tr.innerHTML = `
+                <td style="text-align: center; vertical-align: top;">
+                    <input type="checkbox" class="import-row-checkbox" data-index="${index}" ${row.selected ? 'checked' : ''} ${row.status === 'error' || row.status === 'unchanged' ? 'disabled' : ''}>
+                </td>
+                <td style="text-align: center; vertical-align: top;">${row.rowNumber}</td>
+                <td style="vertical-align: top;">${statusLabels[row.status]}${changesSummary}</td>
+                <td style="vertical-align: top;">${this.renderFieldWithDiff(row, 'name')}</td>
+                <td style="vertical-align: top;">${this.renderFieldWithDiff(row, 'description')}${errorDisplay}${warningDisplay}</td>
+                <td style="vertical-align: top;">${this.renderActionDropdown(row, index)}</td>
+            `;
+
+            tbody.appendChild(tr);
+        });
+
+        // Re-bind checkbox events
+        tbody.querySelectorAll('.import-row-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', (e) => {
+                this.updateImportRowSelection(parseInt(e.target.dataset.index), e.target.checked);
+            });
+        });
+
+        // Re-bind action dropdown events
+        tbody.querySelectorAll('.import-action-select').forEach(select => {
+            select.addEventListener('change', (e) => {
+                this.updateImportRowAction(parseInt(e.target.dataset.index), e.target.value);
+            });
+        });
+
+        // Update stats
+        const stats = {
+            total: this.importPreviewData.length,
+            new: this.importPreviewData.filter(r => r.status === 'new').length,
+            modified: this.importPreviewData.filter(r => r.status === 'modified').length,
+            unchanged: this.importPreviewData.filter(r => r.status === 'unchanged').length,
+            errors: this.importPreviewData.filter(r => r.status === 'error').length
+        };
+
+        document.getElementById('import-stat-new').textContent = stats.new;
+        document.getElementById('import-stat-modified').textContent = stats.modified;
+        document.getElementById('import-stat-unchanged').textContent = stats.unchanged;
+        document.getElementById('import-stat-errors').textContent = stats.errors;
+
+        this.updateSelectedCount();
+
+        // Update Apply All Suggestions button visibility
+        this.updateApplyAllSuggestionsButton();
+    }
+
+    /**
+     * Update the Apply All Suggestions button based on available suggestions
+     */
+    updateApplyAllSuggestionsButton() {
+        const rowsWithSuggestions = this.importPreviewData.filter(r =>
+            r.errors && r.errors.some(e => e.includes('Did you mean'))
+        );
+
+        let btn = document.getElementById('apply-all-suggestions-btn');
+        const summaryDiv = document.getElementById('import-summary');
+
+        if (rowsWithSuggestions.length > 0) {
+            if (!btn && summaryDiv) {
+                btn = document.createElement('button');
+                btn.id = 'apply-all-suggestions-btn';
+                btn.type = 'button';
+                btn.innerHTML = `<i class="fas fa-magic"></i> Apply All Suggestions (${rowsWithSuggestions.length})`;
+                btn.style.cssText = 'margin-left: 12px; padding: 6px 12px; font-size: 12px; background: #4caf50; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;';
+                btn.onclick = () => this.applyAllSuggestions();
+                summaryDiv.appendChild(btn);
+            } else if (btn) {
+                btn.innerHTML = `<i class="fas fa-magic"></i> Apply All Suggestions (${rowsWithSuggestions.length})`;
+                btn.style.display = 'inline-block';
+            }
+        } else if (btn) {
+            btn.style.display = 'none';
+        }
     }
 
     async applySelectedImport() {
@@ -1387,6 +1794,226 @@ class ProductManagement {
             .map(c => c.name);
     }
 
+    // ============================================
+    // ProductType Fuzzy Matching Functions
+    // ============================================
+
+    /**
+     * Normalize ProductType name for comparison
+     * Removes common suffixes like "type", "category", "products", etc.
+     */
+    normalizeProductTypeName(name) {
+        if (!name) return '';
+        return name
+            .toLowerCase()
+            .replace(/[.,\-_'"]/g, ' ')
+            .replace(/\b(type|types|category|categories|products?|materials?|items?|goods?)\b/gi, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    /**
+     * Find matching ProductType with 3-tier matching strategy
+     * Tier 1: Exact match (case-insensitive)
+     * Tier 2: Normalized match (without suffixes)
+     * Tier 3: Fuzzy match (similarity >= 0.8)
+     */
+    findMatchingProductType(inputName) {
+        if (!inputName || !inputName.trim()) {
+            return { match: null, confidence: null, originalValue: inputName };
+        }
+
+        const availableTypes = window.productTypes || this.productTypes || [];
+        const inputLower = inputName.trim().toLowerCase();
+        const inputNormalized = this.normalizeProductTypeName(inputName);
+
+        // Tier 1: Exact match (case-insensitive)
+        let match = availableTypes.find(t => t.name && t.name.toLowerCase() === inputLower);
+        if (match) {
+            return { match, confidence: 'exact', originalValue: inputName };
+        }
+
+        // Tier 2: Normalized match
+        match = availableTypes.find(t => t.name && this.normalizeProductTypeName(t.name) === inputNormalized);
+        if (match) {
+            return { match, confidence: 'normalized', originalValue: inputName };
+        }
+
+        // Tier 3: Fuzzy match (similarity >= 0.8)
+        const fuzzyMatches = availableTypes
+            .filter(t => t.name)
+            .map(t => ({
+                type: t,
+                similarity: this.calculateSimilarity(inputNormalized, this.normalizeProductTypeName(t.name))
+            }))
+            .filter(t => t.similarity >= 0.8)
+            .sort((a, b) => b.similarity - a.similarity);
+
+        if (fuzzyMatches.length > 0) {
+            return { match: fuzzyMatches[0].type, confidence: 'fuzzy', originalValue: inputName };
+        }
+
+        return { match: null, confidence: null, originalValue: inputName };
+    }
+
+    /**
+     * Get similar ProductType names for suggestions
+     * Returns top 3 matches with similarity > 0.3
+     */
+    getSimilarProductTypes(inputName) {
+        if (!inputName) return [];
+
+        const availableTypes = window.productTypes || this.productTypes || [];
+        const inputNormalized = this.normalizeProductTypeName(inputName);
+
+        return availableTypes
+            .filter(t => t.name)
+            .map(t => ({
+                id: t.id,
+                name: t.name,
+                similarity: this.calculateSimilarity(inputNormalized, this.normalizeProductTypeName(t.name))
+            }))
+            .filter(t => t.similarity > 0.3)
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, 3);
+    }
+
+    /**
+     * Validate ProductType reference with fuzzy matching
+     * Returns validation result with suggestions if not found
+     */
+    validateProductTypeReference(productTypeName) {
+        const result = this.findMatchingProductType(productTypeName);
+
+        if (result.match) {
+            if (result.confidence === 'exact') {
+                return { valid: true, productType: result.match, message: null };
+            }
+            // Normalized or fuzzy match - valid but show warning
+            return {
+                valid: true,
+                productType: result.match,
+                message: `ProductType "${result.originalValue}" matched to "${result.match.name}" (${result.confidence} match)`,
+                warning: true
+            };
+        }
+
+        // Not found - return suggestions
+        const suggestions = this.getSimilarProductTypes(productTypeName);
+        return {
+            valid: false,
+            productType: null,
+            message: `ProductType "${productTypeName}" not found in system`,
+            suggestions: suggestions.map(s => s.name)
+        };
+    }
+
+    // ============================================
+    // Category Fuzzy Matching Functions
+    // ============================================
+
+    /**
+     * Normalize Category name for comparison
+     */
+    normalizeCategoryName(name) {
+        if (!name) return '';
+        return name
+            .toLowerCase()
+            .replace(/[.,\-_'"]/g, ' ')
+            .replace(/\b(category|categories|type|types|group|groups)\b/gi, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    /**
+     * Find matching Category with 3-tier matching strategy
+     */
+    findMatchingCategory(inputName) {
+        if (!inputName || !inputName.trim()) {
+            return { match: null, confidence: null, originalValue: inputName };
+        }
+
+        const availableCategories = window.categories || this.categories || [];
+        const inputLower = inputName.trim().toLowerCase();
+        const inputNormalized = this.normalizeCategoryName(inputName);
+
+        // Tier 1: Exact match
+        let match = availableCategories.find(c => c.name && c.name.toLowerCase() === inputLower);
+        if (match) {
+            return { match, confidence: 'exact', originalValue: inputName };
+        }
+
+        // Tier 2: Normalized match
+        match = availableCategories.find(c => c.name && this.normalizeCategoryName(c.name) === inputNormalized);
+        if (match) {
+            return { match, confidence: 'normalized', originalValue: inputName };
+        }
+
+        // Tier 3: Fuzzy match (similarity >= 0.8)
+        const fuzzyMatches = availableCategories
+            .filter(c => c.name)
+            .map(c => ({
+                category: c,
+                similarity: this.calculateSimilarity(inputNormalized, this.normalizeCategoryName(c.name))
+            }))
+            .filter(c => c.similarity >= 0.8)
+            .sort((a, b) => b.similarity - a.similarity);
+
+        if (fuzzyMatches.length > 0) {
+            return { match: fuzzyMatches[0].category, confidence: 'fuzzy', originalValue: inputName };
+        }
+
+        return { match: null, confidence: null, originalValue: inputName };
+    }
+
+    /**
+     * Get similar Category names for suggestions
+     */
+    getSimilarCategories(inputName) {
+        if (!inputName) return [];
+
+        const availableCategories = window.categories || this.categories || [];
+        const inputNormalized = this.normalizeCategoryName(inputName);
+
+        return availableCategories
+            .filter(c => c.name)
+            .map(c => ({
+                id: c.id,
+                name: c.name,
+                similarity: this.calculateSimilarity(inputNormalized, this.normalizeCategoryName(c.name))
+            }))
+            .filter(c => c.similarity > 0.3)
+            .sort((a, b) => b.similarity - a.similarity)
+            .slice(0, 3);
+    }
+
+    /**
+     * Validate Category reference with fuzzy matching
+     */
+    validateCategoryReference(categoryName) {
+        const result = this.findMatchingCategory(categoryName);
+
+        if (result.match) {
+            if (result.confidence === 'exact') {
+                return { valid: true, category: result.match, message: null };
+            }
+            return {
+                valid: true,
+                category: result.match,
+                message: `Category "${result.originalValue}" matched to "${result.match.name}" (${result.confidence} match)`,
+                warning: true
+            };
+        }
+
+        const suggestions = this.getSimilarCategories(categoryName);
+        return {
+            valid: false,
+            category: null,
+            message: `Category "${categoryName}" not found in system`,
+            suggestions: suggestions.map(s => s.name)
+        };
+    }
+
     async exportProducts() {
         if (this.filteredProducts.length === 0) {
             this.showToast('No products to export', 'warning');
@@ -1501,6 +2128,144 @@ class ProductManagement {
             console.error('Error copying identifiers:', error);
             this.showToast('Error copying identifiers. Please try again.', 'error');
         }
+    }
+
+    // ============================================
+    // Import Order Enforcement Functions
+    // ============================================
+
+    /**
+     * Check if prerequisite data exists before allowing import
+     * Returns array of issues if prerequisites are missing
+     */
+    checkImportPrerequisites() {
+        const issues = [];
+
+        // Check if companies exist
+        const companies = window.companies || this.companies || [];
+        if (companies.length === 0) {
+            issues.push({
+                entity: 'Companies',
+                message: 'No companies exist in the system. Products must be associated with a company.',
+                importUrl: '/Company',
+                importLabel: 'Go to Company Management'
+            });
+        }
+
+        // Check if product types exist
+        const productTypes = window.productTypes || this.productTypes || [];
+        if (productTypes.length === 0) {
+            issues.push({
+                entity: 'Product Types',
+                message: 'No product types exist in the system. Products should have a type classification.',
+                importUrl: '/Admin/ProductTypes',
+                importLabel: 'Configure Product Types'
+            });
+        }
+
+        return issues;
+    }
+
+    /**
+     * Handle import button click - check prerequisites before showing file picker
+     */
+    handleImportClick() {
+        // Check prerequisites BEFORE showing file picker
+        const issues = this.checkImportPrerequisites();
+
+        if (issues.length > 0) {
+            this.showPrerequisiteModal(issues);
+            return; // Don't show file picker
+        }
+
+        // Proceed with normal file picker
+        const fileInput = document.getElementById('import-file-input');
+        if (fileInput) {
+            fileInput.click();
+        } else {
+            this.showToast('Import file input not found', 'error');
+        }
+    }
+
+    /**
+     * Show modal explaining missing prerequisites and how to fix them
+     */
+    showPrerequisiteModal(issues) {
+        // Remove any existing modal
+        const existingModal = document.getElementById('prerequisite-modal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
+        const modalHtml = `
+            <div id="prerequisite-modal" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9997;">
+                <!-- Backdrop -->
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 9998; backdrop-filter: blur(3px);"></div>
+
+                <!-- Modal Container -->
+                <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; background: white; border-radius: 8px; padding: 0; max-width: 550px; width: 90%; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+
+                    <!-- Header -->
+                    <div style="padding: 16px 20px; background: #f8f9fa; border-bottom: 2px solid #e9ecef; border-radius: 8px 8px 0 0;">
+                        <h3 style="margin: 0; color: #d32f2f; font-size: 18px; display: flex; align-items: center; gap: 10px;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Cannot Import Products
+                        </h3>
+                    </div>
+
+                    <!-- Body -->
+                    <div style="padding: 20px;">
+                        <p style="margin: 0 0 16px 0; color: #666; font-size: 14px;">
+                            Products reference other entities that must exist first. Please set up the following before importing products:
+                        </p>
+
+                        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; overflow: hidden;">
+                            ${issues.map((issue, idx) => `
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; ${idx > 0 ? 'border-top: 1px solid #ffeeba;' : ''}">
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600; color: #856404; font-size: 14px;">
+                                            <i class="fas fa-exclamation-circle" style="margin-right: 6px;"></i>
+                                            ${issue.entity}
+                                        </div>
+                                        <div style="font-size: 12px; color: #856404; margin-top: 4px;">${issue.message}</div>
+                                    </div>
+                                    <a href="${issue.importUrl}"
+                                       style="margin-left: 12px; padding: 6px 12px; font-size: 12px; background: #ffc107; color: #856404; border: none; border-radius: 4px; text-decoration: none; font-weight: 600; white-space: nowrap;">
+                                        ${issue.importLabel}
+                                    </a>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        <div style="margin-top: 16px; padding: 12px; background: #e3f2fd; border-radius: 6px; border: 1px solid #2196f3;">
+                            <div style="font-size: 13px; color: #1565c0;">
+                                <i class="fas fa-info-circle" style="margin-right: 6px;"></i>
+                                <strong>Recommended Import Order:</strong>
+                            </div>
+                            <div style="font-size: 12px; color: #1976d2; margin-top: 8px; padding-left: 22px;">
+                                1. <strong>Companies</strong> (required) → 2. <strong>Product Types</strong> (recommended) → 3. <strong>Products</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="padding: 12px 20px; background: #f8f9fa; border-top: 2px solid #e9ecef; border-radius: 0 0 8px 8px; display: flex; justify-content: flex-end; gap: 12px;">
+                        <button type="button"
+                                onclick="document.getElementById('prerequisite-modal').remove()"
+                                style="padding: 8px 20px; font-size: 14px; background: #6c757d; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+                            Cancel
+                        </button>
+                        <button type="button"
+                                onclick="document.getElementById('prerequisite-modal').remove(); document.getElementById('import-file-input').click();"
+                                style="padding: 8px 20px; font-size: 14px; background: #ff9800; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+                            Import Anyway
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
     }
 }
 

@@ -2604,7 +2604,7 @@ body.theme-option4 .certificate-location {
 /* Option 4 Action Icons */
 body.theme-option4 .card-actions {
     position: absolute;
-    bottom: 15px;
+    bottom: 5px;
     right: 15px;
     display: flex;
     gap: 8px;
@@ -5252,13 +5252,13 @@ input[type="checkbox"] {
     }
 
 /* Column-specific styles */
+/* NOTE: Width styles moved to certificatetileview.css
+   Grid column widths are defined via grid-template-columns in view-specific inline styles */
 .select-column, .select-cell {
-    width: 40px;
     text-align: center;
 }
 
 .actions-column, .actions-cell {
-    width: 80px;
     text-align: center;
 }
 
@@ -5755,73 +5755,8 @@ input[type="checkbox"] {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Updated Grid Layout - matches your exact columns */
-.table-grid {
-    display: grid;
-    grid-template-columns: 40px /* Select checkbox */
-    140px /* Actions - increased width for button layout */
-    120px /* Certificate # */
-    180px /* Certification Type */
-    150px /* CSF Attributes */
-    80px /* Status */
-    110px /* Effective Date */
-    110px /* Expiration Date */
-    200px /* Company */
-    200px /* Company Contact Email/URL */
-    180px /* Product Name */
-    150px /* Product Category */
-    150px /* Product Type */
-    170px /* Product Type Subcategory */
-    120px /* Location */
-    100px /* Country */
-    120px /* External Tag */
-    120px /* Internal Tag */
-    100px /* ASIN */
-    100px /* UPC */
-    100px /* GTIN */
-    100px; /* EAN */
-    min-width: 2590px;
-    overflow-x: auto;
-}
-
-/* Header Styles */
-.grid-header {
-    display: contents;
-}
-
-.grid-header-cell {
-    background: #f8f9fa;
-    padding: 12px 8px;
-    font-weight: 600;
-    font-size: 16px;
-    color: #333;
-    border-bottom: 2px solid #dee2e6;
-    border-right: 1px solid #eee;
-    position: sticky;
-    top: 0;
-    z-index: 10;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-}
-
-    .grid-header-cell:hover {
-        background: #e9ecef;
-    }
-
-    .grid-header-cell:last-child {
-        border-right: none;
-    }
-
-    /* Actions column specific styling */
-    .grid-header-cell.actions-column {
-        background: #f8f9fa !important;
-        min-width: 140px !important;
-        width: 140px !important;
-        justify-content: center;
-    }
+/* NOTE: Table grid styles moved to certificatetileview.css
+   View-specific grid-template-columns defined in each view's inline styles */
 
 /* Sort indicators - using FontAwesome like your original */
 .sort-indicator {
@@ -5891,7 +5826,7 @@ input[type="checkbox"] {
     .grid-cell.actions-cell {
         justify-content: center;
         gap: 4px;
-        min-width: 140px;
+        /* min-width removed - controlled by grid-template-columns */
     }
 
     .grid-cell.cert-number {
@@ -6050,10 +5985,7 @@ input[type="checkbox"] {
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
-    .table-grid {
-        grid-template-columns: 40px 80px 100px 140px 120px 70px 90px 90px 150px 140px;
-        min-width: 1200px;
-    }
+    /* Table grid column widths defined in view-specific inline styles */
 
     .grid-header-cell,
     .grid-cell {

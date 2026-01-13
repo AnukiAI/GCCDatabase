@@ -38,11 +38,16 @@
         </div>
     </header>
 
-    @if (TempData["SuccessMessage"] != null)
+    @* Success message will be shown as toast notification via JavaScript *@
+    @if (TempData["SuccessMessage"] is string successMsg)
     {
-        <div class="alert alert-success" data-success-message="@TempData["SuccessMessage"]" style="margin-bottom: 24px;">
-            @TempData["SuccessMessage"]
-        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+                    AdminCore.showNotification('@Html.Raw(successMsg.Replace("'", "\\'"))', 'success');
+                }
+            });
+        </script>
     }
 
     <div class="admin-content">

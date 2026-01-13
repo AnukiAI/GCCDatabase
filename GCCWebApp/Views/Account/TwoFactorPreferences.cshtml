@@ -404,25 +404,27 @@
         </h1>
     </div>
 
-    <!-- Alerts -->
-    @if (TempData["SuccessMessage"] != null)
+    @* Success/Error messages will be shown as toast notifications via JavaScript *@
+    @if (TempData["SuccessMessage"] is string successMsg)
     {
-        <div class="alert alert-success alert-dismissible">
-            <i class="fas fa-check-circle" style="margin-right: 8px;"></i>
-            @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" 
-                    title="Close alert" aria-label="Close success message"></button>
-        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+                    AdminCore.showNotification('@Html.Raw(successMsg.Replace("'", "\\'"))', 'success');
+                }
+            });
+        </script>
     }
 
-    @if (TempData["ErrorMessage"] != null)
+    @if (TempData["ErrorMessage"] is string errorMsg)
     {
-        <div class="alert alert-danger alert-dismissible">
-            <i class="fas fa-exclamation-triangle" style="margin-right: 8px;"></i>
-            @TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" 
-                    title="Close alert" aria-label="Close error message"></button>
-        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+                    AdminCore.showNotification('@Html.Raw(errorMsg.Replace("'", "\\'"))', 'error');
+                }
+            });
+        </script>
     }
 
     <!-- Current Status Section -->

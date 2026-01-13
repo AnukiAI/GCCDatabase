@@ -449,7 +449,7 @@ html body.table-view-active #tableView {
 
 /* Card Body - Ensure consistent spacing */
 .card-body {
-    padding: 15px;
+    padding: 12px;
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -460,9 +460,9 @@ html body.table-view-active #tableView {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding: 16px 18px;
-    border-top: 1px solid var(--border-color);
-    background-color: rgba(0, 0, 0, 0.02);
+    padding: 15px 12px 10px 12px;
+    border-top: none;
+    background-color: transparent;
     margin-top: auto;
 }
 
@@ -511,7 +511,7 @@ html body.table-view-active #tableView {
 .card-header {
     background-color: var(--blue-dark);
     color: var(--white);
-    padding: 12px 15px;
+    padding: 10px 12px;
     font-size: 16px;
     font-weight: 500;
     text-transform: uppercase;
@@ -584,7 +584,8 @@ html body.table-view-active #tableView {
 }
 
 .certification-period {
-    margin: 15px 0;
+    margin: 10px 0 0 0;
+    padding-bottom: 0;
     font-size: 16px;
 }
 
@@ -597,9 +598,9 @@ html body.table-view-active #tableView {
 .certificate-location {
     font-size: 16px;
     color: #666;
-    margin-top: 15px;
-    margin-bottom: 8px;
-    padding-top: 10px;
+    margin-top: 10px;
+    margin-bottom: 12px;
+    padding-top: 6px;
     display: flex;
     align-items: flex-start;
     gap: 8px;
@@ -615,9 +616,9 @@ html body.table-view-active #tableView {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    padding: 12px 15px;
-    border-top: 1px solid var(--border-color);
-    background-color: rgba(0, 0, 0, 0.02);
+    padding: 15px 12px 10px 12px;
+    border-top: none;
+    background-color: transparent;
 }
 
 .action-button {

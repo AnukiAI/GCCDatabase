@@ -2604,7 +2604,7 @@ body.theme-option4 .certificate-location {
 /* Option 4 Action Icons */
 body.theme-option4 .card-actions {
     position: absolute;
-    bottom: 15px;
+    bottom: 5px;
     right: 15px;
     display: flex;
     gap: 8px;

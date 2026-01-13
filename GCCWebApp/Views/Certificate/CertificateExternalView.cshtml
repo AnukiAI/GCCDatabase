@@ -223,6 +223,25 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Edit/Delete Actions at end of card-body, right-aligned -->
+            @if (Model.CanEdit || Model.CanDelete)
+            {
+                <div class="certificate-internal-actions" style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px; padding: 15px 0;">
+                    @if (Model.CanEdit)
+                    {
+                        <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@GetFormattedCertificateNumber()')">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                    }
+                    @if (Model.CanDelete)
+                    {
+                        <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@certificateId')">
+                            <i class="fas fa-trash"></i>
+                        </div>
+                    }
+                </div>
+            }
         </div>
     </div>
 </div>
@@ -278,4 +297,43 @@
             closeImageZoom();
         }
     });
+
+    // Edit certificate function
+    window.editCertificate = function(certificateNumber) {
+        if (!certificateNumber) {
+            console.error('Certificate number is missing');
+            return;
+        }
+        window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
+    };
+
+    // Delete certificate function
+    window.deleteCertificate = function(certificateId) {
+        if (!certificateId) {
+            console.error('Certificate ID is missing');
+            return;
+        }
+
+        if (confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
+            fetch(`/Certificate/Delete/${certificateId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert('Certificate deleted successfully');
+                    window.location.href = '/Certificate/CertificateTileViewExternal';
+                } else {
+                    alert('Failed to delete certificate');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting certificate:', error);
+                alert('An error occurred while deleting the certificate');
+            });
+        }
+    };
 </script>

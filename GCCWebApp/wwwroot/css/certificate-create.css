@@ -924,11 +924,13 @@ body:has(.admin-container) .page-header {
     font-weight: 500;
 }
 
-/* Add warning icon before error messages */
-.form-group .text-danger:not(:empty)::before,
-.form-group .field-validation-error:not(:empty)::before,
-.form-group .inline-validation-error::before {
-    content: '⚠ ';
+/* Required field asterisk styling - Red asterisk for required fields */
+.form-group label .text-danger,
+.form-group label span.text-danger {
+    color: #FF5252 !important;
+    font-weight: 600;
+    font-size: inherit;
+    margin-left: 2px;
 }
 
 /* Hide empty validation messages */

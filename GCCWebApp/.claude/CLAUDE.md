@@ -143,14 +143,15 @@ AzureAdB2C__ClientId=[client-id]
   - 52px minimum row height for comfortable reading
   - Smooth hover effects (0.2s transition) with proper color contrast
   - CSS: `wwwroot/css/certificatetileview.css` (unified styling)
-- **BULK DOWNLOAD AS ZIP** ⚠️ REQUIRED
-  - **PRIORITY: HIGH** - Download multiple certificates as single ZIP
+- **BULK DOWNLOAD AS ZIP** ✅ COMPLETE
+  - Download multiple certificates as single ZIP archive
   - Applies to External & Internal views
-  - "Download Selected" button creates ZIP archive of PDFs
+  - "Download Selected" button creates ZIP archive of selected PDFs
   - ZIP naming: `certificates_YYYY-MM-DD_HHmmss.zip`
-  - Shows progress modal, provides feedback
-  - Backend: `/Certificate/DownloadSelectedZip` using `System.IO.Compression.ZipArchive`
-  - Frontend: Update `certificateTileViewExternal.js:1125`, `certificate-tile-view-internal.js`
+  - Shows notification during download, success message on completion
+  - **Backend**: `/Certificate/DownloadSelectedZip` (CertificateController.cs:1395-1517)
+  - **External JS**: `certificateTileViewExternal.js:1199-1260` - `downloadSelected()` method
+  - **Internal JS**: `certificate-tile-view-internal.js:1114-1173` - `handleDownloadSelected()` function
 
 ### Product ID Management ✅
 - Multiple ASINs per certificate (100s supported)
@@ -776,7 +777,6 @@ pwsh playwright.ps1 install
 - Ask followup questions for clarity and focus on the issue
 - Review requirements and current design, determine exact change, include what changes will be made for quality check
 - Always clean rebuild and run after improvements. If build fails, kill process and resolve errors/warnings
-- Download Selected on External/Internal views needs ZIP download capability for all selected certificates
 
 ## Production Status
 

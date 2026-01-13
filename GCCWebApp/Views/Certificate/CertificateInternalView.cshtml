@@ -181,26 +181,27 @@
                         </div>
                     </div>
 
-                    <!-- Edit/Delete Actions for Internal Users -->
-                    @if (Model.CanEdit || Model.CanDelete)
+                </div>
+            </div>
+
+            <!-- Edit/Delete Actions at end of card-body, right-aligned -->
+            @if (Model.CanEdit || Model.CanDelete)
+            {
+                <div class="certificate-internal-actions" style="display: flex; justify-content: flex-end; gap: 15px; margin-top: 20px; padding: 15px 0;">
+                    @if (Model.CanEdit)
                     {
-                        <div class="certificate-internal-actions" style="display: flex; justify-content: center; gap: 10px; margin-top: 10px;">
-                            @if (Model.CanEdit)
-                            {
-                                <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@certificateNumber')">
-                                    <i class="fas fa-edit"></i>
-                                </div>
-                            }
-                            @if (Model.CanDelete)
-                            {
-                                <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@certificateId')">
-                                    <i class="fas fa-trash"></i>
-                                </div>
-                            }
+                        <div class="action-icon edit" title="Edit Certificate" onclick="editCertificate('@certificateNumber')">
+                            <i class="fas fa-edit"></i>
+                        </div>
+                    }
+                    @if (Model.CanDelete)
+                    {
+                        <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@certificateId')">
+                            <i class="fas fa-trash"></i>
                         </div>
                     }
                 </div>
-            </div>
+            }
         </div>
     </div>
 </div>

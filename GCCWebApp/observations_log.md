@@ -1,5 +1,64 @@
 # Observations Log
 
+## 2026-01-11 - Automated Login Testing & CSS Consolidation Verification
+
+### Summary
+Implemented automated login testing using curl to verify CSS consolidation and page functionality.
+
+### Login Testing Results
+
+**Authentication Flow:**
+- Form field is `Email` (accepts both email and username)
+- Anti-forgery token required from login page cookies
+- Successful login returns HTTP 302 redirect to `/Dashboard`
+- Auth cookie: `GCC.Auth` set on successful login
+
+**Test Command Pattern:**
+```bash
+# 1. Get login page and anti-forgery token
+curl -s -c cookies.txt "http://localhost:5101/Account/Login" -o login_page.html
+TOKEN=$(grep -oP 'name="__RequestVerificationToken"[^>]*value="[^"]*"' login_page.html | grep -oP 'value="[^"]*"' | sed 's/value="//;s/"$//')
+
+# 2. Submit login
+curl -v -c cookies.txt -b cookies.txt -X POST "http://localhost:5101/Account/Login" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  -d "Email=admin&Password=TestPass123!&__RequestVerificationToken=$TOKEN"
+```
+
+**Important Discovery:**
+- Certificate Edit/Details pages use **certificate number** (e.g., "24-1605") not database ID
+- `/Certificate/Edit/1` returns 400 "Certificate number is required"
+- `/Certificate/Edit/24-1605` returns 200 OK
+
+### Page Test Results
+
+| Page | URL | Status | Notes |
+|------|-----|--------|-------|
+| Login | /Account/Login | 200 | CSS consolidated to auth.css |
+| ForgotPassword | /Account/ForgotPassword | 200 | CSS consolidated to auth.css |
+| Dashboard | /Dashboard | 200 | Requires auth |
+| Certificate Create | /Certificate/Create | 200 | Works with auth |
+| Certificate Edit | /Certificate/Edit/24-1605 | 200 | Use cert number, not ID |
+| Certificate Details | /Certificate/Details/24-1605 | 200 | Use cert number, not ID |
+| User Management | /Admin/UserManagement | 200 | Admin role required |
+| Internal Cert View | /Certificate/CertificateTileViewInternal | 200 | Auth required |
+
+### CSS Consolidation Status (Account Pages)
+
+| File | Lines Removed | Status |
+|------|---------------|--------|
+| Login.cshtml | ~424 lines | ✅ Complete |
+| SignUp.cshtml | ~293 lines | ✅ Complete |
+| ForgotPassword.cshtml | ~432 lines | ✅ Complete |
+| ResetPassword.cshtml | ~428 lines | ✅ Complete |
+| 2FAAuthenticate.cshtml | ~258 lines | ✅ Complete |
+| VerifyEmail.cshtml | ~227 lines | ✅ Complete |
+| AccountLocked.cshtml | ~203 lines | ✅ Complete |
+| PasswordResetSuccess.cshtml | ~226 lines | ✅ Complete |
+| **Total** | **~2,491 lines** | **Moved to auth.css** |
+
+---
+
 ## 2025-12-02 - Certificate Tile View UI Layout Inconsistencies
 
 ### Requirement
@@ -1593,6 +1652,50 @@ This requirement reinforces the need for **100% consistency in layout and design
 
 ---
 
+## 2026-01-11 - CSS Consolidation: Inline Styles Moved to Shared CSS
+
+### Issue Identified
+Certificate tile views (External/Internal) had ~970 lines of inline CSS overriding the shared `certificatetileview.css` file, causing:
+- Inconsistent styling between views
+- Maintenance difficulties
+- ~177 `!important` declarations creating specificity conflicts
+
+### Analysis Performed
+| View | Before | After | Reduction |
+|------|--------|-------|-----------|
+| Public | 246 lines | 246 lines | No change (already correct) |
+| External | 877 lines | 527 lines | -40% |
+| Internal | 916 lines | 528 lines | -42% |
+| Inline CSS total | ~970 lines | ~160 lines | -83% |
+
+### Changes Made
+
+**1. Added to `certificatetileview.css` (~440 lines)**:
+- Loading spinner animation
+- Collapsible sidebar styles (toggle tab, collapse button)
+- Table scroll and wider layout for table view
+- Bulk actions bar styling
+- Select/Actions column centering
+- Spacing between buttons and table
+- Grid header/body cell styling
+- Zebra striping, status badges, date/certificate formatting
+
+**2. Reduced External view**: Kept only grid columns (21), table min-width, centering overrides
+
+**3. Reduced Internal view**: Kept only grid columns (22), table min-width, centering overrides
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `wwwroot/css/certificatetileview.css` | +442 lines consolidated |
+| `Views/Certificate/CertificateTileViewExternal.cshtml` | -350 lines inline CSS |
+| `Views/Certificate/CertificateTileViewInternal.cshtml` | -388 lines inline CSS |
+
+### Report Generated
+Full analysis: `docs/CSS_INLINE_STYLES_REPORT.md`
+
+---
+
 ## 2026-01-09 - VERIFICATION: Two-Factor Authentication Admin Management - COMPLETE
 
 ### Issue Investigated
@@ -1625,5 +1728,372 @@ The issues list indicated "Two-Factor Authentication Admin Management" as "UI Mi
 
 ### Conclusion
 The CLAUDE.md documentation was outdated. The Two-Factor Authentication Admin Management feature is fully functional and can be removed from the issues list.
+
+---
+
+## 2026-01-11 - CSS Consolidation: Account Pages
+
+### Summary
+Consolidated inline CSS from 11 Account pages into a shared `wwwroot/css/auth.css` file.
+
+### Changes Made
+
+| File | Before (lines) | After (lines) | Reduction |
+|------|----------------|---------------|-----------|
+| Login.cshtml | 519 | ~95 | -424 lines |
+| SignUp.cshtml | 508 | ~215 | -293 lines |
+| ForgotPassword.cshtml | 527 | ~95 | -432 lines |
+| ResetPassword.cshtml | 543 | ~115 | -428 lines |
+| 2FAAuthenticate.cshtml | 420 | ~162 | -258 lines |
+| VerifyEmail.cshtml | 302 | ~75 | -227 lines |
+| AccountLocked.cshtml | 318 | ~115 | -203 lines |
+| PasswordResetSuccess.cshtml | 341 | ~115 | -226 lines |
+
+### New Files Created
+- `wwwroot/css/auth.css` - ~1200 lines of consolidated authentication page styles
+
+### CSS Architecture
+- Uses CSS variables for page-specific customization
+- Supports two layout patterns:
+  - Split layout: `.login-container` (grid 1fr 1fr) - Login, SignUp, ForgotPassword, ResetPassword
+  - Single column: `.auth-container` - 2FA, VerifyEmail, AccountLocked, PasswordResetSuccess
+- Comprehensive responsive breakpoints for tablet (768px) and mobile (480px)
+
+### Key Benefits
+1. **Maintainability**: Single source of truth for authentication styling
+2. **Consistency**: All auth pages now share identical base styles
+3. **Performance**: Browsers can cache auth.css across all account pages
+4. **Reduced duplication**: Eliminated ~2,500 lines of duplicated CSS
+
+### Build Status
+- Build succeeded with 0 errors, 0 warnings
+- All CSS changes tested and verified
+
+---
+
+## 2026-01-11 - VERIFICATION: Bulk Download as ZIP - COMPLETE
+
+### Issue Investigated
+The issues list indicated "Bulk Download as ZIP" as a HIGH priority item requiring implementation. Upon investigation, this feature is **fully implemented**.
+
+### Implementation Found
+
+| Component | Location | Status |
+|-----------|----------|--------|
+| **Backend Endpoint** | `CertificateController.cs:1395-1517` | ✅ `DownloadSelectedZip` POST endpoint |
+| **ZIP Creation** | `CertificateController.cs:1408` | ✅ Uses `System.IO.Compression.ZipArchive` |
+| **PDF Retrieval** | `CertificateController.cs:1425-1470` | ✅ Gets uploaded PDFs or generates them |
+| **External View JS** | `certificateTileViewExternal.js:1199-1260` | ✅ `downloadSelected()` method |
+| **Internal View JS** | `certificate-tile-view-internal.js:1114-1173` | ✅ `handleDownloadSelected()` function |
+| **UI Buttons** | Both views | ✅ "Download Selected" button in bulk actions bar |
+
+### Feature Workflow
+
+1. User switches to **Table View** (required for selection)
+2. User selects certificates using checkboxes
+3. User clicks **Download Selected** button
+4. Frontend calls `/Certificate/DownloadSelectedZip` with certificate IDs
+5. Backend creates ZIP archive with all certificate PDFs
+6. ZIP file downloads with naming: `certificates_YYYY-MM-DD_HHmmss.zip`
+7. Success notification shown
+
+### Documentation Updated
+- Updated CLAUDE.md:
+  - Changed "BULK DOWNLOAD AS ZIP ⚠️ REQUIRED" to "BULK DOWNLOAD AS ZIP ✅ COMPLETE"
+  - Removed reminder from Important Reminders section
+
+### Conclusion
+The CLAUDE.md documentation was outdated. The Bulk Download as ZIP feature is fully implemented and functional.
+
+---
+
+## 2026-01-12 - Certificate Create/Edit Functional Testing
+
+### Summary
+Performed end-to-end functional testing of Certificate Create and Edit functionality using automated curl-based testing.
+
+### Test Environment
+- **Application**: Running on http://localhost:5101
+- **User**: admin (authenticated with GCC.Auth cookie)
+- **Session**: Fresh login with anti-forgery token handling
+
+### Test Results
+
+#### Certificate Create - PASS ✅
+| Step | Action | Result |
+|------|--------|--------|
+| 1 | Login as admin | HTTP 302 redirect (success) |
+| 2 | Get Create page | HTTP 200 - Form loaded with auto-generated number "26-0001" |
+| 3 | Submit form with valid data | HTTP 302 redirect (success) |
+| 4 | Verify certificate exists | HTTP 200 on Edit/Details pages |
+
+**Form Data Submitted**:
+- Number: 26-0001 (auto-generated)
+- CompanyId: 1
+- ProductId: 1
+- CertificationTypeId: 1
+- Partner: Amazon
+- EffectiveDate: 2025-01-01
+- ExpirationDate: 2026-01-01
+- Status: Draft
+- Description: Test certificate created via automated testing
+
+**Certificate Created**: ID 180, Number "26-0001"
+
+#### Certificate Edit - PASS ✅
+| Step | Action | Result |
+|------|--------|--------|
+| 1 | Get Edit page for 26-0001 | HTTP 200 - Form loaded with current values |
+| 2 | Submit form with changed status | HTTP 302 redirect (success) |
+| 3 | Verify status changed | Status now shows "Review" |
+
+**Changes Made**:
+- Status: Draft → Review
+- Description: Updated to "Test certificate EDITED - changed status to Review"
+
+### Key Learnings
+
+1. **Certificate Number Auto-Generation**:
+   - Create form auto-generates next available number (format: YY-XXXX)
+   - Number is readonly and should be used as-is
+   - Cannot override with custom number (max 7 characters validation)
+
+2. **Form Submission Requirements**:
+   - Anti-forgery token required (`__RequestVerificationToken`)
+   - Hidden `Id` field required for Edit (database ID)
+   - Certificate number used in URL routing, not database ID
+
+3. **Validation**:
+   - Certificate Number: Max 7 characters (format: YY-XXXX)
+   - CompanyId, ProductId, CertificationTypeId: Required
+   - EffectiveDate, ExpirationDate: Date format YYYY-MM-DD
+   - Status: Valid values (Draft, Review, Active, etc.)
+   - Partner: Amazon, Novi, Other
+
+### Test Commands Used
+
+```bash
+# 1. Login and get auth cookie
+curl -s -c cookies.txt -b cookies.txt http://localhost:5101/Account/Login > login.html
+TOKEN=$(grep -oP '__RequestVerificationToken.*?value="\K[^"]+' login.html | head -1)
+curl -s -c cookies.txt -b cookies.txt -X POST -d "Email=admin&Password=TestPass123!&__RequestVerificationToken=$TOKEN" http://localhost:5101/Account/Login
+
+# 2. Create certificate
+curl -s -c cookies.txt -b cookies.txt http://localhost:5101/Certificate/Create > create.html
+CERT_NUM=$(grep -oP 'id="Number".*?value="\K[^"]+' create.html)
+TOKEN=$(grep -oP '__RequestVerificationToken.*?value="\K[^"]+' create.html | head -1)
+curl -s -c cookies.txt -b cookies.txt -X POST -F "Number=$CERT_NUM" -F "CompanyId=1" ... http://localhost:5101/Certificate/Create
+
+# 3. Edit certificate
+curl -s -c cookies.txt -b cookies.txt http://localhost:5101/Certificate/Edit/$CERT_NUM > edit.html
+TOKEN=$(grep -oP '__RequestVerificationToken.*?value="\K[^"]+' edit.html | head -1)
+CERT_ID=$(grep -oP 'name="Id" value="\K[^"]+' edit.html | head -1)
+curl -s -c cookies.txt -b cookies.txt -X POST -F "Id=$CERT_ID" -F "Number=$CERT_NUM" -F "Status=Review" ... http://localhost:5101/Certificate/Edit/$CERT_NUM
+```
+
+### Application Status
+- **Build**: Successful (0 errors)
+- **Certificate Create**: Fully functional
+- **Certificate Edit**: Fully functional
+- **Authentication**: Working with cookie-based sessions
+
+---
+
+## 2026-01-12 - Required Field Asterisk Validation Styling Fix
+
+### Issue Reported
+User requested that required field asterisks (*) be visible and red across Certificate Create/Edit pages and all pages with required fields. Also requested removal of caution icons.
+
+### Root Cause
+1. The `certificate-create.css` was adding a caution icon (`⚠`) before validation error messages via CSS `::before` pseudo-element
+2. Some Account views (SignUp, ResetPassword, PasswordReset) were missing the `text-danger` class on required field asterisks
+
+### Fixes Applied
+
+#### 1. Removed Caution Icon from Validation Messages
+**File**: `wwwroot/css/certificate-create.css` (Lines 927-934)
+
+**Before**:
+```css
+/* Add warning icon before error messages */
+.form-group .text-danger:not(:empty)::before,
+.form-group .field-validation-error:not(:empty)::before,
+.form-group .inline-validation-error::before {
+    content: '⚠ ';
+}
+```
+
+**After**:
+```css
+/* Required field asterisk styling - Red asterisk for required fields */
+.form-group label .text-danger,
+.form-group label span.text-danger {
+    color: #FF5252 !important;
+    font-weight: 600;
+    font-size: inherit;
+    margin-left: 2px;
+}
+```
+
+#### 2. Added Required Field Asterisk Styling to Auth Pages
+**File**: `wwwroot/css/auth.css` (Lines 715-724)
+
+Added:
+```css
+/* Required field asterisk - Red asterisk for required fields */
+.form-group label .text-danger,
+.form-group label span.text-danger,
+label .text-danger,
+label span.text-danger {
+    color: #FF5252 !important;
+    font-weight: 700;
+    font-size: inherit;
+    margin-left: 2px;
+}
+```
+
+#### 3. Fixed Missing text-danger Class on Asterisks
+**Files Modified**:
+- `Views/Account/ResetPassword.cshtml` - Added text-danger to Password and Confirm Password asterisks
+- `Views/Account/SignUp.cshtml` - Added text-danger to all 5 asterisks (FirstName, LastName, Email, Password, ConfirmPassword)
+- `Views/Account/PasswordReset.cshtml` - Added text-danger to Password and Confirm Password asterisks
+
+**Pattern Applied**:
+```html
+<!-- Before -->
+<span aria-hidden="true">*</span>
+
+<!-- After -->
+<span class="text-danger" aria-hidden="true">*</span>
+```
+
+### Validation Styling Patterns Across Application
+
+| Pattern | Used By | Status |
+|---------|---------|--------|
+| `<span class="text-danger">*</span>` | Certificate Create/Edit | ✅ Fixed |
+| `<span class="text-danger">*</span>` | Account pages (Login, SignUp, etc.) | ✅ Fixed |
+| `.admin-label--required::after` | Admin pages (UserMgmt, RoleMgmt, etc.) | ✅ Already working |
+
+### Build Status
+- **Build**: ✅ Succeeded (0 errors)
+- **Application**: Running on http://localhost:5101
+
+### Test Verification
+1. Navigate to `/Certificate/Create` - Required field asterisks should be red
+2. Navigate to `/Certificate/Edit/{number}` - Required field asterisks should be red
+3. Navigate to `/Account/Login` - Required field asterisks should be red
+4. Navigate to `/Account/SignUp` - Required field asterisks should be red
+5. Verify NO caution icons appear on any page
+
+---
+
+## 2026-01-12 - Product Import Quality Improvements Implementation
+
+### Summary
+Implemented three import quality improvements for the Product Management page as identified from MEDIUM priority issues:
+
+1. **Fuzzy Matching for ProductType/Category** - Extended existing Company fuzzy logic
+2. **Auto-Suggest Click to Apply** - Clickable suggestions in import preview modal
+3. **Import Order Enforcement Modal** - Block import if prerequisites empty
+
+### Phase 1: Fuzzy Matching for ProductType/Category
+
+**Implementation Files:**
+- `wwwroot/js/admin/productManagement.js` (Lines 1390-1608)
+
+**ProductType Matching Functions (Lines 1390-1502):**
+- `normalizeProductTypeName()` - Removes common suffixes like "type", "category", "products"
+- `findMatchingProductType()` - 3-tier matching: Exact → Normalized → Fuzzy (≥0.8 similarity)
+- `getSimilarProductTypes()` - Returns top 3 matches with >0.3 similarity
+- `validateProductTypeReference()` - Returns validation result with suggestions
+
+**Category Matching Functions (Lines 1504-1608):**
+- `normalizeCategoryName()` - Same pattern as ProductType
+- `findMatchingCategory()` - 3-tier matching strategy
+- `getSimilarCategories()` - Returns top 3 suggestions
+- `validateCategoryReference()` - Returns validation with suggestions
+
+**buildImportPreview() Updates (Lines 736-780):**
+- Added ProductType and Category validation in import preview
+- Shows suggestions when no match found: "Did you mean: X, Y, Z?"
+- Warnings for normalized/fuzzy matches with resolved values
+
+### Phase 2: Auto-Suggest Click to Apply
+
+**Implementation Files:**
+- `wwwroot/js/admin/productManagement.js` (Lines 884-1457)
+
+**Clickable Suggestions (Lines 884-916):**
+- Error display parses "Did you mean:" pattern
+- Renders clickable buttons for each suggestion
+- Styled as blue pill buttons for clear visibility
+
+**New Methods:**
+- `detectFieldFromError()` (Lines 1133-1138) - Identifies field from error message
+- `applySuggestion()` (Lines 1144-1215) - Applies single suggestion to row
+- `applyAllSuggestions()` (Lines 1220-1258) - Batch applies first suggestion to all error rows
+- `applySuggestionSilent()` (Lines 1263-1301) - Applies suggestion without notification
+- `refreshPreviewTable()` (Lines 1306-1428) - Re-renders table without closing modal
+- `updateApplyAllSuggestionsButton()` (Lines 1433-1457) - Updates bulk apply button count
+
+**User Experience:**
+- Click suggestion button → Value applied → Row re-validated → Table refreshes
+- "Apply All Suggestions" button shows count of fixable rows
+- Success notification shown after applying suggestion
+
+### Phase 3: Import Order Enforcement Modal
+
+**Implementation Files:**
+- `wwwroot/js/admin/productManagement.js` (Lines 2133-2269)
+- `Views/Product/Management.cshtml` (Lines 454-462)
+
+**New Methods:**
+- `checkImportPrerequisites()` (Lines 2141-2167) - Checks Companies and ProductTypes exist
+- `handleImportClick()` (Lines 2172-2188) - Intercepts import button click
+- `showPrerequisiteModal()` (Lines 2193-2269) - Displays blocking modal with issues
+
+**Modal Features:**
+- Warning icon with "Cannot Import Products" title
+- Lists missing prerequisites (Companies, Product Types)
+- Navigation buttons to respective management pages
+- "Import Anyway" button to bypass check if needed
+- Follows US-015 backdrop standard (85% black, 3px blur)
+
+**View Update (Management.cshtml Lines 454-462):**
+```javascript
+importBtn.addEventListener('click', () => {
+    if (window.productManagement && typeof window.productManagement.handleImportClick === 'function') {
+        window.productManagement.handleImportClick();
+    } else {
+        importProducts();
+    }
+});
+```
+
+### Testing Verification
+
+| Feature | Test | Status |
+|---------|------|--------|
+| Build | `dotnet build` | ✅ 0 errors |
+| App Start | http://localhost:5101 | ✅ 200 OK |
+| ProductType Fuzzy | Import with typo | Ready to test |
+| Category Fuzzy | Import with typo | Ready to test |
+| Click Suggestions | Click suggestion button | Ready to test |
+| Apply All | Click bulk apply | Ready to test |
+| Prerequisite Modal | Empty DB import attempt | Ready to test |
+
+### Code Statistics
+
+| Phase | Lines Added | Methods Added |
+|-------|-------------|---------------|
+| Phase 1 | ~220 lines | 8 methods |
+| Phase 2 | ~330 lines | 6 methods |
+| Phase 3 | ~140 lines | 3 methods |
+| **Total** | **~690 lines** | **17 methods** |
+
+### Related Documentation
+- Plan file: `C:\Users\swest\.claude\plans\fizzy-tickling-rose.md`
+- Requirements: MEDIUM priority items from CLAUDE.md
 
 ---

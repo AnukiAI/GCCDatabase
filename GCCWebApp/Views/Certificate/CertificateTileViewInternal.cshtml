@@ -15,433 +15,17 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
     /* ====================================================
-       INTERNAL VIEW SPECIFIC STYLES
-       Grid layout: 21 columns (HAS Internal Tag column)
-       Action buttons: Edit + Download + View
-       ====================================================*/
+       INTERNAL VIEW SPECIFIC - Grid Column Definition Only
+       All shared styles are in certificatetileview.css
+       ==================================================== */
 
-    /* Edit button styling - Internal view only */
-    .action-icon.edit {
-        color: #007bff;
-    }
-
-    .action-icon.edit:hover {
-        color: #0056b3;
-        background-color: #e3f2fd;
-    }
-
-    .action-btn.edit,
-    .action-btn.edit-btn {
-        color: #007bff;
-    }
-
-    .action-btn.edit:hover,
-    .action-btn.edit-btn:hover {
-        color: #0056b3;
-        background-color: #e3f2fd;
-    }
-
-    /* Fix product name width for internal view */
-    .certificate-card .product-name {
-        max-width: 100% !important;
-        width: 100% !important;
-        word-wrap: break-word !important;
-        word-break: break-word !important;
-        white-space: normal !important;
-    }
-
-    /* Grid layout moved to READABLE COMPACT TABLE LAYOUT section below */
-
-    /* Loading spinner animation specific to this view */
-    .loading-spinner {
-        width: 24px;
-        height: 24px;
-        border: 3px solid #f3f3f3;
-        border-top: 3px solid #007bff;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-right: 12px;
-    }
-
-    @@keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    /* ====================================================
-       COLLAPSIBLE SIDEBAR - MATCHING MOBILE PATTERN
-       ====================================================*/
-
-    /* Show Filters button - visible when sidebar collapsed, narrow strip */
-    .sidebar-toggle-tab {
-        display: none;
-        width: 44px;
-        min-width: 44px;
-        height: 100%;
-        padding: 0;
-        margin: 0;
-        background: var(--blue-primary, #00AEEF);
-        color: var(--white, #fff);
-        border: none;
-        cursor: pointer;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        transition: var(--transition-fast, 0.15s ease);
-    }
-
-    .sidebar-toggle-tab:hover {
-        background: var(--blue-dark, #002876);
-    }
-
-    /* Focus indicator for accessibility (WCAG 2.1 AA compliance) */
-    .sidebar-toggle-tab:focus,
-    .sidebar-toggle-tab:focus-visible {
-        outline: 2px solid #fff;
-        outline-offset: 2px;
-        box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.5);
-    }
-
-    .sidebar-toggle-tab i {
-        color: var(--white, #fff);
-        font-size: 16px;
-    }
-
-    .sidebar-toggle-tab span {
-        display: none;
-    }
-
-    .sidebar-toggle-tab.visible {
-        display: flex;
-    }
-
-    /* Hide Filters button - inside sidebar, full width (16px min per Master Design Guide) */
-    .sidebar-collapse-btn {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        width: 100%;
-        padding: 10px 16px;
-        margin-bottom: 15px;
-        background: var(--blue-primary, #00AEEF);
-        color: var(--white, #fff);
-        border: none;
-        border-radius: var(--border-radius-sm, 4px);
-        cursor: pointer;
-        font-size: 16px;
-        font-weight: 500;
-        transition: var(--transition-fast, 0.15s ease);
-    }
-
-    .sidebar-collapse-btn:hover {
-        background: var(--blue-dark, #002876);
-    }
-
-    /* Focus indicator for accessibility (WCAG 2.1 AA compliance) */
-    .sidebar-collapse-btn:focus,
-    .sidebar-collapse-btn:focus-visible {
-        outline: 2px solid #fff;
-        outline-offset: 2px;
-        box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.5);
-    }
-
-    .sidebar-collapse-btn i {
-        margin-left: 10px;
-        transition: transform 0.3s ease;
-        font-size: 14px;
-    }
-
-    /* Sidebar collapsed state */
-    .sidebar.collapsed {
-        display: none !important;
-    }
-
-    /* Main container is already flex from base CSS */
-    .main-container.sidebar-collapsed {
-        max-width: 100% !important;
-    }
-
-    .main-container.sidebar-collapsed .main-content {
-        max-width: 100%;
-    }
-
-    .main-container.sidebar-collapsed .table-scroll-wrapper {
-        max-width: 100% !important;
-        width: 100%;
-    }
-
-    /* ====================================================
-       TABLE SCROLL FIX - Ensure all 22 columns are visible
-       ====================================================*/
-
-    /* Override base CSS max-width constraint to allow full table scroll */
-    .table-scroll-wrapper {
-        max-width: none !important;
-        width: 100%;
-        overflow-x: auto !important;
-        overflow-y: visible;
-    }
-
-    /* Ensure the table grid container doesn't collapse */
-    .table-grid-container {
-        min-width: 2520px; /* Total of all 22 column widths */
-        width: max-content;
-    }
-
-    /* Ensure main content allows table to expand */
-    .main-content {
-        overflow-x: visible;
-        min-width: 0;
-    }
-
-    /* ====================================================
-       WIDER LAYOUT FOR TABLE VIEW ONLY
-       Tiles remain at standard width
-       ====================================================*/
-
-    /* Only expand when table view is active - use has selector or JS class */
-    body.table-view-active .page-container {
-        max-width: 100% !important;
-        width: 100% !important;
-        padding: 0 15px !important;
-        margin: 0 !important;
-    }
-
-    body.table-view-active .main-container {
-        max-width: 100% !important;
-        width: 100% !important;
-        margin: 0 !important;
-    }
-
-    body.table-view-active .main-content {
-        max-width: 100% !important;
-        width: 100% !important;
-    }
-
-    /* Compact bulk actions bar */
-    #tableView .bulk-actions-bar {
-        padding: 4px 10px !important;
-        margin-bottom: 8px !important;
-        gap: 8px;
-    }
-
-    #tableView .bulk-actions-left {
-        gap: 8px !important;
-    }
-
-    #tableView .selected-count {
-        font-size: 16px !important;
-    }
-
-    #tableView .clear-selection-btn {
-        padding: 6px 12px !important;
-        font-size: 16px !important;
-    }
-
-    /* ====================================================
-       SELECT & ACTIONS COLUMNS - CENTERED LAYOUT
-       Width controlled by grid-template-columns above
-       ====================================================*/
-
-    /* Select cell - header & body */
-    .table-grid .grid-header-cell.select-cell,
-    .table-grid .grid-cell.select-cell {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 4px !important;
-    }
-
-    /* Actions column - header & body - improved whitespace and centering */
-    .table-grid .grid-header-cell.actions-column,
-    .table-grid .grid-cell.actions-column {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        text-align: center !important;
-        padding: 8px 10px !important;
-        overflow: visible !important;
-    }
-
-    /* Actions header text centering */
-    .table-grid .grid-header-cell.actions-column span {
-        display: inline-block;
-        text-align: center;
-        width: 100%;
-    }
-
-    /* Action buttons container - centered within the cell */
-    .table-grid .grid-cell.actions-column .action-buttons {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        gap: 4px !important;
-        margin: 0 auto;
-    }
-
-    /* Individual action buttons - consistent sizing */
-    .table-grid .grid-cell.actions-column .action-btn {
-        padding: 4px !important;
-        min-width: 26px !important;
-        height: 26px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border: none !important;
-        background: transparent !important;
-        border-radius: 4px !important;
-        color: #666 !important;
-        cursor: pointer !important;
-        flex-shrink: 0;
-    }
-
-    .table-grid .grid-cell.actions-column .action-btn:hover {
-        background: #e3f2fd !important;
-        color: #007bff !important;
-    }
-
-    /* Focus indicators for accessibility (WCAG 2.1 AA compliance) */
-    .table-grid .grid-cell.actions-column .action-btn:focus,
-    .table-grid .grid-cell.actions-column .action-btn:focus-visible {
-        outline: 2px solid #007bff !important;
-        outline-offset: 2px !important;
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25) !important;
-    }
-
-    .table-grid .grid-cell.actions-column .action-btn i {
-        font-size: 14px !important;
-    }
-
-    /* Certificate # column styling - ensure alignment */
-    .grid-cell[data-column="certificateNumber"],
-    .grid-header-cell[data-sort-column="certificate"] {
-        font-weight: 600;
-        justify-content: flex-start !important;
-        text-align: left !important;
-    }
-
-    /* Location column - improved whitespace */
-    .table-grid .grid-cell[data-column="location"] {
-        padding: 10px 12px !important;
-    }
-
-    /* ====================================================
-       REDUCE SPACING BETWEEN BUTTONS AND TABLE
-       ====================================================*/
-    .main-content .results-header {
-        margin-bottom: 8px !important;
-        padding-top: 5px !important;
-        padding-bottom: 0 !important;
-    }
-
-    .main-content .results-controls {
-        margin-bottom: 8px !important;
-        margin-top: 0 !important;
-        padding: 0 !important;
-    }
-
-    .main-content {
-        padding: 10px 15px 15px 15px !important;
-    }
-
-    /* Remove any extra space before tableView */
-    #tableView {
-        margin-top: 0 !important;
-        padding-top: 0 !important;
-    }
-
-    /* Remove extra space on certificates grid too */
-    .certificates-grid {
-        margin-top: 0 !important;
-    }
-
-    /* Fix loading indicator - hide completely when not active */
-    .loading-indicator {
-        display: none !important;
-        padding: 10px !important;
-    }
-
-    .loading-indicator.active {
-        display: flex !important;
-    }
-
-    /* ====================================================
-       READABLE COMPACT TABLE LAYOUT
-       Wider columns, text wrapping for readability
-       ====================================================*/
-
-    /* Header cells - readable size (16px min per Master Design Guide) */
-    .table-grid .grid-header-cell {
-        min-height: 40px !important;
-        padding: 8px 10px !important;
-        font-size: 16px !important;
-        font-weight: 600 !important;
-        white-space: normal !important;  /* Allow header text to wrap */
-        word-wrap: break-word !important;
-        line-height: 1.3 !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 4px !important;
-    }
-
-    /* Sort icon - stays inline, never wraps separately */
-    .table-grid .grid-header-cell .sort-indicator {
-        flex-shrink: 0 !important;  /* Prevent icon from shrinking */
-        white-space: nowrap !important;
-        margin-left: 4px !important;
-    }
-
-    /* Body cells - allow wrapping for readability (16px min per Master Design Guide) */
-    .table-grid .grid-cell {
-        min-height: 36px !important;
-        padding: 6px 10px !important;
-        font-size: 16px !important;
-        line-height: 1.4 !important;
-        /* Allow text to wrap */
-        white-space: normal !important;
-        word-wrap: break-word !important;
-        overflow-wrap: break-word !important;
-        max-width: 100% !important;
-    }
-
-    /* Checkbox styling - vertically and horizontally centered */
-    .table-grid .grid-cell.select-cell input[type="checkbox"],
-    .table-grid .grid-header-cell.select-cell input[type="checkbox"] {
-        margin: 0 !important;
-        padding: 0 !important;
-        cursor: pointer;
-        width: 16px !important;
-        height: 16px !important;
-        vertical-align: middle !important;
-        flex-shrink: 0;
-    }
-
-    /* Ensure row checkbox matches header checkbox */
-    .table-grid .row-checkbox {
-        margin: 0 !important;
-        width: 16px !important;
-        height: 16px !important;
-    }
-
-    /* Short data columns stay single line */
-    .table-grid .grid-cell[data-column="status"],
-    .table-grid .grid-cell[data-column="effectiveDate"],
-    .table-grid .grid-cell[data-column="expirationDate"],
-    .table-grid .grid-cell[data-column="country"],
-    .table-grid .grid-cell[data-column="asin"],
-    .table-grid .grid-cell[data-column="upc"],
-    .table-grid .grid-cell[data-column="gtin"],
-    .table-grid .grid-cell[data-column="ean"] {
-        white-space: nowrap !important;
-    }
-
-    /* Grid layout for Internal view (22 columns) - SINGLE DEFINITION */
+    /* Grid layout for Internal view (22 columns - HAS Internal Tag) */
     .table-grid {
         display: grid;
         grid-template-columns:
-            36px      /* 1. Select checkbox - centered */
-            90px      /* 2. Actions - 3 icons centered */
-            115px     /* 3. Certificate # */
+            36px      /* 1. Select checkbox */
+            90px      /* 2. Actions (Edit + Download + View) */
+            145px     /* 3. Certificate # */
             160px     /* 4. Certification Type */
             130px     /* 5. CSF Attributes */
             75px      /* 6. Status */
@@ -465,63 +49,91 @@
         width: 100%;
     }
 
-    /* Ensure grid rows and header inherit the template */
-    .table-grid .grid-header,
-    .table-grid .grid-body,
-    .table-grid .grid-row {
-        display: contents;
-    }
-
-    /* Force all grid cells to respect column widths */
-    .table-grid .grid-cell,
-    .table-grid .grid-header-cell {
-        box-sizing: border-box;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    /* Update min-width for table container - sum of 22 columns = ~2435px */
+    /* Table container min-width for Internal (22 columns) */
     .table-grid-container {
         min-width: 2450px;
+        width: max-content;
     }
 
-    /* Zebra striping */
-    .table-grid .grid-row:nth-child(even) .grid-cell {
-        background: #fafafa !important;
+    /* ====================================================
+       SELECT & ACTIONS COLUMNS - CENTERED LAYOUT
+       ====================================================*/
+
+    /* Select cell - header & body - CENTERED checkbox */
+    .table-grid .grid-header-cell.select-cell,
+    .table-grid .grid-cell.select-cell {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 8px !important;
+        text-align: center !important;
     }
 
-    .table-grid .grid-row:hover .grid-cell {
-        background: #e8f4fc !important;
+    /* Actions column - header & body - CENTERED content */
+    .table-grid .grid-header-cell.actions-column,
+    .table-grid .grid-cell.actions-column {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+        padding: 8px 6px !important;
+        overflow: visible !important;
     }
 
-    .table-grid .grid-row:nth-child(even):hover .grid-cell {
-        background: #e8f4fc !important;
+    /* Actions header text centering - full width span */
+    .table-grid .grid-header-cell.actions-column span {
+        display: block !important;
+        text-align: center !important;
+        width: 100% !important;
+        font-weight: 600 !important;
     }
 
-    /* Status badge (14px min for badges per Master Design Guide) */
-    .table-grid .grid-cell .status-badge {
-        padding: 4px 10px !important;
+    /* Action buttons container - centered within the cell */
+    .table-grid .grid-cell.actions-column .action-buttons {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+    }
+
+    /* Individual action buttons - consistent sizing */
+    .table-grid .grid-cell.actions-column .action-btn {
+        padding: 4px !important;
+        min-width: 26px !important;
+        height: 26px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border: none !important;
+        background: transparent !important;
+        border-radius: 4px !important;
+        color: #666 !important;
+        cursor: pointer !important;
+        flex-shrink: 0 !important;
+    }
+
+    .table-grid .grid-cell.actions-column .action-btn:hover {
+        background: #e3f2fd !important;
+        color: #007bff !important;
+    }
+
+    .table-grid .grid-cell.actions-column .action-btn i {
         font-size: 14px !important;
     }
 
-    /* Date columns use monospace for alignment (16px min per Master Design Guide) */
-    .table-grid .grid-cell[data-column="effectiveDate"],
-    .table-grid .grid-cell[data-column="expirationDate"] {
-        font-family: 'Consolas', 'Courier New', monospace !important;
-        font-size: 16px !important;
-    }
-
-    /* Certificate number styling - same color as all other text (16px min per Master Design Guide) */
+    /* Certificate # column styling - LEFT aligned */
+    .table-grid .grid-header-cell[data-sort-column="certificate"],
     .table-grid .grid-cell[data-column="certificateNumber"] {
-        font-family: inherit !important;
-        font-weight: 500 !important;
-        color: inherit !important;
-        font-size: 16px !important;
+        justify-content: flex-start !important;
+        text-align: left !important;
+        padding-left: 10px !important;
     }
 
-    /* Ensure all grid cells have consistent text color */
-    .table-grid .grid-cell {
-        color: #333 !important;
+    .table-grid .grid-cell[data-column="certificateNumber"] {
+        font-weight: 600 !important;
+        font-family: 'Consolas', 'Courier New', monospace !important;
     }
 </style>
 <!-- Main Container -->

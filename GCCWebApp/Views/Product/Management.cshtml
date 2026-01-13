@@ -451,7 +451,15 @@
 
             // Button events
             addProductBtn.addEventListener('click', showAddProductModal);
-            importBtn.addEventListener('click', importProducts);
+            // Use productManagement.handleImportClick() for import pre-requisite checking
+            importBtn.addEventListener('click', () => {
+                if (window.productManagement && typeof window.productManagement.handleImportClick === 'function') {
+                    window.productManagement.handleImportClick();
+                } else {
+                    // Fallback to legacy function if productManagement not loaded
+                    importProducts();
+                }
+            });
             exportBtn.addEventListener('click', exportProducts);
 
             // Modal events

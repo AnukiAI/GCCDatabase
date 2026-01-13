@@ -1450,23 +1450,28 @@ html body.table-view-active #tableView {
     color: #333;
     border-bottom: 2px solid #dee2e6;
     border-right: 1px solid #ddd;
-    white-space: nowrap;
+    white-space: normal;  /* Allow header text to wrap */
+    word-wrap: break-word;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;  /* Left align by default */
+    gap: 6px;  /* Space between text and sort icon */
     min-height: 48px;
     box-sizing: border-box;
+    line-height: 1.3;
 }
 
 .grid-header-cell:last-child {
     border-right: none;
 }
 
-/* Sort indicator styling */
+/* Sort indicator styling - stays inline with header text */
 .grid-header-cell .sort-indicator {
-    margin-left: 8px;
+    margin-left: 4px;
     font-size: 14px;
     color: #999;
+    flex-shrink: 0;  /* Prevent icon from shrinking */
+    white-space: nowrap;  /* Never wrap the icon */
 }
 
 .grid-header-cell[data-sort-active="true"] .sort-indicator {
@@ -1535,28 +1540,9 @@ html body.table-view-active #tableView {
     cursor: pointer;
 }
 
-/* Select cell - CENTERED */
-.select-cell,
-.grid-cell.select-cell,
-.grid-header-cell.select-cell {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding-left: 8px !important;
-    padding-right: 8px !important;
-}
-
-/* Actions column - CENTERED with improved whitespace */
-.actions-column,
-.grid-cell.actions-column,
-.grid-header-cell.actions-column {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 6px;
-    overflow: visible !important;
-    padding: 8px 10px !important;
-}
+/* NOTE: Select cell and actions column styles consolidated below
+   in the "SELECT & ACTIONS COLUMNS - CENTERED LAYOUT" section
+   using more specific .table-grid selectors (lines ~1821-1895) */
 
 /* Main content width */
 .main-content {
@@ -1631,5 +1617,451 @@ body.table-view-active .table-scroll-wrapper {
 .grid-cell .status-badge.expired {
     background-color: #f8d7da;
     color: #721c24;
+}
+
+/* ====================================================
+   CONSOLIDATED STYLES - External/Internal Table Views
+   Moved from inline styles for consistency (2026-01-11)
+   ==================================================== */
+
+/* Loading Spinner Animation */
+.loading-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-right: 12px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* ====================================================
+   COLLAPSIBLE SIDEBAR - External/Internal Views
+   ==================================================== */
+
+/* Show Filters button - visible when sidebar collapsed */
+.sidebar-toggle-tab {
+    display: none;
+    width: 44px;
+    min-width: 44px;
+    height: 100%;
+    padding: 0;
+    margin: 0;
+    background: var(--blue-primary, #00AEEF);
+    color: var(--white, #fff);
+    border: none;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: var(--transition-fast, 0.15s ease);
+}
+
+.sidebar-toggle-tab:hover {
+    background: var(--blue-dark, #002876);
+}
+
+.sidebar-toggle-tab:focus,
+.sidebar-toggle-tab:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.5);
+}
+
+.sidebar-toggle-tab i {
+    color: var(--white, #fff);
+    font-size: 16px;
+}
+
+.sidebar-toggle-tab span {
+    display: none;
+}
+
+.sidebar-toggle-tab.visible {
+    display: flex;
+}
+
+/* Hide Filters button - inside sidebar */
+.sidebar-collapse-btn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 10px 16px;
+    margin-bottom: 15px;
+    background: var(--blue-primary, #00AEEF);
+    color: var(--white, #fff);
+    border: none;
+    border-radius: var(--border-radius-sm, 4px);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    transition: var(--transition-fast, 0.15s ease);
+}
+
+.sidebar-collapse-btn:hover {
+    background: var(--blue-dark, #002876);
+}
+
+.sidebar-collapse-btn:focus,
+.sidebar-collapse-btn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.5);
+}
+
+.sidebar-collapse-btn i {
+    margin-left: 10px;
+    transition: transform 0.3s ease;
+    font-size: 14px;
+}
+
+/* Sidebar collapsed state */
+.sidebar.collapsed {
+    display: none;
+}
+
+/* Main container adjustments when sidebar collapsed */
+.main-container.sidebar-collapsed {
+    max-width: 100%;
+}
+
+.main-container.sidebar-collapsed .main-content {
+    max-width: 100%;
+}
+
+.main-container.sidebar-collapsed .table-scroll-wrapper {
+    max-width: 100%;
+    width: 100%;
+}
+
+/* ====================================================
+   TABLE SCROLL - Full Width for All Columns
+   ==================================================== */
+
+.table-scroll-wrapper {
+    max-width: none;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+}
+
+/* ====================================================
+   WIDER LAYOUT FOR TABLE VIEW ONLY
+   ==================================================== */
+
+body.table-view-active .page-container {
+    max-width: 100%;
+    width: 100%;
+    padding: 0 15px;
+    margin: 0;
+}
+
+body.table-view-active .main-container {
+    max-width: 100%;
+    width: 100%;
+    margin: 0;
+}
+
+body.table-view-active .main-content {
+    max-width: 100%;
+    width: 100%;
+}
+
+/* ====================================================
+   BULK ACTIONS BAR
+   ==================================================== */
+
+#tableView .bulk-actions-bar {
+    padding: 4px 10px;
+    margin-bottom: 8px;
+    gap: 8px;
+}
+
+#tableView .bulk-actions-left {
+    gap: 8px;
+}
+
+#tableView .selected-count {
+    font-size: 16px;
+}
+
+#tableView .clear-selection-btn {
+    padding: 6px 12px;
+    font-size: 16px;
+}
+
+/* ====================================================
+   SELECT & ACTIONS COLUMNS - CENTERED LAYOUT
+   ==================================================== */
+
+/* Select cell - header & body - CENTERED checkbox */
+.table-grid .grid-header-cell.select-cell,
+.table-grid .grid-cell.select-cell {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px !important;
+    text-align: center !important;
+}
+
+/* Actions column - header & body - CENTERED content */
+.table-grid .grid-header-cell.actions-column,
+.table-grid .grid-cell.actions-column {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 8px 6px !important;
+    overflow: visible !important;
+}
+
+/* Actions header text centering - full width span */
+.table-grid .grid-header-cell.actions-column span {
+    display: block !important;
+    text-align: center !important;
+    width: 100% !important;
+    font-weight: 600 !important;
+}
+
+/* Action buttons container - centered within the cell */
+.table-grid .grid-cell.actions-column .action-buttons {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+}
+
+/* Individual action buttons - consistent sizing */
+.table-grid .grid-cell.actions-column .action-btn {
+    padding: 4px !important;
+    min-width: 26px !important;
+    height: 26px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    background: transparent !important;
+    border-radius: 4px !important;
+    color: #666 !important;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.table-grid .grid-cell.actions-column .action-btn:hover {
+    background: #e3f2fd;
+    color: #007bff;
+}
+
+.table-grid .grid-cell.actions-column .action-btn:focus,
+.table-grid .grid-cell.actions-column .action-btn:focus-visible {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+}
+
+.table-grid .grid-cell.actions-column .action-btn i {
+    font-size: 14px;
+}
+
+/* Checkbox styling */
+.table-grid .grid-cell.select-cell input[type="checkbox"],
+.table-grid .grid-header-cell.select-cell input[type="checkbox"] {
+    margin: 0;
+    padding: 0;
+    cursor: pointer;
+    width: 16px;
+    height: 16px;
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.table-grid .row-checkbox {
+    margin: 0;
+    width: 16px;
+    height: 16px;
+}
+
+/* ====================================================
+   REDUCE SPACING BETWEEN BUTTONS AND TABLE
+   ==================================================== */
+
+.main-content .results-header {
+    margin-bottom: 8px;
+    padding-top: 5px;
+    padding-bottom: 0;
+}
+
+.main-content .results-controls {
+    margin-bottom: 8px;
+    margin-top: 0;
+    padding: 0;
+}
+
+#tableView {
+    margin-top: 0;
+    padding-top: 0;
+}
+
+.certificates-grid {
+    margin-top: 0;
+}
+
+/* Loading indicator visibility */
+.loading-indicator {
+    display: none;
+    padding: 10px;
+}
+
+.loading-indicator.active {
+    display: flex;
+}
+
+/* ====================================================
+   READABLE COMPACT TABLE LAYOUT
+   ==================================================== */
+
+/* Header cells - 16px min per Master Design Guide */
+.table-grid .grid-header-cell {
+    min-height: 40px;
+    padding: 8px 10px;
+    font-size: 16px;
+    font-weight: 600;
+    white-space: normal;
+    word-wrap: break-word;
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Sort icon - inline, no wrap */
+.table-grid .grid-header-cell .sort-indicator {
+    flex-shrink: 0;
+    white-space: nowrap;
+    margin-left: 4px;
+}
+
+/* Body cells - 16px min per Master Design Guide */
+.table-grid .grid-cell {
+    min-height: 36px;
+    padding: 6px 10px;
+    font-size: 16px;
+    line-height: 1.4;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    max-width: 100%;
+    color: #333;
+}
+
+/* Short data columns stay single line */
+.table-grid .grid-cell[data-column="status"],
+.table-grid .grid-cell[data-column="effectiveDate"],
+.table-grid .grid-cell[data-column="expirationDate"],
+.table-grid .grid-cell[data-column="country"],
+.table-grid .grid-cell[data-column="asin"],
+.table-grid .grid-cell[data-column="upc"],
+.table-grid .grid-cell[data-column="gtin"],
+.table-grid .grid-cell[data-column="ean"] {
+    white-space: nowrap;
+}
+
+/* Grid rows and header inherit template */
+.table-grid .grid-header,
+.table-grid .grid-body,
+.table-grid .grid-row {
+    display: contents;
+}
+
+/* Grid cells respect column widths */
+.table-grid .grid-cell,
+.table-grid .grid-header-cell {
+    box-sizing: border-box;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Zebra striping */
+.table-grid .grid-row:nth-child(even) .grid-cell {
+    background: #fafafa;
+}
+
+.table-grid .grid-row:hover .grid-cell {
+    background: #e8f4fc;
+}
+
+.table-grid .grid-row:nth-child(even):hover .grid-cell {
+    background: #e8f4fc;
+}
+
+/* Status badge - 14px min for badges */
+.table-grid .grid-cell .status-badge {
+    padding: 4px 10px;
+    font-size: 14px;
+}
+
+/* Date columns - monospace for alignment */
+.table-grid .grid-cell[data-column="effectiveDate"],
+.table-grid .grid-cell[data-column="expirationDate"] {
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-size: 16px;
+}
+
+/* Certificate number styling */
+.table-grid .grid-cell[data-column="certificateNumber"] {
+    font-family: inherit;
+    font-weight: 500;
+    color: inherit;
+    font-size: 16px;
+}
+
+/* Certificate # column alignment */
+.grid-cell[data-column="certificateNumber"],
+.grid-header-cell[data-sort-column="certificate"] {
+    font-weight: 600;
+    justify-content: flex-start;
+    text-align: left;
+    padding-left: 8px;
+}
+
+/* Product name width fix */
+.certificate-card .product-name {
+    max-width: 100%;
+    width: 100%;
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+}
+
+/* ====================================================
+   INTERNAL VIEW SPECIFIC - Edit Button
+   ==================================================== */
+
+.action-icon.edit {
+    color: #007bff;
+}
+
+.action-icon.edit:hover {
+    color: #0056b3;
+    background-color: #e3f2fd;
+}
+
+.action-btn.edit,
+.action-btn.edit-btn {
+    color: #007bff;
+}
+
+.action-btn.edit:hover,
+.action-btn.edit-btn:hover {
+    color: #0056b3;
+    background-color: #e3f2fd;
 }
 

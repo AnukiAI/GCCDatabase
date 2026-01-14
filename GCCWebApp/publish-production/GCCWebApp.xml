@@ -205,6 +205,16 @@
             Upload a certificate file (Admin only)
             </summary>
         </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.GenerateThumbnail(Microsoft.AspNetCore.Http.IFormFile,System.String)">
+            <summary>
+            Generate a thumbnail preview from a PDF file (AJAX endpoint for real-time preview)
+            </summary>
+            <remarks>
+            This endpoint generates a thumbnail from the first page of a PDF file
+            without requiring the certificate to be saved first. Used for real-time
+            preview during certificate creation/editing.
+            </remarks>
+        </member>
         <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.DownloadCertificateFile(System.Int32)">
             <summary>
             Download a certificate file

@@ -201,7 +201,7 @@
             });
         },
 
-        handleFile: function(file, input, previewContainer) {
+        handleFile: async function(file, input, previewContainer) {
             // Validate file type
             if (file.type !== 'application/pdf') {
                 ModalSystem.showNotification('Please select a valid PDF file.', 'error');
@@ -217,7 +217,7 @@
                 return;
             }
 
-            // Show preview
+            // Show file info preview
             const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
             previewContainer.innerHTML = `
                 <div class="preview-item" style="margin-top: 16px; padding: 16px; border: 1px solid var(--border-color); border-radius: 4px; display: flex; align-items: center; gap: 12px; background: var(--light-gray);">
@@ -238,14 +238,115 @@
                 uploadZone.style.animation = '';
             }
 
-            ModalSystem.showNotification('PDF uploaded successfully!', 'success');
+            // Show loading spinner in sidebar preview container
+            const sidebarPreview = document.querySelector('.preview-container');
+            if (sidebarPreview) {
+                sidebarPreview.innerHTML = `
+                    <div class="thumbnail-loading" style="text-align: center; padding: 40px 20px;">
+                        <div style="
+                            width: 40px;
+                            height: 40px;
+                            border: 3px solid #e0e0e0;
+                            border-top-color: #00AEEF;
+                            border-radius: 50%;
+                            animation: spin 1s linear infinite;
+                            margin: 0 auto 16px;
+                        "></div>
+                        <p style="color: #002B76; margin: 0; font-weight: 500;">Generating preview...</p>
+                        <small style="color: #6c757d;">This may take a few seconds</small>
+                    </div>
+                `;
+            }
+
+            // Call API to generate thumbnail
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                // Get certificate number if available (for naming)
+                const certNumberInput = document.getElementById('Number');
+                if (certNumberInput && certNumberInput.value) {
+                    formData.append('certificateNumber', certNumberInput.value);
+                }
+
+                const response = await fetch('/api/CertificatesApi/GenerateThumbnail', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    }
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success && result.thumbnailUrl) {
+                    // Display thumbnail in sidebar with zoom functionality
+                    if (sidebarPreview) {
+                        sidebarPreview.innerHTML = `
+                            <img id="certificateImagePreviewImg"
+                                 src="${result.thumbnailUrl}"
+                                 alt="Certificate Preview"
+                                 style="max-width: 100%; max-height: 100%; object-fit: contain; cursor: pointer;"
+                                 onclick="typeof openImageZoom === 'function' && openImageZoom('${result.thumbnailUrl}')"
+                            />
+                            <div class="zoom-icon-overlay" onclick="typeof openImageZoom === 'function' && openImageZoom('${result.thumbnailUrl}')" title="Click to zoom"
+                                 style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 6px 10px; border-radius: 4px; font-size: 12px; cursor: pointer;">
+                                <i class="fas fa-search-plus"></i>
+                            </div>
+                        `;
+                    }
+
+                    // Store thumbnail path in hidden input
+                    const hiddenInput = document.getElementById('certificateImagePathHidden') || document.getElementById('CertificateImagePath');
+                    if (hiddenInput) {
+                        hiddenInput.value = result.thumbnailPath;
+                    }
+
+                    ModalSystem.showNotification('PDF uploaded and preview generated!', 'success');
+                } else {
+                    throw new Error(result.message || 'Failed to generate preview');
+                }
+            } catch (error) {
+                console.error('Thumbnail generation failed:', error);
+
+                // Show fallback state but keep the file selected
+                if (sidebarPreview) {
+                    sidebarPreview.innerHTML = `
+                        <div class="no-preview" style="text-align: center; color: #6c757d;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #FFC107; margin-bottom: 12px; display: block;"></i>
+                            <p style="font-size: 14px; font-weight: 600; color: #6c757d; margin: 0 0 4px 0;">Preview unavailable</p>
+                            <small style="color: #adb5bd; font-size: 11px;">Preview will be generated when you save</small>
+                        </div>
+                    `;
+                }
+
+                ModalSystem.showNotification('PDF uploaded. Preview will be generated on save.', 'warning');
+            }
         },
 
         removePdfPreview: function() {
             const previewContainer = document.getElementById('pdfPreviewContainer');
             const pdfInput = document.getElementById('certificatePdf');
+            const sidebarPreview = document.querySelector('.preview-container');
+            const hiddenInput = document.getElementById('certificateImagePathHidden') || document.getElementById('CertificateImagePath');
+
+            // Clear file info preview
             if (previewContainer) previewContainer.innerHTML = '';
             if (pdfInput) pdfInput.value = '';
+
+            // Reset sidebar preview to placeholder state
+            if (sidebarPreview) {
+                sidebarPreview.innerHTML = `
+                    <div class="no-preview" style="text-align: center; color: #6c757d;">
+                        <i class="fas fa-file-pdf" style="font-size: 48px; color: #adb5bd; margin-bottom: 12px; display: block;"></i>
+                        <p style="font-size: 14px; font-weight: 600; color: #6c757d; margin: 0 0 4px 0;">Certificate Unavailable</p>
+                        <small style="color: #adb5bd; font-size: 11px;">Upload a PDF to generate preview</small>
+                    </div>
+                `;
+            }
+
+            // Clear stored thumbnail path
+            if (hiddenInput) hiddenInput.value = '';
         }
     };
 

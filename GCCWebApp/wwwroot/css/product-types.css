@@ -428,8 +428,8 @@ body {
 
 .action-btn {
     padding: 4px 6px;
-    border: 1px solid #ddd;
-    background: white;
+    border: none;
+    background: none;
     border-radius: var(--border-radius-sm);
     cursor: pointer;
     color: #666;
@@ -450,8 +450,7 @@ body {
 
         .action-btn.edit:hover {
             color: #0095cc;
-            background: rgba(0, 174, 239, 0.15);
-            border-color: #00AEEF;
+            background: rgba(0, 174, 239, 0.1);
             transform: scale(1.1);
         }
 
@@ -462,8 +461,7 @@ body {
 
         .action-btn.add:hover {
             color: #7fb835;
-            background: rgba(146, 200, 62, 0.15);
-            border-color: #92C83E;
+            background: rgba(146, 200, 62, 0.1);
             transform: scale(1.1);
         }
 
@@ -474,8 +472,7 @@ body {
 
         .action-btn.delete:hover {
             color: #e04545;
-            background: rgba(255, 82, 82, 0.15);
-            border-color: #FF5252;
+            background: rgba(255, 82, 82, 0.1);
             transform: scale(1.1);
         }
 

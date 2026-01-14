@@ -849,11 +849,11 @@ th,
 }
 
 .btn-delete:hover {
-    background-color: #fee;
+    background-color: rgba(255, 82, 82, 0.1);
 }
 
 .btn-edit:hover {
-    background-color: #eef;
+    background-color: rgba(0, 174, 239, 0.1);
 }
 
 .btn-save, .btn-cancel {
@@ -4424,8 +4424,8 @@ footer {
 
     .table-actions .action-btn {
         padding: 6px 8px;
-        border: 1px solid #ddd;
-        background: white;
+        border: none;
+        background: none;
         border-radius: 4px;
         cursor: pointer;
         color: #666;
@@ -4434,15 +4434,13 @@ footer {
     }
 
         .table-actions .action-btn:hover.download {
-            background: #2c5530;
-            color: white;
-            border-color: #2c5530;
+            background: rgba(44, 85, 48, 0.1);
+            color: #2c5530;
         }
 
         .table-actions .action-btn:hover.view {
-            background: #007bff;
-            color: white;
-            border-color: #007bff;
+            background: rgba(0, 123, 255, 0.1);
+            color: #007bff;
         }
 
 .multi-select-actions {
@@ -5858,8 +5856,8 @@ input[type="checkbox"] {
 /* Action Buttons */
 .action-btn {
     padding: 4px 6px;
-    border: 1px solid #ddd;
-    background: white;
+    border: none;
+    background: none;
     border-radius: 4px;
     cursor: pointer;
     color: #666;
@@ -5874,21 +5872,18 @@ input[type="checkbox"] {
 }
 
     .action-btn:hover.edit {
-        background: #00AEEF;
-        color: white;
-        border-color: #00AEEF;
+        background: rgba(0, 174, 239, 0.1);
+        color: #00AEEF;
     }
 
     .action-btn:hover.download {
-        background: #7CB342;
-        color: white;
-        border-color: #7CB342;
+        background: rgba(124, 179, 66, 0.1);
+        color: #7CB342;
     }
 
     .action-btn:hover.view {
-        background: #007bff;
-        color: white;
-        border-color: #007bff;
+        background: rgba(0, 123, 255, 0.1);
+        color: #007bff;
     }
 
 /* Bulk Actions Bar */

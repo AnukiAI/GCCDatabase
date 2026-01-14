@@ -357,6 +357,45 @@
 }
 
 /* =============================================================================
+   ADMIN INLINE ACTION BUTTONS - Standardized icon buttons
+   ============================================================================= */
+
+.admin-inline-action-btn {
+    background: none !important;
+    border: none !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    font-size: 14px !important;
+    transition: all 0.2s ease !important;
+    border-radius: 4px !important;
+    width: 32px !important;
+    height: 32px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.admin-inline-action-btn--edit {
+    color: #00AEEF !important;
+}
+
+.admin-inline-action-btn--edit:hover {
+    background-color: rgba(0, 174, 239, 0.15) !important;
+    color: #0095cc !important;
+    transform: scale(1.1);
+}
+
+.admin-inline-action-btn--delete {
+    color: #FF5252 !important;
+}
+
+.admin-inline-action-btn--delete:hover {
+    background-color: rgba(255, 82, 82, 0.15) !important;
+    color: #e04545 !important;
+    transform: scale(1.1);
+}
+
+/* =============================================================================
    RESPONSIVE DESIGN
    ============================================================================= */
 

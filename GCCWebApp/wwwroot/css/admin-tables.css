@@ -200,7 +200,6 @@
 .partners-table tbody tr:nth-child(even),
 #user-table tbody tr:nth-child(even),
 #tag-table tbody tr:nth-child(even),
-#company-table tbody tr:nth-child(even),
 #partners-table tbody tr:nth-child(even) {
     background: var(--admin-table-row-alt);
 }
@@ -211,7 +210,6 @@
 .partners-table tbody tr:hover,
 #user-table tbody tr:hover,
 #tag-table tbody tr:hover,
-#company-table tbody tr:hover,
 #partners-table tbody tr:hover {
     background: var(--admin-table-row-hover);
 }

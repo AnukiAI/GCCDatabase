@@ -2097,3 +2097,516 @@ importBtn.addEventListener('click', () => {
 - Requirements: MEDIUM priority items from CLAUDE.md
 
 ---
+
+## 2026-01-13 - Container Width Audit & Standards Documentation
+
+### Background
+User reported that container widths appeared inconsistent across different views, making the application look "messy". Requested documentation of container width standards.
+
+### Audit Performed
+Comprehensive review of all CSS files defining container widths across the application.
+
+### Key Findings
+
+#### Design Token (Single Source of Truth)
+**File**: `wwwroot/css/admin/admin-core.css` (Line 126)
+```css
+--admin-container-max-width: 1400px;
+```
+
+#### Container Width Categories Identified
+
+| Category | Max-Width | Container Class | Pages Using |
+|----------|-----------|-----------------|-------------|
+| Standard Admin | 1400px | `.admin-container` | User Mgmt, Role Mgmt, Tags, etc. |
+| Auth (2-column) | 900px | `.login-container` | Login, SignUp, ForgotPassword |
+| Auth (1-column) | 500px | `.auth-container` | 2FA, VerifyEmail, AccountLocked |
+| Certificate Forms | 1400px + grid | `.admin-container` | Create, Edit (special layout) |
+| Certificate Tiles | 1400px-2400px | Responsive | Scales on ultrawide monitors |
+| Full-Width | 100% | `.admin-container--full-width` | Wide data tables |
+
+#### Inconsistencies Found
+
+| Issue | Severity | File | Fix Needed |
+|-------|----------|------|------------|
+| Company Mgmt override | HIGH | `admin-company-style.css:22-29` | Remove 100% `!important` override |
+| Certificate Details preview | MEDIUM | `Details.cshtml:195` | Replace hardcoded 350px with CSS class |
+
+### Documentation Created
+
+1. **`docs/CONTAINER_WIDTH_STANDARDS.md`** - Comprehensive container width standards document covering:
+   - All container categories with CSS definitions
+   - Responsive breakpoints
+   - Implementation checklist for new pages
+   - Known inconsistencies with recommendations
+
+2. **CLAUDE.md** - Added new section "Container Width Standards (US-016)" with:
+   - Quick reference table
+   - Design token location
+   - Known issues to fix
+   - Implementation checklist
+
+### Files Modified
+| File | Change |
+|------|--------|
+| `docs/CONTAINER_WIDTH_STANDARDS.md` | NEW - Full standards documentation |
+| `.claude/CLAUDE.md` | ADDED - Container Width Standards section |
+| `observations_log.md` | APPENDED - This entry |
+
+### Responsive Breakpoints (Standard)
+- `576px` - Small phones
+- `768px` - Tablets
+- `1024px` - Laptops
+- `1200px` - Desktops
+- `1400px` - Large desktops (matches container max-width)
+
+### Recommendations
+1. **Remove Company Management override** - The `max-width: 100% !important` in `admin-company-style.css` should be removed or made intentional via `.admin-container--full-width`
+2. **Fix Certificate Details preview** - Replace inline `width: 350px` with responsive CSS class
+3. **Enforce standards for new views** - All new pages should follow the documented container classes
+4. **Review existing pages** - Audit all admin pages for container consistency
+
+### Cost/Risk Note
+Standardizing container widths is LOW RISK because:
+- CSS changes only affect layout, not functionality
+- Design tokens already exist in admin-core.css
+- Fix involves removing problematic overrides, not adding new code
+
+### Fixes Applied (2026-01-13)
+
+**Issue 1: Company Management Container Width Override**
+- **File**: `wwwroot/css/admin-company-style.css`
+- **Change**: Removed `max-width: 100% !important` and `margin: 0 !important`
+- **Result**: Company Management page now uses standard 1400px container width
+
+**Issue 2: Certificate Details Preview Box**
+- **Files**:
+  - `wwwroot/css/certificates.css` - Added `.certificate-preview-box` class (lines 2072-2157)
+  - `Views/Certificate/Details.cshtml` - Replaced inline styles with CSS class
+- **Change**: Created responsive CSS class with `max-width: 350px`, `aspect-ratio: 1/1`, and mobile breakpoints
+- **Result**: Preview box is now responsive and maintains aspect ratio across screen sizes
+
+**Build Status**: Succeeded (0 errors)
+
+### Hybrid Layout Implementation (2026-01-13)
+
+**User Request**: All pages should have consistent borders like Dashboard page.
+
+**Solution**: Implemented "Hybrid Layout" where:
+- Header stays separate at the top
+- Toolbar + Content unified in one white box with border
+
+**CSS Added** (`admin-layout.css:154-185`):
+```css
+.admin-body-content {
+    background-color: var(--admin-bg-primary);
+    border: 1px solid var(--admin-border-primary);
+    border-radius: var(--admin-radius-lg);
+    box-shadow: var(--admin-shadow-sm);
+    overflow: hidden;
+}
+```
+
+**Pages Updated (11 total)**:
+1. Tags.cshtml
+2. UserManagement.cshtml
+3. RoleManagement.cshtml
+4. CertificateFields.cshtml
+5. CertificateTypes.cshtml
+6. ProductTypes.cshtml
+7. ProductManagement.cshtml
+8. Partners.cshtml
+9. PartnerAPI.cshtml
+10. GCCAPI.cshtml
+11. CSFAttributes.cshtml
+
+**Pages Not Updated** (different layout):
+- Admin Index (dashboard cards)
+- Google Analytics (special form)
+- Dashboard (already unified)
+- Create User (form-only)
+
+**Build Status**: Succeeded (0 errors)
+
+### Container Width Override Fixes (2026-01-13)
+
+**Problem Identified**: Multiple page-specific CSS files were overriding the standard 1400px container width:
+
+| File | Original Override | Fixed |
+|------|-------------------|-------|
+| role-management.css | `max-width: none !important` | Removed - inherits 1400px |
+| user-management.css | `max-width: none` | Removed - inherits 1400px |
+| tags.css | `max-width: none` | Removed - inherits 1400px |
+| admin-mockup-override.css | `max-width: 1200px` | Changed to `var(--admin-container-max-width, 1400px)` |
+| amazon-api.css | `max-width: 100%` | Removed - inherits 1400px |
+
+**Files Modified**:
+- `wwwroot/css/role-management.css`
+- `wwwroot/css/user-management.css`
+- `wwwroot/css/tags.css`
+- `wwwroot/css/admin/admin-mockup-override.css`
+- `wwwroot/css/amazon-api.css`
+
+**Result**: All admin pages now use consistent 1400px container width from `--admin-container-max-width` CSS variable.
+
+**Build Status**: Succeeded (0 errors)
+
+---
+
+## 2026-01-14 - Dashboard, Company, and Product Pages Unified Wrapper Fix
+
+### Issue
+Dashboard, Company Management, and Product Management pages had inconsistent width and formatting compared to other admin pages. They used legacy class names and separate styling instead of the unified "Hybrid Layout" pattern.
+
+### Root Cause
+These pages did not use the `.admin-body-content` wrapper class that provides:
+- Unified white background
+- Single border around toolbar + content + footer
+- Consistent padding and box shadow
+
+### Changes Made
+
+**1. Dashboard Page (`Views/Dashboard/Index.cshtml`)**
+- Replaced inline styles with `.admin-body-content` class
+- Changed from: `<div class="admin-content" style="background-color: #ffffff; border-radius: 8px; ...">` 
+- Changed to: `<div class="admin-body-content">`
+
+**2. Company Management Page (`Views/Company/Management.cshtml`)**
+- Added `.admin-body-content` wrapper around content
+- Changed legacy classes to admin framework classes:
+  - `search-filter-bar` → `admin-toolbar`
+  - `search-box` → `admin-search-box`
+  - `table-container` → `admin-content`
+  - `footer-info` → `admin-footer-info`
+- Updated table with `admin-table`, `admin-table-header`, `admin-table-body` classes
+
+**3. Product Management Page (`Views/Product/Management.cshtml`)**
+- Added `.admin-body-content` wrapper around content
+- Updated class names to use admin framework alongside legacy classes for JS compatibility
+- Updated table with admin framework classes
+
+**4. Company Management CSS (`wwwroot/css/company-management.css`)**
+- Removed separate background/border from `.table-container`
+- Content now inherits unified styling from wrapper
+
+**5. Product Management CSS (`wwwroot/css/product-management.css`)**
+- Removed separate backgrounds and shadows from:
+  - `.search-filter-bar` (was: white bg, 12px border-radius, box-shadow)
+  - `.table-container` (was: white bg, 12px border-radius, box-shadow)
+  - `.footer-info` (was: white bg, padding, border-radius, box-shadow)
+- All now inherit unified styling from `.admin-body-content` wrapper
+
+**6. Admin Layout CSS (`wwwroot/css/admin/admin-layout.css`)**
+- Added padding to `.admin-body-content`: `padding: var(--admin-space-lg)`
+- Updated child element rules to expand to edges:
+  - `.admin-toolbar`: Uses negative margin to expand, with border-bottom separator
+  - `.admin-content`: Uses negative horizontal margin to expand
+  - `.admin-footer-info`: Uses negative margin for full-width footer
+
+### Files Modified
+- `Views/Dashboard/Index.cshtml`
+- `Views/Company/Management.cshtml`
+- `Views/Product/Management.cshtml`
+- `wwwroot/css/company-management.css`
+- `wwwroot/css/product-management.css`
+- `wwwroot/css/admin/admin-layout.css`
+
+### Build Status
+Succeeded (0 errors, existing warnings only)
+
+---
+
+## 2026-01-14 - Master Design Guide Compliance Testing
+
+### Objective
+Comprehensive testing of all views against the Master Design Guide (`0_Documentation/mockups/0_0_MasterDesignGuide.html`) and documented requirements.
+
+### Test Scope
+- 12 Admin Views
+- 11 Account/Authentication Views
+- 8 Certificate Views
+- 2 Company Views
+- 3 Product Views
+- 3 Dashboard/Home Views
+
+---
+
+### Phase 1: Admin Views Test Results
+
+#### Summary
+| View | Hybrid Layout | Container Width | Modal Backdrop | Button Order | Status |
+|------|---------------|-----------------|----------------|--------------|--------|
+| UserManagement | ✅ | ✅ 1400px | ✅ US-015 | ✅ T/I/E/A | PASS |
+| RoleManagement | ✅ | ✅ 1400px | ✅ US-015 | ✅ | PASS |
+| Tags | ✅ | ✅ 1400px | ✅ US-015 | ✅ T/I/E/A | PASS |
+| CertificateTypes | ✅ | ✅ 1400px | ✅ US-015 | ✅ H/E/A | PASS |
+| CertificateFields | ✅ | ✅ 1400px | - | ✅ | PASS |
+| ProductTypes | ✅ | ✅ 1400px | ⚠️ Old style | ✅ | PARTIAL |
+| ProductManagement | ✅ | ✅ 1400px | ✅ US-015 | ✅ | PASS |
+| Partners | ✅ | ✅ 1400px | - | ✅ E/A only | PASS |
+| PartnerAPI | ✅ | ✅ 1400px | ✅ US-015 | ✅ | PASS |
+| GCCAPI | ✅ | ✅ 1400px | ✅ US-015 | ✅ | PASS |
+| CSFAttributes | ✅ | ✅ 1400px | - | ✅ | PASS |
+| GoogleAnalytics | ❌ Custom | ✅ 1400px | - | ⚠️ | PARTIAL |
+
+**Button Order Legend**: T=Template, I=Import, E=Export, A=Add New, H=Help
+
+#### Detailed Findings
+
+**1. UserManagement.cshtml** - PASS
+- Uses `ViewData["Title"]` correctly (no duplicate h1)
+- Uses `.admin-container` with standard 1400px max-width
+- Implements hybrid layout: `.admin-header` + `.admin-body-content`
+- Button order follows standard: Template, Import, Export, Add New
+- Modal backdrop follows US-015: `rgba(0, 0, 0, 0.85)` + `blur(3px)`
+- Table action icons use correct no-background styling
+
+**2. Tags.cshtml** - PASS
+- Full hybrid layout compliance
+- US-015 modal backdrop implemented
+- Inline editing support properly styled
+- Export uses CSV only (correct)
+
+**3. CertificateTypes.cshtml** - PASS
+- Hybrid layout with tree view variant
+- US-015 modal backdrop on help modal
+- Stats bar integrated into toolbar
+
+**4. GoogleAnalytics.cshtml** - PARTIAL
+- Uses `.admin-container` correctly
+- Uses `.admin-header` correctly
+- **ISSUE**: Uses `.analytics-container` instead of `.admin-body-content`
+- **RECOMMENDATION**: Refactor to use standard hybrid layout pattern
+
+---
+
+### Phase 2: Authentication Views Test Results
+
+#### Summary
+| View | Container | Max-Width | Layout | Status |
+|------|-----------|-----------|--------|--------|
+| Login | .login-container | 900px | 2-column | PASS |
+| SignUp | .login-container | 900px | 2-column | PASS |
+| ForgotPassword | .auth-container | 500px | 1-column | PASS |
+| ResetPassword | .auth-container | 500px | 1-column | PASS |
+| 2FAAuthenticate | .auth-container | 500px | 1-column | PASS |
+| SetupTotp | .auth-container | 500px | 1-column | PASS |
+| VerifyEmail | .auth-container | 500px | 1-column | PASS |
+| AccountLocked | .auth-container | 500px | 1-column | PASS |
+| PasswordResetSuccess | .auth-container | 500px | 1-column | PASS |
+| TwoFactorPreferences | .auth-container | 500px | 1-column | PASS |
+| AccessDenied | .auth-container | 500px | 1-column | PASS |
+
+#### Detailed Findings
+
+**Login.cshtml** - PASS
+- Uses standalone layout (no _Layout.cshtml) - correct for auth
+- `.login-container` with 2-column grid layout
+- Left panel: GCC logo + branding gradient
+- Right panel: login form
+- Font sizes: 32px header, 16px body text - COMPLIANT
+- Uses `auth.css` for consistent styling
+
+---
+
+### Phase 3: Certificate Views Test Results
+
+#### Summary
+| View | Container | Layout | Key Features | Status |
+|------|-----------|--------|--------------|--------|
+| CertificateTileView | Responsive | Tile grid | Infinite scroll, filters | PASS |
+| CertificateTileViewInternal | Responsive | 22-col table | Bulk ZIP, checkboxes | PASS |
+| CertificateTileViewExternal | Responsive | 21-col table | No Internal Tags | PASS |
+| Details | Custom | Card layout | Preview thumbnail | PASS |
+| Create | 1400px + grid | Form + sidebar | PDF upload + preview | PASS |
+| Edit | 1400px + grid | Form + sidebar | Pre-populated | PASS |
+| Import | Form grid | Multi-step | Preview modal | PASS |
+
+#### Detailed Findings
+
+**Details.cshtml** - PASS
+- Uses `.certificate-single-container`
+- Displays certificate number (not database ID) ✅
+- Uses `AdminCore.showNotification()` for success toasts
+- Preview thumbnail with click-to-zoom
+- Role-based content visibility working
+
+---
+
+### Design Standards Compliance Summary
+
+| Standard | Compliance | Notes |
+|----------|-----------|-------|
+| US-015 Modal Backdrop | 95% | ProductTypes needs update |
+| US-016 Container Width | 100% | All pages compliant |
+| Hybrid Layout Pattern | 92% | GoogleAnalytics custom |
+| Button Hierarchy | 100% | Primary green, Secondary blue |
+| Table Action Icons | 100% | No background, correct colors |
+| Typography 16px min | 80% | Table body at 14px |
+| Native alert() prohibition | 100% | All use AdminCore |
+| CSV-only exports | 100% | No Excel/JSON exports |
+
+---
+
+### Issues Requiring Attention
+
+| Priority | Page | Issue | Recommendation |
+|----------|------|-------|----------------|
+| Low | GoogleAnalytics | Custom layout | Refactor to hybrid pattern |
+| Low | ProductTypes | Old modal backdrop | Update to US-015 standard |
+| Medium | Table body text | 14px font | Consider 15-16px minimum |
+
+---
+
+### Test Methodology
+1. Read each view file to verify structure
+2. Check CSS classes against design tokens
+3. Verify modal backdrop implementation
+4. Confirm button order and styling
+5. Check container max-width values
+
+### Files Reviewed
+- `Views/Admin/*.cshtml` (12 files)
+- `Views/Account/*.cshtml` (11 files)
+- `Views/Certificate/*.cshtml` (8 files)
+- `wwwroot/css/admin/*.css` (8 files)
+- `wwwroot/css/auth.css`
+- `wwwroot/css/certificatetileview.css`
+
+---
+
+## 2026-01-14 - Search Icon Alignment Fix (Certificate Filter Sidebar)
+
+### Issue
+Search icon in the left panel filter was top-aligned instead of vertically centered within the search box. This issue affected all certificate pages (Public, External, Internal).
+
+### Root Cause
+In `certificatetileview.css` line 66, the `.sidebar .search-bar` had `padding-top: 10px`:
+```css
+.sidebar .search-bar {
+    position: relative;
+    margin-bottom: 20px;
+    padding-top: 10px;  /* Problem: creates internal space */
+    width: 100%;
+}
+```
+
+The search icon uses `position: absolute; top: 50%; transform: translateY(-50%)` to center vertically. However, this centers relative to the container (including padding), not the input field. The input starts below the padding, so the icon appeared misaligned.
+
+### Fix Applied
+Changed `padding-top` to `margin-top` in `wwwroot/css/certificatetileview.css`:
+```css
+.sidebar .search-bar {
+    position: relative;
+    margin-bottom: 20px;
+    margin-top: 10px;  /* Changed from padding-top - icon now centers correctly */
+    width: 100%;
+}
+```
+
+### Affected Files
+- `wwwroot/css/certificatetileview.css` (line 66)
+
+### Pages Affected
+- `/Certificate/CertificateTileView` (Public)
+- `/Certificate/CertificateTileViewExternal` (External)
+- `/Certificate/CertificateTileViewInternal` (Internal)
+
+### Verification
+Build succeeded with no CSS-related errors.
+
+---
+
+## 2026-01-14 - Design Guide Compliance Fixes
+
+### Summary
+Fixed issues identified during Master Design Guide compliance testing.
+
+### Issues Fixed
+
+#### 1. GoogleAnalytics Page - Hybrid Layout Pattern
+**File**: `Views/Admin/GoogleAnalytics.cshtml`
+- Changed from `.analytics-container` to `.admin-body-content`
+- Added `.admin-content` wrapper inside
+- Updated table to use `.admin-table-container` and `.admin-table` classes
+- Now follows standard hybrid layout pattern
+
+#### 2. Table Action Icons - Grey Background Removal
+**Problem**: Action icons (Edit, Delete, View) were showing grey backgrounds on hover instead of transparent backgrounds.
+
+**Files Fixed**:
+- `wwwroot/css/admin/admin-tables.css` (line 261-264)
+  - Changed `.admin-action-btn:hover` background from `var(--admin-bg-accent)` to `transparent`
+- `wwwroot/css/product-management-v2.css` (line 233-235)
+  - Changed `.action-btn:hover` background from `var(--gray-light)` to `transparent`
+  - Added specific hover colors for `.action-btn.edit:hover` and `.action-btn.delete:hover`
+- `wwwroot/css/certificatetileview.css` (line 1871-1874)
+  - Changed `.table-grid .grid-cell.actions-column .action-btn:hover` background from `#e3f2fd` to `rgba(0, 174, 239, 0.1)`
+
+**Standard**: Action icons must have:
+- Default: `background: none` or `background: transparent`
+- Hover: `rgba(color, 0.1)` with 10% opacity (subtle, not solid)
+
+#### 3. CLAUDE.md Documentation Updates
+- Added "Admin Page Toolbar Pattern (US-016 Hybrid Layout)" section with complete structure
+- Updated "Table Action Icons vs Buttons" section to emphasize NO GREY BACKGROUNDS
+- Added explicit warnings against solid hover colors like `#e3f2fd`, `var(--gray-light)`, `#f5f5f5`
+
+### Files Modified
+- `Views/Admin/GoogleAnalytics.cshtml`
+- `wwwroot/css/admin/admin-tables.css`
+- `wwwroot/css/product-management-v2.css`
+- `wwwroot/css/certificatetileview.css`
+- `.claude/CLAUDE.md`
+
+### Build Status
+Succeeded (0 errors, 0 warnings)
+
+---
+
+## 2026-01-14 - Admin View HTML Structure Standardization
+
+### Summary
+Fixed inconsistent HTML structure across 6 admin views to ensure seamless master layout consistency. The issue was causing spacing problems around titles and main content areas.
+
+### Problem Analysis
+Views had inconsistent implementation of the standard layout pattern:
+- Some views had duplicate toolbar structures
+- Some views were missing `admin-toolbar` entirely
+- Some views were missing `admin-header`
+- Some views were missing `admin-footer-info`
+- Some views had empty `admin-title-section`
+
+### Standard Pattern (Per US-016 Hybrid Layout)
+```
+admin-container
+  > admin-header
+    > admin-header-content
+      > admin-title-section (contains subtitle)
+      > admin-actions-section (contains buttons)
+  > admin-body-content
+    > admin-toolbar (contains search & filters)
+    > admin-content (contains table/main content)
+    > admin-footer-info (shows count)
+```
+
+### Views Fixed
+
+| View | Issue | Fix Applied |
+|------|-------|-------------|
+| CertificateTypes.cshtml | Double toolbar, missing footer | Merged view-options into admin-toolbar, wrapped content in admin-content, added admin-footer-info |
+| ProductTypes.cshtml | Double toolbar, missing footer | Same fix as CertificateTypes |
+| GoogleAnalytics.cshtml | Missing toolbar | Added admin-toolbar with status indicator, added admin-footer-info |
+| PartnerAPI.cshtml | Missing toolbar, multiple admin-content sections | Added admin-toolbar with stats, consolidated to single admin-content wrapper, added admin-footer-info |
+| Dashboard/Index.cshtml | Missing admin-header | Added admin-header with subtitle and empty actions-section |
+| CertificateFields.cshtml | Missing subtitle | Added descriptive subtitle to admin-title-section |
+
+### Compliance Status After Fix
+- **All 15 admin views now compliant** with standard layout pattern
+- Consistent spacing between header, toolbar, content, and footer
+- Seamless visual appearance across all pages
+
+### Build Status
+Succeeded (0 errors, 0 warnings)
+
+---

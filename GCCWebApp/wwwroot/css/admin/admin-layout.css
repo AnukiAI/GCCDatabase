@@ -60,6 +60,14 @@
     line-height: var(--admin-line-height-normal);
 }
 
+/* ===== PAGE HEADER FROM LAYOUT (Remove border for admin pages) ===== */
+/* Override the .page-header border from main.css for consistent admin styling */
+.page-header {
+    border-bottom: none;
+    padding: 16px 0 0 0;
+    margin-bottom: 0;
+}
+
 .admin-actions-section {
     display: flex;
     align-items: center;
@@ -89,27 +97,27 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background-color: var(--admin-bg-primary);
+    background-color: transparent;
     border: 1px solid var(--admin-border-primary);
     border-radius: var(--admin-radius-md);
     padding: var(--admin-space-md);
     margin-bottom: var(--admin-space-lg);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: var(--admin-space-md);
     box-shadow: var(--admin-shadow-xs);
 }
 
 .admin-search-section {
-    flex: 1;
-    min-width: 200px;
-    max-width: 100%;
+    flex: 0 1 220px;
+    min-width: 150px;
+    max-width: 220px;
 }
 
 .admin-filter-section {
     display: flex;
     align-items: center;
     gap: var(--admin-space-sm);
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .admin-filter-group {
@@ -149,6 +157,45 @@
     border: none;
     box-shadow: none;
     background-color: transparent;
+}
+
+/* ===== HYBRID LAYOUT: Unified Toolbar + Content (US-016) ===== */
+/* Wraps toolbar and content in a single white box with border */
+
+.admin-body-content {
+    background-color: var(--admin-bg-primary);
+    border: 1px solid var(--admin-border-primary);
+    border-radius: var(--admin-radius-lg);
+    box-shadow: var(--admin-shadow-sm);
+    overflow: hidden;
+    padding: var(--admin-space-lg);
+}
+
+/* When toolbar is inside admin-body-content, expand to edges and add separator */
+.admin-body-content .admin-toolbar {
+    margin: calc(-1 * var(--admin-space-lg));
+    margin-bottom: var(--admin-space-lg);
+    padding: var(--admin-space-md) var(--admin-space-lg);
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+    background-color: transparent;
+    border-bottom: 1px solid var(--admin-border-secondary);
+}
+
+/* When admin-content is inside admin-body-content, expand to edges */
+.admin-body-content .admin-content {
+    margin: 0 calc(-1 * var(--admin-space-lg));
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+}
+
+/* Footer inside admin-body-content, expand to edges */
+.admin-body-content .admin-footer-info {
+    margin: var(--admin-space-lg) calc(-1 * var(--admin-space-lg)) calc(-1 * var(--admin-space-lg));
+    padding: var(--admin-space-md) var(--admin-space-lg);
+    border-radius: 0;
 }
 
 /* Content sections */
@@ -572,15 +619,18 @@
     .admin-toolbar {
         flex-direction: column;
         align-items: stretch;
+        flex-wrap: wrap;
     }
 
     .admin-search-section {
         max-width: none;
+        flex: 1 1 100%;
         margin-bottom: var(--admin-space-sm);
     }
 
     .admin-filter-section {
         justify-content: center;
+        flex-wrap: wrap;
     }
 
     .admin-layout-sidebar {

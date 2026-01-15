@@ -7,6 +7,8 @@
 @Html.AntiForgeryToken()
 
 @section Styles {
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
     <link href="~/css/product-management.css" rel="stylesheet" />
     <link href="~/css/admin-company-style.css" rel="stylesheet" />
 }
@@ -24,94 +26,101 @@
 
 <div class="admin-container">
     <header class="admin-header">
-        <div class="title-area">
-            <h1 class="page-title"></h1>
-            <p class="subtitle"></p>
-        </div>
-        <div class="buttons-area">
-            <button id="template-btn" class="btn role-element role-analyst-show role-admin-show" onclick="downloadImportTemplate()" title="Download CSV template for bulk import">
-                <i class="fas fa-file-download"></i> Template
-            </button>
-            <button id="import-btn" class="btn role-element role-analyst-show role-admin-show">
-                <i class="fas fa-upload"></i> Import
-            </button>
-            <button id="export-btn" class="btn">
-                <i class="fas fa-download"></i> Export
-            </button>
-            <button id="add-product-btn" class="btn btn-add role-element role-analyst-show role-admin-show">
-                <i class="fas fa-plus"></i> Add New Product
-            </button>
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <p class="admin-page-subtitle">Manage product catalog and identifiers</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <button id="template-btn" class="admin-btn admin-btn--secondary role-element role-analyst-show role-admin-show" onclick="downloadImportTemplate()" title="Download CSV template for bulk import">
+                        <i class="fas fa-file-download"></i> Template
+                    </button>
+                    <button id="import-btn" class="admin-btn admin-btn--secondary role-element role-analyst-show role-admin-show">
+                        <i class="fas fa-upload"></i> Import
+                    </button>
+                    <button id="export-btn" class="admin-btn admin-btn--secondary">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button id="add-product-btn" class="admin-btn admin-btn--primary role-element role-analyst-show role-admin-show">
+                        <i class="fas fa-plus"></i> Add New Product
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
-    <div class="search-filter-bar">
-        <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search products, companies, categories..." autocomplete="off">
-            <i class="fas fa-search search-icon"></i>
-            <div id="search-suggestions" class="search-suggestions"></div>
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
+                <div class="admin-search-box search-box">
+                    <i class="fas fa-search admin-search-icon search-icon"></i>
+                    <input type="text" id="search-input" class="admin-search-input" placeholder="Search..." autocomplete="off">
+                    <div id="search-suggestions" class="search-suggestions"></div>
+                </div>
+            </div>
+            <div class="admin-filter-section filters">
+                <div class="filter-group">
+                    <label class="filter-label">Category</label>
+                    <select id="category-filter" class="admin-filter-select filter-select">
+                        <option value="all">All Categories</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Company</label>
+                    <select id="company-filter" class="admin-filter-select filter-select">
+                        <option value="all">All Companies</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Status</label>
+                    <select id="status-filter" class="admin-filter-select filter-select">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">Certificates</label>
+                    <select id="certificate-filter" class="admin-filter-select filter-select">
+                        <option value="all">All</option>
+                        <option value="has-certificates">With Certificates</option>
+                        <option value="no-certificates">No Certificates</option>
+                    </select>
+                </div>
+                <div class="filter-actions">
+                    <button id="clear-filters-btn" class="btn btn-clear" title="Clear all filters">
+                        <i class="fas fa-times"></i> Clear
+                    </button>
+                    <button id="advanced-filters-btn" class="btn btn-secondary" title="Advanced filters">
+                        <i class="fas fa-filter"></i> Advanced
+                    </button>
+                </div>
+            </div>
         </div>
-        <div class="filters">
-            <div class="filter-group">
-                <label class="filter-label">Category</label>
-                <select id="category-filter" class="filter-select">
-                    <option value="all">All Categories</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label">Company</label>
-                <select id="company-filter" class="filter-select">
-                    <option value="all">All Companies</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label">Status</label>
-                <select id="status-filter" class="filter-select">
-                    <option value="all">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-            </div>
-            <div class="filter-group">
-                <label class="filter-label">Certificates</label>
-                <select id="certificate-filter" class="filter-select">
-                    <option value="all">All</option>
-                    <option value="has-certificates">With Certificates</option>
-                    <option value="no-certificates">No Certificates</option>
-                </select>
-            </div>
-            <div class="filter-actions">
-                <button id="clear-filters-btn" class="btn btn-clear" title="Clear all filters">
-                    <i class="fas fa-times"></i> Clear
-                </button>
-                <button id="advanced-filters-btn" class="btn btn-secondary" title="Advanced filters">
-                    <i class="fas fa-filter"></i> Advanced
-                </button>
-            </div>
+
+        <div class="admin-content">
+            <table id="product-table" class="admin-table">
+                <thead class="admin-table-header">
+                    <tr>
+                        <th width="5%"></th>
+                        <th width="20%" data-sort="name" class="admin-table-th--sortable">Product Name <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th width="15%" data-sort="company" class="admin-table-th--sortable">Company <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th width="15%" data-sort="category" class="admin-table-th--sortable">Category <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th width="10%" data-sort="status" class="admin-table-th--sortable">Status <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th width="10%" data-sort="certificates" class="admin-table-th--sortable">Certificates <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th width="10%" data-sort="identifiers" class="admin-table-th--sortable">Identifiers <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th width="15%" class="actions-col role-element role-analyst-show role-admin-show">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="admin-table-body">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
         </div>
-    </div>
 
-    <div class="table-container">
-        <table id="product-table">
-            <thead>
-                <tr>
-                    <th width="5%"></th>
-                    <th width="20%" data-sort="name">Product Name <span class="sort-icon">▼</span></th>
-                    <th width="15%" data-sort="company">Company <span class="sort-icon">▼</span></th>
-                    <th width="15%" data-sort="category">Category <span class="sort-icon">▼</span></th>
-                    <th width="10%" data-sort="status">Status <span class="sort-icon">▼</span></th>
-                    <th width="10%" data-sort="certificates">Certificates <span class="sort-icon">▼</span></th>
-                    <th width="10%" data-sort="identifiers">Identifiers <span class="sort-icon">▼</span></th>
-                    <th width="15%" class="actions-col role-element role-analyst-show role-admin-show">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Data will be populated by JavaScript -->
-            </tbody>
-        </table>
-    </div>
-
-    <div class="footer-info">
-        <span id="product-count">Showing 0 of 0 products</span>
+        <div class="admin-footer-info">
+            <span id="product-count" class="admin-count-display">Showing 0 of 0 products</span>
+        </div>
     </div>
 </div>
 

@@ -1,12 +1,10 @@
 /* user-management.css - User Management specific styles */
 
-/* ===== ADMIN CONTAINER ===== */
-.admin-container {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 0;
-}
+/* US-016: Use standard 1400px container width from admin framework
+   Removed full-width overrides for consistency across all admin pages */
+
+/* Admin Container - inherits from admin-layout.css (1400px max-width) */
+/* No overrides needed - uses framework defaults */
 
 /* ===== ADMIN HEADER ===== */
 .admin-header {

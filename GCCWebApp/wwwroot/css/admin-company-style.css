@@ -19,32 +19,15 @@
    CONTAINER - Matching Company Management
    ============================================================================= */
 
-.admin-container {
-    background-color: #fff !important;
-    padding: 20px !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    border-radius: 6px !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
-}
+/* Container styling inherited from admin-layout.css and admin-mockup-override.css */
+/* NOTE: Use .admin-container--full-width modifier class if full-width is needed */
 
 /* =============================================================================
    HEADER - Matching Company Management
    ============================================================================= */
 
-.admin-header {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    margin-bottom: 20px !important;
-    flex-wrap: wrap !important;
-    gap: 15px !important;
-    background-color: #fff !important;
-    border: none !important;
-    box-shadow: none !important;
-    padding: 0 !important;
-    margin-top: 0 !important;
-}
+/* NOTE: Do NOT override .admin-header layout here - use the standard admin-layout.css structure */
+/* The .admin-header-content class handles flex layout with justify-content: space-between */
 
 .admin-header .page-title,
 .admin-header h1 {
@@ -400,15 +383,7 @@
    ============================================================================= */
 
 @media (max-width: 768px) {
-    .admin-container {
-        padding: 15px !important;
-        margin: 10px !important;
-    }
-
-    .admin-header {
-        flex-direction: column !important;
-        align-items: flex-start !important;
-    }
+    /* Container responsive styling inherited from admin-layout.css */
 
     .buttons-area {
         width: 100% !important;

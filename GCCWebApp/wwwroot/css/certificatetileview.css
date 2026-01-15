@@ -63,7 +63,7 @@
 .sidebar .search-bar {
     position: relative;
     margin-bottom: 20px;
-    padding-top: 10px;
+    margin-top: 10px; /* Changed from padding-top to margin-top so search icon centers correctly */
     width: 100%;
 }
 
@@ -1869,8 +1869,9 @@ body.table-view-active .main-content {
 }
 
 .table-grid .grid-cell.actions-column .action-btn:hover {
-    background: #e3f2fd;
-    color: #007bff;
+    /* Transparent with subtle color hint instead of solid background */
+    background: rgba(0, 174, 239, 0.1);
+    color: #00AEEF;
 }
 
 .table-grid .grid-cell.actions-column .action-btn:focus,

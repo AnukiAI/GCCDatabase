@@ -2068,3 +2068,90 @@
         flex-direction: column;
     }
 }
+
+/* =============================================================================
+   CERTIFICATE DETAILS PREVIEW BOX (US-016 Container Width Standards)
+   Responsive preview container for certificate thumbnails on Details page
+   ============================================================================= */
+
+.certificate-preview-box {
+    width: 100%;
+    max-width: 350px;
+    aspect-ratio: 1 / 1;          /* Maintains square shape */
+    min-height: 200px;
+    max-height: 350px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    position: relative;
+    margin: 0 auto;               /* Center the box */
+}
+
+.certificate-preview-box img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+
+.certificate-preview-box .zoom-icon-overlay {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.certificate-preview-box .zoom-icon-overlay:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+.certificate-preview-box .preview-placeholder {
+    text-align: center;
+    padding: 20px;
+}
+
+.certificate-preview-box .preview-placeholder i {
+    font-size: 48px;
+    color: #adb5bd;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.certificate-preview-box .preview-placeholder p {
+    font-size: 14px;
+    font-weight: 600;
+    color: #6c757d;
+    margin: 0 0 4px 0;
+}
+
+.certificate-preview-box .preview-placeholder small {
+    color: #adb5bd;
+    font-size: 11px;
+}
+
+/* Responsive adjustments for preview box */
+@media (max-width: 768px) {
+    .certificate-preview-box {
+        max-width: 280px;
+        min-height: 150px;
+        max-height: 280px;
+    }
+}
+
+@media (max-width: 576px) {
+    .certificate-preview-box {
+        max-width: 100%;
+        min-height: 200px;
+        max-height: 300px;
+    }
+}

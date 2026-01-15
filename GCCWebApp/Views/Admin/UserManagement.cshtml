@@ -45,10 +45,12 @@
         </div>
     </header>
 
-    <div class="admin-toolbar">
-        <div class="admin-search-section">
-            <div class="admin-search-box">
-                <label for="search-input" class="admin-sr-only">Search users</label>
+    <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
+                <div class="admin-search-box">
+                    <label for="search-input" class="admin-sr-only">Search users</label>
                 <input type="text" id="search-input" class="admin-search-input" placeholder="Search users..." aria-label="Search users">
                 <i class="fas fa-search admin-search-icon"></i>
             </div>
@@ -119,9 +121,10 @@
         </div>
     </div>
 
-    <div class="admin-footer-info">
-        <span id="user-count" class="admin-count-display" aria-live="polite" aria-atomic="true">Showing 0 of 0 users</span>
-    </div>
+        <div class="admin-footer-info">
+            <span id="user-count" class="admin-count-display" aria-live="polite" aria-atomic="true">Showing 0 of 0 users</span>
+        </div>
+    </div> <!-- End admin-body-content -->
 </div>
 
 <!-- Import Preview Modal (US-015 Backdrop Standard) -->

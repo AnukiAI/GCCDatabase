@@ -47,17 +47,19 @@
         </div>
     </header>
 
-    <div class="admin-toolbar">
-        <div class="admin-search-section">
-            <div class="admin-search-box">
-                <label for="search-input" class="admin-sr-only">Search products</label>
-                <input type="text" id="search-input" class="admin-search-input" placeholder="Search products..." aria-label="Search products">
-                <i class="fas fa-search admin-search-icon"></i>
+    <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
+                <div class="admin-search-box">
+                    <label for="search-input" class="admin-sr-only">Search products</label>
+                    <input type="text" id="search-input" class="admin-search-input" placeholder="Search products..." aria-label="Search products">
+                    <i class="fas fa-search admin-search-icon"></i>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="admin-content">
+        <div class="admin-content">
         <div class="admin-table-container">
             <table id="products-table" class="admin-table">
                 <thead class="admin-table-header">
@@ -95,9 +97,10 @@
         </div>
     </div>
 
-    <div class="admin-footer-info">
-        <span id="products-count" class="admin-count-display">Showing 0 of 0 products</span>
-    </div>
+        <div class="admin-footer-info">
+            <span id="products-count" class="admin-count-display">Showing 0 of 0 products</span>
+        </div>
+    </div> <!-- End admin-body-content -->
 </div>
 
 <!-- Import Preview Modal (US-015 Backdrop Standard) -->

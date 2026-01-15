@@ -381,10 +381,11 @@
    CONTAINER AND CONTENT AREAS
    ============================================================================= */
 
+/* US-016: Use standard 1400px from admin framework CSS variable */
 .admin-container {
     background-color: #fff;
     padding: 20px;
-    max-width: 1200px;
+    max-width: var(--admin-container-max-width, 1400px);
     width: calc(100% - 40px);
     margin: 20px auto;
     border-radius: 6px;

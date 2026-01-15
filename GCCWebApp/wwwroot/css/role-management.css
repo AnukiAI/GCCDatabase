@@ -24,19 +24,11 @@ body.admin-role-management .search-filter-bar {
     display: block !important;
 }
 
-/* Remove any inherited max-width from parent containers */
-body.admin-role-management .admin-container,
-body.admin-role-management .admin-container * {
-    max-width: none !important;
-}
+/* US-016: Use standard 1400px container width from admin framework
+   Removed full-width overrides for consistency across all admin pages */
 
-/* Admin Container */
-.admin-container {
-    width: 100%;
-    max-width: none;
-    margin: 0;
-    padding: 0;
-}
+/* Admin Container - inherits from admin-layout.css (1400px max-width) */
+/* No overrides needed - uses framework defaults */
 
 /* Force search box to full width in admin container */
 .admin-container .search-box {

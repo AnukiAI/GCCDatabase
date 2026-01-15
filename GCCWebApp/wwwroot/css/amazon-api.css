@@ -172,11 +172,9 @@
     overflow: visible;
 }
 
-/* Container adjustments */
-.admin-container {
-    padding: 0;
-    max-width: 100%;
-}
+/* US-016: Use standard 1400px from admin framework
+   Removed max-width: 100% override for consistency */
+/* Container adjustments - inherits max-width from admin-layout.css */
 
 /* Side Panel */
 .side-panel {

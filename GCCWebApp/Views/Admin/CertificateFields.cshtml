@@ -22,36 +22,29 @@
     </span>
 }
 
+@section PageActions {
+    <button class="admin-btn admin-btn--secondary" id="export-btn" aria-label="Export certificate fields to CSV file">
+        <i class="fas fa-download" aria-hidden="true"></i> Export
+    </button>
+    <button class="admin-btn admin-btn--primary" id="add-field-btn" aria-label="Add a new certificate field">
+        <i class="fas fa-plus" aria-hidden="true"></i> Add New Field
+    </button>
+}
+
 <div class="admin-container">
-    <header class="admin-header">
-        <div class="admin-header-content">
-            <div class="admin-title-section">
-                <!-- Title rendered by layout -->
-            </div>
-            <div class="admin-actions-section">
-                <div class="admin-button-group">
-                    <button class="admin-btn admin-btn--secondary" id="export-btn" aria-label="Export certificate fields to CSV file">
-                        <i class="fas fa-download" aria-hidden="true"></i> Export
-                    </button>
-                    <button class="admin-btn admin-btn--primary" id="add-field-btn" aria-label="Add a new certificate field">
-                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Field
-                    </button>
+    <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
+                <div class="admin-search-box">
+                    <i class="fas fa-search admin-search-icon"></i>
+                    <input type="text" id="search-input" class="admin-search-input" placeholder="Search fields...">
                 </div>
             </div>
         </div>
-    </header>
 
-    <div class="admin-toolbar">
-        <div class="admin-search-section">
-            <div class="admin-search-box">
-                <i class="fas fa-search admin-search-icon"></i>
-                <input type="text" id="search-input" class="admin-search-input" placeholder="Search fields...">
-            </div>
-        </div>
-    </div>
-
-
-    <div class="table-container">
+        <div class="admin-content">
+            <div class="table-container">
         <table id="certificate-fields-table">
             <thead>
                 <tr>
@@ -68,11 +61,13 @@
                 <!-- Fields will be populated by JavaScript -->
             </tbody>
         </table>
-    </div>
+            </div>
+        </div> <!-- End admin-content -->
 
-    <div class="footer-info">
-        <span id="field-count">Showing 0 of 0 fields</span>
-    </div>
+        <div class="admin-footer-info">
+            <span id="field-count">Showing 0 of 0 fields</span>
+        </div>
+    </div> <!-- End admin-body-content -->
 </div>
 
 <!-- Toast Container -->

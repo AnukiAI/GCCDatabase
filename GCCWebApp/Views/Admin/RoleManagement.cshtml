@@ -301,17 +301,19 @@
         </div>
     </header>
 
-    <div class="admin-toolbar">
-        <div class="admin-search-section">
-            <div class="admin-search-box">
-                <label for="search-input" class="admin-sr-only">Search roles</label>
-                <input type="text" id="search-input" class="admin-search-input" placeholder="Search roles..." aria-label="Search roles">
-                <i class="fas fa-search admin-search-icon"></i>
+    <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
+                <div class="admin-search-box">
+                    <label for="search-input" class="admin-sr-only">Search roles</label>
+                    <input type="text" id="search-input" class="admin-search-input" placeholder="Search roles..." aria-label="Search roles">
+                    <i class="fas fa-search admin-search-icon"></i>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="admin-content">
+        <div class="admin-content">
         <div class="admin-table-container">
             <table id="role-table" class="admin-table" role="table" aria-label="Role management table">
                 <thead class="admin-table-header">
@@ -336,9 +338,10 @@
         </div>
     </div>
 
-    <div class="admin-footer-info">
-        <span id="role-count" class="admin-count-display">Showing 0 roles</span>
-    </div>
+        <div class="admin-footer-info">
+            <span id="role-count" class="admin-count-display">Showing 0 roles</span>
+        </div>
+    </div> <!-- End admin-body-content -->
 </div>
 
 <!-- Add/Edit Role Modal -->

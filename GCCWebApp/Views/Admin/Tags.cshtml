@@ -21,33 +21,26 @@
     </span>
 }
 
-<div class="admin-container">
-    <header class="admin-header">
-        <div class="admin-header-content">
-            <div class="admin-title-section">
-                <p class="admin-page-subtitle">Organize content with tags and categories</p>
-            </div>
-            <div class="admin-actions-section">
-                <div class="admin-button-group">
-                    <button id="template-btn" class="admin-btn admin-btn--secondary" aria-label="Download CSV template for bulk tag import">
-                        <i class="fas fa-file-download" aria-hidden="true"></i> Template
-                    </button>
-                    <button id="import-btn" class="admin-btn admin-btn--secondary" aria-label="Import tags from CSV file">
-                        <i class="fas fa-upload" aria-hidden="true"></i> Import
-                    </button>
-                    <button id="export-btn" class="admin-btn admin-btn--secondary" aria-label="Export tags to CSV file">
-                        <i class="fas fa-download" aria-hidden="true"></i> Export
-                    </button>
-                    <button id="add-tag-btn" class="admin-btn admin-btn--primary" aria-label="Add a new tag">
-                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Tag
-                    </button>
-                </div>
-            </div>
-        </div>
-    </header>
+@section PageActions {
+    <button id="template-btn" class="admin-btn admin-btn--secondary" aria-label="Download CSV template for bulk tag import">
+        <i class="fas fa-file-download" aria-hidden="true"></i> Template
+    </button>
+    <button id="import-btn" class="admin-btn admin-btn--secondary" aria-label="Import tags from CSV file">
+        <i class="fas fa-upload" aria-hidden="true"></i> Import
+    </button>
+    <button id="export-btn" class="admin-btn admin-btn--secondary" aria-label="Export tags to CSV file">
+        <i class="fas fa-download" aria-hidden="true"></i> Export
+    </button>
+    <button id="add-tag-btn" class="admin-btn admin-btn--primary" aria-label="Add a new tag">
+        <i class="fas fa-plus" aria-hidden="true"></i> Add New Tag
+    </button>
+}
 
-    <div class="admin-toolbar">
-        <div class="admin-search-section">
+<div class="admin-container">
+    <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
             <div class="admin-search-box">
                 <label for="search-input" class="admin-sr-only">Search tags</label>
                 <input type="text" id="search-input" class="admin-search-input" placeholder="Search tags..." aria-label="Search tags">
@@ -116,9 +109,10 @@
         </div>
     </div>
 
-    <div class="admin-footer-info">
-        <span id="tag-count" class="admin-count-display">Showing 0 of 0 tags</span>
-    </div>
+        <div class="admin-footer-info">
+            <span id="tag-count" class="admin-count-display">Showing 0 of 0 tags</span>
+        </div>
+    </div> <!-- End admin-body-content -->
 </div>
 
 <!-- Antiforgery token for AJAX requests -->

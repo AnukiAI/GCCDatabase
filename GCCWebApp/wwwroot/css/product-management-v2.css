@@ -231,11 +231,22 @@
 }
 
 .action-btn:hover {
-    background: var(--gray-light);
+    /* No grey background - use specific hover colors per action type */
+    background: transparent;
+}
+
+.action-btn.edit:hover {
+    background: rgba(0, 174, 239, 0.1);
+    color: #00AEEF;
 }
 
 .action-btn.delete {
     color: var(--error);
+}
+
+.action-btn.delete:hover {
+    background: rgba(255, 82, 82, 0.1);
+    color: #FF5252;
 }
 
 .details-row {

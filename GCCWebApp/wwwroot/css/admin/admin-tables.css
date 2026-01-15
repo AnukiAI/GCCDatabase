@@ -259,7 +259,8 @@
 }
 
 .admin-action-btn:hover {
-    background-color: var(--admin-bg-accent);
+    /* No background by default - specific variants define their own */
+    background-color: transparent;
     color: var(--admin-text-primary);
 }
 

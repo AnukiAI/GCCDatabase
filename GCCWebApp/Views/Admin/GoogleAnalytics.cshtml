@@ -20,27 +20,32 @@
     </span>
 }
 
+@section PageActions {
+    <button id="save-settings-btn" class="admin-btn admin-btn--primary">Save Settings</button>
+}
+
 @Html.AntiForgeryToken()
 
 <div class="admin-container">
-    <header class="admin-header">
-        <div class="admin-header-content">
-            <div class="admin-title-section">
-                <p class="admin-page-subtitle">Configure Google Analytics tracking and reporting</p>
+    <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
+                <!-- No search needed for settings page -->
             </div>
-            <div class="admin-actions-section">
-                <div class="admin-button-group">
-                    <button id="save-settings-btn" class="admin-btn admin-btn--primary">Save Settings</button>
+            <div class="admin-filter-section">
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <span id="tracking-status-indicator" class="stat-number" style="color: #FF5252;">Disabled</span> Status
+                    </div>
                 </div>
             </div>
         </div>
-    </header>
 
-    <div class="analytics-container">
-        <div class="analytics-form">
+        <div class="admin-content analytics-form">
             <div class="form-group">
                 <label for="ga-tracking-id">Tracking ID (G-XXXXXXX)</label>
-                <input type="text" id="ga-tracking-id" placeholder="e.g., G-XXXXXXXXXX">
+                <input type="text" id="ga-tracking-id" class="admin-input" placeholder="e.g., G-XXXXXXXXXX">
                 <div class="form-help">
                     Enter your Google Analytics 4 Measurement ID to start tracking your website traffic.
                     <a href="https://support.google.com/analytics/answer/9304153" target="_blank">Learn more</a>
@@ -60,7 +65,7 @@
 
             <div class="form-group">
                 <label for="custom-script">Custom Analytics Script (Optional)</label>
-                <textarea id="custom-script" placeholder="Paste your complete Google Analytics script here..." rows="8"></textarea>
+                <textarea id="custom-script" class="admin-textarea" placeholder="Paste your complete Google Analytics script here..." rows="8"></textarea>
                 <div class="form-help">
                     You can paste the complete script provided by Google Analytics here, or use the Tracking ID field above for automatic script generation.
                 </div>
@@ -94,38 +99,42 @@
   gtag('config', 'G-XXXXXXXXXX');
 &lt;/script&gt;</pre>
             </div>
-        </div>
 
-        <div class="history-section">
-            <h3>Change History</h3>
-            <div class="table-container">
-                <table id="history-table">
-                    <thead>
-                        <tr>
-                            <th width="25%">Date</th>
-                            <th width="25%">User</th>
-                            <th width="30%">Tracking ID</th>
-                            <th width="20%">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody id="history-log">
-                        <tr>
-                            <td>2025-04-29 10:15</td>
-                            <td>Admin</td>
-                            <td>G-XXXXXX1234</td>
-                            <td>Enabled</td>
-                        </tr>
-                        <!-- More entries will be populated by JavaScript -->
-                    </tbody>
-                </table>
+            <div class="history-section">
+                <h3>Change History</h3>
+                <div class="admin-table-container">
+                    <table id="history-table" class="admin-table">
+                        <thead class="admin-table-header">
+                            <tr>
+                                <th class="admin-table-th" width="25%">Date</th>
+                                <th class="admin-table-th" width="25%">User</th>
+                                <th class="admin-table-th" width="30%">Tracking ID</th>
+                                <th class="admin-table-th" width="20%">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-log" class="admin-table-body">
+                            <tr>
+                                <td>2025-04-29 10:15</td>
+                                <td>Admin</td>
+                                <td>G-XXXXXX1234</td>
+                                <td>Enabled</td>
+                            </tr>
+                            <!-- More entries will be populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="privacy-notice">
+                <i class="fas fa-info-circle" aria-hidden="true"></i>
+                <strong>Privacy Notice:</strong> You may be required to display a cookie consent banner for GDPR or CCPA compliance.
             </div>
         </div>
 
-        <div class="privacy-notice">
-            <i class="fas fa-info-circle"></i>
-            <strong>Privacy Notice:</strong> You may be required to display a cookie consent banner for GDPR or CCPA compliance.
+        <div class="admin-footer-info">
+            <span id="last-updated">Last updated: Not configured</span>
         </div>
-    </div>
+    </div> <!-- End admin-body-content -->
 </div>
 
 @section Scripts {

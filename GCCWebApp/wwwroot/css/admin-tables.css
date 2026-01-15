@@ -243,14 +243,14 @@
     height: 32px;
 }
 
-/* Edit button */
+/* Edit button - NO solid background, transparent hover */
 .admin-table td .btn-edit,
 .data-table td .btn-edit,
 #user-table td .btn-edit,
 #tag-table td .btn-edit,
 #company-table td .btn-edit {
-    background: #e3f2fd;
-    color: #1976d2;
+    background: none;
+    color: #00AEEF;
 }
 
 .admin-table td .btn-edit:hover,
@@ -258,17 +258,18 @@
 #user-table td .btn-edit:hover,
 #tag-table td .btn-edit:hover,
 #company-table td .btn-edit:hover {
-    background: #bbdefb;
+    background: rgba(0, 174, 239, 0.1);
+    transform: scale(1.1);
 }
 
-/* Delete button */
+/* Delete button - NO solid background, transparent hover */
 .admin-table td .btn-delete,
 .data-table td .btn-delete,
 #user-table td .btn-delete,
 #tag-table td .btn-delete,
 #company-table td .btn-delete {
-    background: #ffebee;
-    color: #c62828;
+    background: none;
+    color: #FF5252;
 }
 
 .admin-table td .btn-delete:hover,
@@ -276,17 +277,18 @@
 #user-table td .btn-delete:hover,
 #tag-table td .btn-delete:hover,
 #company-table td .btn-delete:hover {
-    background: #ffcdd2;
+    background: rgba(255, 82, 82, 0.1);
+    transform: scale(1.1);
 }
 
-/* View button */
+/* View button - NO solid background, transparent hover */
 .admin-table td .btn-view,
 .data-table td .btn-view,
 #user-table td .btn-view,
 #tag-table td .btn-view,
 #company-table td .btn-view {
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: none;
+    color: #92C83E;
 }
 
 .admin-table td .btn-view:hover,
@@ -294,7 +296,8 @@
 #user-table td .btn-view:hover,
 #tag-table td .btn-view:hover,
 #company-table td .btn-view:hover {
-    background: #c8e6c9;
+    background: rgba(146, 200, 62, 0.1);
+    transform: scale(1.1);
 }
 
 /* Actions column - consistent width */

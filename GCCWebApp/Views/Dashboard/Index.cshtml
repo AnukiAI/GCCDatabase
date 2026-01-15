@@ -6,6 +6,7 @@
 
 @section Styles {
     <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
     <style>
         /* Dashboard-specific enhancements */
         .dashboard-title {
@@ -21,16 +22,16 @@
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
             gap: 20px;
-            margin-top: 40px;
-            margin-bottom: 40px;
-            padding-bottom: 32px;
+            margin-top: 0;
+            margin-bottom: 24px;
+            padding-bottom: 24px;
             border-bottom: 1px solid #eaeaea;
         }
 
         .stat-card {
             background-color: #f9f9f9;
             border: 1px solid #eaeaea;
-            padding: 24px 28px;
+            padding: 16px 20px;
             box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
             border-radius: 12px;
             transition: all 0.3s ease;
@@ -38,8 +39,8 @@
             overflow: hidden;
             display: flex;
             align-items: center;
-            gap: 20px;
-            min-height: 100px;
+            gap: 16px;
+            min-height: 80px;
         }
 
             .stat-card:hover {
@@ -130,8 +131,8 @@
         .tables-container {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
-            gap: 28px;
-            margin-bottom: 40px;
+            gap: 20px;
+            margin-bottom: 24px;
         }
 
         .table-section {
@@ -233,7 +234,7 @@
             flex-wrap: wrap;
             gap: 16px;
             justify-content: center;
-            padding: 20px 0;
+            padding: 8px 0;
         }
 
         .action-button {
@@ -389,9 +390,9 @@
     </style>
 }
 
-<!-- Dashboard Container - Matches admin page pattern -->
+<!-- Dashboard Container -->
 <div class="admin-container">
-    <div class="admin-content" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1); padding: 24px; border: 1px solid #eaeaea;">
+    <div class="admin-body-content">
 
 <!-- Stats Grid -->
 <div class="stats-grid">
@@ -759,7 +760,7 @@
     </button>
 </div>
 
-    </div> <!-- End admin-content -->
+    </div> <!-- End admin-body-content -->
 </div> <!-- End admin-container -->
 
 @section Scripts {

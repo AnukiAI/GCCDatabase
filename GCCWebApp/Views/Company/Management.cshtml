@@ -7,51 +7,62 @@
 @Html.AntiForgeryToken()
 
 @section Styles {
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
     <link href="~/css/company-management.css" rel="stylesheet" />
 }
 
 <div class="admin-container">
     <header class="admin-header">
-        <div class="title-area">
-        </div>
-        <div class="buttons-area">
-            <button id="import-btn" class="btn">
-                <i class="fas fa-upload"></i> Import
-            </button>
-            <button id="export-btn" class="btn">
-                <i class="fas fa-download"></i> Export
-            </button>
-            <button id="add-company-btn" class="btn btn-add">
-                <i class="fas fa-plus"></i> Add New Company
-            </button>
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <p class="admin-page-subtitle">Manage company records and contact information</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <button id="import-btn" class="admin-btn admin-btn--secondary">
+                        <i class="fas fa-upload"></i> Import
+                    </button>
+                    <button id="export-btn" class="admin-btn admin-btn--secondary">
+                        <i class="fas fa-download"></i> Export
+                    </button>
+                    <button id="add-company-btn" class="admin-btn admin-btn--primary">
+                        <i class="fas fa-plus"></i> Add New Company
+                    </button>
+                </div>
+            </div>
         </div>
     </header>
 
-    <div class="search-filter-bar">
-        <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search companies...">
-            <i class="fas fa-search search-icon"></i>
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
+                <div class="admin-search-box">
+                    <i class="fas fa-search admin-search-icon"></i>
+                    <input type="text" id="search-input" class="admin-search-input" placeholder="Search companies...">
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="table-container">
-        <table id="company-table">
-            <thead>
-                <tr>
-                    <th width="30%" data-sort="name">Company Name <span class="sort-icon">▼</span></th>
-                    <th width="30%" data-sort="email">Email <span class="sort-icon">▼</span></th>
-                    <th width="30%" data-sort="url">URL <span class="sort-icon">▼</span></th>
-                    <th width="10%" class="actions-col">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Data will be populated by JavaScript -->
-            </tbody>
-        </table>
-    </div>
+        <div class="admin-content">
+            <table id="company-table" class="admin-table">
+                <thead class="admin-table-header">
+                    <tr>
+                        <th width="30%" data-sort="name" class="admin-table-th--sortable">Company Name <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th width="30%" data-sort="email" class="admin-table-th--sortable">Email <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th width="30%" data-sort="url" class="admin-table-th--sortable">URL <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th width="10%" class="actions-col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="admin-table-body">
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
 
-    <div class="footer-info">
-        <span id="company-count">Showing 0 of 0 companies</span>
+        <div class="admin-footer-info">
+            <span id="company-count" class="admin-count-display">Showing 0 of 0 companies</span>
+        </div>
     </div>
 </div>
 

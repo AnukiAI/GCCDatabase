@@ -1,27 +1,12 @@
 /* Company Management Styles - Uses main.css variables */
-
-/* ===== LAYOUT CONTAINERS ===== */
-.admin-container {
-    background-color: var(--white);
-    padding: var(--space-xl);
-    max-width: 1400px;
-    margin: var(--space-xl) auto;
-    border-radius: var(--border-radius-md);
-    box-shadow: var(--shadow);
-}
+/* Container styling inherited from admin-layout.css and admin-mockup-override.css */
 
 /* ===== HEADER SECTION ===== */
 /* Modern admin header structure is defined in admin-layout.css and admin-mockup-override.css */
 /* This file only contains company-specific overrides */
 
-.admin-header {
-    display: flex;
-    justify-content: flex-end;
-    align-items: center;
-    margin-bottom: var(--space-lg);
-    flex-wrap: wrap;
-    gap: var(--space-md);
-}
+/* NOTE: Do NOT override .admin-header layout here - use the standard admin-layout.css structure */
+/* The .admin-header-content class handles flex layout with justify-content: space-between */
 
 .title-area {
     display: none;
@@ -124,11 +109,13 @@
 }
 
 /* ===== SEARCH AND FILTER BAR ===== */
+/* Using admin framework classes (.admin-toolbar, .admin-search-box, etc.)
+   Styles provided by admin-layout.css and admin-mockup-override.css */
+
+/* Legacy support for search-filter-bar class */
 .search-filter-bar {
     display: flex;
     align-items: center;
-    background-color: var(--white);
-    border-radius: 0;
     padding: var(--space-md) 0;
     margin-bottom: var(--space-md);
     gap: var(--space-md);
@@ -139,7 +126,7 @@
 
 .search-box {
     position: relative;
-    flex: 1 1 100%; /* Take full width in the search-filter-bar */
+    flex: 1 1 100%;
     width: 100%;
     max-width: 100%;
     min-width: 200px;
@@ -166,12 +153,11 @@
 }
 
 /* ===== TABLE STYLES ===== */
+/* Table container no longer needs separate border/background
+   when inside .admin-body-content wrapper */
 .table-container {
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius-sm);
     overflow: hidden;
     margin-bottom: var(--space-lg);
-    background-color: var(--white);
 }
 
 /* Override main.css company-name white color for table context */
@@ -179,6 +165,22 @@
     color: var(--text-color);
     font-weight: normal;
     font-size: 16px;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    text-indent: 0;
+}
+
+/* Ensure consistent left alignment for all table cells */
+#company-table tbody td {
+    text-align: left;
+    vertical-align: middle;
+    padding: 12px 15px;
+}
+
+/* Remove any Bootstrap or other framework overrides on table cells */
+#company-table tbody td:first-child {
+    padding-left: 15px;
 }
 
 #company-table {
@@ -476,35 +478,12 @@
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 1024px) {
-    .admin-container {
-        padding: var(--space-lg);
-        margin: var(--space-md);
-    }
-
-    .search-filter-bar {
-        margin-left: calc(-1 * var(--space-lg));
-        margin-right: calc(-1 * var(--space-lg));
-        padding-left: var(--space-lg);
-        padding-right: var(--space-lg);
-    }
-}
+/* Container responsive styling inherited from admin-layout.css and admin-mockup-override.css */
 
 @media (max-width: 768px) {
-    .admin-container {
-        padding: var(--space-md);
-        margin: var(--space-sm);
-    }
-
-    /* Admin header responsive layout handled by admin-layout.css and admin-mockup-override.css */
-
     .search-filter-bar {
         flex-direction: column;
         align-items: flex-start;
-        margin-left: calc(-1 * var(--space-md));
-        margin-right: calc(-1 * var(--space-md));
-        padding-left: var(--space-md);
-        padding-right: var(--space-md);
     }
 
     .search-box {
@@ -534,26 +513,8 @@
 }
 
 @media (max-width: 480px) {
-    .admin-container {
-        padding: var(--space-sm);
-        margin: var(--space-xs);
-    }
-
-    .search-filter-bar {
-        margin-left: calc(-1 * var(--space-sm));
-        margin-right: calc(-1 * var(--space-sm));
-        padding-left: var(--space-sm);
-        padding-right: var(--space-sm);
-    }
-
     .btn {
         font-size: 16px;
         padding: var(--space-xs) var(--space-sm);
     }
-
-    .admin-container h1 {
-        font-size: var(--font-size-lg);
-    }
-
-    /* Admin button layout handled by admin-layout.css and admin-mockup-override.css */
 }

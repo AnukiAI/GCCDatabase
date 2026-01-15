@@ -19,28 +19,44 @@
     </span>
 }
 
+@section PageActions {
+    <button id="refresh-btn" class="admin-btn admin-btn--secondary" title="Refresh data" aria-label="Refresh partner and API key data">
+        <i class="fas fa-sync" aria-hidden="true"></i> Refresh
+    </button>
+    <button id="generate-key-btn" class="admin-btn admin-btn--primary" title="Generate new API key for a partner" aria-label="Generate new API key for a partner">
+        <i class="fas fa-key" aria-hidden="true"></i> Generate API Key
+    </button>
+}
+
 <div class="admin-container">
-    <header class="admin-header">
-        <div class="admin-header-content">
-            <div class="admin-title-section">
-                <p class="admin-page-subtitle">Manage API keys for external partners to access GCC REST API endpoints</p>
+    <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
+                <div class="admin-search-box">
+                    <label for="partner-search" class="admin-sr-only">Search partners</label>
+                    <input type="text" id="partner-search" class="admin-search-input" placeholder="Search partners or API keys..." aria-label="Search partners or API keys">
+                    <i class="fas fa-search admin-search-icon" aria-hidden="true"></i>
+                </div>
             </div>
-            <div class="admin-actions-section">
-                <div class="admin-button-group">
-                    <button id="refresh-btn" class="admin-btn admin-btn--secondary" title="Refresh data" aria-label="Refresh partner and API key data">
-                        <i class="fas fa-sync" aria-hidden="true"></i> Refresh
-                    </button>
-                    <button id="generate-key-btn" class="admin-btn admin-btn--primary" title="Generate new API key for a partner" aria-label="Generate new API key for a partner">
-                        <i class="fas fa-key" aria-hidden="true"></i> Generate API Key
-                    </button>
+            <div class="admin-filter-section">
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-number" id="total-partners">0</span> Partners
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="total-api-keys">0</span> API Keys
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="active-api-keys">0</span> Active
+                    </div>
                 </div>
             </div>
         </div>
-    </header>
 
-    <!-- Partners Overview -->
-    <div class="admin-content">
-        <div class="admin-card">
+        <div class="admin-content" style="border: none; box-shadow: none; background: transparent;">
+            <!-- Partners Overview -->
+            <div class="admin-card">
             <div class="admin-card-header">
                 <h3 class="admin-card-title">
                     <i class="fas fa-handshake" style="color: #00AEEF; margin-right: 8px;"></i>Partners
@@ -61,11 +77,10 @@
                     <p style="margin: 16px 0 0 0;">Failed to load partners</p>
                 </div>
             </div>
-        </div>
-    </div>
+            </div> <!-- End Partners Overview card -->
 
-    <!-- Selected Partner Details -->
-    <div id="partner-details-section" class="admin-content" style="display: none; margin-top: 24px;">
+            <!-- Selected Partner Details -->
+            <div id="partner-details-section" style="display: none; margin-top: 24px;">
         <div class="admin-card">
             <div class="admin-card-header">
                 <h3 class="admin-card-title">
@@ -132,12 +147,11 @@
                     </table>
                 </div>
             </div>
-        </div>
-    </div>
+            </div>
+            </div> <!-- End Selected Partner Details -->
 
-    <!-- API Documentation Section -->
-    <div class="admin-content" style="margin-top: 24px;">
-        <div class="admin-card">
+            <!-- API Documentation Section -->
+            <div class="admin-card" style="margin-top: 24px;">
             <div class="admin-card-header">
                 <h3 class="admin-card-title">
                     <i class="fas fa-book" style="color: #00AEEF; margin-right: 8px;"></i>API Documentation
@@ -236,12 +250,10 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
+            </div> <!-- End API Documentation card -->
 
-    <!-- All API Keys (Overview) -->
-    <div class="admin-content" style="margin-top: 24px;">
-        <div class="admin-card">
+            <!-- All API Keys (Overview) -->
+            <div class="admin-card" style="margin-top: 24px;">
             <div class="admin-card-header">
                 <h3 class="admin-card-title">
                     <i class="fas fa-list" style="color: #002B76; margin-right: 8px;"></i>All API Keys
@@ -275,12 +287,17 @@
                     </div>
                 </div>
                 <div id="all-keys-error" style="display: none; text-align: center; padding: 40px; color: #FF5252;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 32px;"></i>
+                    <i class="fas fa-exclamation-triangle" style="font-size: 32px;" aria-hidden="true"></i>
                     <p style="margin: 16px 0 0 0;">Failed to load API keys</p>
                 </div>
             </div>
+            </div> <!-- End All API Keys card -->
+        </div> <!-- End admin-content -->
+
+        <div class="admin-footer-info">
+            <span id="partner-count">Showing 0 partners and 0 API keys</span>
         </div>
-    </div>
+    </div> <!-- End admin-body-content -->
 </div>
 
 <!-- Generate API Key Modal -->

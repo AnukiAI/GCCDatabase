@@ -20,6 +20,18 @@
     </span>
 }
 
+@section PageActions {
+    <button id="help-hierarchy-btn" class="admin-btn admin-btn--secondary" title="Learn how the hierarchy works" aria-label="Help: Understanding the certificate type hierarchy" onclick="openHelpModal()">
+        <i class="fas fa-question-circle" aria-hidden="true"></i> Help
+    </button>
+    <button id="export-btn" class="admin-btn admin-btn--secondary" aria-label="Export certificate types to CSV file">
+        <i class="fas fa-download" aria-hidden="true"></i> Export
+    </button>
+    <button class="admin-btn admin-btn--primary" onclick="showAddForm('type')" aria-label="Add a new certificate type">
+        <i class="fas fa-plus" aria-hidden="true"></i> Add New Type
+    </button>
+}
+
 @Html.AntiForgeryToken()
 
 <!-- Help Modal Script - must be before button that calls it -->
@@ -48,96 +60,81 @@
 </script>
 
 <div class="admin-container">
-    <header class="admin-header">
-        <div class="admin-header-content">
-            <div class="admin-title-section">
-                <p class="admin-page-subtitle">Manage certification types and subcategories</p>
+    <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
+                <div class="admin-search-box">
+                    <label for="search-input" class="admin-sr-only">Search certificate types</label>
+                    <input type="text" id="search-input" class="admin-search-input" placeholder="Search hierarchy..." onkeyup="filterTree(this.value)" aria-label="Search certificate types">
+                    <i class="fas fa-search admin-search-icon"></i>
+                </div>
             </div>
-            <div class="admin-actions-section">
-                <div class="admin-button-group">
-                    <button id="help-hierarchy-btn" class="admin-btn admin-btn--secondary" title="Learn how the hierarchy works" aria-label="Help: Understanding the certificate type hierarchy" onclick="openHelpModal()">
-                        <i class="fas fa-question-circle" aria-hidden="true"></i> Help
+            <div class="admin-filter-section">
+                <div class="admin-filter-group view-options">
+                    <button class="view-btn active" data-view="tree" onclick="switchView('tree')" aria-label="Switch to tree view">
+                        <i class="fas fa-sitemap" aria-hidden="true"></i> Tree View
                     </button>
-                    <button id="export-btn" class="admin-btn admin-btn--secondary" aria-label="Export certificate types to CSV file">
-                        <i class="fas fa-download" aria-hidden="true"></i> Export
-                    </button>
-                    <button class="admin-btn admin-btn--primary" onclick="showAddForm('type')" aria-label="Add a new certificate type">
-                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Type
+                    <button class="view-btn" data-view="table" onclick="switchView('table')" aria-label="Switch to table view">
+                        <i class="fas fa-table" aria-hidden="true"></i> Table View
                     </button>
                 </div>
+                <div class="admin-filter-group bulk-actions">
+                    <button class="admin-btn admin-btn--secondary btn-sm" onclick="expandAll()" aria-label="Expand all items">
+                        <i class="fas fa-expand-alt" aria-hidden="true"></i> Expand All
+                    </button>
+                    <button class="admin-btn admin-btn--secondary btn-sm" onclick="collapseAll()" aria-label="Collapse all items">
+                        <i class="fas fa-compress-alt" aria-hidden="true"></i> Collapse All
+                    </button>
+                </div>
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-number" id="type-count">0</span> Types
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="subcategory-count">0</span> Subcategories
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-number" id="certificate-count">0</span> Certificates
+                    </div>
+                </div>
             </div>
         </div>
-    </header>
 
-    <div class="admin-toolbar">
-        <div class="admin-search-section">
-            <div class="admin-search-box">
-                <label for="search-input" class="admin-sr-only">Search certificate types</label>
-                <input type="text" id="search-input" class="admin-search-input" placeholder="Search hierarchy..." onkeyup="filterTree(this.value)" aria-label="Search certificate types">
-                <i class="fas fa-search admin-search-icon"></i>
+        <div class="admin-content">
+            <!-- Tree View -->
+            <div class="hierarchy-tree" id="treeView">
+                <div class="tree-header">
+                    <div class="tree-header-content">
+                        <div class="tree-header-label">
+                            Certificate Type Hierarchy
+                        </div>
+                        <div class="tree-header-columns">
+                            <div class="tree-column-header certs-header">Certificates</div>
+                            <div class="tree-column-header actions-header">Actions</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tree-content">
+                    <!-- Loading state - will be replaced by API data -->
+                    <div class="loading-state" id="tree-loading">
+                        <i class="fas fa-spinner fa-spin" aria-hidden="true"></i>
+                        <span>Loading certificate types...</span>
+                    </div>
+                    <!-- Empty state - shown when no data -->
+                    <div class="empty-state" id="tree-empty" style="display: none;">
+                        <i class="fas fa-folder-open" aria-hidden="true"></i>
+                        <span>No certificate types found. Click "Add New Type" to create one.</span>
+                    </div>
+                    <!-- Tree nodes will be dynamically inserted here by JavaScript -->
+                </div>
             </div>
         </div>
-        <div class="admin-filter-section">
-            <div class="stats-bar">
-                <div class="stat-item">
-                    <span class="stat-number">0</span> Types
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">0</span> Subcategories
-                </div>
-                <div class="stat-item">
-                    <span class="stat-number">0</span> Certificates
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="toolbar">
-        <div class="view-options">
-            <button class="view-btn active" data-view="tree" onclick="switchView('tree')">
-                <i class="fas fa-sitemap"></i> Tree View
-            </button>
-            <button class="view-btn" data-view="table" onclick="switchView('table')">
-                <i class="fas fa-table"></i> Table View
-            </button>
+        <div class="admin-footer-info">
+            <span id="item-count">Showing 0 items</span>
         </div>
-        <div class="bulk-actions">
-            <button class="btn btn-outline btn-sm" onclick="expandAll()">
-                <i class="fas fa-expand-alt"></i> Expand All
-            </button>
-            <button class="btn btn-outline btn-sm" onclick="collapseAll()">
-                <i class="fas fa-compress-alt"></i> Collapse All
-            </button>
-        </div>
-    </div>
-
-    <!-- Tree View -->
-    <div class="hierarchy-tree" id="treeView">
-        <div class="tree-header">
-            <div class="tree-header-content">
-                <div class="tree-header-label">
-                    Certificate Type Hierarchy
-                </div>
-                <div class="tree-header-columns">
-                    <div class="tree-column-header certs-header">Certificates</div>
-                    <div class="tree-column-header actions-header">Actions</div>
-                </div>
-            </div>
-        </div>
-        <div class="tree-content">
-            <!-- Loading state - will be replaced by API data -->
-            <div class="loading-state" id="tree-loading">
-                <i class="fas fa-spinner fa-spin"></i>
-                <span>Loading certificate types...</span>
-            </div>
-            <!-- Empty state - shown when no data -->
-            <div class="empty-state" id="tree-empty" style="display: none;">
-                <i class="fas fa-folder-open"></i>
-                <span>No certificate types found. Click "Add New Type" to create one.</span>
-            </div>
-            <!-- Tree nodes will be dynamically inserted here by JavaScript -->
-        </div>
-    </div>
+    </div> <!-- End admin-body-content -->
 </div>
 
 <!-- Help Modal: Understanding the Certificate Type Hierarchy -->

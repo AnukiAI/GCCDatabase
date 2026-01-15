@@ -25,10 +25,21 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 30px;
+    margin-bottom: 0;
     flex-wrap: wrap;
     gap: 20px;
     padding: 0;
+    padding-bottom: 0;
+}
+
+.admin-header .admin-header-content {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.admin-header .admin-actions-section {
+    margin-left: auto;
 }
 
 .title-area h1 {
@@ -60,6 +71,30 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 15px;
+}
+
+/* Full-width Search Row */
+.admin-search-row {
+    padding: 0 0 20px 0;
+    margin-bottom: 0;
+}
+
+.admin-search-row .search-box {
+    position: relative;
+    width: 100%;
+    max-width: none;
+    flex: none;
+}
+
+.admin-search-row .admin-search-input {
+    width: 100%;
+    padding: 12px 16px 12px 44px;
+    font-size: 1rem;
+}
+
+.admin-search-row .admin-search-icon {
+    left: 16px;
+    right: auto;
 }
 
 .search-box {
@@ -206,21 +241,23 @@
 }
 
 /* Active Filters */
+/* Active Filters Row - Full width on its own row */
 .active-filters {
     display: none;
     align-items: center;
-    gap: 8px;
-    margin-top: 15px;
-    padding: 12px 0 0 0;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 10px 0 0 0;
     border-top: 1px solid #e9ecef;
     flex-wrap: wrap;
+    width: 100%;
 }
 
 .active-filters-label {
     font-size: 0.8rem;
     font-weight: 600;
     color: var(--text-secondary);
-    margin-right: 8px;
+    margin-right: 6px;
 }
 
 .filter-tag {
@@ -228,11 +265,11 @@
     align-items: center;
     background: var(--blue-primary);
     color: white;
-    padding: 2px 8px;
+    padding: 2px 6px;
     border-radius: 12px;
     font-size: 0.75rem;
-    line-height: 1.5;
-    gap: 4px;
+    line-height: 1.4;
+    gap: 2px;
     white-space: nowrap;
 }
 

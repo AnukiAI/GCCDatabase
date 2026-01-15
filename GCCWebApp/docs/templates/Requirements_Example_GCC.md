@@ -240,6 +240,7 @@ External User sees products where:
 | Enabled | Yes |
 | Fields | Certificate number, company name, product name |
 | Type | Contains, search-as-you-type |
+| Placeholder | "Search" (single word, no variations) |
 | Autocomplete | Yes - categorized suggestions |
 | **Selection** | |
 | Row selection | None (public view) |

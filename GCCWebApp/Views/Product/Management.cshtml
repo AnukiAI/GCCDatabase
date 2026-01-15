@@ -50,14 +50,17 @@
     </header>
 
     <div class="admin-body-content">
-        <div class="admin-toolbar">
-            <div class="admin-search-section">
-                <div class="admin-search-box search-box">
-                    <i class="fas fa-search admin-search-icon search-icon"></i>
-                    <input type="text" id="search-input" class="admin-search-input" placeholder="Search..." autocomplete="off">
-                    <div id="search-suggestions" class="search-suggestions"></div>
-                </div>
+        <!-- Search Row - Full Width -->
+        <div class="admin-search-row">
+            <div class="admin-search-box search-box">
+                <i class="fas fa-search admin-search-icon search-icon"></i>
+                <input type="text" id="search-input" class="admin-search-input" placeholder="Search" autocomplete="off">
+                <div id="search-suggestions" class="search-suggestions"></div>
             </div>
+        </div>
+
+        <!-- Filter Row -->
+        <div class="admin-toolbar">
             <div class="admin-filter-section filters">
                 <div class="filter-group">
                     <label class="filter-label">Category</label>
@@ -90,9 +93,6 @@
                 <div class="filter-actions">
                     <button id="clear-filters-btn" class="btn btn-clear" title="Clear all filters">
                         <i class="fas fa-times"></i> Clear
-                    </button>
-                    <button id="advanced-filters-btn" class="btn btn-secondary" title="Advanced filters">
-                        <i class="fas fa-filter"></i> Advanced
                     </button>
                 </div>
             </div>
@@ -311,34 +311,19 @@
         let categories = [];
         let productTypes = [];
 
-        // DOM Elements
-        const productTable = document.getElementById('product-table');
-        const productTableBody = productTable.querySelector('tbody');
-        const productCountElement = document.getElementById('product-count');
-        const searchInput = document.getElementById('search-input');
-        const searchSuggestions = document.getElementById('search-suggestions');
-        const categoryFilter = document.getElementById('category-filter');
-        const companyFilter = document.getElementById('company-filter');
-        const statusFilter = document.getElementById('status-filter');
-        const certificateFilter = document.getElementById('certificate-filter');
-        const clearFiltersBtn = document.getElementById('clear-filters-btn');
-        const advancedFiltersBtn = document.getElementById('advanced-filters-btn');
-        const importBtn = document.getElementById('import-btn');
-        const exportBtn = document.getElementById('export-btn');
-        const addProductBtn = document.getElementById('add-product-btn');
-        
-        // Modal elements
-        const productModal = document.getElementById('product-modal');
-        const modalTitle = document.getElementById('modal-title');
-        const productForm = document.getElementById('product-form');
-        const modalClose = document.querySelector('.modal-close');
-        const cancelBtn = document.getElementById('cancel-btn');
+        // DOM Elements - declared but assigned after DOMContentLoaded
+        let productTable, productTableBody, productCountElement;
+        let searchInput, searchSuggestions;
+        let categoryFilter, companyFilter, statusFilter, certificateFilter;
+        let clearFiltersBtn;
+        let importBtn, exportBtn, addProductBtn;
+        let productModal, modalTitle, productForm, modalClose, cancelBtn;
 
         // Sorting variables
         let sortColumn = 'name';
         let sortDirection = 'asc';
         let currentEditingId = null;
-        
+
         // Search suggestions
         let searchSuggestionsData = {
             products: [],
@@ -350,10 +335,48 @@
 
         // Initialize page
         document.addEventListener('DOMContentLoaded', async function() {
-            await loadInitialData();
-            initializeEventListeners();
-            initializeSortableHeaders();
-            populateTable();
+            try {
+                console.log('Step 1: Initializing DOM elements...');
+
+                // Initialize DOM elements after DOM is ready
+                productTable = document.getElementById('product-table');
+                productTableBody = productTable ? productTable.querySelector('tbody') : null;
+                productCountElement = document.getElementById('product-count');
+                searchInput = document.getElementById('search-input');
+                searchSuggestions = document.getElementById('search-suggestions');
+                categoryFilter = document.getElementById('category-filter');
+                companyFilter = document.getElementById('company-filter');
+                statusFilter = document.getElementById('status-filter');
+                certificateFilter = document.getElementById('certificate-filter');
+                clearFiltersBtn = document.getElementById('clear-filters-btn');
+                importBtn = document.getElementById('import-btn');
+                exportBtn = document.getElementById('export-btn');
+                addProductBtn = document.getElementById('add-product-btn');
+                productModal = document.getElementById('product-modal');
+                modalTitle = document.getElementById('modal-title');
+                productForm = document.getElementById('product-form');
+                modalClose = document.querySelector('.modal-close');
+                cancelBtn = document.getElementById('cancel-btn');
+
+                // Validate critical elements
+                if (!productTable || !productTableBody) {
+                    console.error('Critical: Product table not found');
+                    return;
+                }
+
+                console.log('Step 2: Loading initial data...');
+                await loadInitialData();
+                console.log('Step 3: Initializing event listeners...');
+                initializeEventListeners();
+                console.log('Step 4: Initializing sortable headers...');
+                initializeSortableHeaders();
+                console.log('Step 5: Populating table...');
+                populateTable();
+                console.log('Done!');
+            } catch (error) {
+                console.error('Error at:', error.stack);
+                alert('Error: ' + error.message + '\n\nCheck console for stack trace');
+            }
         });
 
         async function loadInitialData() {
@@ -453,49 +476,58 @@
         }
 
         function initializeEventListeners() {
-            // Search and filter events
-            searchInput.addEventListener('input', handleSearchInput);
-            searchInput.addEventListener('keydown', handleSearchKeydown);
-            searchInput.addEventListener('blur', hideSuggestions);
-            categoryFilter.addEventListener('change', handleFilterChange);
-            companyFilter.addEventListener('change', handleFilterChange);
-            statusFilter.addEventListener('change', handleFilterChange);
-            certificateFilter.addEventListener('change', handleFilterChange);
-            clearFiltersBtn.addEventListener('click', clearAllFilters);
-            advancedFiltersBtn.addEventListener('click', showAdvancedFilters);
+            // Search and filter events (with null checks)
+            if (searchInput) {
+                searchInput.addEventListener('input', handleSearchInput);
+                searchInput.addEventListener('keydown', handleSearchKeydown);
+                searchInput.addEventListener('blur', hideSuggestions);
+            }
+            if (categoryFilter) categoryFilter.addEventListener('change', handleFilterChange);
+            if (companyFilter) companyFilter.addEventListener('change', handleFilterChange);
+            if (statusFilter) statusFilter.addEventListener('change', handleFilterChange);
+            if (certificateFilter) certificateFilter.addEventListener('change', handleFilterChange);
+            if (clearFiltersBtn) clearFiltersBtn.addEventListener('click', clearAllFilters);
 
-            // Button events
-            addProductBtn.addEventListener('click', showAddProductModal);
+            // Button events (with null checks)
+            if (addProductBtn) addProductBtn.addEventListener('click', showAddProductModal);
             // Use productManagement.handleImportClick() for import pre-requisite checking
-            importBtn.addEventListener('click', () => {
-                if (window.productManagement && typeof window.productManagement.handleImportClick === 'function') {
-                    window.productManagement.handleImportClick();
-                } else {
-                    // Fallback to legacy function if productManagement not loaded
-                    importProducts();
-                }
-            });
-            exportBtn.addEventListener('click', exportProducts);
+            if (importBtn) {
+                importBtn.addEventListener('click', () => {
+                    if (window.productManagement && typeof window.productManagement.handleImportClick === 'function') {
+                        window.productManagement.handleImportClick();
+                    } else {
+                        // Fallback to legacy function if productManagement not loaded
+                        importProducts();
+                    }
+                });
+            }
+            if (exportBtn) exportBtn.addEventListener('click', exportProducts);
 
-            // Modal events
-            modalClose.addEventListener('click', closeModal);
-            cancelBtn.addEventListener('click', closeModal);
-            productForm.addEventListener('submit', saveProduct);
+            // Modal events (with null checks)
+            if (modalClose) modalClose.addEventListener('click', closeModal);
+            if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+            if (productForm) productForm.addEventListener('submit', saveProduct);
 
             // Close modal when clicking outside
             window.addEventListener('click', function(event) {
-                if (event.target === productModal) {
+                if (productModal && event.target === productModal) {
                     closeModal();
                 }
             });
         }
 
         function populateTable() {
-            const searchTerm = searchInput.value.toLowerCase();
-            const categoryFilterValue = categoryFilter.value;
-            const companyFilterValue = companyFilter.value;
-            const statusFilterValue = statusFilter.value;
-            const certificateFilterValue = certificateFilter.value;
+            // Guard against missing DOM elements
+            if (!productTableBody || !productCountElement) {
+                console.error('Product table elements not found');
+                return;
+            }
+
+            const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+            const categoryFilterValue = categoryFilter ? categoryFilter.value : 'all';
+            const companyFilterValue = companyFilter ? companyFilter.value : 'all';
+            const statusFilterValue = statusFilter ? statusFilter.value : 'all';
+            const certificateFilterValue = certificateFilter ? certificateFilter.value : 'all';
 
             // Filter products
             let filteredProducts = products.filter(product => {
@@ -1021,12 +1053,14 @@
         function displayActiveFilters(filters) {
             let activeFiltersContainer = document.getElementById('active-filters');
             if (!activeFiltersContainer) {
+                const toolbar = document.querySelector('.admin-toolbar');
+                if (!toolbar) return; // Exit if toolbar not found
                 activeFiltersContainer = document.createElement('div');
                 activeFiltersContainer.id = 'active-filters';
                 activeFiltersContainer.className = 'active-filters';
-                document.querySelector('.search-filter-bar').appendChild(activeFiltersContainer);
+                toolbar.appendChild(activeFiltersContainer);
             }
-            
+
             if (filters.length === 0) {
                 activeFiltersContainer.style.display = 'none';
                 return;
@@ -1067,14 +1101,11 @@
             }
             populateTable();
         }
-        
-        function showAdvancedFilters() {
-            showToast('Advanced filters feature coming soon!', 'info');
-        }
-        
+
         function initializeRealTimeUpdates() {
             // Add real-time controls to header
-            const headerButtonsArea = document.querySelector('.buttons-area');
+            const headerButtonsArea = document.querySelector('.admin-button-group');
+            if (!headerButtonsArea) return; // Exit if button area not found
             const realTimeToggle = document.createElement('button');
             realTimeToggle.id = 'realtime-toggle';
             realTimeToggle.className = 'btn btn-secondary';
@@ -1148,7 +1179,8 @@
             lastUpdateTimestamp = Date.now();
             const indicator = document.getElementById('last-update-indicator');
             if (!indicator) {
-                const footerInfo = document.querySelector('.footer-info');
+                const footerInfo = document.querySelector('.admin-footer-info');
+                if (!footerInfo) return; // Exit if footer not found
                 const updateIndicator = document.createElement('span');
                 updateIndicator.id = 'last-update-indicator';
                 updateIndicator.className = 'last-update';

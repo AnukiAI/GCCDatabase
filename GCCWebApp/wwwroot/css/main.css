@@ -424,7 +424,7 @@ th,
 }
 
 .main-nav {
-    max-width: 1400px;
+    max-width: 1450px;
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
@@ -2220,35 +2220,35 @@ body.theme-option4 .certificate-single-card .card-body {
 }
 
 .role-public .role-public-show {
-    display: block;
+    display: block !important;
 }
 
 .role-public .role-public-hide {
-    display: none;
+    display: none !important;
 }
 
 .role-external .role-external-show {
-    display: block;
+    display: block !important;
 }
 
 .role-external .role-external-hide {
-    display: none;
+    display: none !important;
 }
 
 .role-analyst .role-analyst-show {
-    display: block;
+    display: block !important;
 }
 
 .role-analyst .role-analyst-hide {
-    display: none;
+    display: none !important;
 }
 
 .role-admin .role-admin-show {
-    display: block;
+    display: block !important;
 }
 
 .role-admin .role-admin-hide {
-    display: none;
+    display: none !important;
 }
 
 /* Override for flex and list items */
@@ -2256,14 +2256,14 @@ body.theme-option4 .certificate-single-card .card-body {
 .role-external .role-external-show.btn,
 .role-analyst .role-analyst-show.btn,
 .role-admin .role-admin-show.btn {
-    display: flex;
+    display: flex !important;
 }
 
 .role-public .role-public-show.nav-item,
 .role-external .role-external-show.nav-item,
 .role-analyst .role-analyst-show.nav-item,
 .role-admin .role-admin-show.nav-item {
-    display: list-item;
+    display: list-item !important;
 }
 
 /* Override for table cells and headers */

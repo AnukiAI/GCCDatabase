@@ -139,6 +139,25 @@ box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 
 **Design Token**: `--admin-container-max-width: 1400px` (admin-core.css:126)
 
+## Search Input Controls (US-017)
+
+**ALL search input fields must use "Search" as placeholder text.**
+
+```html
+<!-- CORRECT -->
+<input type="text" class="form-control" placeholder="Search" />
+<input type="search" class="form-control" placeholder="Search" />
+
+<!-- WRONG - Do NOT use these -->
+<input type="text" placeholder="Search..." />           <!-- No ellipsis -->
+<input type="text" placeholder="Search certificates" /> <!-- No context suffix -->
+<input type="text" placeholder="Type to search..." />   <!-- No instructions -->
+<input type="text" placeholder="Filter" />              <!-- Use "Search" not "Filter" -->
+<input type="text" placeholder="" />                    <!-- Never empty -->
+```
+
+**Consistency Rule**: All search inputs across the application use the single word "Search" - no variations.
+
 ## Color Palette
 - Primary Green: #92C83E
 - Dark Green: #447638

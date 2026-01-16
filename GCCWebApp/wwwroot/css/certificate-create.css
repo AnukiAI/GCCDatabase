@@ -5,7 +5,7 @@
 /* Override the default page-container max-width for certificate create/edit pages */
 body.role-admin .page-container:has(.admin-container),
 body.role-analyst .page-container:has(.admin-container) {
-    max-width: 1600px !important;
+    max-width: 1800px !important;
     padding: 0 24px !important;
 }
 

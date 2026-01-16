@@ -123,7 +123,7 @@
     --admin-z-toast: 10000; /* Must be higher than modal backdrop (9998) and modal content (9999) */
 
     /* Layout */
-    --admin-container-max-width: 1400px;
+    --admin-container-max-width: 1800px;
     --admin-sidebar-width: 280px;
     --admin-header-height: 64px;
 

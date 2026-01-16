@@ -385,7 +385,7 @@
 .admin-container {
     background-color: #fff;
     padding: 20px;
-    max-width: var(--admin-container-max-width, 1400px);
+    max-width: var(--admin-container-max-width, 1800px);
     width: calc(100% - 40px);
     margin: 20px auto;
     border-radius: 6px;

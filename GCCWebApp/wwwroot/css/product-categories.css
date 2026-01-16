@@ -4,7 +4,7 @@
 .admin-container {
     background-color: var(--white);
     padding: var(--space-xl);
-    max-width: 1400px;
+    max-width: 1800px;
     margin: var(--space-xl) auto;
     border-radius: var(--border-radius-md);
     box-shadow: var(--shadow);

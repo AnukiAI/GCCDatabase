@@ -363,7 +363,7 @@ section h2 {
 .container {
     background-color: var(--white);
     padding: 20px;
-    max-width: 1400px;
+    max-width: 1800px;
     margin: 20px auto;
     border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);

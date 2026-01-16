@@ -194,13 +194,13 @@ th,
 
 /* ===== 4. LAYOUT CONTAINERS ===== */
 .container {
-    max-width: 1400px;
+    max-width: 1800px;
     margin: 0 auto;
     padding: 0;
 }
 
 .page-container {
-    max-width: 1450px;
+    max-width: 1800px;
     margin: 0 auto;
     padding: 0 40px;
 }
@@ -424,7 +424,7 @@ th,
 }
 
 .main-nav {
-    max-width: 1450px;
+    max-width: 1800px;
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
@@ -703,7 +703,7 @@ th,
 }
 
 .breadcrumb-wrapper {
-    max-width: 1450px;
+    max-width: 1800px;
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -1539,7 +1539,7 @@ input, select, button, .form-input, .form-select {
 }
 
 .certificate-single-container {
-    max-width: 1200px;
+    max-width: 1800px;
     margin: 0 auto;
     padding: 24px;
     background-color: var(--white);
@@ -2732,7 +2732,7 @@ footer {
 }
 
 .footer-content {
-    max-width: 1400px;
+    max-width: 1800px;
     margin: 0 auto;
     text-align: center;
 }

@@ -310,6 +310,12 @@ function initializeMobileSubmenus() {
 function initializeSearchFunctionality() {
     const searchInput = document.querySelector('.search-bar input');
 
+    // Skip on Certificate tile view pages - they have their own search handling
+    const isTileViewPage = window.location.pathname.toLowerCase().includes('/certificate/certificatetileview');
+    if (isTileViewPage) {
+        return;
+    }
+
     if (searchInput) {
         searchInput.addEventListener('keydown', function (e) {
             if (e.key === 'Enter') {
@@ -332,8 +338,8 @@ function initializeSearchFunctionality() {
  */
 function performSearch(query) {
     if (query.trim()) {
-        // In MVC, redirect to search results
-        window.location.href = '/Certificate/Search?q=' + encodeURIComponent(query);
+        // Redirect to public certificate tile view with search term
+        window.location.href = '/Certificate/CertificateTileView?search=' + encodeURIComponent(query);
     }
 }
 

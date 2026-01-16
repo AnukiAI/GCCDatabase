@@ -653,11 +653,18 @@
                 case 'Enter':
                     e.preventDefault();
                     if (selectedIndex >= 0) {
+                        // Use selected autocomplete item
                         const selectedItem = items[selectedIndex];
                         searchInput.value = selectedItem.dataset.value;
                         state.filters.search = selectedItem.dataset.value;
                         autocompleteContainer.style.display = 'none';
-                        updateUrl(); // Update URL before loading to preserve state
+                        updateUrl();
+                        loadInitialCertificates();
+                    } else if (searchInput.value.trim()) {
+                        // No autocomplete selected, but there's text - use it for search
+                        state.filters.search = searchInput.value.trim();
+                        autocompleteContainer.style.display = 'none';
+                        updateUrl();
                         loadInitialCertificates();
                     }
                     break;

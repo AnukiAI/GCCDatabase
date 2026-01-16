@@ -62,10 +62,17 @@
 
 /* ===== PAGE HEADER FROM LAYOUT (Remove border for admin pages) ===== */
 /* Override the .page-header border from main.css for consistent admin styling */
+/* Add left padding to align with admin-container content */
 .page-header {
     border-bottom: none;
-    padding: 16px 0 0 0;
+    padding: 16px 0 0 var(--admin-space-lg);
     margin-bottom: 0;
+}
+
+/* ===== BREADCRUMB ALIGNMENT FOR ADMIN PAGES ===== */
+/* Add left padding to breadcrumb-wrapper to align with admin-container content */
+.breadcrumb-wrapper {
+    padding-left: calc(40px + var(--admin-space-lg));
 }
 
 .admin-actions-section {
@@ -593,6 +600,15 @@
     .admin-dashboard-cards {
         grid-template-columns: repeat(4, 1fr);
     }
+
+    /* Align page-header and breadcrumbs with admin-container content on large screens */
+    .page-header {
+        padding-left: var(--admin-space-xl);
+    }
+
+    .breadcrumb-wrapper {
+        padding-left: calc(40px + var(--admin-space-xl));
+    }
 }
 
 /* Medium screens (tablets) */
@@ -642,6 +658,15 @@
     .admin-grid--3,
     .admin-grid--4 {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Align page-header and breadcrumbs with admin-container content on tablets */
+    .page-header {
+        padding-left: var(--admin-space-md);
+    }
+
+    .breadcrumb-wrapper {
+        padding-left: calc(24px + var(--admin-space-md));
     }
 }
 
@@ -720,6 +745,15 @@
     .admin-breadcrumb-text {
         display: none;
     }
+
+    /* Align page-header and breadcrumbs with admin-container content on mobile */
+    .page-header {
+        padding-left: var(--admin-space-sm);
+    }
+
+    .breadcrumb-wrapper {
+        padding-left: calc(12px + var(--admin-space-sm));
+    }
 }
 
 /* Extra small screens */
@@ -736,6 +770,15 @@
 
     .admin-card {
         padding: var(--admin-space-md);
+    }
+
+    /* Align page-header and breadcrumbs with admin-container content on extra small screens */
+    .page-header {
+        padding-left: var(--admin-space-xs);
+    }
+
+    .breadcrumb-wrapper {
+        padding-left: calc(8px + var(--admin-space-xs));
     }
 }
 

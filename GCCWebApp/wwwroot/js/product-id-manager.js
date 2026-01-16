@@ -1097,50 +1097,21 @@ class ProductIdManager {
     }
 
     showError(message) {
-        this.showToast(message, 'error');
+        // Use AdminCore for consistent modal-style notifications across the app
+        if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+            AdminCore.showNotification(message, 'error');
+        } else {
+            console.error(message);
+        }
     }
 
     showSuccess(message) {
-        this.showToast(message, 'success');
-    }
-
-    showToast(message, type = 'info') {
-        // Create toast element
-        const toastContainer = document.getElementById('toastContainer') || this.createToastContainer();
-
-        const toastElement = document.createElement('div');
-        toastElement.className = `toast align-items-center text-bg-${type === 'error' ? 'danger' : 'success'} border-0`;
-        toastElement.setAttribute('role', 'alert');
-        toastElement.setAttribute('aria-live', 'assertive');
-        toastElement.setAttribute('aria-atomic', 'true');
-
-        toastElement.innerHTML = `
-            <div class="d-flex">
-                <div class="toast-body" style="font-size: 16px;">
-                    ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        `;
-
-        toastContainer.appendChild(toastElement);
-
-        const toast = new bootstrap.Toast(toastElement, { delay: 5000 });
-        toast.show();
-
-        // Remove element after toast is hidden
-        toastElement.addEventListener('hidden.bs.toast', () => {
-            toastElement.remove();
-        });
-    }
-
-    createToastContainer() {
-        const container = document.createElement('div');
-        container.id = 'toastContainer';
-        container.className = 'toast-container position-fixed top-0 end-0 p-3';
-        container.style.zIndex = '1055';
-        document.body.appendChild(container);
-        return container;
+        // Use AdminCore for consistent modal-style notifications across the app
+        if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+            AdminCore.showNotification(message, 'success');
+        } else {
+            console.log(message);
+        }
     }
 
     formatDate(dateString) {

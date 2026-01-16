@@ -333,7 +333,8 @@ namespace GCCWebApp.Controllers
 
                 // Load dropdown data
                 ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
-                ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
+                var allProducts = await _unitOfWork.Products.GetAllAsync();
+                ViewBag.Products = allProducts.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.Name).ToList();
 
                 // Load certification types - separate parent types and all types for cascading dropdown
                 var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
@@ -570,7 +571,8 @@ namespace GCCWebApp.Controllers
         private async Task ReloadCreateFormDataAsync()
         {
             ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
-            ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
+            var allProducts = await _unitOfWork.Products.GetAllAsync();
+            ViewBag.Products = allProducts.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.Name).ToList();
 
             // Load certification types - separate parent types and all types for cascading dropdown
             var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
@@ -635,7 +637,8 @@ namespace GCCWebApp.Controllers
 
                 // Load dropdown data
                 ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
-                ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
+                var allProducts = await _unitOfWork.Products.GetAllAsync();
+                ViewBag.Products = allProducts.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.Name).ToList();
 
                 // Load certification types - separate parent types and all types for cascading dropdown
                 var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
@@ -866,7 +869,8 @@ namespace GCCWebApp.Controllers
         private async Task ReloadEditFormDataAsync(int certificateId)
         {
             ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
-            ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
+            var allProducts = await _unitOfWork.Products.GetAllAsync();
+            ViewBag.Products = allProducts.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.Name).ToList();
 
             // Load certification types - separate parent types and all types for cascading dropdown
             var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();

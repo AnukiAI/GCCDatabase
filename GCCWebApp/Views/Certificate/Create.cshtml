@@ -64,7 +64,7 @@
                     <!-- Company Section -->
                     <div class="form-group">
                         <label asp-for="CompanyId">Company <span class="text-danger" aria-label="required">*</span></label>
-                        <select asp-for="CompanyId" required aria-required="true" aria-describedby="company-help">
+                        <select asp-for="CompanyId" class="form-control" required aria-required="true" aria-describedby="company-help">
                             <option value="">Select a company...</option>
                             @if (ViewBag.Companies != null)
                             {
@@ -86,7 +86,7 @@
 
                     <div class="form-group">
                         <label asp-for="CertificationTypeId">Certification Type <span class="text-danger" aria-label="required">*</span></label>
-                        <select asp-for="CertificationTypeId" id="CertificationTypeId" required aria-required="true">
+                        <select asp-for="CertificationTypeId" id="CertificationTypeId" class="form-control" required aria-required="true">
                             <option value="">Select type...</option>
                             @if (ViewBag.ParentCertificationTypes != null)
                             {
@@ -101,7 +101,7 @@
 
                     <div class="form-group" id="subcategory-group">
                         <label asp-for="CertificationTypeSubcategoryId">Certificate Subcategory <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
-                        <select asp-for="CertificationTypeSubcategoryId" id="CertificationTypeSubcategoryId">
+                        <select asp-for="CertificationTypeSubcategoryId" id="CertificationTypeSubcategoryId" class="form-control">
                             <option value="">Select subcategory...</option>
                         </select>
                         <span asp-validation-for="CertificationTypeSubcategoryId" class="text-danger" role="alert"></span>
@@ -109,24 +109,8 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="ProductTypeId">Product Type <span class="text-muted" style="font-size: 12px;">(Optional - filters products)</span></label>
-                        <select id="ProductTypeId" name="ProductTypeId">
-                            <option value="">All Product Types</option>
-                        </select>
-                        <small class="form-text text-muted">Select to filter products by type</small>
-                    </div>
-
-                    <div class="form-group" id="product-subcategory-group">
-                        <label for="ProductSubcategoryId">Product Subcategory <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
-                        <select id="ProductSubcategoryId" name="ProductSubcategoryId">
-                            <option value="">All Subcategories</option>
-                        </select>
-                        <small class="form-text text-muted">Select to further filter products</small>
-                    </div>
-
-                    <div class="form-group">
                         <label asp-for="ProductId">Product Name <span class="text-danger" aria-label="required">*</span></label>
-                        <select asp-for="ProductId" required aria-required="true">
+                        <select asp-for="ProductId" class="form-control" required aria-required="true">
                             <option value="">Select a product...</option>
                             @if (ViewBag.Products != null)
                             {
@@ -137,6 +121,22 @@
                             }
                         </select>
                         <span asp-validation-for="ProductId" class="text-danger" role="alert"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ProductTypeId">Product Type <span class="text-muted" style="font-size: 12px;">(Optional - filters products)</span></label>
+                        <select id="ProductTypeId" name="ProductTypeId" class="form-control">
+                            <option value="">All Product Types</option>
+                        </select>
+                        <small class="form-text text-muted">Select to filter products by type</small>
+                    </div>
+
+                    <div class="form-group" id="product-subcategory-group">
+                        <label for="ProductSubcategoryId">Product Subcategory <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <select id="ProductSubcategoryId" name="ProductSubcategoryId" class="form-control">
+                            <option value="">Select subcategory...</option>
+                        </select>
+                        <small class="form-text text-muted">Select to further filter products</small>
                     </div>
 
                     <div class="form-group">
@@ -153,7 +153,7 @@
 
                     <div class="form-group">
                         <label asp-for="Status">Status <span class="text-danger" aria-label="required">*</span></label>
-                        <select asp-for="Status" required aria-required="true">
+                        <select asp-for="Status" class="form-control" required aria-required="true">
                             <option value="">Select status...</option>
                             @if (ViewBag.Statuses != null)
                             {
@@ -168,7 +168,7 @@
 
                     <div class="form-group">
                         <label asp-for="Partner">Partner</label>
-                        <select asp-for="Partner">
+                        <select asp-for="Partner" class="form-control">
                             <option value="">None</option>
                             <option value="Amazon">Amazon</option>
                             <option value="Novi">Novi</option>
@@ -192,7 +192,7 @@
 
                     <div class="form-group">
                         <label asp-for="Country">Country</label>
-                        <select asp-for="Country">
+                        <select asp-for="Country" class="form-control">
                             <option value="">Select country...</option>
                             <option value="United States">United States</option>
                             <option value="Canada">Canada</option>
@@ -305,7 +305,15 @@
                 @await Html.PartialAsync("_ProductIdManager", Model.ProductIds)
             </div>
 
-            <!-- Custom Fields Section -->
+            @* ========================================================================
+               CUSTOM FIELDS SECTION - HIDDEN FOR INITIAL PHASE
+               ========================================================================
+               TO RE-ENABLE: Simply remove the @* and *@ comment markers around this section.
+               The functionality is fully implemented - just uncomment to show.
+               Also ensure certificate-custom-fields.js is included in the Scripts section.
+               ========================================================================
+            @* Custom Fields Section *@
+            @*
             <div class="card-style" style="margin-bottom: 24px;">
                 <div class="form-section-header">
                     <i class="fas fa-sliders-h"></i>
@@ -316,19 +324,20 @@
                     <p class="text-muted">Select a certification type to load custom fields.</p>
                 </div>
             </div>
+            *@
 
             <div class="action-buttons">
                 <button type="submit" name="action" value="save" class="btn btn-primary" aria-label="Save certificate">
-                    <i class="fas fa-save" aria-hidden="true"></i> Save
+                    Save
                 </button>
                 <button type="submit" name="action" value="saveAndAddAnother" class="btn btn-primary" aria-label="Save certificate and add another">
-                    <i class="fas fa-plus" aria-hidden="true"></i> Save & Add Another
+                    Save & Add Another
                 </button>
                 <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="btn btn-outline" aria-label="Cancel and return to certificate management">
-                    <i class="fas fa-times" aria-hidden="true"></i> Cancel
+                    Cancel
                 </a>
                 <button type="reset" class="btn btn-outline" aria-label="Reset form to default values">
-                    <i class="fas fa-undo" aria-hidden="true"></i> Reset Form
+                    Reset Form
                 </button>
             </div>
         </form>
@@ -415,7 +424,7 @@
                 const productSelect = $('#ProductId');
 
                 // Clear subcategory options
-                subcategorySelect.html('<option value="">All Subcategories</option>');
+                subcategorySelect.html('<option value="">Select subcategory...</option>');
 
                 if (typeId) {
                     // Load subcategories for the selected type
@@ -426,9 +435,9 @@
                             result.data.forEach(sub => {
                                 subcategorySelect.append(`<option value="${sub.id}">${sub.name}</option>`);
                             });
-                            $('#product-subcategory-group').show();
+                            // Subcategory options loaded
                         } else {
-                            $('#product-subcategory-group').hide();
+                            // No subcategories for this type - keep field visible
                         }
                     } catch (error) {
                         console.error('Error loading product subcategories:', error);
@@ -437,7 +446,7 @@
                     // Filter products by type
                     await filterProducts(typeId, null);
                 } else {
-                    $('#product-subcategory-group').hide();
+                    // No type selected - keep subcategory visible but empty
                     // Show all products
                     await filterProducts(null, null);
                 }
@@ -473,6 +482,9 @@
                         if (currentValue && productSelect.find(`option[value="${currentValue}"]`).length) {
                             productSelect.val(currentValue);
                         }
+
+                        // Trigger change event to update custom dropdown UI (from certificate-inline-create.js)
+                        productSelect.trigger('change');
                     }
                 } catch (error) {
                     console.error('Error filtering products:', error);
@@ -500,12 +512,16 @@
                         });
                     }
 
-                    // Load custom fields for the selected type
-                    if (typeof certificateCustomFields !== 'undefined') {
+                    // Load custom fields for the selected type (only if container exists)
+                    if (typeof certificateCustomFields !== 'undefined' && document.getElementById('custom-fields-container')) {
                         certificateCustomFields.loadFieldsForType(typeId);
                     }
                 } else {
-                    $('#custom-fields-container').html('<p class="text-muted">Select a certification type to load custom fields.</p>');
+                    // Custom fields container may be hidden for initial phase
+                    const customFieldsContainer = document.getElementById('custom-fields-container');
+                    if (customFieldsContainer) {
+                        customFieldsContainer.innerHTML = '<p class="text-muted">Select a certification type to load custom fields.</p>';
+                    }
                 }
             });
 
@@ -519,53 +535,43 @@
             const form = document.getElementById('certificateCreateForm');
 
             form.addEventListener('submit', function(e) {
-                console.log('[Create.cshtml] Form submit handler triggered');
                 try {
-                    // Only validate custom fields if they exist and are loaded
-                    if (typeof certificateCustomFields !== 'undefined' && certificateCustomFields.fields && certificateCustomFields.fields.length > 0) {
+                    // Only validate custom fields if container exists and fields are loaded
+                    const customFieldsContainer = document.getElementById('custom-fields-container');
+                    if (customFieldsContainer && typeof certificateCustomFields !== 'undefined' && certificateCustomFields.fields && certificateCustomFields.fields.length > 0) {
                         const validation = certificateCustomFields.validateFields();
                         if (!validation.isValid) {
                             e.preventDefault();
                             e.stopPropagation();
-                            // Show inline errors for custom fields
-                            const customFieldsContainer = document.getElementById('custom-fields-container');
-                            if (customFieldsContainer) {
-                                // Clear previous custom field errors
-                                customFieldsContainer.querySelectorAll('.inline-validation-error').forEach(el => el.remove());
-                                customFieldsContainer.querySelectorAll('.form-group.has-error').forEach(fg => fg.classList.remove('has-error'));
+                            // Clear previous custom field errors
+                            customFieldsContainer.querySelectorAll('.inline-validation-error').forEach(el => el.remove());
+                            customFieldsContainer.querySelectorAll('.form-group.has-error').forEach(fg => fg.classList.remove('has-error'));
 
-                                // Add inline error for each invalid custom field
-                                validation.errors.forEach(error => {
-                                    // Find the field by its error message
-                                    const formGroups = customFieldsContainer.querySelectorAll('.form-group');
-                                    formGroups.forEach(fg => {
-                                        const label = fg.querySelector('label');
-                                        if (label && error.includes(label.textContent.replace('*', '').trim())) {
-                                            fg.classList.add('has-error');
-                                            const errorDiv = document.createElement('div');
-                                            errorDiv.className = 'inline-validation-error';
-                                            errorDiv.textContent = error;
-                                            const input = fg.querySelector('input, select, textarea');
-                                            if (input) {
-                                                input.insertAdjacentElement('afterend', errorDiv);
-                                            }
+                            // Add inline error for each invalid custom field
+                            validation.errors.forEach(error => {
+                                const formGroups = customFieldsContainer.querySelectorAll('.form-group');
+                                formGroups.forEach(fg => {
+                                    const label = fg.querySelector('label');
+                                    if (label && error.includes(label.textContent.replace('*', '').trim())) {
+                                        fg.classList.add('has-error');
+                                        const errorDiv = document.createElement('div');
+                                        errorDiv.className = 'inline-validation-error';
+                                        errorDiv.textContent = error;
+                                        const input = fg.querySelector('input, select, textarea');
+                                        if (input) {
+                                            input.insertAdjacentElement('afterend', errorDiv);
                                         }
-                                    });
+                                    }
                                 });
+                            });
 
-                                // Scroll to custom fields section
-                                customFieldsContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }
+                            customFieldsContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             return false;
                         }
 
                         // Get custom field values and add them to the form
                         const fieldValues = certificateCustomFields.getFieldValues();
-
-                        // Remove any existing custom field hidden inputs
                         form.querySelectorAll('input[name^="CustomFieldValues"]').forEach(input => input.remove());
-
-                        // Add custom field values as hidden inputs to the form
                         Object.keys(fieldValues).forEach(fieldId => {
                             const hiddenInput = document.createElement('input');
                             hiddenInput.type = 'hidden';
@@ -573,28 +579,14 @@
                             hiddenInput.value = fieldValues[fieldId] || '';
                             form.appendChild(hiddenInput);
                         });
-
-                        console.log('Custom field values added to form:', fieldValues);
                     }
 
                     // Add Product IDs to the form (from Product ID Manager)
-                    console.log('[FormSubmit] Checking productIdManager:', {
-                        exists: typeof window.productIdManager !== 'undefined',
-                        hasProductIds: window.productIdManager?.productIds ? true : false,
-                        count: window.productIdManager?.productIds?.length || 0
-                    });
-
                     if (typeof window.productIdManager !== 'undefined' && window.productIdManager.productIds && window.productIdManager.productIds.length > 0) {
-                        // Remove any existing product ID hidden inputs
                         form.querySelectorAll('input[name^="ProductIds"]').forEach(input => input.remove());
-
-                        // Add product IDs as hidden inputs for model binding
-                        // Format: ProductIds[0].PropertyName, ProductIds[1].PropertyName, etc.
-                        // CertificateId is set to 0 here - the backend will assign the correct value after certificate creation
                         window.productIdManager.productIds.forEach((pid, index) => {
-                            console.log('[FormSubmit] Adding ProductId:', pid);
                             const fields = {
-                                'CertificateId': 0, // Will be set by backend after certificate creation
+                                'CertificateId': 0,
                                 'ProductIdType': pid.productIdType || '',
                                 'ProductIdValue': pid.productIdValue || '',
                                 'Status': pid.status || 'Active',
@@ -603,28 +595,19 @@
                                 'ProductSku': pid.productSku || '',
                                 'Description': pid.description || ''
                             };
-
                             Object.entries(fields).forEach(([key, value]) => {
                                 const hiddenInput = document.createElement('input');
                                 hiddenInput.type = 'hidden';
                                 hiddenInput.name = `ProductIds[${index}].${key}`;
                                 hiddenInput.value = value;
                                 form.appendChild(hiddenInput);
-                                console.log('[FormSubmit] Added hidden input:', `ProductIds[${index}].${key}`, '=', value);
                             });
                         });
-
-                        console.log('[FormSubmit] Product IDs added to form:', window.productIdManager.productIds.length);
-                    } else {
-                        console.log('[FormSubmit] No product IDs to add');
                     }
 
-                    // If no custom fields or validation passes, allow form to submit normally
                     return true;
                 } catch (error) {
-                    console.error('Error validating custom fields:', error);
-                    // Allow form to submit even if validation has an error
-                    // (Better to let the server handle validation than block the user)
+                    console.error('Error in form submit handler:', error);
                     return true;
                 }
             });

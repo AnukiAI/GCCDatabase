@@ -48,6 +48,15 @@ namespace GCCWebApp.Services
 
         public async Task<int> CreateCompanyAsync(CompanyViewModel model, int userId, string username)
         {
+            // Check for duplicate company name (case-insensitive)
+            var existingCompany = await _context.Companies
+                .FirstOrDefaultAsync(c => c.Name.ToLower() == model.Name.ToLower() && !c.IsDeleted);
+
+            if (existingCompany != null)
+            {
+                throw new InvalidOperationException($"A company with the name '{model.Name}' already exists.");
+            }
+
             var company = new Company
             {
                 Name = model.Name,
@@ -91,6 +100,15 @@ namespace GCCWebApp.Services
                 .FirstOrDefaultAsync(c => c.Id == id && !c.IsDeleted);
 
             if (company == null) return false;
+
+            // Check for duplicate company name (case-insensitive), excluding current company
+            var existingCompany = await _context.Companies
+                .FirstOrDefaultAsync(c => c.Id != id && c.Name.ToLower() == model.Name.ToLower() && !c.IsDeleted);
+
+            if (existingCompany != null)
+            {
+                throw new InvalidOperationException($"A company with the name '{model.Name}' already exists.");
+            }
 
             // Capture old state for audit (detached from context)
             var oldCompany = await _context.Companies

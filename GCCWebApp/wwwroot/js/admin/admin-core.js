@@ -579,7 +579,7 @@ const AdminCore = {
      */
     _showAlertModal(config, type) {
         return new Promise((resolve) => {
-            // Create modal overlay
+            // Create modal overlay with inline styles as failsafe
             const overlay = document.createElement('div');
             overlay.className = 'admin-modal-overlay gcc-modal-overlay';
             overlay.setAttribute('role', 'alertdialog');
@@ -587,24 +587,49 @@ const AdminCore = {
             overlay.setAttribute('aria-labelledby', `${type}-modal-title`);
             overlay.setAttribute('aria-describedby', `${type}-modal-message`);
 
-            // Determine button class based on type
-            const buttonClasses = {
-                success: 'gcc-modal-btn--success',
-                error: 'gcc-modal-btn--danger',
-                warning: 'gcc-modal-btn--warning',
-                info: 'gcc-modal-btn--info'
+            // Inline styles ensure modal works even if CSS fails to load
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.85);
+                backdrop-filter: blur(3px);
+                z-index: 9999;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            `;
+
+            // Determine button colors based on type
+            const buttonColors = {
+                success: '#92C83E',
+                error: '#FF5252',
+                warning: '#FFC107',
+                info: '#002B76'
+            };
+            const titleColors = {
+                success: '#002B76',
+                error: '#FF5252',
+                warning: '#FFA000',
+                info: '#002B76'
             };
 
-            const buttonClass = buttonClasses[type] || 'gcc-modal-btn--success';
+            const buttonColor = buttonColors[type] || '#92C83E';
+            const titleColor = titleColors[type] || '#002B76';
+            const buttonTextColor = type === 'warning' ? '#333333' : '#ffffff';
 
-            // Create modal HTML
+            // Create modal HTML with inline styles
             overlay.innerHTML = `
-                <div class="admin-modal-dialog gcc-modal-dialog">
-                    <div class="gcc-modal-content gcc-modal-content--${type}">
-                        <h2 id="${type}-modal-title" class="gcc-modal-title gcc-modal-title--${type}">${this.escapeHtml(config.title)}</h2>
-                        <p id="${type}-modal-message" class="gcc-modal-message">${this.escapeHtml(config.message)}</p>
-                        <div class="gcc-modal-buttons gcc-modal-buttons--centered">
-                            <button class="gcc-modal-btn ${buttonClass} gcc-modal-btn--full" data-action="ok">
+                <div class="admin-modal-dialog gcc-modal-dialog" style="position: relative; z-index: 10000; max-width: 450px; width: 90%; margin: auto;">
+                    <div class="gcc-modal-content gcc-modal-content--${type}" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); padding: 30px; text-align: center;">
+                        <h2 id="${type}-modal-title" class="gcc-modal-title gcc-modal-title--${type}" style="color: ${titleColor}; font-size: 22px; font-weight: 600; margin: 0 0 15px 0;">${this.escapeHtml(config.title)}</h2>
+                        <p id="${type}-modal-message" class="gcc-modal-message" style="color: #333333; font-size: 16px; line-height: 1.5; margin: 0 0 25px 0;">${this.escapeHtml(config.message)}</p>
+                        <div class="gcc-modal-buttons gcc-modal-buttons--centered" style="display: flex; gap: 15px; justify-content: center;">
+                            <button class="gcc-modal-btn gcc-modal-btn--full" data-action="ok" style="width: 100%; padding: 12px 30px; border: none; border-radius: 4px; font-size: 16px; font-weight: 500; cursor: pointer; background-color: ${buttonColor}; color: ${buttonTextColor};">
                                 ${this.escapeHtml(config.buttonText)}
                             </button>
                         </div>
@@ -642,6 +667,7 @@ const AdminCore = {
             // Show modal with animation
             requestAnimationFrame(() => {
                 overlay.classList.add('show');
+                overlay.style.opacity = '1'; // Inline style failsafe
                 okBtn.focus();
             });
 

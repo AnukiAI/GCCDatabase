@@ -144,7 +144,13 @@
                         </div>
                     }
 
-                    @* Custom Fields Section *@
+                    @* ========================================================================
+                       CUSTOM FIELDS SECTION - HIDDEN FOR INITIAL PHASE
+                       ========================================================================
+                       TO RE-ENABLE: Simply remove the @* and *@ comment markers around this section.
+                       The functionality is fully implemented - just uncomment to show.
+                       ======================================================================== *@
+                    @*
                     @if (Model.CustomFieldValues != null && Model.CustomFieldValues.Any())
                     {
                         @foreach (var section in Model.CustomFieldValues.GroupBy(f => f.Field.Section))
@@ -161,6 +167,7 @@
                             </div>
                         }
                     }
+                    *@
 
                     <!-- Tags -->
                     @if (Model.Certificate?.Tags != null && Model.Certificate.Tags.Any())

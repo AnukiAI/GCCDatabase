@@ -1,0 +1,526 @@
+/* Company Management Styles - Uses main.css variables */
+/* Container styling inherited from admin-layout.css and admin-mockup-override.css */
+
+/* ===== HEADER SECTION ===== */
+/* Modern admin header structure is defined in admin-layout.css and admin-mockup-override.css */
+/* This file only contains company-specific overrides */
+
+/* NOTE: Do NOT override .admin-header layout here - use the standard admin-layout.css structure */
+/* The .admin-header-content class handles flex layout with justify-content: space-between */
+
+.title-area {
+    display: none;
+}
+
+.buttons-area {
+    display: flex;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+    align-items: center;
+    margin-left: auto;
+}
+
+/* ===== IMPORT PREVIEW MODAL ===== */
+/* Note: display is controlled by JavaScript - do not set display here */
+#import-preview-modal {
+    /* No positioning here - children are positioned fixed */
+}
+
+.admin-container h1 {
+    color: var(--blue-dark);
+    margin: 0;
+    font-size: var(--font-size-xl);
+    font-weight: 500;
+}
+
+/* ===== BUTTON STYLES ===== */
+.btn {
+    background-color: var(--white);
+    color: var(--blue-dark);
+    border: 1px solid var(--border-color);
+    padding: var(--space-sm) var(--space-md);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: 16px;
+    font-family: inherit;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: var(--space-xs);
+    min-height: 44px;
+}
+
+.btn:hover {
+    background-color: var(--light-gray);
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background-color: var(--green-primary);
+    color: var(--white);
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #0089BC;
+}
+
+.btn-add {
+    background-color: var(--green-primary);
+    color: var(--white);
+    border: none;
+}
+
+.btn-add:hover {
+    background-color: var(--green-secondary);
+}
+
+.btn-delete,
+.btn-edit {
+    background: none;
+    border: none;
+    padding: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: var(--transition);
+    border-radius: var(--border-radius-sm);
+    min-width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 2px;
+}
+
+.btn-delete {
+    color: var(--warning);
+}
+
+.btn-edit {
+    color: var(--blue-primary);
+}
+
+.btn-delete:hover {
+    background-color: rgba(255, 82, 82, 0.1);
+}
+
+.btn-edit:hover {
+    background-color: rgba(0, 174, 239, 0.1);
+}
+
+/* ===== SEARCH AND FILTER BAR ===== */
+/* Using admin framework classes (.admin-toolbar, .admin-search-box, etc.)
+   Styles provided by admin-layout.css and admin-mockup-override.css */
+
+/* Legacy support for search-filter-bar class */
+.search-filter-bar {
+    display: flex;
+    align-items: center;
+    padding: var(--space-md) 0;
+    margin-bottom: var(--space-md);
+    gap: var(--space-md);
+    flex-wrap: wrap;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.search-box {
+    position: relative;
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: 100%;
+    min-width: 200px;
+    box-sizing: border-box;
+}
+
+.search-box input {
+    width: 100%;
+    padding: var(--space-sm) var(--space-md) var(--space-sm) 35px;
+    border-radius: var(--border-radius-sm);
+    border: 1px solid var(--border-color);
+    background-color: var(--white);
+    font-family: inherit;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.search-icon {
+    position: absolute;
+    left: var(--space-sm);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+/* ===== TABLE STYLES ===== */
+/* Table container no longer needs separate border/background
+   when inside .admin-body-content wrapper */
+.table-container {
+    overflow: hidden;
+    margin-bottom: var(--space-lg);
+}
+
+/* Override main.css company-name white color for table context */
+#company-table .company-name {
+    color: var(--text-color);
+    font-weight: normal;
+    font-size: 16px;
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+    text-indent: 0;
+}
+
+/* Ensure consistent left alignment for all table cells */
+#company-table tbody td {
+    text-align: left;
+    vertical-align: middle;
+    padding: 12px 15px;
+}
+
+/* Remove any Bootstrap or other framework overrides on table cells */
+#company-table tbody td:first-child {
+    padding-left: 15px;
+}
+
+#company-table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: var(--white);
+    table-layout: fixed;
+}
+
+#company-table th,
+#company-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+}
+
+#company-table th {
+    background-color: var(--light-gray);
+    color: var(--blue-dark);
+    font-weight: 500;
+    position: sticky;
+    top: 0;
+    cursor: pointer;
+    font-size: 16px;
+    white-space: nowrap;
+}
+
+#company-table th .sort-icon {
+    display: inline-block;
+    margin-left: var(--space-xs);
+    font-size: 12px;
+    opacity: 0.6;
+    transition: var(--transition);
+}
+
+#company-table th.active-sort .sort-icon {
+    opacity: 1;
+    color: var(--blue-primary);
+}
+
+#company-table tbody tr {
+    background-color: var(--white);
+    transition: background-color 0.2s;
+}
+
+#company-table tbody tr:hover {
+    background-color: var(--light-gray);
+}
+
+#company-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+/* Actions column specific styling */
+.actions-col,
+#company-table th.actions-col {
+    text-align: center !important;
+    white-space: nowrap !important;
+    min-width: 100px !important;
+    width: 16% !important;
+}
+
+#company-table td:last-child,
+#company-table td.actions-cell {
+    text-align: center !important;
+    white-space: nowrap !important;
+    padding: 8px 4px !important;
+    min-width: 100px !important;
+    overflow: visible !important;
+}
+
+/* ===== MODAL STYLES ===== */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+    background-color: var(--white);
+    margin: 5% auto;
+    padding: var(--space-xl);
+    width: 60%;
+    max-width: 900px;
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow);
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--space-lg);
+}
+
+.modal-title {
+    color: var(--blue-dark);
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 500;
+}
+
+.modal-close {
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: var(--transition);
+}
+
+.modal-close:hover {
+    color: var(--text-color);
+}
+
+.form-group {
+    margin-bottom: var(--space-md);
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: var(--space-xs);
+    color: var(--text-color);
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: var(--space-sm);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: 16px;
+    box-sizing: border-box;
+    min-height: 44px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-md);
+    margin-top: var(--space-lg);
+}
+
+.footer-info {
+    text-align: right;
+    color: var(--text-secondary);
+    font-size: 16px;
+    margin-top: var(--space-xs);
+    width: 100%;
+}
+
+/* ===== INLINE EDITING STYLES ===== */
+.company-edit-row .company-name,
+.company-edit-row .company-email,
+.company-edit-row .company-url {
+    display: none;
+}
+
+.company-name-edit,
+.company-email-edit,
+.company-url-edit {
+    display: none;
+}
+
+.company-edit-row .company-name-edit,
+.company-edit-row .company-email-edit,
+.company-edit-row .company-url-edit {
+    display: block;
+}
+
+.company-edit-row {
+    background-color: rgba(0, 174, 239, 0.05);
+}
+
+/* Add row styles */
+.company-add-row {
+    display: none;
+    background-color: rgba(146, 200, 62, 0.05);
+}
+
+.company-add-row.active {
+    display: table-row;
+}
+
+.company-edit-input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--blue-primary);
+    border-radius: var(--border-radius-sm);
+    font-family: inherit;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.company-edit-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+}
+
+/* Edit action buttons */
+.action-buttons {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+}
+
+.company-edit-actions {
+    display: none;
+    gap: 5px;
+    justify-content: center;
+}
+
+.company-edit-row .action-buttons {
+    display: none;
+}
+
+.company-edit-row .company-edit-actions {
+    display: flex;
+}
+
+/* Always show actions for add row */
+.company-add-row .company-edit-actions {
+    display: flex;
+}
+
+.company-btn-save,
+.company-btn-cancel {
+    padding: 6px 12px;
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    border: none;
+    transition: var(--transition);
+}
+
+.company-btn-save {
+    background-color: var(--green-primary);
+    color: var(--white);
+}
+
+.company-btn-save:hover {
+    background-color: var(--green-secondary);
+}
+
+.company-btn-cancel {
+    background-color: #f8f9fa;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.company-btn-cancel:hover {
+    background-color: #e2e6ea;
+}
+
+/* URL links */
+.url-link {
+    color: var(--blue-primary);
+    text-decoration: none;
+}
+
+.url-link:hover {
+    text-decoration: underline;
+}
+
+/* Toast notification */
+.company-toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--green-primary);
+    color: white;
+    padding: 12px 20px;
+    border-radius: var(--border-radius-sm);
+    box-shadow: var(--shadow);
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    max-width: 300px;
+}
+
+.company-toast.show {
+    opacity: 1;
+}
+
+.company-toast.error {
+    background-color: var(--warning);
+}
+
+.company-toast.success {
+    background-color: var(--green-primary);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+/* Container responsive styling inherited from admin-layout.css and admin-mockup-override.css */
+
+@media (max-width: 768px) {
+    .search-filter-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .search-box {
+        width: 100%;
+    }
+
+    .modal-content {
+        width: 90%;
+        margin: 10% auto;
+        padding: var(--space-lg);
+    }
+
+    .btn-delete, .btn-edit {
+        min-width: 32px;
+        height: 32px;
+        margin: 0 1px;
+    }
+
+    #company-table {
+        font-size: 16px;
+    }
+
+    #company-table th,
+    #company-table td {
+        padding: var(--space-sm);
+    }
+}
+
+@media (max-width: 480px) {
+    .btn {
+        font-size: 16px;
+        padding: var(--space-xs) var(--space-sm);
+    }
+}

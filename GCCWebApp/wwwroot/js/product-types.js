@@ -484,7 +484,8 @@ class ProductTypeManager {
             message: `Are you sure you want to delete <strong>${item.name}</strong>? This action cannot be undone.`,
             confirmText: 'Delete',
             cancelText: 'Cancel',
-            type: 'danger'
+            type: 'danger',
+            allowHtml: true
         });
 
         if (confirmed) {

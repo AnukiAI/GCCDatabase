@@ -382,7 +382,8 @@ class UserManagement {
             message: `Are you sure you want to delete user <strong>${user.name}</strong>? This action cannot be undone.`,
             confirmText: 'Delete',
             cancelText: 'Cancel',
-            type: 'danger'
+            type: 'danger',
+            allowHtml: true
         });
 
         if (!confirmed) {

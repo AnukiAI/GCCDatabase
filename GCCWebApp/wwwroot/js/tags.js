@@ -471,7 +471,8 @@ async function deleteTag(id, name) {
         message: `Are you sure you want to delete the tag <strong>${name}</strong>? This action cannot be undone.`,
         confirmText: 'Delete',
         cancelText: 'Cancel',
-        type: 'danger'
+        type: 'danger',
+        allowHtml: true
     });
 
     if (!confirmed) {

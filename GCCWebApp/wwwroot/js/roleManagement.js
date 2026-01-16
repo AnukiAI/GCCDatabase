@@ -420,7 +420,8 @@ class RoleManagement {
             message: `Are you sure you want to delete the role <strong>${role.name}</strong>? This action cannot be undone.`,
             confirmText: 'Delete',
             cancelText: 'Cancel',
-            type: 'danger'
+            type: 'danger',
+            allowHtml: true
         });
 
         if (!confirmed) {

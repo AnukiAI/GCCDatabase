@@ -1,0 +1,583 @@
+/* =============================================================================
+   Admin Pages Mockup Override CSS
+   Matches design from mockups exactly for all admin pages
+   ============================================================================= */
+
+/* Color variables matching mockups */
+:root {
+    --mockup-green-primary: #447638;
+    --mockup-green-secondary: #92C83E;
+    --mockup-blue-primary: #00AEEF;
+    --mockup-blue-dark: #002B76;
+    --mockup-light-gray: #f5f5f5;
+    --mockup-border-color: #ddd;
+    --mockup-text-color: #333;
+}
+
+/* =============================================================================
+   ADMIN HEADER - Title and Button Layout
+   ============================================================================= */
+
+.admin-header {
+    background-color: #fff;
+    border: none;
+    box-shadow: none;
+    margin-bottom: 20px;
+    padding: 0;
+}
+
+.admin-header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.admin-title-section {
+    flex: 1 1 0; /* Flex-grow, flex-shrink, flex-basis - ensures it takes space even when empty */
+    min-width: 0; /* Allows flex item to shrink below content size if needed */
+}
+
+.admin-page-title {
+    color: var(--mockup-blue-dark);
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+}
+
+.admin-page-subtitle {
+    display: none; /* Mockups don't show subtitles */
+}
+
+.admin-actions-section {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0; /* Prevent actions section from shrinking */
+    margin-left: auto; /* Force to right edge even if title section is empty */
+}
+
+.admin-button-group {
+    display: flex;
+    gap: 10px;
+}
+
+/* =============================================================================
+   BUTTONS - Matching Mockup Style
+   ============================================================================= */
+
+.admin-btn,
+.btn {
+    background-color: #fff;
+    color: var(--mockup-blue-dark);
+    border: 1px solid var(--mockup-border-color);
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 400;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-height: auto;
+    box-shadow: none;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+}
+
+.admin-btn:hover,
+.btn:hover {
+    background-color: var(--mockup-light-gray);
+    transform: none;
+    box-shadow: none;
+}
+
+.admin-btn--primary,
+.admin-btn.admin-btn--primary,
+.btn-primary,
+.btn-add {
+    background-color: var(--mockup-green-secondary);
+    color: white;
+    border: none;
+}
+
+.admin-btn--primary:hover,
+.admin-btn.admin-btn--primary:hover,
+.btn-primary:hover,
+.btn-add:hover {
+    background-color: var(--mockup-green-primary);
+    color: white;
+}
+
+.admin-btn--secondary,
+.admin-btn.admin-btn--secondary,
+.btn-secondary {
+    background-color: #fff;
+    border-color: var(--mockup-border-color);
+    color: var(--mockup-blue-dark);
+}
+
+.admin-btn--secondary:hover,
+.admin-btn.admin-btn--secondary:hover,
+.btn-secondary:hover {
+    background-color: var(--mockup-light-gray);
+    border-color: var(--mockup-border-color);
+    color: var(--mockup-blue-dark);
+}
+
+/* =============================================================================
+   SEARCH AND FILTER BAR - Matching Mockup Style
+   ============================================================================= */
+
+.admin-toolbar {
+    display: flex;
+    align-items: center;
+    background-color: transparent;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+    gap: 10px;
+    flex-wrap: wrap;
+    border: none;
+    box-shadow: none;
+}
+
+.search-filter-bar {
+    display: flex;
+    align-items: center;
+    background-color: transparent;
+    border-radius: 4px;
+    padding: 10px;
+    margin-bottom: 15px;
+    gap: 10px;
+    flex-wrap: wrap;
+    border: none;
+    box-shadow: none;
+}
+
+.admin-search-section,
+.admin-filter-section {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.admin-search-section {
+    flex-grow: 1;
+}
+
+.admin-search-box,
+.search-box {
+    position: relative;
+    flex-grow: 1;
+    min-width: 200px;
+}
+
+.admin-search-input,
+.search-box input,
+.admin-toolbar .admin-search-input,
+#search-input {
+    width: 100%;
+    padding: 8px 10px 8px 35px;
+    border-radius: 4px;
+    border: 1px solid var(--mockup-border-color);
+    background-color: #ffffff !important;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    box-sizing: border-box;
+    font-size: 16px;
+    min-height: 40px;
+}
+
+.admin-search-input:focus,
+.search-box input:focus {
+    outline: none;
+    border-color: var(--mockup-blue-primary);
+    box-shadow: none;
+}
+
+.admin-search-icon,
+.search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #777;
+    font-size: 14px;
+}
+
+.admin-filter-select,
+.filter-select {
+    padding: 8px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--mockup-border-color);
+    background-color: white;
+    font-size: 16px;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    min-width: 140px;
+    color: var(--mockup-text-color);
+    min-height: 40px;
+}
+
+.admin-filter-select:focus,
+.filter-select:focus {
+    outline: none;
+    border-color: var(--mockup-blue-primary);
+    box-shadow: none;
+}
+
+/* =============================================================================
+   TABLE - Matching Mockup Style
+   ============================================================================= */
+
+.admin-table-container,
+.table-container {
+    border: 1px solid #eee;
+    border-radius: 4px;
+    overflow: visible;
+    margin-bottom: 20px;
+    box-shadow: none;
+    background-color: #fff;
+}
+
+.admin-table,
+.table,
+#user-table,
+#role-table,
+#tag-table,
+#products-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 16px;
+}
+
+.admin-table-header th,
+.admin-table th,
+.table th,
+#user-table th,
+#role-table th,
+#tag-table th,
+#products-table th {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    background-color: #f9f9f9;
+    color: var(--mockup-blue-dark);
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.admin-table-body td,
+.admin-table td,
+.table td,
+#user-table td,
+#role-table td,
+#tag-table td,
+#products-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    font-size: 16px;
+    color: var(--mockup-text-color);
+}
+
+.admin-table-body tr:hover,
+.admin-table tbody tr:hover,
+.table tbody tr:hover,
+#user-table tbody tr:hover,
+#role-table tbody tr:hover,
+#tag-table tbody tr:hover,
+#products-table tbody tr:hover {
+    background-color: var(--mockup-light-gray);
+}
+
+.admin-sort-icon {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 10px;
+    opacity: 0.6;
+}
+
+.admin-table-th--sortable.active-sort .admin-sort-icon {
+    opacity: 1;
+}
+
+/* Action buttons in tables */
+.admin-action-btn,
+.btn-edit,
+.btn-delete {
+    background: none;
+    border: none;
+    padding: 4px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+/* Edit button - Blue (#00AEEF) - always visible */
+.admin-action-btn--edit,
+.btn-edit {
+    color: #00AEEF;
+}
+
+.admin-action-btn--edit:hover,
+.btn-edit:hover {
+    color: #0095cc;
+    background-color: rgba(0, 174, 239, 0.15);
+    transform: scale(1.1);
+}
+
+/* Delete button - Red (#FF5252) - always visible */
+.admin-action-btn--delete,
+.btn-delete {
+    color: #FF5252;
+}
+
+.admin-action-btn--delete:hover,
+.btn-delete:hover {
+    color: #e04545;
+    background-color: rgba(255, 82, 82, 0.15);
+    transform: scale(1.1);
+}
+
+.admin-action-btn--save {
+    color: #27ae60;
+}
+
+.admin-action-btn--save:hover {
+    background-color: #e8f8f0;
+}
+
+.admin-action-btn--cancel {
+    color: #e74c3c;
+}
+
+.admin-action-btn--cancel:hover {
+    background-color: #fee;
+}
+
+/* =============================================================================
+   FOOTER INFO - Matching Mockup Style
+   ============================================================================= */
+
+.admin-footer-info,
+.footer-info {
+    text-align: right;
+    color: #777;
+    font-size: 14px;
+    margin-top: 5px;
+    padding: 0;
+    background: none;
+    border: none;
+    width: 100%;
+    display: block;
+}
+
+.admin-count-display {
+    color: #777;
+    font-size: 14px;
+}
+
+/* =============================================================================
+   CONTAINER AND CONTENT AREAS
+   ============================================================================= */
+
+/* US-016: Use standard 1400px from admin framework CSS variable */
+.admin-container {
+    background-color: #fff;
+    padding: 20px;
+    max-width: var(--admin-container-max-width, 1800px);
+    width: calc(100% - 40px);
+    margin: 20px auto;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.admin-content {
+    margin-top: 0;
+}
+
+/* =============================================================================
+   MODAL - Matching Mockup Style
+   ============================================================================= */
+
+.admin-modal-container,
+.modal-content {
+    background-color: white;
+    margin: 10% auto;
+    padding: 20px;
+    width: 50%;
+    max-width: 600px;
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.admin-modal-header,
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    border-bottom: none;
+}
+
+.admin-modal-title,
+.modal-title {
+    color: var(--mockup-blue-dark);
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.admin-modal-close,
+.modal-close {
+    font-size: 24px;
+    font-weight: bold;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--mockup-text-color);
+}
+
+.admin-form-group,
+.form-group {
+    margin-bottom: 15px;
+}
+
+.admin-label,
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: var(--mockup-text-color);
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.admin-input,
+.admin-select,
+.admin-textarea,
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--mockup-border-color);
+    border-radius: 4px;
+    font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    box-sizing: border-box;
+    font-size: 16px;
+}
+
+.admin-input:focus,
+.admin-select:focus,
+.admin-textarea:focus,
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--mockup-blue-primary);
+    box-shadow: none;
+}
+
+.admin-modal-footer,
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid #eee;
+}
+
+/* =============================================================================
+   RESPONSIVE DESIGN
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .admin-container {
+        padding: 15px;
+        margin: 10px;
+    }
+
+    .admin-header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-button-group {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .admin-toolbar,
+    .search-filter-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-search-box,
+    .search-box {
+        width: 100%;
+    }
+
+    .admin-modal-container,
+    .modal-content {
+        width: 90%;
+        margin: 20% auto;
+    }
+}
+
+/* =============================================================================
+   ACCESSIBILITY
+   ============================================================================= */
+
+.admin-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Focus visible for keyboard navigation */
+.admin-btn:focus-visible,
+.admin-input:focus-visible,
+.admin-select:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+    outline: 2px solid var(--mockup-blue-primary);
+    outline-offset: 2px;
+}
+
+/* =============================================================================
+   PARTNER CARDS - Partner API Page
+   ============================================================================= */
+
+.partner-card {
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.partner-card:hover {
+    border-color: #00AEEF;
+    box-shadow: 0 2px 8px rgba(0, 174, 239, 0.2);
+}
+
+.partner-card.selected {
+    border-color: #00AEEF;
+    background: #f5f9ff;
+    box-shadow: 0 2px 8px rgba(0, 174, 239, 0.3);
+}
+
+.partner-card.selected:hover {
+    box-shadow: 0 2px 8px rgba(0, 174, 239, 0.3);
+}

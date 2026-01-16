@@ -26,16 +26,7 @@
     padding: 0;
 }
 
-/* Page Header */
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
-    flex-wrap: wrap;
-    gap: 16px;
-    padding: 0;
-}
+/* Page Header - now handled by admin-layout.css for consistency */
 
 /* Title styling now handled by main.css .page-title */
 
@@ -605,11 +596,7 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .page-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-    }
+    /* .page-header responsive now handled by admin-layout.css */
 
     .page-actions {
         width: 100%;

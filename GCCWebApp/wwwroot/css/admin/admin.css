@@ -47,7 +47,6 @@
     background-color: var(--admin-bg-primary);
     border: 1px solid var(--admin-border-primary);
     border-radius: var(--admin-radius-md);
-    margin-bottom: var(--admin-space-lg);
     box-shadow: var(--admin-shadow-sm);
 }
 

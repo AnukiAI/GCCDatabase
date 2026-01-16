@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.AspNetCore.Mvc.ModelBinding.Validation;
 
 namespace GCCWebApp.Models
 {
@@ -52,9 +53,12 @@ namespace GCCWebApp.Models
 
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties
+        // Navigation properties (excluded from model binding validation)
+        [ValidateNever]
         public Certificate Certificate { get; set; } = null!;
+        [ValidateNever]
         public User? CreatedByUser { get; set; }
+        [ValidateNever]
         public User? UpdatedByUser { get; set; }
     }
 

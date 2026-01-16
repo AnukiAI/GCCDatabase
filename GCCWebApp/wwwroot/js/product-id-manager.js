@@ -47,10 +47,13 @@ class ProductIdManager {
         document.getElementById('filterByPartner')?.addEventListener('change', () => this.applyFilters());
         document.getElementById('searchProductIds')?.addEventListener('input', () => this.applyFilters());
 
-        // Modal form submission
-        const form = document.getElementById('productIdForm');
-        if (form) {
-            form.addEventListener('submit', (e) => this.handleFormSubmit(e));
+        // Modal form submission - bind to Save button click since form is a div
+        const saveBtn = document.getElementById('saveProductId');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.handleFormSubmit(e);
+            });
         }
 
         // Import form submission
@@ -1014,7 +1017,8 @@ class ProductIdManager {
                     successCount++;
                 } else {
                     errorCount++;
-                    console.error(`Failed to import row ${row.rowNumber}`);
+                    const errorText = await response.text();
+                    console.error(`Failed to import row ${row.rowNumber}:`, errorText);
                 }
             } catch (error) {
                 errorCount++;

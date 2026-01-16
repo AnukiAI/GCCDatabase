@@ -2610,3 +2610,39 @@ admin-container
 Succeeded (0 errors, 0 warnings)
 
 ---
+
+## 2026-01-15: CertificateTypes Page - Save/Delete Not Working
+
+### Issue
+Save and Delete functionality on `/Admin/CertificateTypes` page was not working. No error messages, buttons appeared to do nothing.
+
+### Root Cause
+The `admin-core.js` script was not being loaded on the page. The JavaScript code in `certificate-types.js` depends on `AdminCore.showNotification()` and `AdminCore.showConfirmation()` functions which are defined in `admin-core.js`.
+
+Console showed: `AdminCore available: false`
+
+### Investigation Steps
+1. Checked browser console - found `AdminCore available: false`
+2. Verified `admin-core.js` file exists and has no syntax errors
+3. Found the `@section Scripts` in `CertificateTypes.cshtml` was not including `admin-core.js`
+4. Discovered compiled Razor view caching was preventing changes from taking effect
+5. Had to kill locked processes and rebuild to pick up changes
+
+### Solution
+Added `admin-core.js` to the main `_Layout.cshtml` file so it loads globally on ALL pages:
+
+```html
+<script src="~/js/admin/admin-core.js"></script>
+```
+
+This ensures AdminCore is always available for any admin page that needs it.
+
+### Additional Fixes Applied
+- Added `RequestVerificationToken` headers to `updateCertificateType()` and `deleteCertificateType()` methods in `certificate-types.js` for consistency with other admin pages
+
+### Lesson Learned
+- When admin page functionality fails silently, check if `AdminCore` is available in browser console
+- Adding shared scripts to `_Layout.cshtml` is more reliable than per-page `@section Scripts`
+- Always restart the server after changing Razor view files to clear compiled view cache
+
+---

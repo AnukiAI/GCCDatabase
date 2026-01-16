@@ -179,12 +179,20 @@ function initializeSortableHeaders() {
 
             // Update header styling
             headers.forEach(h => {
-                h.classList.remove('admin-table-th--sorted-asc', 'admin-table-th--sorted-desc');
+                h.classList.remove('admin-table-th--sorted-asc', 'admin-table-th--sorted-desc', 'active-sort');
                 h.removeAttribute('aria-sort');
+                const icon = h.querySelector('.sort-icon');
+                if (icon) {
+                    icon.textContent = '▼';
+                }
             });
 
-            header.classList.add(`admin-table-th--sorted-${sortDirection}`);
+            header.classList.add(`admin-table-th--sorted-${sortDirection}`, 'active-sort');
             header.setAttribute('aria-sort', sortDirection === 'asc' ? 'ascending' : 'descending');
+            const sortIcon = header.querySelector('.sort-icon');
+            if (sortIcon) {
+                sortIcon.textContent = sortDirection === 'asc' ? '▲' : '▼';
+            }
 
             // Sort the data
             sortData();

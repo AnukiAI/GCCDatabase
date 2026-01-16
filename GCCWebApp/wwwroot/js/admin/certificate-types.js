@@ -200,13 +200,195 @@ class CertificateTypeManager {
     }
 
     setupEventListeners() {
-        // Search functionality
+        // Search functionality with autocomplete
         const searchInput = document.getElementById('search-input');
         if (searchInput) {
-            searchInput.addEventListener('input', (e) => {
-                this.filterTree(e.target.value);
-            });
+            this.initializeAutocomplete(searchInput);
         }
+    }
+
+    initializeAutocomplete(searchInput) {
+        // Create autocomplete dropdown container
+        const autocompleteContainer = document.createElement('div');
+        autocompleteContainer.className = 'autocomplete-dropdown';
+        autocompleteContainer.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+        `;
+
+        // Make search input container relative for positioning
+        const searchContainer = searchInput.parentElement;
+        searchContainer.style.position = 'relative';
+        searchContainer.appendChild(autocompleteContainer);
+
+        // Store reference
+        this.autocompleteContainer = autocompleteContainer;
+
+        // Debounce timer
+        let debounceTimer = null;
+
+        // Input event handler
+        searchInput.addEventListener('input', (e) => {
+            const term = e.target.value.trim();
+
+            // Clear existing debounce timer
+            clearTimeout(debounceTimer);
+
+            // Handle autocomplete suggestions
+            if (term.length >= 1) {
+                const suggestions = this.getAutocompleteSuggestions(term);
+                this.renderAutocomplete(suggestions, autocompleteContainer, searchInput);
+            } else {
+                autocompleteContainer.style.display = 'none';
+            }
+
+            // Debounced tree filter
+            debounceTimer = setTimeout(() => {
+                this.filterTree(term);
+            }, 150);
+        });
+
+        // Close autocomplete on outside click
+        document.addEventListener('click', (e) => {
+            if (!searchInput.contains(e.target) && !autocompleteContainer.contains(e.target)) {
+                autocompleteContainer.style.display = 'none';
+            }
+        });
+
+        // Keyboard navigation
+        searchInput.addEventListener('keydown', (e) => {
+            const items = autocompleteContainer.querySelectorAll('.autocomplete-item');
+            let selectedIndex = Array.from(items).findIndex(item => item.classList.contains('selected'));
+
+            switch (e.key) {
+                case 'ArrowDown':
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        if (selectedIndex >= 0) items[selectedIndex].classList.remove('selected');
+                        const nextIndex = selectedIndex < items.length - 1 ? selectedIndex + 1 : 0;
+                        items[nextIndex].classList.add('selected');
+                        items[nextIndex].scrollIntoView({ block: 'nearest' });
+                        this.updateAutocompleteSelectedStyles(autocompleteContainer);
+                    }
+                    break;
+                case 'ArrowUp':
+                    e.preventDefault();
+                    if (items.length > 0) {
+                        if (selectedIndex >= 0) items[selectedIndex].classList.remove('selected');
+                        const prevIndex = selectedIndex > 0 ? selectedIndex - 1 : items.length - 1;
+                        items[prevIndex].classList.add('selected');
+                        items[prevIndex].scrollIntoView({ block: 'nearest' });
+                        this.updateAutocompleteSelectedStyles(autocompleteContainer);
+                    }
+                    break;
+                case 'Enter':
+                    if (selectedIndex >= 0) {
+                        e.preventDefault();
+                        const selectedItem = items[selectedIndex];
+                        searchInput.value = selectedItem.dataset.value;
+                        autocompleteContainer.style.display = 'none';
+                        this.filterTree(selectedItem.dataset.value);
+                    }
+                    break;
+                case 'Escape':
+                    autocompleteContainer.style.display = 'none';
+                    break;
+            }
+        });
+    }
+
+    getAutocompleteSuggestions(term) {
+        if (!this.flatData || this.flatData.length === 0) return [];
+
+        const termLower = term.toLowerCase();
+        const suggestions = [];
+
+        this.flatData.forEach(item => {
+            if (item.name.toLowerCase().includes(termLower)) {
+                const isType = item.parentId === null;
+                suggestions.push({
+                    value: item.name,
+                    label: item.name,
+                    type: isType ? 'Type' : 'Subcategory'
+                });
+            }
+        });
+
+        // Sort: exact matches first, then alphabetically
+        suggestions.sort((a, b) => {
+            const aExact = a.value.toLowerCase() === termLower;
+            const bExact = b.value.toLowerCase() === termLower;
+            if (aExact && !bExact) return -1;
+            if (!aExact && bExact) return 1;
+            return a.value.localeCompare(b.value);
+        });
+
+        // Limit to 10 suggestions
+        return suggestions.slice(0, 10);
+    }
+
+    renderAutocomplete(suggestions, container, input) {
+        if (!suggestions || suggestions.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.innerHTML = suggestions.map((s, index) => `
+            <div class="autocomplete-item ${index === 0 ? 'selected' : ''}"
+                 data-value="${this.escapeHtml(s.value)}"
+                 style="padding: 10px 12px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #f0f0f0; transition: background-color 0.15s ease;">
+                <span class="autocomplete-label" style="font-size: 14px; color: #333;">${this.escapeHtml(s.label)}</span>
+                <span class="autocomplete-type" style="font-size: 12px; background: ${s.type === 'Type' ? '#002B76' : '#92C83E'}; color: white; padding: 2px 8px; border-radius: 3px;">${this.escapeHtml(s.type)}</span>
+            </div>
+        `).join('');
+
+        // Apply selected styling
+        this.updateAutocompleteSelectedStyles(container);
+
+        container.style.display = 'block';
+
+        // Add click handlers
+        container.querySelectorAll('.autocomplete-item').forEach(item => {
+            item.addEventListener('click', () => {
+                input.value = item.dataset.value;
+                container.style.display = 'none';
+                this.filterTree(item.dataset.value);
+            });
+
+            // Hover handlers
+            item.addEventListener('mouseenter', () => {
+                container.querySelectorAll('.autocomplete-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                this.updateAutocompleteSelectedStyles(container);
+            });
+        });
+    }
+
+    updateAutocompleteSelectedStyles(container) {
+        container.querySelectorAll('.autocomplete-item').forEach(item => {
+            if (item.classList.contains('selected')) {
+                item.style.backgroundColor = '#e8f4fd';
+            } else {
+                item.style.backgroundColor = 'white';
+            }
+        });
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
     switchView(viewType) {
@@ -450,7 +632,9 @@ class CertificateTypeManager {
     }
 
     async showDeleteConfirm(id, entityType) {
+        console.log('showDeleteConfirm called:', { id, entityType });
         const item = this.flatData.find(d => d.id == id);
+        console.log('Item found:', item);
         if (!item) return;
 
         // Check if item has children
@@ -586,10 +770,10 @@ class CertificateTypeManager {
                         </form>
                     </div>
                     <div class="modal-footer" style="padding: 1rem; border-top: 2px solid #e9ecef; background-color: #f8f9fa; display: flex; justify-content: flex-end; gap: 0.75rem;">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal"
-                                style="padding: 10px 20px; border: 1px solid #92C83E; background: #92C83E; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">Cancel</button>
+                        <button type="button" class="btn btn-danger" data-dismiss="modal"
+                                style="padding: 10px 20px; border: 1px solid #FF5252; background: #FF5252; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">Cancel</button>
                         <button type="button" class="btn btn-primary" id="saveBtn"
-                                style="padding: 10px 20px; border: 1px solid #002B76; background: #002B76; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">
+                                style="padding: 10px 20px; border: 1px solid #92C83E; background: #92C83E; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">
                             ${isEdit ? 'Update' : `Create ${isSubcategory ? 'Subcategory' : 'Type'}`}
                         </button>
                     </div>
@@ -633,16 +817,20 @@ class CertificateTypeManager {
         }
 
         // Also handle by class name as backup
-        const cancelBtnByClass = modal.querySelector('.btn-secondary');
+        const cancelBtnByClass = modal.querySelector('.btn-danger');
         if (cancelBtnByClass) {
             cancelBtnByClass.addEventListener('click', () => modal.remove());
         }
 
         // Save button
         const saveBtn = modal.querySelector('#saveBtn');
+        console.log('Save button found:', saveBtn ? 'Yes' : 'No');
         if (saveBtn) {
             saveBtn.addEventListener('click', () => {
+                console.log('Save button clicked');
                 const form = modal.querySelector('#certTypeForm');
+                console.log('Form found:', form ? 'Yes' : 'No');
+                console.log('Form valid:', form ? form.checkValidity() : 'N/A');
                 if (form && form.checkValidity()) {
                     const id = modal.querySelector('#certTypeId').value;
                     const name = modal.querySelector('#name').value.trim();
@@ -680,7 +868,10 @@ class CertificateTypeManager {
     }
 
     async createCertificateType(name, parentId) {
+        console.log('createCertificateType called:', { name, parentId });
         try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            console.log('Token found:', token ? 'Yes' : 'No');
             const response = await fetch('/Admin/CreateCertificateType', {
                 method: 'POST',
                 headers: {
@@ -713,7 +904,8 @@ class CertificateTypeManager {
             const response = await fetch(`/Admin/UpdateCertificateType/${id}`, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
                 },
                 body: JSON.stringify({
                     name: name,
@@ -736,9 +928,14 @@ class CertificateTypeManager {
     }
 
     async deleteCertificateType(id) {
+        console.log('deleteCertificateType called:', id);
         try {
             const response = await fetch(`/Admin/DeleteCertificateType/${id}`, {
-                method: 'DELETE'
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                }
             });
 
             const result = await response.json();
@@ -793,6 +990,8 @@ function collapseAll() {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOMContentLoaded - Initializing CertificateTypeManager');
+    console.log('AdminCore available:', typeof AdminCore !== 'undefined');
     window.certTypeManager = new CertificateTypeManager();
 
     // Initialize export functionality

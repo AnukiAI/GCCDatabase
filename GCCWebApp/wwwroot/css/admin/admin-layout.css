@@ -108,9 +108,8 @@
 }
 
 .admin-search-section {
-    flex: 0 1 220px;
+    flex: 1 1 auto;
     min-width: 150px;
-    max-width: 220px;
 }
 
 .admin-filter-section {
@@ -483,7 +482,7 @@
 /* ===== BREADCRUMBS ===== */
 
 .admin-breadcrumbs {
-    display: flex;
+    display: none; /* Hidden per client request */
     align-items: center;
     margin-bottom: var(--admin-space-lg);
     padding: var(--admin-space-sm) 0;
@@ -623,8 +622,6 @@
     }
 
     .admin-search-section {
-        max-width: none;
-        flex: 1 1 100%;
         margin-bottom: var(--admin-space-sm);
     }
 

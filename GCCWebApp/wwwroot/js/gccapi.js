@@ -3,6 +3,8 @@
 
 let allApiKeys = [];
 let filteredApiKeys = [];
+let sortColumn = 'name';
+let sortDirection = 'asc';
 
 // Initialize API Management
 function initializeAPIManagement() {
@@ -77,6 +79,9 @@ function setupEventListeners() {
     if (statusFilter) {
         statusFilter.addEventListener('change', handleSearchAndFilter);
     }
+
+    // Initialize sorting
+    initializeSorting();
 
     // Escape key closes modals
     document.addEventListener('keydown', (e) => {
@@ -497,6 +502,46 @@ async function revokeApiKey(id, name) {
     }
 }
 
+// Initialize Sorting
+function initializeSorting() {
+    const table = document.getElementById('apikey-table');
+    if (!table) return;
+
+    const headers = table.querySelectorAll('th[data-sort]');
+    headers.forEach(header => {
+        header.style.cursor = 'pointer';
+        header.addEventListener('click', () => {
+            const column = header.getAttribute('data-sort');
+
+            // Toggle sort direction if clicking the same column
+            if (sortColumn === column) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = column;
+                sortDirection = 'asc';
+            }
+
+            // Update header styling and icons
+            headers.forEach(h => {
+                h.classList.remove('active-sort');
+                const icon = h.querySelector('.sort-icon');
+                if (icon) {
+                    icon.textContent = '▼';
+                }
+            });
+
+            header.classList.add('active-sort');
+            const sortIcon = header.querySelector('.sort-icon');
+            if (sortIcon) {
+                sortIcon.textContent = sortDirection === 'asc' ? '▲' : '▼';
+            }
+
+            // Re-filter and render
+            handleSearchAndFilter();
+        });
+    });
+}
+
 // Handle Search and Filter
 function handleSearchAndFilter() {
     const searchTerm = document.getElementById('search-input')?.value.toLowerCase() || '';
@@ -522,6 +567,25 @@ function handleSearchAndFilter() {
         }
 
         return matchesSearch && matchesStatus;
+    });
+
+    // Sort filtered results
+    filteredApiKeys.sort((a, b) => {
+        let valueA, valueB;
+
+        if (sortColumn === 'createdAt') {
+            valueA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            valueB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        } else {
+            valueA = (a[sortColumn] || '').toString().toLowerCase();
+            valueB = (b[sortColumn] || '').toString().toLowerCase();
+        }
+
+        if (sortDirection === 'asc') {
+            return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+        } else {
+            return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+        }
     });
 
     renderApiKeys();

@@ -12,6 +12,8 @@ class CertificateFieldsManager {
         this.itemsPerLoad = 15;
         this.currentDisplayCount = 15;
         this.isLoading = false;
+        this.sortColumn = 'section';
+        this.sortDirection = 'asc';
 
         this.init();
     }
@@ -36,6 +38,9 @@ class CertificateFieldsManager {
         this.addFieldBtn?.addEventListener('click', () => this.startAddNew());
         this.searchInput?.addEventListener('input', this.debounce((e) => this.handleSearch(e), 300));
         this.exportBtn?.addEventListener('click', () => this.showExportModal());
+
+        // Initialize sorting
+        this.initializeSorting();
 
         // Table event delegation
         this.fieldsTableBody?.addEventListener('click', (e) => this.handleTableClick(e));
@@ -506,8 +511,91 @@ class CertificateFieldsManager {
             );
         }
 
-        // Show all filtered results (no lazy loading)
+        // Sort and show all filtered results
+        this.sortFields();
         this.renderFields();
+    }
+
+    initializeSorting() {
+        const table = document.getElementById('certificate-fields-table');
+        if (!table) return;
+
+        const headers = table.querySelectorAll('th[data-sort]');
+        headers.forEach(header => {
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', () => {
+                const column = header.getAttribute('data-sort');
+
+                // Toggle sort direction if clicking the same column
+                if (this.sortColumn === column) {
+                    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sortColumn = column;
+                    this.sortDirection = 'asc';
+                }
+
+                // Update header styling and icons
+                headers.forEach(h => {
+                    h.classList.remove('active-sort');
+                    const icon = h.querySelector('.sort-icon');
+                    if (icon) {
+                        icon.textContent = '▼';
+                    }
+                });
+
+                header.classList.add('active-sort');
+                const sortIcon = header.querySelector('.sort-icon');
+                if (sortIcon) {
+                    sortIcon.textContent = this.sortDirection === 'asc' ? '▲' : '▼';
+                }
+
+                // Sort and re-render
+                this.sortFields();
+                this.renderFields();
+            });
+        });
+    }
+
+    sortFields() {
+        this.filteredFields.sort((a, b) => {
+            let valueA, valueB;
+
+            switch (this.sortColumn) {
+                case 'section':
+                    valueA = (a.section || '').toLowerCase();
+                    valueB = (b.section || '').toLowerCase();
+                    break;
+                case 'fieldName':
+                    valueA = (a.name || '').toLowerCase();
+                    valueB = (b.name || '').toLowerCase();
+                    break;
+                case 'controlType':
+                    valueA = (a.fieldType || '').toLowerCase();
+                    valueB = (b.fieldType || '').toLowerCase();
+                    break;
+                case 'required':
+                    valueA = a.isRequired ? 1 : 0;
+                    valueB = b.isRequired ? 1 : 0;
+                    break;
+                case 'visibility':
+                    valueA = (a.roleVisibility || 'public').toLowerCase();
+                    valueB = (b.roleVisibility || 'public').toLowerCase();
+                    break;
+                case 'notes':
+                    valueA = (a.notes || a.defaultValue || '').toLowerCase();
+                    valueB = (b.notes || b.defaultValue || '').toLowerCase();
+                    break;
+                default:
+                    valueA = (a[this.sortColumn] || '').toString().toLowerCase();
+                    valueB = (b[this.sortColumn] || '').toString().toLowerCase();
+            }
+
+            if (this.sortDirection === 'asc') {
+                return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+            } else {
+                return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+            }
+        });
     }
 
     initInfiniteScroll() {

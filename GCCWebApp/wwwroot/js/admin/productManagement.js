@@ -716,7 +716,7 @@ class ProductManagement {
                 const companyValidation = this.validateCompanyReference(row.data.company);
 
                 if (!companyValidation.valid) {
-                    // Company not found
+                    // Company not found - should not happen now, but keep for safety
                     let errorMsg = companyValidation.message;
                     if (companyValidation.suggestions && companyValidation.suggestions.length > 0) {
                         errorMsg += `. Did you mean: ${companyValidation.suggestions.join(', ')}?`;
@@ -724,6 +724,12 @@ class ProductManagement {
                     previewRow.errors.push(errorMsg);
                     previewRow.status = 'error';
                     previewRow.selected = false;
+                } else if (companyValidation.willCreate) {
+                    // Company will be auto-created during import - show as info, allow import
+                    previewRow.warnings = previewRow.warnings || [];
+                    previewRow.warnings.push(companyValidation.message);
+                    previewRow.data.companyWillCreate = true;
+                    previewRow.data.newCompanyName = companyValidation.companyName;
                 } else if (companyValidation.warning) {
                     // Fuzzy match found - show warning but allow import
                     previewRow.warnings = previewRow.warnings || [];
@@ -814,35 +820,37 @@ class ProductManagement {
             filenameEl.textContent = this.importFileName;
         }
 
-        // Check if there are company-not-found errors and show import order guidance
-        const companyErrors = this.importPreviewData.filter(r =>
-            r.errors && r.errors.some(e => e.includes('not found in system'))
-        );
+        // Check for companies that will be created during import
+        const newCompanies = [...new Set(
+            this.importPreviewData
+                .filter(r => r.data && r.data.companyWillCreate && r.data.newCompanyName)
+                .map(r => r.data.newCompanyName)
+        )];
 
-        // Show/hide import order guidance banner
+        // Show/hide new companies banner
         let guidanceBanner = document.getElementById('import-order-guidance');
-        if (companyErrors.length > 0) {
+        if (newCompanies.length > 0) {
             if (!guidanceBanner) {
                 guidanceBanner = document.createElement('div');
                 guidanceBanner.id = 'import-order-guidance';
                 guidanceBanner.className = 'import-guidance-banner';
-                guidanceBanner.innerHTML = `
-                    <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;">
-                        <i class="fas fa-info-circle" style="color: #856404; font-size: 18px; margin-top: 2px;"></i>
-                        <div>
-                            <strong style="color: #856404;">Import Order Matters</strong>
-                            <p style="margin: 4px 0 0 0; font-size: 13px; color: #856404;">
-                                Products reference Companies and Product Types. Please import in this order:<br>
-                                <strong>1. Companies</strong> (/Company) → <strong>2. Product Types</strong> (/Admin/ProductTypes) → <strong>3. Products</strong> (this page)
-                            </p>
-                        </div>
-                        <button onclick="this.parentElement.remove()" style="background: none; border: none; color: #856404; cursor: pointer; font-size: 16px; padding: 0; margin-left: auto;">&times;</button>
+            }
+            guidanceBanner.innerHTML = `
+                <div style="background: #e3f2fd; border: 1px solid #2196f3; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: flex-start; gap: 12px;">
+                    <i class="fas fa-building" style="color: #1565c0; font-size: 18px; margin-top: 2px;"></i>
+                    <div>
+                        <strong style="color: #1565c0;">New Companies Will Be Created</strong>
+                        <p style="margin: 4px 0 0 0; font-size: 13px; color: #1565c0;">
+                            The following ${newCompanies.length === 1 ? 'company' : 'companies'} will be automatically created during import:<br>
+                            <strong>${newCompanies.join(', ')}</strong>
+                        </p>
                     </div>
-                `;
-                const modalBody = document.querySelector('#import-preview-modal .admin-modal-body');
-                if (modalBody) {
-                    modalBody.insertBefore(guidanceBanner, modalBody.firstChild);
-                }
+                    <button onclick="this.parentElement.remove()" style="background: none; border: none; color: #1565c0; cursor: pointer; font-size: 16px; padding: 0; margin-left: auto;">&times;</button>
+                </div>
+            `;
+            const modalBody = document.querySelector('#import-preview-modal .admin-modal-body');
+            if (modalBody && !modalBody.contains(guidanceBanner)) {
+                modalBody.insertBefore(guidanceBanner, modalBody.firstChild);
             }
         } else if (guidanceBanner) {
             guidanceBanner.remove();
@@ -1764,11 +1772,13 @@ class ProductManagement {
             };
         }
 
-        // Not found
+        // Not found - will create new company during import
         return {
-            valid: false,
+            valid: true,
             company: null,
-            message: `Company "${companyName}" not found in system`,
+            willCreate: true,
+            companyName: companyName,
+            message: `Company "${companyName}" will be created`,
             suggestions: this.getSimilarCompanies(companyName)
         };
     }

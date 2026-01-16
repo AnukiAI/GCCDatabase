@@ -632,6 +632,10 @@ namespace GCCWebApp.Controllers
                 var errorCount = 0;
                 var errors = new List<string>();
 
+                // Load companies into memory for efficient lookups and track auto-created ones
+                var companies = await _context.Companies.Where(c => !c.IsDeleted).ToListAsync();
+                var createdCompanies = new List<Company>();
+
                 using (var stream = new StreamReader(file.OpenReadStream()))
                 {
                     var line = await stream.ReadLineAsync(); // Skip header
@@ -667,13 +671,29 @@ namespace GCCWebApp.Controllers
                                 continue;
                             }
 
-                            // Find company
-                            var company = await _context.Companies.FirstOrDefaultAsync(c => c.Name == companyName);
-                            if (company == null && !string.IsNullOrWhiteSpace(companyName))
+                            // Find or create company (case-insensitive)
+                            Company? company = null;
+                            if (!string.IsNullOrWhiteSpace(companyName))
                             {
-                                errors.Add($"Line {lineNumber}: Company '{companyName}' not found");
-                                errorCount++;
-                                continue;
+                                company = companies.FirstOrDefault(c =>
+                                    c.Name.Equals(companyName, StringComparison.OrdinalIgnoreCase));
+
+                                if (company == null)
+                                {
+                                    // Auto-create the company
+                                    company = new Company
+                                    {
+                                        Name = companyName,
+                                        CreatedAt = DateTime.UtcNow,
+                                        UpdatedAt = DateTime.UtcNow,
+                                        IsDeleted = false,
+                                        IsActive = true
+                                    };
+
+                                    _context.Companies.Add(company);
+                                    companies.Add(company); // Add to in-memory list for subsequent lookups
+                                    createdCompanies.Add(company); // Track for response
+                                }
                             }
 
                             // Find category
@@ -723,16 +743,54 @@ namespace GCCWebApp.Controllers
 
                 await _context.SaveChangesAsync();
 
+                // Log audit trail for auto-created companies
+                if (createdCompanies.Any())
+                {
+                    var userId = GetCurrentUserId();
+                    var username = GetCurrentUsername();
+                    foreach (var createdCompany in createdCompanies)
+                    {
+                        try
+                        {
+                            await _auditService.LogEntityChangeAsync(
+                                createdCompany.Id.ToString(),
+                                createdCompany.Name,
+                                "CREATE",
+                                null,
+                                createdCompany,
+                                userId,
+                                username,
+                                "Auto-created during product import",
+                                "Web UI"
+                            );
+                        }
+                        catch (Exception auditEx)
+                        {
+                            Console.WriteLine($"Failed to log company creation audit: {auditEx.Message}");
+                        }
+                    }
+                }
+
                 var message = $"Import completed. {successCount} products imported successfully";
                 if (errorCount > 0)
                 {
                     message += $", {errorCount} errors occurred";
                 }
+                if (createdCompanies.Any())
+                {
+                    message += $", {createdCompanies.Count} new {(createdCompanies.Count == 1 ? "company" : "companies")} created";
+                }
 
                 return Json(new ApiResponse<object>
                 {
                     Success = true,
-                    Data = new { successCount, errorCount, errors = errors.Take(10).ToList() }, // Limit errors to first 10
+                    Data = new
+                    {
+                        successCount,
+                        errorCount,
+                        errors = errors.Take(10).ToList(),
+                        companiesCreated = createdCompanies.Select(c => new { c.Id, c.Name }).ToList()
+                    },
                     Message = message
                 });
             }

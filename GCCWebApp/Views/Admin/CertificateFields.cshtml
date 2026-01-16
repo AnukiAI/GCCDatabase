@@ -45,16 +45,16 @@
 
         <div class="admin-content">
             <div class="table-container">
-        <table id="certificate-fields-table">
-            <thead>
+        <table id="certificate-fields-table" class="admin-table">
+            <thead class="admin-table-header">
                 <tr>
-                    <th width="14%">Section <span class="info-icon">i</span></th>
-                    <th width="16%">Field Name <span class="info-icon">i</span></th>
-                    <th width="10%">Control Type <span class="info-icon">i</span></th>
-                    <th width="10%">Required <span class="info-icon">i</span></th>
-                    <th width="10%">Visibility <span class="info-icon">i</span></th>
-                    <th width="30%">Notes <span class="info-icon">i</span></th>
-                    <th width="10%">Actions</th>
+                    <th width="14%" data-sort="section" class="admin-table-th admin-table-th--sortable">Section <span class="sort-icon">▼</span></th>
+                    <th width="16%" data-sort="fieldName" class="admin-table-th admin-table-th--sortable">Field Name <span class="sort-icon">▼</span></th>
+                    <th width="10%" data-sort="controlType" class="admin-table-th admin-table-th--sortable">Control Type <span class="sort-icon">▼</span></th>
+                    <th width="10%" data-sort="required" class="admin-table-th admin-table-th--sortable">Required <span class="sort-icon">▼</span></th>
+                    <th width="10%" data-sort="visibility" class="admin-table-th admin-table-th--sortable">Visibility <span class="sort-icon">▼</span></th>
+                    <th width="30%" data-sort="notes" class="admin-table-th admin-table-th--sortable">Notes <span class="sort-icon">▼</span></th>
+                    <th width="10%" class="admin-table-th admin-table-th--actions">Actions</th>
                 </tr>
             </thead>
             <tbody id="fields-table-body">

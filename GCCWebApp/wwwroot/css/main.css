@@ -388,7 +388,7 @@ th,
 }
 
     .dropdown-item:hover {
-        background-color: rgba(0, 174, 239, 0.08);
+        background-color: rgba(0, 174, 239, 0.2);
     }
 
     .dropdown-item i {
@@ -694,6 +694,7 @@ th,
 
 /* ===== 9. BREADCRUMBS ===== */
 .breadcrumbs {
+    display: none; /* Hidden per client request */
     background-color: var(--light-gray);
     padding: 8px 0px 8px 0px;
     font-size: 16px;

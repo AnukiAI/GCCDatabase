@@ -235,16 +235,16 @@ function initializeSortableHeaders() {
             // Update header styling
             headers.forEach(h => {
                 h.classList.remove('active-sort');
-                const icon = h.querySelector('.admin-sort-icon');
+                const icon = h.querySelector('.sort-icon');
                 if (icon) {
-                    icon.className = 'admin-sort-icon fas fa-sort';
+                    icon.textContent = '▼';
                 }
             });
 
             header.classList.add('active-sort');
-            const sortIcon = header.querySelector('.admin-sort-icon');
+            const sortIcon = header.querySelector('.sort-icon');
             if (sortIcon) {
-                sortIcon.className = 'admin-sort-icon fas ' + (sortDirection === 'asc' ? 'fa-sort-up' : 'fa-sort-down');
+                sortIcon.textContent = sortDirection === 'asc' ? '▲' : '▼';
             }
 
             filterAndSort();

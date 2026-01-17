@@ -433,7 +433,9 @@ namespace GCCWebApp.Controllers
         // Google Analytics
         public async Task<IActionResult> GoogleAnalytics()
         {
-            var settings = await _context.GoogleAnalyticsSettings.FirstOrDefaultAsync();
+            var settings = await _context.GoogleAnalyticsSettings
+                .Include(s => s.UpdatedByUser)
+                .FirstOrDefaultAsync();
 
             var model = new GoogleAnalyticsViewModel
             {

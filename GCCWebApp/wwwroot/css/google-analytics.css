@@ -1,5 +1,32 @@
 /* Google Analytics Settings Styles - Based on mockup design */
 
+/* Page Header - Align with admin-container content */
+.admin-google-analytics .page-header {
+    max-width: 1800px;
+    margin: 0 auto;
+    padding-left: var(--admin-space-xl, 32px);
+    padding-right: var(--admin-space-xl, 32px);
+}
+
+/* Page Actions - Right align */
+.admin-google-analytics .page-actions {
+    justify-content: flex-end;
+}
+
+@media (max-width: 1023px) {
+    .admin-google-analytics .page-header {
+        padding-left: var(--admin-space-md, 16px);
+        padding-right: var(--admin-space-md, 16px);
+    }
+}
+
+@media (max-width: 767px) {
+    .admin-google-analytics .page-header {
+        padding-left: var(--admin-space-sm, 12px);
+        padding-right: var(--admin-space-sm, 12px);
+    }
+}
+
 /* Admin Container */
 .admin-container {
     padding-bottom: 32px;
@@ -45,6 +72,9 @@
 /* Form Styling */
 .analytics-form {
     margin-bottom: 40px;
+    padding: 24px;
+    background: #fff;
+    border-radius: 8px;
 }
 
 .form-group {
@@ -150,6 +180,91 @@
     color: var(--text-color);
 }
 
+/* Modern Toggle Switch */
+.toggle-switch-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 24px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    margin: 24px 0;
+    border: 1px solid #dee2e6;
+}
+
+
+.toggle-switch {
+    position: relative;
+    width: 56px;
+    height: 30px;
+    flex-shrink: 0;
+}
+
+.toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.3s;
+    border-radius: 30px;
+}
+
+.toggle-slider:before {
+    position: absolute;
+    content: "";
+    height: 22px;
+    width: 22px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: 0.3s;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+    background-color: #4CAF50;
+}
+
+.toggle-switch input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
+
+.toggle-switch input:focus + .toggle-slider {
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+}
+
+.toggle-switch-label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.toggle-switch-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--blue-dark);
+}
+
+.toggle-switch-status {
+    font-size: 14px;
+    color: #666;
+}
+
+.toggle-switch-container.enabled .toggle-switch-status {
+    color: #2e7d32;
+    font-weight: 500;
+}
+
 /* Status Display */
 .status-display {
     margin: 20px 0;
@@ -170,6 +285,12 @@
     background: #f5f5f5;
     border-left-color: #ccc;
     color: #666;
+}
+
+.status-display.warning {
+    background: #fff8e1;
+    border-left-color: #FF9800;
+    color: #e65100;
 }
 
 /* Script Preview */
@@ -275,6 +396,26 @@ pre {
     gap: 10px;
     justify-content: flex-end;
     padding-top: 16px;
+}
+
+/* Status Badge */
+.ga-status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 14px;
+    margin-right: 12px;
+}
+
+.ga-status-badge.enabled {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+.ga-status-badge.disabled {
+    background-color: #f5f5f5;
+    color: #666;
 }
 
 /* Save Button - inherits standard admin-btn--primary styles from admin-mockup-override.css */

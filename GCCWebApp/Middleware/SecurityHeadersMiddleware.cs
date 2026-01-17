@@ -125,15 +125,15 @@ public class SecurityHeadersMiddleware
         // Default source
         cspBuilder.Add("default-src 'self'");
 
-        // Script source
+        // Script source (includes Google Analytics)
         if (isDevelopment)
         {
-            cspBuilder.Add("script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com");
+            cspBuilder.Add("script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com");
         }
         else
         {
             // FIXED: Added 'unsafe-inline' for production to allow inline scripts (login form, etc.)
-            cspBuilder.Add("script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com");
+            cspBuilder.Add("script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com");
         }
 
         // Style source - allow inline styles and CDN resources
@@ -148,8 +148,8 @@ public class SecurityHeadersMiddleware
         // Image source
         cspBuilder.Add("img-src 'self' data: https: blob:");
 
-        // Connect source (for AJAX requests)
-        cspBuilder.Add("connect-src 'self' https://api.greencirclecertified.com");
+        // Connect source (for AJAX requests and Google Analytics)
+        cspBuilder.Add("connect-src 'self' https://api.greencirclecertified.com https://www.google-analytics.com https://www.googletagmanager.com https://cdn.jsdelivr.net");
 
         // Frame source
         cspBuilder.Add("frame-src 'none'");

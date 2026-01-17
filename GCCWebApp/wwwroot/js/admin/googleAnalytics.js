@@ -1,8 +1,9 @@
 // Google Analytics Management JavaScript
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadSettings();
     attachEventListeners();
+    // Update script preview with initial values from server-rendered page
+    updateScriptPreview();
 });
 
 function attachEventListeners() {
@@ -15,27 +16,18 @@ function attachEventListeners() {
     }
 
     if (trackingInput) {
-        trackingInput.addEventListener('input', validateTrackingId);
+        trackingInput.addEventListener('input', function() {
+            validateTrackingId();
+            // Update status display when tracking ID changes
+            const enabled = document.getElementById('enable-tracking').checked;
+            if (enabled) {
+                toggleTracking();
+            }
+        });
     }
 
     if (enableTracking) {
         enableTracking.addEventListener('change', toggleTracking);
-    }
-}
-
-function loadSettings() {
-    // Load settings from localStorage or server
-    const savedSettings = localStorage.getItem('googleAnalyticsSettings');
-    
-    if (savedSettings) {
-        const settings = JSON.parse(savedSettings);
-        
-        document.getElementById('ga-tracking-id').value = settings.trackingId || '';
-        document.getElementById('enable-tracking').checked = settings.enabled || false;
-        
-        toggleTracking();
-        updateScriptPreview();
-        addToHistory('Settings loaded from storage', 'Loaded');
     }
 }
 
@@ -103,29 +95,42 @@ function validateTrackingId() {
 }
 
 function validateTrackingIdFormat(trackingId) {
-    // Google Analytics 4 format: G-XXXXXXXXXX (G- followed by 10 alphanumeric characters)
-    const ga4Pattern = /^G-[A-Z0-9]{10}$/;
+    // Google Analytics 4 format: G-XXXXXXX (G- followed by 7-12 alphanumeric characters)
+    const ga4Pattern = /^G-[A-Z0-9]{7,12}$/i;
     // Universal Analytics format: UA-XXXXXXXX-X (for backward compatibility)
     const uaPattern = /^UA-\d{6,9}-\d{1,2}$/;
-    
+
     return ga4Pattern.test(trackingId) || uaPattern.test(trackingId);
 }
 
 function toggleTracking() {
     const checkbox = document.getElementById('enable-tracking');
     const trackingInput = document.getElementById('ga-tracking-id');
+    const toggleContainer = document.getElementById('toggle-container');
     const statusDisplay = document.getElementById('status-display');
-    
+    const statusBadge = document.getElementById('status-badge');
+    const trackingId = trackingInput.value.trim();
+
     if (checkbox.checked) {
-        statusDisplay.className = 'status-display enabled';
-        statusDisplay.innerHTML = 'Tracking is currently <strong>enabled</strong>.';
-        trackingInput.disabled = false;
+        toggleContainer.classList.add('enabled');
+        if (trackingId) {
+            statusDisplay.textContent = `Enabled - Tracking ${trackingId}`;
+        } else {
+            statusDisplay.textContent = 'Enabled - No tracking ID configured';
+        }
+        if (statusBadge) {
+            statusBadge.className = 'ga-status-badge enabled';
+            statusBadge.innerHTML = 'Status: <strong>Enabled</strong>';
+        }
     } else {
-        statusDisplay.className = 'status-display disabled';
-        statusDisplay.innerHTML = 'Tracking is currently <strong>disabled</strong>.';
-        trackingInput.disabled = false; // Keep enabled so users can enter ID before enabling
+        toggleContainer.classList.remove('enabled');
+        statusDisplay.textContent = 'Disabled - Analytics not being collected';
+        if (statusBadge) {
+            statusBadge.className = 'ga-status-badge disabled';
+            statusBadge.innerHTML = 'Status: <strong>Disabled</strong>';
+        }
     }
-    
+
     updateScriptPreview();
 }
 
@@ -147,16 +152,29 @@ function updateStatusDisplay() {
     const enabled = document.getElementById('enable-tracking').checked;
     const trackingId = document.getElementById('ga-tracking-id').value.trim();
     const statusDisplay = document.getElementById('status-display');
-    
+    const toggleContainer = document.getElementById('toggle-container');
+    const statusBadge = document.getElementById('status-badge');
+
     if (enabled && trackingId) {
-        statusDisplay.className = 'status-display enabled';
-        statusDisplay.innerHTML = `Tracking is currently <strong>enabled</strong> for ${trackingId}.`;
+        statusDisplay.textContent = `Enabled - Tracking ${trackingId}`;
+        toggleContainer.classList.add('enabled');
     } else if (enabled && !trackingId) {
-        statusDisplay.className = 'status-display warning';
-        statusDisplay.innerHTML = 'Tracking is <strong>enabled</strong> but no Tracking ID is set.';
+        statusDisplay.textContent = 'Enabled - No tracking ID configured';
+        toggleContainer.classList.add('enabled');
     } else {
-        statusDisplay.className = 'status-display disabled';
-        statusDisplay.innerHTML = 'Tracking is currently <strong>disabled</strong>.';
+        statusDisplay.textContent = 'Disabled - Analytics not being collected';
+        toggleContainer.classList.remove('enabled');
+    }
+
+    // Update status badge
+    if (statusBadge) {
+        if (enabled) {
+            statusBadge.className = 'ga-status-badge enabled';
+            statusBadge.innerHTML = 'Status: <strong>Enabled</strong>';
+        } else {
+            statusBadge.className = 'ga-status-badge disabled';
+            statusBadge.innerHTML = 'Status: <strong>Disabled</strong>';
+        }
     }
 }
 
@@ -216,14 +234,22 @@ async function showNotification(message, type = 'info') {
 }
 
 function exportSettings() {
-    const settings = localStorage.getItem('googleAnalyticsSettings');
+    // Export current form values as JSON
+    const settings = {
+        trackingId: document.getElementById('ga-tracking-id').value.trim(),
+        isEnabled: document.getElementById('enable-tracking').checked,
+        customScript: document.getElementById('custom-script').value.trim(),
+        anonymizeIp: document.getElementById('anonymize-ip').checked,
+        enhancedLinkAttribution: document.getElementById('enhanced-link').checked,
+        debugMode: document.getElementById('debug-mode').checked
+    };
 
-    if (!settings) {
-        AdminCore.showNotification('No settings to export.', 'warning');
+    if (!settings.trackingId) {
+        AdminCore.showNotification('No tracking ID configured to export.', 'warning');
         return;
     }
-    
-    const blob = new Blob([settings], { type: 'application/json' });
+
+    const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -245,11 +271,26 @@ function importSettings() {
             reader.onload = function(e) {
                 try {
                     const settings = JSON.parse(e.target.result);
-                    localStorage.setItem('googleAnalyticsSettings', JSON.stringify(settings));
-                    loadSettings();
-                    showNotification('Settings imported successfully!', 'success');
+
+                    // Populate form with imported settings
+                    if (settings.trackingId) {
+                        document.getElementById('ga-tracking-id').value = settings.trackingId;
+                    }
+                    document.getElementById('enable-tracking').checked = settings.isEnabled || false;
+                    if (settings.customScript) {
+                        document.getElementById('custom-script').value = settings.customScript;
+                    }
+                    document.getElementById('anonymize-ip').checked = settings.anonymizeIp || false;
+                    document.getElementById('enhanced-link').checked = settings.enhancedLinkAttribution || false;
+                    document.getElementById('debug-mode').checked = settings.debugMode || false;
+
+                    // Update UI
+                    toggleTracking();
+                    updateScriptPreview();
+
+                    AdminCore.showNotification('Settings imported. Click Save to apply changes.', 'success');
                 } catch (error) {
-                    showNotification('Invalid settings file.', 'error');
+                    AdminCore.showNotification('Invalid settings file.', 'error');
                 }
             };
             reader.readAsText(file);
@@ -257,23 +298,3 @@ function importSettings() {
     };
     input.click();
 }
-
-// Auto-save functionality
-let autoSaveTimeout;
-function autoSave() {
-    clearTimeout(autoSaveTimeout);
-    autoSaveTimeout = setTimeout(() => {
-        const trackingId = document.getElementById('ga-tracking-id').value.trim();
-        if (trackingId) {
-            saveSettings();
-        }
-    }, 2000); // Auto-save 2 seconds after user stops typing
-}
-
-// Attach auto-save to tracking ID input
-document.addEventListener('DOMContentLoaded', function() {
-    const trackingInput = document.getElementById('ga-tracking-id');
-    if (trackingInput) {
-        trackingInput.addEventListener('input', autoSave);
-    }
-});

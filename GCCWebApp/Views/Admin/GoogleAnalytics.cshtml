@@ -1,3 +1,4 @@
+@model GCCWebApp.Models.GoogleAnalyticsViewModel
 @{
     ViewData["Title"] = "Google Analytics Integration";
     ViewData["BodyClass"] = "admin-google-analytics";
@@ -20,6 +21,9 @@
 }
 
 @section PageActions {
+    <span class="ga-status-badge @(Model.IsEnabled ? "enabled" : "disabled")" id="status-badge">
+        Status: <strong>@(Model.IsEnabled ? "Enabled" : "Disabled")</strong>
+    </span>
     <button id="save-settings-btn" class="admin-btn admin-btn--primary">Save Settings</button>
 }
 
@@ -28,43 +32,44 @@
 <div class="admin-container">
     <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
     <div class="admin-body-content">
-        <div class="admin-toolbar">
-            <div class="admin-search-section">
-                <!-- No search needed for settings page -->
-            </div>
-            <div class="admin-filter-section">
-                <div class="stats-bar">
-                    <div class="stat-item">
-                        <span id="tracking-status-indicator" class="stat-number" style="color: #FF5252;">Disabled</span> Status
-                    </div>
-                </div>
-            </div>
-        </div>
 
         <div class="admin-content analytics-form">
             <div class="form-group">
                 <label for="ga-tracking-id">Tracking ID (G-XXXXXXX)</label>
-                <input type="text" id="ga-tracking-id" class="admin-input" placeholder="e.g., G-XXXXXXXXXX">
+                <input type="text" id="ga-tracking-id" class="admin-input" placeholder="e.g., G-XXXXXXXXXX" value="@Model.TrackingId">
                 <div class="form-help">
                     Enter your Google Analytics 4 Measurement ID to start tracking your website traffic.
                     <a href="https://support.google.com/analytics/answer/9304153" target="_blank">Learn more</a>
                 </div>
             </div>
 
-            <div class="toggle-group">
-                <label class="toggle-label">
-                    <input type="checkbox" id="enable-tracking" onchange="toggleTracking()">
-                    <span class="checkbox-text">Enable Google Analytics Tracking</span>
+            <div class="toggle-switch-container @(Model.IsEnabled ? "enabled" : "")" id="toggle-container">
+                <label class="toggle-switch">
+                    <input type="checkbox" id="enable-tracking" onchange="toggleTracking()" @(Model.IsEnabled ? "checked" : "")>
+                    <span class="toggle-slider"></span>
                 </label>
-            </div>
-
-            <div class="status-display disabled" id="status-display">
-                Tracking is currently <strong>disabled</strong>.
+                <div class="toggle-switch-label">
+                    <span class="toggle-switch-title">Google Analytics Tracking</span>
+                    <span class="toggle-switch-status" id="status-display">
+                        @if (Model.IsEnabled && !string.IsNullOrEmpty(Model.TrackingId))
+                        {
+                            <text>Enabled - Tracking @Model.TrackingId</text>
+                        }
+                        else if (Model.IsEnabled)
+                        {
+                            <text>Enabled - No tracking ID configured</text>
+                        }
+                        else
+                        {
+                            <text>Disabled - Analytics not being collected</text>
+                        }
+                    </span>
+                </div>
             </div>
 
             <div class="form-group">
                 <label for="custom-script">Custom Analytics Script (Optional)</label>
-                <textarea id="custom-script" class="admin-textarea" placeholder="Paste your complete Google Analytics script here..." rows="8"></textarea>
+                <textarea id="custom-script" class="admin-textarea" placeholder="Paste your complete Google Analytics script here..." rows="8">@Model.CustomScript</textarea>
                 <div class="form-help">
                     You can paste the complete script provided by Google Analytics here, or use the Tracking ID field above for automatic script generation.
                 </div>
@@ -74,15 +79,15 @@
                 <label>Additional Configuration Options</label>
                 <div class="config-options">
                     <label class="toggle-label">
-                        <input type="checkbox" id="anonymize-ip">
+                        <input type="checkbox" id="anonymize-ip" @(Model.AnonymizeIp ? "checked" : "")>
                         <span class="checkbox-text">Anonymize IP addresses</span>
                     </label>
                     <label class="toggle-label">
-                        <input type="checkbox" id="enhanced-link">
+                        <input type="checkbox" id="enhanced-link" @(Model.EnhancedLinkAttribution ? "checked" : "")>
                         <span class="checkbox-text">Enhanced Link Attribution</span>
                     </label>
                     <label class="toggle-label">
-                        <input type="checkbox" id="debug-mode">
+                        <input type="checkbox" id="debug-mode" @(Model.DebugMode ? "checked" : "")>
                         <span class="checkbox-text">Debug Mode</span>
                     </label>
                 </div>
@@ -90,12 +95,15 @@
 
             <div class="form-group">
                 <label>Script Preview</label>
-                <pre id="script-preview">&lt;script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"&gt;&lt;/script&gt;
+                @{
+                    var previewId = string.IsNullOrEmpty(Model.TrackingId) ? "G-XXXXXXXXXX" : Model.TrackingId;
+                }
+                <pre id="script-preview">&lt;script async src="https://www.googletagmanager.com/gtag/js?id=@previewId"&gt;&lt;/script&gt;
 &lt;script&gt;
   window.dataLayer = window.dataLayer || [];
   function gtag(){dataLayer.push(arguments);}
   gtag('js', new Date());
-  gtag('config', 'G-XXXXXXXXXX');
+  gtag('config', '@previewId');
 &lt;/script&gt;</pre>
             </div>
 
@@ -131,7 +139,7 @@
         </div>
 
         <div class="admin-footer-info">
-            <span id="last-updated">Last updated: Not configured</span>
+            <span id="last-updated">Last updated: @(Model.LastUpdated.HasValue ? Model.LastUpdated.Value.ToString("yyyy-MM-dd HH:mm") + (string.IsNullOrEmpty(Model.UpdatedBy) ? "" : " by " + Model.UpdatedBy) : "Not configured")</span>
         </div>
     </div> <!-- End admin-body-content -->
 </div>

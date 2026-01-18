@@ -2646,3 +2646,180 @@ This ensures AdminCore is always available for any admin page that needs it.
 - Always restart the server after changing Razor view files to clear compiled view cache
 
 ---
+
+## 2026-01-18 - API Testing Plan & Amazon Integration Review
+
+### Summary
+Comprehensive review of the Partner API for Amazon integration. Created exhaustive testing documentation covering all endpoints, authentication, field mapping, and edge cases.
+
+### Key Findings
+
+**API Architecture:**
+- Two authentication paths: Partner API keys (`gcc_partner_` prefix) and general API keys
+- Partner keys handled by `PartnerApiKeyAuthenticationMiddleware`
+- General keys handled by `ApiKeyAuthenticationHandler`
+- v1 API endpoints properly versioned at `/api/v1/`
+
+**Confirmed Working:**
+- `CertificationResults` field is properly exposed in all API responses (Critical for Amazon threshold verification)
+- Product ID search (`/api/v1/certificates/search/productid`) returns ALL product IDs per certificate
+- PDF download supports both certificate number and database ID
+- Pagination, sorting, and filtering all functional
+- Partner-based filtering implemented in middleware
+
+**API Controllers Inventory:**
+| Route | Controller | Purpose |
+|-------|------------|---------|
+| `/api/v1/certificates` | CertificatesController | Primary partner API |
+| `/api/v1/apikeys` | ApiKeysController | API key management (Admin) |
+| `/api/admin/partner` | PartnerApiController | Partner management |
+| `/api/admin/amazon` | AmazonApiController | Amazon settings |
+| `/api/productids` | ProductIdApiController | Product ID CRUD |
+| `/api/CertificatesApi` | CertificatesApiController | Legacy internal API |
+
+### Gaps Identified
+
+| Gap | Impact | Status |
+|-----|--------|--------|
+| Partner data filtering verification needed | Medium | To verify |
+| Dynamic PDF generation not implemented | Low | Known limitation |
+| Documentation minor mismatches | Low | Updated in test plan |
+
+### Questions Requiring Client Clarification
+
+1. What specific certification result format does Amazon expect?
+2. Should expired certificates be visible to partners?
+3. What is the exact threshold value for CertificationResults?
+
+### Deliverable Created
+- `docs/API-TESTING-PLAN.md` - 12-section comprehensive testing document
+  - Authentication test cases (10 tests)
+  - Amazon integration test cases (8 tests)
+  - Field mapping verification (8 tests)
+  - Edge cases & error handling (14 tests)
+  - Security testing (9 tests)
+  - Performance tests (7 tests)
+  - Integration test scripts (PowerShell & Bash)
+  - Test checklist for pre/post integration
+
+### Partner Integration Configuration
+- **Primary Partner:** Amazon (connecting initially)
+- **Secondary Partner:** Novi (future)
+- **Data Flow:** Partners PULL data from GCC
+- **Authentication:** API Keys only (X-API-Key header)
+- **Rate Limit:** 2,000 requests/hour per partner key
+
+### Risk Mitigation
+- Created exhaustive test cases before Amazon integration begins
+- Documented all field mappings to prevent integration failures
+- Identified questions upfront to avoid mid-integration surprises
+
+---
+
+## 2026-01-18 - API Live Testing Results
+
+### Summary
+Ran comprehensive API tests against live development environment to verify endpoints work correctly.
+
+### Test Results Overview
+
+| Category | Passed | Failed | Status |
+|----------|--------|--------|--------|
+| Authentication | 4 | 0 | PASS |
+| Certificate Retrieval | 4 | 0 | PASS |
+| Product ID Search | 3 | 0 | PASS |
+| PDF Download | 0 | 2 | **FAIL** |
+| Advanced Search | 2 | 0 | PASS |
+| **TOTAL** | **13** | **2** | **87%** |
+
+### Critical Bug Found
+
+**BUG-001: PDF Download Returns 406 Not Acceptable**
+
+- **Severity:** HIGH
+- **Impact:** Partners cannot download certificate PDFs via API
+- **Endpoint:** `GET /api/v1/certificates/{id}/download`
+- **Cause:** The `[Produces("application/pdf")]` Swagger attribute causes content negotiation failure
+- **Location:** `Controllers/Api/v1/CertificatesController.cs:869`
+
+**Recommended Fix:**
+```csharp
+// Remove [Produces("application/pdf")] attribute
+// The File() method already sets correct content type
+```
+
+### What Works
+
+1. **Authentication** - All scenarios working correctly:
+   - Valid API key returns data
+   - Invalid/expired/revoked keys return 401
+   - Missing auth header returns 401
+
+2. **Certificate Listing** - Works with all options:
+   - Basic pagination works
+   - `includeProductIds=true` returns ASIN/UPC/GTIN
+   - All Amazon required fields present
+
+3. **Product ID Search** - Critical for Amazon:
+   - Search by ASIN works correctly
+   - Search by UPC works correctly
+   - Returns ALL product IDs per certificate with `isMatchedId` flag
+
+4. **Amazon Field Mapping** - All required fields verified:
+   - brandName, productName, certificateNumber
+   - issueDate, expirationDate
+   - certificationName, issuer, standardVersion
+   - certificationResults (field exists, may be null)
+   - productIdentifiers array with all types
+   - pdfDownloadUrl
+
+### Active API Keys Found
+
+| Partner | Key Status | Last Used |
+|---------|------------|-----------|
+| Amazon | Active (x2) | 2025-11-26 |
+| Novi | Revoked | 2025-11-26 |
+
+### Deliverables Created
+- `docs/API-TEST-RESULTS-2026-01-18.md` - Full test report with all results
+
+### Immediate Actions Required
+1. ~~Fix PDF download 406 error before Amazon integration~~ **FIXED**
+2. Populate CertificationResults field for Amazon certificates
+3. ~~Test PDF download after fix~~ **VERIFIED**
+
+---
+
+## 2026-01-18 - PDF Download Bug Fix
+
+### Issues Fixed
+
+**Issue 1: HTTP 406 Not Acceptable**
+- **File:** `Controllers/Api/v1/CertificatesController.cs`
+- **Line:** 869
+- **Fix:** Removed `[Produces("application/pdf")]` attribute
+- **Reason:** The attribute forced content negotiation to fail when clients didn't send exact Accept header
+
+**Issue 2: Double Path Prefix**
+- **File:** `Controllers/Api/v1/CertificatesController.cs`
+- **Lines:** 904-915
+- **Fix:** Added logic to detect if `CertificateFile` already contains `uploads/` prefix
+- **Reason:** Database stores full relative path like `uploads/certificates/file.pdf`, but code was adding prefix again
+
+### Test Results After Fix
+
+| Test | Before | After |
+|------|--------|-------|
+| PDF download by number | 406 | **200** |
+| PDF download by ID | 406 | **200** |
+| Certificate not found | 406 | **404** |
+| File not exists | 406 | **404** |
+
+### Verification
+
+```bash
+curl -H "X-API-Key: ..." "http://localhost:5101/api/v1/certificates/25-5047/download"
+# Returns: HTTP 200, 56488 bytes, PDF document version 1.7
+```
+
+---

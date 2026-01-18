@@ -866,7 +866,6 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
         [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status404NotFound)]
         [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status500InternalServerError)]
-        [Produces("application/pdf")]
         public async Task<IActionResult> DownloadCertificate([FromRoute] string id)
         {
             try
@@ -902,7 +901,18 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 // Check if uploaded certificate file exists
                 if (!string.IsNullOrEmpty(certificate.CertificateFile))
                 {
-                    var filePath = Path.Combine("wwwroot", "uploads", "certificates", certificate.CertificateFile);
+                    // Handle both cases: full path (uploads/certificates/file.pdf) or just filename (file.pdf)
+                    string filePath;
+                    if (certificate.CertificateFile.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+                    {
+                        // CertificateFile already contains the relative path
+                        filePath = Path.Combine("wwwroot", certificate.CertificateFile);
+                    }
+                    else
+                    {
+                        // CertificateFile is just the filename
+                        filePath = Path.Combine("wwwroot", "uploads", "certificates", certificate.CertificateFile);
+                    }
 
                     if (System.IO.File.Exists(filePath))
                     {

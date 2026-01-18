@@ -138,6 +138,17 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 return SuccessResponse(response, "Token refreshed successfully");
             }
+            catch (Exception ex) when (
+                ex is Microsoft.IdentityModel.Tokens.SecurityTokenException ||
+                ex is Microsoft.IdentityModel.Tokens.SecurityTokenMalformedException ||
+                ex.GetType().Name.Contains("SecurityToken") ||
+                ex.Message.Contains("JWT") ||
+                ex.Message.Contains("token"))
+            {
+                // Handle invalid/malformed tokens - return 401 Unauthorized
+                _logger.LogWarning(ex, "Invalid token during refresh attempt: {ExceptionType}", ex.GetType().Name);
+                return Unauthorized(new { message = "Invalid or expired token" });
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error refreshing token");

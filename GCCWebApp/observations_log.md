@@ -2823,3 +2823,78 @@ curl -H "X-API-Key: ..." "http://localhost:5101/api/v1/certificates/25-5047/down
 ```
 
 ---
+
+## 2026-01-18 - Comprehensive Test Execution and Issues Documentation
+
+### Summary
+Executed all test suites across 6 test projects and documented all issues found. Created `TEST_ISSUES_FOUND_2026-01-18.md` as the main tracking document.
+
+### Test Execution Results
+
+| Test Project | Total | Passed | Failed | Skipped | Pass Rate |
+|--------------|-------|--------|--------|---------|-----------|
+| GCCWebApp.Tests | 784 | 626 | 106 | 52 | 79.8% |
+| GCCWebApp.Api.Tests | 81 | 45 | 36 | 0 | 55.6% |
+| GCCWebApp.Security.Tests | 29 | 21 | 8 | 0 | 72.4% |
+| GCCWebApp.E2E.Tests | 14 | 6 | 8 | 0 | 42.9% |
+| GCCWebApp.Accessibility.Tests | 54 | 17 | 37 | 0 | 31.5% |
+| GCCWebApp.UAT.Tests | - | - | - | - | Build Error |
+| **TOTAL** | **962** | **715** | **195** | **52** | **74.3%** |
+
+### Key Issues Identified
+
+**Critical Issues:**
+1. API Authentication failures in integration tests - tests receive 401 instead of expected responses
+2. NullReferenceException in CertificatesController tests - missing null handling
+3. Response type mismatch in pagination tests - anonymous types vs. expected DTOs
+
+**Infrastructure Issues:**
+1. E2E and Accessibility tests require application running - getting connection refused errors
+2. UAT tests have invalid logger configuration
+3. Security tests fail to authenticate `securitytestuser`
+
+### Files Created
+- `GCCWebApp/TEST_ISSUES_FOUND_2026-01-18.md` - Full issues tracking document with:
+  - 9 categorized issues
+  - Priority assignments
+  - Root cause analysis
+  - Recommendations
+
+### Observations
+- Unit tests (GCCWebApp.Tests) have best pass rate at ~80%
+- Integration/E2E tests require running application - not self-contained
+- API tests have authentication setup issues with test API keys
+- Many accessibility tests fail due to missing localhost connection
+
+---
+
+## 2026-01-18 - Critical Test Issues Fixed
+
+### Fixes Applied
+
+**ISSUE-002 & ISSUE-003: Fixed CertificatesController Tests (5 tests fixed)**
+- Problem: Tests expected `StandardPaginatedResponse<List<Certificate>>` but controller returns anonymous type projections
+- Solution: Updated tests to use reflection-based property access instead of direct type casting
+- Files Modified: `GCCWebApp.Api.Tests\Unit\Controllers\CertificatesControllerTests.cs`
+
+**ISSUE-005: Fixed RefreshToken 500 Error (1 test fixed)**
+- Problem: Invalid tokens caused `SecurityTokenMalformedException` which was caught by generic handler returning 500
+- Solution: Added specific exception catch with pattern matching for token-related exceptions, returns 401
+- Files Modified: `GCCWebApp\Controllers\Api\v1\AuthController.cs`
+
+**ISSUE-001: Partially Fixed API Authentication**
+- Added missing test API keys to `TestDbContextFactory.cs`: `valid_test_key`, `integration_test_key`, `rate_limit_test_key`
+- Updated `MultiPartnerApiIntegrationTests.cs` to use `WebApplicationFactoryBase<Program>` instead of `WebApplicationFactory<Program>`
+
+### Results After Fixes
+
+| Test Project | Before | After | Improvement |
+|--------------|--------|-------|-------------|
+| GCCWebApp.Api.Tests | 45/81 (55.6%) | 51/81 (63.0%) | +6 tests |
+
+### Remaining Issues
+- 30 integration tests still fail (mostly API authentication in WebApplicationFactory context)
+- E2E and Accessibility tests require running application
+- Security tests need proper test user setup
+
+---

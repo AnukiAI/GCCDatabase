@@ -143,9 +143,54 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 AllowedOrigins = "*"
             };
 
+            // Add valid_test_key for integration tests that use this key
+            var validTestApiKey = new ApiKey
+            {
+                Id = 4,
+                Name = "Valid Test API Key",
+                Key = "valid_test_key",
+                KeyHash = BCrypt.Net.BCrypt.HashPassword("valid_test_key"),
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "Test System",
+                Scopes = "read,write",
+                AllowedIPs = null, // Allow all IPs for testing
+                AllowedOrigins = "*"
+            };
+
+            // Add integration_test_key for workflow integration tests
+            var integrationTestApiKey = new ApiKey
+            {
+                Id = 5,
+                Name = "Integration Test API Key",
+                Key = "integration_test_key",
+                KeyHash = BCrypt.Net.BCrypt.HashPassword("integration_test_key"),
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "Test System",
+                Scopes = "read,write",
+                AllowedIPs = null, // Allow all IPs for testing
+                AllowedOrigins = "*"
+            };
+
+            // Add rate_limit_test_key for rate limiting tests
+            var rateLimitTestApiKey = new ApiKey
+            {
+                Id = 6,
+                Name = "Rate Limit Test API Key",
+                Key = "rate_limit_test_key",
+                KeyHash = BCrypt.Net.BCrypt.HashPassword("rate_limit_test_key"),
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = "Test System",
+                Scopes = "read,write",
+                AllowedIPs = null, // Allow all IPs for testing
+                AllowedOrigins = "*"
+            };
+
             context.Roles.AddRange(adminRole, analystRole, externalRole);
             context.Users.AddRange(adminUser, analystUser);
-            context.ApiKeys.AddRange(amazonApiKey, wayfairApiKey, generalApiKey);
+            context.ApiKeys.AddRange(amazonApiKey, wayfairApiKey, generalApiKey, validTestApiKey, integrationTestApiKey, rateLimitTestApiKey);
             context.Companies.Add(testCompany);
             context.Products.Add(testProduct);
             context.CertificationTypes.Add(testCertificationType);

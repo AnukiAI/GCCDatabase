@@ -14,12 +14,12 @@ namespace GCCWebApp.Api.Tests.Integration
     /// <summary>
     /// Tests for API-001 to API-005: Multi-Partner API Support and Integration Requirements
     /// </summary>
-    public class MultiPartnerApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+    public class MultiPartnerApiIntegrationTests : IClassFixture<WebApplicationFactoryBase<Program>>
     {
-        private readonly WebApplicationFactory<Program> _factory;
+        private readonly WebApplicationFactoryBase<Program> _factory;
         private readonly HttpClient _client;
 
-        public MultiPartnerApiIntegrationTests(WebApplicationFactory<Program> factory)
+        public MultiPartnerApiIntegrationTests(WebApplicationFactoryBase<Program> factory)
         {
             _factory = factory;
             _client = _factory.CreateClient();

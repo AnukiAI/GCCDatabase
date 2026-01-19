@@ -581,3 +581,59 @@ select:focus-visible {
 .partner-card.selected:hover {
     box-shadow: 0 2px 8px rgba(0, 174, 239, 0.3);
 }
+
+/* =============================================================================
+   STATS BAR - Dashboard Statistics Display
+   ============================================================================= */
+
+.stats-bar {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    font-size: 16px;
+    color: #666;
+    flex-wrap: wrap;
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+}
+
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    padding: 4px 0;
+}
+
+.stat-item:not(:last-child) {
+    padding-right: 20px;
+    border-right: 1px solid #e0e0e0;
+}
+
+.stat-number {
+    font-weight: 600;
+    font-size: 18px;
+    color: var(--mockup-blue-primary, #00AEEF);
+}
+
+.stat-item .stat-label {
+    color: #666;
+    font-weight: 400;
+}
+
+/* Stat card variations for detailed stats panels */
+.stat-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: var(--mockup-blue-primary, #00AEEF);
+}

@@ -148,13 +148,19 @@ Endpoint: GET /api/v1/certificates?pageSize=1&includeProductIds=true
     "type": "ASIN",
     "value": "B08N5WRWNW",
     "partner": "Amazon",
-    "status": "Active"
+    "status": "Active",
+    "productName": "Sample Product",
+    "productSku": "SKU123",
+    "description": "Sample description"
   },
   {
     "type": "UPC",
     "value": "123456789012",
     "partner": "None",
-    "status": "Active"
+    "status": "Active",
+    "productName": "Another Product",
+    "productSku": "SKU456",
+    "description": "Another description"
   }
 ]
 ```
@@ -214,6 +220,9 @@ Endpoint: GET /api/v1/certificates/search/productid?productId=B08N5WRWNW&type=AS
         "value": "B08N5WRWNW",
         "partner": "Amazon",
         "status": "Active",
+        "productName": "Sample Product",
+        "productSku": "SKU123",
+        "description": "Sample description",
         "isMatchedId": true
       },
       {
@@ -221,6 +230,9 @@ Endpoint: GET /api/v1/certificates/search/productid?productId=B08N5WRWNW&type=AS
         "value": "123456789012",
         "partner": "None",
         "status": "Active",
+        "productName": "Another Product",
+        "productSku": "SKU456",
+        "description": "Another description",
         "isMatchedId": false
       }
     ]
@@ -341,6 +353,18 @@ public async Task<IActionResult> DownloadCertificate([FromRoute] string id)
 | Standard version | standardVersion | YES | null (optional) |
 | **Certification Results** | certificationResults | YES | Field exists (null in test data) |
 | PDF download URL | pdfDownloadUrl | YES | /api/v1/certificates/{num}/download |
+
+### Product Identifier Extended Fields
+
+| Field | GCC API Field | Present | Description |
+|-------|---------------|---------|-------------|
+| Type | productIdentifiers[].type | YES | ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN |
+| Value | productIdentifiers[].value | YES | The product identifier value |
+| Status | productIdentifiers[].status | YES | Active, Inactive, Pending, Expired |
+| Partner | productIdentifiers[].partner | YES | Amazon, Novi, None, Other |
+| Product Name | productIdentifiers[].productName | YES | Optional product name for this ID |
+| Product SKU | productIdentifiers[].productSku | YES | Optional SKU |
+| Description | productIdentifiers[].description | YES | Optional description or notes |
 
 ---
 

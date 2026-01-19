@@ -12,7 +12,7 @@
     <!-- Microsoft.Extensions packages inherited from main app via EntityFramework 9.0.8 -->
     
     <!-- Test execution settings -->
-    <VSTestLogger>console;verbosity=detailed</VSTestLogger>
+    <!-- VSTestLogger configuration moved to command line -->
     <VSTestResultsDirectory>TestResults</VSTestResultsDirectory>
     
     <!-- Suppress specific warnings for test projects -->

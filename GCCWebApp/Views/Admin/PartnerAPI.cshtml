@@ -159,81 +159,84 @@
             <div class="admin-card-body">
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
                     <!-- Partner Data API Card -->
-                    <div style="border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
+                    <div style="border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); display: flex; flex-direction: column;">
                         <div style="display: flex; align-items: center; margin-bottom: 12px;">
                             <i class="fas fa-exchange-alt" style="font-size: 24px; color: #92C83E; margin-right: 12px;"></i>
                             <h4 style="margin: 0; color: #002B76; font-size: 16px; font-weight: 600;">Partner Data Access API</h4>
                         </div>
-                        <p style="color: #666; font-size: 14px; margin-bottom: 16px; line-height: 1.5;">
+                        <p style="color: #666; font-size: 14px; margin-bottom: 16px; line-height: 1.5; flex-grow: 1;">
                             Read-only API for partners to access certificate and product data. Share this documentation with partners (Amazon, Novi, etc.).
                         </p>
                         <div style="margin-bottom: 12px;">
                             <span style="display: inline-block; padding: 2px 8px; background: #e8f5e9; color: #2e7d32; border-radius: 4px; font-size: 12px; font-weight: 500;">GET Only</span>
                             <span style="display: inline-block; padding: 2px 8px; background: #e3f2fd; color: #1565c0; border-radius: 4px; font-size: 12px; font-weight: 500; margin-left: 6px;">Auto-Filtered</span>
                         </div>
-                        <a href="/swagger/index.html?urls.primaryName=Partner%20Data%20Access%20API" target="_blank" class="admin-btn admin-btn--primary" style="width: 100%; text-align: center;">
+                        <a href="/swagger/index.html?urls.primaryName=Partner%20Data%20Access%20API" target="_blank" class="admin-btn admin-btn--primary" style="width: 100%; text-align: center; justify-content: center;">
                             <i class="fas fa-external-link-alt"></i> View Partner Data API Docs
                         </a>
                     </div>
 
                     <!-- Partner Management API Card -->
-                    <div style="border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
+                    <div style="border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); display: flex; flex-direction: column;">
                         <div style="display: flex; align-items: center; margin-bottom: 12px;">
                             <i class="fas fa-cogs" style="font-size: 24px; color: #002B76; margin-right: 12px;"></i>
                             <h4 style="margin: 0; color: #002B76; font-size: 16px; font-weight: 600;">Partner API Management</h4>
                         </div>
-                        <p style="color: #666; font-size: 14px; margin-bottom: 16px; line-height: 1.5;">
+                        <p style="color: #666; font-size: 14px; margin-bottom: 16px; line-height: 1.5; flex-grow: 1;">
                             Admin endpoints for managing partner API keys, viewing usage statistics, and configuring access permissions.
                         </p>
                         <div style="margin-bottom: 12px;">
                             <span style="display: inline-block; padding: 2px 8px; background: #fff3e0; color: #e65100; border-radius: 4px; font-size: 12px; font-weight: 500;">Admin Only</span>
                             <span style="display: inline-block; padding: 2px 8px; background: #fce4ec; color: #c62828; border-radius: 4px; font-size: 12px; font-weight: 500; margin-left: 6px;">Full CRUD</span>
                         </div>
-                        <a href="/swagger/index.html?urls.primaryName=Partner%20API%20Management" target="_blank" class="admin-btn admin-btn--secondary" style="width: 100%; text-align: center;">
+                        <a href="/swagger/index.html?urls.primaryName=Partner%20API%20Management" target="_blank" class="admin-btn admin-btn--primary" style="width: 100%; text-align: center; justify-content: center;">
                             <i class="fas fa-external-link-alt"></i> View Management API Docs
                         </a>
                     </div>
 
                     <!-- Full API Documentation Card -->
-                    <div style="border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
+                    <div style="border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); display: flex; flex-direction: column;">
                         <div style="display: flex; align-items: center; margin-bottom: 12px;">
                             <i class="fas fa-code" style="font-size: 24px; color: #00AEEF; margin-right: 12px;"></i>
                             <h4 style="margin: 0; color: #002B76; font-size: 16px; font-weight: 600;">Full API Documentation</h4>
                         </div>
-                        <p style="color: #666; font-size: 14px; margin-bottom: 16px; line-height: 1.5;">
+                        <p style="color: #666; font-size: 14px; margin-bottom: 16px; line-height: 1.5; flex-grow: 1;">
                             Complete API documentation including all endpoints for certificates, products, companies, and administration.
                         </p>
                         <div style="margin-bottom: 12px;">
                             <span style="display: inline-block; padding: 2px 8px; background: #e8f5e9; color: #2e7d32; border-radius: 4px; font-size: 12px; font-weight: 500;">All Endpoints</span>
                             <span style="display: inline-block; padding: 2px 8px; background: #ede7f6; color: #5e35b1; border-radius: 4px; font-size: 12px; font-weight: 500; margin-left: 6px;">Interactive</span>
                         </div>
-                        <a href="/swagger" target="_blank" class="admin-btn admin-btn--primary" style="width: 100%; text-align: center;">
+                        <a href="/swagger" target="_blank" class="admin-btn admin-btn--primary" style="width: 100%; text-align: center; justify-content: center;">
                             <i class="fas fa-external-link-alt"></i> View Full API Docs
                         </a>
                     </div>
 
                     <!-- Quick Reference Card -->
-                    <div style="border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);">
+                    <div style="border: 1px solid #e9ecef; border-radius: 8px; padding: 20px; background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%); display: flex; flex-direction: column;">
                         <div style="display: flex; align-items: center; margin-bottom: 12px;">
                             <i class="fas fa-info-circle" style="font-size: 24px; color: #FFC107; margin-right: 12px;"></i>
                             <h4 style="margin: 0; color: #002B76; font-size: 16px; font-weight: 600;">Quick Reference</h4>
                         </div>
-                        <div style="font-size: 13px; color: #333;">
+                        <div style="font-size: 14px; color: #333; flex-grow: 1;">
                             <div style="margin-bottom: 10px;">
                                 <strong style="color: #002B76;">Authentication:</strong>
-                                <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 12px;">X-API-Key: gcc_partner_...</code>
+                                <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 13px;">X-API-Key: gcc_partner_...</code>
                             </div>
                             <div style="margin-bottom: 10px;">
                                 <strong style="color: #002B76;">Rate Limit:</strong> 2,000 requests/hour per key
                             </div>
                             <div style="margin-bottom: 10px;">
                                 <strong style="color: #002B76;">Primary Endpoint:</strong>
-                                <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 11px; display: block; margin-top: 4px;">GET /api/v1/certificates/search/productid?productId=B08XQ...&type=ASIN</code>
+                                <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 12px; display: block; margin-top: 4px;">GET /api/v1/certificates/search/productid?productId=B08XQ...&type=ASIN</code>
                             </div>
                             <div>
                                 <strong style="color: #002B76;">Supported ID Types:</strong> ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN
                             </div>
                         </div>
+                        <a href="/swagger" target="_blank" class="admin-btn admin-btn--primary" style="width: 100%; text-align: center; justify-content: center; margin-top: 16px;">
+                            <i class="fas fa-external-link-alt"></i> View API Docs
+                        </a>
                     </div>
                 </div>
 

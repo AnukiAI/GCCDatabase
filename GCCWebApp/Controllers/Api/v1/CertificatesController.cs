@@ -769,11 +769,11 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     certificationResults = cert.CertificationResults,
                     status = cert.Status,
                     certificationType = cert.CertificationType?.Name,
-                    effectiveDate = cert.EffectiveDate,
+                    issueDate = cert.EffectiveDate,
                     expirationDate = cert.ExpirationDate,
                     location = cert.Location,
                     country = cert.Country,
-                    pdfUrl = $"/api/v1/certificates/{cert.Number}/download",
+                    pdfDownloadUrl = $"/api/v1/certificates/{cert.Number}/download",
                     // Return ALL product IDs associated with this certificate
                     productIds = cert.ProductIds
                         .Where(cpi => cpi.Status == "Active") // Only active product IDs

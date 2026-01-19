@@ -214,13 +214,19 @@ curl -X GET "http://localhost:5101/api/v1/certificates?includeProductIds=true&pa
           "type": "ASIN",
           "value": "B08XQRT456",
           "partner": "Amazon",
-          "status": "Active"
+          "status": "Active",
+          "productName": "Recycled Paper Towels - 12 Pack",
+          "productSku": "RPT-12PK-ECO",
+          "description": "12-pack of 100% recycled paper towels"
         },
         {
           "type": "UPC",
           "value": "012345678901",
           "partner": null,
-          "status": "Active"
+          "status": "Active",
+          "productName": "Recycled Paper Towels",
+          "productSku": "RPT-SINGLE",
+          "description": "Single roll recycled paper towels"
         }
       ],
       "pdfDownloadUrl": "/api/v1/certificates/24-0366/download"
@@ -249,8 +255,22 @@ curl -X GET "http://localhost:5101/api/v1/certificates?includeProductIds=true&pa
 | FLD-004 | status | Valid enum value | Draft, Active, Expired, etc. |
 | FLD-005 | issuer | Static value | "Green Circle Certified" |
 | FLD-006 | certificationResults | String present | May be null/empty |
-| FLD-007 | productIdentifiers | Array structure | type, value, partner, status |
+| FLD-007 | productIdentifiers | Array structure | type, value, partner, status, productName, productSku, description |
 | FLD-008 | pdfDownloadUrl | Valid URL format | /api/v1/certificates/{number}/download |
+
+### 6.1.1 Product Identifier Fields
+
+Each item in the `productIdentifiers` array contains:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| type | string | Yes | ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN |
+| value | string | Yes | The product identifier value |
+| status | string | Yes | Active, Inactive, Pending, Expired |
+| partner | string | Yes | Amazon, Novi, None, Other |
+| productName | string | No | Product name specific to this identifier |
+| productSku | string | No | SKU for this product identifier |
+| description | string | No | Optional description or notes |
 
 ### 6.2 Data Integrity Tests
 

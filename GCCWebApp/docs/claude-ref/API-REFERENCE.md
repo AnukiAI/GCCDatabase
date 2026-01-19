@@ -76,8 +76,24 @@ GET /api/v1/certificates/24-0366/download
     "issuer": "Green Circle Certified",
     "standardVersion": "Level 2",
     "productIdentifiers": [
-      { "type": "GTIN", "value": "00012345678905", "partner": "Novi", "status": "Active" },
-      { "type": "MPN", "value": "ECO-PT-001", "partner": null, "status": "Active" }
+      {
+        "type": "ASIN",
+        "value": "B08N5WRWNW",
+        "status": "Active",
+        "partner": "Amazon",
+        "productName": "Sample Product",
+        "productSku": "SKU123",
+        "description": "Sample description"
+      },
+      {
+        "type": "UPC",
+        "value": "123456789012",
+        "status": "Active",
+        "partner": "None",
+        "productName": "Another Product",
+        "productSku": "SKU456",
+        "description": "Another description"
+      }
     ],
     "pdfDownloadUrl": "/api/v1/certificates/24-0366/download"
   }],
@@ -86,6 +102,17 @@ GET /api/v1/certificates/24-0366/download
   "pageSize": 100
 }
 ```
+
+### Product Identifier Fields
+| Field | Type | Description |
+|-------|------|-------------|
+| type | string | Product ID type: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN |
+| value | string | The actual product identifier value |
+| status | string | Status: Active, Inactive, Pending, Expired |
+| partner | string | Partner association: Amazon, Novi, None, Other |
+| productName | string | Optional product name for this specific ID |
+| productSku | string | Optional SKU |
+| description | string | Optional description or notes |
 
 ## Certificate Thumbnail API
 ```

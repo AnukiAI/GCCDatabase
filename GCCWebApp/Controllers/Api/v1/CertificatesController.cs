@@ -72,9 +72,25 @@ namespace GCCWebApp.Controllers.Api.v1
         /// Add `includeProductIds=true` to include GTIN, MPN, ASIN, UPC, and other product identifiers.
         /// This is essential for partners who need to map certificates to specific product variants.
         ///
-        /// **Example for Novi:**
+        /// **Example for Amazon/Novi:**
         /// ```
         /// GET /api/v1/certificates?includeProductIds=true&amp;pageSize=100
+        /// ```
+        ///
+        /// **Product Identifier Response Structure:**
+        /// When `includeProductIds=true`, each certificate includes a `productIdentifiers` array:
+        /// ```json
+        /// "productIdentifiers": [
+        ///   {
+        ///     "type": "ASIN",           // Product ID type: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN
+        ///     "value": "B08N5WRWNW",    // The actual product identifier value
+        ///     "status": "Active",       // Status: Active, Inactive, Pending, Expired
+        ///     "partner": "Amazon",      // Partner association: Amazon, Novi, None, Other
+        ///     "productName": "Sample Product",  // Optional product name for this ID
+        ///     "productSku": "SKU123",           // Optional SKU
+        ///     "description": "Sample description" // Optional description/notes
+        ///   }
+        /// ]
         /// ```
         /// </remarks>
         /// <param name="parameters">Pagination and filtering parameters</param>
@@ -177,8 +193,11 @@ namespace GCCWebApp.Controllers.Api.v1
                                 {
                                     Type = pi.ProductIdType,
                                     Value = pi.ProductIdValue,
+                                    pi.Status,
                                     pi.Partner,
-                                    pi.Status
+                                    pi.ProductName,
+                                    pi.ProductSku,
+                                    pi.Description
                                 })
                                 .ToList(),
                             // Additional IDs for reference
@@ -584,8 +603,25 @@ namespace GCCWebApp.Controllers.Api.v1
         /// **Response includes:**
         /// - Certificate details (number, status, expiration date)
         /// - Product and company information
-        /// - Matched product ID information
+        /// - ALL product IDs associated with the certificate
         /// - Download URL for certificate PDF
+        ///
+        /// **Product ID Response Structure:**
+        /// Each certificate includes a `productIds` array with ALL associated identifiers:
+        /// ```json
+        /// "productIds": [
+        ///   {
+        ///     "type": "ASIN",           // Product ID type: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN
+        ///     "value": "B08N5WRWNW",    // The actual product identifier value
+        ///     "status": "Active",       // Status: Active, Inactive, Pending, Expired
+        ///     "partner": "Amazon",      // Partner association: Amazon, Novi, None, Other
+        ///     "productName": "Sample Product",  // Optional product name for this ID
+        ///     "productSku": "SKU123",           // Optional SKU
+        ///     "description": "Sample description", // Optional description/notes
+        ///     "isMatchedId": true       // True if this ID matched the search query
+        ///   }
+        /// ]
+        /// ```
         ///
         /// **Use Cases:**
         /// - Amazon searching for certificates by ASIN
@@ -745,8 +781,11 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         {
                             type = cpi.ProductIdType,
                             value = cpi.ProductIdValue,
-                            partner = cpi.Partner,
                             status = cpi.Status,
+                            partner = cpi.Partner,
+                            productName = cpi.ProductName,
+                            productSku = cpi.ProductSku,
+                            description = cpi.Description,
                             isMatchedId = cpi.ProductIdValue == productId &&
                                          (string.IsNullOrEmpty(type) || cpi.ProductIdType.Equals(type, StringComparison.OrdinalIgnoreCase))
                         })

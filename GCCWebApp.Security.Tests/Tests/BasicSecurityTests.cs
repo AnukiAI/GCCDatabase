@@ -108,16 +108,26 @@ namespace GCCWebApp.Security.Tests.Tests
         }
 
         [Theory]
-        [InlineData("<script>alert('xss')</script>")]
-        [InlineData("<img src=x onerror=alert('xss')>")]
-        public async Task XssPayload_ShouldBeSanitized(string xssPayload)
+        [InlineData("<script>alert('xss')</script>", "script")]
+        [InlineData("<img src=x onerror=alert('xss')>", "onerror")]
+        public async Task XssPayload_ShouldBeSanitized(string xssPayload, string expectedPattern)
         {
-            // This test documents XSS protection requirements
-            // In a real implementation, you would test form submissions or API endpoints
-            // that accept user input and verify the output is sanitized
-            
-            // For now, just verify the test infrastructure works
-            xssPayload.Should().Contain("<script>");
+            // This test verifies that the InputSanitizationAttribute properly detects XSS patterns
+            // The attribute uses regex patterns to catch:
+            // - <script> tags
+            // - on* event handlers (onerror, onclick, onload, etc.)
+            // - javascript: and vbscript: protocols
+            // - alert(), eval(), confirm(), prompt() calls
+
+            var sanitizationAttribute = new GCCWebApp.Validation.InputSanitizationAttribute();
+            var validationContext = new System.ComponentModel.DataAnnotations.ValidationContext(xssPayload);
+
+            // The payload should be detected as containing unsafe content
+            var result = sanitizationAttribute.GetValidationResult(xssPayload, validationContext);
+
+            // Assert that validation fails (returns an error message, not Success)
+            result.Should().NotBe(System.ComponentModel.DataAnnotations.ValidationResult.Success,
+                $"XSS payload containing '{expectedPattern}' should be blocked by InputSanitizationAttribute");
         }
 
         [Fact]

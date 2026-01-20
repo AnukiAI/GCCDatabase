@@ -22,6 +22,12 @@
     <button id="refresh-btn" class="admin-btn admin-btn--secondary" title="Refresh data" aria-label="Refresh partner and API key data">
         <i class="fas fa-sync" aria-hidden="true"></i> Refresh
     </button>
+    <button id="copy-docs-link-btn" class="admin-btn admin-btn--secondary" title="Copy API documentation link for clients" aria-label="Copy API documentation link">
+        <i class="fas fa-book" aria-hidden="true"></i> Copy Docs Link
+    </button>
+    <a href="/api-docs" target="_blank" class="admin-btn admin-btn--secondary" title="View client API documentation" aria-label="View API documentation">
+        <i class="fas fa-external-link-alt" aria-hidden="true"></i> View Docs
+    </a>
     <button id="generate-key-btn" class="admin-btn admin-btn--primary" title="Generate new API key for a partner" aria-label="Generate new API key for a partner">
         <i class="fas fa-key" aria-hidden="true"></i> Generate API Key
     </button>
@@ -224,7 +230,7 @@
                                 <code style="background: #f5f5f5; padding: 2px 6px; border-radius: 3px; font-size: 13px;">X-API-Key: gcc_partner_...</code>
                             </div>
                             <div style="margin-bottom: 10px;">
-                                <strong style="color: #002B76;">Rate Limit:</strong> 2,000 requests/hour per key
+                                <strong style="color: #002B76;">Rate Limit:</strong> @(ViewData["PartnerApiRateLimit"]?.ToString() ?? "200") requests/hour per key
                             </div>
                             <div style="margin-bottom: 10px;">
                                 <strong style="color: #002B76;">Primary Endpoint:</strong>
@@ -403,6 +409,32 @@
         document.addEventListener('DOMContentLoaded', function() {
             if (typeof initializePartnerAPI === 'function') {
                 initializePartnerAPI();
+            }
+
+            // Copy API Docs Link functionality
+            const copyDocsBtn = document.getElementById('copy-docs-link-btn');
+            if (copyDocsBtn) {
+                copyDocsBtn.addEventListener('click', function() {
+                    const docsUrl = window.location.origin + '/api-docs';
+                    navigator.clipboard.writeText(docsUrl).then(function() {
+                        // Show success notification
+                        if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+                            AdminCore.showNotification('API documentation link copied to clipboard!', 'success');
+                        } else {
+                            alert('Copied: ' + docsUrl);
+                        }
+                        // Temporarily change button text
+                        const originalHTML = copyDocsBtn.innerHTML;
+                        copyDocsBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Copied!';
+                        setTimeout(() => {
+                            copyDocsBtn.innerHTML = originalHTML;
+                        }, 2000);
+                    }).catch(function(err) {
+                        console.error('Failed to copy:', err);
+                        // Fallback - show the URL in a prompt
+                        prompt('Copy this link to share with clients:', docsUrl);
+                    });
+                });
             }
         });
     </script>

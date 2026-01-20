@@ -637,3 +637,19 @@ select:focus-visible {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     border-color: var(--mockup-blue-primary, #00AEEF);
 }
+
+/* =============================================================================
+   PAGE ACTIONS - Right-aligned with container
+   ============================================================================= */
+
+.page-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    max-width: var(--admin-container-max-width, 1800px);
+    width: calc(100% - 40px);
+    margin: 0 auto;
+    padding: 10px 20px;
+    box-sizing: border-box;
+}

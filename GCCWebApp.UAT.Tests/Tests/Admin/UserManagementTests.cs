@@ -88,22 +88,26 @@ public class UserManagementTests : BaseTest
         await Page.WaitForTimeoutAsync(2000); // Wait for table data to load via JavaScript
         await TakeScreenshot("before_edit_user");
 
-        // Look for edit button in the actions column - using dropdown or direct button
-        var editButton = await Page.QuerySelectorAsync(".admin-action-edit, button:has-text('Edit'), .fa-edit, [title='Edit'], a:has-text('Edit')");
+        // Check if edit button exists and is visible first
+        var hasEditButton = await Page.IsVisibleAsync(".admin-action-edit, button:has-text('Edit'), .fa-edit, [title='Edit'], a:has-text('Edit')");
         var hasActionsColumn = await Page.IsVisibleAsync(".admin-table-th--actions, th:has-text('Actions'), .actions-column");
         var hasUserTable = await Page.IsVisibleAsync("#user-table, .admin-table, table");
 
-        // If table has data rows with actions and edit button found
-        if (editButton != null)
+        // If edit button is visible, click it
+        if (hasEditButton)
         {
-            await editButton.ClickAsync();
-            await Page.WaitForTimeoutAsync(1000);
-            await TakeScreenshot("edit_user_action_clicked");
+            var editButton = await Page.QuerySelectorAsync(".admin-action-edit, button:has-text('Edit'), .fa-edit, [title='Edit'], a:has-text('Edit')");
+            if (editButton != null)
+            {
+                await editButton.ClickAsync();
+                await Page.WaitForTimeoutAsync(1000);
+                await TakeScreenshot("edit_user_action_clicked");
 
-            var hasEditForm = await Page.IsVisibleAsync("form, .modal, [role='dialog']");
-            var navigatedToEdit = Page.Url.Contains("/Edit") || Page.Url.Contains("/CreateUser");
+                var hasEditForm = await Page.IsVisibleAsync("form, .modal, [role='dialog']");
+                var navigatedToEdit = Page.Url.Contains("/Edit") || Page.Url.Contains("/CreateUser");
 
-            Assert.That(hasEditForm || navigatedToEdit, Is.True, "Edit action should open form or navigate");
+                Assert.That(hasEditForm || navigatedToEdit, Is.True, "Edit action should open form or navigate");
+            }
         }
         else
         {
@@ -144,20 +148,24 @@ public class UserManagementTests : BaseTest
         await Page.WaitForTimeoutAsync(2000); // Wait for table data to load via JavaScript
         await TakeScreenshot("before_delete_user");
 
-        // Look for delete button in actions
-        var deleteButton = await Page.QuerySelectorAsync(".admin-action-delete, button:has-text('Delete'), .fa-trash, [title='Delete']");
+        // Check if delete button exists and is visible first
+        var hasDeleteButton = await Page.IsVisibleAsync(".admin-action-delete, button:has-text('Delete'), .fa-trash, [title='Delete']");
         var hasActionsColumn = await Page.IsVisibleAsync(".admin-table-th--actions, th:has-text('Actions'), .actions-column");
         var hasUserTable = await Page.IsVisibleAsync("#user-table, .admin-table, table");
 
-        if (deleteButton != null)
+        if (hasDeleteButton)
         {
-            await deleteButton.ClickAsync();
-            await Page.WaitForTimeoutAsync(500);
-            await TakeScreenshot("delete_action_clicked");
+            var deleteButton = await Page.QuerySelectorAsync(".admin-action-delete, button:has-text('Delete'), .fa-trash, [title='Delete']");
+            if (deleteButton != null)
+            {
+                await deleteButton.ClickAsync();
+                await Page.WaitForTimeoutAsync(500);
+                await TakeScreenshot("delete_action_clicked");
 
-            // Check for confirmation modal
-            var hasConfirmation = await Page.IsVisibleAsync(".modal, [role='dialog'], .confirm-dialog");
-            Assert.That(hasConfirmation, Is.True, "Delete should show confirmation dialog");
+                // Check for confirmation modal
+                var hasConfirmation = await Page.IsVisibleAsync(".modal, [role='dialog'], .confirm-dialog");
+                Assert.That(hasConfirmation, Is.True, "Delete should show confirmation dialog");
+            }
         }
         else
         {

@@ -974,5 +974,251 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 return HandleError(ex, "Failed to download certificate");
             }
         }
+
+        /// <summary>
+        /// Get certificates in GS1 JSON-LD format for Amazon integration
+        /// </summary>
+        /// <remarks>
+        /// Returns certificates in GS1 Web Vocabulary JSON-LD format suitable for Amazon Climate Pledge Friendly.
+        ///
+        /// **GS1 JSON-LD Structure:**
+        /// This endpoint returns data following the GS1 Certification Data Model specification:
+        /// - `@context`: Points to GS1 certification context file
+        /// - `$schema`: Points to GS1 schema for validation
+        /// - Nested `products[]` array with GTIN and additional trade item IDs (ASIN, UPC, etc.)
+        /// - Nested `certificationInfo` object with certification details
+        ///
+        /// **Status Mapping:**
+        /// - Active → ACTIVE
+        /// - All other statuses → INACTIVE
+        ///
+        /// **Product Identifier Mapping:**
+        /// - UPC/GTIN/EAN values become the `gtin` field (padded to 14 digits)
+        /// - ASIN, SKU, MPN, ISBN become `additionalTradeItemId` entries
+        ///
+        /// **Example Response:**
+        /// ```json
+        /// {
+        ///   "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+        ///   "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+        ///   "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+        ///   "type": "CertificationReport",
+        ///   "issueDate": "2024-01-15",
+        ///   "issuer": "Green Circle Certified",
+        ///   "products": [
+        ///     {
+        ///       "id": "https://id.gs1.org/01/00123456789012",
+        ///       "type": "Product",
+        ///       "gtin": "00123456789012",
+        ///       "additionalTradeItemId": [
+        ///         { "type": "ASIN", "value": "B08XQRT456" }
+        ///       ],
+        ///       "name": "Recycled Paper Towels",
+        ///       "certificationInfo": {
+        ///         "type": "CertificationDetails",
+        ///         "agency": "Green Circle Certified",
+        ///         "program": "UL 2809",
+        ///         "certificateId": "24-0366",
+        ///         "status": "ACTIVE",
+        ///         "value": "95.5% recycled content",
+        ///         "startDate": "2024-01-15",
+        ///         "endDate": "2025-01-15"
+        ///       }
+        ///     }
+        ///   ]
+        /// }
+        /// ```
+        /// </remarks>
+        /// <param name="parameters">Pagination parameters</param>
+        /// <returns>Certificates in GS1 JSON-LD format</returns>
+        /// <response code="200">Returns the certificates in GS1 format</response>
+        /// <response code="401">Authentication required</response>
+        [HttpGet("gs1")]
+        [SwaggerOperation(
+            Summary = "Get certificates in GS1 JSON-LD format",
+            Description = "Returns certificates in GS1 Web Vocabulary JSON-LD format for Amazon Climate Pledge Friendly integration.",
+            OperationId = "GetCertificatesGS1",
+            Tags = new[] { "Certificates", "GS1", "Amazon" }
+        )]
+        [ProducesResponseType(typeof(GS1CertificationReportListResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> GetCertificatesGS1([FromQuery] PaginationParams parameters)
+        {
+            try
+            {
+                var query = _context.Certificates
+                    .Include(c => c.Product)
+                    .Include(c => c.Company)
+                    .Include(c => c.CertificationType)
+                    .Include(c => c.CertificationTypeSubcategory)
+                    .Include(c => c.ProductIds)
+                    .AsQueryable();
+
+                // Apply search filter if provided
+                if (!string.IsNullOrEmpty(parameters.SearchTerm))
+                {
+                    query = query.Where(c =>
+                        c.Number.Contains(parameters.SearchTerm) ||
+                        c.Product.Name.Contains(parameters.SearchTerm) ||
+                        c.Company.Name.Contains(parameters.SearchTerm));
+                }
+
+                var totalCount = await query.CountAsync();
+
+                // Order by effective date descending by default
+                query = query.OrderByDescending(c => c.EffectiveDate);
+
+                var certificates = await query
+                    .Skip((parameters.PageNumber - 1) * parameters.PageSize)
+                    .Take(parameters.PageSize)
+                    .ToListAsync();
+
+                // Transform to GS1 format
+                var gs1Reports = certificates.Select(cert => MapToGS1Format(cert, Request)).ToList();
+
+                var response = new GS1CertificationReportListResponse
+                {
+                    Success = true,
+                    Data = gs1Reports,
+                    Pagination = new PaginationMetadata
+                    {
+                        TotalCount = totalCount,
+                        PageNumber = parameters.PageNumber,
+                        PageSize = parameters.PageSize,
+                        TotalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize),
+                        HasPrevious = parameters.PageNumber > 1,
+                        HasNext = parameters.PageNumber < (int)Math.Ceiling(totalCount / (double)parameters.PageSize)
+                    },
+                    Message = $"Found {totalCount} certificate(s) in GS1 format"
+                };
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving certificates in GS1 format");
+                return HandleError(ex, "Failed to retrieve certificates in GS1 format");
+            }
+        }
+
+        /// <summary>
+        /// Get a single certificate in GS1 JSON-LD format
+        /// </summary>
+        /// <param name="certificateNumber">Certificate number (e.g., "24-0366")</param>
+        /// <returns>Single certificate in GS1 JSON-LD format</returns>
+        [HttpGet("gs1/{certificateNumber}")]
+        [SwaggerOperation(
+            Summary = "Get single certificate in GS1 format",
+            Description = "Returns a single certificate in GS1 Web Vocabulary JSON-LD format.",
+            OperationId = "GetCertificateGS1",
+            Tags = new[] { "Certificates", "GS1", "Amazon" }
+        )]
+        [ProducesResponseType(typeof(GS1CertificationReport), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> GetCertificateGS1(
+            [FromRoute][Required] string certificateNumber)
+        {
+            try
+            {
+                var certificate = await _context.Certificates
+                    .Include(c => c.Product)
+                    .Include(c => c.Company)
+                    .Include(c => c.CertificationType)
+                    .Include(c => c.CertificationTypeSubcategory)
+                    .Include(c => c.ProductIds)
+                    .FirstOrDefaultAsync(c => c.Number == certificateNumber);
+
+                if (certificate == null)
+                    return NotFoundResponse($"Certificate '{certificateNumber}' not found");
+
+                var gs1Report = MapToGS1Format(certificate, Request);
+                return Ok(gs1Report);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving certificate {CertificateNumber} in GS1 format", certificateNumber);
+                return HandleError(ex, "Failed to retrieve certificate in GS1 format");
+            }
+        }
+
+        /// <summary>
+        /// Maps a certificate entity to GS1 JSON-LD format
+        /// </summary>
+        private GS1CertificationReport MapToGS1Format(Certificate cert, HttpRequest request)
+        {
+            var baseUrl = $"{request.Scheme}://{request.Host}";
+            var productIds = cert.ProductIds?.Where(pi => pi.Status == "Active").ToList() ?? new List<CertificateProductId>();
+
+            // Find GTIN from product identifiers (UPC, GTIN, EAN)
+            var gtinTypes = new[] { "UPC", "GTIN", "EAN" };
+            var gtinId = productIds.FirstOrDefault(pi => gtinTypes.Contains(pi.ProductIdType, StringComparer.OrdinalIgnoreCase));
+            var gtin = gtinId?.ProductIdValue;
+
+            // Pad GTIN to 14 digits if found
+            if (!string.IsNullOrEmpty(gtin))
+            {
+                gtin = gtin.PadLeft(14, '0');
+            }
+
+            // Collect additional trade item IDs (ASIN, SKU, MPN, ISBN, etc.)
+            var additionalIdTypes = new[] { "ASIN", "SKU", "MPN", "ISBN" };
+            var additionalIds = productIds
+                .Where(pi => additionalIdTypes.Contains(pi.ProductIdType, StringComparer.OrdinalIgnoreCase))
+                .Select(pi => new GS1AdditionalTradeItemId
+                {
+                    Type = pi.ProductIdType,
+                    Value = pi.ProductIdValue
+                })
+                .ToList();
+
+            // Map status to GS1 format (ACTIVE or INACTIVE)
+            var gs1Status = cert.Status?.Equals("Active", StringComparison.OrdinalIgnoreCase) == true ? "ACTIVE" : "INACTIVE";
+
+            // Format dates as YYYY-MM-DD
+            var issueDate = cert.EffectiveDate != default ? cert.EffectiveDate.ToString("yyyy-MM-dd") : null;
+            var endDate = cert.ExpirationDate != default ? cert.ExpirationDate.ToString("yyyy-MM-dd") : null;
+
+            // Build GS1 Digital Link URI for product
+            var productUri = !string.IsNullOrEmpty(gtin)
+                ? $"https://id.gs1.org/01/{gtin}"
+                : $"{baseUrl}/api/v1/certificates/gs1/{cert.Number}/product";
+
+            // Build certification URI
+            var certUri = $"{baseUrl}/api/v1/certificates/gs1/{cert.Number}";
+
+            return new GS1CertificationReport
+            {
+                Id = certUri,
+                IssueDate = issueDate,
+                Issuer = "Green Circle Certified",
+                Products = new List<GS1Product>
+                {
+                    new GS1Product
+                    {
+                        Id = productUri,
+                        Gtin = gtin,
+                        AdditionalTradeItemId = additionalIds.Any() ? additionalIds : null,
+                        Name = cert.Product?.Name,
+                        Description = cert.Product?.Description,
+                        CertificationInfo = new GS1CertificationInfo
+                        {
+                            Id = $"{certUri}/certification",
+                            Agency = "Green Circle Certified",
+                            AgencyURL = "https://www.greencirclecertified.com",
+                            Program = cert.CertificationType?.Name,
+                            CertificateId = cert.Number,
+                            Standard = cert.CertificationTypeSubcategory?.Name ?? cert.CertificationType?.Name,
+                            Status = gs1Status,
+                            Value = cert.CertificationResults,
+                            StartDate = issueDate,
+                            EndDate = endDate,
+                            TargetCountries = !string.IsNullOrEmpty(cert.Country)
+                                ? new List<string> { cert.Country }
+                                : null
+                        }
+                    }
+                }
+            };
+        }
     }
 }

@@ -7,6 +7,7 @@ using GCCWebApp.Controllers;
 using GCCWebApp.Models;
 using GCCWebApp.Services;
 using GCCWebApp.Data;
+using GCCWebApp.Middleware;
 using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
@@ -31,8 +32,9 @@ namespace GCCWebApp.Tests.Controllers
             _context = new ApplicationDbContext(options);
             _loggerMock = new Mock<ILogger<AdminController>>();
             _adminServiceMock = new Mock<IAdminService>();
+            var rateLimitOptions = new RateLimitOptions { PartnerApiKeyLimit = 200 };
 
-            _controller = new AdminController(_adminServiceMock.Object, _loggerMock.Object, _context);
+            _controller = new AdminController(_adminServiceMock.Object, _loggerMock.Object, _context, rateLimitOptions);
             SetupAdminUser();
         }
 

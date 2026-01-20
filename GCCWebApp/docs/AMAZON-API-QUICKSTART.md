@@ -2,8 +2,8 @@
 
 **Green Circle Certified - Partner API Integration**
 
-**Version:** 1.0
-**Date:** 2026-01-18
+**Version:** 2.0
+**Date:** 2026-01-19
 
 ---
 
@@ -47,7 +47,7 @@ curl -X GET "https://[production-domain]/api/v1/certificates" \
 | 401 | Invalid or missing API key |
 | 403 | Endpoint not permitted for your key |
 | 404 | Resource not found |
-| 429 | Rate limit exceeded (2,000 requests/hour) |
+| 429 | Rate limit exceeded (200 requests/hour) |
 
 ---
 
@@ -78,7 +78,9 @@ Production: https://[production-domain]/api/v1
 | Endpoint | Description |
 |----------|-------------|
 | `GET /certificates` | List all accessible certificates |
-| `GET /certificates?includeProductIds=true` | List with ASINs/UPCs (recommended) |
+| `GET /certificates?includeProductIds=true` | List with ASINs/UPCs |
+| `GET /certificates/gs1` | **GS1 JSON-LD format (RECOMMENDED for Amazon)** |
+| `GET /certificates/gs1/{number}` | Single certificate in GS1 format |
 | `GET /certificates/{id}` | Get certificate by database ID |
 | `GET /certificates/number/{number}` | Get certificate by number (e.g., 24-0366) |
 | `GET /certificates/search/productid` | Search by ASIN/UPC |
@@ -88,9 +90,76 @@ Production: https://[production-domain]/api/v1
 
 ## 5. Common Use Cases
 
-### 5.1 List All Certificates with Product Identifiers
+### 5.1 GS1 JSON-LD Format (RECOMMENDED)
 
-**This is the primary endpoint for Amazon integration.**
+**This is the primary endpoint for Amazon Climate Pledge Friendly integration.**
+
+The GS1 endpoint returns data in the GS1 Web Vocabulary JSON-LD format, which matches Amazon's certification data requirements.
+
+```bash
+curl -X GET "https://[domain]/api/v1/certificates/gs1?pageSize=100" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Accept: application/json"
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+      "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+      "type": "CertificationReport",
+      "issueDate": "2024-01-15",
+      "issuer": "Green Circle Certified",
+      "products": [
+        {
+          "id": "https://id.gs1.org/01/00012345678901",
+          "type": "Product",
+          "gtin": "00012345678901",
+          "additionalTradeItemId": [
+            { "type": "ASIN", "value": "B08XQRT456" }
+          ],
+          "name": "Recycled Paper Towels",
+          "description": "100% recycled paper towels",
+          "certificationInfo": {
+            "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366/certification",
+            "type": "CertificationDetails",
+            "agency": "Green Circle Certified",
+            "agencyURL": "https://www.greencirclecertified.com",
+            "program": "UL 2809",
+            "certificateId": "24-0366",
+            "standard": "UL 2809",
+            "status": "ACTIVE",
+            "value": "95.5% recycled content",
+            "startDate": "2024-01-15",
+            "endDate": "2025-01-15",
+            "targetCountries": ["United States"]
+          }
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "totalCount": 150,
+    "pageNumber": 1,
+    "pageSize": 100
+  }
+}
+```
+
+**Key GS1 Fields:**
+- `@context`, `$schema`: JSON-LD metadata for schema validation
+- `gtin`: Global Trade Item Number (14 digits, padded with leading zeros)
+- `additionalTradeItemId`: Array of ASIN, SKU, MPN, ISBN identifiers
+- `certificationInfo.status`: ACTIVE or INACTIVE
+- `certificationInfo.value`: Certification results/level (e.g., recycled content percentage)
+
+### 5.2 List All Certificates with Product Identifiers
+
+**Alternative endpoint with flat JSON structure.**
 
 ```bash
 curl -X GET "https://[domain]/api/v1/certificates?includeProductIds=true&pageSize=100" \
@@ -273,8 +342,8 @@ curl "https://[domain]/api/v1/certificates?includeProductIds=true&pageNumber=2&p
 
 | Metric | Limit |
 |--------|-------|
-| Requests per hour | 2,000 |
-| Requests per minute | ~33 |
+| Requests per hour | 200 |
+| Requests per minute | ~3 |
 
 When rate limited, you'll receive HTTP 429. Implement exponential backoff in your integration.
 

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Models;
 using GCCWebApp.Services;
 using GCCWebApp.Data;
+using GCCWebApp.Middleware;
 using System.Text.Json;
 
 namespace GCCWebApp.Controllers
@@ -14,12 +15,14 @@ namespace GCCWebApp.Controllers
         private readonly IAdminService _adminService;
         private readonly ILogger<AdminController> _logger;
         private readonly ApplicationDbContext _context;
+        private readonly RateLimitOptions _rateLimitOptions;
 
-        public AdminController(IAdminService adminService, ILogger<AdminController> logger, ApplicationDbContext context)
+        public AdminController(IAdminService adminService, ILogger<AdminController> logger, ApplicationDbContext context, RateLimitOptions rateLimitOptions)
         {
             _adminService = adminService;
             _logger = logger;
             _context = context;
+            _rateLimitOptions = rateLimitOptions;
         }
 
         private int? GetCurrentUserId()
@@ -1213,6 +1216,7 @@ namespace GCCWebApp.Controllers
         {
             // Manage API keys for external partners (Amazon, Novi, etc.)
             // Partners use these keys to access GCC REST API endpoints
+            ViewData["PartnerApiRateLimit"] = _rateLimitOptions.PartnerApiKeyLimit;
             return View();
         }
 

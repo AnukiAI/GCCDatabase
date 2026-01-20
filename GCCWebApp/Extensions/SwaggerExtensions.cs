@@ -79,7 +79,7 @@ All Partner API Management endpoints require **Admin role** authentication using
 
 ### Rate Limits for Partners
 Partner API keys have higher rate limits:
-- **Partner API Key**: 2,000 requests/hour
+- **Partner API Key**: 200 requests/hour
 - This applies to partners using their API keys to access GCC data endpoints
 
 ### Security Best Practices
@@ -131,18 +131,26 @@ Your API access is determined by your user account configuration:
 
 ### 📋 Recommended Endpoints for Partners
 
-#### Primary Endpoint - Search by Product ID
-🔍 **Most commonly used by partners** - Search certificates by ASIN, UPC, GTIN, EAN, etc.
+#### 🌟 PRIMARY - GS1 JSON-LD Format (Amazon Climate Pledge Friendly)
+**RECOMMENDED for Amazon integration** - Returns certificates in GS1 Web Vocabulary JSON-LD format.
+```
+GET /api/v1/certificates/gs1?pageSize=100
+GET /api/v1/certificates/gs1/{certificateNumber}
+```
+**Features**: @context, $schema, gtin, additionalTradeItemId (ASIN), certificationInfo with status (ACTIVE/INACTIVE)
+
+#### Search by Product ID
+🔍 Search certificates by ASIN, UPC, GTIN, EAN, etc.
 ```
 GET /api/v1/certificates/search/productid?productId=B08XQRT456&type=ASIN
 ```
 **Supported types**: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN
-**Returns**: Only certificates you have access to based on your associations
 
 #### Other Available Endpoints
-- **GET /api/v1/certificates** - List all accessible certificates (filtered to your scope)
-- **GET /api/v1/certificates/{id}** - Get specific certificate by number or ID (if you have access)
-- **GET /api/v1/certificates/{id}/download** - Download certificate PDF (if you have access)
+- **GET /api/v1/certificates/gs1** - 🌟 List certificates in GS1 JSON-LD format (RECOMMENDED)
+- **GET /api/v1/certificates** - List certificates with flat JSON structure
+- **GET /api/v1/certificates/{id}** - Get specific certificate by number or ID
+- **GET /api/v1/certificates/{id}/download** - Download certificate PDF
 
 ### 🔑 Authentication
 All requests require authentication via:
@@ -154,7 +162,7 @@ Authorization: Bearer gcc_partner_[your_64_char_key]
 
 ### ⏱️ Rate Limits
 - **Authenticated Users**: 500 requests/hour
-- **Partner API Keys**: 2,000 requests/hour
+- **Partner API Keys**: 200 requests/hour
 - **Burst limit**: 10 requests/minute
 
 ### 📄 Pagination
@@ -414,6 +422,15 @@ Cookies are secure, HTTP-only, and have appropriate SameSite settings."
                     // Check if the request is for Swagger UI or Swagger JSON
                     if (context.Request.Path.StartsWithSegments("/swagger"))
                     {
+                        var path = context.Request.Path.Value?.ToLower() ?? "";
+
+                        // Allow public access to partner-data swagger.json for ReDoc
+                        if (path.Equals("/swagger/partner-data/swagger.json", StringComparison.OrdinalIgnoreCase))
+                        {
+                            await next();
+                            return;
+                        }
+
                         var user = context.User;
                         var isAdmin = user?.HasClaim("Role", "Admin") == true;
                         var isAnalyst = user?.HasClaim("Role", "Analyst") == true;
@@ -429,7 +446,6 @@ Cookies are secure, HTTP-only, and have appropriate SameSite settings."
                         }
 
                         // Check specific swagger document access
-                        var path = context.Request.Path.Value?.ToLower() ?? "";
 
                         // Admin API (v1) - Admin and Analyst only
                         if (path.Contains("/swagger/v1/") && !isAdmin && !isAnalyst)

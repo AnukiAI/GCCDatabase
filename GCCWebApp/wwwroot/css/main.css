@@ -745,6 +745,7 @@ th,
     font-size: 24px;
     font-weight: 500;
     margin: 0;
+    white-space: nowrap;
 }
 
 .page-actions {

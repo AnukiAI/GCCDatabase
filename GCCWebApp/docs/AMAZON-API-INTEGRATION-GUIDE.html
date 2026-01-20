@@ -309,8 +309,8 @@
     <div class="partner">Amazon Integration</div>
 
     <div class="doc-info">
-        <p><strong>Version:</strong> 1.0</p>
-        <p><strong>Date:</strong> January 18, 2026</p>
+        <p><strong>Version:</strong> 2.0</p>
+        <p><strong>Date:</strong> January 19, 2026</p>
         <p><strong>Classification:</strong> Confidential - Partner Use Only</p>
     </div>
 </div>
@@ -322,17 +322,18 @@
 <h3>Document Information</h3>
 <table class="doc-info-table">
     <tr><td>Document Title</td><td>Partner API Integration Guide - Amazon</td></tr>
-    <tr><td>Version</td><td>1.0</td></tr>
+    <tr><td>Version</td><td>2.0</td></tr>
     <tr><td>Status</td><td>Final</td></tr>
     <tr><td>Classification</td><td>Confidential - Partner Use Only</td></tr>
     <tr><td>Prepared For</td><td>Amazon Sustainability Team</td></tr>
     <tr><td>Prepared By</td><td>Green Circle Certified</td></tr>
-    <tr><td>Date</td><td>January 18, 2026</td></tr>
+    <tr><td>Date</td><td>January 19, 2026</td></tr>
 </table>
 
 <h3>Revision History</h3>
 <table>
     <tr><th>Version</th><th>Date</th><th>Author</th><th>Description</th></tr>
+    <tr><td>2.0</td><td>2026-01-19</td><td>GCC Technical Team</td><td>Added GS1 JSON-LD endpoint for Climate Pledge Friendly</td></tr>
     <tr><td>1.0</td><td>2026-01-18</td><td>GCC Technical Team</td><td>Initial release</td></tr>
 </table>
 
@@ -406,7 +407,7 @@
     <tr><td>Protocol</td><td>HTTPS (TLS 1.2+)</td></tr>
     <tr><td>Format</td><td>RESTful JSON API</td></tr>
     <tr><td>Authentication</td><td>API Key (Header-based)</td></tr>
-    <tr><td>Rate Limit</td><td>2,000 requests/hour</td></tr>
+    <tr><td>Rate Limit</td><td>200 requests/hour</td></tr>
     <tr><td>Availability</td><td>99.9% SLA target</td></tr>
 </table>
 
@@ -676,6 +677,8 @@
 <h3>6.2 Endpoint Summary</h3>
 <table>
     <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+    <tr style="background:#e7f3e8;"><td>GET</td><td><code>/certificates/gs1</code></td><td><strong>GS1 JSON-LD format (RECOMMENDED)</strong></td></tr>
+    <tr style="background:#e7f3e8;"><td>GET</td><td><code>/certificates/gs1/{number}</code></td><td>Single certificate in GS1 format</td></tr>
     <tr><td>GET</td><td><code>/certificates</code></td><td>List certificates with pagination</td></tr>
     <tr><td>GET</td><td><code>/certificates/{id}</code></td><td>Get certificate by database ID</td></tr>
     <tr><td>GET</td><td><code>/certificates/number/{number}</code></td><td>Get certificate by certificate number</td></tr>
@@ -684,7 +687,85 @@
     <tr><td>GET</td><td><code>/certificates/{number}/download</code></td><td>Download certificate PDF</td></tr>
 </table>
 
-<h3>6.3 List Certificates</h3>
+<h3>6.3 GS1 JSON-LD Format (RECOMMENDED)</h3>
+<p><strong>This is the primary endpoint for Amazon Climate Pledge Friendly integration.</strong></p>
+<p><strong>Endpoint:</strong> <code>GET /api/v1/certificates/gs1</code></p>
+
+<p>Returns certificates in GS1 Web Vocabulary JSON-LD format with nested product and certification objects that conform to the GS1 certification data model.</p>
+
+<h4>Query Parameters</h4>
+<table>
+    <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    <tr><td><code>pageNumber</code></td><td>integer</td><td>1</td><td>Page number (1-based)</td></tr>
+    <tr><td><code>pageSize</code></td><td>integer</td><td>20</td><td>Items per page (max: 100)</td></tr>
+    <tr><td><code>searchTerm</code></td><td>string</td><td>null</td><td>Search across multiple fields</td></tr>
+</table>
+
+<h4>Example Request</h4>
+<pre>curl -X GET "https://[domain]/api/v1/certificates/gs1?pageSize=100" \
+  -H "X-API-Key: gcc_partner_[your_key]" \
+  -H "Accept: application/json"</pre>
+
+<h4>Response Structure</h4>
+<pre>{
+  "success": true,
+  "data": [
+    {
+      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+      "id": "https://[domain]/api/v1/certificates/gs1/24-0366",
+      "type": "CertificationReport",
+      "issueDate": "2024-01-15",
+      "issuer": "Green Circle Certified",
+      "products": [
+        {
+          "id": "https://id.gs1.org/01/00012345678901",
+          "type": "Product",
+          "gtin": "00012345678901",
+          "additionalTradeItemId": [
+            { "type": "ASIN", "value": "B08XQRT456" },
+            { "type": "SKU", "value": "ECO-PT-001" }
+          ],
+          "name": "Recycled Paper Towels",
+          "description": "100% recycled paper towels",
+          "certificationInfo": {
+            "id": "https://[domain]/api/v1/certificates/gs1/24-0366/certification",
+            "type": "CertificationDetails",
+            "agency": "Green Circle Certified",
+            "agencyURL": "https://www.greencirclecertified.com",
+            "program": "UL 2809",
+            "certificateId": "24-0366",
+            "standard": "UL 2809",
+            "status": "ACTIVE",
+            "value": "95.5% recycled content",
+            "startDate": "2024-01-15",
+            "endDate": "2025-01-15",
+            "targetCountries": ["United States"]
+          }
+        }
+      ]
+    }
+  ],
+  "pagination": { "totalCount": 150, "pageNumber": 1, "pageSize": 100 }
+}</pre>
+
+<h4>GS1 Field Mapping</h4>
+<table>
+    <tr><th>GS1 Field</th><th>Description</th><th>Notes</th></tr>
+    <tr><td><code>@context</code></td><td>JSON-LD context URI</td><td>Required for schema validation</td></tr>
+    <tr><td><code>$schema</code></td><td>JSON Schema URI</td><td>Required for validation</td></tr>
+    <tr><td><code>type</code></td><td>Object type</td><td>"CertificationReport", "Product", "CertificationDetails"</td></tr>
+    <tr><td><code>gtin</code></td><td>Global Trade Item Number</td><td>14 digits, padded with leading zeros</td></tr>
+    <tr><td><code>additionalTradeItemId</code></td><td>Additional identifiers</td><td>ASIN, SKU, MPN, ISBN</td></tr>
+    <tr><td><code>certificationInfo.status</code></td><td>Certification status</td><td>ACTIVE or INACTIVE</td></tr>
+    <tr><td><code>certificationInfo.value</code></td><td>Certification results</td><td>e.g., recycled content percentage</td></tr>
+</table>
+
+<div class="note">
+    <strong>Single Certificate:</strong> Use <code>GET /api/v1/certificates/gs1/{number}</code> to retrieve a single certificate in GS1 format.
+</div>
+
+<h3>6.4 List Certificates (Flat JSON)</h3>
 <p><strong>Endpoint:</strong> <code>GET /api/v1/certificates</code></p>
 
 <h4>Query Parameters</h4>
@@ -741,7 +822,7 @@
   }
 }</pre>
 
-<h3>6.4 Search by Product Identifier (ASIN)</h3>
+<h3>6.5 Search by Product Identifier (ASIN)</h3>
 <p><strong>This is the primary endpoint for ASIN-based lookups.</strong></p>
 <p><strong>Endpoint:</strong> <code>GET /api/v1/certificates/search/productid</code></p>
 
@@ -788,7 +869,7 @@
 
 <p class="note"><strong>Note:</strong> The <code>isMatchedId</code> field indicates which product identifier matched the search criteria.</p>
 
-<h3>6.5 Download Certificate PDF</h3>
+<h3>6.6 Download Certificate PDF</h3>
 <p><strong>Endpoint:</strong> <code>GET /api/v1/certificates/{number}/download</code></p>
 
 <h4>Example Request</h4>
@@ -990,8 +1071,8 @@
 <h3>10.1 Rate Limits</h3>
 <table>
     <tr><th>Metric</th><th>Limit</th></tr>
-    <tr><td>Requests per hour</td><td>2,000</td></tr>
-    <tr><td>Requests per minute</td><td>~33 (averaged)</td></tr>
+    <tr><td>Requests per hour</td><td>200</td></tr>
+    <tr><td>Requests per minute</td><td>~3 (averaged)</td></tr>
     <tr><td>Concurrent requests</td><td>10</td></tr>
     <tr><td>Maximum page size</td><td>100 items</td></tr>
 </table>
@@ -1181,7 +1262,7 @@
 <div class="footer">
     <p><strong>CONFIDENTIAL</strong> - This document is intended for Amazon's integration team. Unauthorized distribution is prohibited.</p>
     <p>Green Circle Certified | www.greencirclecertified.com</p>
-    <p>Version 1.0 | January 2026</p>
+    <p>Version 2.0 | January 2026</p>
 </div>
 
 </body>

@@ -317,7 +317,7 @@ builder.Services.AddApiRateLimiting(options =>
     options.AnonymousLimit = 100;
     options.AuthenticatedLimit = 500;
     options.ApiKeyLimit = 1000;
-    options.PartnerApiKeyLimit = 2000;
+    options.PartnerApiKeyLimit = 200;
     options.AdminLimit = 5000;
 });
 
@@ -587,24 +587,107 @@ app.Use(async (context, next) =>
     await next();
 });
 
-// ===== SWAGGER CONFIGURATION =====
-if (app.Environment.IsDevelopment())
+// ===== SWAGGER CONFIGURATION (Admin Only) =====
+// Swagger is available in all environments but restricted to Admin users
+var apiVersionDescriptionProvider = app.Services.GetRequiredService<Asp.Versioning.ApiExplorer.IApiVersionDescriptionProvider>();
+
+// Protect Swagger endpoints - Admin only
+app.UseWhen(context => context.Request.Path.StartsWithSegments("/swagger"), appBuilder =>
 {
-    var apiVersionDescriptionProvider = app.Services.GetRequiredService<Asp.Versioning.ApiExplorer.IApiVersionDescriptionProvider>();
-    app.UseSwaggerConfiguration(apiVersionDescriptionProvider);
-}
+    appBuilder.Use(async (context, next) =>
+    {
+        // Check if user is authenticated and has Admin role
+        if (!context.User.Identity?.IsAuthenticated == true)
+        {
+            context.Response.Redirect("/Account/Login?returnUrl=" + Uri.EscapeDataString(context.Request.Path));
+            return;
+        }
+
+        var userRole = context.User.FindFirst("Role")?.Value;
+        if (userRole != "Admin")
+        {
+            context.Response.StatusCode = 403;
+            await context.Response.WriteAsync("Access denied. Admin role required for Swagger documentation.");
+            return;
+        }
+
+        await next();
+    });
+});
+
+app.UseSwaggerConfiguration(apiVersionDescriptionProvider);
+
+// ===== REDOC CONFIGURATION (Client-Friendly Documentation) =====
+// ReDoc provides clean, read-only API documentation for partners
+
+// Public endpoint to serve the OpenAPI spec (allows anonymous access for ReDoc)
+app.MapGet("/api-docs/openapi.json", (HttpContext context, Swashbuckle.AspNetCore.Swagger.ISwaggerProvider swaggerProvider) =>
+{
+    try
+    {
+        var swagger = swaggerProvider.GetSwagger("partner-data");
+        context.Response.ContentType = "application/json";
+
+        using var stringWriter = new StringWriter();
+        var jsonWriter = new Microsoft.OpenApi.Writers.OpenApiJsonWriter(stringWriter);
+        swagger.SerializeAsV3(jsonWriter);
+        return Results.Content(stringWriter.ToString(), "application/json");
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Unable to load API specification: {ex.Message}");
+    }
+})
+.WithName("OpenApiSpec")
+.AllowAnonymous();
+
+app.MapGet("/api-docs", async (HttpContext context) =>
+{
+    var html = @"<!DOCTYPE html>
+<html>
+<head>
+    <title>GCC Partner API Documentation</title>
+    <meta charset=""utf-8""/>
+    <meta name=""viewport"" content=""width=device-width, initial-scale=1"">
+    <link href=""https://fonts.googleapis.com/css?family=Montserrat:300,400,700|Roboto:300,400,700"" rel=""stylesheet"">
+    <style>
+        body { margin: 0; padding: 0; }
+        .topbar { background: #1a5f2a; padding: 15px 20px; color: white; }
+        .topbar h1 { margin: 0; font-family: 'Montserrat', sans-serif; font-size: 20px; }
+        .topbar p { margin: 5px 0 0 0; font-size: 14px; opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class=""topbar"">
+        <h1>Green Circle Certified - Partner API</h1>
+        <p>API Documentation for Amazon, Novi, and other integration partners</p>
+    </div>
+    <redoc spec-url='/api-docs/openapi.json'
+           hide-download-button=""true""
+           theme='{
+             ""colors"": { ""primary"": { ""main"": ""#1a5f2a"" } },
+             ""typography"": { ""fontFamily"": ""Roboto, sans-serif"" }
+           }'>
+    </redoc>
+    <script src=""https://cdn.redoc.ly/redoc/latest/bundles/redoc.standalone.js""></script>
+</body>
+</html>";
+    context.Response.ContentType = "text/html";
+    await context.Response.WriteAsync(html);
+})
+.WithName("ApiDocs")
+.AllowAnonymous();
 
 // ===== DEDICATED PARTNER API DOCUMENTATION ROUTE =====
 // Route for partners to access their specific API documentation
 app.MapGet("/partner/api-docs", (HttpContext context) =>
 {
-    // Redirect to the partner-data Swagger UI with a clean URL
-    context.Response.Redirect("/swagger/index.html?urls.primaryName=Partner Data Access API");
+    // Redirect to ReDoc for cleaner partner experience
+    context.Response.Redirect("/api-docs");
     return Task.CompletedTask;
 })
 .WithName("PartnerApiDocs")
-.WithMetadata(new Microsoft.AspNetCore.Mvc.ProducesResponseTypeAttribute(302))
-.RequireAuthorization("ExternalAccess"); // Only partners can access
+.WithMetadata(new Microsoft.AspNetCore.Mvc.ProducesResponseTypeAttribute(302));
 
 // ===== ROUTE MAPPING =====
 

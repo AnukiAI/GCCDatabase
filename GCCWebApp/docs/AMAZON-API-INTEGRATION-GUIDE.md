@@ -94,7 +94,7 @@ Green Circle Certified provides third-party certification for sustainable produc
 | Protocol | HTTPS (TLS 1.2+) |
 | Format | RESTful JSON API |
 | Authentication | API Key (Header-based) |
-| Rate Limit | 2,000 requests/hour |
+| Rate Limit | 200 requests/hour |
 | Availability | 99.9% SLA target |
 
 ---
@@ -944,8 +944,8 @@ Maximum: 5 attempts, then fail and alert
 
 | Metric | Limit |
 |--------|-------|
-| Requests per hour | 2,000 |
-| Requests per minute | ~33 (averaged) |
+| Requests per hour | 200 |
+| Requests per minute | ~3 (averaged) |
 | Concurrent requests | 10 |
 | Maximum page size | 100 items |
 

@@ -272,7 +272,7 @@
 
 <!-- Document Info -->
 <div class="doc-info">
-    <p><strong>Version:</strong> 1.0 &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Date:</strong> January 18, 2026 &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Integration Model:</strong> Amazon PULLS data from GCC using API keys</p>
+    <p><strong>Version:</strong> 2.0 &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Date:</strong> January 19, 2026 &nbsp;&nbsp;|&nbsp;&nbsp; <strong>Integration Model:</strong> Amazon PULLS data from GCC using API keys</p>
 </div>
 
 <!-- Overview -->
@@ -280,9 +280,10 @@
 <p>This guide helps Amazon integrate with the GCC (Green Circle Certified) Partner API to retrieve certificate and product identifier data.</p>
 
 <div class="quick-ref">
-    <h3>Quick Reference - Most Common Request</h3>
-    <pre>GET /api/v1/certificates?includeProductIds=true&pageSize=100
+    <h3>Quick Reference - GS1 JSON-LD Format (RECOMMENDED)</h3>
+    <pre>GET /api/v1/certificates/gs1?pageSize=100
 Header: X-API-Key: YOUR_API_KEY</pre>
+    <p style="margin-top:8px;margin-bottom:0;font-size:10pt;">Returns data in GS1 Web Vocabulary JSON-LD format for Climate Pledge Friendly integration.</p>
 </div>
 
 <!-- Section 1: Getting Your API Key -->
@@ -310,7 +311,7 @@ Header: X-API-Key: YOUR_API_KEY</pre>
     <tr><td>401</td><td>Invalid or missing API key</td></tr>
     <tr><td>403</td><td>Endpoint not permitted for your key</td></tr>
     <tr><td>404</td><td>Resource not found</td></tr>
-    <tr><td>429</td><td>Rate limit exceeded (2,000 requests/hour)</td></tr>
+    <tr><td>429</td><td>Rate limit exceeded (200 requests/hour)</td></tr>
 </table>
 
 <!-- Section 3: Data Access Scope -->
@@ -335,8 +336,10 @@ Header: X-API-Key: YOUR_API_KEY</pre>
 
 <table>
     <tr><th>Endpoint</th><th>Description</th></tr>
+    <tr style="background:#e7f3e8;"><td><code>GET /certificates/gs1</code></td><td><strong>GS1 JSON-LD format (RECOMMENDED for Amazon)</strong></td></tr>
+    <tr style="background:#e7f3e8;"><td><code>GET /certificates/gs1/{number}</code></td><td>Single certificate in GS1 format</td></tr>
     <tr><td><code>GET /certificates</code></td><td>List all accessible certificates</td></tr>
-    <tr><td><code>GET /certificates?includeProductIds=true</code></td><td>List with ASINs/UPCs <strong>(recommended)</strong></td></tr>
+    <tr><td><code>GET /certificates?includeProductIds=true</code></td><td>List with ASINs/UPCs (flat JSON)</td></tr>
     <tr><td><code>GET /certificates/{id}</code></td><td>Get certificate by database ID</td></tr>
     <tr><td><code>GET /certificates/number/{number}</code></td><td>Get certificate by number (e.g., 24-0366)</td></tr>
     <tr><td><code>GET /certificates/search/productid</code></td><td>Search by ASIN/UPC</td></tr>
@@ -346,8 +349,68 @@ Header: X-API-Key: YOUR_API_KEY</pre>
 <!-- Section 5: Common Use Cases -->
 <h2>5. Common Use Cases</h2>
 
-<h3>5.1 List All Certificates with Product Identifiers</h3>
-<p><strong>This is the primary endpoint for Amazon integration.</strong></p>
+<h3>5.1 GS1 JSON-LD Format (RECOMMENDED)</h3>
+<p><strong>This is the primary endpoint for Amazon Climate Pledge Friendly integration.</strong></p>
+<p>Returns data in GS1 Web Vocabulary JSON-LD format with nested product and certification objects.</p>
+
+<pre>curl -X GET "https://[domain]/api/v1/certificates/gs1?pageSize=100" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Accept: application/json"</pre>
+
+<p><strong>Response:</strong></p>
+<pre>{
+  "success": true,
+  "data": [
+    {
+      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+      "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+      "type": "CertificationReport",
+      "issueDate": "2024-01-15",
+      "issuer": "Green Circle Certified",
+      "products": [
+        {
+          "id": "https://id.gs1.org/01/00012345678901",
+          "type": "Product",
+          "gtin": "00012345678901",
+          "additionalTradeItemId": [
+            { "type": "ASIN", "value": "B08XQRT456" }
+          ],
+          "name": "Recycled Paper Towels",
+          "description": "100% recycled paper towels",
+          "certificationInfo": {
+            "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366/certification",
+            "type": "CertificationDetails",
+            "agency": "Green Circle Certified",
+            "agencyURL": "https://www.greencirclecertified.com",
+            "program": "UL 2809",
+            "certificateId": "24-0366",
+            "standard": "UL 2809",
+            "status": "ACTIVE",
+            "value": "95.5% recycled content",
+            "startDate": "2024-01-15",
+            "endDate": "2025-01-15",
+            "targetCountries": ["United States"]
+          }
+        }
+      ]
+    }
+  ],
+  "pagination": { "totalCount": 150, "pageNumber": 1, "pageSize": 100 }
+}</pre>
+
+<div class="note">
+    <strong>Key GS1 Fields:</strong>
+    <ul style="margin:5px 0;">
+        <li><code>gtin</code> - Global Trade Item Number (14 digits, padded with leading zeros)</li>
+        <li><code>additionalTradeItemId</code> - Array of ASIN, SKU, MPN identifiers</li>
+        <li><code>certificationInfo.status</code> - ACTIVE or INACTIVE</li>
+        <li><code>certificationInfo.value</code> - Certification results (e.g., recycled content percentage)</li>
+    </ul>
+</div>
+
+<h3>5.2 List All Certificates with Product Identifiers (Flat JSON)</h3>
+<p><strong>Alternative endpoint with flat JSON structure.</strong></p>
 
 <pre>curl -X GET "https://[domain]/api/v1/certificates?includeProductIds=true&pageSize=100" \
   -H "X-API-Key: YOUR_API_KEY" \
@@ -385,7 +448,7 @@ Header: X-API-Key: YOUR_API_KEY</pre>
   "pagination": { "totalCount": 150, "pageNumber": 1, "pageSize": 100 }
 }</pre>
 
-<h3>5.2 Search by ASIN</h3>
+<h3>5.3 Search by ASIN</h3>
 <p>Find certificates containing a specific ASIN:</p>
 
 <pre>curl -X GET "https://[domain]/api/v1/certificates/search/productid?productId=B08XQRT456&type=ASIN" \
@@ -396,11 +459,11 @@ Header: X-API-Key: YOUR_API_KEY</pre>
     <strong>Note:</strong> The <code>isMatchedId: true</code> flag in the response indicates which product identifier matched your search.
 </div>
 
-<h3>5.3 Get Certificate by Number</h3>
+<h3>5.4 Get Certificate by Number</h3>
 <pre>curl -X GET "https://[domain]/api/v1/certificates/number/24-0366" \
   -H "X-API-Key: YOUR_API_KEY"</pre>
 
-<h3>5.4 Download Certificate PDF</h3>
+<h3>5.5 Download Certificate PDF</h3>
 <pre>curl -X GET "https://[domain]/api/v1/certificates/24-0366/download" \
   -H "X-API-Key: YOUR_API_KEY" \
   -o certificate.pdf</pre>
@@ -638,7 +701,7 @@ Header: X-API-Key: YOUR_API_KEY</pre>
 }</pre>
 
 <h3>6.7 Rate Limit Exceeded</h3>
-<p><strong>Request:</strong> Any request after exceeding 2,000 requests/hour</p>
+<p><strong>Request:</strong> Any request after exceeding 200 requests/hour</p>
 <p><strong>Use Case:</strong> Handle rate limiting and implement backoff.</p>
 <pre>{
   "success": false,
@@ -760,8 +823,8 @@ Header: X-API-Key: YOUR_API_KEY</pre>
 <h2>9. Rate Limits</h2>
 <table>
     <tr><th>Metric</th><th>Limit</th></tr>
-    <tr><td>Requests per hour</td><td>2,000</td></tr>
-    <tr><td>Requests per minute</td><td>~33</td></tr>
+    <tr><td>Requests per hour</td><td>200</td></tr>
+    <tr><td>Requests per minute</td><td>~3</td></tr>
 </table>
 <p>When rate limited, you'll receive HTTP 429. Implement exponential backoff in your integration.</p>
 

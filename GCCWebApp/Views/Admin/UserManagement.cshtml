@@ -9,6 +9,323 @@
 @section Styles {
     <link href="~/css/admin/admin.css" rel="stylesheet" />
     <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
+    <style>
+        /* User Management Enhanced Styling - Matching Role Management */
+
+        /* Role Badge Styling */
+        .admin-badge--info {
+            background: linear-gradient(135deg, #002B76 0%, #1a4a9e 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .admin-badge--success {
+            background: linear-gradient(135deg, #92C83E 0%, #7ab02d 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .admin-badge--inactive {
+            background: #e9ecef;
+            color: #6c757d;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        /* No Data Message */
+        .no-data {
+            text-align: center;
+            padding: 40px !important;
+        }
+
+        .no-data-message {
+            color: #adb5bd;
+        }
+
+        .no-data-message i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #dee2e6;
+        }
+
+        .no-data-message p {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #6c757d;
+        }
+
+        .no-data-message small {
+            font-size: 14px;
+            color: #adb5bd;
+        }
+
+        /* Keyboard Navigation & Accessibility */
+        .admin-table-row:focus,
+        tr[role="row"]:focus {
+            outline: 3px solid #92C83E;
+            outline-offset: -3px;
+            background-color: #f8f9fa;
+        }
+
+        .admin-action-btn:focus {
+            outline: 2px solid #92C83E;
+            outline-offset: 2px;
+        }
+
+        .admin-btn:focus {
+            outline: 3px solid #92C83E;
+            outline-offset: 2px;
+        }
+
+        .admin-search-input:focus {
+            border-color: #92C83E;
+            box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.15);
+        }
+
+        /* Screen reader only text */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+        /* Table row hover */
+        tr[role="row"] {
+            transition: background-color 0.2s;
+        }
+
+        tr[role="row"]:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Form Group Styling */
+        .admin-form-group {
+            margin-bottom: 16px;
+        }
+
+        .admin-form-group:last-child {
+            margin-bottom: 0;
+        }
+
+        .admin-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+        }
+
+        .admin-label--required::after {
+            content: " *";
+            color: #e74c3c;
+        }
+
+        /* Loading overlay */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10000;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 32px 48px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .loading-spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e9ecef;
+            border-top: 4px solid #92C83E;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @@keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .loading-message {
+            color: #333;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Dropdown Menu Styling */
+        .admin-dropdown {
+            position: relative;
+        }
+
+        .admin-dropdown-menu {
+            position: absolute;
+            right: 0;
+            top: 100%;
+            min-width: 180px;
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: none;
+            padding: 8px 0;
+        }
+
+        .admin-dropdown-menu--show {
+            display: block;
+        }
+
+        .admin-dropdown-menu--right {
+            right: 0;
+            left: auto;
+        }
+
+        .admin-dropdown-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 16px;
+            font-size: 14px;
+            color: #333;
+            background: none;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .admin-dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .admin-dropdown-item i {
+            width: 16px;
+            color: #6c757d;
+        }
+
+        .admin-dropdown-item--danger {
+            color: #dc3545;
+        }
+
+        .admin-dropdown-item--danger:hover {
+            background-color: #ffebee;
+        }
+
+        .admin-dropdown-item--disabled {
+            color: #adb5bd;
+            cursor: not-allowed;
+        }
+
+        .admin-dropdown-item--disabled:hover {
+            background-color: transparent;
+        }
+
+        .admin-dropdown-divider {
+            height: 1px;
+            background: #e9ecef;
+            margin: 8px 0;
+        }
+
+        /* Row with dropdown open should have higher z-index */
+        .admin-table-row.dropdown-open {
+            position: relative;
+            z-index: 100;
+        }
+
+        /* Checkbox list styling */
+        .admin-checkbox-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .admin-checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            border: 1px solid #e9ecef;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .admin-checkbox-item:hover {
+            border-color: #92C83E;
+            background: #f0f7e6;
+        }
+
+        .admin-checkbox-item input[type="checkbox"] {
+            accent-color: #92C83E;
+        }
+
+        /* Modal Overrides for consistency */
+        .admin-modal-body {
+            padding: 20px 24px !important;
+        }
+
+        .admin-modal-header {
+            padding: 16px 24px !important;
+        }
+
+        .admin-modal-title {
+            font-size: 18px !important;
+            margin: 0;
+        }
+
+        .admin-modal-footer {
+            padding: 16px 24px;
+            background: #f8f9fa;
+            border-radius: 0 0 12px 12px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+        }
+
+        /* Responsive */
+        @@media (max-width: 768px) {
+            .admin-checkbox-list {
+                max-height: 120px;
+            }
+        }
+    </style>
 }
 
 @section Breadcrumbs {
@@ -65,17 +382,12 @@
                 <label for="role-filter" class="admin-sr-only">Filter by role</label>
                 <select id="role-filter" class="admin-filter-select" aria-label="Filter by role">
                     <option value="all">All Roles</option>
-                    <option value="Admin">Admin</option>
-                    <option value="Analyst">Analyst</option>
-                    <option value="External">External</option>
-                    <option value="Public">Public</option>
+                    <!-- Roles populated dynamically by JavaScript -->
                 </select>
                 <label for="company-filter" class="admin-sr-only">Filter by company</label>
                 <select id="company-filter" class="admin-filter-select" aria-label="Filter by company">
                     <option value="all">All Companies</option>
-                    <option value="acme-corp">ACME Corp</option>
-                    <option value="tech-solutions">Tech Solutions</option>
-                    <option value="global-industries">Global Industries</option>
+                    <!-- Companies populated dynamically by JavaScript -->
                 </select>
             </div>
         </div>
@@ -250,10 +562,7 @@
                     <label for="user-role" class="admin-label admin-label--required" style="color: #333; font-weight: 500;">Role</label>
                     <select id="user-role" class="admin-select" required aria-required="true" style="border: 1px solid #ced4da; background-color: white; color: #333;">
                         <option value="">Select a role</option>
-                        <option value="Admin">Admin</option>
-                        <option value="Analyst">Analyst</option>
-                        <option value="External">External</option>
-                        <option value="Public">Public</option>
+                        <!-- Roles populated dynamically by JavaScript -->
                     </select>
                 </div>
 

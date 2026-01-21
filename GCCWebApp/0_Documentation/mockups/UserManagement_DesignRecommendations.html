@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Data Access - Design Recommendations</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2c5aa0;
+            --dark-blue: #1e3a5f;
+            --success-green: #28a745;
+            --warning-orange: #fd7e14;
+            --danger-red: #dc3545;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            padding: 0;
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2rem;
+        }
+
+        .main-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        .recommendation-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .recommendation-header {
+            background: var(--primary-blue);
+            color: white;
+            padding: 15px 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .question-number {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .recommendation-body {
+            padding: 25px;
+        }
+
+        .question-text {
+            font-size: 1.1rem;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .answer-box {
+            background: #d4edda;
+            border: 2px solid var(--success-green);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .answer-label {
+            color: var(--success-green);
+            font-weight: 600;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .answer-text {
+            font-size: 1.15rem;
+            font-weight: 600;
+            color: #155724;
+            margin: 0;
+        }
+
+        .rationale {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .rationale h4 {
+            color: #333;
+            font-size: 1rem;
+            margin: 0 0 15px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .rationale ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+
+        .rationale li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+
+        .rationale li strong {
+            color: #333;
+        }
+
+        /* Summary Section */
+        .summary-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .summary-section h2 {
+            color: var(--primary-blue);
+            margin: 0 0 25px 0;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .summary-table th,
+        .summary-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .summary-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .summary-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge-yes {
+            background: var(--success-green);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .badge-no {
+            background: var(--danger-red);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        .badge-info {
+            background: var(--primary-blue);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+        }
+
+        /* Data Model Section */
+        .data-model {
+            background: #e7f1ff;
+            border: 1px solid #b6d4fe;
+            border-radius: 8px;
+            padding: 25px;
+            margin: 25px 0;
+        }
+
+        .data-model h3 {
+            color: var(--primary-blue);
+            margin: 0 0 15px 0;
+        }
+
+        .data-model pre {
+            background: #1e3a5f;
+            color: #e7f1ff;
+            padding: 20px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            overflow-x: auto;
+        }
+
+        /* Key Principles */
+        .principles-box {
+            background: linear-gradient(135deg, #fff3cd 0%, #ffeeba 100%);
+            border: 2px solid #ffc107;
+            border-radius: 12px;
+            padding: 25px;
+            margin: 30px 0;
+        }
+
+        .principles-box h3 {
+            color: #856404;
+            margin: 0 0 20px 0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .principle-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 15px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .principle-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .principle-icon {
+            width: 40px;
+            height: 40px;
+            background: #856404;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .principle-text h4 {
+            margin: 0 0 5px 0;
+            color: #333;
+            font-size: 1rem;
+        }
+
+        .principle-text p {
+            margin: 0;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        /* Implementation Box */
+        .implementation-box {
+            background: #d4edda;
+            border: 2px solid var(--success-green);
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .implementation-box h3 {
+            color: #155724;
+            margin: 0 0 20px 0;
+        }
+
+        .impl-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #c3e6cb;
+        }
+
+        .impl-step:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .step-number {
+            width: 30px;
+            height: 30px;
+            background: #155724;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            margin: 0 0 5px 0;
+            color: #155724;
+        }
+
+        .step-content p {
+            margin: 0;
+            color: #155724;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-header">
+        <h1><i class="bi bi-lightbulb me-2"></i>Design Recommendations</h1>
+        <p>Professional analysis for User Data Access Architecture</p>
+    </div>
+
+    <div class="main-container">
+        <!-- Guiding Principles -->
+        <div class="principles-box">
+            <h3><i class="bi bi-shield-check"></i> Guiding Design Principles</h3>
+
+            <div class="principle-item">
+                <div class="principle-icon"><i class="bi bi-lock"></i></div>
+                <div class="principle-text">
+                    <h4>Principle of Least Privilege</h4>
+                    <p>Users should only have access to the minimum data required for their role. When in doubt, restrict access.</p>
+                </div>
+            </div>
+
+            <div class="principle-item">
+                <div class="principle-icon"><i class="bi bi-diagram-2"></i></div>
+                <div class="principle-text">
+                    <h4>Clear Role Boundaries</h4>
+                    <p>Each role should have a single, well-defined access pattern. Overlapping access creates confusion and security gaps.</p>
+                </div>
+            </div>
+
+            <div class="principle-item">
+                <div class="principle-icon"><i class="bi bi-gear"></i></div>
+                <div class="principle-text">
+                    <h4>Simplicity Over Flexibility</h4>
+                    <p>A simple system that's hard to misconfigure is better than a flexible system that's easy to get wrong.</p>
+                </div>
+            </div>
+
+            <div class="principle-item">
+                <div class="principle-icon"><i class="bi bi-arrow-up-right"></i></div>
+                <div class="principle-text">
+                    <h4>Scalability</h4>
+                    <p>The design should work whether you have 10 companies or 10,000 companies, without manual per-user configuration.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question 1 -->
+        <div class="recommendation-card">
+            <div class="recommendation-header">
+                <div class="question-number">1</div>
+                <div>Partner User Access Scope</div>
+            </div>
+            <div class="recommendation-body">
+                <div class="question-text">
+                    When an Amazon employee (Partner role) logs in, should they see ALL certificates tagged with Amazon, or only certificates from specific companies they're assigned to?
+                </div>
+
+                <div class="answer-box">
+                    <div class="answer-label"><i class="bi bi-check-circle-fill"></i> Recommendation</div>
+                    <p class="answer-text">ALL certificates tagged with their Partner (Amazon/Novi)</p>
+                </div>
+
+                <div class="rationale">
+                    <h4><i class="bi bi-chat-quote"></i> Rationale</h4>
+                    <ul>
+                        <li><strong>Business Purpose:</strong> Partner employees (e.g., Amazon Climate Pledge team) need to verify compliance across their ENTIRE partner network, not just specific companies</li>
+                        <li><strong>Audit Capability:</strong> They need to see all certificates claiming their partnership to identify issues, validate claims, and ensure consistency</li>
+                        <li><strong>Simplicity:</strong> One Partner association instead of manually assigning dozens/hundreds of companies</li>
+                        <li><strong>Scalability:</strong> As new companies join the partner program, their certificates are automatically visible - no user reconfiguration needed</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question 2 -->
+        <div class="recommendation-card">
+            <div class="recommendation-header">
+                <div class="question-number">2</div>
+                <div>Company Rep Access (When Company is Amazon Partner)</div>
+            </div>
+            <div class="recommendation-body">
+                <div class="question-text">
+                    When a company representative (External Client) from an Amazon partner company logs in, should they see only their company's certificates, or their company's certificates PLUS all Amazon-tagged certificates?
+                </div>
+
+                <div class="answer-box">
+                    <div class="answer-label"><i class="bi bi-check-circle-fill"></i> Recommendation</div>
+                    <p class="answer-text">ONLY their company's certificates (regardless of partner tag)</p>
+                </div>
+
+                <div class="rationale">
+                    <h4><i class="bi bi-chat-quote"></i> Rationale</h4>
+                    <ul>
+                        <li><strong>Least Privilege:</strong> A company rep only needs to see their own company's data - they have no business need to see competitor certificates</li>
+                        <li><strong>Competitive Sensitivity:</strong> Showing them all Amazon partner certificates would expose competitor data (other Amazon partners)</li>
+                        <li><strong>Clear Boundaries:</strong> "External Client" means company representative, not partner program administrator</li>
+                        <li><strong>Elevation Path:</strong> If someone truly needs partner-wide visibility, give them the Partner role instead - that's what it's for</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question 3 -->
+        <div class="recommendation-card">
+            <div class="recommendation-header">
+                <div class="question-number">3</div>
+                <div>Role Mutual Exclusivity</div>
+            </div>
+            <div class="recommendation-body">
+                <div class="question-text">
+                    Should the Partner and External Client roles be mutually exclusive? Can a user have both associations simultaneously?
+                </div>
+
+                <div class="answer-box">
+                    <div class="answer-label"><i class="bi bi-check-circle-fill"></i> Recommendation</div>
+                    <p class="answer-text">YES - Mutually exclusive. One role per user.</p>
+                </div>
+
+                <div class="rationale">
+                    <h4><i class="bi bi-chat-quote"></i> Rationale</h4>
+                    <ul>
+                        <li><strong>Clear Security Model:</strong> Each role has ONE access pattern. No confusion about what a user can see.</li>
+                        <li><strong>Prevents OR Logic Expansion:</strong> Current system uses OR logic (Partner OR Company), which gives MORE access - that's backwards for security</li>
+                        <li><strong>Audit Clarity:</strong> When reviewing user access, you know exactly what they can see based on their single role</li>
+                        <li><strong>Edge Case Handling:</strong> If someone truly needs both types of access:
+                            <ul>
+                                <li>Option A: Create two separate accounts (one for each role)</li>
+                                <li>Option B: Elevate to a higher role (Analyst) that has broader access</li>
+                                <li>Option C: This is rare enough that it doesn't justify complicating the entire system</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question 4 -->
+        <div class="recommendation-card">
+            <div class="recommendation-header">
+                <div class="question-number">4</div>
+                <div>Company-Partner Database Relationship</div>
+            </div>
+            <div class="recommendation-body">
+                <div class="question-text">
+                    Should we track which companies are associated with which partners in the database? If so, how?
+                </div>
+
+                <div class="answer-box">
+                    <div class="answer-label"><i class="bi bi-check-circle-fill"></i> Recommendation</div>
+                    <p class="answer-text">YES - Add PartnerId to Company, but as METADATA only (not for access filtering)</p>
+                </div>
+
+                <div class="rationale">
+                    <h4><i class="bi bi-chat-quote"></i> Rationale</h4>
+                    <ul>
+                        <li><strong>Reporting Value:</strong> Enables reports like "How many Amazon partner companies do we have?" without affecting access control</li>
+                        <li><strong>Data Integrity:</strong> Documents the real-world relationship between companies and partner programs</li>
+                        <li><strong>NOT for Filtering:</strong> User access should still be determined by Role + direct associations, not inherited through company→partner</li>
+                        <li><strong>Simple Schema:</strong> Single optional PartnerId on Company (not many-to-many) - a company's "primary" partner program</li>
+                    </ul>
+                </div>
+
+                <div class="data-model">
+                    <h3>Proposed Schema Addition</h3>
+                    <pre>-- Add to Companies table (optional, nullable)
+ALTER TABLE Companies
+ADD PartnerId INT NULL
+    REFERENCES Partners(Id);
+
+-- Example data:
+-- Acme Corp: PartnerId = 1 (Amazon)
+-- Beta Industries: PartnerId = 1 (Amazon)
+-- Gamma Tech: PartnerId = 2 (Novi)
+-- Delta Mfg: PartnerId = NULL (no partner program)
+
+-- NOTE: This is for REPORTING only
+-- User access is still controlled by:
+--   Partner role → Certificate.Partner field
+--   External role → User.Companies association</pre>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question 5 -->
+        <div class="recommendation-card">
+            <div class="recommendation-header">
+                <div class="question-number">5</div>
+                <div>Real-World Example of Both Associations</div>
+            </div>
+            <div class="recommendation-body">
+                <div class="question-text">
+                    Can you think of a legitimate use case where a user would need BOTH Partner AND Company associations?
+                </div>
+
+                <div class="answer-box">
+                    <div class="answer-label"><i class="bi bi-check-circle-fill"></i> Recommendation</div>
+                    <p class="answer-text">NO legitimate use case exists that justifies the complexity</p>
+                </div>
+
+                <div class="rationale">
+                    <h4><i class="bi bi-chat-quote"></i> Analysis</h4>
+                    <ul>
+                        <li><strong>Partner Employees:</strong> Need partner-wide visibility → Partner role is sufficient</li>
+                        <li><strong>Company Representatives:</strong> Need company-specific data → External Client role is sufficient</li>
+                        <li><strong>Hypothetical "Both" Scenario:</strong> "Amazon employee who also represents Acme Corp"
+                            <ul>
+                                <li>This person is wearing two hats - they should pick one</li>
+                                <li>If they're acting as Amazon, they use Partner access</li>
+                                <li>If they're acting as Acme Corp, they shouldn't see other Amazon partner data</li>
+                                <li>Having both simultaneously creates a security gray area</li>
+                            </ul>
+                        </li>
+                        <li><strong>If Client Provides Example:</strong> We should evaluate whether:
+                            <ul>
+                                <li>The scenario is truly common enough to warrant system complexity</li>
+                                <li>It could be solved with a higher role (Analyst)</li>
+                                <li>Separate accounts would be more appropriate</li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Question 6 -->
+        <div class="recommendation-card">
+            <div class="recommendation-header" style="background: #6f42c1;">
+                <div class="question-number">6</div>
+                <div>Multi-Partner Certificates</div>
+            </div>
+            <div class="recommendation-body">
+                <div class="question-text">
+                    Can a single certificate belong to multiple partner programs simultaneously? (e.g., both Amazon AND Novi)
+                </div>
+
+                <div class="answer-box" style="background: #e7f1ff; border-color: #007bff;">
+                    <div class="answer-label" style="color: #004085;"><i class="bi bi-question-circle-fill"></i> Recommendation</div>
+                    <p class="answer-text" style="color: #004085;">YES - Support multi-partner certificates (requires database change)</p>
+                </div>
+
+                <div class="rationale">
+                    <h4><i class="bi bi-chat-quote"></i> Rationale</h4>
+                    <ul>
+                        <li><strong>Real-World Scenario:</strong> A product certification may legitimately qualify for multiple partner programs (e.g., meets both Amazon Climate Pledge AND Novi Connect requirements)</li>
+                        <li><strong>Avoid Duplicate Data:</strong> Without multi-partner support, users must create separate certificates for the same product - leading to data duplication and sync issues</li>
+                        <li><strong>Partner Visibility:</strong> Both Amazon and Novi users should see a certificate that applies to their program</li>
+                        <li><strong>Future-Proof:</strong> As more partner programs are added, the limitation becomes more problematic</li>
+                    </ul>
+                </div>
+
+                <div class="data-model">
+                    <h3>Required Database Change</h3>
+                    <pre>-- CURRENT: Enum field (single value)
+Certificate.Partner = Amazon | Novi | None  -- Can only pick ONE
+
+-- PROPOSED: Many-to-many relationship
+CREATE TABLE CertificatePartners (
+    CertificateId INT REFERENCES Certificates(Id),
+    PartnerId INT REFERENCES Partners(Id),
+    PRIMARY KEY (CertificateId, PartnerId)
+);
+
+-- Example:
+-- Cert #001 (Eco Widget): Partners = [Amazon, Novi]
+-- Cert #002 (Green Item): Partners = [Amazon]
+-- Cert #003 (Basic Product): Partners = []  -- No partners</pre>
+                </div>
+
+                <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 15px; margin-top: 15px;">
+                    <strong style="color: #856404;"><i class="bi bi-info-circle me-2"></i>UI Impact:</strong>
+                    <p style="color: #856404; margin: 10px 0 0 0;">The Partner dropdown on Add/Edit Certificate would change from a single-select dropdown to multi-select checkboxes.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Table -->
+        <div class="summary-section">
+            <h2><i class="bi bi-table"></i> Summary of Recommendations</h2>
+
+            <table class="summary-table">
+                <thead>
+                    <tr>
+                        <th>Question</th>
+                        <th>Recommendation</th>
+                        <th>Key Reason</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1. Partner access scope</td>
+                        <td><span class="badge-info">ALL partner-tagged certs</span></td>
+                        <td>Business need for partner-wide visibility</td>
+                    </tr>
+                    <tr>
+                        <td>2. Company rep (Amazon partner)</td>
+                        <td><span class="badge-info">Own company only</span></td>
+                        <td>Least privilege, competitive sensitivity</td>
+                    </tr>
+                    <tr>
+                        <td>3. Roles mutually exclusive?</td>
+                        <td><span class="badge-yes">YES</span></td>
+                        <td>Clear security model, no OR logic</td>
+                    </tr>
+                    <tr>
+                        <td>4. Track Company-Partner in DB?</td>
+                        <td><span class="badge-yes">YES (metadata only)</span></td>
+                        <td>Reporting value, not for access control</td>
+                    </tr>
+                    <tr>
+                        <td>5. Need both associations?</td>
+                        <td><span class="badge-no">NO use case found</span></td>
+                        <td>Each role serves distinct purpose</td>
+                    </tr>
+                    <tr style="background: #f3e8ff;">
+                        <td>6. Multi-partner certificates?</td>
+                        <td><span class="badge-yes">YES (DB change needed)</span></td>
+                        <td>Avoid duplicate certificates, real-world use case</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Final Data Model -->
+        <div class="data-model" style="margin-top: 30px;">
+            <h3><i class="bi bi-diagram-3 me-2"></i> Recommended Final Data Model</h3>
+            <pre>
+┌─────────────────────────────────────────────────────────────────┐
+│                         USER ACCESS MODEL                        │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  ROLE DETERMINES ACCESS TYPE (mutually exclusive):              │
+│                                                                  │
+│  ┌─────────────┐     ┌─────────────────────────────────────┐   │
+│  │   ADMIN     │────▶│  Full access - no filtering          │   │
+│  │   ANALYST   │────▶│  Full access - can edit              │   │
+│  └─────────────┘     └─────────────────────────────────────┘   │
+│                                                                  │
+│  ┌─────────────┐     ┌─────────────────────────────────────┐   │
+│  │   PARTNER   │────▶│  User.Partners (1)                   │   │
+│  │             │     │  Filter: Certificate.Partner = X     │   │
+│  └─────────────┘     └─────────────────────────────────────┘   │
+│                                                                  │
+│  ┌─────────────┐     ┌─────────────────────────────────────┐   │
+│  │  EXTERNAL   │────▶│  User.Companies (1+)                 │   │
+│  │   CLIENT    │     │  Filter: Product.CompanyId IN (...)  │   │
+│  └─────────────┘     └─────────────────────────────────────┘   │
+│                                                                  │
+│  ┌─────────────┐     ┌─────────────────────────────────────┐   │
+│  │    API      │────▶│  Configurable (Partner OR Company)   │   │
+│  │ INTEGRATION │     │  Based on integration purpose        │   │
+│  └─────────────┘     └─────────────────────────────────────┘   │
+│                                                                  │
+│  ┌─────────────┐     ┌─────────────────────────────────────┐   │
+│  │   PUBLIC    │────▶│  Public certificates only            │   │
+│  └─────────────┘     └─────────────────────────────────────┘   │
+│                                                                  │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                  │
+│  DATABASE RELATIONSHIPS:                                        │
+│                                                                  │
+│  User ──(role)──▶ Role (one role per user)                     │
+│  User ──(many)──▶ Companies (for External Client role)          │
+│  User ──(one)───▶ Partner (for Partner role)                    │
+│                                                                  │
+│  Company ──(optional)──▶ Partner (metadata for reporting)       │
+│  Certificate ──(many)──▶ Partners (via CertificatePartners)     │
+│  Product ──(FK)──▶ Company                                      │
+│                                                                  │
+└─────────────────────────────────────────────────────────────────┘
+            </pre>
+        </div>
+
+        <!-- Implementation Steps -->
+        <div class="implementation-box">
+            <h3><i class="bi bi-tools me-2"></i> Implementation Steps</h3>
+
+            <div class="impl-step">
+                <div class="step-number">1</div>
+                <div class="step-content">
+                    <h4>Update User Management Modal</h4>
+                    <p>Show Partner selector OR Company selector based on selected role (not both simultaneously)</p>
+                </div>
+            </div>
+
+            <div class="impl-step">
+                <div class="step-number">2</div>
+                <div class="step-content">
+                    <h4>Simplify User.Partners Relationship</h4>
+                    <p>Change from many-to-many to single Partner (a Partner user belongs to ONE partner: Amazon OR Novi)</p>
+                </div>
+            </div>
+
+            <div class="impl-step">
+                <div class="step-number">3</div>
+                <div class="step-content">
+                    <h4>Add PartnerId to Companies Table</h4>
+                    <p>Optional field for reporting purposes - indicates which partner program the company belongs to</p>
+                </div>
+            </div>
+
+            <div class="impl-step">
+                <div class="step-number">4</div>
+                <div class="step-content">
+                    <h4>Remove OR Logic from Data Filtering</h4>
+                    <p>Each role type uses ONE filter method only - no combining Partner + Company filters</p>
+                </div>
+            </div>
+
+            <div class="impl-step">
+                <div class="step-number">5</div>
+                <div class="step-content">
+                    <h4>Update Validation Rules</h4>
+                    <p>Partner role requires Partner selection. External role requires Company selection. Cannot have both.</p>
+                </div>
+            </div>
+
+            <div class="impl-step">
+                <div class="step-number">6</div>
+                <div class="step-content">
+                    <h4>Enable Multi-Partner Certificates (if approved)</h4>
+                    <p>Replace Certificate.Partner enum with CertificatePartners join table. Update Add/Edit Certificate UI from dropdown to checkboxes.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding: 30px; color: #666;">
+            <p><strong>Document Purpose:</strong> Design recommendations for client review</p>
+            <p>These recommendations follow security best practices (least privilege, clear boundaries, simplicity)</p>
+            <p><small>GCC Database Solution | January 2026</small></p>
+        </div>
+    </div>
+</body>
+</html>

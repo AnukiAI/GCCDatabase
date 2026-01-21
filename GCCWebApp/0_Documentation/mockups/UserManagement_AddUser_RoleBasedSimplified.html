@@ -1,0 +1,915 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Role-Based Simplified Mockup</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f5f5f5;
+            padding: 40px 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        .mockup-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .mockup-header {
+            background: linear-gradient(135deg, #2c5aa0 0%, #1e3a5f 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px 12px 0 0;
+            margin-bottom: 0;
+        }
+
+        .mockup-header h1 {
+            margin: 0;
+            font-size: 1.75rem;
+            font-weight: 600;
+        }
+
+        .mockup-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+
+        .design-rationale {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 0 0 12px 12px;
+            padding: 20px 30px;
+            margin-bottom: 30px;
+        }
+
+        .design-rationale h3 {
+            color: #856404;
+            font-size: 1rem;
+            margin-bottom: 10px;
+        }
+
+        .design-rationale ul {
+            margin: 0;
+            padding-left: 20px;
+            color: #856404;
+        }
+
+        .modal-demo {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .modal-demo-header {
+            background: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-demo-header h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+        .role-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .role-badge.admin { background: #dc3545; color: white; }
+        .role-badge.analyst { background: #28a745; color: white; }
+        .role-badge.partner { background: #007bff; color: white; }
+        .role-badge.external { background: #6c757d; color: white; }
+        .role-badge.api { background: #6f42c1; color: white; }
+
+        .modal-demo-body {
+            padding: 25px;
+        }
+
+        .form-section {
+            margin-bottom: 25px;
+            padding-bottom: 25px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .form-section:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .form-section-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 15px;
+        }
+
+        .form-group {
+            margin-bottom: 0;
+        }
+
+        .form-group.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .form-label .required {
+            color: #dc3545;
+        }
+
+        .form-control, .form-select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: #2c5aa0;
+            box-shadow: 0 0 0 3px rgba(44, 90, 160, 0.1);
+            outline: none;
+        }
+
+        .help-text {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+
+        /* Role Info Panel */
+        .role-info-panel {
+            background: #e7f1ff;
+            border: 1px solid #b6d4fe;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+
+        .role-info-panel h5 {
+            color: #0a58ca;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .role-info-panel .info-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .role-info-panel .info-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .role-info-panel .info-icon {
+            color: #0a58ca;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        /* Data Access Section - Conditional */
+        .data-access-section {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .data-access-section.hidden {
+            display: none;
+        }
+
+        .data-access-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .data-access-title i {
+            color: #2c5aa0;
+        }
+
+        /* Partner Selector */
+        .partner-selector {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .partner-option {
+            border: 2px solid #dee2e6;
+            border-radius: 8px;
+            padding: 15px 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 150px;
+        }
+
+        .partner-option:hover {
+            border-color: #2c5aa0;
+            background: #f8f9fa;
+        }
+
+        .partner-option.selected {
+            border-color: #2c5aa0;
+            background: #e7f1ff;
+        }
+
+        .partner-option input {
+            display: none;
+        }
+
+        .partner-option .partner-logo {
+            width: 40px;
+            height: 40px;
+            background: #ddd;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        .partner-option .partner-name {
+            font-weight: 500;
+        }
+
+        .partner-option .partner-desc {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+
+        /* Company Selector */
+        .company-selector {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .company-search {
+            padding: 10px 15px;
+            border-bottom: 1px solid #dee2e6;
+            background: #fff;
+        }
+
+        .company-search input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        .company-list {
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .company-item {
+            padding: 10px 15px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .company-item:hover {
+            background: #f8f9fa;
+        }
+
+        .company-item:last-child {
+            border-bottom: none;
+        }
+
+        .company-item input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #2c5aa0;
+        }
+
+        .company-item.selected {
+            background: #e7f1ff;
+        }
+
+        .selected-companies {
+            padding: 10px 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            min-height: 45px;
+        }
+
+        .selected-chip {
+            background: #2c5aa0;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .selected-chip .remove {
+            cursor: pointer;
+            opacity: 0.8;
+        }
+
+        .selected-chip .remove:hover {
+            opacity: 1;
+        }
+
+        /* No Access Section */
+        .no-access-message {
+            background: #d1e7dd;
+            border: 1px solid #badbcc;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            color: #0f5132;
+        }
+
+        .no-access-message i {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .no-access-message h5 {
+            margin-bottom: 5px;
+        }
+
+        .no-access-message p {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+
+        /* Modal Footer */
+        .modal-demo-footer {
+            padding: 15px 25px;
+            background: #f8f9fa;
+            border-top: 1px solid #dee2e6;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-primary {
+            background: #2c5aa0;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1e4080;
+        }
+
+        /* Comparison Table */
+        .comparison-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-top: 30px;
+        }
+
+        .comparison-section h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .comparison-table th,
+        .comparison-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .comparison-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .comparison-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .check-icon {
+            color: #28a745;
+        }
+
+        .x-icon {
+            color: #dc3545;
+        }
+
+        .na-icon {
+            color: #6c757d;
+        }
+
+        /* Key Insight Box */
+        .key-insight {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 30px 0;
+        }
+
+        .key-insight h4 {
+            color: #155724;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .key-insight p {
+            color: #155724;
+            margin: 0;
+        }
+
+        /* Questions Section */
+        .questions-section {
+            background: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 12px;
+            padding: 25px;
+            margin-top: 30px;
+        }
+
+        .questions-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .question-item {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+        }
+
+        .question-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .question-item strong {
+            color: #333;
+        }
+
+        .question-item p {
+            margin: 8px 0 0 0;
+            color: #666;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="mockup-container">
+        <div class="mockup-header">
+            <h1><i class="bi bi-person-plus-fill me-2"></i>Add User - Role-Based Simplified Approach</h1>
+            <p>Option D: Role selection automatically determines what data access configuration is needed</p>
+        </div>
+
+        <div class="design-rationale">
+            <h3><i class="bi bi-lightbulb me-2"></i>Simplification Principle</h3>
+            <ul>
+                <li><strong>Admin/Analyst</strong>: Full system access - no data restrictions needed</li>
+                <li><strong>Partner</strong>: Show ONLY Partner selector (Amazon/Novi) - they see all certificates tagged with that partner</li>
+                <li><strong>External Client</strong>: Show ONLY Company selector - they see only their companies' products</li>
+                <li><strong>API Integration</strong>: Show Partner OR Company based on integration type</li>
+                <li><strong>Public</strong>: Read-only access to public certificates - no configuration needed</li>
+            </ul>
+        </div>
+
+        <!-- Admin/Analyst Example -->
+        <div class="modal-demo">
+            <div class="modal-demo-header">
+                <h4>Add New User</h4>
+                <span class="role-badge admin">Admin/Analyst Selected</span>
+            </div>
+            <div class="modal-demo-body">
+                <div class="form-section">
+                    <div class="form-section-title">Basic Information</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">First Name <span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="John">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Last Name <span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="Smith">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Email <span class="required">*</span></label>
+                            <input type="email" class="form-control" placeholder="john.smith@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Role <span class="required">*</span></label>
+                            <select class="form-select">
+                                <option value="admin" selected>Admin</option>
+                                <option value="analyst">Analyst</option>
+                                <option value="partner">Partner</option>
+                                <option value="external">External Client</option>
+                                <option value="api">API Integration</option>
+                                <option value="public">Public</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Role Info Panel -->
+                    <div class="role-info-panel">
+                        <h5><i class="bi bi-info-circle-fill"></i> Admin Role</h5>
+                        <div class="info-item">
+                            <i class="bi bi-check-circle-fill info-icon"></i>
+                            <span>Full system access - can manage all users, certificates, and settings</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="bi bi-check-circle-fill info-icon"></i>
+                            <span>No data access restrictions apply to this role</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="form-section-title">Data Access Configuration</div>
+                    <div class="no-access-message">
+                        <i class="bi bi-unlock-fill"></i>
+                        <h5>Full System Access</h5>
+                        <p>Admin and Analyst roles have unrestricted access to all certificates and data. No additional configuration required.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-demo-footer">
+                <button class="btn btn-secondary">Cancel</button>
+                <button class="btn btn-primary">Create User</button>
+            </div>
+        </div>
+
+        <!-- Partner Example -->
+        <div class="modal-demo">
+            <div class="modal-demo-header">
+                <h4>Add New User</h4>
+                <span class="role-badge partner">Partner Selected</span>
+            </div>
+            <div class="modal-demo-body">
+                <div class="form-section">
+                    <div class="form-section-title">Basic Information</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">First Name <span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="Jane">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Last Name <span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="Doe">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Email <span class="required">*</span></label>
+                            <input type="email" class="form-control" placeholder="jane.doe@amazon.com">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Role <span class="required">*</span></label>
+                            <select class="form-select">
+                                <option value="admin">Admin</option>
+                                <option value="analyst">Analyst</option>
+                                <option value="partner" selected>Partner</option>
+                                <option value="external">External Client</option>
+                                <option value="api">API Integration</option>
+                                <option value="public">Public</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Role Info Panel -->
+                    <div class="role-info-panel">
+                        <h5><i class="bi bi-info-circle-fill"></i> Partner Role</h5>
+                        <div class="info-item">
+                            <i class="bi bi-check-circle-fill info-icon"></i>
+                            <span>View certificates tagged with their assigned partner (Amazon or Novi)</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="bi bi-x-circle-fill info-icon" style="color: #dc3545;"></i>
+                            <span>Cannot create, edit, or delete certificates</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="data-access-section">
+                        <div class="data-access-title">
+                            <i class="bi bi-building"></i>
+                            Select Partner <span class="required">*</span>
+                        </div>
+                        <p class="help-text mb-3">This user will see ALL certificates tagged with the selected partner.</p>
+
+                        <div class="partner-selector">
+                            <label class="partner-option selected">
+                                <input type="radio" name="partner" value="amazon" checked>
+                                <div class="partner-logo">AMZ</div>
+                                <div>
+                                    <div class="partner-name">Amazon</div>
+                                    <div class="partner-desc">Amazon Climate Pledge</div>
+                                </div>
+                            </label>
+                            <label class="partner-option">
+                                <input type="radio" name="partner" value="novi">
+                                <div class="partner-logo">NOVI</div>
+                                <div>
+                                    <div class="partner-name">Novi</div>
+                                    <div class="partner-desc">Novi Connect</div>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-demo-footer">
+                <button class="btn btn-secondary">Cancel</button>
+                <button class="btn btn-primary">Create User</button>
+            </div>
+        </div>
+
+        <!-- External Client Example -->
+        <div class="modal-demo">
+            <div class="modal-demo-header">
+                <h4>Add New User</h4>
+                <span class="role-badge external">External Client Selected</span>
+            </div>
+            <div class="modal-demo-body">
+                <div class="form-section">
+                    <div class="form-section-title">Basic Information</div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">First Name <span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="Mike">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Last Name <span class="required">*</span></label>
+                            <input type="text" class="form-control" placeholder="Johnson">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label">Email <span class="required">*</span></label>
+                            <input type="email" class="form-control" placeholder="mike@acmecorp.com">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Role <span class="required">*</span></label>
+                            <select class="form-select">
+                                <option value="admin">Admin</option>
+                                <option value="analyst">Analyst</option>
+                                <option value="partner">Partner</option>
+                                <option value="external" selected>External Client</option>
+                                <option value="api">API Integration</option>
+                                <option value="public">Public</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Role Info Panel -->
+                    <div class="role-info-panel">
+                        <h5><i class="bi bi-info-circle-fill"></i> External Client Role</h5>
+                        <div class="info-item">
+                            <i class="bi bi-check-circle-fill info-icon"></i>
+                            <span>View certificates for products belonging to their associated companies</span>
+                        </div>
+                        <div class="info-item">
+                            <i class="bi bi-x-circle-fill info-icon" style="color: #dc3545;"></i>
+                            <span>Cannot view internal tags or make changes</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <div class="data-access-section">
+                        <div class="data-access-title">
+                            <i class="bi bi-buildings"></i>
+                            Associated Companies <span class="required">*</span>
+                        </div>
+                        <p class="help-text mb-3">Select one or more companies. User will see products/certificates from these companies only.</p>
+
+                        <div class="company-selector">
+                            <div class="company-search">
+                                <input type="text" placeholder="Search companies...">
+                            </div>
+                            <div class="company-list">
+                                <label class="company-item selected">
+                                    <input type="checkbox" checked>
+                                    <span>Acme Corporation</span>
+                                </label>
+                                <label class="company-item selected">
+                                    <input type="checkbox" checked>
+                                    <span>Acme Holdings LLC</span>
+                                </label>
+                                <label class="company-item">
+                                    <input type="checkbox">
+                                    <span>Beta Industries</span>
+                                </label>
+                                <label class="company-item">
+                                    <input type="checkbox">
+                                    <span>Gamma Tech Inc</span>
+                                </label>
+                                <label class="company-item">
+                                    <input type="checkbox">
+                                    <span>Delta Manufacturing</span>
+                                </label>
+                            </div>
+                            <div class="selected-companies">
+                                <span class="selected-chip">
+                                    Acme Corporation
+                                    <i class="bi bi-x remove"></i>
+                                </span>
+                                <span class="selected-chip">
+                                    Acme Holdings LLC
+                                    <i class="bi bi-x remove"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-demo-footer">
+                <button class="btn btn-secondary">Cancel</button>
+                <button class="btn btn-primary">Create User</button>
+            </div>
+        </div>
+
+        <!-- Key Insight -->
+        <div class="key-insight">
+            <h4><i class="bi bi-key-fill"></i> Key Simplification</h4>
+            <p>
+                <strong>This approach eliminates the confusion of "both Partner AND Company".</strong><br>
+                Each role type gets ONLY the association that makes sense for their access pattern:
+            </p>
+            <ul style="margin-top: 10px; color: #155724;">
+                <li>Partner employees → Partner selection only</li>
+                <li>Company representatives → Company selection only</li>
+                <li>Internal staff → No selection needed (full access)</li>
+            </ul>
+        </div>
+
+        <!-- Comparison Table -->
+        <div class="comparison-section">
+            <h3>Role-Based Data Access Matrix</h3>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Role</th>
+                        <th>Partner Selection</th>
+                        <th>Company Selection</th>
+                        <th>Data Access Scope</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="role-badge admin">Admin</span></td>
+                        <td><span class="na-icon">N/A</span></td>
+                        <td><span class="na-icon">N/A</span></td>
+                        <td>All certificates, all data</td>
+                    </tr>
+                    <tr>
+                        <td><span class="role-badge analyst">Analyst</span></td>
+                        <td><span class="na-icon">N/A</span></td>
+                        <td><span class="na-icon">N/A</span></td>
+                        <td>All certificates, can edit</td>
+                    </tr>
+                    <tr>
+                        <td><span class="role-badge partner">Partner</span></td>
+                        <td><i class="bi bi-check-circle-fill check-icon"></i> Required (1)</td>
+                        <td><span class="x-icon">Hidden</span></td>
+                        <td>WHERE Certificate.Partner = [selected]</td>
+                    </tr>
+                    <tr>
+                        <td><span class="role-badge external">External Client</span></td>
+                        <td><span class="x-icon">Hidden</span></td>
+                        <td><i class="bi bi-check-circle-fill check-icon"></i> Required (1+)</td>
+                        <td>WHERE Product.CompanyId IN [selected]</td>
+                    </tr>
+                    <tr>
+                        <td><span class="role-badge api">API Integration</span></td>
+                        <td><i class="bi bi-check-circle-fill check-icon"></i> Optional</td>
+                        <td><i class="bi bi-check-circle-fill check-icon"></i> Optional</td>
+                        <td>Configurable per integration</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Questions for Client -->
+        <div class="questions-section">
+            <h3><i class="bi bi-question-circle-fill"></i> Questions for Client Clarification</h3>
+
+            <div class="question-item">
+                <strong>1. Is there ever a case where a Partner user needs Company selection?</strong>
+                <p>Example: An Amazon employee who only needs to see specific companies' Amazon-tagged certificates (not ALL Amazon certificates)?</p>
+            </div>
+
+            <div class="question-item">
+                <strong>2. Is there ever a case where an External Client needs Partner selection?</strong>
+                <p>Example: A company rep who needs to see their company's certificates PLUS all certificates tagged with Amazon?</p>
+            </div>
+
+            <div class="question-item">
+                <strong>3. What about companies that ARE Amazon partners?</strong>
+                <p>If Acme Corp is an Amazon partner, should an Acme rep see: (a) Only Acme's products, (b) Acme's products + all Amazon-tagged certs, or (c) Something else?</p>
+            </div>
+
+            <div class="question-item">
+                <strong>4. Should the Partner entity be linked to Companies in the database?</strong>
+                <p>Currently, Partner and Company are separate. If they were linked (Company belongs to Partner), would that simplify the model?</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple interactivity for demo
+        document.querySelectorAll('.partner-option').forEach(option => {
+            option.addEventListener('click', () => {
+                document.querySelectorAll('.partner-option').forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+            });
+        });
+
+        document.querySelectorAll('.company-item').forEach(item => {
+            item.addEventListener('click', () => {
+                item.classList.toggle('selected');
+            });
+        });
+    </script>
+</body>
+</html>

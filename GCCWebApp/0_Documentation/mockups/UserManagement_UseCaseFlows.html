@@ -1,0 +1,1455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Use Case Flows for Client Decision</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-blue: #2c5aa0;
+            --dark-blue: #1e3a5f;
+            --success-green: #28a745;
+            --warning-orange: #fd7e14;
+            --danger-red: #dc3545;
+            --info-cyan: #17a2b8;
+            --light-gray: #f8f9fa;
+            --border-gray: #dee2e6;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            padding: 0;
+            margin: 0;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+
+        /* Header */
+        .page-header {
+            background: linear-gradient(135deg, var(--primary-blue) 0%, var(--dark-blue) 100%);
+            color: white;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .page-header h1 {
+            margin: 0 0 10px 0;
+            font-size: 2rem;
+            font-weight: 600;
+        }
+
+        .page-header p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 1.1rem;
+        }
+
+        /* Main Container */
+        .main-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Section */
+        .section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: var(--light-gray);
+            padding: 20px 25px;
+            border-bottom: 1px solid var(--border-gray);
+        }
+
+        .section-header h2 {
+            margin: 0;
+            font-size: 1.4rem;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-header h2 i {
+            color: var(--primary-blue);
+        }
+
+        .section-body {
+            padding: 25px;
+        }
+
+        /* Table of Contents */
+        .toc {
+            background: #e7f1ff;
+            border: 1px solid #b6d4fe;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .toc h3 {
+            margin: 0 0 15px 0;
+            color: var(--primary-blue);
+            font-size: 1.1rem;
+        }
+
+        .toc-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 10px;
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc-list a {
+            color: var(--dark-blue);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: white;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+
+        .toc-list a:hover {
+            background: var(--primary-blue);
+            color: white;
+        }
+
+        /* Persona Cards */
+        .persona-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .persona-card {
+            border: 2px solid var(--border-gray);
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.2s;
+        }
+
+        .persona-card:hover {
+            border-color: var(--primary-blue);
+            box-shadow: 0 4px 12px rgba(44, 90, 160, 0.15);
+        }
+
+        .persona-header {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .persona-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .persona-avatar.partner { background: var(--primary-blue); }
+        .persona-avatar.external { background: #6c757d; }
+        .persona-avatar.admin { background: var(--danger-red); }
+        .persona-avatar.api { background: #6f42c1; }
+
+        .persona-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #333;
+        }
+
+        .persona-role {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .persona-details {
+            font-size: 0.95rem;
+            color: #555;
+        }
+
+        .persona-details strong {
+            color: #333;
+        }
+
+        /* Flow Diagram */
+        .flow-container {
+            background: var(--light-gray);
+            border-radius: 8px;
+            padding: 25px;
+            margin: 20px 0;
+        }
+
+        .flow-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .flow-diagram {
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+            align-items: center;
+        }
+
+        .flow-step {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            max-width: 700px;
+        }
+
+        .flow-step-number {
+            width: 36px;
+            height: 36px;
+            background: var(--primary-blue);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .flow-step-content {
+            flex: 1;
+            background: white;
+            border: 1px solid var(--border-gray);
+            border-radius: 8px;
+            padding: 15px 20px;
+        }
+
+        .flow-step-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .flow-step-desc {
+            font-size: 0.9rem;
+            color: #666;
+            margin: 0;
+        }
+
+        .flow-arrow {
+            width: 36px;
+            display: flex;
+            justify-content: center;
+            padding: 8px 0;
+            color: var(--primary-blue);
+            font-size: 1.2rem;
+        }
+
+        /* Decision Box */
+        .decision-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 15px 20px;
+            margin: 15px 0;
+        }
+
+        .decision-box.success {
+            background: #d4edda;
+            border-color: #28a745;
+        }
+
+        .decision-box.info {
+            background: #cce5ff;
+            border-color: #007bff;
+        }
+
+        /* Data Table */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border: 1px solid var(--border-gray);
+        }
+
+        .data-table th {
+            background: var(--light-gray);
+            font-weight: 600;
+            color: #333;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .data-table .check { color: var(--success-green); }
+        .data-table .x { color: var(--danger-red); }
+
+        /* Scenario Box */
+        .scenario-box {
+            border: 2px solid var(--border-gray);
+            border-radius: 10px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .scenario-header {
+            background: var(--primary-blue);
+            color: white;
+            padding: 15px 20px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .scenario-body {
+            padding: 20px;
+        }
+
+        .scenario-user {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: var(--light-gray);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .scenario-user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: var(--primary-blue);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .scenario-user-info h4 {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .scenario-user-info p {
+            margin: 5px 0 0 0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        /* Result Card */
+        .result-card {
+            border: 1px solid var(--border-gray);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+
+        .result-header {
+            background: var(--light-gray);
+            padding: 12px 15px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-gray);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .result-body {
+            padding: 15px;
+        }
+
+        .result-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-item i {
+            margin-top: 3px;
+        }
+
+        .result-item.visible i { color: var(--success-green); }
+        .result-item.hidden i { color: var(--danger-red); }
+
+        /* Option Comparison */
+        .option-card {
+            border: 2px solid var(--border-gray);
+            border-radius: 12px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .option-card.recommended {
+            border-color: var(--success-green);
+        }
+
+        .option-header {
+            padding: 20px 25px;
+            background: var(--light-gray);
+            border-bottom: 1px solid var(--border-gray);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .option-card.recommended .option-header {
+            background: #d4edda;
+        }
+
+        .option-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .option-badge {
+            background: var(--success-green);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .option-body {
+            padding: 25px;
+        }
+
+        /* Pros/Cons */
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .pros-list, .cons-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .pros-list li, .cons-list li {
+            padding: 8px 0;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+        }
+
+        .pros-list li i { color: var(--success-green); }
+        .cons-list li i { color: var(--danger-red); }
+
+        .pros-title, .cons-title {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pros-title { color: var(--success-green); }
+        .cons-title { color: var(--danger-red); }
+
+        /* Recommendation Box */
+        .recommendation-box {
+            background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+            border: 2px solid var(--success-green);
+            border-radius: 12px;
+            padding: 30px;
+            margin: 30px 0;
+            text-align: center;
+        }
+
+        .recommendation-box h3 {
+            color: #155724;
+            margin: 0 0 15px 0;
+            font-size: 1.4rem;
+        }
+
+        .recommendation-box p {
+            color: #155724;
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        /* Question Card */
+        .question-card {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+
+        .question-card h4 {
+            color: #856404;
+            margin: 0 0 10px 0;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .question-card p {
+            color: #856404;
+            margin: 0;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: white;
+            }
+            .section {
+                box-shadow: none;
+                border: 1px solid #ddd;
+                page-break-inside: avoid;
+            }
+            .option-card {
+                page-break-inside: avoid;
+            }
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .pros-cons {
+                grid-template-columns: 1fr;
+            }
+            .persona-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="page-header">
+        <h1><i class="bi bi-diagram-3 me-2"></i>User Data Access - Use Case Flows</h1>
+        <p>Decision Document: How should users be associated with Partners and Companies?</p>
+    </div>
+
+    <div class="main-container">
+        <!-- Table of Contents -->
+        <div class="toc">
+            <h3><i class="bi bi-list-ul me-2"></i>Contents</h3>
+            <ul class="toc-list">
+                <li><a href="#personas"><i class="bi bi-people"></i> User Personas</a></li>
+                <li><a href="#current-data"><i class="bi bi-database"></i> Current Data Model</a></li>
+                <li><a href="#use-case-1"><i class="bi bi-1-circle"></i> Use Case: Partner User Login</a></li>
+                <li><a href="#use-case-2"><i class="bi bi-2-circle"></i> Use Case: External Client Login</a></li>
+                <li><a href="#use-case-3"><i class="bi bi-3-circle"></i> Use Case: Company is Amazon Partner</a></li>
+                <li><a href="#use-case-4"><i class="bi bi-4-circle"></i> Use Case: Multi-Partner Certificate</a></li>
+                <li><a href="#options"><i class="bi bi-toggles"></i> Option Comparison</a></li>
+                <li><a href="#recommendation"><i class="bi bi-check-circle"></i> Recommendation</a></li>
+                <li><a href="#questions"><i class="bi bi-question-circle"></i> Questions for Decision</a></li>
+            </ul>
+        </div>
+
+        <!-- Section 1: User Personas -->
+        <div class="section" id="personas">
+            <div class="section-header">
+                <h2><i class="bi bi-people-fill"></i> User Personas</h2>
+            </div>
+            <div class="section-body">
+                <p>These are the key user types who need restricted data access:</p>
+
+                <div class="persona-grid">
+                    <div class="persona-card">
+                        <div class="persona-header">
+                            <div class="persona-avatar partner"><i class="bi bi-building"></i></div>
+                            <div>
+                                <div class="persona-name">Sarah Chen</div>
+                                <div class="persona-role">Amazon Climate Pledge Team</div>
+                            </div>
+                        </div>
+                        <div class="persona-details">
+                            <p><strong>Role:</strong> Partner</p>
+                            <p><strong>Need:</strong> View all certificates tagged with Amazon to verify compliance</p>
+                            <p><strong>Current Setup:</strong> User.Partners = [Amazon]</p>
+                        </div>
+                    </div>
+
+                    <div class="persona-card">
+                        <div class="persona-header">
+                            <div class="persona-avatar partner"><i class="bi bi-building"></i></div>
+                            <div>
+                                <div class="persona-name">Marcus Johnson</div>
+                                <div class="persona-role">Novi Connect Representative</div>
+                            </div>
+                        </div>
+                        <div class="persona-details">
+                            <p><strong>Role:</strong> Partner</p>
+                            <p><strong>Need:</strong> View all certificates tagged with Novi</p>
+                            <p><strong>Current Setup:</strong> User.Partners = [Novi]</p>
+                        </div>
+                    </div>
+
+                    <div class="persona-card">
+                        <div class="persona-header">
+                            <div class="persona-avatar external"><i class="bi bi-person-badge"></i></div>
+                            <div>
+                                <div class="persona-name">Jennifer Smith</div>
+                                <div class="persona-role">Acme Corp Product Manager</div>
+                            </div>
+                        </div>
+                        <div class="persona-details">
+                            <p><strong>Role:</strong> External Client</p>
+                            <p><strong>Need:</strong> View certificates for Acme Corp products only</p>
+                            <p><strong>Current Setup:</strong> User.Companies = [Acme Corp]</p>
+                        </div>
+                    </div>
+
+                    <div class="persona-card">
+                        <div class="persona-header">
+                            <div class="persona-avatar external"><i class="bi bi-person-badge"></i></div>
+                            <div>
+                                <div class="persona-name">Robert Williams</div>
+                                <div class="persona-role">Beta Industries Compliance Officer</div>
+                            </div>
+                        </div>
+                        <div class="persona-details">
+                            <p><strong>Role:</strong> External Client</p>
+                            <p><strong>Need:</strong> View certificates for Beta Industries AND Beta Holdings (parent company)</p>
+                            <p><strong>Current Setup:</strong> User.Companies = [Beta Industries, Beta Holdings]</p>
+                        </div>
+                    </div>
+
+                    <div class="persona-card">
+                        <div class="persona-header">
+                            <div class="persona-avatar api"><i class="bi bi-code-square"></i></div>
+                            <div>
+                                <div class="persona-name">API-Amazon-Integration</div>
+                                <div class="persona-role">Automated System Account</div>
+                            </div>
+                        </div>
+                        <div class="persona-details">
+                            <p><strong>Role:</strong> API Integration</p>
+                            <p><strong>Need:</strong> Pull Amazon-tagged certificates programmatically</p>
+                            <p><strong>Current Setup:</strong> User.Partners = [Amazon]</p>
+                        </div>
+                    </div>
+
+                    <div class="persona-card" style="border-color: #ffc107; background: #fffbf0;">
+                        <div class="persona-header">
+                            <div class="persona-avatar external" style="background: #fd7e14;"><i class="bi bi-question-lg"></i></div>
+                            <div>
+                                <div class="persona-name">??? Unclear Case ???</div>
+                                <div class="persona-role">Company that IS an Amazon Partner</div>
+                            </div>
+                        </div>
+                        <div class="persona-details">
+                            <p><strong>Role:</strong> External Client? Partner? Both?</p>
+                            <p><strong>Need:</strong> What should they see?</p>
+                            <p><strong>Current Setup:</strong> User.Companies = [X]? User.Partners = [Amazon]? Both?</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section 2: Current Data Model -->
+        <div class="section" id="current-data">
+            <div class="section-header">
+                <h2><i class="bi bi-database-fill"></i> Current Data Model</h2>
+            </div>
+            <div class="section-body">
+                <p>This is how the database currently stores relationships:</p>
+
+                <div class="flow-container">
+                    <div class="flow-title"><i class="bi bi-diagram-2"></i> Entity Relationships</div>
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Entity</th>
+                                <th>Relationship</th>
+                                <th>Target</th>
+                                <th>Notes</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td><strong>User</strong></td>
+                                <td>Many-to-Many</td>
+                                <td>Company</td>
+                                <td>Via UserCompanies join table</td>
+                            </tr>
+                            <tr>
+                                <td><strong>User</strong></td>
+                                <td>Many-to-Many</td>
+                                <td>Partner</td>
+                                <td>Via UserPartners join table</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Certificate</strong></td>
+                                <td>One-to-One</td>
+                                <td>Company (via CompanyId)</td>
+                                <td>Product belongs to a company</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Certificate</strong></td>
+                                <td>Enum Field</td>
+                                <td>Partner (Amazon/Novi/None)</td>
+                                <td>Certificate is tagged with partner</td>
+                            </tr>
+                            <tr style="background: #fff3cd;">
+                                <td><strong>Company</strong></td>
+                                <td><span class="x"><i class="bi bi-x-circle"></i></span> No Link</td>
+                                <td>Partner</td>
+                                <td><strong>GAP: Companies are NOT linked to Partners</strong></td>
+                            </tr>
+                            <tr style="background: #fff3cd;">
+                                <td><strong>Certificate</strong></td>
+                                <td>Enum (Single Value)</td>
+                                <td>Partner</td>
+                                <td><strong>LIMITATION: Certificate can only have ONE partner (Amazon OR Novi OR None)</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="decision-box">
+                    <strong><i class="bi bi-exclamation-triangle me-2"></i>Key Issues:</strong>
+                    <ul style="margin: 10px 0 0 20px;">
+                        <li>The Partner entity and Company entity are completely separate. There's no way to automatically know which companies are "Amazon partners" vs "Novi partners" without manual configuration.</li>
+                        <li><strong>NEW:</strong> The Certificate.Partner field is an enum (single value). A certificate cannot currently belong to multiple partner programs (e.g., both Amazon AND Novi).</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Use Case 1: Partner User Login -->
+        <div class="section" id="use-case-1">
+            <div class="section-header">
+                <h2><i class="bi bi-1-circle-fill"></i> Use Case: Partner User Login</h2>
+            </div>
+            <div class="section-body">
+                <div class="scenario-box">
+                    <div class="scenario-header">
+                        <i class="bi bi-play-circle"></i> Scenario: Sarah (Amazon) logs in to view certificates
+                    </div>
+                    <div class="scenario-body">
+                        <div class="scenario-user">
+                            <div class="scenario-user-avatar"><i class="bi bi-person"></i></div>
+                            <div class="scenario-user-info">
+                                <h4>Sarah Chen - Amazon Climate Pledge</h4>
+                                <p>Role: Partner | Associated Partner: Amazon</p>
+                            </div>
+                        </div>
+
+                        <div class="flow-diagram">
+                            <div class="flow-step">
+                                <div class="flow-step-number">1</div>
+                                <div class="flow-step-content">
+                                    <div class="flow-step-title">Sarah logs in</div>
+                                    <p class="flow-step-desc">System authenticates and loads her role (Partner) and associations</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow"><i class="bi bi-arrow-down"></i></div>
+                            <div class="flow-step">
+                                <div class="flow-step-number">2</div>
+                                <div class="flow-step-content">
+                                    <div class="flow-step-title">Sarah navigates to Certificate View</div>
+                                    <p class="flow-step-desc">System detects Partner role and applies filter</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow"><i class="bi bi-arrow-down"></i></div>
+                            <div class="flow-step">
+                                <div class="flow-step-number">3</div>
+                                <div class="flow-step-content">
+                                    <div class="flow-step-title">System applies data filter</div>
+                                    <p class="flow-step-desc"><code>WHERE Certificate.Partner = 'Amazon'</code></p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow"><i class="bi bi-arrow-down"></i></div>
+                            <div class="flow-step">
+                                <div class="flow-step-number">4</div>
+                                <div class="flow-step-content">
+                                    <div class="flow-step-title">Results displayed</div>
+                                    <p class="flow-step-desc">Sarah sees ALL certificates tagged with Amazon (regardless of company)</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="result-card">
+                            <div class="result-header">
+                                <i class="bi bi-eye"></i> What Sarah Sees
+                            </div>
+                            <div class="result-body">
+                                <div class="result-item visible">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    <span>Cert #001 - Acme Corp Product A (Tagged: Amazon)</span>
+                                </div>
+                                <div class="result-item visible">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    <span>Cert #005 - Beta Industries Product X (Tagged: Amazon)</span>
+                                </div>
+                                <div class="result-item visible">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    <span>Cert #012 - Gamma Tech Widget (Tagged: Amazon)</span>
+                                </div>
+                                <div class="result-item hidden">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                    <span>Cert #003 - Acme Corp Product B (Tagged: Novi) - <strong>HIDDEN</strong></span>
+                                </div>
+                                <div class="result-item hidden">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                    <span>Cert #007 - Delta Mfg Item (Tagged: None) - <strong>HIDDEN</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="decision-box success">
+                            <strong><i class="bi bi-check-circle me-2"></i>This flow is clear.</strong>
+                            Partner users see certificates by their Partner tag, regardless of which company owns the product.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Use Case 2: External Client Login -->
+        <div class="section" id="use-case-2">
+            <div class="section-header">
+                <h2><i class="bi bi-2-circle-fill"></i> Use Case: External Client Login</h2>
+            </div>
+            <div class="section-body">
+                <div class="scenario-box">
+                    <div class="scenario-header">
+                        <i class="bi bi-play-circle"></i> Scenario: Jennifer (Acme Corp) logs in to view certificates
+                    </div>
+                    <div class="scenario-body">
+                        <div class="scenario-user">
+                            <div class="scenario-user-avatar" style="background: #6c757d;"><i class="bi bi-person"></i></div>
+                            <div class="scenario-user-info">
+                                <h4>Jennifer Smith - Acme Corp Product Manager</h4>
+                                <p>Role: External Client | Associated Companies: Acme Corp</p>
+                            </div>
+                        </div>
+
+                        <div class="flow-diagram">
+                            <div class="flow-step">
+                                <div class="flow-step-number">1</div>
+                                <div class="flow-step-content">
+                                    <div class="flow-step-title">Jennifer logs in</div>
+                                    <p class="flow-step-desc">System authenticates and loads her role (External) and companies</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow"><i class="bi bi-arrow-down"></i></div>
+                            <div class="flow-step">
+                                <div class="flow-step-number">2</div>
+                                <div class="flow-step-content">
+                                    <div class="flow-step-title">Jennifer navigates to Certificate View</div>
+                                    <p class="flow-step-desc">System detects External role and applies filter</p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow"><i class="bi bi-arrow-down"></i></div>
+                            <div class="flow-step">
+                                <div class="flow-step-number">3</div>
+                                <div class="flow-step-content">
+                                    <div class="flow-step-title">System applies data filter</div>
+                                    <p class="flow-step-desc"><code>WHERE Product.CompanyId IN (AcmeCorpId)</code></p>
+                                </div>
+                            </div>
+                            <div class="flow-arrow"><i class="bi bi-arrow-down"></i></div>
+                            <div class="flow-step">
+                                <div class="flow-step-number">4</div>
+                                <div class="flow-step-content">
+                                    <div class="flow-step-title">Results displayed</div>
+                                    <p class="flow-step-desc">Jennifer sees only Acme Corp's certificates (regardless of partner tag)</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="result-card">
+                            <div class="result-header">
+                                <i class="bi bi-eye"></i> What Jennifer Sees
+                            </div>
+                            <div class="result-body">
+                                <div class="result-item visible">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    <span>Cert #001 - Acme Corp Product A (Tagged: Amazon)</span>
+                                </div>
+                                <div class="result-item visible">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    <span>Cert #003 - Acme Corp Product B (Tagged: Novi)</span>
+                                </div>
+                                <div class="result-item visible">
+                                    <i class="bi bi-check-circle-fill"></i>
+                                    <span>Cert #008 - Acme Corp Product C (Tagged: None)</span>
+                                </div>
+                                <div class="result-item hidden">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                    <span>Cert #005 - Beta Industries Product X (Tagged: Amazon) - <strong>HIDDEN</strong></span>
+                                </div>
+                                <div class="result-item hidden">
+                                    <i class="bi bi-x-circle-fill"></i>
+                                    <span>Cert #012 - Gamma Tech Widget (Tagged: Amazon) - <strong>HIDDEN</strong></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="decision-box success">
+                            <strong><i class="bi bi-check-circle me-2"></i>This flow is clear.</strong>
+                            External users see certificates by their Company association, regardless of partner tag.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Use Case 3: The Confusing Case -->
+        <div class="section" id="use-case-3">
+            <div class="section-header">
+                <h2><i class="bi bi-3-circle-fill"></i> Use Case: Company IS an Amazon Partner</h2>
+            </div>
+            <div class="section-body">
+                <div class="decision-box" style="margin-bottom: 20px;">
+                    <strong><i class="bi bi-exclamation-triangle me-2"></i>This is the confusing case that needs client clarification.</strong>
+                </div>
+
+                <div class="scenario-box">
+                    <div class="scenario-header" style="background: #fd7e14;">
+                        <i class="bi bi-question-circle"></i> Scenario: Acme Corp IS an Amazon Climate Pledge partner
+                    </div>
+                    <div class="scenario-body">
+                        <div class="scenario-user" style="background: #fff3cd;">
+                            <div class="scenario-user-avatar" style="background: #fd7e14;"><i class="bi bi-person"></i></div>
+                            <div class="scenario-user-info">
+                                <h4>Jennifer Smith - Acme Corp (Amazon Partner Company)</h4>
+                                <p>Role: ??? | How should she be configured?</p>
+                            </div>
+                        </div>
+
+                        <h4 style="margin: 25px 0 15px 0;">Three Possible Approaches:</h4>
+
+                        <!-- Option A -->
+                        <div class="flow-container" style="border-left: 4px solid #007bff;">
+                            <div class="flow-title"><i class="bi bi-a-circle"></i> Option A: Company Association Only</div>
+                            <p><strong>Configuration:</strong> User.Companies = [Acme Corp], User.Partners = []</p>
+                            <p><strong>Filter:</strong> <code>WHERE Product.CompanyId = AcmeCorpId</code></p>
+                            <div class="result-card">
+                                <div class="result-header">What Jennifer Sees</div>
+                                <div class="result-body">
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Cert #001 - Acme Corp Product A (Amazon)</span>
+                                    </div>
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Cert #003 - Acme Corp Product B (Novi)</span>
+                                    </div>
+                                    <div class="result-item hidden">
+                                        <i class="bi bi-x-circle-fill"></i>
+                                        <span>Cert #005 - Beta Industries (Amazon) - HIDDEN</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p style="margin-top: 15px; color: #666;"><strong>Result:</strong> Jennifer sees ONLY her company's certs, cannot see other Amazon partner companies.</p>
+                        </div>
+
+                        <!-- Option B -->
+                        <div class="flow-container" style="border-left: 4px solid #28a745;">
+                            <div class="flow-title"><i class="bi bi-b-circle"></i> Option B: Partner Association Only</div>
+                            <p><strong>Configuration:</strong> User.Companies = [], User.Partners = [Amazon]</p>
+                            <p><strong>Filter:</strong> <code>WHERE Certificate.Partner = 'Amazon'</code></p>
+                            <div class="result-card">
+                                <div class="result-header">What Jennifer Sees</div>
+                                <div class="result-body">
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Cert #001 - Acme Corp Product A (Amazon)</span>
+                                    </div>
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Cert #005 - Beta Industries (Amazon)</span>
+                                    </div>
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Cert #012 - Gamma Tech (Amazon)</span>
+                                    </div>
+                                    <div class="result-item hidden">
+                                        <i class="bi bi-x-circle-fill"></i>
+                                        <span>Cert #003 - Acme Corp Product B (Novi) - HIDDEN</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p style="margin-top: 15px; color: #666;"><strong>Result:</strong> Jennifer sees ALL Amazon certs (including competitors), but NOT her own Novi certs.</p>
+                        </div>
+
+                        <!-- Option C -->
+                        <div class="flow-container" style="border-left: 4px solid #fd7e14;">
+                            <div class="flow-title"><i class="bi bi-c-circle"></i> Option C: Both Associations (OR Logic)</div>
+                            <p><strong>Configuration:</strong> User.Companies = [Acme Corp], User.Partners = [Amazon]</p>
+                            <p><strong>Filter:</strong> <code>WHERE Product.CompanyId = AcmeCorpId OR Certificate.Partner = 'Amazon'</code></p>
+                            <div class="result-card">
+                                <div class="result-header">What Jennifer Sees</div>
+                                <div class="result-body">
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Cert #001 - Acme Corp Product A (Amazon)</span>
+                                    </div>
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Cert #003 - Acme Corp Product B (Novi)</span>
+                                    </div>
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Cert #005 - Beta Industries (Amazon)</span>
+                                    </div>
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Cert #012 - Gamma Tech (Amazon)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p style="margin-top: 15px; color: #666;"><strong>Result:</strong> Jennifer sees EVERYTHING - her company's certs AND all Amazon certs (most permissive).</p>
+                        </div>
+
+                        <div class="question-card">
+                            <h4><i class="bi bi-question-circle-fill"></i> Decision Needed</h4>
+                            <p>Which option is correct for a company representative whose company is an Amazon partner?</p>
+                            <ul style="margin-top: 10px; color: #856404;">
+                                <li><strong>Option A</strong> - Keeps data isolated to their own company only</li>
+                                <li><strong>Option B</strong> - Treats them like Amazon staff (sees all Amazon certs)</li>
+                                <li><strong>Option C</strong> - Maximum visibility (both their company AND all Amazon certs)</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Use Case 4: Multi-Partner Certificate -->
+        <div class="section" id="use-case-4">
+            <div class="section-header">
+                <h2><i class="bi bi-4-circle-fill"></i> Use Case: Multi-Partner Certificate</h2>
+            </div>
+            <div class="section-body">
+                <div class="decision-box" style="margin-bottom: 20px;">
+                    <strong><i class="bi bi-exclamation-triangle me-2"></i>Potential Gap: Can a certificate belong to multiple partner programs?</strong>
+                </div>
+
+                <div class="scenario-box">
+                    <div class="scenario-header" style="background: #6f42c1;">
+                        <i class="bi bi-diagram-2"></i> Scenario: Product certified for BOTH Amazon AND Novi
+                    </div>
+                    <div class="scenario-body">
+                        <p style="margin-bottom: 20px;">
+                            <strong>Business Scenario:</strong> Acme Corp's "Eco Widget" product meets certification requirements for both
+                            the Amazon Climate Pledge program AND the Novi Connect program. The same certification applies to both.
+                        </p>
+
+                        <h4 style="margin: 25px 0 15px 0;">Current System Limitation:</h4>
+
+                        <div class="flow-container" style="border-left: 4px solid #dc3545;">
+                            <div class="flow-title"><i class="bi bi-x-circle" style="color: #dc3545;"></i> Current: Single Partner Only (Enum)</div>
+                            <p><strong>Database:</strong> <code>Certificate.Partner</code> is an enum field: Amazon | Novi | None</p>
+                            <p><strong>Problem:</strong> Must choose ONE partner - cannot select both</p>
+
+                            <div class="result-card">
+                                <div class="result-header" style="background: #f8d7da;">
+                                    <i class="bi bi-exclamation-triangle" style="color: #dc3545;"></i> Current Workaround Options
+                                </div>
+                                <div class="result-body">
+                                    <div class="result-item">
+                                        <i class="bi bi-1-circle" style="color: #6c757d;"></i>
+                                        <span><strong>Option 1:</strong> Create TWO separate certificates for the same product (duplicates data)</span>
+                                    </div>
+                                    <div class="result-item">
+                                        <i class="bi bi-2-circle" style="color: #6c757d;"></i>
+                                        <span><strong>Option 2:</strong> Pick one partner, lose visibility for the other partner's users</span>
+                                    </div>
+                                    <div class="result-item">
+                                        <i class="bi bi-3-circle" style="color: #6c757d;"></i>
+                                        <span><strong>Option 3:</strong> Set to "None" and use tags (loses partner filtering entirely)</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <p style="margin-top: 15px; color: #dc3545;"><strong>All workarounds have drawbacks.</strong></p>
+                        </div>
+
+                        <h4 style="margin: 25px 0 15px 0;">Potential Solution: Multi-Partner Support</h4>
+
+                        <div class="flow-container" style="border-left: 4px solid #28a745;">
+                            <div class="flow-title"><i class="bi bi-check-circle" style="color: #28a745;"></i> Proposed: Many-to-Many Relationship</div>
+                            <p><strong>Database Change:</strong> Replace enum with join table <code>CertificatePartners</code></p>
+                            <p><strong>UI Change:</strong> Partner dropdown becomes checkboxes (multi-select)</p>
+
+                            <div class="result-card">
+                                <div class="result-header" style="background: #d4edda;">
+                                    <i class="bi bi-check-circle" style="color: #28a745;"></i> How It Would Work
+                                </div>
+                                <div class="result-body">
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Cert #001 - Eco Widget: Partners = [Amazon, Novi]</span>
+                                    </div>
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Amazon Partner user sees Cert #001 ✓</span>
+                                    </div>
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>Novi Partner user sees Cert #001 ✓</span>
+                                    </div>
+                                    <div class="result-item visible">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                        <span>No duplicate certificates needed</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <h4 style="margin: 25px 0 15px 0;">Visual: Certificate Add/Edit Form Change</h4>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="flow-container" style="border-left: 4px solid #dc3545;">
+                                <div class="flow-title"><i class="bi bi-x-circle" style="color: #dc3545;"></i> Current UI (Dropdown)</div>
+                                <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #ddd;">
+                                    <label style="font-weight: 500; display: block; margin-bottom: 8px;">Partner</label>
+                                    <select style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                                        <option>-- Select One --</option>
+                                        <option>Amazon</option>
+                                        <option selected>Novi</option>
+                                        <option>None</option>
+                                    </select>
+                                    <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">Can only select ONE partner</p>
+                                </div>
+                            </div>
+
+                            <div class="flow-container" style="border-left: 4px solid #28a745;">
+                                <div class="flow-title"><i class="bi bi-check-circle" style="color: #28a745;"></i> Proposed UI (Checkboxes)</div>
+                                <div style="background: white; padding: 15px; border-radius: 6px; border: 1px solid #ddd;">
+                                    <label style="font-weight: 500; display: block; margin-bottom: 8px;">Partners</label>
+                                    <div style="display: flex; flex-direction: column; gap: 8px;">
+                                        <label style="display: flex; align-items: center; gap: 8px;">
+                                            <input type="checkbox" checked style="width: 18px; height: 18px;"> Amazon
+                                        </label>
+                                        <label style="display: flex; align-items: center; gap: 8px;">
+                                            <input type="checkbox" checked style="width: 18px; height: 18px;"> Novi
+                                        </label>
+                                    </div>
+                                    <p style="font-size: 0.85rem; color: #28a745; margin-top: 8px;">Can select multiple partners</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="question-card" style="margin-top: 20px;">
+                            <h4><i class="bi bi-question-circle-fill"></i> Decision Needed</h4>
+                            <p>Can a single certificate legitimately apply to multiple partner programs?</p>
+                            <ul style="margin-top: 10px; color: #856404;">
+                                <li><strong>If YES:</strong> Need database change (enum → many-to-many) and UI change (dropdown → checkboxes)</li>
+                                <li><strong>If NO:</strong> Keep current single-partner design, accept that duplicate certs may be needed</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Section: Options Comparison -->
+        <div class="section" id="options">
+            <div class="section-header">
+                <h2><i class="bi bi-toggles"></i> System Design Options</h2>
+            </div>
+            <div class="section-body">
+                <p>Based on the use cases above, here are the implementation approaches:</p>
+
+                <!-- Option 1: Current System -->
+                <div class="option-card">
+                    <div class="option-header">
+                        <div class="option-title">
+                            <i class="bi bi-gear"></i> Option 1: Keep Current System (No Changes)
+                        </div>
+                    </div>
+                    <div class="option-body">
+                        <p><strong>How it works:</strong></p>
+                        <ul>
+                            <li>Admin manually sets User.Companies AND/OR User.Partners for each user</li>
+                            <li>If user has both, OR logic applies (sees both sets of data)</li>
+                            <li>No automatic relationship between Companies and Partners</li>
+                        </ul>
+
+                        <div class="pros-cons">
+                            <div>
+                                <div class="pros-title"><i class="bi bi-hand-thumbs-up"></i> Pros</div>
+                                <ul class="pros-list">
+                                    <li><i class="bi bi-check"></i> No database changes needed</li>
+                                    <li><i class="bi bi-check"></i> Maximum flexibility</li>
+                                    <li><i class="bi bi-check"></i> Already implemented</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <div class="cons-title"><i class="bi bi-hand-thumbs-down"></i> Cons</div>
+                                <ul class="cons-list">
+                                    <li><i class="bi bi-x"></i> Confusing for admin users</li>
+                                    <li><i class="bi bi-x"></i> Easy to misconfigure</li>
+                                    <li><i class="bi bi-x"></i> No clear rules for which to use when</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Option 2: Role-Based Simplification -->
+                <div class="option-card recommended">
+                    <div class="option-header">
+                        <div class="option-title">
+                            <i class="bi bi-diagram-3"></i> Option 2: Role-Based Simplification
+                        </div>
+                        <span class="option-badge">Recommended</span>
+                    </div>
+                    <div class="option-body">
+                        <p><strong>How it works:</strong></p>
+                        <ul>
+                            <li><strong>Partner role</strong> → User selects Partner ONLY (Company field hidden)</li>
+                            <li><strong>External Client role</strong> → User selects Companies ONLY (Partner field hidden)</li>
+                            <li><strong>Admin/Analyst roles</strong> → No selection needed (full access)</li>
+                            <li>Role determines which association type applies</li>
+                        </ul>
+
+                        <div class="pros-cons">
+                            <div>
+                                <div class="pros-title"><i class="bi bi-hand-thumbs-up"></i> Pros</div>
+                                <ul class="pros-list">
+                                    <li><i class="bi bi-check"></i> Clear, unambiguous rules</li>
+                                    <li><i class="bi bi-check"></i> Simpler UI for user creation</li>
+                                    <li><i class="bi bi-check"></i> Harder to misconfigure</li>
+                                    <li><i class="bi bi-check"></i> Minimal database changes</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <div class="cons-title"><i class="bi bi-hand-thumbs-down"></i> Cons</div>
+                                <ul class="cons-list">
+                                    <li><i class="bi bi-x"></i> Less flexible (can't have both)</li>
+                                    <li><i class="bi bi-x"></i> May not cover edge cases</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Option 3: Partner Hierarchy -->
+                <div class="option-card">
+                    <div class="option-header">
+                        <div class="option-title">
+                            <i class="bi bi-building"></i> Option 3: Partner Hierarchy (Database Change)
+                        </div>
+                    </div>
+                    <div class="option-body">
+                        <p><strong>How it works:</strong></p>
+                        <ul>
+                            <li>Add <code>PartnerId</code> column to Companies table</li>
+                            <li>Companies can belong to a Partner (Acme Corp → Amazon)</li>
+                            <li>User selects Partner → automatically sees all companies under that partner</li>
+                            <li>OR user can override with specific company selection</li>
+                        </ul>
+
+                        <div class="pros-cons">
+                            <div>
+                                <div class="pros-title"><i class="bi bi-hand-thumbs-up"></i> Pros</div>
+                                <ul class="pros-list">
+                                    <li><i class="bi bi-check"></i> Clear data hierarchy</li>
+                                    <li><i class="bi bi-check"></i> Automatic company filtering</li>
+                                    <li><i class="bi bi-check"></i> Scalable for many companies</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <div class="cons-title"><i class="bi bi-hand-thumbs-down"></i> Cons</div>
+                                <ul class="cons-list">
+                                    <li><i class="bi bi-x"></i> Requires database migration</li>
+                                    <li><i class="bi bi-x"></i> More complex implementation</li>
+                                    <li><i class="bi bi-x"></i> What if company works with multiple partners?</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recommendation -->
+        <div class="section" id="recommendation">
+            <div class="section-header">
+                <h2><i class="bi bi-check-circle-fill"></i> Recommendation</h2>
+            </div>
+            <div class="section-body">
+                <div class="recommendation-box">
+                    <h3><i class="bi bi-lightbulb me-2"></i>Recommended: Option 2 - Role-Based Simplification</h3>
+                    <p>
+                        This approach eliminates confusion by making the role selection determine the data access type.
+                        Partner employees select a Partner. Company reps select Companies. No overlap, no ambiguity.
+                    </p>
+                </div>
+
+                <h4>Implementation Summary:</h4>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Role</th>
+                            <th>Partner Selection</th>
+                            <th>Company Selection</th>
+                            <th>Data Filter</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Admin</td>
+                            <td>Hidden</td>
+                            <td>Hidden</td>
+                            <td>All data</td>
+                        </tr>
+                        <tr>
+                            <td>Analyst</td>
+                            <td>Hidden</td>
+                            <td>Hidden</td>
+                            <td>All data</td>
+                        </tr>
+                        <tr>
+                            <td>Partner</td>
+                            <td><span class="check"><i class="bi bi-check-circle-fill"></i> Required</span></td>
+                            <td>Hidden</td>
+                            <td>Certificate.Partner = X</td>
+                        </tr>
+                        <tr>
+                            <td>External Client</td>
+                            <td>Hidden</td>
+                            <td><span class="check"><i class="bi bi-check-circle-fill"></i> Required</span></td>
+                            <td>Product.CompanyId IN (...)</td>
+                        </tr>
+                        <tr>
+                            <td>API Integration</td>
+                            <td>Optional</td>
+                            <td>Optional</td>
+                            <td>Configurable</td>
+                        </tr>
+                        <tr>
+                            <td>Public</td>
+                            <td>Hidden</td>
+                            <td>Hidden</td>
+                            <td>Public certs only</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="decision-box info" style="margin-top: 20px;">
+                    <strong><i class="bi bi-info-circle me-2"></i>Note:</strong>
+                    This recommendation assumes that company reps (even if their company is an Amazon partner) should only see their own company's data.
+                    If they need to see all Amazon partner data, they would need a Partner role instead.
+                </div>
+            </div>
+        </div>
+
+        <!-- Questions for Client -->
+        <div class="section" id="questions">
+            <div class="section-header">
+                <h2><i class="bi bi-question-circle-fill"></i> Questions for Client Decision</h2>
+            </div>
+            <div class="section-body">
+                <div class="question-card">
+                    <h4><i class="bi bi-1-circle"></i> Question 1: Partner User Access</h4>
+                    <p>When an Amazon employee (Partner role) logs in, should they see:</p>
+                    <ul>
+                        <li><strong>A)</strong> ALL certificates tagged with Amazon (current behavior)</li>
+                        <li><strong>B)</strong> Only certificates from SPECIFIC companies they're assigned to</li>
+                    </ul>
+                </div>
+
+                <div class="question-card">
+                    <h4><i class="bi bi-2-circle"></i> Question 2: Company Rep Access</h4>
+                    <p>When a company representative (External Client role) from an Amazon partner company logs in, should they see:</p>
+                    <ul>
+                        <li><strong>A)</strong> Only their company's certificates (regardless of partner tag)</li>
+                        <li><strong>B)</strong> Their company's certificates + ALL Amazon-tagged certificates</li>
+                        <li><strong>C)</strong> Something else?</li>
+                    </ul>
+                </div>
+
+                <div class="question-card">
+                    <h4><i class="bi bi-3-circle"></i> Question 3: Role Separation</h4>
+                    <p>Should the Partner and External Client roles be mutually exclusive?</p>
+                    <ul>
+                        <li><strong>A)</strong> Yes - a user is either a Partner employee OR a Company rep, never both</li>
+                        <li><strong>B)</strong> No - some users need to be both (please provide example)</li>
+                    </ul>
+                </div>
+
+                <div class="question-card">
+                    <h4><i class="bi bi-4-circle"></i> Question 4: Company-Partner Relationship</h4>
+                    <p>Should we track which companies are associated with which partners in the database?</p>
+                    <ul>
+                        <li><strong>A)</strong> No - keep them separate (current)</li>
+                        <li><strong>B)</strong> Yes - add a Partner field to Company (company belongs to one partner)</li>
+                        <li><strong>C)</strong> Yes - many-to-many (company can work with multiple partners)</li>
+                    </ul>
+                </div>
+
+                <div class="question-card">
+                    <h4><i class="bi bi-5-circle"></i> Question 5: Real-World Example</h4>
+                    <p>Can you provide a specific real-world example of a user who would need BOTH Partner AND Company associations? What would they need to see?</p>
+                </div>
+
+                <div class="question-card" style="background: #e7f1ff; border-color: #007bff;">
+                    <h4 style="color: #004085;"><i class="bi bi-6-circle"></i> Question 6: Multi-Partner Certificates</h4>
+                    <p style="color: #004085;">Can a single certificate belong to multiple partner programs simultaneously?</p>
+                    <p style="margin-top: 10px; color: #004085;"><strong>Example:</strong> A product is certified for both Amazon Climate Pledge AND Novi Connect. Should this be:</p>
+                    <ul style="margin-top: 10px; color: #004085;">
+                        <li><strong>A)</strong> One certificate associated with BOTH partners (requires database change)</li>
+                        <li><strong>B)</strong> Two separate certificates - one for Amazon, one for Novi (current workaround, duplicates data)</li>
+                        <li><strong>C)</strong> This scenario doesn't apply - certificates are always single-partner</li>
+                    </ul>
+                    <p style="margin-top: 15px; color: #004085;"><strong>Impact:</strong> If multi-partner is needed, the Partner dropdown on Add/Edit Certificate would become checkboxes (multi-select).</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; padding: 30px; color: #666;">
+            <p>Document generated for client review | GCC Database Solution</p>
+            <p><small>Created: January 2026</small></p>
+        </div>
+    </div>
+</body>
+</html>

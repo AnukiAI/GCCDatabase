@@ -4,16 +4,18 @@ class UserManagement {
         this.users = [];
         this.filteredUsers = [];
         this.companies = [];
+        this.roles = [];
         this.currentSort = { field: 'name', direction: 'asc' };
         this.currentEditingId = null;
-        
+
         this.init();
     }
-    
+
     async init() {
         console.log('Initializing User Management...');
         this.bindEvents();
         await this.loadCompanies();
+        await this.loadRoles();
         await this.loadUsers();
         this.renderUsers();
         this.updateUserCount();
@@ -57,9 +59,9 @@ class UserManagement {
                     'Content-Type': 'application/json',
                 }
             });
-            
+
             const result = await response.json();
-            
+
             if (result.success && result.data) {
                 this.companies = result.data;
                 console.log(`Loaded ${this.companies.length} companies from backend`);
@@ -71,6 +73,85 @@ class UserManagement {
         } catch (error) {
             console.error('Error loading companies:', error);
             this.companies = [];
+        }
+    }
+
+    async loadRoles() {
+        try {
+            const response = await fetch('/Admin/GetRolesList', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                this.roles = result.data;
+                console.log(`Loaded ${this.roles.length} roles from backend`);
+                this.populateRoleDropdowns();
+            } else {
+                console.error('Failed to load roles:', result.message);
+                // Fallback to default roles if API fails
+                this.roles = [
+                    { id: 1, name: 'Admin' },
+                    { id: 2, name: 'Analyst' },
+                    { id: 3, name: 'Partner' },
+                    { id: 4, name: 'External' },
+                    { id: 5, name: 'API Integration' },
+                    { id: 6, name: 'Public' }
+                ];
+                this.populateRoleDropdowns();
+            }
+        } catch (error) {
+            console.error('Error loading roles:', error);
+            // Fallback to default roles if API fails
+            this.roles = [
+                { id: 1, name: 'Admin' },
+                { id: 2, name: 'Analyst' },
+                { id: 3, name: 'Partner' },
+                { id: 4, name: 'External' },
+                { id: 5, name: 'API Integration' },
+                { id: 6, name: 'Public' }
+            ];
+            this.populateRoleDropdowns();
+        }
+    }
+
+    populateRoleDropdowns() {
+        // Update filter dropdown
+        const roleFilter = document.getElementById('role-filter');
+        if (roleFilter) {
+            // Clear existing options except "All Roles"
+            const firstOption = roleFilter.children[0];
+            roleFilter.innerHTML = '';
+            roleFilter.appendChild(firstOption);
+
+            // Add role options
+            this.roles.forEach(role => {
+                const option = document.createElement('option');
+                option.value = role.name;
+                option.textContent = role.name;
+                roleFilter.appendChild(option);
+            });
+        }
+
+        // Update modal role dropdown
+        const roleSelect = document.getElementById('user-role');
+        if (roleSelect) {
+            // Clear existing options except "Select a role"
+            const firstOption = roleSelect.children[0];
+            roleSelect.innerHTML = '';
+            roleSelect.appendChild(firstOption);
+
+            // Add role options
+            this.roles.forEach(role => {
+                const option = document.createElement('option');
+                option.value = role.name;
+                option.textContent = role.name;
+                roleSelect.appendChild(option);
+            });
         }
     }
 
@@ -846,10 +927,11 @@ class UserManagement {
                     emailsInImport.set(emailLower, importUser.rowNumber);
                 }
             }
-            // Normalize role for validation
+            // Validate role against dynamically loaded roles
             const normalizedRole = (importUser.role || '').trim();
-            if (normalizedRole && !['Admin', 'Analyst', 'External', 'Public'].includes(normalizedRole)) {
-                previewRow.errors.push(`Invalid role: "${normalizedRole}" (must be Admin, Analyst, External, or Public)`);
+            const validRoleNames = this.roles.map(r => r.name);
+            if (normalizedRole && !validRoleNames.includes(normalizedRole)) {
+                previewRow.errors.push(`Invalid role: "${normalizedRole}" (valid roles: ${validRoleNames.join(', ')})`);
             }
 
             if (previewRow.errors.length > 0) {

@@ -554,34 +554,35 @@ class UserManagement {
             this.showNotification('No users to export', 'warning');
             return;
         }
-        
+
         try {
-            // Prepare export data
+            // Prepare export data - get company names from companyNames array
             const exportData = this.filteredUsers.map(user => ({
                 ID: user.id,
                 Name: user.name || '',
                 Email: user.email || '',
-                Company: user.company || '',
+                Company: user.companyNames ? user.companyNames.join(', ') : (user.company || ''),
                 Role: user.role || '',
                 Status: user.status || '',
                 'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'
             }));
-            
+
             // Create CSV content
             const headers = Object.keys(exportData[0]);
             const csvContent = [
                 headers.join(','),
-                ...exportData.map(row => 
+                ...exportData.map(row =>
                     headers.map(header => {
-                        const value = row[header] || '';
+                        // Convert value to string to handle numbers
+                        const value = String(row[header] ?? '');
                         // Escape quotes and wrap in quotes if contains comma
-                        return value.includes(',') || value.includes('"') 
-                            ? `"${value.replace(/"/g, '""')}"` 
+                        return value.includes(',') || value.includes('"')
+                            ? `"${value.replace(/"/g, '""')}"`
                             : value;
                     }).join(',')
                 )
             ].join('\n');
-            
+
             // Download file
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement('a');
@@ -592,7 +593,7 @@ class UserManagement {
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
+
             this.showNotification(`Exported ${exportData.length} users successfully`, 'success');
         } catch (error) {
             console.error('Error exporting users:', error);

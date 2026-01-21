@@ -295,55 +295,30 @@ class RoleManagement {
 
         // Normalize selectedPermissions to handle various formats
         const normalizedSelected = selectedPermissions || [];
-        console.log('Selected permissions:', normalizedSelected);
-        console.log('Available permissions:', this.permissions);
 
-        // Group permissions by category for better display
-        const permissionsByCategory = {};
+        // Generate flat grid of permissions (no categories)
+        let html = '<div class="admin-permissions-grid">';
 
         this.permissions.forEach(perm => {
-            const category = perm.category || 'Other';
-            if (!permissionsByCategory[category]) {
-                permissionsByCategory[category] = [];
-            }
-            permissionsByCategory[category].push(perm);
+            // Check multiple formats: permission name, display name, id as number, id as string
+            const isChecked = normalizedSelected.includes(perm.name) ||
+                            normalizedSelected.includes(perm.displayName) ||
+                            normalizedSelected.includes(perm.id) ||
+                            normalizedSelected.includes(perm.id.toString()) ||
+                            normalizedSelected.includes(String(perm.id));
+
+            html += `
+                <label class="admin-checkbox-item">
+                    <input type="checkbox"
+                           name="permissions"
+                           value="${perm.id}"
+                           ${isChecked ? 'checked' : ''}>
+                    <span>${this.escapeHtml(perm.displayName || perm.name)}</span>
+                </label>
+            `;
         });
 
-        // Generate HTML for permissions
-        let html = '';
-        Object.keys(permissionsByCategory).sort().forEach(category => {
-            html += `<div class="admin-permission-group">
-                        <h4 class="admin-permission-category">${this.escapeHtml(category)}</h4>
-                        <div class="admin-checkbox-grid">`;
-
-            permissionsByCategory[category].forEach(perm => {
-                // Check multiple formats: permission name, display name, id as number, id as string
-                const isChecked = normalizedSelected.includes(perm.name) ||
-                                normalizedSelected.includes(perm.displayName) ||
-                                normalizedSelected.includes(perm.id) ||
-                                normalizedSelected.includes(perm.id.toString()) ||
-                                normalizedSelected.includes(String(perm.id));
-
-                if (isChecked) {
-                    console.log(`Checking permission: ${perm.name} (${perm.displayName})`);
-                }
-
-                html += `
-                    <label class="admin-checkbox-item">
-                        <input type="checkbox"
-                               name="permissions"
-                               value="${perm.id}"
-                               ${isChecked ? 'checked' : ''}
-                               aria-label="${this.escapeHtml(perm.displayName || perm.name)}">
-                        <span>${this.escapeHtml(perm.displayName || perm.name)}</span>
-                        ${perm.description ? `<small>${this.escapeHtml(perm.description)}</small>` : ''}
-                    </label>
-                `;
-            });
-
-            html += '</div></div>';
-        });
-
+        html += '</div>';
         container.innerHTML = html;
     }
     

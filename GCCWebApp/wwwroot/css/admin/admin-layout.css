@@ -62,11 +62,14 @@
 
 /* ===== PAGE HEADER FROM LAYOUT (Remove border for admin pages) ===== */
 /* Override the .page-header border from main.css for consistent admin styling */
-/* Add left padding to align with admin-container content */
+/* Add left/right padding and max-width to align with admin-container content */
 .page-header {
     border-bottom: none;
-    padding: 16px 0 0 var(--admin-space-lg);
+    padding: 16px var(--admin-space-lg) 10px var(--admin-space-lg);
     margin-bottom: 0;
+    max-width: var(--admin-container-max-width, 1800px);
+    margin-left: auto;
+    margin-right: auto;
 }
 
 /* ===== BREADCRUMB ALIGNMENT FOR ADMIN PAGES ===== */
@@ -604,6 +607,7 @@
     /* Align page-header and breadcrumbs with admin-container content on large screens */
     .page-header {
         padding-left: var(--admin-space-xl);
+        padding-right: var(--admin-space-xl);
     }
 
     .breadcrumb-wrapper {
@@ -663,6 +667,7 @@
     /* Align page-header and breadcrumbs with admin-container content on tablets */
     .page-header {
         padding-left: var(--admin-space-md);
+        padding-right: var(--admin-space-md);
     }
 
     .breadcrumb-wrapper {
@@ -749,6 +754,7 @@
     /* Align page-header and breadcrumbs with admin-container content on mobile */
     .page-header {
         padding-left: var(--admin-space-sm);
+        padding-right: var(--admin-space-sm);
     }
 
     .breadcrumb-wrapper {
@@ -775,6 +781,7 @@
     /* Align page-header and breadcrumbs with admin-container content on extra small screens */
     .page-header {
         padding-left: var(--admin-space-xs);
+        padding-right: var(--admin-space-xs);
     }
 
     .breadcrumb-wrapper {

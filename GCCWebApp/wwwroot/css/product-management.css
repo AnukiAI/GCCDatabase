@@ -306,21 +306,9 @@
     font-size: 0.6rem;
 }
 
-/* Page Header */
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-}
+/* Page Header - uses main.css defaults for consistency */
 
-/* Title styling now handled by main.css .page-title */
-
-.page-actions {
-    display: flex;
-    gap: 10px;
-    padding-top: 16px;
-}
+/* Title styling handled by main.css .page-title */
 
 /* Buttons */
 .btn {

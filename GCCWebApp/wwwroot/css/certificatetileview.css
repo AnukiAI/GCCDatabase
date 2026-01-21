@@ -1,6 +1,7 @@
-/* Remove page-header border (HR) for certificate tile views */
+/* Match admin page styling for consistent page-header spacing */
 .page-header {
     border-bottom: none;
+    padding: 16px 0 10px 0;
     margin-bottom: 0;
 }
 

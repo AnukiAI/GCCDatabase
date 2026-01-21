@@ -43,15 +43,43 @@ namespace GCCWebApp.Data
 
             Console.WriteLine("Seeding essential security data (Roles, Permissions, Users, API Keys)...");
 
-            // Seed Permissions
+            // Seed Permissions - Comprehensive permission set for granular access control
             var permissions = new List<Permission>
             {
-                new Permission { Name = "View Certificates", Codename = "certificate_view", Category = "Certificate", Description = "Can view certificates" },
-                new Permission { Name = "Create Certificates", Codename = "certificate_create", Category = "Certificate", Description = "Can create new certificates" },
-                new Permission { Name = "Edit Certificates", Codename = "certificate_edit", Category = "Certificate", Description = "Can edit existing certificates" },
-                new Permission { Name = "Delete Certificates", Codename = "certificate_delete", Category = "Certificate", Description = "Can delete certificates" },
-                new Permission { Name = "Manage Users", Codename = "user_manage", Category = "User", Description = "Can manage user accounts" },
-                new Permission { Name = "View Reports", Codename = "report_view", Category = "Report", Description = "Can view system reports" }
+                // Certificate Module
+                new Permission { Name = "View Certificates", Codename = "certificate.view", Category = "Certificates", Description = "Browse certificate list" },
+                new Permission { Name = "Create Certificates", Codename = "certificate.create", Category = "Certificates", Description = "Add new certificates" },
+                new Permission { Name = "Edit Certificates", Codename = "certificate.edit", Category = "Certificates", Description = "Modify existing certificates" },
+                new Permission { Name = "Delete Certificates", Codename = "certificate.delete", Category = "Certificates", Description = "Remove certificates" },
+                new Permission { Name = "Manage Workflow", Codename = "certificate.workflow", Category = "Certificates", Description = "Approve/reject submissions" },
+
+                // Data Module
+                new Permission { Name = "Export Data", Codename = "data.export", Category = "Data", Description = "Download CSV exports" },
+                new Permission { Name = "Import Data", Codename = "data.import", Category = "Data", Description = "Bulk import from CSV" },
+                new Permission { Name = "View Reports", Codename = "data.reports", Category = "Data", Description = "Access analytics reports" },
+                new Permission { Name = "View Audit Logs", Codename = "data.audit", Category = "Data", Description = "System activity history" },
+
+                // Administration Module
+                new Permission { Name = "Manage Users", Codename = "admin.users", Category = "Administration", Description = "Create/edit user accounts" },
+                new Permission { Name = "Manage Roles", Codename = "admin.roles", Category = "Administration", Description = "Configure role permissions" },
+                new Permission { Name = "Manage Companies", Codename = "admin.companies", Category = "Administration", Description = "Partner/client companies" },
+                new Permission { Name = "Manage Tags", Codename = "admin.tags", Category = "Administration", Description = "Internal classification tags" },
+                new Permission { Name = "Manage Partners", Codename = "admin.partners", Category = "Administration", Description = "API keys & partner access" },
+
+                // API Access Module
+                new Permission { Name = "API Read", Codename = "api.read", Category = "API Access", Description = "Read data via API" },
+                new Permission { Name = "API Write", Codename = "api.write", Category = "API Access", Description = "Create/update via API" },
+                new Permission { Name = "API Delete", Codename = "api.delete", Category = "API Access", Description = "Delete via API" },
+
+                // Products Module
+                new Permission { Name = "View Products", Codename = "products.view", Category = "Products", Description = "Browse product catalog" },
+                new Permission { Name = "Manage Products", Codename = "products.manage", Category = "Products", Description = "Add/edit products" },
+                new Permission { Name = "Manage Product Types", Codename = "products.types", Category = "Products", Description = "Categories & types" },
+
+                // System Module
+                new Permission { Name = "System Settings", Codename = "system.settings", Category = "System", Description = "Global configuration" },
+                new Permission { Name = "Manage Cert Types", Codename = "system.certtypes", Category = "System", Description = "Certification types" },
+                new Permission { Name = "Manage Custom Fields", Codename = "system.fields", Category = "System", Description = "Dynamic form fields" }
             };
 
             await context.Permissions.AddRangeAsync(permissions);
@@ -78,14 +106,25 @@ namespace GCCWebApp.Data
             // Admin gets all permissions
             adminRole.Permissions = permissions.ToList();
 
-            // Analyst gets certificate management permissions
-            analystRole.Permissions = permissions.Where(p => p.Category == "Certificate" && p.Codename != "certificate_delete").ToList();
+            // Analyst gets certificate management, data export/import, reports, and product view
+            var analystPermissions = new[] {
+                "certificate.view", "certificate.create", "certificate.edit", "certificate.workflow",
+                "data.export", "data.import", "data.reports",
+                "products.view"
+            };
+            analystRole.Permissions = permissions.Where(p => analystPermissions.Contains(p.Codename)).ToList();
 
-            // External gets view and reports
-            externalRole.Permissions = permissions.Where(p => p.Codename == "certificate_view" || p.Codename == "report_view").ToList();
+            // External (Client) gets view own certificates, products, export own data, reports
+            var externalPermissions = new[] {
+                "certificate.view",
+                "data.export", "data.reports",
+                "products.view"
+            };
+            externalRole.Permissions = permissions.Where(p => externalPermissions.Contains(p.Codename)).ToList();
 
-            // Public gets only view
-            publicRole.Permissions = permissions.Where(p => p.Codename == "certificate_view").ToList();
+            // Public gets only view certificates and products
+            var publicPermissions = new[] { "certificate.view", "products.view" };
+            publicRole.Permissions = permissions.Where(p => publicPermissions.Contains(p.Codename)).ToList();
 
             await context.SaveChangesAsync();
 

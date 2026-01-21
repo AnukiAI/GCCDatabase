@@ -284,6 +284,19 @@ class RoleManagement {
         }
     }
 
+    // Category icons mapping
+    getCategoryIcon(category) {
+        const icons = {
+            'Certificates': 'fa-certificate',
+            'Data': 'fa-database',
+            'Administration': 'fa-cog',
+            'API Access': 'fa-plug',
+            'Products': 'fa-box',
+            'System': 'fa-shield-alt'
+        };
+        return icons[category] || 'fa-check-circle';
+    }
+
     populatePermissions(selectedPermissions) {
         const container = document.getElementById('permissions-container');
         if (!container) return;
@@ -296,30 +309,73 @@ class RoleManagement {
         // Normalize selectedPermissions to handle various formats
         const normalizedSelected = selectedPermissions || [];
 
-        // Generate flat grid of permissions (no categories)
-        let html = '<div class="admin-permissions-grid">';
-
+        // Group permissions by category
+        const permissionsByCategory = {};
         this.permissions.forEach(perm => {
-            // Check multiple formats: permission name, display name, id as number, id as string
-            const isChecked = normalizedSelected.includes(perm.name) ||
-                            normalizedSelected.includes(perm.displayName) ||
-                            normalizedSelected.includes(perm.id) ||
-                            normalizedSelected.includes(perm.id.toString()) ||
-                            normalizedSelected.includes(String(perm.id));
-
-            html += `
-                <label class="admin-checkbox-item">
-                    <input type="checkbox"
-                           name="permissions"
-                           value="${perm.id}"
-                           ${isChecked ? 'checked' : ''}>
-                    <span>${this.escapeHtml(perm.displayName || perm.name)}</span>
-                </label>
-            `;
+            const category = perm.category || 'Other';
+            if (!permissionsByCategory[category]) {
+                permissionsByCategory[category] = [];
+            }
+            permissionsByCategory[category].push(perm);
         });
 
-        html += '</div>';
+        // Define category order for consistent display
+        const categoryOrder = ['Certificates', 'Data', 'Administration', 'API Access', 'Products', 'System'];
+        const sortedCategories = Object.keys(permissionsByCategory).sort((a, b) => {
+            const aIndex = categoryOrder.indexOf(a);
+            const bIndex = categoryOrder.indexOf(b);
+            if (aIndex === -1 && bIndex === -1) return a.localeCompare(b);
+            if (aIndex === -1) return 1;
+            if (bIndex === -1) return -1;
+            return aIndex - bIndex;
+        });
+
+        // Generate HTML for permissions grouped by category
+        let html = '';
+        sortedCategories.forEach(category => {
+            const icon = this.getCategoryIcon(category);
+            html += `
+                <div class="admin-permission-category">
+                    <div class="admin-category-header">
+                        <i class="fas ${icon}"></i> ${this.escapeHtml(category)}
+                    </div>
+                    <div class="admin-category-body">
+            `;
+
+            permissionsByCategory[category].forEach(perm => {
+                // Check multiple formats: permission name, display name, id as number, id as string
+                const isChecked = normalizedSelected.includes(perm.name) ||
+                                normalizedSelected.includes(perm.displayName) ||
+                                normalizedSelected.includes(perm.id) ||
+                                normalizedSelected.includes(perm.id.toString()) ||
+                                normalizedSelected.includes(String(perm.id));
+
+                html += `
+                    <label class="admin-permission-item">
+                        <input type="checkbox"
+                               name="permissions"
+                               value="${perm.id}"
+                               ${isChecked ? 'checked' : ''}>
+                        <div class="admin-permission-info">
+                            <div class="admin-permission-name">${this.escapeHtml(perm.displayName || perm.name)}</div>
+                            ${perm.description ? `<div class="admin-permission-desc">${this.escapeHtml(perm.description)}</div>` : ''}
+                        </div>
+                    </label>
+                `;
+            });
+
+            html += '</div></div>';
+        });
+
         container.innerHTML = html;
+    }
+
+    selectAllPermissions() {
+        document.querySelectorAll('#permissions-container input[type="checkbox"]').forEach(cb => cb.checked = true);
+    }
+
+    clearAllPermissions() {
+        document.querySelectorAll('#permissions-container input[type="checkbox"]').forEach(cb => cb.checked = false);
     }
     
     async saveRole(event) {

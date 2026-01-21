@@ -1,0 +1,1428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Role Management Help Guide - GCC Database</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #002B76;
+            margin-bottom: 10px;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+
+        /* Section Styling */
+        .section {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: #002B76;
+            color: #fff;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .section-header i {
+            font-size: 20px;
+        }
+
+        .section-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .section-body {
+            padding: 24px;
+        }
+
+        /* Category Cards */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .category-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .category-card .icon {
+            width: 40px;
+            height: 40px;
+            background: #002B76;
+            color: #fff;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .category-card .info h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 2px;
+        }
+
+        .category-card .info p {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Role Cards Grid */
+        .roles-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 24px;
+        }
+
+        .role-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .role-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+        }
+
+        .role-header {
+            padding: 20px;
+            color: #fff;
+            position: relative;
+        }
+
+        .role-header.admin { background: linear-gradient(135deg, #002B76, #1a4a9e); }
+        .role-header.analyst { background: linear-gradient(135deg, #92C83E, #7ab02d); }
+        .role-header.partner { background: linear-gradient(135deg, #f39c12, #e67e22); }
+        .role-header.external { background: linear-gradient(135deg, #3498db, #2980b9); }
+        .role-header.public { background: linear-gradient(135deg, #95a5a6, #7f8c8d); }
+        .role-header.api { background: linear-gradient(135deg, #9b59b6, #8e44ad); }
+
+        .role-icon {
+            width: 48px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+
+        .role-name {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .role-description {
+            font-size: 13px;
+            opacity: 0.9;
+        }
+
+        .role-badge {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .role-body {
+            padding: 20px;
+        }
+
+        .permissions-summary {
+            margin-bottom: 16px;
+        }
+
+        .summary-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .permission-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .permission-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: #e8f5e1;
+            color: #447638;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .permission-pill.denied {
+            background: #ffebee;
+            color: #c62828;
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+
+        .permission-pill i {
+            font-size: 10px;
+        }
+
+        /* Category Breakdown */
+        .category-breakdown {
+            border-top: 1px solid #e9ecef;
+            padding-top: 16px;
+        }
+
+        .category-row {
+            display: flex;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+
+        .category-row:last-child {
+            border-bottom: none;
+        }
+
+        .category-icon {
+            width: 28px;
+            height: 28px;
+            background: #f5f7fa;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #666;
+            margin-right: 10px;
+        }
+
+        .category-name {
+            flex: 1;
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .category-access {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
+
+        .access-full { background: #e8f5e1; color: #447638; }
+        .access-partial { background: #fff3cd; color: #856404; }
+        .access-read { background: #e6f7ff; color: #0050b3; }
+        .access-none { background: #f5f5f5; color: #999; }
+
+        /* Use Cases Section */
+        .use-cases {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 12px;
+            margin-top: 16px;
+        }
+
+        .use-case-title {
+            font-size: 11px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .use-case-list {
+            list-style: none;
+        }
+
+        .use-case-list li {
+            font-size: 12px;
+            color: #555;
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .use-case-list li i {
+            color: #92C83E;
+            font-size: 10px;
+        }
+
+        /* Permission Matrix */
+        .matrix-container {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+            overflow: hidden;
+            margin-top: 40px;
+        }
+
+        .matrix-header {
+            background: #002B76;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .matrix-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .matrix-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .matrix-table th,
+        .matrix-table td {
+            padding: 12px;
+            text-align: center;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .matrix-table th {
+            background: #f8f9fa;
+            font-size: 12px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .matrix-table th:first-child,
+        .matrix-table td:first-child {
+            text-align: left;
+            font-weight: 500;
+        }
+
+        .matrix-table td:first-child {
+            font-size: 13px;
+            color: #333;
+        }
+
+        .check-yes {
+            color: #92C83E;
+            font-size: 16px;
+        }
+
+        .check-no {
+            color: #ddd;
+            font-size: 16px;
+        }
+
+        .check-partial {
+            color: #f39c12;
+            font-size: 14px;
+        }
+
+        /* Instructions */
+        .instruction-steps {
+            counter-reset: step;
+        }
+
+        .instruction-step {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            padding: 16px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .instruction-step:last-child {
+            border-bottom: none;
+        }
+
+        .step-number {
+            width: 32px;
+            height: 32px;
+            background: #002B76;
+            color: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+
+        .step-content h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .step-content p {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Best Practices */
+        .practice-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border-left: 4px solid #92C83E;
+        }
+
+        .practice-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .practice-card h4 i {
+            color: #92C83E;
+        }
+
+        .practice-card p {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Scenario Cards */
+        .scenario-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .scenario-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .scenario-card h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .scenario-card .recommended {
+            display: inline-block;
+            background: #002B76;
+            color: #fff;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .scenario-card ul {
+            list-style: none;
+        }
+
+        .scenario-card ul li {
+            font-size: 12px;
+            color: #666;
+            padding: 4px 0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .scenario-card ul li i {
+            color: #92C83E;
+            font-size: 10px;
+        }
+
+        /* Alert Boxes */
+        .alert {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .alert i {
+            font-size: 18px;
+            margin-top: 2px;
+        }
+
+        .alert-info {
+            background: #e6f7ff;
+            border: 1px solid #91d5ff;
+        }
+
+        .alert-info i {
+            color: #1890ff;
+        }
+
+        .alert-warning {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+        }
+
+        .alert-warning i {
+            color: #faad14;
+        }
+
+        .alert-content h4 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .alert-content p {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Troubleshooting */
+        .trouble-item {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .trouble-question {
+            background: #f8f9fa;
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .trouble-question i {
+            color: #f39c12;
+        }
+
+        .trouble-answer {
+            padding: 16px;
+        }
+
+        .trouble-answer ol {
+            margin-left: 20px;
+        }
+
+        .trouble-answer li {
+            font-size: 13px;
+            color: #666;
+            padding: 4px 0;
+        }
+
+        /* Footer */
+        .guide-footer {
+            text-align: center;
+            padding: 30px;
+            color: #888;
+            font-size: 13px;
+        }
+
+        /* Print Styles */
+        @media print {
+            body {
+                background: #fff;
+                padding: 20px;
+            }
+            .section, .role-card, .matrix-container {
+                box-shadow: none;
+                border: 1px solid #ddd;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1><i class="fas fa-user-shield"></i> Role Management Help Guide</h1>
+        <p class="subtitle">Complete guide to understanding and managing roles and permissions in the GCC Database</p>
+
+        <!-- Overview Section -->
+        <div class="section">
+            <div class="section-header">
+                <i class="fas fa-info-circle"></i>
+                <h2>Overview</h2>
+            </div>
+            <div class="section-body">
+                <p style="margin-bottom: 20px; color: #555;">
+                    The GCC Database uses a granular role-based access control (RBAC) system with <strong>24 individual permissions</strong>
+                    organized into <strong>6 categories</strong>. Roles are assigned to users and determine what actions they can perform within the system.
+                </p>
+
+                <h3 style="font-size: 16px; color: #333; margin-bottom: 16px;">Permission Categories</h3>
+                <div class="category-grid">
+                    <div class="category-card">
+                        <div class="icon"><i class="fas fa-certificate"></i></div>
+                        <div class="info">
+                            <h4>Certificates</h4>
+                            <p>View, create, edit, delete, workflow</p>
+                        </div>
+                    </div>
+                    <div class="category-card">
+                        <div class="icon" style="background: #92C83E;"><i class="fas fa-database"></i></div>
+                        <div class="info">
+                            <h4>Data</h4>
+                            <p>Export, import, reports, audit logs</p>
+                        </div>
+                    </div>
+                    <div class="category-card">
+                        <div class="icon" style="background: #f39c12;"><i class="fas fa-cog"></i></div>
+                        <div class="info">
+                            <h4>Administration</h4>
+                            <p>Users, roles, companies, partners</p>
+                        </div>
+                    </div>
+                    <div class="category-card">
+                        <div class="icon" style="background: #9b59b6;"><i class="fas fa-plug"></i></div>
+                        <div class="info">
+                            <h4>API Access</h4>
+                            <p>Read, write, delete via API</p>
+                        </div>
+                    </div>
+                    <div class="category-card">
+                        <div class="icon" style="background: #3498db;"><i class="fas fa-box"></i></div>
+                        <div class="info">
+                            <h4>Products</h4>
+                            <p>View and manage product catalog</p>
+                        </div>
+                    </div>
+                    <div class="category-card">
+                        <div class="icon" style="background: #e74c3c;"><i class="fas fa-shield-alt"></i></div>
+                        <div class="info">
+                            <h4>System</h4>
+                            <p>Settings, cert types, custom fields</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-info">
+                    <i class="fas fa-lightbulb"></i>
+                    <div class="alert-content">
+                        <h4>Role Types</h4>
+                        <p><strong>System Roles</strong> come pre-configured (Admin, Analyst, External, Public).
+                        <strong>Custom Roles</strong> can be created by administrators for specialized needs like Partner access or API-only integrations.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Available Roles Section -->
+        <div class="section">
+            <div class="section-header">
+                <i class="fas fa-users-cog"></i>
+                <h2>Available Roles</h2>
+            </div>
+            <div class="section-body">
+                <p style="margin-bottom: 24px; color: #555;">
+                    Below are the recommended role configurations for different user types. Each role card shows the key permissions,
+                    category access levels, and ideal use cases.
+                </p>
+
+                <div class="roles-grid">
+                    <!-- Admin Role -->
+                    <div class="role-card">
+                        <div class="role-header admin">
+                            <div class="role-badge">System</div>
+                            <div class="role-icon"><i class="fas fa-crown"></i></div>
+                            <div class="role-name">Administrator</div>
+                            <div class="role-description">Full system access and control</div>
+                        </div>
+                        <div class="role-body">
+                            <div class="permissions-summary">
+                                <div class="summary-title">Key Permissions</div>
+                                <div class="permission-pills">
+                                    <span class="permission-pill"><i class="fas fa-check"></i> All Certificates</span>
+                                    <span class="permission-pill"><i class="fas fa-check"></i> All Admin</span>
+                                    <span class="permission-pill"><i class="fas fa-check"></i> All API</span>
+                                    <span class="permission-pill"><i class="fas fa-check"></i> System Config</span>
+                                </div>
+                            </div>
+                            <div class="category-breakdown">
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-certificate"></i></div>
+                                    <span class="category-name">Certificates</span>
+                                    <span class="category-access access-full">Full Access</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-cog"></i></div>
+                                    <span class="category-name">Administration</span>
+                                    <span class="category-access access-full">Full Access</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-plug"></i></div>
+                                    <span class="category-name">API Access</span>
+                                    <span class="category-access access-full">Full Access</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-shield-alt"></i></div>
+                                    <span class="category-name">System</span>
+                                    <span class="category-access access-full">Full Access</span>
+                                </div>
+                            </div>
+                            <div class="use-cases">
+                                <div class="use-case-title">Ideal For</div>
+                                <ul class="use-case-list">
+                                    <li><i class="fas fa-check"></i> System administrators</li>
+                                    <li><i class="fas fa-check"></i> IT staff managing the application</li>
+                                    <li><i class="fas fa-check"></i> Senior management requiring full oversight</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Analyst Role -->
+                    <div class="role-card">
+                        <div class="role-header analyst">
+                            <div class="role-badge">System</div>
+                            <div class="role-icon"><i class="fas fa-user-tie"></i></div>
+                            <div class="role-name">Analyst</div>
+                            <div class="role-description">Certificate management & workflow</div>
+                        </div>
+                        <div class="role-body">
+                            <div class="permissions-summary">
+                                <div class="summary-title">Key Permissions</div>
+                                <div class="permission-pills">
+                                    <span class="permission-pill"><i class="fas fa-check"></i> View/Create/Edit Certs</span>
+                                    <span class="permission-pill"><i class="fas fa-check"></i> Workflow</span>
+                                    <span class="permission-pill"><i class="fas fa-check"></i> Export/Import</span>
+                                    <span class="permission-pill denied"><i class="fas fa-times"></i> Delete</span>
+                                </div>
+                            </div>
+                            <div class="category-breakdown">
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-certificate"></i></div>
+                                    <span class="category-name">Certificates</span>
+                                    <span class="category-access access-partial">Create/Edit</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-database"></i></div>
+                                    <span class="category-name">Data</span>
+                                    <span class="category-access access-partial">Export/Import</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-cog"></i></div>
+                                    <span class="category-name">Administration</span>
+                                    <span class="category-access access-none">No Access</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-plug"></i></div>
+                                    <span class="category-name">API Access</span>
+                                    <span class="category-access access-none">No Access</span>
+                                </div>
+                            </div>
+                            <div class="use-cases">
+                                <div class="use-case-title">Ideal For</div>
+                                <ul class="use-case-list">
+                                    <li><i class="fas fa-check"></i> Internal certification team members</li>
+                                    <li><i class="fas fa-check"></i> Quality assurance staff</li>
+                                    <li><i class="fas fa-check"></i> Certificate reviewers</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Partner Role -->
+                    <div class="role-card">
+                        <div class="role-header partner">
+                            <div class="role-badge">Custom</div>
+                            <div class="role-icon"><i class="fas fa-handshake"></i></div>
+                            <div class="role-name">Partner</div>
+                            <div class="role-description">Amazon, Novi, and other partners</div>
+                        </div>
+                        <div class="role-body">
+                            <div class="permissions-summary">
+                                <div class="summary-title">Key Permissions</div>
+                                <div class="permission-pills">
+                                    <span class="permission-pill"><i class="fas fa-check"></i> View Certs</span>
+                                    <span class="permission-pill"><i class="fas fa-check"></i> API Read</span>
+                                    <span class="permission-pill"><i class="fas fa-check"></i> Export</span>
+                                    <span class="permission-pill denied"><i class="fas fa-times"></i> Admin</span>
+                                </div>
+                            </div>
+                            <div class="category-breakdown">
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-certificate"></i></div>
+                                    <span class="category-name">Certificates</span>
+                                    <span class="category-access access-read">View Only</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-database"></i></div>
+                                    <span class="category-name">Data</span>
+                                    <span class="category-access access-partial">Export Only</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-plug"></i></div>
+                                    <span class="category-name">API Access</span>
+                                    <span class="category-access access-read">Read Only</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-cog"></i></div>
+                                    <span class="category-name">Administration</span>
+                                    <span class="category-access access-none">No Access</span>
+                                </div>
+                            </div>
+                            <div class="use-cases">
+                                <div class="use-case-title">Ideal For</div>
+                                <ul class="use-case-list">
+                                    <li><i class="fas fa-check"></i> Amazon Climate Pledge team</li>
+                                    <li><i class="fas fa-check"></i> Novi Connect integrations</li>
+                                    <li><i class="fas fa-check"></i> Third-party verification services</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- External Client Role -->
+                    <div class="role-card">
+                        <div class="role-header external">
+                            <div class="role-badge">System</div>
+                            <div class="role-icon"><i class="fas fa-building"></i></div>
+                            <div class="role-name">External Client</div>
+                            <div class="role-description">Company-specific certificate access</div>
+                        </div>
+                        <div class="role-body">
+                            <div class="permissions-summary">
+                                <div class="summary-title">Key Permissions</div>
+                                <div class="permission-pills">
+                                    <span class="permission-pill"><i class="fas fa-check"></i> View Own Certs</span>
+                                    <span class="permission-pill"><i class="fas fa-check"></i> View Products</span>
+                                    <span class="permission-pill"><i class="fas fa-check"></i> Export Own</span>
+                                    <span class="permission-pill denied"><i class="fas fa-times"></i> Other Companies</span>
+                                </div>
+                            </div>
+                            <div class="category-breakdown">
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-certificate"></i></div>
+                                    <span class="category-name">Certificates</span>
+                                    <span class="category-access access-read">Own Company</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-box"></i></div>
+                                    <span class="category-name">Products</span>
+                                    <span class="category-access access-read">Own Company</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-database"></i></div>
+                                    <span class="category-name">Data</span>
+                                    <span class="category-access access-partial">Export Own</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-cog"></i></div>
+                                    <span class="category-name">Administration</span>
+                                    <span class="category-access access-none">No Access</span>
+                                </div>
+                            </div>
+                            <div class="use-cases">
+                                <div class="use-case-title">Ideal For</div>
+                                <ul class="use-case-list">
+                                    <li><i class="fas fa-check"></i> Client company representatives</li>
+                                    <li><i class="fas fa-check"></i> Brand managers viewing their products</li>
+                                    <li><i class="fas fa-check"></i> Compliance officers (external)</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- API Integration Role -->
+                    <div class="role-card">
+                        <div class="role-header api">
+                            <div class="role-badge">Custom</div>
+                            <div class="role-icon"><i class="fas fa-robot"></i></div>
+                            <div class="role-name">API Integration</div>
+                            <div class="role-description">Programmatic access only, no UI</div>
+                        </div>
+                        <div class="role-body">
+                            <div class="permissions-summary">
+                                <div class="summary-title">Key Permissions</div>
+                                <div class="permission-pills">
+                                    <span class="permission-pill"><i class="fas fa-check"></i> API Read</span>
+                                    <span class="permission-pill"><i class="fas fa-check"></i> API Write</span>
+                                    <span class="permission-pill denied"><i class="fas fa-times"></i> UI Access</span>
+                                    <span class="permission-pill denied"><i class="fas fa-times"></i> Admin</span>
+                                </div>
+                            </div>
+                            <div class="category-breakdown">
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-plug"></i></div>
+                                    <span class="category-name">API Access</span>
+                                    <span class="category-access access-partial">Read/Write</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-certificate"></i></div>
+                                    <span class="category-name">Certificates</span>
+                                    <span class="category-access access-none">API Only</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-desktop"></i></div>
+                                    <span class="category-name">Web UI</span>
+                                    <span class="category-access access-none">No Access</span>
+                                </div>
+                            </div>
+                            <div class="use-cases">
+                                <div class="use-case-title">Ideal For</div>
+                                <ul class="use-case-list">
+                                    <li><i class="fas fa-check"></i> Automated data sync services</li>
+                                    <li><i class="fas fa-check"></i> Third-party integrations</li>
+                                    <li><i class="fas fa-check"></i> Reporting dashboards</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Public Role -->
+                    <div class="role-card">
+                        <div class="role-header public">
+                            <div class="role-badge">System</div>
+                            <div class="role-icon"><i class="fas fa-globe"></i></div>
+                            <div class="role-name">Public</div>
+                            <div class="role-description">Read-only public access</div>
+                        </div>
+                        <div class="role-body">
+                            <div class="permissions-summary">
+                                <div class="summary-title">Key Permissions</div>
+                                <div class="permission-pills">
+                                    <span class="permission-pill"><i class="fas fa-check"></i> View Public Certs</span>
+                                    <span class="permission-pill denied"><i class="fas fa-times"></i> Create</span>
+                                    <span class="permission-pill denied"><i class="fas fa-times"></i> Export</span>
+                                    <span class="permission-pill denied"><i class="fas fa-times"></i> API</span>
+                                </div>
+                            </div>
+                            <div class="category-breakdown">
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-certificate"></i></div>
+                                    <span class="category-name">Certificates</span>
+                                    <span class="category-access access-read">Public Only</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-box"></i></div>
+                                    <span class="category-name">Products</span>
+                                    <span class="category-access access-read">View Only</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-database"></i></div>
+                                    <span class="category-name">Data</span>
+                                    <span class="category-access access-none">No Access</span>
+                                </div>
+                                <div class="category-row">
+                                    <div class="category-icon"><i class="fas fa-plug"></i></div>
+                                    <span class="category-name">API Access</span>
+                                    <span class="category-access access-none">No Access</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Permission Matrix -->
+        <div class="matrix-container">
+            <div class="matrix-header">
+                <div class="matrix-title"><i class="fas fa-table"></i> Complete Permission Matrix</div>
+            </div>
+            <table class="matrix-table">
+                <thead>
+                    <tr>
+                        <th>Permission</th>
+                        <th>Admin</th>
+                        <th>Analyst</th>
+                        <th>Partner</th>
+                        <th>External</th>
+                        <th>API Only</th>
+                        <th>Public</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>Certificates</strong></td>
+                        <td colspan="6" style="background: #f8f9fa;"></td>
+                    </tr>
+                    <tr>
+                        <td>View Certificates</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-minus check-partial"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Create Certificates</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Edit Certificates</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Delete Certificates</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Manage Workflow</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Data</strong></td>
+                        <td colspan="6" style="background: #f8f9fa;"></td>
+                    </tr>
+                    <tr>
+                        <td>Export Data</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-minus check-partial"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Import Data</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>View Reports</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>View Audit Logs</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Administration</strong></td>
+                        <td colspan="6" style="background: #f8f9fa;"></td>
+                    </tr>
+                    <tr>
+                        <td>Manage Users</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Manage Roles</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Manage Companies</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Manage Tags</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Manage Partners</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td><strong>API Access</strong></td>
+                        <td colspan="6" style="background: #f8f9fa;"></td>
+                    </tr>
+                    <tr>
+                        <td>API Read</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>API Write</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>API Delete</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td><strong>Products</strong></td>
+                        <td colspan="6" style="background: #f8f9fa;"></td>
+                    </tr>
+                    <tr>
+                        <td>View Products</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Manage Products</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Manage Product Types</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td><strong>System</strong></td>
+                        <td colspan="6" style="background: #f8f9fa;"></td>
+                    </tr>
+                    <tr>
+                        <td>System Settings</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Manage Cert Types</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                    <tr>
+                        <td>Manage Custom Fields</td>
+                        <td><i class="fas fa-check check-yes"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                        <td><i class="fas fa-times check-no"></i></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Managing Roles Section -->
+        <div class="section" style="margin-top: 40px;">
+            <div class="section-header">
+                <i class="fas fa-tasks"></i>
+                <h2>Managing Roles</h2>
+            </div>
+            <div class="section-body">
+                <h3 style="font-size: 16px; color: #333; margin-bottom: 16px;">Creating a New Role</h3>
+                <div class="instruction-steps">
+                    <div class="instruction-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h4>Navigate to Role Management</h4>
+                            <p>Go to <strong>Admin > Role Management</strong> from the main navigation menu.</p>
+                        </div>
+                    </div>
+                    <div class="instruction-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h4>Click Add Role</h4>
+                            <p>Click the <strong>Add Role</strong> button in the top right corner of the page.</p>
+                        </div>
+                    </div>
+                    <div class="instruction-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h4>Enter Role Details</h4>
+                            <p>Provide a <strong>Role Name</strong> and optional <strong>Description</strong> to help identify the role's purpose.</p>
+                        </div>
+                    </div>
+                    <div class="instruction-step">
+                        <div class="step-number">4</div>
+                        <div class="step-content">
+                            <h4>Select Permissions</h4>
+                            <p>Check the permissions required for this role. Use <strong>Select All</strong> or <strong>Clear All</strong> buttons for quick selection. Permissions are grouped by category for easy navigation.</p>
+                        </div>
+                    </div>
+                    <div class="instruction-step">
+                        <div class="step-number">5</div>
+                        <div class="step-content">
+                            <h4>Save the Role</h4>
+                            <p>Click <strong>Save</strong> to create the role. The new role will appear in the roles list and can be assigned to users.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="alert alert-warning" style="margin-top: 24px;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <div class="alert-content">
+                        <h4>Important Notes</h4>
+                        <p>The <strong>Admin</strong> role cannot be deleted or modified to remove critical permissions. Roles with assigned users should have users reassigned before deletion.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Best Practices Section -->
+        <div class="section">
+            <div class="section-header">
+                <i class="fas fa-lightbulb"></i>
+                <h2>Best Practices</h2>
+            </div>
+            <div class="section-body">
+                <div class="practice-card">
+                    <h4><i class="fas fa-shield-alt"></i> Principle of Least Privilege</h4>
+                    <p>Assign users the minimum permissions necessary to perform their job functions. This reduces security risks and prevents accidental data modifications.</p>
+                </div>
+                <div class="practice-card">
+                    <h4><i class="fas fa-user-cog"></i> Use Custom Roles for Specific Needs</h4>
+                    <p>Instead of granting excessive permissions with a built-in role, create a custom role with only the required permissions tailored to specific job functions.</p>
+                </div>
+                <div class="practice-card">
+                    <h4><i class="fas fa-calendar-check"></i> Regular Access Reviews</h4>
+                    <p>Periodically review user role assignments to ensure they remain appropriate. Remove access for users who have changed roles or left the organization.</p>
+                </div>
+                <div class="practice-card">
+                    <h4><i class="fas fa-file-alt"></i> Document Custom Roles</h4>
+                    <p>When creating custom roles, use clear names and descriptions so other administrators understand their purpose without needing to review all permissions.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Common Scenarios Section -->
+        <div class="section">
+            <div class="section-header">
+                <i class="fas fa-clipboard-list"></i>
+                <h2>Common Scenarios</h2>
+            </div>
+            <div class="section-body">
+                <div class="scenario-grid">
+                    <div class="scenario-card">
+                        <h4>New Certification Analyst</h4>
+                        <span class="recommended">Recommended: Analyst</span>
+                        <ul>
+                            <li><i class="fas fa-check"></i> Can create and edit certificates</li>
+                            <li><i class="fas fa-check"></i> Can manage workflow states</li>
+                            <li><i class="fas fa-check"></i> Cannot delete certificates</li>
+                            <li><i class="fas fa-check"></i> Cannot access admin functions</li>
+                        </ul>
+                    </div>
+                    <div class="scenario-card">
+                        <h4>Amazon Climate Pledge Integration</h4>
+                        <span class="recommended">Recommended: Partner</span>
+                        <ul>
+                            <li><i class="fas fa-check"></i> View-only access to certificates</li>
+                            <li><i class="fas fa-check"></i> API read access for data sync</li>
+                            <li><i class="fas fa-check"></i> Export capability for reporting</li>
+                            <li><i class="fas fa-check"></i> No write or delete permissions</li>
+                        </ul>
+                    </div>
+                    <div class="scenario-card">
+                        <h4>Client Company Representative</h4>
+                        <span class="recommended">Recommended: External</span>
+                        <ul>
+                            <li><i class="fas fa-check"></i> View only their company's certificates</li>
+                            <li><i class="fas fa-check"></i> View only their company's products</li>
+                            <li><i class="fas fa-check"></i> Can export their own data</li>
+                            <li><i class="fas fa-check"></i> Cannot see other companies' data</li>
+                        </ul>
+                    </div>
+                    <div class="scenario-card">
+                        <h4>Automated Sync Service</h4>
+                        <span class="recommended">Recommended: API Integration</span>
+                        <ul>
+                            <li><i class="fas fa-check"></i> API read/write access</li>
+                            <li><i class="fas fa-check"></i> No web UI access needed</li>
+                            <li><i class="fas fa-check"></i> Programmatic certificate lookups</li>
+                            <li><i class="fas fa-check"></i> Data synchronization capabilities</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Troubleshooting Section -->
+        <div class="section">
+            <div class="section-header">
+                <i class="fas fa-wrench"></i>
+                <h2>Troubleshooting</h2>
+            </div>
+            <div class="section-body">
+                <div class="trouble-item">
+                    <div class="trouble-question">
+                        <i class="fas fa-question-circle"></i>
+                        User Cannot Access Expected Features
+                    </div>
+                    <div class="trouble-answer">
+                        <ol>
+                            <li>Verify the user's assigned role in <strong>Admin > User Management</strong></li>
+                            <li>Check the role's permissions in <strong>Admin > Role Management</strong></li>
+                            <li>Ensure the specific permission for the desired feature is enabled</li>
+                            <li>For External users, verify they are associated with the correct company</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="trouble-item">
+                    <div class="trouble-question">
+                        <i class="fas fa-question-circle"></i>
+                        Permission Changes Not Taking Effect
+                    </div>
+                    <div class="trouble-answer">
+                        <ol>
+                            <li>User may need to <strong>log out and log back in</strong> for changes to take effect</li>
+                            <li>Check if the change was saved successfully (look for confirmation message)</li>
+                            <li>Clear browser cache if issues persist</li>
+                            <li>Verify no conflicting permissions exist at the user level</li>
+                        </ol>
+                    </div>
+                </div>
+                <div class="trouble-item">
+                    <div class="trouble-question">
+                        <i class="fas fa-question-circle"></i>
+                        Cannot Delete a Role
+                    </div>
+                    <div class="trouble-answer">
+                        <ol>
+                            <li>Ensure <strong>no users are currently assigned</strong> to the role</li>
+                            <li>Verify you have the <strong>"Manage Roles"</strong> permission</li>
+                            <li>Note that the <strong>Admin role cannot be deleted</strong> (this is by design)</li>
+                            <li>System roles may have restrictions on deletion</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="guide-footer">
+            <p><i class="fas fa-info-circle"></i> GCC Database - Role Management Help Guide</p>
+            <p>Last Updated: January 2026</p>
+        </div>
+    </div>
+</body>
+</html>

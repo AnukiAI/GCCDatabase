@@ -24,7 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\GCCWebApp.csproj" />
+    <ProjectReference Include="..\GCCWebApp\GCCWebApp.csproj" />
   </ItemGroup>
 
   <ItemGroup>

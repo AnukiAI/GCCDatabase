@@ -23,10 +23,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCCWebApp.Security.Tests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCCWebApp.Performance.Tests", "GCCWebApp.Performance.Tests\GCCWebApp.Performance.Tests.csproj", "{5F555F49-A438-4226-B065-13FF7E6BDD09}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GCCWebApp.RoleBasedUI.Tests2", "GCCWebApp.RoleBasedUI.Tests2", "{BD8BB43C-A309-3C23-DD48-1EA6D5945718}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCCWebApp.RoleBasedUI.Tests", "GCCWebApp.RoleBasedUI.Tests2\GCCWebApp.RoleBasedUI.Tests.csproj", "{937033C1-82A2-4DD2-8733-02831D9DC2DE}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -157,23 +153,8 @@ Global
 		{5F555F49-A438-4226-B065-13FF7E6BDD09}.Release|x64.Build.0 = Release|Any CPU
 		{5F555F49-A438-4226-B065-13FF7E6BDD09}.Release|x86.ActiveCfg = Release|Any CPU
 		{5F555F49-A438-4226-B065-13FF7E6BDD09}.Release|x86.Build.0 = Release|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Debug|x64.Build.0 = Debug|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Debug|x86.Build.0 = Debug|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Release|Any CPU.Build.0 = Release|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Release|x64.ActiveCfg = Release|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Release|x64.Build.0 = Release|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Release|x86.ActiveCfg = Release|Any CPU
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
-	EndGlobalSection
-	GlobalSection(NestedProjects) = preSolution
-		{937033C1-82A2-4DD2-8733-02831D9DC2DE} = {BD8BB43C-A309-3C23-DD48-1EA6D5945718}
 	EndGlobalSection
 EndGlobal

@@ -7,6 +7,7 @@ using Microsoft.Extensions.Logging;
 using Moq;
 using GCCWebApp.Controllers;
 using GCCWebApp.Data;
+using GCCWebApp.Middleware;
 using GCCWebApp.Models;
 using GCCWebApp.Services;
 using System.Security.Claims;
@@ -33,7 +34,7 @@ namespace GCCWebApp.Tests.Controllers
             _context = new ApplicationDbContext(options);
             _loggerMock = new Mock<ILogger<AdminController>>();
             _adminServiceMock = new Mock<IAdminService>();
-            _controller = new AdminController(_adminServiceMock.Object, _loggerMock.Object, _context);
+            _controller = new AdminController(_adminServiceMock.Object, _loggerMock.Object, _context, new RateLimitOptions());
 
             SetupAdminUser();
         }

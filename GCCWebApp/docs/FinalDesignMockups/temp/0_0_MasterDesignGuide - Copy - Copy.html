@@ -1,0 +1,1654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Certified Database Design Guide</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Base styles */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Typography */
+        h1, h2, h3, h4, h5, h6 {
+            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif;
+            color: #002876;
+            margin-top: 0;
+        }
+
+        h1 {
+            font-size: 2rem;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        h2 {
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        h4 {
+            font-size: 1.25rem;
+            margin-bottom: 0.5rem;
+        }
+
+        p {
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        /* Colors */
+        :root {
+            --forest-green: #447638;
+            --lime-green: #92C83E;
+            --ocean-blue: #00AEEF;
+            --navy-blue: #002876;
+            --off-white: #f9f9f9;
+        }
+
+        /* Sections */
+        .section {
+            margin-bottom: 3rem;
+        }
+
+        /* Cards */
+        .card {
+            background-color: white;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .card-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .card-grid-3 {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        /* File upload */
+        .file-upload {
+            border: 2px dashed #ccc;
+            border-radius: 0.25rem;
+            padding: 1.5rem;
+            text-align: center;
+            background-color: #f9f9f9;
+            color: #666;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+            .file-upload:hover {
+                border-color: var(--ocean-blue);
+                background-color: rgba(0, 174, 239, 0.05);
+            }
+
+        .feature-card {
+            background-color: var(--off-white);
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            border-radius: 9999px;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            font-family: inherit;
+        }
+
+            .btn:focus {
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.3);
+            }
+
+        .btn-primary {
+            background-color: var(--lime-green);
+            color: white;
+        }
+
+            .btn-primary:hover {
+                background-color: var(--forest-green);
+            }
+
+        .btn-secondary {
+            background-color: var(--ocean-blue);
+            color: white;
+        }
+
+            .btn-secondary:hover {
+                background-color: #0092c8;
+            }
+
+        .btn-tertiary {
+            background-color: transparent;
+            border: 2px solid var(--forest-green);
+            color: #333;
+        }
+
+            .btn-tertiary:hover {
+                background-color: rgba(68, 118, 56, 0.1);
+            }
+
+        .btn-lg {
+            padding: 0.75rem 1.5rem;
+            font-size: 1.125rem;
+        }
+
+        .btn-sm {
+            padding: 0.25rem 1rem;
+            font-size: 0.875rem;
+        }
+
+        /* Forms */
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #555;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+            .form-control:focus {
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.3);
+                border-color: var(--ocean-blue);
+            }
+
+        .select-wrapper {
+            position: relative;
+        }
+
+            .select-wrapper::after {
+                content: '▼';
+                font-size: 0.8rem;
+                position: absolute;
+                right: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #555;
+                pointer-events: none;
+            }
+
+        /* Checkbox and Radio */
+        .checkbox-wrapper, .radio-wrapper {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+
+            .checkbox-wrapper input, .radio-wrapper input {
+                margin-right: 0.5rem;
+            }
+
+        /* Icon grid */
+        .icon-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        @media (min-width: 768px) {
+            .icon-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+
+        .icon-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 0.25rem;
+            background-color: #f9f9f9;
+        }
+
+        .icon-circle {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 0.5rem;
+        }
+
+            .icon-circle i {
+                color: white;
+                font-size: 1.5rem;
+            }
+
+        /* Spacing demonstration */
+        .spacing-demo {
+            display: flex;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .spacing-label {
+            width: 4rem;
+            font-weight: 500;
+            font-size: 0.875rem;
+        }
+
+        .spacing-bar {
+            height: 2rem;
+            background-color: var(--ocean-blue);
+            opacity: 0.5;
+        }
+
+        .spacing-value {
+            margin-left: 1rem;
+            font-size: 0.875rem;
+            color: #555;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 40, 118, 0.7);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-container {
+            background-color: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            max-width: 28rem;
+            width: 100%;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #555;
+            font-size: 1.25rem;
+        }
+
+        /* Tooltip */
+        .tooltip-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--navy-blue);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            white-space: nowrap;
+            font-size: 0.875rem;
+            z-index: 100;
+            margin-bottom: 0.5rem;
+            display: none;
+        }
+
+        .tooltip-container:hover .tooltip {
+            display: block;
+        }
+
+        /* Navbar */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background-color: var(--off-white);
+            border-radius: 0.5rem;
+        }
+
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--navy-blue);
+            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif;
+        }
+
+        .navbar-nav {
+            display: none;
+        }
+
+        @media (min-width: 768px) {
+            .navbar-nav {
+                display: flex;
+                gap: 1.5rem;
+            }
+        }
+
+        .navbar-nav a {
+            color: #555;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            padding: 0.5rem 0.75rem;
+            border-radius: 9999px;
+            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif;
+        }
+
+            .navbar-nav a:hover {
+                background-color: #555;
+                color: white;
+            }
+
+        .navbar-toggler {
+            display: block;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #555;
+            font-size: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .navbar-toggler {
+                display: none;
+            }
+        }
+
+        /* Accordion */
+        .accordion {
+            border: 1px solid var(--forest-green);
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .accordion-button {
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--off-white);
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            border: none;
+            font-family: inherit;
+            font-weight: 500;
+            color: var(--navy-blue);
+        }
+
+            .accordion-button:focus {
+                outline: none;
+                box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.3);
+            }
+
+        .accordion-content {
+            display: none;
+            padding: 1rem;
+            background-color: var(--off-white);
+        }
+
+        /* Tabs */
+        .tabs {
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-list {
+            display: flex;
+            border-bottom: 1px solid var(--forest-green);
+        }
+
+        .tab-button {
+            padding: 0.5rem 1rem;
+            background: none;
+            border: none;
+            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            color: #555;
+        }
+
+            .tab-button.active {
+                border-bottom: 3px solid var(--ocean-blue);
+                color: var(--navy-blue);
+            }
+
+        .tab-content {
+            display: none;
+            padding: 1rem;
+            background-color: var(--off-white);
+            border-radius: 0 0 0.5rem 0.5rem;
+        }
+
+            .tab-content.active {
+                display: block;
+            }
+
+        /* Progress Bar */
+        .progress-bar {
+            height: 1rem;
+            background-color: #eee;
+            border-radius: 9999px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background-color: var(--lime-green);
+            width: 50%; /* Initial value, will be changed by JS */
+            transition: width 0.3s ease-in-out;
+        }
+
+        /* Toggle Switch */
+        .toggle {
+            position: relative;
+            display: inline-block;
+            width: 48px;
+            height: 24px;
+        }
+
+        .toggle-input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            border-radius: 34px;
+            transition: .4s;
+            cursor: pointer;
+        }
+
+            .toggle-slider:before {
+                position: absolute;
+                content: "";
+                height: 20px;
+                width: 20px;
+                left: 2px;
+                bottom: 2px;
+                background-color: white;
+                border-radius: 50%;
+                transition: .4s;
+            }
+
+        .toggle-input:checked + .toggle-slider {
+            background-color: var(--lime-green);
+        }
+
+            .toggle-input:checked + .toggle-slider:before {
+                transform: translateX(24px);
+            }
+
+        /* Search container */
+        .search-container {
+            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.5rem 1rem;
+            padding-right: 2.5rem;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+            font-family: inherit;
+            font-size: 1rem;
+        }
+
+        .search-icon {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #6b7280;
+        }
+
+        .add-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background-color: var(--lime-green);
+            color: white;
+            border: none;
+            border-radius: 0.25rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+            .add-btn:hover {
+                background-color: var(--forest-green);
+            }
+
+        .upload-container {
+            border: 1px solid #ddd;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            background-color: white;
+            margin-bottom: 1.5rem;
+        }
+
+            .upload-container .form-group:last-child {
+                margin-bottom: 0;
+            }
+
+        /* Input with button and unit styling */
+        .input-with-button, .input-with-unit {
+            display: flex;
+        }
+
+            .input-with-button input {
+                border-right: none;
+                border-top-right-radius: 0;
+                border-bottom-right-radius: 0;
+            }
+
+            .input-with-button button {
+                border-top-left-radius: 0;
+                border-bottom-left-radius: 0;
+            }
+
+            .input-with-unit input {
+                flex-grow: 1;
+            }
+
+            .input-with-unit span {
+                display: inline-flex;
+                align-items: center;
+                padding: 0 12px;
+                background-color: #f3f3f3;
+                border: 1px solid #ccc;
+                border-left: none;
+                border-top-right-radius: 0.25rem;
+                border-bottom-right-radius: 0.25rem;
+                color: #555;
+            }
+
+        /* Grid layouts */
+        .card-grid-2 {
+            display: grid;
+            grid-template-columns: repeat(1, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .card-grid-2 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        /* Utility classes */
+        .mb-1 {
+            margin-bottom: 0.25rem;
+        }
+
+        .mb-2 {
+            margin-bottom: 0.5rem;
+        }
+
+        .mb-3 {
+            margin-bottom: 0.75rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1rem;
+        }
+
+        .mb-6 {
+            margin-bottom: 1.5rem;
+        }
+
+        .mt-3 {
+            margin-top: 0.75rem;
+        }
+
+        .mt-4 {
+            margin-top: 1rem;
+        }
+
+        .p-3 {
+            padding: 0.75rem;
+        }
+
+        .p-4 {
+            padding: 1rem;
+        }
+
+        .text-right {
+            text-align: right;
+        }
+
+        .flex {
+            display: flex;
+        }
+
+        .items-center {
+            align-items: center;
+        }
+
+        .justify-center {
+            justify-content: center;
+        }
+
+        .justify-between {
+            justify-content: space-between;
+        }
+
+        .space-x-3 > * + * {
+            margin-left: 0.75rem;
+        }
+
+        .space-x-4 > * + * {
+            margin-left: 1rem;
+        }
+
+        .space-x-8 > * + * {
+            margin-left: 2rem;
+        }
+
+        .w-full {
+            width: 100%;
+        }
+
+        .text-gray-500 {
+            color: #6b7280;
+        }
+
+        .text-gray-600 {
+            color: #4b5563;
+        }
+
+        .text-gray-700 {
+            color: #374151;
+        }
+
+        .list-disc {
+            list-style-type: disc;
+            padding-left: 1.5rem;
+        }
+
+        .relative {
+            position: relative;
+        }
+
+        .ml-2 {
+            margin-left: 0.5rem;
+        }
+
+        .flex-col {
+            flex-direction: column;
+        }
+
+        .flex-row {
+            flex-direction: row;
+        }
+
+        /* Tab Styles */
+        .tab {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-family: "Century Gothic", CenturyGothic, AppleGothic, sans-serif;
+            font-weight: 500;
+            color: #555;
+            transition: all 0.3s ease;
+        }
+
+            .tab.active {
+                border-bottom: 3px solid var(--ocean-blue);
+                color: var(--navy-blue);
+            }
+
+        .tab-content {
+            display: none;
+            padding: 1rem;
+            background-color: #fff;
+            border-radius: 0 0 0.25rem 0.25rem;
+        }
+
+            .tab-content.active {
+                display: block;
+            }
+
+        .tab-list {
+            display: flex;
+            border-bottom: 1px solid var(--forest-green);
+            margin-bottom: 1rem;
+        }
+
+        /* Progress Bar Styles */
+        .progress-container {
+            background-color: #f0f0f0;
+            border-radius: 0.25rem;
+            overflow: hidden;
+            height: 1.5rem;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: var(--lime-green);
+            transition: width 0.3s ease;
+        }
+
+        .space-y-1 > * + * {
+            margin-top: 0.25rem;
+        }
+
+        .pl-5 {
+            padding-left: 1.25rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="mb-12">
+            <h1>GCC Certified Database Design Guide</h1>
+            <p class="text-lg text-gray-700">A comprehensive guide for sustainable web design implementation</p>
+        </header>
+
+        <!-- Typography Section -->
+        <section class="section">
+            <h2>Typography</h2>
+            <div class="card mb-6">
+                <h3>Font Pairings</h3>
+                <div class="mb-6">
+                    <h4>Primary Font</h4>
+                    <div class="card-grid">
+                        <div class="feature-card">
+                            <p class="mb-2 text-sm text-gray-500">Headings: Century Gothic (Bold)</p>
+                            <h5 class="text-3xl font-bold" style="font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif; color: var(--navy-blue);">
+                                Sustainable Future
+                            </h5>
+                        </div>
+                        <div class="feature-card">
+                            <p class="mb-2 text-sm text-gray-500">Body: Century Gothic (Regular)</p>
+                            <p style="font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;">
+                                Clean, modern, and distinctive geometric sans-serif typeface with excellent readability. Its rounded, open letterforms create a contemporary, eco-friendly aesthetic.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div>
+                    <h4>Alternative Pairing</h4>
+                    <div class="card-grid">
+                        <div class="feature-card">
+                            <p class="mb-2 text-sm text-gray-500">Headings: Century Gothic (Bold)</p>
+                            <h5 class="text-3xl font-bold" style="font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif; color: var(--navy-blue);">
+                                Eco Innovation
+                            </h5>
+                        </div>
+                        <div class="feature-card">
+                            <p class="mb-2 text-sm text-gray-500">Body: Arial (Regular) - Fallback</p>
+                            <p style="font-family: Arial, sans-serif;">
+                                When Century Gothic isn't available, Arial serves as an excellent fallback with good readability and clean design for long-form content.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card">
+                <h3>Typographic Scale</h3>
+                <div class="space-y-3">
+                    <div class="p-3 border-l-4" style="border-color: var(--ocean-blue);">
+                        <h1 class="text-4xl font-bold" style="color: var(--navy-blue);">H1: Page Title (2rem/32px)</h1>
+                    </div>
+                    <div class="p-3 border-l-4" style="border-color: var(--ocean-blue);">
+                        <h2 class="text-3xl font-bold" style="color: var(--navy-blue);">H2: Section Header (1.75rem/28px)</h2>
+                    </div>
+                    <div class="p-3 border-l-4" style="border-color: var(--ocean-blue);">
+                        <h3 class="text-2xl font-bold" style="color: var(--navy-blue);">H3: Subsection Title (1.5rem/24px)</h3>
+                    </div>
+                    <div class="p-3 border-l-4" style="border-color: var(--ocean-blue);">
+                        <h4 class="text-xl font-bold" style="color: var(--navy-blue);">H4: Group Heading (1.25rem/20px)</h4>
+                    </div>
+                    <div class="p-3 border-l-4" style="border-color: var(--ocean-blue);">
+                        <p class="text-base">Body Text (1rem/16px): Main content text used throughout the website.</p>
+                    </div>
+                    <div class="p-3 border-l-4" style="border-color: var(--ocean-blue);">
+                        <p class="text-sm">Small Text (0.875rem/14px): Used for captions, footnotes, and supplementary information.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- UI Components Section -->
+        <section class="section">
+            <h2>UI Components</h2>
+            <!-- Buttons -->
+            <div class="card mb-6">
+                <h3>Buttons</h3>
+                <div class="card-grid card-grid-3 mb-6">
+                    <div class="feature-card flex flex-col items-center">
+                        <button class="btn btn-primary">Primary Button</button>
+                        <p class="mt-3 text-sm text-gray-500">Used for main actions</p>
+                    </div>
+                    <div class="feature-card flex flex-col items-center">
+                        <button class="btn btn-secondary">Secondary Button</button>
+                        <p class="mt-3 text-sm text-gray-500">Used for alternative actions</p>
+                    </div>
+                    <div class="feature-card flex flex-col items-center">
+                        <button class="btn btn-tertiary">Tertiary Button</button>
+                        <p class="mt-3 text-sm text-gray-500">Used for optional actions</p>
+                    </div>
+                </div>
+                <div class="card-grid">
+                    <div class="feature-card">
+                        <h4 class="font-medium mb-3">States</h4>
+                        <div class="space-y-3">
+                            <button class="btn btn-primary w-full">Default</button>
+                            <button class="btn w-full text-white" style="background-color: #7daf30;">Hover</button>
+                            <button class="btn w-full text-white" style="background-color: #6a9628;">Active/Pressed</button>
+                            <button class="btn btn-primary w-full" style="opacity: 0.5;" disabled>Disabled</button>
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <h4 class="font-medium mb-3">Size Variations</h4>
+                        <div class="space-y-3">
+                            <button class="btn btn-primary btn-lg">Large</button>
+                            <div>
+                                <button class="btn btn-primary">Medium</button>
+                            </div>
+                            <button class="btn btn-primary btn-sm">Small</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Elements -->
+            <div class="card mb-6">
+                <h3>Form Elements</h3>
+                <div class="flex flex-col md:flex-row md:space-x-8">
+                    <div class="w-full md:w-1/2">
+                        <div class="form-group">
+                            <label class="form-label" for="text-input">Text Input</label>
+                            <input id="text-input" type="text" class="form-control" placeholder="Enter text here">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="text-input-disabled">Disabled Input</label>
+                            <input id="text-input-disabled" type="text" class="form-control" placeholder="Disabled input" disabled>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="select-dropdown">Select Dropdown</label>
+                            <div class="select-wrapper">
+                                <select id="select-dropdown" class="form-control">
+                                    <option>Select an option</option>
+                                    <option>Option 1</option>
+                                    <option>Option 2</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="textarea">Textarea</label>
+                            <textarea id="textarea" class="form-control" rows="4" placeholder="Enter multiple lines of text"></textarea>
+                        </div>
+                    </div>
+                    <div class="w-full md:w-1/2">
+                        <div class="form-group">
+                            <label class="form-label">Checkbox</label>
+                            <div class="checkbox-wrapper">
+                                <input id="checkbox-input" type="checkbox">
+                                <span>Checkbox Label</span>
+                            </div>
+                            <div class="checkbox-wrapper">
+                                <input id="checkbox-input-2" type="checkbox" checked>
+                                <span>Checked Checkbox</span>
+                            </div>
+                            <div class="checkbox-wrapper">
+                                <input id="checkbox-input-3" type="checkbox" disabled>
+                                <span class="text-gray-500">Disabled Checkbox</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Radio Button</label>
+                            <div class="radio-wrapper">
+                                <input id="radio-input-1" type="radio" name="radio-group">
+                                <span>Option One</span>
+                            </div>
+                            <div class="radio-wrapper">
+                                <input id="radio-input-2" type="radio" name="radio-group" checked>
+                                <span>Option Two (Selected)</span>
+                            </div>
+                            <div class="radio-wrapper">
+                                <input id="radio-input-3" type="radio" name="radio-group" disabled>
+                                <span class="text-gray-500">Option Three (Disabled)</span>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="range-slider">Range Slider</label>
+                            <input id="range-slider" type="range" min="0" max="100" value="50" class="w-full">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Toggle Switch</label>
+                            <div class="flex items-center">
+                                <label class="toggle">
+                                    <input type="checkbox" class="toggle-input">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                                <span class="ml-2">Eco Mode</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-4 bg-gray-50 rounded">
+                    <h4 class="font-medium mb-3">Input Group</h4>
+                    <div class="form-group">
+                        <label class="form-label" for="input-with-icon">Input with Icon</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fas fa-search text-gray-500"></i>
+                            </div>
+                            <input id="input-with-icon" type="text" class="form-control pl-10" placeholder="Search...">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="input-with-button">Input with Button</label>
+                        <div class="input-with-button">
+                            <input id="input-with-button" type="text" class="form-control" placeholder="Enter email...">
+                            <button class="btn btn-primary">Subscribe</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-0">
+                        <label class="form-label" for="input-with-unit">Input with Unit</label>
+                        <div class="input-with-unit">
+                            <input id="input-with-unit" type="number" class="form-control" placeholder="0">
+                            <span>kg</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-4 bg-gray-50 rounded">
+                    <h4 class="font-medium mb-3">Certificate Management</h4>
+                    <div class="search-container">
+                        <input type="text" id="search-input" class="search-input" placeholder="Search certificate types...">
+                        <i class="fas fa-search search-icon"></i>
+                    </div>
+                    <button id="add-certtype-btn" class="add-btn">
+                        <i class="fas fa-plus"></i> Add New Certificate Type
+                    </button>
+
+                    <!-- File Upload Component -->
+                    <div class="upload-container mt-4">
+                        <h4 class="font-medium mb-3">File Upload</h4>
+                        <div class="form-group">
+                            <label class="form-label" for="certificate-name">Certificate Name</label>
+                            <input id="certificate-name" type="text" class="form-control" placeholder="Certificate Name">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="certificate-type">Certification Type</label>
+                            <div class="select-wrapper">
+                                <select id="certificate-type" class="form-control">
+                                    <option selected disabled>Select certificate type</option>
+                                    <option>ISO 9001</option>
+                                    <option>ISO 14001</option>
+                                    <option>ISO 27001</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Upload PDF</label>
+                            <div class="file-upload" id="file-upload-1">
+                                Drag and drop your certificate here or click to select
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <button class="btn btn-primary">Upload & Save</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cards -->
+            <div class="card">
+                <h3>Cards</h3>
+                <div class="card-grid card-grid-3">
+                    <div class="card" style="background-color: var(--off-white);">
+                        <div style="height: 10rem; background-color: #ccc;"></div>
+                        <div class="p-4">
+                            <h4 class="font-bold mb-2" style="color: var(--navy-blue);">Card Title</h4>
+                            <p class="text-gray-700 mb-4">This is some text within a card body.</p>
+                            <button class="btn btn-primary btn-sm">Learn More</button>
+                        </div>
+                    </div>
+                    <div class="card" style="background-color: var(--off-white);">
+                        <div class="p-4">
+                            <h4 class="font-bold mb-2" style="color: var(--navy-blue);">Feature Card</h4>
+                            <div class="flex items-center mb-3">
+                                <div class="icon-circle" style="background-color: var(--forest-green); width: 2rem; height: 2rem;">
+                                    <i class="fas fa-check"></i>
+                                </div>
+                                <span class="ml-2 font-medium">Eco-friendly Feature</span>
+                            </div>
+                            <p class="text-gray-700">Descriptive text about this eco-friendly feature or benefit.</p>
+                        </div>
+                    </div>
+                    <div class="card" style="border-top: 4px solid var(--lime-green); background-color: var(--off-white);">
+                        <div class="p-4">
+                            <h4 class="font-bold mb-2" style="color: var(--navy-blue);">Sustainability Tip</h4>
+                            <p class="text-gray-700 mb-3">This card style is used for highlighting important sustainability tips and information.</p>
+                            <div class="text-right">
+                                <a href="#" class="font-medium" style="color: var(--forest-green);">More Tips</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Icon Set -->
+        <section class="section">
+            <h2>Icon Set (Font Awesome)</h2>
+            <div class="card">
+                <div class="icon-grid">
+                    <div class="icon-item">
+                        <div class="icon-circle" style="background-color: var(--forest-green);">
+                            <i class="fas fa-recycle"></i>
+                        </div>
+                        <span class="text-sm">Recycle</span>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon-circle" style="background-color: var(--ocean-blue);">
+                            <i class="fas fa-leaf"></i>
+                        </div>
+                        <span class="text-sm">Leaf</span>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon-circle" style="background-color: var(--forest-green);">
+                            <i class="fas fa-tint"></i>
+                        </div>
+                        <span class="text-sm">Water</span>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon-circle" style="background-color: var(--ocean-blue);">
+                            <i class="fas fa-sun"></i>
+                        </div>
+                        <span class="text-sm">Sun</span>
+                    </div>
+                    <div class="icon-item">
+                        <div class="icon-circle" style="background-color: var(--forest-green);">
+                            <i class="fas fa-globe-americas"></i>
+                        </div>
+                        <span class="text-sm">Globe</span>
+                    </div>
+                </div>
+                <div class="mt-6 p-4 bg-gray-50 rounded">
+                    <h4 class="font-medium mb-2">Font Awesome Implementation</h4>
+                    <p class="mb-3 text-sm">Include Font Awesome in your project by adding the following to your HTML head:</p>
+                    <div class="bg-gray-800 text-white p-3 rounded text-sm font-mono mb-4">
+                        &lt;link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"&gt;
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Spacing & Layout -->
+        <section class="section">
+            <h2>Spacing & Layout</h2>
+            <div class="card">
+                <h3>Spacing System</h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <div>
+                        <h4 class="font-medium mb-3">Base Unit: 8px</h4>
+                        <div class="space-y-3">
+                            <div class="spacing-demo">
+                                <div class="spacing-label">xs</div>
+                                <div class="spacing-bar" style="width: 4px;"></div>
+                                <div class="spacing-value">4px (0.5×)</div>
+                            </div>
+                            <div class="spacing-demo">
+                                <div class="spacing-label">sm</div>
+                                <div class="spacing-bar" style="width: 8px;"></div>
+                                <div class="spacing-value">8px (1×)</div>
+                            </div>
+                            <div class="spacing-demo">
+                                <div class="spacing-label">md</div>
+                                <div class="spacing-bar" style="width: 16px;"></div>
+                                <div class="spacing-value">16px (2×)</div>
+                            </div>
+                            <div class="spacing-demo">
+                                <div class="spacing-label">lg</div>
+                                <div class="spacing-bar" style="width: 24px;"></div>
+                                <div class="spacing-value">24px (3×)</div>
+                            </div>
+                            <div class="spacing-demo">
+                                <div class="spacing-label">xl</div>
+                                <div class="spacing-bar" style="width: 32px;"></div>
+                                <div class="spacing-value">32px (4×)</div>
+                            </div>
+                            <div class="spacing-demo">
+                                <div class="spacing-label">2xl</div>
+                                <div class="spacing-bar" style="width: 48px;"></div>
+                                <div class="spacing-value">48px (6×)</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        <section>
+            <!-- Tabs -->
+            <div class="card mb-6">
+                <h3>Tabs</h3>
+                <div class="p-4 bg-gray-50 rounded mb-4">
+                    <div class="tabs">
+                        <div class="tab-list">
+                            <div class="tab active" data-tab="tab1">Renewable Energy</div>
+                            <div class="tab" data-tab="tab2">Recycling</div>
+                            <div class="tab" data-tab="tab3">Conservation</div>
+                        </div>
+                        <div class="tab-content active" id="tab1">
+                            <p class="text-gray-700">Explore solar, wind, and hydro energy solutions for a sustainable future.</p>
+                        </div>
+                        <div class="tab-content" id="tab2">
+                            <p class="text-gray-700">Learn best practices for recycling plastics, paper, and electronics.</p>
+                        </div>
+                        <div class="tab-content" id="tab3">
+                            <p class="text-gray-700">Discover ways to conserve water and energy in daily life.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-4 bg-gray-50 rounded">
+                    <h4 class="font-medium mb-3">Guidelines</h4>
+                    <ul class="list-disc pl-5 space-y-1 text-sm">
+                        <li>Use tabs to organize related content into switchable sections.</li>
+                        <li>Limit to 3-5 tabs to avoid overwhelming users.</li>
+                        <li>Highlight active tab with a clear visual indicator (e.g., border, color).</li>
+                        <li>Ensure accessibility with keyboard navigation and ARIA roles.</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="card mb-6">
+                <h3>Progress Bar</h3>
+                <div class="p-4 bg-gray-50 rounded mb-4">
+                    <div class="progress-container">
+                        <div class="progress-bar" id="progressBar" style="width: 60%;"></div>
+                    </div>
+                    <div class="mt-4 flex space-x-4">
+                        <button class="btn btn-secondary" id="decreaseBtn">Decrease</button>
+                        <button class="btn btn-primary" id="increaseBtn">Increase</button>
+                    </div>
+                </div>
+                <div class="p-4 bg-gray-50 rounded">
+                    <h4 class="font-medium mb-3">Guidelines</h4>
+                    <ul class="list-disc pl-5 space-y-1 text-sm">
+                        <li>Use progress bars for tasks longer than 1-2 seconds (e.g., uploads, loading).</li>
+                        <li>Provide clear visual feedback with a contrasting fill color.</li>
+                        <li>Include percentage or status text for clarity if needed.</li>
+                        <li>Ensure smooth transitions for dynamic updates.</li>
+                    </ul>
+                </div>
+            </div>
+
+        </section>
+    </div>
+
+    <script>
+        // Interactive elements
+        document.addEventListener('DOMContentLoaded', function () {
+            // Modal functionality
+            const modalButtons = document.querySelectorAll('[data-toggle="modal"]');
+            const modalCloseButtons = document.querySelectorAll('.modal-close');
+            const modalOverlays = document.querySelectorAll('.modal-overlay');
+
+            modalButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const targetModal = document.querySelector(this.getAttribute('data-target'));
+                    if (targetModal) {
+                        targetModal.style.display = 'flex';
+                    }
+                });
+            });
+
+            modalCloseButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const modal = this.closest('.modal-overlay');
+                    if (modal) {
+                        modal.style.display = 'none';
+                    }
+                });
+            });
+
+            modalOverlays.forEach(overlay => {
+                overlay.addEventListener('click', function (e) {
+                    if (e.target === this) {
+                        this.style.display = 'none';
+                    }
+                });
+            });
+
+            // Accordion functionality
+            const accordionButtons = document.querySelectorAll('.accordion-button');
+
+            accordionButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const content = this.nextElementSibling;
+
+                    // Toggle icon
+                    const icon = this.querySelector('i');
+                    if (icon) {
+                        icon.classList.toggle('fa-chevron-down');
+                        icon.classList.toggle('fa-chevron-up');
+                    }
+
+                    // Toggle content
+                    if (content.style.display === 'block') {
+                        content.style.display = 'none';
+                    } else {
+                        content.style.display = 'block';
+                    }
+                });
+            });
+
+            // Tabs functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+
+            tabButtons.forEach(button => {
+                button.addEventListener('click', function () {
+                    const tabId = this.getAttribute('data-tab');
+
+                    // Remove active class from all buttons and content
+                    document.querySelectorAll('.tab-button').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+
+                    // Add active class to current button and content
+                    this.classList.add('active');
+                    document.getElementById(tabId).classList.add('active');
+                });
+            });
+
+            // Range slider value display
+            const rangeSliders = document.querySelectorAll('input[type="range"]');
+
+            rangeSliders.forEach(slider => {
+                // Create value display if it doesn't exist
+                let valueDisplay = slider.nextElementSibling;
+                if (!valueDisplay || !valueDisplay.classList.contains('range-value')) {
+                    valueDisplay = document.createElement('div');
+                    valueDisplay.classList.add('range-value');
+                    slider.parentNode.insertBefore(valueDisplay, slider.nextSibling);
+                }
+
+                // Update value initially
+                valueDisplay.textContent = slider.value;
+
+                // Update value on change
+                slider.addEventListener('input', function () {
+                    valueDisplay.textContent = this.value;
+                });
+            });
+
+            // File upload functionality
+            const fileUploads = document.querySelectorAll('.file-upload');
+
+            fileUploads.forEach(upload => {
+                // Create hidden file input
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.style.display = 'none';
+                fileInput.accept = '.pdf,.doc,.docx'; // Customize accepted file types
+                upload.appendChild(fileInput);
+
+                // Handle click on upload area
+                upload.addEventListener('click', function () {
+                    fileInput.click();
+                });
+
+                // Handle file selection
+                fileInput.addEventListener('change', function () {
+                    if (this.files && this.files[0]) {
+                        const fileName = this.files[0].name;
+                        upload.innerHTML = `<i class="fas fa-file-pdf"></i> ${fileName}`;
+                    }
+                });
+
+                // Handle drag and drop
+                upload.addEventListener('dragover', function (e) {
+                    e.preventDefault();
+                    this.style.borderColor = 'var(--lime-green)';
+                    this.style.backgroundColor = 'rgba(146, 200, 62, 0.1)';
+                });
+
+                upload.addEventListener('dragleave', function (e) {
+                    e.preventDefault();
+                    this.style.borderColor = '#ccc';
+                    this.style.backgroundColor = '#f9f9f9';
+                });
+
+                upload.addEventListener('drop', function (e) {
+                    e.preventDefault();
+                    this.style.borderColor = '#ccc';
+                    this.style.backgroundColor = '#f9f9f9';
+
+                    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                        const fileName = e.dataTransfer.files[0].name;
+                        upload.innerHTML = `<i class="fas fa-file-pdf"></i> ${fileName}`;
+                        fileInput.files = e.dataTransfer.files;
+                    }
+                });
+            });
+        });
+
+
+        // Tab functionality
+        const tabs = document.querySelectorAll('.tab');
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function () {
+                // Remove active class from all tabs
+                tabs.forEach(t => t.classList.remove('active'));
+
+                // Add active class to clicked tab
+                this.classList.add('active');
+
+                // Hide all tab content
+                const tabContents = document.querySelectorAll('.tab-content');
+                tabContents.forEach(content => content.classList.remove('active'));
+
+                // Show relevant tab content
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Progress bar functionality
+        const progressBar = document.getElementById('progressBar');
+        const increaseBtn = document.getElementById('increaseBtn');
+        const decreaseBtn = document.getElementById('decreaseBtn');
+
+        if (progressBar && increaseBtn && decreaseBtn) {
+            let progress = 60; // Initial value (60%)
+
+            increaseBtn.addEventListener('click', function () {
+                if (progress < 100) {
+                    progress += 10;
+                    progressBar.style.width = progress + '%';
+                }
+            });
+
+            decreaseBtn.addEventListener('click', function () {
+                if (progress > 0) {
+                    progress -= 10;
+                    progressBar.style.width = progress + '%';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
+<script>
+    // Interactive elements
+    document.addEventListener('DOMContentLoaded', function () {
+        // Modal functionality
+        const modalButtons = document.querySelectorAll('[data-toggle="modal"]');
+        const modalCloseButtons = document.querySelectorAll('.modal-close');
+        const modalOverlays = document.querySelectorAll('.modal-overlay');
+
+        modalButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const targetModal = document.querySelector(this.getAttribute('data-target'));
+                if (targetModal) {
+                    targetModal.style.display = 'flex';
+                }
+            });
+        });
+
+        modalCloseButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const modal = this.closest('.modal-overlay');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+
+        modalOverlays.forEach(overlay => {
+            overlay.addEventListener('click', function (e) {
+                if (e.target === this) {
+                    this.style.display = 'none';
+                }
+            });
+        });
+
+        // Accordion functionality
+        const accordionButtons = document.querySelectorAll('.accordion-button');
+
+        accordionButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const content = this.nextElementSibling;
+
+                // Toggle icon
+                const icon = this.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('fa-chevron-down');
+                    icon.classList.toggle('fa-chevron-up');
+                }
+
+                // Toggle content
+                if (content.style.display === 'block') {
+                    content.style.display = 'none';
+                } else {
+                    content.style.display = 'block';
+                }
+            });
+        });
+
+        // Tabs functionality
+        const tabButtons = document.querySelectorAll('.tab-button');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function () {
+                const tabId = this.getAttribute('data-tab');
+
+                // Remove active class from all buttons and content
+                document.querySelectorAll('.tab-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Add active class to current button and content
+                this.classList.add('active');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+
+        // Range slider value display
+        const rangeSliders = document.querySelectorAll('input[type="range"]');
+
+        rangeSliders.forEach(slider => {
+            // Create value display if it doesn't exist
+            let valueDisplay = slider.nextElementSibling;
+            if (!valueDisplay || !valueDisplay.classList.contains('range-value')) {
+                valueDisplay = document.createElement('div');
+                valueDisplay.classList.add('range-value');
+                slider.parentNode.insertBefore(valueDisplay, slider.nextSibling);
+            }
+
+            // Update value initially
+            valueDisplay.textContent = slider.value;
+
+            // Update value on change
+            slider.addEventListener('input', function () {
+                valueDisplay.textContent = this.value;
+            });
+        });
+
+        // File upload functionality
+        const fileUploads = document.querySelectorAll('.file-upload');
+
+        fileUploads.forEach(upload => {
+            // Create hidden file input
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.style.display = 'none';
+            fileInput.accept = '.pdf,.doc,.docx'; // Customize accepted file types
+            upload.appendChild(fileInput);
+
+            // Handle click on upload area
+            upload.addEventListener('click', function () {
+                fileInput.click();
+            });
+
+            // Handle file selection
+            fileInput.addEventListener('change', function () {
+                if (this.files && this.files[0]) {
+                    const fileName = this.files[0].name;
+                    upload.innerHTML = `<i class="fas fa-file-pdf"></i> ${fileName}`;
+                }
+            });
+
+            // Handle drag and drop
+            upload.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                this.style.borderColor = 'var(--lime-green)';
+                this.style.backgroundColor = 'rgba(146, 200, 62, 0.1)';
+            });
+
+            upload.addEventListener('dragleave', function (e) {
+                e.preventDefault();
+                this.style.borderColor = '#ccc';
+                this.style.backgroundColor = '#f9f9f9';
+            });
+
+            upload.addEventListener('drop', function (e) {
+                e.preventDefault();
+                this.style.borderColor = '#ccc';
+                this.style.backgroundColor = '#f9f9f9';
+
+                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                    const fileName = e.dataTransfer.files[0].name;
+                    upload.innerHTML = `<i class="fas fa-file-pdf"></i> ${fileName}`;
+                    fileInput.files = e.dataTransfer.files;
+                }
+            });
+        });
+    });
+
+    // Tab functionality
+    const tabs = document.querySelectorAll('.tab');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', function () {
+            // Remove active class from all tabs
+            tabs.forEach(t => t.classList.remove('active'));
+
+            // Add active class to clicked tab
+            this.classList.add('active');
+
+            // Hide all tab content
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+
+            // Show relevant tab content
+            const tabId = this.getAttribute('data-tab');
+            document.getElementById(tabId).classList.add('active');
+        });
+    });
+
+    // Progress bar functionality
+    const progressBar = document.getElementById('progressBar');
+    const increaseBtn = document.getElementById('increaseBtn');
+    const decreaseBtn = document.getElementById('decreaseBtn');
+
+    if (progressBar && increaseBtn && decreaseBtn) {
+        let progress = 60; // Initial value (60%)
+
+        increaseBtn.addEventListener('click', function () {
+            if (progress < 100) {
+                progress += 10;
+                progressBar.style.width = progress + '%';
+            }
+        });
+
+        decreaseBtn.addEventListener('click', function () {
+            if (progress > 0) {
+                progress -= 10;
+                progressBar.style.width = progress + '%';
+            }
+        });
+    }
+</script>

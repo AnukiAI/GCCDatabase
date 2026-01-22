@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenCircle Company Management</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --dark-green: #447638;
+            --light-green: #92C83E;
+            --light-blue: #00AEEF;
+            --dark-blue: #002B76;
+            --light-gray: #f9f9f9;
+            --border-color: #ddd;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            margin: 0;
+            background-color: var(--light-gray);
+            color: var(--text-color);
+        }
+
+        /* HEADER */
+        .header-top {
+            background-color: var(--light-green);
+            color: var(--dark-green);
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .logo-img {
+            background-color: white;
+            color: var(--dark-green);
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+        }
+
+        .nav-bar {
+            background-color: white;
+            padding: 10px 40px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-menu {
+            list-style: none;
+            display: flex;
+            gap: 20px;
+            padding: 0;
+            margin: 0;
+        }
+
+            .nav-menu li a {
+                text-decoration: none;
+                color: var(--dark-green);
+                font-weight: 600;
+            }
+
+                .nav-menu li a.active {
+                    color: var(--dark-blue);
+                    border-bottom: 3px solid var(--light-blue);
+                    padding-bottom: 3px;
+                }
+
+        /* SEARCH */
+        .search-box input {
+            padding: 8px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border-color);
+            width: 250px;
+        }
+
+        /* MAIN CONTAINER */
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            background: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        h1 {
+            color: var(--dark-green);
+            margin-top: 0;
+        }
+
+        /* BUTTONS */
+        .btn {
+            padding: 10px 16px;
+            border-radius: 25px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            margin-right: 10px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .btn-primary {
+            background-color: var(--light-green);
+            color: white;
+            font-weight: bold;
+        }
+
+            .btn-primary:hover {
+                background-color: var(--dark-green);
+            }
+
+        .btn-outline {
+            background-color: white;
+            border: 2px solid var(--light-blue);
+            color: var(--dark-blue);
+        }
+
+            .btn-outline:hover {
+                background-color: var(--light-blue);
+                color: white;
+            }
+
+        /* TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+        }
+
+        th {
+            background-color: var(--dark-green);
+            color: white;
+            cursor: pointer;
+            position: sticky;
+            top: 0;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f3f8f3;
+        }
+
+        .sort-icon {
+            margin-left: 8px;
+        }
+
+        /* ACTION BUTTONS */
+        .btn-edit, .btn-delete {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            margin-right: 5px;
+        }
+
+        .btn-edit {
+            color: var(--light-blue);
+        }
+
+        .btn-delete {
+            color: red;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 400px;
+            position: relative;
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-close {
+            position: absolute;
+            right: 15px;
+            top: 10px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-color);
+        }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: var(--light-blue);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+            .toast.show {
+                opacity: 1;
+            }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-top">
+        <div class="logo-area">
+            <div class="logo-img">GC</div>
+            GreenCircle Company Management
+        </div>
+    </div>
+
+    <div class="nav-bar">
+        <ul class="nav-menu">
+            <li><a href="#" class="active">Companies</a></li>
+            <li><a href="#">Certificates</a></li>
+            <li><a href="#">Products</a></li>
+        </ul>
+        <div class="search-box">
+            <input type="text" id="search-input" placeholder="Search companies...">
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>Company Management</h1>
+        <button class="btn btn-outline" id="import-btn">Import</button>
+        <button class="btn btn-outline" id="export-btn">Export</button>
+        <button class="btn btn-primary" id="add-company-btn">+ Add Company</button>
+
+        <table id="company-table">
+            <thead>
+                <tr>
+                    <th data-sort="name">Name <i class="fas fa-sort sort-icon"></i></th>
+                    <th data-sort="email">Email <i class="fas fa-sort sort-icon"></i></th>
+                    <th data-sort="phone">Phone <i class="fas fa-sort sort-icon"></i></th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        <p id="company-count">Showing 0 of 0 companies</p>
+    </div>
+
+    <div class="modal" id="company-modal">
+        <div class="modal-content">
+            <span class="modal-close">&times;</span>
+            <h3 id="modal-title">Add New Company</h3>
+            <form id="company-form">
+                <input type="hidden" id="company-id">
+                <div class="form-group">
+                    <input type="text" id="company-name" placeholder="Company Name" required>
+                    <input type="email" id="company-email" placeholder="Email">
+                    <input type="text" id="company-phone" placeholder="Phone">
+                    <input type="url" id="company-website" placeholder="Website">
+                    <input type="text" id="company-address" placeholder="Address">
+                </div>
+                <button type="submit" class="btn btn-primary">Save</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Success!</div>

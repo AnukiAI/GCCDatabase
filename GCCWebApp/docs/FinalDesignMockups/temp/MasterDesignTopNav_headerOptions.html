@@ -1,0 +1,926 @@
+import React, { useState } from 'react';
+
+const MoreHeaderVariations = () => {
+  const [activeHeader, setActiveHeader] = useState(1);
+
+  // Common CSS Variables
+  const styles = {
+    container: {
+      fontFamily: '"Century Gothic", sans-serif',
+      color: '#333',
+      maxWidth: '100%',
+      margin: '0 auto',
+    },
+    tabContainer: {
+      display: 'flex',
+      gap: '10px',
+      marginBottom: '20px',
+      background: '#f0f0f0',
+      padding: '10px',
+      borderRadius: '5px',
+      flexWrap: 'wrap'
+    },
+    tab: {
+      padding: '8px 16px',
+      cursor: 'pointer',
+      borderRadius: '4px',
+      fontWeight: 'bold',
+    },
+    activeTab: {
+      backgroundColor: '#92C83E',
+      color: 'white',
+    },
+    headerContainer: {
+      marginTop: '20px',
+      border: '1px solid #ddd',
+      borderRadius: '8px',
+      overflow: 'hidden',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+    },
+    placeholderImg: {
+      background: '#e0e0e0',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      color: '#666',
+      fontWeight: 'bold',
+    }
+  };
+
+  // Header Option 1: Transparent Overlay
+  const Header1 = () => (
+<header style={{
+      position: 'relative',
+      height: '350px',
+      overflow: 'hidden'
+    }}>
+    <div style={{
+        ...styles.placeholderImg,
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 1
+      }}>
+        Hero Background Image
+    </div>
+
+    <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        background: 'linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.3))',
+        zIndex: 2
+      }}></div>
+
+    <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        zIndex: 3,
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '20px 40px',
+        }}>
+            <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '15px',
+            fontSize: '22px',
+            fontWeight: 'bold',
+            color: 'white'
+          }}>
+                <div style={{
+              background: '#92C83E',
+              padding: '8px',
+              borderRadius: '5px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '30px',
+              height: '30px'
+            }}>GC</div>
+                GreenCircle
+            </div>
+
+            <div style={{
+            display: 'flex',
+            gap: '25px'
+          }}>
+                <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Home</a>
+                <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Companies</a>
+                <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Certificates</a>
+                <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Products</a>
+                <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Contact</a>
+            </div>
+        </div>
+
+        <div style={{
+          flex: 1,
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          textAlign: 'center',
+          padding: '0 20px'
+        }}>
+            <h1 style={{
+            fontSize: '36px',
+            color: 'white',
+            margin: '0 0 15px 0',
+            textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+          }}>
+                Simplify Company Management
+            </h1>
+            <p style={{
+            fontSize: '18px',
+            color: 'white',
+            maxWidth: '600px',
+            marginBottom: '25px',
+            textShadow: '0 1px 2px rgba(0,0,0,0.5)'
+          }}>
+                Streamline certification processes and manage your business efficiently
+            </p>
+            <button style={{
+            padding: '12px 30px',
+            borderRadius: '30px',
+            background: '#92C83E',
+            color: 'white',
+            border: 'none',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            cursor: 'pointer'
+          }}>
+                Get Started
+            </button>
+        </div>
+    </div>
+</header>
+  );
+
+  // Header Option 2: Glass Morphism
+  const Header2 = () => (
+<header style={{
+      background: 'linear-gradient(135deg, #f9fcf7, #e8f4e0)',
+      padding: '20px 40px',
+    }}>
+    <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        background: 'rgba(255, 255, 255, 0.7)',
+        backdropFilter: 'blur(10px)',
+        borderRadius: '15px',
+        padding: '15px 25px',
+        boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '15px'
+        }}>
+            <div style={{
+            ...styles.placeholderImg,
+            width: '45px',
+            height: '45px',
+            borderRadius: '10px'
+          }}>
+                Logo
+            </div>
+            <div style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: '#447638'
+          }}>
+                GreenCircle
+            </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: '30px',
+          alignItems: 'center'
+        }}>
+            <div style={{
+            display: 'flex',
+            gap: '25px'
+          }}>
+                <a href="#" style={{ color: '#447638', textDecoration: 'none', fontWeight: 'bold' }}>Dashboard</a>
+                <a href="#" style={{ color: '#002B76', textDecoration: 'none' }}>Companies</a>
+                <a href="#" style={{ color: '#002B76', textDecoration: 'none' }}>Certificates</a>
+                <a href="#" style={{ color: '#002B76', textDecoration: 'none' }}>Products</a>
+            </div>
+
+            <div style={{
+            width: '1px',
+            height: '30px',
+            background: '#ddd',
+            margin: '0 5px'
+          }}></div>
+
+            <div style={{
+            ...styles.placeholderImg,
+            width: '35px',
+            height: '35px',
+            borderRadius: '50%'
+          }}>
+                User
+            </div>
+        </div>
+    </div>
+
+    <div style={{
+        display: 'flex',
+        margin: '40px 0',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <div style={{
+          maxWidth: '500px'
+        }}>
+            <h1 style={{
+            fontSize: '36px',
+            color: '#447638',
+            margin: '0 0 15px 0'
+          }}>
+                Manage Your Green Certifications
+            </h1>
+            <p style={{
+            fontSize: '16px',
+            color: '#666',
+            lineHeight: '1.6',
+            marginBottom: '25px'
+          }}>
+                Our all-in-one platform helps you track, manage, and grow your sustainable business practices with ease.
+            </p>
+            <div style={{
+            display: 'flex',
+            gap: '15px'
+          }}>
+                <button style={{
+              padding: '10px 24px',
+              borderRadius: '8px',
+              background: '#92C83E',
+              color: 'white',
+              border: 'none',
+              fontSize: '15px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}>
+                    View Dashboard
+                </button>
+                <button style={{
+              padding: '10px 24px',
+              borderRadius: '8px',
+              background: 'transparent',
+              color: '#447638',
+              border: '1px solid #92C83E',
+              fontSize: '15px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}>
+                    Explore Features
+                </button>
+            </div>
+        </div>
+
+        <div style={{
+          ...styles.placeholderImg,
+          width: '350px',
+          height: '250px',
+          borderRadius: '15px'
+        }}>
+            Featured Image
+        </div>
+    </div>
+</header>
+  );
+
+  // Header Option 3: Side Navigation
+  const Header3 = () => (
+<div style={{
+      display: 'flex',
+      height: '400px'
+    }}>
+    <div style={{
+        width: '250px',
+        background: '#447638',
+        color: 'white',
+        padding: '25px 0',
+        display: 'flex',
+        flexDirection: 'column'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          padding: '0 20px',
+          marginBottom: '40px'
+        }}>
+            <div style={{
+            background: 'white',
+            color: '#447638',
+            width: '30px',
+            height: '30px',
+            borderRadius: '5px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 'bold'
+          }}>
+                GC
+            </div>
+            <div style={{
+            fontSize: '18px',
+            fontWeight: 'bold'
+          }}>
+                GreenCircle
+            </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1
+        }}>
+            <a href="#" style={{
+            color: 'white',
+            textDecoration: 'none',
+            padding: '12px 20px',
+            borderLeft: '4px solid #92C83E',
+            background: 'rgba(255,255,255,0.1)'
+          }}>
+                Dashboard
+            </a>
+            <a href="#" style={{
+            color: 'white',
+            textDecoration: 'none',
+            padding: '12px 20px',
+            borderLeft: '4px solid transparent'
+          }}>
+                Companies
+            </a>
+            <a href="#" style={{
+            color: 'white',
+            textDecoration: 'none',
+            padding: '12px 20px',
+            borderLeft: '4px solid transparent'
+          }}>
+                Certificates
+            </a>
+            <a href="#" style={{
+            color: 'white',
+            textDecoration: 'none',
+            padding: '12px 20px',
+            borderLeft: '4px solid transparent'
+          }}>
+                Products
+            </a>
+            <a href="#" style={{
+            color: 'white',
+            textDecoration: 'none',
+            padding: '12px 20px',
+            borderLeft: '4px solid transparent'
+          }}>
+                Reports
+            </a>
+            <a href="#" style={{
+            color: 'white',
+            textDecoration: 'none',
+            padding: '12px 20px',
+            borderLeft: '4px solid transparent'
+          }}>
+                Settings
+            </a>
+        </div>
+
+        <div style={{
+          padding: '20px',
+          marginTop: 'auto',
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+            <div style={{
+            ...styles.placeholderImg,
+            width: '35px',
+            height: '35px',
+            borderRadius: '50%'
+          }}>
+                U
+            </div>
+            <div>
+                <div style={{ fontWeight: 'bold' }}>John Doe</div>
+                <div style={{ fontSize: '12px', opacity: 0.8 }}>Administrator</div>
+            </div>
+        </div>
+    </div>
+
+    <div style={{
+        flex: 1,
+        padding: '25px 40px',
+        background: '#f9f9f9',
+        overflow: 'auto'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: '30px'
+        }}>
+            <h1 style={{
+            fontSize: '24px',
+            color: '#447638',
+            margin: 0
+          }}>
+                Dashboard
+            </h1>
+
+            <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '15px'
+          }}>
+                <input type="text" placeholder="Search..." style={{
+              padding: '8px 15px',
+              borderRadius: '20px',
+              border: '1px solid #ddd',
+              width: '200px'
+            }} />
+                <div style={{
+              ...styles.placeholderImg,
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%'
+            }}>
+                    N
+                </div>
+            </div>
+        </div>
+
+        <div style={{
+          ...styles.placeholderImg,
+          height: '150px',
+          borderRadius: '10px',
+          marginBottom: '20px'
+        }}>
+            Dashboard Stats Banner
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: '20px'
+        }}>
+            <div style={{
+            flex: 1,
+            background: 'white',
+            borderRadius: '10px',
+            padding: '20px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+          }}>
+                <h3 style={{ margin: '0 0 15px 0', color: '#447638' }}>Recent Companies</h3>
+                <div style={{
+              ...styles.placeholderImg,
+              height: '80px',
+              borderRadius: '5px'
+            }}>
+                    Company List Placeholder
+                </div>
+            </div>
+
+            <div style={{
+            flex: 1,
+            background: 'white',
+            borderRadius: '10px',
+            padding: '20px',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.05)'
+          }}>
+                <h3 style={{ margin: '0 0 15px 0', color: '#447638' }}>Certificate Status</h3>
+                <div style={{
+              ...styles.placeholderImg,
+              height: '80px',
+              borderRadius: '5px'
+            }}>
+                    Status Chart Placeholder
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+  );
+
+  // Header Option 4: Split Header with Cards
+  const Header4 = () => (
+<header>
+    <div style={{
+        background: 'linear-gradient(135deg, #92C83E, #447638)',
+        padding: '20px 40px',
+        color: 'white'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+            <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '15px',
+            fontSize: '22px',
+            fontWeight: 'bold'
+          }}>
+                <div style={{
+              background: 'white',
+              color: '#447638',
+              width: '35px',
+              height: '35px',
+              borderRadius: '8px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+                    GC
+                </div>
+                GreenCircle
+            </div>
+
+            <div style={{
+            display: 'flex',
+            gap: '20px'
+          }}>
+                <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Home</a>
+                <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Companies</a>
+                <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Certificates</a>
+                <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Products</a>
+                <a href="#" style={{ color: 'white', textDecoration: 'none' }}>About</a>
+                <a href="#" style={{ color: 'white', textDecoration: 'none' }}>Contact</a>
+            </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '50px',
+          margin: '40px 0 10px 0'
+        }}>
+            <div style={{ maxWidth: '450px' }}>
+                <h1 style={{
+              fontSize: '32px',
+              margin: '0 0 15px 0'
+            }}>
+                    Sustainable Business Management Platform
+                </h1>
+                <p style={{
+              fontSize: '16px',
+              marginBottom: '25px',
+              lineHeight: '1.6',
+              opacity: 0.9
+            }}>
+                    Track your green certification process, manage sustainable products, and grow your eco-friendly business with our comprehensive platform.
+                </p>
+                <div style={{
+              display: 'flex',
+              gap: '15px'
+            }}>
+                    <button style={{
+                padding: '10px 24px',
+                borderRadius: '25px',
+                background: 'white',
+                color: '#447638',
+                border: 'none',
+                fontSize: '15px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}>
+                        Get Started
+                    </button>
+                    <button style={{
+                padding: '10px 24px',
+                borderRadius: '25px',
+                background: 'transparent',
+                color: 'white',
+                border: '1px solid white',
+                fontSize: '15px',
+                fontWeight: 'bold',
+                cursor: 'pointer'
+              }}>
+                        Watch Demo
+                    </button>
+                </div>
+            </div>
+
+            <div style={{
+            ...styles.placeholderImg,
+            width: '400px',
+            height: '250px',
+            borderRadius: '15px'
+          }}>
+                Hero Image
+            </div>
+        </div>
+    </div>
+
+    <div style={{
+        background: 'white',
+        padding: '0 40px 30px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        gap: '20px',
+        marginTop: '-50px'
+      }}>
+        {['Certification Management', 'Company Profiles', 'Product Tracking'].map((title, index) => (
+        <div key={index} style={{
+            flex: 1,
+            background: 'white',
+            borderRadius: '10px',
+            padding: '25px',
+            boxShadow: '0 5px 15px rgba(0,0,0,0.1)'
+          }}>
+            <div style={{
+              ...styles.placeholderImg,
+              width: '50px',
+              height: '50px',
+              borderRadius: '10px',
+              marginBottom: '15px'
+            }}>
+                Icon
+            </div>
+            <h3 style={{ margin: '0 0 10px 0', color: '#447638' }}>{title}</h3>
+            <p style={{ margin: '0 0 15px 0', color: '#666', fontSize: '14px' }}>
+                Streamline your {title.toLowerCase()} process with our powerful tools and intuitive interface.
+            </p>
+            <a href="#" style={{
+              color: '#447638',
+              textDecoration: 'none',
+              fontWeight: 'bold',
+              fontSize: '14px'
+            }}>
+                Learn more ?
+            </a>
+        </div>
+        ))}
+    </div>
+</header>
+  );
+
+  // Header Option 5: Minimal Header with Mega Menu Hint
+  const Header5 = () => (
+<header style={{ position: 'relative' }}>
+    <div style={{
+        background: 'white',
+        padding: '15px 40px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        boxShadow: '0 2px 10px rgba(0,0,0,0.05)'
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '15px'
+        }}>
+            <div style={{
+            ...styles.placeholderImg,
+            width: '40px',
+            height: '40px',
+            borderRadius: '8px'
+          }}>
+                Logo
+            </div>
+            <div style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: '#447638'
+          }}>
+                GreenCircle
+            </div>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          gap: '30px',
+          alignItems: 'center'
+        }}>
+            <div style={{ position: 'relative' }}>
+                <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '5px',
+              color: '#447638',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}>
+                    Solutions
+                    <span style={{ fontSize: '10px' }}>?</span>
+                </div>
+
+                <div style={{
+              position: 'absolute',
+              top: '100%',
+              left: '-100px',
+              background: 'white',
+              borderRadius: '10px',
+              width: '350px',
+              padding: '15px',
+              boxShadow: '0 5px 25px rgba(0,0,0,0.1)',
+              zIndex: 10,
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '15px'
+            }}>
+                    {['Certification', 'Management', 'Reporting', 'Analytics'].map((item, i) => (
+                    <div key={i} style={{
+                  width: '150px',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  background: '#f5f5f5'
+                }}>
+                        <div style={{
+                    fontWeight: 'bold',
+                    color: '#447638',
+                    marginBottom: '5px'
+                  }}>
+                            {item}
+                        </div>
+                        <div style={{
+                    fontSize: '12px',
+                    color: '#666'
+                  }}>
+                            Tools for {item.toLowerCase()} processes
+                        </div>
+                    </div>
+                    ))}
+                </div>
+            </div>
+
+            <a href="#" style={{ color: '#002B76', textDecoration: 'none' }}>About</a>
+            <a href="#" style={{ color: '#002B76', textDecoration: 'none' }}>Pricing</a>
+            <a href="#" style={{ color: '#002B76', textDecoration: 'none' }}>Contact</a>
+
+            <button style={{
+            padding: '8px 20px',
+            borderRadius: '20px',
+            background: '#92C83E',
+            color: 'white',
+            border: 'none',
+            fontWeight: 'bold',
+            cursor: 'pointer'
+          }}>
+                Sign In
+            </button>
+        </div>
+    </div>
+
+    <div style={{
+        backgroundImage: 'linear-gradient(135deg, #f9fcf7, #e8f4e0)',
+        padding: '50px 40px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '50px'
+      }}>
+        <div style={{ maxWidth: '500px' }}>
+            <h1 style={{
+            fontSize: '36px',
+            color: '#447638',
+            margin: '0 0 20px 0',
+            lineHeight: '1.2'
+          }}>
+                Achieve Your Sustainability Goals
+            </h1>
+            <p style={{
+            fontSize: '16px',
+            color: '#555',
+            lineHeight: '1.6',
+            marginBottom: '30px'
+          }}>
+                Our comprehensive platform helps businesses track, manage, and excel in their sustainability journey with powerful tools and intelligent insights.
+            </p>
+            <div style={{
+            display: 'flex',
+            gap: '15px',
+            alignItems: 'center'
+          }}>
+                <button style={{
+              padding: '12px 30px',
+              borderRadius: '8px',
+              background: '#447638',
+              color: 'white',
+              border: 'none',
+              fontSize: '15px',
+              fontWeight: 'bold',
+              cursor: 'pointer'
+            }}>
+                    Try For Free
+                </button>
+                <a href="#" style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              color: '#447638',
+              textDecoration: 'none',
+              fontWeight: 'bold'
+            }}>
+                    <div style={{
+                width: '30px',
+                height: '30px',
+                borderRadius: '50%',
+                background: 'rgba(68, 118, 56, 0.1)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                        ?
+                    </div>
+                    Watch Video
+                </a>
+            </div>
+        </div>
+
+        <div style={{
+          ...styles.placeholderImg,
+          width: '500px',
+          height: '300px',
+          borderRadius: '15px',
+          boxShadow: '0 15px 30px rgba(0,0,0,0.1)'
+        }}>
+            Dashboard Preview Image
+        </div>
+    </div>
+</header>
+  );
+
+  return (
+<div style={styles.container}>
+    <h2>More GreenCircle Header Design Options</h2>
+    <div style={styles.tabContainer}>
+        <div style={{
+            ...styles.tab,
+            ...(activeHeader === 1 ? styles.activeTab : {})
+          }}
+             onClick={() =>
+            setActiveHeader(1)}
+            >
+            Transparent Overlay
+        </div>
+        <div style={{
+            ...styles.tab,
+            ...(activeHeader === 2 ? styles.activeTab : {})
+          }}
+             onClick={() =>
+            setActiveHeader(2)}
+            >
+            Glass Morphism
+        </div>
+        <div style={{
+            ...styles.tab,
+            ...(activeHeader === 3 ? styles.activeTab : {})
+          }}
+             onClick={() =>
+            setActiveHeader(3)}
+            >
+            Side Navigation
+        </div>
+        <div style={{
+            ...styles.tab,
+            ...(activeHeader === 4 ? styles.activeTab : {})
+          }}
+             onClick={() =>
+            setActiveHeader(4)}
+            >
+            Split with Cards
+        </div>
+        <div style={{
+            ...styles.tab,
+            ...(activeHeader === 5 ? styles.activeTab : {})
+          }}
+             onClick={() =>
+            setActiveHeader(5)}
+            >
+            Mega Menu
+        </div>
+    </div>
+
+    <div style={styles.headerContainer}>
+        {activeHeader === 1 && <Header1 />}
+        {activeHeader === 2 && <Header2 />}
+        {activeHeader === 3 && <Header3 />}
+        {activeHeader === 4 && <Header4 />}
+        {activeHeader === 5 && <Header5 />}
+    </div>
+</div>
+  );
+};
+
+export default MoreHeaderVariations;

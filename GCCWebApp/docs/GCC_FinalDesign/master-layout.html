@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenCircle Certified Database</title>
+
+    <!-- Unified CSS -->
+    <link href="css/main.css" rel="stylesheet" />
+    <!-- Component CSS will be loaded dynamically based on page type -->
+    <!-- Master JavaScript -->
+    <script src="js/main.js"></script>
+</head>
+<body class="role-admin">
+    <!-- Header -->
+    <header class="header">
+        <!-- Top bar with logo and user controls -->
+        <div class="header-top">
+            <div class="logo-text"></div>
+            <div class="user-controls">
+                <div class="user-profile">
+                    <span class="user-name">Jane Smith</span>
+                    <i class="fas fa-chevron-down user-dropdown-toggle"></i>
+                    <div class="user-dropdown">
+                        <a href="#" class="dropdown-item role-element role-public-hide">
+                            <i class="fas fa-user"></i> My Profile
+                        </a>
+                        <a href="#" class="dropdown-item role-element role-public-hide">
+                            <i class="fas fa-cog"></i> Account Settings
+                        </a>
+                        <div class="divider role-element role-public-hide"></div>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                        <a href="#" class="dropdown-item role-element role-public-show">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle section for image -->
+        <div class="header-middle">
+            <div class="logo-area">
+                <div class="logo-img"><img src="img/gcclogo-transparent.webp" alt="gcc logo"></div>
+                <div class="logo-text">GreenCircle Certified Database</div>
+            </div>
+        </div>
+
+        <!-- Navigation wrapper -->
+        <div class="nav-wrapper">
+            <nav class="main-nav">
+                <div class="mobile-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+
+                <ul class="nav-links">
+                    <!-- Public Navigation Items -->
+                    <li class="nav-item role-element role-public-show">
+                        <!-- Public nav items -->
+                    </li>
+
+                    <!-- External Navigation Items -->
+                    <li class="nav-item role-element role-external-show">
+                        <a href="#" class="nav-link" onclick="loadPage('certificate-tile-view')">Certificates</a>
+                    </li>
+                    <li class="nav-item role-element role-external-show">
+                        <a href="#" class="nav-link">Products</a>
+                    </li>
+
+                    <!-- Analyst & Admin Navigation Items -->
+                    <li class="nav-item role-element role-analyst-show role-admin-show">
+                        <a href="#" class="nav-link active" onclick="loadPage('certificate-tile-view')">Certificates</a>
+                    </li>
+
+                    <li class="nav-item role-element role-analyst-show role-admin-show">
+                        <a href="#" class="nav-link">Dashboard</a>
+                    </li>
+
+                    <li class="nav-item role-element role-analyst-show role-admin-show">
+                        <a href="#" class="nav-link">
+                            Companies & Products
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
+                        </a>
+                        <div class="submenu">
+                            <a href="#">Companies</a>
+                            <a href="#">Products</a>
+                        </div>
+                    </li>
+
+                    <li class="nav-item role-element role-admin-show">
+                        <a href="#" class="nav-link">
+                            Administration
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
+                        </a>
+                        <div class="submenu">
+                            <a href="#">Role Management</a>
+                            <a href="#">User Management</a>
+
+                            <!-- Configuration/Settings submenu -->
+                            <div class="submenu-item">
+                                <div class="submenu-toggle">
+                                    Configuration/Settings
+                                    <i class="fas fa-chevron-right toggle-icon"></i>
+                                </div>
+                                <div class="nested-submenu">
+                                    <a href="#">Google Analytics Tracking</a>
+                                </div>
+                            </div>
+
+                            <!-- API Management submenu -->
+                            <div class="submenu-item">
+                                <div class="submenu-toggle">
+                                    API Management
+                                    <i class="fas fa-chevron-right toggle-icon"></i>
+                                </div>
+                                <div class="nested-submenu">
+                                    <a href="#">Amazon API Integration</a>
+                                </div>
+                            </div>
+
+                            <!-- Data Management submenu -->
+                            <div class="submenu-item">
+                                <div class="submenu-toggle">
+                                    Data Management
+                                    <i class="fas fa-chevron-right toggle-icon"></i>
+                                </div>
+                                <div class="nested-submenu">
+                                    <a href="#">Certificate Types</a>
+                                    <a href="#">Product Types</a>
+                                    <a href="#">Certificate Fields</a>
+                                    <a href="#">CSF Attributes</a>
+                                    <a href="#">Tags</a>
+                                    <a href="#" onclick="loadPage('partners')">Partners</a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="search-bar role-element role-public-hide">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search certificates...">
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs">
+        <div class="breadcrumb-wrapper">
+            <!-- Role-specific breadcrumbs -->
+            <span class="role-element role-public-show">
+                <!-- Public breadcrumbs -->
+            </span>
+            <span class="role-element role-external-show">
+                <!-- External breadcrumbs -->
+            </span>
+            <span class="role-element role-analyst-show">
+                <!-- Analyst breadcrumbs -->
+            </span>
+            <span class="role-element role-admin-show">
+                <span class="separator"><i class="fas fa-chevron-right"></i></span>
+                <a href="#" id="breadcrumb-section">Administration</a>
+                <span class="separator"><i class="fas fa-chevron-right"></i></span>
+                <span class="current" id="breadcrumb-page">Certificate Management</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <main class="main-content">
+        <div class="page-container">
+            <div class="page-header">
+                <!-- Role-specific page titles -->
+                <h1 class="page-title role-element role-public-show">Public Certificates</h1>
+                <h1 class="page-title role-element role-external-show">External Certificates</h1>
+                <h1 class="page-title role-element role-analyst-show role-admin-show" id="page-title">Certificate Management</h1>
+
+                <div class="page-actions" id="page-actions">
+                    <!-- Public & External role buttons -->
+                    <button class="btn btn-outline role-element role-public-show role-external-show">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+
+                    <!-- Analyst & Admin role buttons -->
+                    <button class="btn btn-outline role-element role-analyst-show role-admin-show" id="import-btn">
+                        <i class="fas fa-download"></i> Import
+                    </button>
+                    <button class="btn btn-outline role-element role-analyst-show role-admin-show" id="export-btn">
+                        <i class="fas fa-upload"></i> Export
+                    </button>
+                    <button class="btn btn-add role-element role-analyst-show role-admin-show" id="add-btn">
+                        <i class="fas fa-plus"></i> Add New Certificate
+                    </button>
+                </div>
+            </div>
+
+            <div class="page-content" id="dynamic-content">
+                <!-- Dynamic content will be loaded here -->
+                <div class="content-placeholder">
+                    <!-- Role-specific content -->
+                    <div class="role-element role-public-show">
+                        <h2>Public Certificate List Content</h2>
+                        <p>This is the public view with limited certificate information.</p>
+                    </div>
+                    <div class="role-element role-external-show">
+                        <h2>External Certificate List Content</h2>
+                        <p>This is the external user view with enhanced certificate details.</p>
+                    </div>
+                    <div class="role-element role-analyst-show">
+                        <h2>Certificate Management Content (Analyst)</h2>
+                        <p>Analyst view with full certificate management capabilities.</p>
+                    </div>
+                    <div class="role-element role-admin-show">
+                        <h2>Certificate Management Content (Admin)</h2>
+                        <p>Admin view with complete system administration access.</p>
+                        <p>Click on navigation items to load different content areas.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="disclaimer">
+                The certificates in this public database are available for viewing at the consent of the client, not all awarded certificates are made publicly available. Additionally, some previously awarded certificates might not come up in a search of this database but may be valid for products in circulation that were produced during the evaluation period.
+                Please contact <a href="info@greencirclecertified.com" class="footer-links">GreenCircle</a> with questions.
+            </div>
+            <div class="copyright">
+                &copy; 2025 GreenCircle Certified. All rights reserved.
+                <span class="footer-links">
+                    <a href="/privacy-policy">Privacy Policy</a>
+                </span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Dynamic Page Loading Script -->
+    <script>
+        // Page loading configuration
+        const pageConfig = {
+            'certificate-tile-view': {
+                title: 'Certificate Management',
+                breadcrumb: 'Certificate Management',
+                css: ['css/certificates.css'],
+                content: 'pages/certificate-tile-view.html'
+            },
+            'certificate-external-view': {
+                title: 'Certificate Details',
+                breadcrumb: 'Certificate Details',
+                css: ['css/certificates.css'],
+                content: 'pages/certificate-external-view.html'
+            },
+            'certificate-single-view': {
+                title: 'Certificate Details',
+                breadcrumb: 'Certificate Details',
+                css: ['css/certificates.css'],
+                content: 'pages/certificate-single-view.html'
+            },
+            'partners': {
+                title: 'Partners Management',
+                breadcrumb: 'Partners Management',
+                css: ['css/partners.css'],
+                content: 'pages/partners.html'
+            }
+        };
+
+        // Currently loaded CSS files
+        let loadedCSS = [];
+
+        // Function to dynamically load CSS
+        function loadCSS(cssFiles) {
+            // Remove previously loaded component CSS
+            loadedCSS.forEach(link => {
+                if (link.parentNode) {
+                    link.parentNode.removeChild(link);
+                }
+            });
+            loadedCSS = [];
+
+            // Load new CSS files
+            cssFiles.forEach(cssFile => {
+                const link = document.createElement('link');
+                link.rel = 'stylesheet';
+                link.href = cssFile;
+                document.head.appendChild(link);
+                loadedCSS.push(link);
+            });
+        }
+
+        // Function to load page content
+        async function loadPage(pageKey) {
+            const config = pageConfig[pageKey];
+            if (!config) {
+                console.error('Page configuration not found:', pageKey);
+                return;
+            }
+
+            try {
+                // Update page title and breadcrumb
+                const pageTitle = document.getElementById('page-title');
+                const breadcrumbPage = document.getElementById('breadcrumb-page');
+
+                if (pageTitle) pageTitle.textContent = config.title;
+                if (breadcrumbPage) breadcrumbPage.textContent = config.breadcrumb;
+
+                // Load CSS files
+                if (config.css) {
+                    loadCSS(config.css);
+                }
+
+                // Load content
+                const response = await fetch(config.content);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const content = await response.text();
+                const contentArea = document.getElementById('dynamic-content');
+                if (contentArea) {
+                    contentArea.innerHTML = content;
+                }
+
+                // Update active navigation
+                updateActiveNavigation(pageKey);
+
+                console.log(`Loaded page: ${pageKey}`);
+
+            } catch (error) {
+                console.error('Error loading page:', error);
+
+                // Show error in content area
+                const contentArea = document.getElementById('dynamic-content');
+                if (contentArea) {
+                    contentArea.innerHTML = `
+                            <div class="content-placeholder">
+                                <h2>Error Loading Content</h2>
+                                <p>Could not load ${config.title}. Please try again.</p>
+                                <p>Error: ${error.message}</p>
+                            </div>
+                        `;
+                }
+            }
+        }
+
+        // Function to update active navigation state
+        function updateActiveNavigation(pageKey) {
+            // Remove active class from all nav links
+            document.querySelectorAll('.nav-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            // Add active class to current page link (simplified approach)
+            // In a real implementation, you'd match based on href or data attributes
+            if (pageKey.includes('certificate')) {
+                const certLink = document.querySelector('.nav-link[onclick*="certificate-tile-view"]');
+                if (certLink) certLink.classList.add('active');
+            }
+        }
+
+        // Initialize default page load
+        document.addEventListener('DOMContentLoaded', function () {
+            // Load default certificate tile view
+            setTimeout(() => {
+                loadPage('certificate-tile-view');
+            }, 500);
+        });
+
+        // Make loadPage function globally available
+        window.loadPage = loadPage;
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green-Blue Dropdowns</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Century+Gothic&display=swap');
+
+        :root {
+            --dark-green: #447638;
+            --light-green: #92C83E;
+            --light-blue: #00AEEF;
+            --dark-blue: #002B76;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Century Gothic', sans-serif;
+        }
+
+        body {
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .dropdown-section {
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--dark-blue);
+        }
+
+        .dropdown-container {
+            position: relative;
+            width: 50%;
+        }
+
+        .dropdown-header {
+            background-color: white;
+            border: 2px solid #cccccc;
+            border-radius: 6px;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            color: var(--dark-blue);
+        }
+
+            .dropdown-header.active {
+                border-color: #999999;
+            }
+
+        .dropdown-placeholder {
+            color: #888;
+        }
+
+        .chevron {
+            border: solid #cccccc;
+            border-width: 0 2px 2px 0;
+            display: inline-block;
+            padding: 3px;
+            transform: rotate(45deg);
+            transition: transform 0.3s;
+        }
+
+            .chevron.up {
+                transform: rotate(-135deg);
+                border-color: #999999;
+            }
+
+        .dropdown-content {
+            position: absolute;
+            top: calc(100% + 5px);
+            left: 0;
+            right: 0;
+            background: white;
+            border: 2px solid #cccccc;
+            border-radius: 6px;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            z-index: 10;
+            display: none;
+        }
+
+            .dropdown-content.show {
+                max-height: 300px;
+                overflow-y: auto;
+                display: block;
+            }
+
+        .dropdown-item {
+            padding: 12px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+            .dropdown-item:hover {
+                background-color: #f9f9f9;
+            }
+
+            .dropdown-item:last-child {
+                border-bottom: none;
+            }
+
+        /* Checkbox style for all dropdowns */
+        .checkbox {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--light-green);
+            border-radius: 3px;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+            .checkbox.checked {
+                background-color: var(--light-green);
+            }
+
+                .checkbox.checked:after {
+                    content: '';
+                    width: 5px;
+                    height: 10px;
+                    border: solid white;
+                    border-width: 0 2px 2px 0;
+                    transform: rotate(45deg);
+                    position: absolute;
+                }
+
+        /* Radio button style */
+        .radio {
+            width: 18px;
+            height: 18px;
+            border: 2px solid var(--light-green);
+            border-radius: 50%;
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+            .radio.checked {
+                background-color: white;
+            }
+
+                .radio.checked:after {
+                    content: '';
+                    width: 10px;
+                    height: 10px;
+                    background-color: var(--light-green);
+                    border-radius: 50%;
+                    position: absolute;
+                }
+
+        /* Add company section */
+        .add-item {
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            border-top: 1px dashed #e0e0e0;
+        }
+
+        .plus-icon {
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            position: relative;
+        }
+
+            .plus-icon:before,
+            .plus-icon:after {
+                content: "";
+                position: absolute;
+                background-color: var(--light-green);
+            }
+
+            .plus-icon:before {
+                width: 2px;
+                height: 18px;
+                left: 8px;
+                top: 0;
+            }
+
+            .plus-icon:after {
+                width: 18px;
+                height: 2px;
+                left: 0;
+                top: 8px;
+            }
+
+        .add-item-input {
+            flex-grow: 1;
+        }
+
+            .add-item-input input {
+                width: 100%;
+                padding: 8px 12px;
+                border: 1px solid var(--light-green);
+                border-radius: 4px;
+                font-size: 14px;
+            }
+
+                .add-item-input input:focus {
+                    outline: none;
+                    border-color: var(--dark-green);
+                }
+
+        .add-button {
+            padding: 8px 18px;
+            background-color: var(--light-green);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+
+            .add-button:hover {
+                background-color: var(--light-green);
+            }
+
+        /* Selected items display */
+        .selected-items {
+            display: flex;
+            flex-wrap: wrap;
+            margin-top: 10px;
+            gap: 8px;
+        }
+
+        .selected-tag {
+            background-color: var(--light-green);
+            color: white;
+            border-radius: 15px;
+            padding: 5px 12px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+        }
+
+        .remove-tag {
+            margin-left: 8px;
+            width: 16px;
+            height: 16px;
+            background-color: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+            .remove-tag:before,
+            .remove-tag:after {
+                content: "";
+                position: absolute;
+                width: 8px;
+                height: 2px;
+                background-color: white;
+            }
+
+            .remove-tag:before {
+                transform: rotate(45deg);
+            }
+
+            .remove-tag:after {
+                transform: rotate(-45deg);
+            }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Company Dropdown (with add capability) - CONVERTED TO RADIO BUTTONS -->
+        <div class="dropdown-section">
+            <div class="section-title">Company</div>
+            <div class="dropdown-container" id="company-dropdown">
+                <div class="dropdown-header" data-dropdown="company">
+                    <span class="dropdown-placeholder">Select company</span>
+                    <div class="chevron"></div>
+                </div>
+                <div class="dropdown-content" id="company-content">
+                    <div class="dropdown-item" data-value="Acme Inc">
+                        <div class="radio"></div>
+                        <span>Acme Inc</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Globex Corporation">
+                        <div class="radio"></div>
+                        <span>Globex Corporation</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Initech">
+                        <div class="radio"></div>
+                        <span>Initech</span>
+                    </div>
+                    <div class="add-item">
+                        <div class="plus-icon"></div>
+                        <div class="add-item-input">
+                            <input type="text" placeholder="Enter company name" id="new-company">
+                        </div>
+                        <button class="add-button" id="add-company">Add</button>
+                    </div>
+                </div>
+                <div class="selected-items" id="company-selected"></div>
+            </div>
+        </div>
+
+        <!-- CSF Attributes Dropdown (Multi-select) -->
+        <div class="dropdown-section">
+            <div class="section-title">CSF Attributes</div>
+            <div class="dropdown-container" id="csf-dropdown">
+                <div class="dropdown-header" data-dropdown="csf">
+                    <span class="dropdown-placeholder">Select attributes</span>
+                    <div class="chevron"></div>
+                </div>
+                <div class="dropdown-content" id="csf-content">
+                    <div class="dropdown-item" data-value="Biobased">
+                        <div class="checkbox"></div>
+                        <span>Biobased</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Biodegradable">
+                        <div class="checkbox"></div>
+                        <span>Biodegradable</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Carbon Footprint Reduction">
+                        <div class="checkbox"></div>
+                        <span>Carbon Footprint Reduction</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Certified Energy Savings">
+                        <div class="checkbox"></div>
+                        <span>Certified Energy Savings</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Certified Environmental Facts">
+                        <div class="checkbox"></div>
+                        <span>Certified Environmental Facts</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Certified Sustainability Facts">
+                        <div class="checkbox"></div>
+                        <span>Certified Sustainability Facts</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Certified Water Savings">
+                        <div class="checkbox"></div>
+                        <span>Certified Water Savings</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Closed Loop Product">
+                        <div class="checkbox"></div>
+                        <span>Closed Loop Product</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Dematerialization">
+                        <div class="checkbox"></div>
+                        <span>Dematerialization</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Greenhouse Gas (GHG) Verification">
+                        <div class="checkbox"></div>
+                        <span>Greenhouse Gas (GHG) Verification</span>
+                    </div>
+                    <div class="dropdown-item" data-value="GreenCircle Audited">
+                        <div class="checkbox"></div>
+                        <span>GreenCircle Audited</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Life Cycle Assessment (LCA)">
+                        <div class="checkbox"></div>
+                        <span>Life Cycle Assessment (LCA)</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Optimized Manufacturer Inventory Verification">
+                        <div class="checkbox"></div>
+                        <span>Optimized Manufacturer Inventory Verification</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Recyclable Material">
+                        <div class="checkbox"></div>
+                        <span>Recyclable Material</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Recycled Content">
+                        <div class="checkbox"></div>
+                        <span>Recycled Content</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Renewable Resource Content">
+                        <div class="checkbox"></div>
+                        <span>Renewable Resource Content</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Sustainable Energy Practices">
+                        <div class="checkbox"></div>
+                        <span>Sustainable Energy Practices</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Sustainable Manufacturing Practices">
+                        <div class="checkbox"></div>
+                        <span>Sustainable Manufacturing Practices</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Waste Diversion from Landfill">
+                        <div class="checkbox"></div>
+                        <span>Waste Diversion from Landfill</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Waste System Audit">
+                        <div class="checkbox"></div>
+                        <span>Waste System Audit</span>
+                    </div>
+                    <div class="add-item">
+                        <div class="plus-icon"></div>
+                        <div class="add-item-input">
+                            <input type="text" placeholder="Enter new attribute" id="new-attribute">
+                        </div>
+                        <button class="add-button" id="add-attribute">Add</button>
+                    </div>
+                </div>
+                <div class="selected-items" id="csf-selected"></div>
+            </div>
+        </div>
+
+        <!-- Product Name Dropdown (with add capability) - CONVERTED TO RADIO BUTTONS -->
+        <div class="dropdown-section">
+            <div class="section-title">Product Name</div>
+            <div class="dropdown-container" id="product-dropdown">
+                <div class="dropdown-header" data-dropdown="product">
+                    <span class="dropdown-placeholder">Select product</span>
+                    <div class="chevron"></div>
+                </div>
+                <div class="dropdown-content" id="product-content">
+                    <div class="dropdown-item" data-value="Product A">
+                        <div class="radio"></div>
+                        <span>Product A</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Product B">
+                        <div class="radio"></div>
+                        <span>Product B</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Product C">
+                        <div class="radio"></div>
+                        <span>Product C</span>
+                    </div>
+                    <div class="add-item">
+                        <div class="plus-icon"></div>
+                        <div class="add-item-input">
+                            <input type="text" placeholder="Enter product name" id="new-product">
+                        </div>
+                        <button class="add-button" id="add-product">Add</button>
+                    </div>
+                </div>
+                <div class="selected-items" id="product-selected"></div>
+            </div>
+        </div>
+
+        <!-- External Tag Dropdown (Multi-select) -->
+        <div class="dropdown-section">
+            <div class="section-title">External Tag</div>
+            <div class="dropdown-container" id="external-dropdown">
+                <div class="dropdown-header" data-dropdown="external">
+                    <span class="dropdown-placeholder">Select external tags</span>
+                    <div class="chevron"></div>
+                </div>
+                <div class="dropdown-content" id="external-content">
+                    <div class="dropdown-item" data-value="External Tag 1">
+                        <div class="checkbox"></div>
+                        <span>External Tag 1</span>
+                    </div>
+                    <div class="dropdown-item" data-value="External Tag 2">
+                        <div class="checkbox"></div>
+                        <span>External Tag 2</span>
+                    </div>
+                    <div class="dropdown-item" data-value="External Tag 3">
+                        <div class="checkbox"></div>
+                        <span>External Tag 3</span>
+                    </div>
+                    <div class="dropdown-item" data-value="External Tag 4">
+                        <div class="checkbox"></div>
+                        <span>External Tag 4</span>
+                    </div>
+                    <div class="add-item">
+                        <div class="plus-icon"></div>
+                        <div class="add-item-input">
+                            <input type="text" placeholder="Enter new external tag" id="new-external-tag">
+                        </div>
+                        <button class="add-button" id="add-external-tag">Add</button>
+                    </div>
+                </div>
+                <div class="selected-items" id="external-selected"></div>
+            </div>
+        </div>
+
+        <!-- Internal Tag Dropdown (Multi-select) -->
+        <div class="dropdown-section">
+            <div class="section-title">Internal Tag</div>
+            <div class="dropdown-container" id="internal-dropdown">
+                <div class="dropdown-header" data-dropdown="internal">
+                    <span class="dropdown-placeholder">Select internal tags</span>
+                    <div class="chevron"></div>
+                </div>
+                <div class="dropdown-content" id="internal-content">
+                    <div class="dropdown-item" data-value="Internal Tag 1">
+                        <div class="checkbox"></div>
+                        <span>Internal Tag 1</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Internal Tag 2">
+                        <div class="checkbox"></div>
+                        <span>Internal Tag 2</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Internal Tag 3">
+                        <div class="checkbox"></div>
+                        <span>Internal Tag 3</span>
+                    </div>
+                    <div class="dropdown-item" data-value="Internal Tag 4">
+                        <div class="checkbox"></div>
+                        <span>Internal Tag 4</span>
+                    </div>
+                    <div class="add-item">
+                        <div class="plus-icon"></div>
+                        <div class="add-item-input">
+                            <input type="text" placeholder="Enter new internal tag" id="new-internal-tag">
+                        </div>
+                        <button class="add-button" id="add-internal-tag">Add</button>
+                    </div>
+                </div>
+                <div class="selected-items" id="internal-selected"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Toggle dropdown functionality
+            const dropdownHeaders = document.querySelectorAll('.dropdown-header');
+
+            dropdownHeaders.forEach(header => {
+                header.addEventListener('click', function () {
+                    const dropdownId = this.getAttribute('data-dropdown');
+                    const content = document.getElementById(`${dropdownId}-content`);
+                    const chevron = this.querySelector('.chevron');
+
+                    // Close all other dropdowns
+                    document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                        if (dropdown.id !== `${dropdownId}-content`) {
+                            dropdown.classList.remove('show');
+                        }
+                    });
+
+                    document.querySelectorAll('.dropdown-header').forEach(h => {
+                        if (h !== this) {
+                            h.classList.remove('active');
+                            h.querySelector('.chevron').classList.remove('up');
+                        }
+                    });
+
+                    // Toggle current dropdown
+                    content.classList.toggle('show');
+                    this.classList.toggle('active');
+                    chevron.classList.toggle('up');
+                });
+            });
+
+            // Close dropdowns when clicking outside
+            window.addEventListener('click', function (e) {
+                if (!e.target.closest('.dropdown-container')) {
+                    document.querySelectorAll('.dropdown-content').forEach(dropdown => {
+                        dropdown.classList.remove('show');
+                    });
+
+                    document.querySelectorAll('.dropdown-header').forEach(header => {
+                        header.classList.remove('active');
+                        header.querySelector('.chevron').classList.remove('up');
+                    });
+                }
+            });
+
+            // Setup multi-select functionality for dropdowns that use checkboxes
+            setupMultiSelect('csf', 'checkbox');
+            setupMultiSelect('external', 'checkbox');
+            setupMultiSelect('internal', 'checkbox');
+
+            // Setup single-select (radio) functionality
+            setupSingleSelect('company', 'radio');
+            setupSingleSelect('product', 'radio');
+
+            // Setup add functionality
+            setupAddFunctionality('company', 'radio');
+            setupAddFunctionality('product', 'radio');
+            setupAddFunctionality('csf', 'checkbox');
+            setupAddFunctionality('external', 'checkbox');
+            setupAddFunctionality('internal', 'checkbox');
+
+            // Function to handle multi-select dropdowns
+            function setupMultiSelect(type, selectionType) {
+                const items = document.querySelectorAll(`#${type}-content .dropdown-item`);
+                const selectedContainer = document.getElementById(`${type}-selected`);
+                const placeholder = document.querySelector(`[data-dropdown="${type}"] span`);
+
+                items.forEach(item => {
+                    // Skip the add item section
+                    if (!item.querySelector('.plus-icon')) {
+                        item.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            const selectionElement = this.querySelector(`.${selectionType}`);
+                            if (selectionElement) {
+                                selectionElement.classList.toggle('checked');
+                                updateSelectedItems(type, selectedContainer, placeholder, selectionType);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Function to handle single-select (radio) dropdowns
+            function setupSingleSelect(type, selectionType) {
+                const items = document.querySelectorAll(`#${type}-content .dropdown-item`);
+                const selectedContainer = document.getElementById(`${type}-selected`);
+                const placeholder = document.querySelector(`[data-dropdown="${type}"] span`);
+
+                items.forEach(item => {
+                    // Skip the add item section
+                    if (!item.querySelector('.plus-icon')) {
+                        item.addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            // Clear any previously selected items
+                            document.querySelectorAll(`#${type}-content .${selectionType}.checked`).forEach(radio => {
+                                radio.classList.remove('checked');
+                            });
+
+                            // Select this item
+                            const selectionElement = this.querySelector(`.${selectionType}`);
+                            if (selectionElement) {
+                                selectionElement.classList.add('checked');
+                                updateSelectedItems(type, selectedContainer, placeholder, selectionType);
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Function to setup add functionality
+            function setupAddFunctionality(type, selectionType) {
+                const addBtn = document.getElementById(`add-${type === 'csf' ? 'attribute' : type === 'external' ? 'external-tag' : type === 'internal' ? 'internal-tag' : type}`);
+                const input = document.getElementById(`new-${type === 'csf' ? 'attribute' : type === 'external' ? 'external-tag' : type === 'internal' ? 'internal-tag' : type}`);
+
+                if (addBtn && input) {
+                    // Add button click handler
+                    addBtn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        addNewItem(type, input, selectionType);
+                    });
+
+                    // Enter key handler
+                    input.addEventListener('keypress', function (e) {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addNewItem(type, input, selectionType);
+                        }
+                    });
+                }
+            }
+
+            // Function to add new item
+            function addNewItem(type, input, selectionType) {
+                const itemValue = input.value.trim();
+                const placeholder = document.querySelector(`[data-dropdown="${type}"] span`);
+                const selectedContainer = document.getElementById(`${type}-selected`);
+
+                if (itemValue) {
+                    // Create new option
+                    const newOption = document.createElement('div');
+                    newOption.className = 'dropdown-item';
+                    newOption.setAttribute('data-value', itemValue);
+
+                    // Create selection element (checkbox or radio)
+                    const selectionElement = document.createElement('div');
+                    selectionElement.className = selectionType;
+
+                    // Create label
+                    const label = document.createElement('span');
+                    label.textContent = itemValue;
+
+                    // Construct the option
+                    newOption.appendChild(selectionElement);
+                    newOption.appendChild(label);
+
+                    // Add before the add section
+                    const addSection = document.querySelector(`#${type}-content .add-item`);
+                    document.getElementById(`${type}-content`).insertBefore(newOption, addSection);
+
+                    // Clear input
+                    input.value = '';
+
+                    // Add event listener
+                    newOption.addEventListener('click', function (e) {
+                        e.stopPropagation();
+
+                        if (selectionType === 'radio') {
+                            // For radio buttons, first uncheck all other options
+                            document.querySelectorAll(`#${type}-content .${selectionType}.checked`).forEach(radio => {
+                                radio.classList.remove('checked');
+                            });
+                            selectionElement.classList.add('checked');
+                        } else {
+                            // For checkboxes, just toggle
+                            selectionElement.classList.toggle('checked');
+                        }
+
+                        updateSelectedItems(type, selectedContainer, placeholder, selectionType);
+                    });
+
+                    // Auto-select the new item
+                    if (selectionType === 'radio') {
+                        // For radio buttons, first uncheck all other options
+                        document.querySelectorAll(`#${type}-content .${selectionType}.checked`).forEach(radio => {
+                            radio.classList.remove('checked');
+                        });
+                    }
+                    selectionElement.classList.add('checked');
+                    updateSelectedItems(type, selectedContainer, placeholder, selectionType);
+                }
+            }
+
+            // Function to update selected items display
+            function updateSelectedItems(type, container, placeholder, selectionType) {
+                container.innerHTML = '';
+                const selectedItems = document.querySelectorAll(`#${type}-content .${selectionType}.checked`);
+
+                if (selectedItems.length === 0) {
+                    placeholder.textContent = `Select ${type === 'csf' ? 'attributes' : type === 'product' ? 'product' : type === 'company' ? 'company' : type + ' tags'}`;
+                    placeholder.classList.add('dropdown-placeholder');
+                } else {
+                    if (selectionType === 'radio') {
+                        // For radio buttons (single selection)
+                        const selectedItem = selectedItems[0];
+                        const parent = selectedItem.closest('.dropdown-item');
+                        const value = parent.getAttribute('data-value');
+                        placeholder.textContent = value;
+                        placeholder.classList.remove('dropdown-placeholder');
+                    } else {
+                        // For checkboxes (multi selection)
+                        placeholder.textContent = `${selectedItems.length} selected`;
+                        placeholder.classList.remove('dropdown-placeholder');
+                    }
+
+                    selectedItems.forEach(item => {
+                        const parent = item.closest('.dropdown-item');
+                        const value = parent.getAttribute('data-value');
+
+                        const tag = document.createElement('div');
+                        tag.className = 'selected-tag';
+                        tag.innerHTML = `${value} <span class="remove-tag" data-value="${value}"></span>`;
+
+                        container.appendChild(tag);
+
+                        // Add remove functionality
+                        tag.querySelector('.remove-tag').addEventListener('click', function (e) {
+                            e.stopPropagation();
+                            const value = this.getAttribute('data-value');
+                            const item = document.querySelector(`#${type}-content .dropdown-item[data-value="${value}"]`);
+                            const selectionElement = item.querySelector(`.${selectionType}`);
+
+                            selectionElement.classList.remove('checked');
+                            updateSelectedItems(type, container, placeholder, selectionType);
+                        });
+                    });
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product ID Manager</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Color variables */
+        :root {
+            --green-primary: #447638;
+            --green-secondary: #92C83E;
+            --blue-primary: #00AEEF;
+            --blue-dark: #002B76;
+            --light-gray: #f5f5f5;
+            --border-color: #ddd;
+            --text-color: #333;
+            --warning: #ff5252;
+            --success: #92C83E;
+        }
+
+        body {
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 20px auto;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .title-area {
+            flex-grow: 1;
+        }
+
+        h1 {
+            color: var(--blue-dark);
+            margin: 0;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .buttons-area {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: #fff;
+            color: var(--blue-dark);
+            border: 1px solid #ddd;
+            padding: 8px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+            .btn:hover {
+                background-color: #f5f5f5;
+            }
+
+        .btn-primary {
+            background-color: var(--blue-primary);
+            color: white;
+            border: none;
+        }
+
+            .btn-primary:hover {
+                background-color: #0089BC;
+            }
+
+        .btn-add {
+            background-color: var(--green-secondary);
+            color: white;
+            border: none;
+        }
+
+            .btn-add:hover {
+                background-color: var(--green-primary);
+            }
+
+        .btn-delete, .btn-edit, .btn-save, .btn-cancel {
+            color: #e74c3c;
+            background: none;
+            border: none;
+            padding: 4px;
+            font-size: 16px;
+        }
+
+        .btn-edit {
+            color: var(--blue-primary);
+            margin-right: 5px;
+        }
+
+        .btn-save {
+            color: var(--green-primary);
+            margin-right: 5px;
+        }
+
+        .btn-cancel {
+            color: #777;
+            margin-right: 5px;
+        }
+
+        .btn-delete:hover {
+            background-color: #fee;
+        }
+
+        .btn-edit:hover, .btn-save:hover, .btn-cancel:hover {
+            background-color: #eef;
+        }
+
+        .search-filter-bar {
+            display: flex;
+            align-items: center;
+            background-color: #f5f5f5;
+            border-radius: 4px;
+            padding: 10px;
+            margin-bottom: 15px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .search-box {
+            position: relative;
+            flex-grow: 1;
+            min-width: 200px;
+        }
+
+            .search-box input {
+                width: 100%;
+                padding: 8px 10px 8px 35px;
+                border-radius: 4px;
+                border: 1px solid #ddd;
+                background-color: white;
+                font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+                box-sizing: border-box;
+            }
+
+        .search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #777;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+            .filter-group select {
+                color: var(--text-color);
+            }
+
+        .table-container {
+            border: 1px solid #eee;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #product-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+            #product-table th, #product-table td {
+                padding: 10px;
+                text-align: left;
+                border-bottom: 1px solid #eee;
+            }
+
+            #product-table th {
+                background-color: #f9f9f9;
+                color: var(--blue-dark);
+                font-weight: 500;
+                position: sticky;
+                top: 0;
+                cursor: pointer;
+            }
+
+                #product-table th .sort-icon {
+                    display: inline-block;
+                    margin-left: 6px;
+                    font-size: 10px;
+                    opacity: 0.6;
+                }
+
+                #product-table th.active-sort .sort-icon {
+                    opacity: 1;
+                }
+
+            #product-table tbody tr:hover {
+                background-color: #f5f5f5;
+            }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .badge-ASIN {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-UPC {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .badge-GTIN {
+            background-color: #fff8e1;
+            color: #ffa000;
+        }
+
+        .badge-EAN {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .badge-active {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .badge-inactive {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+
+        .badge-pending {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .footer-info {
+            text-align: right;
+            color: #777;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+
+        .editable-cell {
+            position: relative;
+        }
+
+        .editable-input {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--blue-primary);
+            border-radius: 4px;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            box-sizing: border-box;
+            outline: none;
+        }
+
+        .editable-select {
+            width: 100%;
+            padding: 6px 8px;
+            border: 1px solid var(--blue-primary);
+            border-radius: 4px;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            box-sizing: border-box;
+            appearance: auto;
+            background-color: white;
+        }
+
+        .new-row-placeholder td {
+            padding: 8px;
+            text-align: center;
+            color: #777;
+            background-color: #f9f9f9;
+            border-bottom: 1px dashed #ddd;
+        }
+
+        tr.new-row td {
+            background-color: rgba(146, 200, 62, 0.1);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                margin: 10px;
+            }
+
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .buttons-area {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .search-filter-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .filter-group {
+                width: 100%;
+                justify-content: space-between;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            #product-table {
+                font-size: 14px;
+            }
+
+                #product-table th, #product-table td {
+                    padding: 8px 5px;
+                }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="title-area">
+                <h1>Product ID Manager</h1>
+            </div>
+            <div class="buttons-area">
+                <button id="import-btn" class="btn">
+                    <i class="fas fa-upload"></i> Import
+                </button>
+                <button id="export-btn" class="btn">
+                    <i class="fas fa-download"></i> Export
+                </button>
+            </div>
+        </header>
+
+        <div class="search-filter-bar">
+            <div class="search-box">
+                <input type="text" id="search-input" placeholder="Search products...">
+                <i class="fas fa-search search-icon"></i>
+            </div>
+            <div class="filter-group">
+                <select id="filter-type">
+                    <option value="all">All Types</option>
+                    <option value="ASIN">ASIN</option>
+                    <option value="UPC">UPC</option>
+                    <option value="GTIN">GTIN</option>
+                    <option value="EAN">EAN</option>
+                </select>
+                <select id="filter-status">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                    <option value="pending">Pending</option>
+                </select>
+                <select id="filter-partner">
+                    <option value="all">All Partners</option>
+                    <option value="Amazon">Amazon</option>
+                    <option value="Wayfair">Wayfair</option>
+                </select>
+                <button id="add-asin-btn" class="btn btn-add">
+                    <i class="fas fa-plus"></i> ASIN
+                </button>
+                <button id="add-upc-btn" class="btn btn-add">
+                    <i class="fas fa-plus"></i> UPC
+                </button>
+                <button id="add-gtin-btn" class="btn btn-add">
+                    <i class="fas fa-plus"></i> GTIN
+                </button>
+                <button id="add-ean-btn" class="btn btn-add">
+                    <i class="fas fa-plus"></i> EAN
+                </button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table id="product-table">
+                <thead>
+                    <tr>
+                        <th data-sort="type">Type <span class="sort-icon">▼</span></th>
+                        <th data-sort="id">ID <span class="sort-icon">▼</span></th>
+                        <th data-sort="productName">Product Name <span class="sort-icon">▼</span></th>
+                        <th data-sort="certificateNumber">Certificate # <span class="sort-icon">▼</span></th>
+                        <th data-sort="company">Company <span class="sort-icon">▼</span></th>
+                        <th data-sort="status">Status <span class="sort-icon">▼</span></th>
+                        <th data-sort="partner">Partner <span class="sort-icon">▼</span></th>
+                        <th data-sort="date">Date Created <span class="sort-icon">▼</span></th>
+                        <th data-sort="user">Created By <span class="sort-icon">▼</span></th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data will be populated by JavaScript -->
+                </tbody>
+            </table>
+        </div>
+        <div class="footer-info">
+            <span id="product-count">Showing 0 of 0 products</span>
+        </div>
+    </div>
+
+    <script>
+        // Current date for new entries
+        const getCurrentDate = () => {
+            const now = new Date();
+            return now.toISOString().slice(0, 10);
+        };
+
+        // Current user for new entries
+        const currentUser = "John Doe";
+
+        // Sample data
+        let products = [
+            { type: 'ASIN', id: 'B08N5KWB9H', productName: 'PROD-1001', certificateNumber: 'XX-XXXX', company: 'Company ABC', status: 'active', partner: 'Amazon', date: '2025-04-23', user: 'John Doe' },
+            { type: 'UPC', id: '042100005264', productName: 'PROD-1001', certificateNumber: 'XX-XXXX', company: 'Company ABC', status: 'active', partner: 'Amazon', date: '2025-04-23', user: 'John Doe' },
+            { type: 'GTIN', id: '00614141007349', productName: 'PROD-1002', certificateNumber: 'XX-XXXX', company: 'Company ABC', status: 'active', partner: 'Amazon', date: '2025-04-23', user: 'John Doe' },
+            { type: 'EAN', id: '5901234123457', productName: 'PROD-1002', certificateNumber: 'XX-XXXX', company: 'Company ABC', status: 'inactive', partner: 'Amazon', date: '2025-04-23', user: 'John Doe' }
+        ];
+
+        // Track currently editing product index
+        let editingIndex = -1;
+        let isAddingNew = false;
+        let newProductType = '';
+
+        // Sorting variables
+        let sortColumn = 'type';
+        let sortDirection = 'asc';
+
+        // DOM Elements
+        const productTable = document.getElementById('product-table');
+        const productTableBody = productTable.querySelector('tbody');
+        const productCountElement = document.getElementById('product-count');
+        const searchInput = document.getElementById('search-input');
+        const filterType = document.getElementById('filter-type');
+        const filterStatus = document.getElementById('filter-status');
+        const filterPartner = document.getElementById('filter-partner');
+        const addAsinBtn = document.getElementById('add-asin-btn');
+        const addUpcBtn = document.getElementById('add-upc-btn');
+        const addGtinBtn = document.getElementById('add-gtin-btn');
+        const addEanBtn = document.getElementById('add-ean-btn');
+        const importBtn = document.getElementById('import-btn');
+        const exportBtn = document.getElementById('export-btn');
+
+        // Function to populate the table
+        function populateTable(data) {
+            productTableBody.innerHTML = '';
+            let visibleCount = 0;
+
+            data.forEach((product, index) => {
+                const row = document.createElement('tr');
+                row.dataset.index = index;
+
+                if (editingIndex === index) {
+                    // Editing mode row
+                    createEditingRow(row, product);
+                } else {
+                    // Display mode row
+                    createDisplayRow(row, product, index);
+                }
+
+                productTableBody.appendChild(row);
+                visibleCount++;
+            });
+
+            // Add a new product row if adding
+            if (isAddingNew) {
+                const newProduct = {
+                    type: newProductType,
+                    id: '',
+                    productName: '',
+                    certificateNumber: '',
+                    company: '',
+                    status: 'active',
+                    partner: newProductType === 'ASIN' ? 'Amazon' : 'Wayfair',
+                    date: getCurrentDate(),
+                    user: currentUser
+                };
+
+                const newRow = document.createElement('tr');
+                newRow.classList.add('new-row');
+                createEditingRow(newRow, newProduct, true);
+                productTableBody.appendChild(newRow);
+            }
+
+            // Update the product count
+            productCountElement.textContent = `Showing ${visibleCount} of ${products.length} products`;
+        }
+
+        // Function to create a display row
+        function createDisplayRow(row, product, index) {
+            // Type cell with badge
+            const typeCell = document.createElement('td');
+            const typeBadge = document.createElement('span');
+            typeBadge.className = `badge badge-${product.type}`;
+            typeBadge.textContent = product.type;
+            typeCell.appendChild(typeBadge);
+            row.appendChild(typeCell);
+
+            // ID cell
+            const idCell = document.createElement('td');
+            idCell.textContent = product.id;
+            row.appendChild(idCell);
+
+            // Product Name cell
+            const productNameCell = document.createElement('td');
+            productNameCell.textContent = product.productName;
+            row.appendChild(productNameCell);
+
+            // Certificate Number cell
+            const certificateNumberCell = document.createElement('td');
+            certificateNumberCell.textContent = product.certificateNumber;
+            row.appendChild(certificateNumberCell);
+
+            // Company cell
+            const companyCell = document.createElement('td');
+            companyCell.textContent = product.company;
+            row.appendChild(companyCell);
+
+            // Status cell with badge
+            const statusCell = document.createElement('td');
+            const statusBadge = document.createElement('span');
+            statusBadge.className = `badge badge-${product.status}`;
+            statusBadge.textContent = product.status.charAt(0).toUpperCase() + product.status.slice(1);
+            statusCell.appendChild(statusBadge);
+            row.appendChild(statusCell);
+
+            // Partner cell
+            const partnerCell = document.createElement('td');
+            partnerCell.textContent = product.partner;
+            row.appendChild(partnerCell);
+
+            // Date created cell
+            const dateCell = document.createElement('td');
+            dateCell.textContent = product.date;
+            row.appendChild(dateCell);
+
+            // Created by cell
+            const userCell = document.createElement('td');
+            userCell.textContent = product.user;
+            row.appendChild(userCell);
+
+            // Actions cell
+            const actionsCell = document.createElement('td');
+
+            // Edit button
+            const editButton = document.createElement('button');
+            editButton.className = 'btn-edit';
+            editButton.innerHTML = '<i class="fas fa-edit"></i>';
+            editButton.title = 'Edit';
+            editButton.addEventListener('click', () => {
+                startEditing(index);
+            });
+            actionsCell.appendChild(editButton);
+
+            // Delete button
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'btn-delete';
+            deleteButton.innerHTML = '<i class="fas fa-trash-alt"></i>';
+            deleteButton.title = 'Delete';
+            deleteButton.addEventListener('click', () => deleteProduct(index));
+            actionsCell.appendChild(deleteButton);
+
+            row.appendChild(actionsCell);
+        }
+
+        // Function to create an editing row
+        function createEditingRow(row, product, isNew = false) {
+            // Type cell (not editable)
+            const typeCell = document.createElement('td');
+            const typeBadge = document.createElement('span');
+            typeBadge.className = `badge badge-${product.type}`;
+            typeBadge.textContent = product.type;
+            typeCell.appendChild(typeBadge);
+            row.appendChild(typeCell);
+
+            // ID cell
+            const idCell = document.createElement('td');
+            idCell.className = 'editable-cell';
+            const idInput = document.createElement('input');
+            idInput.type = 'text';
+            idInput.className = 'editable-input';
+            idInput.value = product.id;
+            idInput.placeholder = 'Enter ID';
+            idCell.appendChild(idInput);
+            row.appendChild(idCell);
+
+            // Product Name cell
+            const productNameCell = document.createElement('td');
+            productNameCell.className = 'editable-cell';
+            const productNameInput = document.createElement('input');
+            productNameInput.type = 'text';
+            productNameInput.className = 'editable-input';
+            productNameInput.value = product.productName;
+            productNameInput.placeholder = 'Enter Product Name';
+            productNameCell.appendChild(productNameInput);
+            row.appendChild(productNameCell);
+
+            // Certificate Number cell
+            const certificateNumberCell = document.createElement('td');
+            certificateNumberCell.className = 'editable-cell';
+            const certificateNumberInput = document.createElement('input');
+            certificateNumberInput.type = 'text';
+            certificateNumberInput.className = 'editable-input';
+            certificateNumberInput.value = product.certificateNumber;
+            certificateNumberInput.placeholder = 'Enter Certificate #';
+            certificateNumberCell.appendChild(certificateNumberInput);
+            row.appendChild(certificateNumberCell);
+
+            // Company cell
+            const companyCell = document.createElement('td');
+            companyCell.className = 'editable-cell';
+            const companyInput = document.createElement('input');
+            companyInput.type = 'text';
+            companyInput.className = 'editable-input';
+            companyInput.value = product.company;
+            companyInput.placeholder = 'Enter Company';
+            companyCell.appendChild(companyInput);
+            row.appendChild(companyCell);
+
+            // Status cell
+            const statusCell = document.createElement('td');
+            statusCell.className = 'editable-cell';
+            const statusSelect = document.createElement('select');
+            statusSelect.className = 'editable-select';
+            ['active', 'inactive', 'pending'].forEach(status => {
+                const option = document.createElement('option');
+                option.value = status;
+                option.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+                if (status === product.status) {
+                    option.selected = true;
+                }
+                statusSelect.appendChild(option);
+            });
+            statusCell.appendChild(statusSelect);
+            row.appendChild(statusCell);
+
+            // Partner cell
+            const partnerCell = document.createElement('td');
+            partnerCell.className = 'editable-cell';
+            const partnerSelect = document.createElement('select');
+            partnerSelect.className = 'editable-select';
+            ['Amazon', 'Wayfair'].forEach(partner => {
+                const option = document.createElement('option');
+                option.value = partner;
+                option.textContent = partner;
+                if (partner === product.partner) {
+                    option.selected = true;
+                }
+                partnerSelect.appendChild(option);
+            });
+            partnerCell.appendChild(partnerSelect);
+            row.appendChild(partnerCell);
+
+            // Date created cell (not editable)
+            const dateCell = document.createElement('td');
+            dateCell.textContent = product.date;
+            row.appendChild(dateCell);
+
+            // Created by cell (not editable)
+            const userCell = document.createElement('td');
+            userCell.textContent = product.user;
+            row.appendChild(userCell);
+
+            // Actions cell
+            const actionsCell = document.createElement('td');
+
+            // Save button
+            const saveButton = document.createElement('button');
+            saveButton.className = 'btn-save';
+            saveButton.innerHTML = '<i class="fas fa-check"></i>';
+            saveButton.title = 'Save';
+            saveButton.addEventListener('click', () => {
+                const updatedProduct = {
+                    type: product.type,
+                    id: idInput.value,
+                    productName: productNameInput.value,
+                    certificateNumber: certificateNumberInput.value,
+                    company: companyInput.value,
+                    status: statusSelect.value,
+                    partner: partnerSelect.value,
+                    date: product.date,
+                    user: product.user
+                };
+
+                if (isNew) {
+                    saveNewProduct(updatedProduct);
+                } else {
+                    saveEditedProduct(updatedProduct);
+                }
+            });
+            actionsCell.appendChild(saveButton);
+
+            // Cancel button
+            const cancelButton = document.createElement('button');
+            cancelButton.className = 'btn-cancel';
+            cancelButton.innerHTML = '<i class="fas fa-times"></i>';
+            cancelButton.title = 'Cancel';
+            cancelButton.addEventListener('click', () => {
+                if (isNew) {
+                    cancelNewProduct();
+                } else {
+                    cancelEdit();
+                }
+            });
+            actionsCell.appendChild(cancelButton);
+
+            row.appendChild(actionsCell);
+        }
+
+        // Function to filter products
+        function filterProducts() {
+            const typeValue = filterType.value;
+            const statusValue = filterStatus.value;
+            const partnerValue = filterPartner.value;
+            const searchValue = searchInput.value.toLowerCase();
+
+            const filteredProducts = products.filter(product => {
+                // Match type filter
+                if (typeValue !== 'all' && product.type !== typeValue) {
+                    return false;
+                }
+
+                // Match status filter
+                if (statusValue !== 'all' && product.status !== statusValue) {
+                    return false;
+                }
+
+                // Match partner filter
+                if (partnerValue !== 'all' && product.partner !== partnerValue) {
+                    return false;
+                }
+
+                // Match search text
+                if (searchValue) {
+                    return (
+                        product.id.toLowerCase().includes(searchValue) ||
+                        product.productName.toLowerCase().includes(searchValue) ||
+                        product.certificateNumber.toLowerCase().includes(searchValue) ||
+                        product.company.toLowerCase().includes(searchValue) ||
+                        product.type.toLowerCase().includes(searchValue) ||
+                        product.partner.toLowerCase().includes(searchValue) ||
+                        product.user.toLowerCase().includes(searchValue)
+                    );
+                }
+
+                return true;
+            });
+
+            return filteredProducts;
+        }
+
+        // Function to sort products
+        function sortProducts(data) {
+            return data.sort((a, b) => {
+                let valueA = a[sortColumn];
+                let valueB = b[sortColumn];
+
+                // For string comparisons
+                if (typeof valueA === 'string') {
+                    valueA = valueA.toLowerCase();
+                    valueB = valueB.toLowerCase();
+                }
+
+                if (sortDirection === 'asc') {
+                    return valueA > valueB ? 1 : -1;
+                } else {
+                    return valueA < valueB ? 1 : -1;
+                }
+            });
+        }
+
+        // Function to refresh the table
+        function refreshTable() {
+            const filteredProducts = filterProducts();
+            const sortedProducts = sortProducts(filteredProducts);
+            populateTable(sortedProducts);
+
+            // Update sorting indicators
+            document.querySelectorAll('#product-table th').forEach(th => {
+                th.classList.remove('active-sort');
+                const icon = th.querySelector('.sort-icon');
+                if (icon) {
+                    icon.textContent = '▼';
+                    icon.style.opacity = '0.6';
+                }
+            });
+
+            const activeHeader = document.querySelector(`#product-table th[data-sort="${sortColumn}"]`);
+            if (activeHeader) {
+                activeHeader.classList.add('active-sort');
+                const icon = activeHeader.querySelector('.sort-icon');
+                if (icon) {
+                    icon.textContent = sortDirection === 'asc' ? '▼' : '▲';
+                    icon.style.opacity = '1';
+                }
+            }
+        }
+
+        // Function to start editing a product
+        function startEditing(index) {
+            // If already editing or adding, save/cancel first
+            if (editingIndex !== -1 || isAddingNew) {
+                cancelEdit();
+                cancelNewProduct();
+            }
+
+            editingIndex = index;
+            refreshTable();
+        }
+
+        // Function to save edited product
+        function saveEditedProduct(updatedProduct) {
+            if (editingIndex >= 0 && editingIndex < products.length) {
+                products[editingIndex] = updatedProduct;
+                editingIndex = -1;
+                refreshTable();
+            }
+        }
+
+        // Function to cancel editing
+        function cancelEdit() {
+            editingIndex = -1;
+            refreshTable();
+        }
+
+        // Function to add a new product row
+        function addNewProduct(type) {
+            // If already editing or adding, save/cancel first
+            if (editingIndex !== -1 || isAddingNew) {
+                cancelEdit();
+                cancelNewProduct();
+            }
+
+            isAddingNew = true;
+            newProductType = type;
+            refreshTable();
+        }
+
+        // Function to save a new product
+        function saveNewProduct(newProduct) {
+            products.push(newProduct);
+            isAddingNew = false;
+            newProductType = '';
+            refreshTable();
+        }
+
+        // Function to cancel adding a new product
+        function cancelNewProduct() {
+            isAddingNew = false;
+            newProductType = '';
+            refreshTable();
+        }
+
+        // Function to delete a product
+        function deleteProduct(index) {
+            if (confirm('Are you sure you want to delete this product ID?')) {
+                products.splice(index, 1);
+                refreshTable();
+            }
+        }
+
+        // Function to handle CSV import
+        function importCSV() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.csv';
+
+            fileInput.addEventListener('change', event => {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = e => {
+                    const contents = e.target.result;
+                    const rows = contents.split('\n');
+
+                    // Skip header row and process data
+                    const newProducts = [];
+
+                    for (let i = 1; i < rows.length; i++) {
+                        const row = rows[i].trim();
+                        if (!row) continue;
+
+                        const fields = row.split(',');
+                        if (fields.length < 5) continue;
+
+                        newProducts.push({
+                            type: fields[0].trim(),
+                            id: fields[1].trim(),
+                            productName: fields[2].trim(),
+                            certificateNumber: fields[3].trim(),
+                            company: fields[4].trim(),
+                            status: fields[5] ? fields[5].trim().toLowerCase() : 'active',
+                            partner: fields[6] ? fields[6].trim() : 'Amazon',
+                            date: fields[7] ? fields[7].trim() : getCurrentDate(),
+                            user: fields[8] ? fields[8].trim() : currentUser
+                        });
+                    }
+
+                    products = [...products, ...newProducts];
+                    refreshTable();
+                };
+
+                reader.readAsText(file);
+            });
+
+            fileInput.click();
+        }
+
+        // Function to export to CSV
+        function exportCSV() {
+            // Create CSV header
+            let csvContent = 'Type,ID,Product Name,Certificate #,Company,Status,Partner,Date Created,Created By\n';
+
+            // Add data rows
+            products.forEach(product => {
+                csvContent += `${product.type},${product.id},${product.productName},${product.certificateNumber},${product.company},${product.status},${product.partner},${product.date},${product.user}\n`;
+            });
+
+            // Create download link
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'product_ids.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Add event listeners
+        addAsinBtn.addEventListener('click', () => addNewProduct('ASIN'));
+        addUpcBtn.addEventListener('click', () => addNewProduct('UPC'));
+        addGtinBtn.addEventListener('click', () => addNewProduct('GTIN'));
+        addEanBtn.addEventListener('click', () => addNewProduct('EAN'));
+
+        importBtn.addEventListener('click', importCSV);
+        exportBtn.addEventListener('click', exportCSV);
+
+        searchInput.addEventListener('input', refreshTable);
+        filterType.addEventListener('change', refreshTable);
+        filterStatus.addEventListener('change', refreshTable);
+        filterPartner.addEventListener('change', refreshTable);
+
+        // Add sorting functionality to table headers
+        document.querySelectorAll('#product-table th[data-sort]').forEach(header => {
+            header.addEventListener('click', () => {
+                const column = header.getAttribute('data-sort');
+
+                // Toggle sort direction if same column is clicked again
+                if (sortColumn === column) {
+                    sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    sortColumn = column;
+                    sortDirection = 'asc';
+                }
+
+                refreshTable();
+            });
+        });
+
+        // Initialize table
+        refreshTable();
+    </script>
+</body>
+</html>

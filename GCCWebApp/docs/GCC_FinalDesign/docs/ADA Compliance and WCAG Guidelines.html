@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GreenCircle Certified Database</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Color variables */
+        :root {
+            --green-primary: #447638;
+            --green-secondary: #92C83E;
+            --blue-primary: #00AEEF;
+            --blue-dark: #002B76;
+            --light-gray: #f9f9f9;
+            --border-color: #eaeaea;
+            --header-color: #FCFDEB;
+            --text-color: #333;
+            --danger: #ff5252;
+            --success: #92C83E;
+            --white: #ffffff;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            background-color: #f9f9f9;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        /* Header styles */
+        .header {
+            background-color: var(--white);
+            box-shadow: var(--shadow);
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 4px 24px;
+            background-color: var(--blue-dark);
+            color: var(--white);
+        }
+
+        .header-middle {
+            max-width: 100%;
+            height: 150px;
+            overflow: hidden;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            background: linear-gradient( to right, rgba(0, 0, 0, 0.8) 0%, /* darker start */
+            rgba(0, 0, 0, 0.6) 20%, /* hold darkness longer */
+            rgba(0, 0, 0, 0.3) 100%, /* slow fade */
+            rgba(0, 0, 0, 0) 100% /* transparent end */
+            ), url('img/ecoHeader2.png');
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            color: white; /* optional: improve text contrast */
+            padding-left: 40px;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 30px;
+        }
+
+        .logo-img {
+            height: 117px;
+            width: 119px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /*background-color: var(--white); */
+            color: var(--blue-dark);
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .logo-text {
+            font-size: 38px;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.7), 0 0 2px rgba(0, 0, 0, 0.7);
+            letter-spacing: 0.5px;
+            padding: 6px 14px;
+            border-radius: 8px;
+        }
+
+        .user-controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            position: relative;
+            font-size: 12px;
+        }
+
+        .user-name {
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .user-dropdown-toggle {
+            font-size: 12px;
+            margin-left: 5px;
+        }
+
+        .user-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 200px;
+            background-color: var(--white);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 10px 0;
+            z-index: 100;
+            display: none;
+            margin-top: 5px;
+        }
+
+            .user-dropdown.open {
+                display: block;
+            }
+
+        .dropdown-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            color: var(--text-color);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+            .dropdown-item:hover {
+                background-color: rgba(0, 174, 239, 0.08);
+            }
+
+            .dropdown-item i {
+                width: 20px;
+                margin-right: 10px;
+                text-align: center;
+            }
+
+        .divider {
+            height: 1px;
+            background-color: var(--border-color);
+            margin: 5px 0;
+        }
+
+        /* Navigation */
+        .nav-wrapper {
+            background-color: var(--white);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .main-nav {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+        }
+
+        .nav-links {
+            display: flex;
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav-item {
+            position: relative;
+        }
+
+        .nav-link {
+            display: block;
+            padding: 15px 20px;
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: var(--transition);
+            border-bottom: 3px solid transparent;
+        }
+
+            .nav-link:hover {
+                color: var(--blue-primary);
+            }
+
+            .nav-link.active {
+                color: var(--blue-primary);
+                border-bottom-color: var(--blue-primary);
+            }
+
+        .dropdown-icon {
+            margin-left: 6px;
+            font-size: 12px;
+        }
+
+        .submenu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            background-color: var(--white);
+            border-radius: 0 0 8px 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(10px);
+            transition: var(--transition);
+            z-index: 100;
+        }
+
+        .nav-item:hover .submenu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .submenu a {
+            display: block;
+            padding: 12px 20px;
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+            .submenu a:hover {
+                background-color: rgba(0, 174, 239, 0.08);
+                color: var(--blue-primary);
+            }
+
+        .submenu .submenu-item {
+            position: relative;
+        }
+
+        .submenu .nested-submenu {
+            position: absolute;
+            top: 0;
+            left: 100%;
+            background-color: var(--white);
+            border-radius: 0 8px 8px 0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            min-width: 200px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateX(10px);
+            transition: var(--transition);
+        }
+
+        .submenu .submenu-item:hover .nested-submenu {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(0);
+        }
+
+        .submenu .submenu-toggle {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 20px;
+            color: var(--text-color);
+            text-decoration: none;
+            font-size: 14px;
+            transition: var(--transition);
+            cursor: pointer;
+        }
+
+            .submenu .submenu-toggle:hover {
+                background-color: rgba(0, 174, 239, 0.08);
+                color: var(--blue-primary);
+            }
+
+            .submenu .submenu-toggle i.toggle-icon {
+                font-size: 10px;
+                margin-left: 8px;
+            }
+
+        .search-bar {
+            position: relative;
+            width: 240px;
+        }
+
+            .search-bar input {
+                width: 100%;
+                padding: 10px 15px 10px 40px;
+                border-radius: 20px;
+                border: 1px solid var(--border-color);
+                background-color: var(--white);
+                font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+                transition: var(--transition);
+            }
+
+                .search-bar input:focus {
+                    outline: none;
+                    border-color: var(--blue-primary);
+                    box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+                }
+
+            .search-bar i {
+                position: absolute;
+                left: 15px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #999;
+            }
+
+        /* Mobile menu controls */
+        .mobile-toggle {
+            display: none;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        /* Breadcrumbs */
+        .breadcrumbs {
+            background-color: var(--light-gray);
+            padding: 12px 0;
+            font-size: 14px;
+            color: #888;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .breadcrumb-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            align-items: center;
+            padding: 0 40px;
+        }
+
+        .breadcrumbs a {
+            color: #666;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+            .breadcrumbs a:hover {
+                color: var(--blue-primary);
+            }
+
+        .breadcrumbs .separator {
+            margin: 0 10px;
+            font-size: 10px;
+        }
+
+        .breadcrumbs .current {
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        /* Main content styles */
+        .main-content {
+            flex: 1;
+            padding: 30px 40px;
+            max-width: 1400px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .page-container {
+            background-color: var(--white);
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            min-height: 300px;
+        }
+
+        .page-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            color: var(--blue-dark);
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .page-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: var(--transition);
+            border: none;
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: #666;
+        }
+
+            .btn-outline:hover {
+                background-color: #f7f7f7;
+            }
+
+        .btn-add {
+            background-color: var(--green-secondary);
+            color: white;
+        }
+
+            .btn-add:hover {
+                background-color: var(--green-primary);
+            }
+
+        .page-content {
+            padding: 30px;
+        }
+
+        .content-placeholder {
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: #888;
+            background-color: rgba(0, 0, 0, 0.02);
+            border-radius: 8px;
+        }
+
+        /* Footer */
+        footer {
+            background-color: var(--white);
+            padding: 25px 40px;
+            font-size: 13px;
+            color: #888;
+            margin-top: 40px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .footer-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .footer-links a {
+            color: #666;
+            margin-left: 15px;
+            text-decoration: none;
+            transition: var(--transition);
+        }
+
+            .footer-links a:hover {
+                color: var(--blue-primary);
+            }
+
+        /* Role-based visibility - Default hidden */
+        .role-element {
+            display: none !important;
+        }
+
+        /* Show elements based on active role */
+        .role-public .role-public-show {
+            display: block !important;
+        }
+
+            .role-public .role-public-show.nav-item {
+                display: list-item !important;
+            }
+
+            .role-public .role-public-show.btn {
+                display: flex !important;
+            }
+
+        .role-external .role-external-show {
+            display: block !important;
+        }
+
+            .role-external .role-external-show.nav-item {
+                display: list-item !important;
+            }
+
+            .role-external .role-external-show.btn {
+                display: flex !important;
+            }
+
+        .role-analyst .role-analyst-show {
+            display: block !important;
+        }
+
+            .role-analyst .role-analyst-show.nav-item {
+                display: list-item !important;
+            }
+
+            .role-analyst .role-analyst-show.btn {
+                display: flex !important;
+            }
+
+        .role-admin .role-admin-show {
+            display: block !important;
+        }
+
+            .role-admin .role-admin-show.nav-item {
+                display: list-item !important;
+            }
+
+            .role-admin .role-admin-show.btn {
+                display: flex !important;
+            }
+
+        /* Hide elements based on active role */
+        .role-public .role-public-hide {
+            display: none !important;
+        }
+
+        .role-external .role-external-hide {
+            display: none !important;
+        }
+
+        .role-analyst .role-analyst-hide {
+            display: none !important;
+        }
+
+        .role-admin .role-admin-hide {
+            display: none !important;
+        }
+
+        /* Role selector styling */
+        .role-selector {
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 9999;
+            border: 1px solid var(--border-color);
+        }
+
+            .role-selector h4 {
+                margin: 0 0 10px 0;
+                color: var(--blue-dark);
+                font-size: 14px;
+            }
+
+            .role-selector select {
+                padding: 8px 12px;
+                width: 140px;
+                border: 1px solid var(--border-color);
+                border-radius: 4px;
+                background: white;
+                font-family: inherit;
+            }
+
+        /* Responsive styles */
+        @media (max-width: 768px) {
+            .mobile-toggle {
+                display: block;
+            }
+
+            .nav-links, .search-bar {
+                display: none;
+            }
+
+                .nav-links.mobile-open {
+                    display: flex;
+                    flex-direction: column;
+                    position: absolute;
+                    top: 100%;
+                    left: 0;
+                    right: 0;
+                    background-color: var(--white);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+                    z-index: 100;
+                }
+
+            .nav-item {
+                width: 100%;
+            }
+
+            .nav-link {
+                padding: 15px 20px;
+                border-bottom: 1px solid var(--border-color);
+            }
+
+            .submenu {
+                position: static;
+                opacity: 1;
+                visibility: visible;
+                transform: none;
+                box-shadow: none;
+                display: none;
+                padding-left: 20px;
+            }
+
+                .submenu.mobile-open {
+                    display: block;
+                }
+
+            .page-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 15px;
+            }
+        }
+    </style>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Toggle user dropdown
+            const userProfile = document.querySelector('.user-profile');
+            const userDropdown = document.querySelector('.user-dropdown');
+
+            userProfile.addEventListener('click', function (e) {
+                e.stopPropagation();
+                userDropdown.classList.toggle('open');
+            });
+
+            // Close dropdown when clicking outside
+            document.addEventListener('click', function () {
+                userDropdown.classList.remove('open');
+            });
+
+            // Mobile menu toggle
+            const mobileToggle = document.querySelector('.mobile-toggle');
+            const navLinks = document.querySelector('.nav-links');
+
+            mobileToggle.addEventListener('click', function () {
+                navLinks.classList.toggle('mobile-open');
+            });
+
+            // Mobile submenu toggle
+            const navItems = document.querySelectorAll('.nav-link');
+
+            navItems.forEach(item => {
+                item.addEventListener('click', function (e) {
+                    if (window.innerWidth <= 768 && this.nextElementSibling && this.nextElementSibling.classList.contains('submenu')) {
+                        e.preventDefault();
+                        this.nextElementSibling.classList.toggle('mobile-open');
+                    }
+                });
+            });
+
+            // Mobile nested submenu toggle
+            const submenuToggles = document.querySelectorAll('.submenu-toggle');
+
+            submenuToggles.forEach(toggle => {
+                toggle.addEventListener('click', function (e) {
+                    if (window.innerWidth <= 768) {
+                        e.preventDefault();
+                        this.nextElementSibling.classList.toggle('mobile-open');
+                    }
+                });
+            });
+
+            // Role switching functionality
+            const roleToggle = document.getElementById('role-toggle');
+            const body = document.body;
+
+            // Function to update role
+            function updateRole(newRole) {
+                // Remove all existing role classes
+                body.classList.remove('role-public', 'role-external', 'role-analyst', 'role-admin');
+
+                // Add the new role class
+                body.classList.add('role-' + newRole);
+
+                console.log('Role switched to:', newRole);
+                console.log('Body classes:', body.className);
+            }
+
+            // Role toggle event listener
+            roleToggle.addEventListener('change', function () {
+                updateRole(this.value);
+            });
+
+            // Initialize with the current role
+            updateRole('admin');
+        });
+    </script>
+</head>
+<body class="role-admin">
+    <!-- Header -->
+    <header class="header">
+        <!-- Top bar with logo and user controls -->
+        <div class="header-top">
+            <div class="logo-text"></div>
+            <div class="user-controls">
+                <div class="user-profile">
+                    <span class="user-name">Jane Smith</span>
+                    <i class="fas fa-chevron-down user-dropdown-toggle"></i>
+                    <div class="user-dropdown">
+                        <a href="#" class="dropdown-item role-element role-public-hide">
+                            <i class="fas fa-user"></i> My Profile
+                        </a>
+                        <a href="#" class="dropdown-item role-element role-public-hide">
+                            <i class="fas fa-cog"></i> Account Settings
+                        </a>
+                        <div class="divider role-element role-public-hide"></div>
+                        <a href="#" class="dropdown-item">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                        <a href="#" class="dropdown-item role-element role-public-show">
+                            <i class="fas fa-sign-in-alt"></i> Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Middle section for image -->
+        <div class="header-middle">
+            <div class="logo-area">
+                <div class="logo-img"><img src="img/gcclogo-transparent.webp" alt="gcc logo"></div>
+                <div class="logo-text">GreenCircle Certified Database</div>
+            </div>
+        </div>
+
+        <!-- Navigation wrapper -->
+        <div class="nav-wrapper">
+            <nav class="main-nav">
+                <div class="mobile-toggle">
+                    <i class="fas fa-bars"></i>
+                </div>
+
+                <ul class="nav-links">
+                    <!-- Public Navigation Items -->
+                    <li class="nav-item role-element role-public-show">
+
+                    </li>
+
+                    <!-- External Navigation Items -->
+                    <li class="nav-item role-element role-external-show">
+                        <a href="3_0_CertificateExternal" class="nav-link active">Certificates</a>
+                       
+                    </li>
+                    <li class="nav-item role-element role-external-show">
+                        <a href="3_0_CertificateExternal" class="nav-link">Products</a>
+                    </li>
+                    <!-- Analyst & Admin Navigation Items -->
+                    <li class="nav-item role-element role-analyst-show role-admin-show">
+                        <a href="3_2_Certificate_GCC.html" class="nav-link active">Certificates</a>
+                    </li>
+
+                    <li class="nav-item role-element role-analyst-show role-admin-show">
+                        <a href="2_0_Dashboard.html" class="nav-link">Dashboard</a>
+                    </li>
+
+                    <li class="nav-item role-element role-analyst-show role-admin-show">
+                        <a href="#" class="nav-link">
+                            Companies & Products
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
+                        </a>
+                        <div class="submenu">
+                            <a href="5_1_Company.html">Companies</a>
+                            <a href="5_2_ProductTypes.html">Products</a>
+                        </div>
+                    </li>
+
+                    <li class="nav-item role-element role-admin-show">
+                        <a href="#" class="nav-link">
+                            Administration
+                            <i class="fas fa-chevron-down dropdown-icon"></i>
+                        </a>
+                        <div class="submenu">
+                            <a href="7_1_RoleManagement.html">Role Management</a>
+                            <a href="7_1_1_UserManagement.html">User Management</a>
+
+                            <!-- Configuration/Settings submenu -->
+                            <div class="submenu-item">
+                                <div class="submenu-toggle">
+                                    Configuration/Settings
+                                    <i class="fas fa-chevron-right toggle-icon"></i>
+                                </div>
+                                <div class="nested-submenu">
+                                    <a href="7_2_2_GoogleAnalytics.html">Google Analytics Tracking</a>
+                                </div>
+                            </div>
+
+                            <!-- API Management submenu -->
+                            <div class="submenu-item">
+                                <div class="submenu-toggle">
+                                    API Management
+                                    <i class="fas fa-chevron-right toggle-icon"></i>
+                                </div>
+                                <div class="nested-submenu">
+                                    <a href="7_3_APIManagement.html">Amazon API Integration</a>
+                                </div>
+                            </div>
+
+                            <!-- Data Management submenu -->
+                            <div class="submenu-item">
+                                <div class="submenu-toggle">
+                                    Data Management
+                                    <i class="fas fa-chevron-right toggle-icon"></i>
+                                </div>
+                                <div class="nested-submenu">
+                                    <a href="7_4_1_CertificateTypes.html">Certificate Types</a>
+                                    <a href="7_4_3_ProductManagement.html">Product Types</a>
+                                    <a href="7_5_1_CertificateFieldManagement.html">Certificate Fields</a>
+                                    <a href="7_5_2_CSFAttributes.html">CSF Attributes</a>
+                                    <a href="7_5_3_TagManagement.html">Tags</a>
+                                    <a href="7_5_4_Partners.html">Partners</a>
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="search-bar role-element role-public-hide">
+                    <i class="fas fa-search"></i>
+                    <input type="text" placeholder="Search certificates...">
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Breadcrumbs -->
+    <div class="breadcrumbs">
+        <div class="breadcrumb-wrapper">
+            <!-- Role-specific breadcrumbs -->
+            <span class="role-element role-public-show">
+
+            </span>
+            <span class="role-element role-external-show">
+            </span>
+
+            <span class="role-element role-analyst-show">
+            </span>
+            <span class="role-element role-admin-show">
+                <span class="separator"><i class="fas fa-chevron-right"></i></span>
+                <a href="#">Administration</a>
+            </span>
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <main class="main-content">
+        <div class="page-container">
+            <div class="page-header">
+                <!-- Role-specific page titles -->
+                <h1 class="page-title role-element role-public-show">Public Certificates</h1>
+                <h1 class="page-title role-element role-external-show">External Certificates</h1>
+                <h1 class="page-title role-element role-analyst-show role-admin-show">Certificate Management</h1>
+
+                <div class="page-actions">
+                    <!-- Public & External role buttons -->
+                    <button class="btn btn-outline role-element role-public-show role-external-show">
+                        <i class="fas fa-filter"></i> Filter
+                    </button>
+
+                    <!-- Analyst & Admin role buttons -->
+                    <button class="btn btn-outline role-element role-analyst-show role-admin-show">
+                        <i class="fas fa-download"></i> Import
+                    </button>
+                    <button class="btn btn-outline role-element role-analyst-show role-admin-show">
+                        <i class="fas fa-upload"></i> Export
+                    </button>
+                    <button class="btn btn-add role-element role-analyst-show role-admin-show">
+                        <i class="fas fa-plus"></i> Add New Certificate
+                    </button>
+                </div>
+            </div>
+
+            <div class="page-content">
+                <div class="content-placeholder">
+                    <!-- Role-specific content -->
+                    <div class="role-element role-public-show">
+                        <h2>Public Certificate List Content</h2>
+                        <p>This is the public view with limited certificate information.</p>
+                    </div>
+                    <div class="role-element role-external-show">
+                        <h2>External Certificate List Content</h2>
+                        <p>This is the external user view with enhanced certificate details.</p>
+                    </div>
+                    <div class="role-element role-analyst-show">
+                        <h2>Certificate Management Content (Analyst)</h2>
+                        <p>Analyst view with full certificate management capabilities.</p>
+                    </div>
+                    <div class="role-element role-admin-show">
+                        <h2>Certificate Management Content (Admin)</h2>
+                        <p>Admin view with complete system administration access.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-content">
+            <div class="copyright">
+                &copy; 2025 GreenCircle Certified. All rights reserved.
+            </div>
+            <div class="footer-links">
+                <a href="#">Privacy Policy</a>
+                <a href="#">Terms of Service</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Role Selector -->
+    <div class="role-selector">
+        <h4>Demo Role Switcher</h4>
+        <select id="role-toggle">
+            <option value="public">Public</option>
+            <option value="external">External</option>
+            <option value="analyst">Analyst</option>
+            <option value="admin" selected>Admin</option>
+        </select>
+    </div>
+
+    
+</body>
+</html>

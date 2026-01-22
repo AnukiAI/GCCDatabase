@@ -383,6 +383,8 @@ conversation-*.txt
 */archive/
 **/Archive/
 pages_old/
+Archive_GCCWebApp.Tests/
+GCCWebApp-Tests/
 
 # Development session files
 nul

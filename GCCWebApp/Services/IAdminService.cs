@@ -32,8 +32,8 @@ namespace GCCWebApp.Services
         // Certificate Types
         Task<List<CertificateTypeViewModel>> GetCertificateTypesAsync();
         Task<CertificateTypeViewModel?> GetCertificateTypeByIdAsync(int id);
-        Task<bool> CreateCertificateTypeAsync(CertificateTypeViewModel model);
-        Task<bool> UpdateCertificateTypeAsync(int id, CertificateTypeViewModel model);
+        Task<(bool Success, string? ErrorMessage)> CreateCertificateTypeAsync(CertificateTypeViewModel model);
+        Task<(bool Success, string? ErrorMessage)> UpdateCertificateTypeAsync(int id, CertificateTypeViewModel model);
         Task<bool> DeleteCertificateTypeAsync(int id);
         
         // Certificate Fields

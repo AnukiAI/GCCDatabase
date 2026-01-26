@@ -689,14 +689,14 @@ namespace GCCWebApp.Controllers
 
             try
             {
-                var success = await _adminService.CreateCertificateTypeAsync(model);
-                if (success)
+                var result = await _adminService.CreateCertificateTypeAsync(model);
+                if (result.Success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "Certificate type created successfully" });
                 }
                 else
                 {
-                    return Json(new ApiResponse<object> { Success = false, Message = "Failed to create certificate type" });
+                    return Json(new ApiResponse<object> { Success = false, Message = result.ErrorMessage ?? "Failed to create certificate type" });
                 }
             }
             catch (Exception ex)
@@ -720,14 +720,14 @@ namespace GCCWebApp.Controllers
 
             try
             {
-                var success = await _adminService.UpdateCertificateTypeAsync(id, model);
-                if (success)
+                var result = await _adminService.UpdateCertificateTypeAsync(id, model);
+                if (result.Success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "Certificate type updated successfully" });
                 }
                 else
                 {
-                    return Json(new ApiResponse<object> { Success = false, Message = "Certificate type not found or update failed" });
+                    return Json(new ApiResponse<object> { Success = false, Message = result.ErrorMessage ?? "Certificate type not found or update failed" });
                 }
             }
             catch (Exception ex)

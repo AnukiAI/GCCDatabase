@@ -738,10 +738,31 @@ namespace GCCWebApp.Services
             };
         }
 
-        public async Task<bool> CreateCertificateTypeAsync(CertificateTypeViewModel model)
+        public async Task<(bool Success, string? ErrorMessage)> CreateCertificateTypeAsync(CertificateTypeViewModel model)
         {
             try
             {
+                // Check for duplicate name at the same level (same parent)
+                var existingType = await _context.CertificationTypes
+                    .FirstOrDefaultAsync(ct => ct.Name.ToLower() == model.Name.ToLower()
+                        && ct.ParentId == model.ParentId);
+
+                if (existingType != null)
+                {
+                    if (model.ParentId.HasValue)
+                    {
+                        var parentName = await _context.CertificationTypes
+                            .Where(ct => ct.Id == model.ParentId.Value)
+                            .Select(ct => ct.Name)
+                            .FirstOrDefaultAsync();
+                        return (false, $"A subcategory named '{model.Name}' already exists under '{parentName}'");
+                    }
+                    else
+                    {
+                        return (false, $"A certificate type named '{model.Name}' already exists");
+                    }
+                }
+
                 var certType = new CertificationType
                 {
                     Name = model.Name,
@@ -753,20 +774,42 @@ namespace GCCWebApp.Services
 
                 _context.CertificationTypes.Add(certType);
                 await _context.SaveChangesAsync();
-                return true;
+                return (true, null);
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                return (false, $"Error creating certificate type: {ex.Message}");
             }
         }
 
-        public async Task<bool> UpdateCertificateTypeAsync(int id, CertificateTypeViewModel model)
+        public async Task<(bool Success, string? ErrorMessage)> UpdateCertificateTypeAsync(int id, CertificateTypeViewModel model)
         {
             try
             {
                 var certType = await _context.CertificationTypes.FirstOrDefaultAsync(ct => ct.Id == id);
-                if (certType == null) return false;
+                if (certType == null) return (false, "Certificate type not found");
+
+                // Check for duplicate name at the same level (same parent), excluding the current record
+                var existingType = await _context.CertificationTypes
+                    .FirstOrDefaultAsync(ct => ct.Name.ToLower() == model.Name.ToLower()
+                        && ct.ParentId == model.ParentId
+                        && ct.Id != id);
+
+                if (existingType != null)
+                {
+                    if (model.ParentId.HasValue)
+                    {
+                        var parentName = await _context.CertificationTypes
+                            .Where(ct => ct.Id == model.ParentId.Value)
+                            .Select(ct => ct.Name)
+                            .FirstOrDefaultAsync();
+                        return (false, $"A subcategory named '{model.Name}' already exists under '{parentName}'");
+                    }
+                    else
+                    {
+                        return (false, $"A certificate type named '{model.Name}' already exists");
+                    }
+                }
 
                 certType.Name = model.Name;
                 certType.Description = model.Description;
@@ -775,11 +818,11 @@ namespace GCCWebApp.Services
                 certType.Level = model.ParentId.HasValue ? 2 : 1;  // Set level based on whether it has a parent
 
                 await _context.SaveChangesAsync();
-                return true;
+                return (true, null);
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                return (false, $"Error updating certificate type: {ex.Message}");
             }
         }
 

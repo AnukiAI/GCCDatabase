@@ -3471,3 +3471,81 @@ else if (userRole == "External")
 Build succeeded with 0 errors.
 
 ---
+
+
+## 2026-01-26 - User Management UX Review
+
+### Issues Found & Fixed
+1. **"Require password reset" checkbox not clickable** - Fixed double-click event issue
+   - Root cause: Wrapper div had `onclick` that fired `.click()` AND label had `for` attribute
+   - Both triggered checkbox toggle, cancelling each other out
+   - Solution: Removed redundant `onclick` from wrapper div
+
+2. **Password field hidden from admin** - Implementing visibility toggle
+   - Admin needs to see password to communicate to new users
+   - Adding show/hide toggle with eye icon
+
+### User Management Use Cases Review
+
+| Use Case | Status | Notes |
+|----------|--------|-------|
+| Create user | ✓ Supported | |
+| Edit user | ✓ Supported | |
+| Delete user | ✓ Supported | |
+| Activate/Deactivate | ✓ Supported | |
+| Assign roles | ✓ Supported | |
+| Assign companies | ✓ Supported | External role |
+| Assign partners | ✓ Supported | Partner role |
+| Search/filter | ✓ Supported | |
+| Import/Export | ✓ Supported | |
+| Password visibility | ✓ Adding | Show/hide toggle |
+| Email to user | TODO | Send credentials email |
+| Account unlock | TODO | Future feature |
+| 2FA reset | TODO | Future feature |
+| Login history | TODO | Future feature |
+
+### Decision Made
+- Password will be shown on screen with toggle (not emailed initially)
+- Email notification to user will be added later
+
+---
+
+## January 26, 2026 - Certificate Types Duplicate Detection Fix
+
+### Issue Reported
+- User reported errors when trying to add a Certificate Type or Subcategory that already exists
+- Error message was generic: "Failed to create certificate type"
+- No indication that the issue was a duplicate name
+
+### Root Cause Analysis
+- `AdminService.CreateCertificateTypeAsync()` had no duplicate checking
+- Method only returned `bool` (success/failure) with no error details
+- Controller returned generic message on failure
+
+### Solution Implemented
+1. **IAdminService.cs** - Changed return types to tuples:
+   - `CreateCertificateTypeAsync` → `Task<(bool Success, string? ErrorMessage)>`
+   - `UpdateCertificateTypeAsync` → `Task<(bool Success, string? ErrorMessage)>`
+
+2. **AdminService.cs** - Added duplicate detection:
+   - Checks if type/subcategory with same name exists at the same level
+   - Case-insensitive comparison using `.ToLower()`
+   - Specific error messages for types vs subcategories:
+     - Type: "A certificate type named 'X' already exists"
+     - Subcategory: "A subcategory named 'X' already exists under 'ParentName'"
+
+3. **AdminController.cs** - Updated to return specific error messages
+
+### Test Results
+| Test Case | Result | Message |
+|-----------|--------|---------|
+| Duplicate Type | BLOCKED | "A certificate type named 'test' already exists" |
+| Unique Type | CREATED | Success |
+| First Subcategory | CREATED | Success |
+| Duplicate Subcategory | BLOCKED | "A subcategory named 'TestSubCategory' already exists under 'ParentName'" |
+
+### Files Modified
+- `Services/IAdminService.cs` (lines 35-36)
+- `Services/AdminService.cs` (lines 741-825)
+- `Controllers/AdminController.cs` (lines 690-735)
+

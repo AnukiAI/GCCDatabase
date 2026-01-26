@@ -311,3 +311,37 @@ After implementing UI changes:
 
 **Last Updated:** 2026-01-23
 **Next Action:** Clarify multi-select dropdown UI preference, then implement Step 1-5
+
+---
+
+# User Management Enhancements
+
+**Created:** 2026-01-26
+**Status:** IN PROGRESS
+**Priority:** Phase 1
+
+## Completed
+
+- [x] Password visibility toggle - Admin can see password when creating users (2026-01-26)
+- [x] Fixed "Require password reset" checkbox not clickable (2026-01-26)
+
+## TODO - Future Enhancements
+
+### High Priority
+- [ ] **Email welcome notification** - Send email to new user with login credentials
+- [ ] **Account unlock** - Unlock user accounts that have been locked (failed login attempts)
+- [ ] **2FA reset** - Allow admin to reset/disable 2FA for a user
+- [ ] **Login history** - View user's login history (date, IP, success/failure)
+
+### Medium Priority
+- [ ] **Generate random password** - Button to auto-generate secure password
+- [ ] **Copy password to clipboard** - Quick copy button next to password field
+- [ ] **Force password reset email** - Send password reset email immediately
+
+### Low Priority
+- [ ] **Bulk actions** - Select multiple users for status change, role change, delete
+- [ ] **Activity log** - View all user activities (edits, deletes, etc.)
+
+---
+
+**Last Updated:** 2026-01-26

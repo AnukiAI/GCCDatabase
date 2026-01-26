@@ -33,7 +33,9 @@ namespace GCCWebApp.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties for future use
+        // Navigation properties
         public ICollection<User> Users { get; set; } = new List<User>();
+        public ICollection<Company> Companies { get; set; } = new List<Company>();
+        public ICollection<Certificate> Certificates { get; set; } = new List<Certificate>();
     }
 }

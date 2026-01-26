@@ -34,7 +34,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("TagsId");
 
-                    b.ToTable("CertificateTag");
+                    b.ToTable("CertificateTag", (string)null);
                 });
 
             modelBuilder.Entity("CompanyUser", b =>
@@ -49,7 +49,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("UsersId");
 
-                    b.ToTable("CompanyUser");
+                    b.ToTable("CompanyUser", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.AmazonApiSettings", b =>
@@ -131,7 +131,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AmazonApiSettings");
+                    b.ToTable("AmazonApiSettings", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.AmazonSyncHistory", b =>
@@ -181,7 +181,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("AmazonSyncHistory");
+                    b.ToTable("AmazonSyncHistory", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.ApiKey", b =>
@@ -312,7 +312,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("KeyHash", "IsActive", "ExpiresAt");
 
-                    b.ToTable("ApiKeys");
+                    b.ToTable("ApiKeys", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.AuditHistory", b =>
@@ -409,7 +409,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("EntityType", "EntityId", "ChangedAt");
 
-                    b.ToTable("AuditHistory");
+                    b.ToTable("AuditHistory", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.Certificate", b =>
@@ -534,7 +534,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("ExpirationDate", "Status", "CompanyId");
 
-                    b.ToTable("Certificates");
+                    b.ToTable("Certificates", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.CertificateAggregateData", b =>
@@ -579,7 +579,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("PeriodDate");
 
-                    b.ToTable("CertificateAggregates");
+                    b.ToTable("CertificateAggregates", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.CertificateDocument", b =>
@@ -664,7 +664,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("UploadedBy");
 
-                    b.ToTable("CertificateDocuments");
+                    b.ToTable("CertificateDocuments", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.CertificateProductId", b =>
@@ -761,7 +761,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("Status", "IsActive", "CreatedAt");
 
-                    b.ToTable("CertificateProductIds");
+                    b.ToTable("CertificateProductIds", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.CertificateStatusHistory", b =>
@@ -846,7 +846,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("ChangedAt", "NewStatus");
 
-                    b.ToTable("CertificateStatusHistory");
+                    b.ToTable("CertificateStatusHistory", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.CertificationType", b =>
@@ -888,7 +888,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("CertificationTypes");
+                    b.ToTable("CertificationTypes", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.Company", b =>
@@ -953,7 +953,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("Name", "Country");
 
-                    b.ToTable("Companies");
+                    b.ToTable("Companies", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.CustomField", b =>
@@ -1011,7 +1011,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("CertificateTypeId");
 
-                    b.ToTable("CustomFields");
+                    b.ToTable("CustomFields", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.CustomFieldValue", b =>
@@ -1046,7 +1046,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("FieldId");
 
-                    b.ToTable("CustomFieldValues");
+                    b.ToTable("CustomFieldValues", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.ETLAlert", b =>
@@ -1085,7 +1085,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("IsResolved");
 
-                    b.ToTable("ETLAlerts");
+                    b.ToTable("ETLAlerts", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.ETLConfiguration", b =>
@@ -1139,7 +1139,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("Name");
 
-                    b.ToTable("ETLConfigurations");
+                    b.ToTable("ETLConfigurations", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.ETLDataQualityIssue", b =>
@@ -1181,7 +1181,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("IssueType");
 
-                    b.ToTable("ETLDataQualityIssues");
+                    b.ToTable("ETLDataQualityIssues", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.ETLLogEntry", b =>
@@ -1217,7 +1217,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("Timestamp");
 
-                    b.ToTable("ETLLogEntries");
+                    b.ToTable("ETLLogEntries", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.GoogleAnalyticsSettings", b =>
@@ -1261,7 +1261,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("UpdatedBy");
 
-                    b.ToTable("GoogleAnalyticsSettings");
+                    b.ToTable("GoogleAnalyticsSettings", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.Import.ImportBatch", b =>
@@ -1327,7 +1327,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("ImportedBy");
 
-                    b.ToTable("ImportBatches");
+                    b.ToTable("ImportBatches", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.Partner", b =>
@@ -1387,7 +1387,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("IsActive", "SortOrder");
 
-                    b.ToTable("Partners");
+                    b.ToTable("Partners", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.PartnerApiKey", b =>
@@ -1452,7 +1452,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("PartnerId");
 
-                    b.ToTable("PartnerApiKeys");
+                    b.ToTable("PartnerApiKeys", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.Permission", b =>
@@ -1491,7 +1491,7 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("Codename")
                         .IsUnique();
 
-                    b.ToTable("Permissions");
+                    b.ToTable("Permissions", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.Product", b =>
@@ -1572,7 +1572,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("ProductTypeId", "IsActive");
 
-                    b.ToTable("Products");
+                    b.ToTable("Products", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.ProductCategory", b =>
@@ -1602,7 +1602,7 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("ProductCategories");
+                    b.ToTable("ProductCategories", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.ProductIdentifier", b =>
@@ -1637,7 +1637,7 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("ProductId", "IdentifierType", "IdentifierValue")
                         .IsUnique();
 
-                    b.ToTable("ProductIdentifiers");
+                    b.ToTable("ProductIdentifiers", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.ProductSubcategory", b =>
@@ -1669,7 +1669,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("ProductTypeId");
 
-                    b.ToTable("ProductSubcategories");
+                    b.ToTable("ProductSubcategories", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.ProductType", b =>
@@ -1706,7 +1706,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("ParentId");
 
-                    b.ToTable("ProductTypes");
+                    b.ToTable("ProductTypes", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.Role", b =>
@@ -1742,7 +1742,7 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Roles");
+                    b.ToTable("Roles", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.Tag", b =>
@@ -1774,7 +1774,7 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("Name")
                         .IsUnique();
 
-                    b.ToTable("Tags");
+                    b.ToTable("Tags", (string)null);
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.User", b =>
@@ -1921,7 +1921,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("Status", "IsActive");
 
-                    b.ToTable("Users");
+                    b.ToTable("Users", (string)null);
                 });
 
             modelBuilder.Entity("PartnerUser", b =>
@@ -1936,7 +1936,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("UsersId");
 
-                    b.ToTable("PartnerUser");
+                    b.ToTable("PartnerUser", (string)null);
                 });
 
             modelBuilder.Entity("PermissionRole", b =>
@@ -1951,7 +1951,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("RolesId");
 
-                    b.ToTable("PermissionRole");
+                    b.ToTable("PermissionRole", (string)null);
                 });
 
             modelBuilder.Entity("ProductTag", b =>
@@ -1966,7 +1966,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("TagsId");
 
-                    b.ToTable("ProductTag");
+                    b.ToTable("ProductTag", (string)null);
                 });
 
             modelBuilder.Entity("RoleUser", b =>

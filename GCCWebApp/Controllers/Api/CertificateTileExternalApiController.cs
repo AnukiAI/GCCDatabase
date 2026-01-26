@@ -76,15 +76,44 @@ namespace GCCWebApp.Controllers.Api
                     .Include(c => c.Tags)
                     .AsQueryable();
 
-                // Filter by partner access - External users should only see relevant certificates
-                var userPartner = GetUserPartner(); // This would need to be implemented based on claims
-                if (!string.IsNullOrEmpty(userPartner))
-                {
-                    query = query.Where(c => c.Partner == userPartner || c.Partner == null); // Show partner-specific and public certificates
-                }
+                // Apply role-based filtering (per Design Recommendations - NO OR logic)
+                // Partner role: sees certificates tagged with their partner
+                // External role: sees certificates from their assigned companies only
+                // Admin/Analyst: sees all (handled by policy, but include for completeness)
+                var userRole = GetCurrentUserRole();
 
-                // Apply partner filter if specified
-                if (!string.IsNullOrWhiteSpace(partner))
+                if (userRole == "Partner")
+                {
+                    // Partner users see certificates tagged with their partner
+                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                    if (userPartnerNames.Any())
+                    {
+                        query = query.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                    }
+                    else
+                    {
+                        // Partner user with no partner association - show nothing
+                        query = query.Where(c => false);
+                    }
+                }
+                else if (userRole == "External")
+                {
+                    // External users see ONLY certificates from their assigned companies
+                    var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
+                    if (userCompanyIds.Any())
+                    {
+                        query = query.Where(c => userCompanyIds.Contains(c.CompanyId));
+                    }
+                    else
+                    {
+                        // External user with no company association - show nothing
+                        query = query.Where(c => false);
+                    }
+                }
+                // Admin/Analyst see all (no filtering needed - they have full access)
+
+                // Apply additional partner filter if specified (for Partner role users to narrow results)
+                if (!string.IsNullOrWhiteSpace(partner) && userRole == "Partner")
                 {
                     var partners = partner.Split(',', StringSplitOptions.RemoveEmptyEntries);
                     query = query.Where(c => partners.Contains(c.Partner ?? "None"));
@@ -231,54 +260,82 @@ namespace GCCWebApp.Controllers.Api
                 term = term.ToLower();
                 var suggestions = new List<object>();
 
-                // Apply partner filtering for autocomplete as well
-                var userPartner = GetUserPartner();
+                // Apply role-based filtering for autocomplete
+                var userRole = GetCurrentUserRole();
                 var baseQuery = _context.Certificates.AsQueryable();
-                if (!string.IsNullOrEmpty(userPartner))
+
+                if (userRole == "Partner")
                 {
-                    baseQuery = baseQuery.Where(c => c.Partner == userPartner || c.Partner == null);
+                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                    if (userPartnerNames.Any())
+                    {
+                        baseQuery = baseQuery.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                    }
+                    else
+                    {
+                        baseQuery = baseQuery.Where(c => false);
+                    }
                 }
-                
+                else if (userRole == "External")
+                {
+                    var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
+                    if (userCompanyIds.Any())
+                    {
+                        baseQuery = baseQuery.Where(c => userCompanyIds.Contains(c.CompanyId));
+                    }
+                    else
+                    {
+                        baseQuery = baseQuery.Where(c => false);
+                    }
+                }
+
                 // Only show active certificates in autocomplete
                 baseQuery = baseQuery.Where(c => c.Status == "active" || c.Status == "expiring_soon" || c.Status == "renewal_in_progress");
 
                 // Search certificate numbers
                 var certNumbers = await baseQuery
                     .Where(c => c.Number.ToLower().Contains(term))
-                    .Select(c => new { 
-                        value = c.Number, 
-                        label = c.Number, 
-                        type = "Certificate Number" 
+                    .Select(c => new {
+                        value = c.Number,
+                        label = c.Number,
+                        type = "Certificate Number"
                     })
                     .Take(5)
                     .ToListAsync();
                 suggestions.AddRange(certNumbers);
 
-                // Search companies (only those with certificates visible to this partner)
+                // Search companies (only those with certificates visible to this user based on role)
+                var userPartnerNames2 = userRole == "Partner" ? await GetCurrentUserPartnerNamesAsync() : new List<string>();
+                var userCompanyIds2 = userRole == "External" ? await GetCurrentUserCompanyIdsAsync() : new List<int>();
+
                 var companies = await _context.Companies
-                    .Where(c => c.Name.ToLower().Contains(term) && 
-                               c.Certificates.Any(cert => 
-                                   (string.IsNullOrEmpty(userPartner) || cert.Partner == userPartner || cert.Partner == null) &&
+                    .Where(c => c.Name.ToLower().Contains(term) &&
+                               c.Certificates.Any(cert =>
+                                   (userRole != "Partner" && userRole != "External") ||
+                                   (userRole == "Partner" && userPartnerNames2.Contains(cert.Partner ?? "None")) ||
+                                   (userRole == "External" && userCompanyIds2.Contains(cert.CompanyId)) &&
                                    (cert.Status == "active" || cert.Status == "expiring_soon" || cert.Status == "renewal_in_progress")))
-                    .Select(c => new { 
-                        value = c.Name, 
-                        label = c.Name, 
-                        type = "Company" 
+                    .Select(c => new {
+                        value = c.Name,
+                        label = c.Name,
+                        type = "Company"
                     })
                     .Take(5)
                     .ToListAsync();
                 suggestions.AddRange(companies);
 
-                // Search products (only those with certificates visible to this partner)
+                // Search products (only those with certificates visible to this user based on role)
                 var products = await _context.Products
-                    .Where(p => p.Name.ToLower().Contains(term) && 
-                               p.Certificates.Any(cert => 
-                                   (string.IsNullOrEmpty(userPartner) || cert.Partner == userPartner || cert.Partner == null) &&
+                    .Where(p => p.Name.ToLower().Contains(term) &&
+                               p.Certificates.Any(cert =>
+                                   (userRole != "Partner" && userRole != "External") ||
+                                   (userRole == "Partner" && userPartnerNames2.Contains(cert.Partner ?? "None")) ||
+                                   (userRole == "External" && userCompanyIds2.Contains(cert.CompanyId)) &&
                                    (cert.Status == "active" || cert.Status == "expiring_soon" || cert.Status == "renewal_in_progress")))
-                    .Select(p => new { 
-                        value = p.Name, 
-                        label = p.Name, 
-                        type = "Product" 
+                    .Select(p => new {
+                        value = p.Name,
+                        label = p.Name,
+                        type = "Product"
                     })
                     .Take(5)
                     .ToListAsync();
@@ -327,14 +384,36 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
-                var userPartner = GetUserPartner();
+                // Apply role-based filtering for filter options
+                var userRole = GetCurrentUserRole();
                 var baseQuery = _context.Certificates.AsQueryable();
-                
-                // Filter certificates by partner access and active status
-                if (!string.IsNullOrEmpty(userPartner))
+
+                if (userRole == "Partner")
                 {
-                    baseQuery = baseQuery.Where(c => c.Partner == userPartner || c.Partner == null);
+                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                    if (userPartnerNames.Any())
+                    {
+                        baseQuery = baseQuery.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                    }
+                    else
+                    {
+                        baseQuery = baseQuery.Where(c => false);
+                    }
                 }
+                else if (userRole == "External")
+                {
+                    var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
+                    if (userCompanyIds.Any())
+                    {
+                        baseQuery = baseQuery.Where(c => userCompanyIds.Contains(c.CompanyId));
+                    }
+                    else
+                    {
+                        baseQuery = baseQuery.Where(c => false);
+                    }
+                }
+
+                // Filter to active certificates only
                 baseQuery = baseQuery.Where(c => c.Status == "active" || c.Status == "expiring_soon" || c.Status == "renewal_in_progress");
 
                 // Get hierarchical product categories from active certificates
@@ -473,18 +552,40 @@ namespace GCCWebApp.Controllers.Api
             try
             {
                 var certificate = await _context.Certificates.FindAsync(id);
-                
+
                 if (certificate == null)
                 {
                     return NotFound(new { error = "Certificate not found" });
                 }
 
-                // Check if user has access to this certificate
-                var userPartner = GetUserPartner();
-                if (!string.IsNullOrEmpty(userPartner) && 
-                    certificate.Partner != userPartner && 
-                    certificate.Partner != null)
+                // Check if user has access to this certificate based on role
+                var userRole = GetCurrentUserRole();
+                var hasAccess = false;
+
+                if (userRole == "Admin" || userRole == "Analyst")
                 {
+                    // Admin/Analyst have full access
+                    hasAccess = true;
+                }
+                else if (userRole == "Partner")
+                {
+                    // Partner users can access certificates tagged with their partner
+                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                    hasAccess = userPartnerNames.Contains(certificate.Partner ?? "None");
+                }
+                else if (userRole == "External")
+                {
+                    // External users can only access certificates from their companies
+                    var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
+                    hasAccess = userCompanyIds.Contains(certificate.CompanyId);
+                }
+
+                if (!hasAccess)
+                {
+                    _logger.LogWarning("User {Email} with role {Role} attempted to download certificate {CertId} without access",
+                        User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "unknown",
+                        userRole,
+                        id);
                     return Forbid("You don't have access to this certificate");
                 }
 
@@ -567,20 +668,80 @@ namespace GCCWebApp.Controllers.Api
         }
 
         /// <summary>
-        /// Get the partner associated with the current user
-        /// This would need to be implemented based on your authentication system
+        /// Get the current user's role
+        /// </summary>
+        private string GetCurrentUserRole()
+        {
+            return User?.FindFirst("Role")?.Value ?? "Public";
+        }
+
+        /// <summary>
+        /// Get the partner associated with the current user (for Partner role)
         /// </summary>
         private string? GetUserPartner()
         {
-            // This is a placeholder implementation
-            // You would extract the partner information from the user's claims/roles
-            // For example:
-            // return User.FindFirst("partner")?.Value;
-            // or based on email domain or other logic
-            
-            // For now, return null to show all certificates
-            // In actual implementation, you'd determine the partner from user context
-            return User.FindFirst("partner")?.Value;
+            var partner = User?.FindFirst("partner")?.Value;
+
+            // Log warning if Partner role user has no partner claim
+            var role = GetCurrentUserRole();
+            if (role == "Partner" && string.IsNullOrEmpty(partner))
+            {
+                _logger.LogWarning("Partner role user {Email} has no partner claim",
+                    User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "unknown");
+            }
+
+            return partner;
+        }
+
+        /// <summary>
+        /// Get company IDs associated with the current user (for External role)
+        /// </summary>
+        private async Task<List<int>> GetCurrentUserCompanyIdsAsync()
+        {
+            var userEmail = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+            if (string.IsNullOrEmpty(userEmail))
+                return new List<int>();
+
+            var user = await _context.Users
+                .Include(u => u.Companies)
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            if (user?.Companies != null && user.Companies.Any())
+            {
+                return user.Companies.Select(c => c.Id).ToList();
+            }
+
+            // Log warning if External role user has no company associations
+            var role = GetCurrentUserRole();
+            if (role == "External")
+            {
+                _logger.LogWarning("External role user {Email} has no company associations", userEmail);
+            }
+
+            return new List<int>();
+        }
+
+        /// <summary>
+        /// Get partner names associated with the current user (for Partner role from database)
+        /// </summary>
+        private async Task<List<string>> GetCurrentUserPartnerNamesAsync()
+        {
+            var userEmail = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
+
+            if (string.IsNullOrEmpty(userEmail))
+                return new List<string>();
+
+            var user = await _context.Users
+                .Include(u => u.Partners)
+                .FirstOrDefaultAsync(u => u.Email == userEmail);
+
+            if (user?.Partners != null && user.Partners.Any())
+            {
+                return user.Partners.Select(p => p.Name).ToList();
+            }
+
+            return new List<string>();
         }
 
         private IQueryable<Certificate> ApplySorting(IQueryable<Certificate> query, string? sortBy)

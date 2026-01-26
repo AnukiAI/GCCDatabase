@@ -63,7 +63,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 IsEmailVerified = true,
                 IsActive = true,
                 IsStaff = true,
-                IsSuperuser = true
+                IsSuperuser = true,
+                Status = "active",
+                TwoFactorMethod = "Email"
             },
             new User
             {
@@ -74,7 +76,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 CreatedAt = DateTime.UtcNow,
                 IsEmailVerified = true,
                 IsActive = true,
-                IsStaff = true
+                IsStaff = true,
+                Status = "active",
+                TwoFactorMethod = "Email"
             },
             new User
             {
@@ -84,7 +88,9 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword("TestExternal123!"),
                 CreatedAt = DateTime.UtcNow,
                 IsEmailVerified = true,
-                IsActive = true
+                IsActive = true,
+                Status = "active",
+                TwoFactorMethod = "Email"
             }
         };
 

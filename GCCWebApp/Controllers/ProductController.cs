@@ -64,31 +64,37 @@ namespace GCCWebApp.Controllers
                     .AsQueryable();
                 var companiesQuery = _context.Companies.AsQueryable();
 
-                // Apply filtering for External users
-                if (userRole == "External")
+                // Apply role-based filtering (per Design Recommendations - NO OR logic)
+                // Partner role: sees ALL products with partner-tagged certificates
+                // External role: sees ONLY products from their assigned companies
+                // Admin/Analyst: sees all (no filtering)
+                if (userRole == "Partner")
                 {
-                    bool hasCompanies = userCompanyIds.Any();
-                    bool hasPartners = userPartnerNames.Any();
-
-                    if (hasCompanies && hasPartners)
+                    // Partner users see products that have certificates tagged with their partner
+                    if (userPartnerNames.Any())
                     {
                         productsQuery = productsQuery.Where(p =>
-                            (p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value)) ||
-                            p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None"))
-                        );
-                        companiesQuery = companiesQuery.Where(c => userCompanyIds.Contains(c.Id));
-                    }
-                    else if (hasCompanies)
-                    {
-                        productsQuery = productsQuery.Where(p => p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value));
-                        companiesQuery = companiesQuery.Where(c => userCompanyIds.Contains(c.Id));
-                    }
-                    else if (hasPartners)
-                    {
-                        productsQuery = productsQuery.Where(p => p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None")));
+                            p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None")));
                     }
                     else
                     {
+                        // Partner user with no partner association - show nothing
+                        productsQuery = productsQuery.Where(p => false);
+                    }
+                }
+                else if (userRole == "External")
+                {
+                    // External users see ONLY products from their assigned companies
+                    // (No partner filtering - that's for Partner role only)
+                    if (userCompanyIds.Any())
+                    {
+                        productsQuery = productsQuery.Where(p =>
+                            p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value));
+                        companiesQuery = companiesQuery.Where(c => userCompanyIds.Contains(c.Id));
+                    }
+                    else
+                    {
+                        // External user with no company association - show nothing
                         productsQuery = productsQuery.Where(p => false);
                     }
                 }
@@ -100,13 +106,23 @@ namespace GCCWebApp.Controllers
                     .Where(p => p.Certificates.Any())
                     .CountAsync();
 
-                // For External users, show most popular category within their companies
+                // For role-filtered users, show most popular category within their data scope
                 var mostPopularCategory = await _context.ProductCategories
                     .Include(pc => pc.Products)
-                    .Where(pc => pc.Products.Any(p => userRole != "External" || 
-                                                    (p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value))))
-                    .OrderByDescending(pc => pc.Products.Count(p => userRole != "External" || 
-                                                                 (p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value))))
+                        .ThenInclude(p => p.Certificates)
+                    .Where(pc => pc.Products.Any(p =>
+                        // Admin/Analyst see all
+                        (userRole != "External" && userRole != "Partner") ||
+                        // Partner role: products with partner-tagged certificates
+                        (userRole == "Partner" && p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None"))) ||
+                        // External role: products from their companies
+                        (userRole == "External" && p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value))
+                    ))
+                    .OrderByDescending(pc => pc.Products.Count(p =>
+                        (userRole != "External" && userRole != "Partner") ||
+                        (userRole == "Partner" && p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None"))) ||
+                        (userRole == "External" && p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value))
+                    ))
                     .Select(pc => pc.Name)
                     .FirstOrDefaultAsync();
 
@@ -159,38 +175,40 @@ namespace GCCWebApp.Controllers
                     .Include(p => p.ProductIdentifiers)
                     .AsQueryable();
 
-                // Apply filtering based on user role
-                if (userRole == "External")
+                // Apply role-based filtering (per Design Recommendations - NO OR logic)
+                // Partner role: sees ALL products with partner-tagged certificates
+                // External role: sees ONLY products from their assigned companies
+                // Admin/Analyst: sees all (no filtering)
+                if (userRole == "Partner")
                 {
-                    // External users can see products based on their associated companies OR partners
-                    bool hasCompanies = userCompanyIds.Any();
-                    bool hasPartners = userPartnerNames.Any();
-
-                    if (hasCompanies && hasPartners)
+                    // Partner users see products that have certificates tagged with their partner
+                    if (userPartnerNames.Any())
                     {
-                        // Show products from their companies OR products with certificates matching their partners
                         query = query.Where(p =>
-                            (p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value)) ||
-                            p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None"))
-                        );
-                    }
-                    else if (hasCompanies)
-                    {
-                        // Only company filtering
-                        query = query.Where(p => p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value));
-                    }
-                    else if (hasPartners)
-                    {
-                        // Only partner filtering - show products with certificates matching their partners
-                        query = query.Where(p => p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None")));
+                            p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None")));
                     }
                     else
                     {
-                        // If no companies or partners associated, return empty result
+                        // Partner user with no partner association - show nothing
                         query = query.Where(p => false);
                     }
                 }
-                // Admin and Analyst can see all products (no additional filtering needed)
+                else if (userRole == "External")
+                {
+                    // External users see ONLY products from their assigned companies
+                    // (No partner filtering - that's for Partner role only)
+                    if (userCompanyIds.Any())
+                    {
+                        query = query.Where(p =>
+                            p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value));
+                    }
+                    else
+                    {
+                        // External user with no company association - show nothing
+                        query = query.Where(p => false);
+                    }
+                }
+                // Admin and Analyst can see all products (no filtering needed)
 
                 // First, get the products with related data
                 var productsData = await query

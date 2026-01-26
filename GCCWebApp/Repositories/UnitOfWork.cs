@@ -27,6 +27,7 @@ namespace GCCWebApp.Repositories
             Permissions = new Repository<Permission>(_context);
             CustomFields = new Repository<CustomField>(_context);
             CustomFieldValues = new Repository<CustomFieldValue>(_context);
+            Partners = new Repository<Partner>(_context);
         }
 
         public IRepository<Certificate> Certificates { get; private set; }
@@ -42,6 +43,7 @@ namespace GCCWebApp.Repositories
         public IRepository<Permission> Permissions { get; private set; }
         public IRepository<CustomField> CustomFields { get; private set; }
         public IRepository<CustomFieldValue> CustomFieldValues { get; private set; }
+        public IRepository<Partner> Partners { get; private set; }
 
         public async Task<int> CompleteAsync()
         {

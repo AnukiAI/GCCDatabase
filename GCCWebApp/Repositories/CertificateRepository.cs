@@ -68,6 +68,7 @@ namespace GCCWebApp.Repositories
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
                 .Include(c => c.Tags)
+                .Include(c => c.Partners)
                 .Include(c => c.CustomFieldValues)
                     .ThenInclude(cfv => cfv.Field)
                 .FirstOrDefaultAsync();
@@ -141,6 +142,7 @@ namespace GCCWebApp.Repositories
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
                 .Include(c => c.Tags)
+                .Include(c => c.Partners)
                 .Include(c => c.CustomFieldValues)
                     .ThenInclude(cfv => cfv.Field)
                 .Include(c => c.CreatedByUser)
@@ -228,6 +230,7 @@ namespace GCCWebApp.Repositories
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
                 .Include(c => c.Tags)
+                .Include(c => c.Partners)
                 .Skip((filter.Page - 1) * filter.PageSize)
                 .Take(filter.PageSize)
                 .ToListAsync();

@@ -159,10 +159,10 @@
                     <div class="form-group">
                         <label asp-for="Partner">Partner</label>
                         <select asp-for="Partner" class="form-control">
-                            <option value="">None</option>
-                            <option value="Amazon" selected="@(Model.Partner == "Amazon")">Amazon</option>
-                            <option value="Novi" selected="@(Model.Partner == "Novi")">Novi</option>
-                            <option value="Other" selected="@(Model.Partner == "Other")">Other</option>
+                            <option value="None">None</option>
+                            <option value="Amazon">Amazon</option>
+                            <option value="Novi">Novi</option>
+                            <option value="Other">Other</option>
                         </select>
                         <span asp-validation-for="Partner" class="text-danger" role="alert"></span>
                     </div>

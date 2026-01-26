@@ -17,6 +17,7 @@ namespace GCCWebApp.Repositories
         IRepository<Permission> Permissions { get; }
         IRepository<CustomField> CustomFields { get; }
         IRepository<CustomFieldValue> CustomFieldValues { get; }
+        IRepository<Partner> Partners { get; }
 
         Task<int> CompleteAsync();
         Task BeginTransactionAsync();

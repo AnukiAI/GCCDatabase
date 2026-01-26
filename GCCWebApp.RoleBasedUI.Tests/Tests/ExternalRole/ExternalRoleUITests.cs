@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using Microsoft.Extensions.Configuration;
 using FluentAssertions;
+using NUnit.Framework;
 using GCCWebApp.RoleBasedUI.Tests.Helpers;
 
 namespace GCCWebApp.RoleBasedUI.Tests.Tests.ExternalRole;
@@ -183,7 +184,7 @@ public class ExternalRoleUITests : PageTest
         foreach (var item in allowedNavigationItems)
         {
             var navLink = Page.Locator($"nav a:has-text('{item}'), .nav-link:has-text('{item}')");
-            await Expect(navLink).ToBeVisibleAsync($"External user should see {item} navigation item");
+            await Expect(navLink).ToBeVisibleAsync(); // External user should see this navigation item
         }
         
         // Verify external-specific elements are visible
@@ -195,7 +196,7 @@ public class ExternalRoleUITests : PageTest
         var companiesCount = await companiesNav.CountAsync();
         if (companiesCount > 0)
         {
-            await Expect(companiesNav).Not.ToBeVisibleAsync("External user should NOT see Companies navigation");
+            await Expect(companiesNav).Not.ToBeVisibleAsync(); // External user should NOT see Companies navigation
         }
         
         // Verify Admin navigation is NOT visible
@@ -203,7 +204,7 @@ public class ExternalRoleUITests : PageTest
         var adminCount = await adminNav.CountAsync();
         if (adminCount > 0)
         {
-            await Expect(adminNav).Not.ToBeVisibleAsync("External user should NOT see Admin navigation");
+            await Expect(adminNav).Not.ToBeVisibleAsync(); // External user should NOT see Admin navigation
         }
     }
 
@@ -238,7 +239,7 @@ public class ExternalRoleUITests : PageTest
                 var button = Page.Locator($"button:has-text('{buttonText}'), .btn:has-text('{buttonText}')");
                 if (await button.CountAsync() > 0)
                 {
-                    await Expect(button).ToBeVisibleAsync($"External user should see {buttonText} button");
+                    await Expect(button).ToBeVisibleAsync(); // External user should see this button
                 }
             }
             
@@ -249,7 +250,7 @@ public class ExternalRoleUITests : PageTest
                 var button = Page.Locator($"button:has-text('{buttonText}'), .btn:has-text('{buttonText}')");
                 if (await button.CountAsync() > 0)
                 {
-                    await Expect(button).Not.ToBeVisibleAsync($"External user should NOT see {buttonText} button");
+                    await Expect(button).Not.ToBeVisibleAsync(); // External user should NOT see this button
                 }
             }
         }
@@ -282,7 +283,7 @@ public class ExternalRoleUITests : PageTest
                 var profileOption = Page.Locator($"a:has-text('{option}'), .dropdown-item:has-text('{option}')");
                 if (await profileOption.CountAsync() > 0)
                 {
-                    await Expect(profileOption).ToBeVisibleAsync($"External user should see {option} option");
+                    await Expect(profileOption).ToBeVisibleAsync(); // External user should see this option
                 }
             }
             
@@ -293,7 +294,7 @@ public class ExternalRoleUITests : PageTest
                 var adminOption = Page.Locator($"a:has-text('{option}'), .dropdown-item:has-text('{option}')");
                 if (await adminOption.CountAsync() > 0)
                 {
-                    await Expect(adminOption).Not.ToBeVisibleAsync($"External user should NOT see {option} option");
+                    await Expect(adminOption).Not.ToBeVisibleAsync(); // External user should NOT see this option
                 }
             }
         }
@@ -316,7 +317,7 @@ public class ExternalRoleUITests : PageTest
         var searchInput = Page.Locator("input[type='search'], input[placeholder*='search'], #search-input");
         if (await searchInput.CountAsync() > 0)
         {
-            await Expect(searchInput).ToBeVisibleAsync("External user should have access to basic search");
+            await Expect(searchInput).ToBeVisibleAsync(); // External user should have access to basic search
         }
         
         // Verify external search elements are visible

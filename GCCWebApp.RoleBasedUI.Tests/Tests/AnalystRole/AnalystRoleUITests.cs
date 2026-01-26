@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using Microsoft.Extensions.Configuration;
 using FluentAssertions;
+using NUnit.Framework;
 using GCCWebApp.RoleBasedUI.Tests.Helpers;
 
 namespace GCCWebApp.RoleBasedUI.Tests.Tests.AnalystRole;
@@ -194,7 +195,7 @@ public class AnalystRoleUITests : PageTest
         foreach (var item in allowedNavigationItems)
         {
             var navLink = Page.Locator($"nav a:has-text('{item}'), .nav-link:has-text('{item}')");
-            await Expect(navLink).ToBeVisibleAsync($"Analyst should see {item} navigation item");
+            await Expect(navLink).ToBeVisibleAsync(); // Analyst should see this navigation item
         }
         
         // Verify analyst-specific elements are visible
@@ -238,7 +239,7 @@ public class AnalystRoleUITests : PageTest
             var exportButton = Page.Locator("button:has-text('Export'), .btn:has-text('Export')");
             if (await exportButton.CountAsync() > 0)
             {
-                await Expect(exportButton).ToBeVisibleAsync("Analyst should see export functionality");
+                await Expect(exportButton).ToBeVisibleAsync(); // Analyst should see export functionality
             }
             
             // Verify admin-only controls are hidden

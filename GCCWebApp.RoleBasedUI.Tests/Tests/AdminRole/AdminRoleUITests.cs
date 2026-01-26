@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using Microsoft.Extensions.Configuration;
 using FluentAssertions;
+using NUnit.Framework;
 using GCCWebApp.RoleBasedUI.Tests.Helpers;
 
 namespace GCCWebApp.RoleBasedUI.Tests.Tests.AdminRole;
@@ -215,7 +216,7 @@ public class AdminRoleUITests : PageTest
         foreach (var item in navigationItems)
         {
             var navLink = Page.Locator($"nav a:has-text('{item}'), .nav-link:has-text('{item}')");
-            await Expect(navLink).ToBeVisibleAsync($"Admin should see {item} navigation item");
+            await Expect(navLink).ToBeVisibleAsync(); // Admin should see this navigation item
         }
         
         // Verify admin dropdown/menu items

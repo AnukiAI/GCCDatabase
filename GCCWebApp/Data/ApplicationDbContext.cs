@@ -419,6 +419,20 @@ namespace GCCWebApp.Data
                 .HasMany(u => u.Partners)
                 .WithMany(p => p.Users);
 
+            // Certificate-Partner many-to-many (multi-partner support)
+            modelBuilder.Entity<Certificate>()
+                .HasMany(c => c.Partners)
+                .WithMany(p => p.Certificates)
+                .UsingEntity(j => j.ToTable("CertificatePartners"));
+
+            // Company-Partner optional relationship (for reporting)
+            modelBuilder.Entity<Company>()
+                .HasOne(c => c.Partner)
+                .WithMany(p => p.Companies)
+                .HasForeignKey(c => c.PartnerId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .IsRequired(false);
+
             // ETL Configuration
             modelBuilder.Entity<ETLConfiguration>(entity =>
             {

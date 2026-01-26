@@ -1,7 +1,9 @@
+using GCCWebApp.Data;
 using GCCWebApp.Models.Import;
 using GCCWebApp.Services.Import;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
 using System.Security.Claims;
@@ -17,13 +19,16 @@ namespace GCCWebApp.Controllers
     {
         private readonly ICertificateImportService _importService;
         private readonly ILogger<CertificateImportController> _logger;
+        private readonly ApplicationDbContext _context;
 
         public CertificateImportController(
             ICertificateImportService importService,
-            ILogger<CertificateImportController> logger)
+            ILogger<CertificateImportController> logger,
+            ApplicationDbContext context)
         {
             _importService = importService;
             _logger = logger;
+            _context = context;
         }
 
         /// <summary>
@@ -65,7 +70,7 @@ namespace GCCWebApp.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                var userId = GetCurrentUserId();
+                var userId = await GetCurrentUserIdAsync();
                 var username = GetCurrentUsername();
 
                 // Generate preview
@@ -130,7 +135,7 @@ namespace GCCWebApp.Controllers
                     return View("Preview", preview);
                 }
 
-                var userId = GetCurrentUserId();
+                var userId = await GetCurrentUserIdAsync();
                 var username = GetCurrentUsername();
 
                 // Apply the import
@@ -159,6 +164,143 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        #region API Endpoints for Modal
+
+        /// <summary>
+        /// POST: /api/CertificateImport/Preview
+        /// API endpoint for modal - uploads and returns preview as JSON
+        /// </summary>
+        [HttpPost]
+        [Route("/api/CertificateImport/Preview")]
+        public async Task<IActionResult> ApiPreview(IFormFile csvFile)
+        {
+            try
+            {
+                if (csvFile == null || csvFile.Length == 0)
+                {
+                    return BadRequest(new { error = "Please select a CSV file to upload" });
+                }
+
+                if (!csvFile.FileName.EndsWith(".csv", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { error = "Only CSV files are supported" });
+                }
+
+                if (csvFile.Length > 10 * 1024 * 1024)
+                {
+                    return BadRequest(new { error = "File size must be less than 10MB" });
+                }
+
+                var userId = await GetCurrentUserIdAsync();
+                var username = GetCurrentUsername();
+
+                var preview = await _importService.PreviewImportAsync(csvFile, userId, username);
+
+                return Ok(new
+                {
+                    importId = preview.ImportId,
+                    fileName = preview.FileName,
+                    totalRows = preview.TotalRows,
+                    validRows = preview.ValidRows,
+                    invalidRows = preview.InvalidRows,
+                    newCertificates = preview.NewCertificates,
+                    modifiedCertificates = preview.ModifiedCertificates,
+                    unchangedCertificates = preview.UnchangedCertificates,
+                    companiesToCreate = preview.CompaniesToCreate,
+                    productsToCreate = preview.ProductsToCreate,
+                    tagsToCreate = preview.TagsToCreate,
+                    canApply = preview.CanApply,
+                    hasCriticalErrors = preview.HasCriticalErrors,
+                    newRows = preview.NewRows.Select(r => new
+                    {
+                        rowNumber = r.RowNumber,
+                        certificateNumber = r.CertificateNumber,
+                        companyName = r.CompanyName,
+                        productName = r.ProductName,
+                        certificationType = r.CertificationType,
+                        status = "New",
+                        effectiveDate = r.EffectiveDate,
+                        expirationDate = r.ExpirationDate
+                    }),
+                    modifiedRows = preview.ModifiedRows.Select(r => new
+                    {
+                        rowNumber = r.RowNumber,
+                        certificateNumber = r.CertificateNumber,
+                        companyName = r.CompanyName,
+                        productName = r.ProductName,
+                        certificationType = r.CertificationType,
+                        status = "Modified",
+                        effectiveDate = r.EffectiveDate,
+                        expirationDate = r.ExpirationDate,
+                        changes = r.Changes
+                    }),
+                    errorRows = preview.ErrorRows.Select(e => new
+                    {
+                        rowNumber = e.RowNumber,
+                        certificateNumber = e.CertificateNumber,
+                        errorMessages = e.ErrorMessages
+                    })
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "API: Failed to preview certificate import");
+                return StatusCode(500, new { error = ex.Message });
+            }
+        }
+
+        /// <summary>
+        /// POST: /api/CertificateImport/Apply
+        /// API endpoint for modal - applies import and returns result as JSON
+        /// </summary>
+        [HttpPost]
+        [Route("/api/CertificateImport/Apply")]
+        public async Task<IActionResult> ApiApply([FromBody] ApplyImportRequest request)
+        {
+            try
+            {
+                var preview = await _importService.GetCachedPreviewAsync(request.ImportId);
+
+                if (preview == null)
+                {
+                    return BadRequest(new { success = false, message = "Import preview has expired. Please upload the file again." });
+                }
+
+                if (!preview.CanApply)
+                {
+                    return BadRequest(new { success = false, message = "This import cannot be applied due to validation errors." });
+                }
+
+                var userId = await GetCurrentUserIdAsync();
+                var username = GetCurrentUsername();
+
+                var result = await _importService.ApplyImportAsync(preview, userId, username, request.Reason);
+
+                return Ok(new
+                {
+                    success = result.Success,
+                    message = result.Message,
+                    certificatesCreated = result.CertificatesCreated,
+                    certificatesUpdated = result.CertificatesUpdated,
+                    certificatesFailed = result.CertificatesFailed,
+                    errors = result.Errors
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "API: Failed to apply certificate import: {ImportId}", request?.ImportId);
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        public class ApplyImportRequest
+        {
+            public string ImportId { get; set; } = string.Empty;
+            public string? Reason { get; set; }
+        }
+
+        #endregion
+
         /// <summary>
         /// GET: /CertificateImport/DownloadTemplate
         /// Downloads a CSV template with example data
@@ -166,12 +308,14 @@ namespace GCCWebApp.Controllers
         [HttpGet]
         public IActionResult DownloadTemplate()
         {
-            var templateCsv = @"CertificateNumber,CompanyName,ProductName,CertificationType,Status,EffectiveDate,ExpirationDate,Location,Country,Asin,Upc,Gtin,Ean,Partner
-24-0001,Acme Corporation,Widget Pro,FSC,active,2024-01-01,2025-01-01,""Portland, OR"",United States,B08X7N9MRQ,846378985421,00846378985421,0846378985421,None
-24-0002,Beta Industries,Gadget Plus,ISO 9001,draft,2024-02-01,2025-02-01,""Berlin, CT"",United States,B09XYZ7890,234567890123,,,None";
+            // Template matches client-provided format with all 20 supported columns
+            // UPC, GTIN, EAN use ="value" format to preserve leading zeros in Excel
+            var templateCsv = @"CERTIFICATE_NUMBER,COMPANY_NAME,COMPANY_LOCATION,COMPANY_COUNTRY,COMPANY_EMAIL,COMPANY_WEBSITE,PRODUCT_NAME,PRODUCT_TYPE,CERTIFICATION_TYPE,EFFECTIVE_DATE,EXPIRATION_DATE,CERTIFICATE_LOCATION,CERTIFICATE_COUNTRY,PARTNER,CERTIFICATION_RESULTS,TAGS,ASIN,UPC,GTIN,EAN
+24-0001,Acme Corporation,""Portland, OR"",United States,contact@acme.com,https://acme.com,Widget Pro,Electronics,Recycled Content,2024-01-01,2025-01-01,""Portland, OR"",United States,Amazon,95%,""Sustainable,Verified"",B08X7N9MRQ,=""846378985421"",=""00846378985421"",=""0846378985421""
+24-0002,Beta Industries,""Berlin, CT"",United States,info@beta.com,https://beta.com,Gadget Plus,Consumer Goods,Recycled Content,2024-02-01,2025-02-01,""Hartford, CT"",United States,Novi,87%,Eco-Friendly,B09XYZ7890,=""234567890123"",,";
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(templateCsv);
-            return File(bytes, "text/csv", $"certificate_import_template_{DateTime.Now:yyyyMMdd}.csv");
+            return File(bytes, "text/csv", $"GCC_Certificate_Import_Template.csv");
         }
 
         /// <summary>
@@ -189,15 +333,34 @@ namespace GCCWebApp.Controllers
 
         #region Helper Methods
 
-        private int GetCurrentUserId()
+        private async Task<int> GetCurrentUserIdAsync()
         {
+            // Try to get user ID from claim first
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return int.TryParse(userIdClaim, out var userId) ? userId : 0;
+            if (int.TryParse(userIdClaim, out var userId) && userId > 0)
+            {
+                return userId;
+            }
+
+            // Fall back to looking up user by username
+            var username = GetCurrentUsername();
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Username == username);
+            if (user != null)
+            {
+                return user.Id;
+            }
+
+            // Last resort: get admin user
+            var adminUser = await _context.Users.FirstOrDefaultAsync(u => u.Username == "admin");
+            return adminUser?.Id ?? 1;
         }
 
         private string GetCurrentUsername()
         {
-            return User.FindFirst(ClaimTypes.Name)?.Value ?? User.Identity?.Name ?? "Unknown";
+            return User.FindFirst(ClaimTypes.Name)?.Value ??
+                   User.FindFirst("name")?.Value ??
+                   User.Identity?.Name ??
+                   "admin";
         }
 
         #endregion

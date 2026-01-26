@@ -32,6 +32,18 @@ namespace GCCWebApp.Models.Import
         public bool HasErrors => ErrorRows.Count > 0;
         public bool CanApply => ValidRows > 0 && !HasCriticalErrors;
         public bool HasCriticalErrors { get; set; } // Errors that prevent entire import
+
+        // Entity creation summaries (for auto-creation feature)
+        public int CompaniesToCreate { get; set; }
+        public int ProductsToCreate { get; set; }
+        public int ProductTypesToCreate { get; set; }
+        public int TagsToCreate { get; set; }
+
+        // Lists of entities to be created (for preview display)
+        public List<string> NewCompanyNames { get; set; } = new();
+        public List<string> NewProductNames { get; set; } = new();
+        public List<string> NewProductTypeNames { get; set; } = new();
+        public List<string> NewTagNames { get; set; } = new();
     }
 
     /// <summary>
@@ -54,6 +66,27 @@ namespace GCCWebApp.Models.Import
         public string? Gtin { get; set; }
         public string? Ean { get; set; }
         public string? Partner { get; set; }
+
+        // Company details for auto-creation
+        public string? CompanyLocation { get; set; }
+        public string? CompanyCountry { get; set; }
+        public string? CompanyEmail { get; set; }
+        public string? CompanyWebsite { get; set; }
+        public bool CompanyWillBeCreated { get; set; }
+
+        // Product details for auto-creation
+        public string? ProductTypeName { get; set; }
+        public int? ProductTypeId { get; set; }
+        public bool ProductWillBeCreated { get; set; }
+        public bool ProductTypeWillBeCreated { get; set; }
+
+        // Certification results
+        public string? CertificationResults { get; set; }
+
+        // Tags (comma-separated in CSV, parsed to list)
+        public List<string> TagNames { get; set; } = new();
+        public List<int> TagIds { get; set; } = new();
+        public List<string> TagsToCreate { get; set; } = new();
 
         // Metadata
         public ImportRowStatus RowStatus { get; set; }
@@ -107,20 +140,38 @@ namespace GCCWebApp.Models.Import
     public class CertificateImportCsvRow
     {
         public int RowNumber { get; set; }
+
+        // Certificate fields
         public string CertificateNumber { get; set; } = string.Empty;
-        public string CompanyName { get; set; } = string.Empty;
-        public string ProductName { get; set; } = string.Empty;
         public string CertificationType { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public string EffectiveDate { get; set; } = string.Empty;
         public string ExpirationDate { get; set; } = string.Empty;
-        public string Location { get; set; } = string.Empty;
-        public string Country { get; set; } = string.Empty;
+        public string Location { get; set; } = string.Empty;      // Maps to CERTIFICATE_LOCATION
+        public string Country { get; set; } = string.Empty;       // Maps to CERTIFICATE_COUNTRY
+        public string CertificationResults { get; set; } = string.Empty;
+        public string Tags { get; set; } = string.Empty;          // Comma-separated tags
+
+        // Company fields
+        public string CompanyName { get; set; } = string.Empty;
+        public string CompanyLocation { get; set; } = string.Empty;
+        public string CompanyCountry { get; set; } = string.Empty;
+        public string CompanyEmail { get; set; } = string.Empty;
+        public string CompanyWebsite { get; set; } = string.Empty;
+
+        // Product fields
+        public string ProductName { get; set; } = string.Empty;
+        public string ProductType { get; set; } = string.Empty;
+
+        // Product identifiers
         public string Asin { get; set; } = string.Empty;
         public string Upc { get; set; } = string.Empty;
         public string Gtin { get; set; } = string.Empty;
         public string Ean { get; set; } = string.Empty;
+
+        // Partner
         public string Partner { get; set; } = string.Empty;
+
         public string RawData { get; set; } = string.Empty; // Full CSV line for debugging
     }
 

@@ -371,6 +371,15 @@
                     <button class="btn btn-primary" id="exportAllBtn">
                         <i class="fas fa-file-excel"></i> Export All to Excel
                     </button>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <button type="button" class="btn btn-secondary" id="openImportModalBtn" title="Bulk import certificates from CSV">
+                            <i class="fas fa-file-import"></i> Import CSV
+                        </button>
+                        <a href="@Url.Action("DownloadTemplate", "CertificateImport")" class="btn btn-outline-secondary" title="Download CSV template with example data">
+                            <i class="fas fa-file-download"></i> Download Template
+                        </a>
+                    }
                 </div>
             </div>
 
@@ -518,3 +527,582 @@
         @* All script content moved to external files for CSP compliance *@
     </div>
 </div>
+
+@if (User.IsInRole("Admin"))
+{
+<!-- Certificate Import Modal -->
+<div id="certificate-import-modal" class="import-modal-wrapper" style="display: none;">
+    <div class="import-modal-backdrop"></div>
+    <div class="import-modal-container">
+        <div class="import-modal-header">
+            <h3 class="import-modal-title">
+                <i class="fas fa-file-import"></i> <span id="importModalTitle">Import Certificates</span>
+            </h3>
+            <button type="button" class="import-modal-close" id="closeImportModalBtn">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+
+        <div class="import-modal-body">
+            <!-- Step 1: Upload -->
+            <div id="importStep1" class="import-step">
+                <div class="import-instructions">
+                    <h4><i class="fas fa-info-circle"></i> Import Instructions</h4>
+                    <ul>
+                        <li><strong>Format:</strong> CSV file only (.csv extension)</li>
+                        <li><strong>Required:</strong> CERTIFICATE_NUMBER, COMPANY_NAME, PRODUCT_NAME, CERTIFICATION_TYPE</li>
+                        <li><strong>Auto-create:</strong> Companies, Products, and Tags will be created if they don't exist</li>
+                        <li><strong>Max Size:</strong> 10MB per file</li>
+                    </ul>
+                </div>
+
+                <div class="import-upload-area" id="importDropZone">
+                    <i class="fas fa-cloud-upload-alt"></i>
+                    <p>Drag & drop your CSV file here</p>
+                    <p class="text-muted">or</p>
+                    <label class="btn btn-primary">
+                        <i class="fas fa-folder-open"></i> Browse Files
+                        <input type="file" id="importFileInput" accept=".csv" style="display: none;">
+                    </label>
+                    <p id="selectedFileName" class="selected-file-name" style="display: none;"></p>
+                </div>
+
+                <div class="import-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelImportBtn">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-primary" id="uploadImportBtn" disabled>
+                        <i class="fas fa-upload"></i> Upload & Preview
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Preview -->
+            <div id="importStep2" class="import-step" style="display: none;">
+                <div class="import-summary">
+                    <div class="import-stat import-stat--total">
+                        <div class="import-stat-value" id="statTotal">0</div>
+                        <div class="import-stat-label">Total Rows</div>
+                    </div>
+                    <div class="import-stat import-stat--new">
+                        <div class="import-stat-value" id="statNew">0</div>
+                        <div class="import-stat-label">New</div>
+                    </div>
+                    <div class="import-stat import-stat--modified">
+                        <div class="import-stat-value" id="statModified">0</div>
+                        <div class="import-stat-label">Modified</div>
+                    </div>
+                    <div class="import-stat import-stat--errors">
+                        <div class="import-stat-value" id="statErrors">0</div>
+                        <div class="import-stat-label">Errors</div>
+                    </div>
+                </div>
+
+                <div class="import-auto-create" id="autoCreateInfo" style="display: none;">
+                    <h5><i class="fas fa-magic"></i> Will Auto-Create:</h5>
+                    <div id="autoCreateList"></div>
+                </div>
+
+                <div class="import-errors" id="importErrorsSection" style="display: none;">
+                    <h5><i class="fas fa-exclamation-triangle"></i> Validation Errors</h5>
+                    <div class="import-errors-list" id="importErrorsList"></div>
+                </div>
+
+                <div class="import-preview-table">
+                    <h5><i class="fas fa-list"></i> Preview (first 10 rows)</h5>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Status</th>
+                                    <th>Cert #</th>
+                                    <th>Company</th>
+                                    <th>Product</th>
+                                    <th>Type</th>
+                                    <th>Dates</th>
+                                </tr>
+                            </thead>
+                            <tbody id="importPreviewBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="import-actions">
+                    <button type="button" class="btn btn-secondary" id="backToUploadBtn">
+                        <i class="fas fa-arrow-left"></i> Back
+                    </button>
+                    <button type="button" class="btn btn-success" id="applyImportBtn">
+                        <i class="fas fa-check"></i> Apply Import
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Processing -->
+            <div id="importStep3" class="import-step" style="display: none;">
+                <div class="import-processing">
+                    <i class="fas fa-spinner fa-spin fa-3x"></i>
+                    <p id="processingMessage">Processing import...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .import-modal-wrapper {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 9997;
+    }
+    .import-modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.85);
+        z-index: 9998;
+        backdrop-filter: blur(3px);
+    }
+    .import-modal-container {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        width: 95%;
+        max-width: 900px;
+        max-height: 90vh;
+        background-color: white;
+        border-radius: 8px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        display: flex;
+        flex-direction: column;
+    }
+    .import-modal-header {
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #e9ecef;
+        padding: 16px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-radius: 8px 8px 0 0;
+    }
+    .import-modal-title {
+        color: #002B76;
+        font-weight: 600;
+        margin: 0;
+        font-size: 18px;
+    }
+    .import-modal-close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #666;
+        padding: 4px 8px;
+    }
+    .import-modal-close:hover {
+        color: #333;
+    }
+    .import-modal-body {
+        padding: 20px;
+        overflow-y: auto;
+        flex: 1;
+        max-height: calc(90vh - 70px);
+    }
+    .import-instructions {
+        background: #e6f7ff;
+        border: 1px solid #91d5ff;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .import-instructions h4 {
+        margin: 0 0 10px 0;
+        color: #002B76;
+        font-size: 16px;
+    }
+    .import-instructions ul {
+        margin: 0;
+        padding-left: 20px;
+    }
+    .import-instructions li {
+        margin-bottom: 5px;
+    }
+    .import-upload-area {
+        border: 2px dashed #ccc;
+        border-radius: 8px;
+        padding: 40px;
+        text-align: center;
+        background: #fafafa;
+        transition: all 0.3s ease;
+        margin-bottom: 20px;
+    }
+    .import-upload-area:hover,
+    .import-upload-area.drag-over {
+        border-color: #447638;
+        background: #f0f9f0;
+    }
+    .import-upload-area i {
+        font-size: 48px;
+        color: #999;
+        margin-bottom: 15px;
+    }
+    .import-upload-area.drag-over i {
+        color: #447638;
+    }
+    .selected-file-name {
+        margin-top: 15px;
+        padding: 10px;
+        background: #e8f5e1;
+        border-radius: 4px;
+        color: #447638;
+        font-weight: 500;
+    }
+    .import-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+        margin-top: 20px;
+    }
+    .import-summary {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    .import-stat {
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+    }
+    .import-stat--total { background: #e6f7ff; border: 2px solid #002B76; }
+    .import-stat--new { background: #e8f5e1; border: 2px solid #447638; }
+    .import-stat--modified { background: #fff3cd; border: 2px solid #ffc107; }
+    .import-stat--errors { background: #ffebee; border: 2px solid #dc3545; }
+    .import-stat-value {
+        font-size: 28px;
+        font-weight: 700;
+    }
+    .import-stat--total .import-stat-value { color: #002B76; }
+    .import-stat--new .import-stat-value { color: #447638; }
+    .import-stat--modified .import-stat-value { color: #856404; }
+    .import-stat--errors .import-stat-value { color: #dc3545; }
+    .import-stat-label {
+        font-size: 12px;
+        color: #666;
+        text-transform: uppercase;
+        margin-top: 5px;
+    }
+    .import-auto-create {
+        background: #f0f9f0;
+        border: 1px solid #92C83E;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .import-auto-create h5 {
+        margin: 0 0 10px 0;
+        color: #447638;
+    }
+    .import-errors {
+        background: #fff5f5;
+        border: 1px solid #dc3545;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+        max-height: 150px;
+        overflow-y: auto;
+    }
+    .import-errors h5 {
+        margin: 0 0 10px 0;
+        color: #dc3545;
+    }
+    .import-errors-list {
+        font-size: 14px;
+    }
+    .import-preview-table {
+        margin-bottom: 15px;
+    }
+    .import-preview-table h5 {
+        margin-bottom: 10px;
+        color: #333;
+    }
+    .import-processing {
+        text-align: center;
+        padding: 60px 20px;
+    }
+    .import-processing i {
+        color: #447638;
+        margin-bottom: 20px;
+    }
+    .import-processing p {
+        font-size: 18px;
+        color: #666;
+    }
+    .status-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    .status-badge--new { background: #e8f5e1; color: #447638; }
+    .status-badge--modified { background: #fff3cd; color: #856404; }
+    .status-badge--error { background: #ffebee; color: #dc3545; }
+</style>
+
+<script>
+(function() {
+    const modal = document.getElementById('certificate-import-modal');
+    const openBtn = document.getElementById('openImportModalBtn');
+    const closeBtn = document.getElementById('closeImportModalBtn');
+    const cancelBtn = document.getElementById('cancelImportBtn');
+    const fileInput = document.getElementById('importFileInput');
+    const dropZone = document.getElementById('importDropZone');
+    const uploadBtn = document.getElementById('uploadImportBtn');
+    const backBtn = document.getElementById('backToUploadBtn');
+    const applyBtn = document.getElementById('applyImportBtn');
+    const fileNameDisplay = document.getElementById('selectedFileName');
+
+    let selectedFile = null;
+    let importId = null;
+    let previewData = null;
+
+    // Open modal
+    openBtn?.addEventListener('click', () => {
+        modal.style.display = 'block';
+        resetModal();
+    });
+
+    // Close modal
+    function closeModal() {
+        modal.style.display = 'none';
+        resetModal();
+    }
+
+    closeBtn?.addEventListener('click', closeModal);
+    cancelBtn?.addEventListener('click', closeModal);
+
+    // Close on backdrop click
+    modal?.querySelector('.import-modal-backdrop')?.addEventListener('click', closeModal);
+
+    // Close on Escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.style.display === 'block') {
+            closeModal();
+        }
+    });
+
+    // File selection
+    fileInput?.addEventListener('change', (e) => {
+        handleFileSelect(e.target.files[0]);
+    });
+
+    // Drag and drop
+    dropZone?.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+
+    dropZone?.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+    });
+
+    dropZone?.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file && file.name.endsWith('.csv')) {
+            handleFileSelect(file);
+        } else {
+            showNotification('Please select a CSV file', 'error');
+        }
+    });
+
+    function handleFileSelect(file) {
+        if (!file) return;
+        if (!file.name.endsWith('.csv')) {
+            showNotification('Please select a CSV file', 'error');
+            return;
+        }
+        selectedFile = file;
+        fileNameDisplay.textContent = file.name;
+        fileNameDisplay.style.display = 'block';
+        uploadBtn.disabled = false;
+    }
+
+    // Upload and preview
+    uploadBtn?.addEventListener('click', async () => {
+        if (!selectedFile) return;
+
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+        const formData = new FormData();
+        formData.append('csvFile', selectedFile);
+
+        try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ||
+                          document.querySelector('meta[name="csrf-token"]')?.content;
+
+            const response = await fetch('/api/CertificateImport/Preview', {
+                method: 'POST',
+                body: formData,
+                headers: token ? { 'RequestVerificationToken': token } : {}
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Upload failed');
+            }
+
+            previewData = await response.json();
+            importId = previewData.importId;
+            showPreview(previewData);
+        } catch (error) {
+            showNotification('Upload failed: ' + error.message, 'error');
+            uploadBtn.disabled = false;
+            uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload & Preview';
+        }
+    });
+
+    // Back to upload
+    backBtn?.addEventListener('click', () => {
+        document.getElementById('importStep1').style.display = 'block';
+        document.getElementById('importStep2').style.display = 'none';
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload & Preview';
+    });
+
+    // Apply import
+    applyBtn?.addEventListener('click', async () => {
+        if (!importId) return;
+
+        const confirmMsg = `Apply import?\n\n${previewData.newCertificates} new certificate(s) will be created\n${previewData.modifiedCertificates} certificate(s) will be updated`;
+        if (!confirm(confirmMsg)) return;
+
+        document.getElementById('importStep2').style.display = 'none';
+        document.getElementById('importStep3').style.display = 'block';
+
+        try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value ||
+                          document.querySelector('meta[name="csrf-token"]')?.content;
+
+            const response = await fetch('/api/CertificateImport/Apply', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token || ''
+                },
+                body: JSON.stringify({ importId: importId })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showNotification(`Import successful! ${result.certificatesCreated} created, ${result.certificatesUpdated} updated.`, 'success');
+                closeModal();
+                // Refresh the certificate list
+                if (typeof loadCertificates === 'function') {
+                    loadCertificates();
+                } else {
+                    location.reload();
+                }
+            } else {
+                throw new Error(result.message || 'Import failed');
+            }
+        } catch (error) {
+            showNotification('Import failed: ' + error.message, 'error');
+            document.getElementById('importStep3').style.display = 'none';
+            document.getElementById('importStep2').style.display = 'block';
+        }
+    });
+
+    function showPreview(data) {
+        document.getElementById('importStep1').style.display = 'none';
+        document.getElementById('importStep2').style.display = 'block';
+
+        // Update stats
+        document.getElementById('statTotal').textContent = data.totalRows;
+        document.getElementById('statNew').textContent = data.newCertificates;
+        document.getElementById('statModified').textContent = data.modifiedCertificates;
+        document.getElementById('statErrors').textContent = data.invalidRows;
+
+        // Show auto-create info
+        const autoCreateInfo = document.getElementById('autoCreateInfo');
+        const autoCreateList = document.getElementById('autoCreateList');
+        const autoItems = [];
+        if (data.companiesToCreate > 0) autoItems.push(`${data.companiesToCreate} company(ies)`);
+        if (data.productsToCreate > 0) autoItems.push(`${data.productsToCreate} product(s)`);
+        if (data.tagsToCreate > 0) autoItems.push(`${data.tagsToCreate} tag(s)`);
+
+        if (autoItems.length > 0) {
+            autoCreateList.innerHTML = autoItems.map(i => `<span class="badge bg-success me-2">${i}</span>`).join('');
+            autoCreateInfo.style.display = 'block';
+        } else {
+            autoCreateInfo.style.display = 'none';
+        }
+
+        // Show errors
+        const errorsSection = document.getElementById('importErrorsSection');
+        const errorsList = document.getElementById('importErrorsList');
+        if (data.errorRows && data.errorRows.length > 0) {
+            errorsList.innerHTML = data.errorRows.map(e =>
+                `<div><strong>Row ${e.rowNumber}:</strong> ${e.errorMessages.join(', ')}</div>`
+            ).join('');
+            errorsSection.style.display = 'block';
+        } else {
+            errorsSection.style.display = 'none';
+        }
+
+        // Show preview table
+        const tbody = document.getElementById('importPreviewBody');
+        const rows = [...(data.newRows || []), ...(data.modifiedRows || [])].slice(0, 10);
+        tbody.innerHTML = rows.map(row => `
+            <tr>
+                <td><span class="status-badge status-badge--${row.status === 'New' ? 'new' : 'modified'}">${row.status}</span></td>
+                <td><code>${row.certificateNumber}</code></td>
+                <td>${row.companyName}</td>
+                <td>${row.productName}</td>
+                <td>${row.certificationType}</td>
+                <td>${row.effectiveDate ? new Date(row.effectiveDate).toLocaleDateString() : ''} - ${row.expirationDate ? new Date(row.expirationDate).toLocaleDateString() : ''}</td>
+            </tr>
+        `).join('');
+
+        // Enable/disable apply button
+        applyBtn.disabled = !data.canApply;
+    }
+
+    function resetModal() {
+        selectedFile = null;
+        importId = null;
+        previewData = null;
+        fileInput.value = '';
+        fileNameDisplay.style.display = 'none';
+        uploadBtn.disabled = true;
+        uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload & Preview';
+        document.getElementById('importStep1').style.display = 'block';
+        document.getElementById('importStep2').style.display = 'none';
+        document.getElementById('importStep3').style.display = 'none';
+        document.getElementById('importModalTitle').textContent = 'Import Certificates';
+    }
+
+    function showNotification(message, type) {
+        // Use AdminCore if available, otherwise use alert
+        if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+            AdminCore.showNotification(message, type);
+        } else {
+            alert(message);
+        }
+    }
+})();
+</script>
+}

@@ -704,6 +704,12 @@ app.MapControllerRoute(
     pattern: "Dashboard",
     defaults: new { controller = "Dashboard", action = "Index" });
 
+// CertificateImport route - explicit mapping for /CertificateImport to Index
+app.MapControllerRoute(
+    name: "certificate_import",
+    pattern: "CertificateImport",
+    defaults: new { controller = "CertificateImport", action = "Index" });
+
 // Default MVC route - goes to public certificates view
 app.MapControllerRoute(
     name: "default",

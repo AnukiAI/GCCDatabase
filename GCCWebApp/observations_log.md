@@ -2898,3 +2898,576 @@ Executed all test suites across 6 test projects and documented all issues found.
 - Security tests need proper test user setup
 
 ---
+
+## 2026-01-22 - User Management: Role-Based Modal Fields Implementation
+
+### Summary
+Implemented role-based conditional fields in the User Management Add/Edit modal per the design recommendations documents.
+
+### Changes Made
+
+#### 1. UserManagement.cshtml - Added Partner Dropdown
+```html
+<!-- Partner Association - shown for Partner role -->
+<div class="admin-form-group" id="partner-group" style="display: none;">
+    <label for="user-partner" class="admin-label admin-label--required">Partner</label>
+    <select id="user-partner" class="admin-select">
+        <option value="">Select a partner</option>
+        <!-- Partners populated dynamically by JavaScript -->
+    </select>
+</div>
+```
+
+#### 2. userManagement.js - New Methods Added
+- `loadPartners()` - Fetches partners from `/Admin/GetPartners`
+- `populatePartnerDropdown()` - Populates the partner dropdown
+- `handleRoleChange(role)` - Shows/hides Company/Partner fields based on role:
+  - **Partner role**: Show Partner dropdown, hide Companies
+  - **External role**: Show Companies, hide Partner
+  - **Admin/Analyst**: Hide both (full access)
+
+#### 3. userManagement.js - Updated Methods
+- `init()` - Added `loadPartners()` call
+- `bindEvents()` - Added role change event listener
+- `showAddUserModal()` - Reset partner field and hide both groups
+- `editUser()` - Set partner value and trigger `handleRoleChange()`
+- `handleFormSubmit()` - Include partnerIds in form data (only for Partner role)
+
+#### 4. AdminService.cs - Backend Updates
+- `CreateUserAsync()` - Added partner handling for Partner role users
+- `UpdateUserAsync()` - Added partner handling including query includes
+- `GetUsersAsync()` - Added `CompanyIds` and `PartnerIds` to response
+
+### Role-Based Field Visibility
+
+| Role | Companies Shown | Partner Shown | Notes |
+|------|-----------------|---------------|-------|
+| Partner | No | Yes (required) | Sees all certs tagged with partner |
+| External | Yes | No | Sees only company certs |
+| Admin | No | No | Full access |
+| Analyst | No | No | Full access |
+| API Integration | No | No | Configured separately |
+| Public | No | No | Public certs only |
+
+### Validation Added
+- Partner role requires partner selection
+- External role requires at least one company selection
+
+### Files Modified
+- `Views/Admin/UserManagement.cshtml`
+- `wwwroot/js/userManagement.js`
+- `Services/AdminService.cs`
+
+### Build Status
+Succeeded (0 compilation errors, file lock warning bypassed)
+
+---
+
+## 2026-01-22 - Phase 1: Multi-Partner Support & Company Partner Association
+
+### Summary
+Implemented multi-partner support for certificates and added PartnerId to Companies table for reporting.
+
+### Database Changes
+
+#### 1. CertificatePartners Join Table (Many-to-Many)
+```sql
+CREATE TABLE CertificatePartners (
+    CertificatesId INT NOT NULL,
+    PartnersId INT NOT NULL,
+    PRIMARY KEY (CertificatesId, PartnersId)
+);
+```
+
+#### 2. Companies.PartnerId (Optional FK for Reporting)
+```sql
+ALTER TABLE Companies ADD PartnerId INT NULL;
+ALTER TABLE Companies ADD CONSTRAINT FK_Companies_Partners
+    FOREIGN KEY (PartnerId) REFERENCES Partners(Id);
+```
+
+#### Migration Script Created
+`docs/Database_Scripts/Migrations/14_20260122_AddMultiPartnerSupport.sql`
+- Creates CertificatePartners table
+- Adds PartnerId to Companies
+- Migrates existing Certificate.Partner string values to CertificatePartners
+
+### Model Changes
+
+#### Company.cs
+- Added `PartnerId` (int?, nullable)
+- Added `Partner` navigation property
+
+#### Partner.cs
+- Added `Companies` collection
+- Added `Certificates` collection
+
+#### Certificate.cs
+- Added `Partners` collection (ICollection<Partner>)
+- Kept legacy `Partner` string field for backward compatibility
+
+#### CertificateEditViewModel.cs
+- Added `PartnerIds` (string, comma-separated list from UI)
+
+### Repository Changes
+
+#### IUnitOfWork.cs & UnitOfWork.cs
+- Added `Partners` repository (IRepository<Partner>)
+
+### ApplicationDbContext.cs
+- Added Certificate-Partner many-to-many relationship
+- Added Company-Partner optional FK relationship
+
+### Controller Changes
+
+#### CertificateController.cs - Create Action
+- Added partner handling code after certificate save
+- Parses PartnerIds comma-separated string
+- Associates selected partners with certificate
+- Sets legacy Partner field to first partner name for backward compatibility
+
+### UI Changes
+
+#### Views/Certificate/Create.cshtml
+- Changed Partner from dropdown to checkbox container
+- Added hidden field `partner-ids-hidden` for form submission
+- Shows "Loading partners..." while fetching
+
+#### wwwroot/js/certificate-create.js
+Added `PartnerManager` component:
+- `loadPartners()` - Fetches from /Admin/GetPartners
+- `renderCheckboxes()` - Creates checkbox for each partner
+- `loadExistingSelections()` - Pre-checks for edit mode
+- `updateSelectedPartners()` - Updates hidden field on change
+- `getSelectedPartnerIds()` - Returns array of selected IDs
+
+### UI Styling
+Partner checkboxes styled as rounded pills with:
+- White background, gray border
+- Green highlight on hover/checked (#92C83E)
+- Flexbox wrap layout
+
+### Build Status
+Succeeded (0 compilation errors)
+
+### Next Steps (Not Yet Implemented)
+1. ~~Update Certificate Edit view similarly~~ ✅ COMPLETED
+2. Update API responses to include Partners array
+3. Update certificate tile views to show multiple partner badges
+4. Add Partner dropdown to Company Management UI
+5. Implement Data Access Filtering (Phase 2)
+
+---
+
+## 2026-01-22 - Certificate Edit View Multi-Partner Support
+
+### Summary
+Updated the Certificate Edit view to support multi-partner selection, completing the Edit side of the multi-partner feature.
+
+### Changes Made
+
+#### Views/Certificate/Edit.cshtml
+- Changed Partner dropdown to checkbox container (same as Create)
+- Added hidden field `partner-ids-hidden` with `data-existing-ids` attribute
+- PartnerManager loads existing selections on page load
+
+#### CertificateController.cs - Edit GET Action
+- Added code to populate `PartnerIds` in view model from certificate's Partners collection
+- Uses `string.Join(",", certificate.Partners.Select(p => p.Id))`
+
+#### CertificateController.cs - Edit POST Action
+- Added partner handling similar to Create
+- Clears existing partners before re-associating
+- Parses PartnerIds comma-separated string
+- Updates legacy Partner field for backward compatibility
+
+#### Repositories/CertificateRepository.cs
+Updated three methods to include Partners:
+1. `GetCertificateByNumberAsync()` - Added `.Include(c => c.Partners)`
+2. `GetByIdAsync()` - Added `.Include(c => c.Partners)`
+3. `GetAdvancedFilteredCertificatesAsync()` - Added `.Include(c => c.Partners)`
+
+### Build Status
+Succeeded (0 compilation errors)
+
+### Remaining Next Steps
+1. Update API responses to include Partners array
+2. Update certificate tile views to show multiple partner badges
+3. Add Partner dropdown to Company Management UI
+4. Run migration script on database
+5. Implement Data Access Filtering (Phase 2)
+
+---
+
+## 2026-01-22 - Test Suite Cleanup and Reorganization
+
+### Summary
+Cleaned up confusing test project structure with duplicates and inconsistent naming.
+
+### Problems Found
+
+| Issue | Description |
+|-------|-------------|
+| Duplicate folder | `GCCWebApp-Tests/` contained copies of Api.Tests, E2E.Tests, UAT.Tests - NOT in solution |
+| Confusing naming | Active role tests were in `GCCWebApp.RoleBasedUI.Tests2/` (awkward "2" suffix) |
+| Orphan tests | `GCCWebApp-Tests/GCCWebApp.Tests/` had 39 test files NOT in solution |
+| Missing using statements | Several UITests files missing `using NUnit.Framework;` |
+
+### Changes Made
+
+1. **Renamed folder**: `GCCWebApp.RoleBasedUI.Tests2` → `GCCWebApp.RoleBasedUI.Tests`
+2. **Updated solution file**: Fixed project references to new path
+3. **Deleted duplicate folder**: Removed `GCCWebApp-Tests/` entirely
+4. **Fixed NUnit using statements**: Added `using NUnit.Framework;` to 5 test files
+
+### Role-Based Tests Location
+The role-based tests **do exist** and are comprehensive:
+- Location: `GCCWebApp.RoleBasedUI.Tests/Tests/`
+- AdminRole tests (2 files)
+- AnalystRole tests (2 files)
+- ExternalRole tests (2 files)
+- PublicRole tests (2 files)
+- CrossRole access violation tests
+- RoleTestHelper.cs with login utilities
+
+### Pre-existing Issues (Not Fixed)
+The RoleBasedUI.Tests project has code issues unrelated to the folder reorganization:
+- `RoleTestHelper` class missing methods: `TestUsers`, `LoginAsync`, `TakeScreenshotAsync`
+- Playwright API changes affecting `ToBeVisibleAsync` method signatures
+
+### Build Status Post-Cleanup
+
+| Project | Status |
+|---------|--------|
+| GCCWebApp | ✅ Builds |
+| GCCWebApp.Api.Tests | ✅ Builds |
+| GCCWebApp.E2E.Tests | ✅ Builds |
+| GCCWebApp.UAT.Tests | ✅ Builds |
+| GCCWebApp.RoleBasedUI.Tests | ⚠️ Pre-existing code issues |
+
+### Final Test Project Structure
+```
+GCCWebApp/
+├── GCCWebApp/                          # Main app
+├── GCCWebApp.RoleBasedUI.Tests/        # Role-based tests (renamed)
+├── GCCWebApp.Api.Tests/
+├── GCCWebApp.E2E.Tests/
+├── GCCWebApp.UAT.Tests/
+├── GCCWebApp.Security.Tests/
+├── GCCWebApp.Accessibility.Tests/
+├── GCCWebApp.Performance.Tests/
+├── GCCWebApp.BDD.Tests/
+├── GCCWebApp.Tests.Common/
+└── Archive_GCCWebApp.Tests/            # Legacy tests archive
+```
+
+### Recommendations
+1. ~~Fix RoleTestHelper.cs to implement missing methods~~ ✅ DONE
+2. ~~Update Playwright assertions to match current API~~ ✅ DONE
+3. Consider removing Archive_GCCWebApp.Tests if tests are duplicated
+
+---
+
+## 2026-01-23 - RoleBasedUI.Tests Fix: Build Errors Resolved
+
+### Summary
+Fixed all build errors in GCCWebApp.RoleBasedUI.Tests project so it now compiles successfully.
+
+### Issues Fixed
+
+| Issue | Fix |
+|-------|-----|
+| Missing `using NUnit.Framework;` | Added to 5 UITests files |
+| Missing RoleTestHelper methods | Added `TestUsers`, `LoginAsync`, `TakeScreenshotAsync`, `IsElementVisibleAsync`, `ValidateRoleElementsAsync`, `IsPageAccessibleAsync` |
+| Invalid Playwright assertions | Removed string parameters from `ToBeVisibleAsync()` calls - Playwright API doesn't accept message strings |
+| Broken PlaywrightAssertionExtensions | Removed non-functional extension class |
+| User model required properties | Added `Status` and `TwoFactorMethod` to TestWebApplicationFactory seed data |
+
+### Files Modified
+
+**Helpers:**
+- `RoleTestHelper.cs` - Added missing methods and TestUsers dictionary
+- `TestWebApplicationFactory.cs` - Added required User properties
+
+**Test Files (Fixed NUnit using + Playwright assertions):**
+- `Tests/AdminRole/AdminRoleUITests.cs`
+- `Tests/AnalystRole/AnalystRoleUITests.cs`
+- `Tests/ExternalRole/ExternalRoleUITests.cs`
+- `Tests/PublicRole/PublicRoleUITests.cs`
+- `Tests/CrossRole/RoleAccessViolationTests.cs`
+
+### Build Status: All Projects
+
+| Project | Status |
+|---------|--------|
+| GCCWebApp | ✅ |
+| GCCWebApp.Api.Tests | ✅ |
+| GCCWebApp.E2E.Tests | ✅ |
+| GCCWebApp.UAT.Tests | ✅ |
+| GCCWebApp.RoleBasedUI.Tests | ✅ |
+| GCCWebApp.Security.Tests | ✅ |
+| GCCWebApp.Accessibility.Tests | ✅ |
+| GCCWebApp.Performance.Tests | ✅ |
+| GCCWebApp.BDD.Tests | ✅ |
+| GCCWebApp.Tests.Common | ✅ |
+
+### Test User Credentials (in RoleTestHelper)
+```csharp
+TestUsers["Admin"] = ("admin", "TestPass123!")
+TestUsers["Analyst"] = ("analyst", "TestPass123!")
+TestUsers["External"] = ("external", "TestPass123!")
+```
+
+---
+
+## 2026-01-23 - Multi-Partner UI Clarification & Change Request
+
+### Issue Identified
+The Partner selection UI was incorrectly implemented as **checkboxes** when it should remain a **dropdown with multi-select capability**.
+
+### User Requirement (Clarified)
+- Partner selection should still be a **dropdown**
+- Admins/Analysts can select **multiple partners** for a certificate if applicable
+- NOT a checkbox container
+
+### Implementation Status
+
+| Component | Status |
+|-----------|--------|
+| Database Migration | COMPLETED |
+| CertificatePartners table | CREATED |
+| Companies.PartnerId column | ADDED |
+| Model changes | COMPLETED |
+| Repository changes | COMPLETED |
+| Controller changes | COMPLETED |
+| UI (Views/JS) | NEEDS CORRECTION |
+
+### Action Taken
+Created `todo_pendingChangeRequest.md` documenting:
+- All completed backend changes
+- UI correction needed (checkbox → multi-select dropdown)
+- Step-by-step implementation guide
+- Testing checklist
+- Questions to clarify before resuming
+
+### Pending Decision
+Multi-select dropdown style preference:
+1. Standard HTML multi-select (Ctrl+click)
+2. Enhanced dropdown with checkboxes inside
+3. Tag/chip style selector (Select2/Choices.js)
+
+---
+
+## 2026-01-23 - User Management Role-Based Field Visibility (Already Implemented)
+
+### Summary
+Reviewed User Management implementation and discovered the role-based field visibility was **already fully implemented** in the correct file (`wwwroot/js/userManagement.js`).
+
+### File Discovery
+Two userManagement.js files exist:
+- `wwwroot/js/userManagement.js` - **ACTIVE** (class-based, used by view)
+- `wwwroot/js/admin/userManagement.js` - **LEGACY** (functional style, NOT used)
+
+The view at `Views/Admin/UserManagement.cshtml` line 610 references:
+```html
+<script src="~/js/userManagement.js"></script>
+```
+
+### Implementation Status (Already Complete)
+
+| Feature | Location | Status |
+|---------|----------|--------|
+| Role change event listener | Line 50-51 | DONE |
+| `handleRoleChange(role)` function | Lines 170-200 | DONE |
+| Partner dropdown population | Lines 127-168 | DONE |
+| Company checkboxes population | Lines 1489-1528 | DONE |
+| Add modal resets visibility | Lines 470-497 | DONE |
+| Edit modal sets partner/companies | Lines 499-546 | DONE |
+| Form validation for role | Lines 659-667 | DONE |
+
+### Role-Based Visibility Logic (handleRoleChange)
+```javascript
+if (role === 'Partner') {
+    // Show Partner dropdown, hide Companies
+    companyGroup.style.display = 'none';
+    partnerGroup.style.display = 'block';
+    partnerSelect.required = true;
+} else if (role === 'External') {
+    // Show Companies, hide Partner
+    companyGroup.style.display = 'block';
+    partnerGroup.style.display = 'none';
+} else {
+    // Admin, Analyst, API Integration, Public - hide both
+    companyGroup.style.display = 'none';
+    partnerGroup.style.display = 'none';
+}
+```
+
+### Form Validation (handleFormSubmit)
+```javascript
+if (role === 'Partner' && formData.partnerIds.length === 0) {
+    this.showNotification('Partner role requires a partner selection', 'error');
+    return;
+}
+if (role === 'External' && formData.companyIds.length === 0) {
+    this.showNotification('External role requires at least one company selection', 'error');
+    return;
+}
+```
+
+### Conclusion
+Step 1 of User Management Design Recommendations is already complete. No code changes needed.
+
+---
+
+## 2026-01-23 - ProductController OR Logic Security Fix
+
+### Issue
+ProductController had OR logic combining Company + Partner filters, allowing External users to potentially see cross-organizational data.
+
+### Design Requirement
+Per Design Recommendations:
+- **Partner role** → sees ALL products with partner-tagged certificates
+- **External role** → sees ONLY products from their assigned companies
+- **No OR logic** combining both
+
+### Files Modified
+**`Controllers/ProductController.cs`**
+
+### Changes Made
+
+#### 1. GetDashboardStats() - Lines 67-100
+**Before (INSECURE):**
+```csharp
+if (userRole == "External")
+{
+    if (hasCompanies && hasPartners)
+    {
+        productsQuery = productsQuery.Where(p =>
+            (p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value)) ||  // ← OR logic
+            p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None"))
+        );
+    }
+    // ...
+}
+```
+
+**After (SECURE):**
+```csharp
+if (userRole == "Partner")
+{
+    // Partner users see products with partner-tagged certificates
+    productsQuery = productsQuery.Where(p =>
+        p.Certificates.Any(c => userPartnerNames.Contains(c.Partner ?? "None")));
+}
+else if (userRole == "External")
+{
+    // External users see ONLY company products (no partner filtering)
+    productsQuery = productsQuery.Where(p =>
+        p.CompanyId.HasValue && userCompanyIds.Contains(p.CompanyId.Value));
+}
+```
+
+#### 2. GetProducts() - Lines 162-195
+Same pattern change - removed OR logic, added separate Partner role handling.
+
+#### 3. mostPopularCategory query - Lines 109-125
+Updated to handle Partner role with certificate-based filtering.
+
+### Security Impact
+- **Fixed**: External users can no longer see cross-organizational data
+- **Fixed**: Partner role now properly handled (was missing before)
+- **Fixed**: Clear role boundaries enforced
+
+### Build Status
+Build succeeded with 0 errors.
+
+---
+
+## 2026-01-23 - CertificateTileExternalApiController Role-Based Filtering
+
+### Issue
+The External API controller only filtered by Partner, not by Company for External role users. This meant External users could see certificates outside their company scope.
+
+### Design Requirement
+Per Design Recommendations:
+- **Partner role** → sees certificates tagged with their partner
+- **External role** → sees certificates from their assigned companies only
+- **Admin/Analyst** → sees all
+
+### Files Modified
+**`Controllers/Api/CertificateTileExternalApiController.cs`**
+
+### Changes Made
+
+#### 1. Added Helper Methods (lines 625-690)
+```csharp
+private string GetCurrentUserRole()
+private string? GetUserPartner()  // Enhanced with logging
+private async Task<List<int>> GetCurrentUserCompanyIdsAsync()
+private async Task<List<string>> GetCurrentUserPartnerNamesAsync()
+```
+
+#### 2. GetCertificateTiles() - Role-Based Filtering (lines 79-115)
+**Before:**
+```csharp
+var userPartner = GetUserPartner();
+if (!string.IsNullOrEmpty(userPartner))
+{
+    query = query.Where(c => c.Partner == userPartner || c.Partner == null);
+}
+```
+
+**After:**
+```csharp
+if (userRole == "Partner")
+{
+    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+    query = query.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+}
+else if (userRole == "External")
+{
+    var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
+    query = query.Where(c => userCompanyIds.Contains(c.CompanyId));
+}
+```
+
+#### 3. GetAutocompleteSuggestions() - Same Role-Based Pattern
+Updated to filter suggestions based on user's role and associations.
+
+#### 4. GetFilterOptions() - Same Role-Based Pattern
+Updated to only show filter options relevant to user's accessible data.
+
+#### 5. DownloadCertificate() - Access Control (lines 530-580)
+**Before:**
+```csharp
+var userPartner = GetUserPartner();
+if (!string.IsNullOrEmpty(userPartner) && certificate.Partner != userPartner)
+{
+    return Forbid();
+}
+```
+
+**After:**
+```csharp
+if (userRole == "Partner")
+{
+    hasAccess = userPartnerNames.Contains(certificate.Partner ?? "None");
+}
+else if (userRole == "External")
+{
+    hasAccess = userCompanyIds.Contains(certificate.CompanyId);
+}
+// With security logging for unauthorized attempts
+```
+
+### Security Improvements
+- **External users** now correctly restricted to their company's certificates
+- **Partner users** correctly see partner-tagged certificates
+- **Logging** added for unauthorized access attempts
+- **Logging** added for missing claims (Partner without partner, External without company)
+
+### Build Status
+Build succeeded with 0 errors.
+
+---

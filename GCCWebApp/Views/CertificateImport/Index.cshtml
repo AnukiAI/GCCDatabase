@@ -1,8 +1,45 @@
 @{
     ViewData["Title"] = "Certificate Import";
+    ViewData["BodyClass"] = "role-admin";
 }
 
+@section Styles {
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <a href="@Url.Action("CertificateTileViewInternal", "Certificate")">Certificates</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Import</span>
+    </span>
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <div class="admin-container">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Info"] != null)
+    {
+        <div class="alert alert-info alert-dismissible fade show" role="alert">
+            <i class="fas fa-info-circle"></i> @TempData["Info"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
     <header class="admin-header">
         <div class="admin-header-content">
             <div class="admin-title-section">
@@ -83,28 +120,46 @@
             <div class="admin-card-body">
                 <p><strong>Required Columns:</strong></p>
                 <ul>
-                    <li><code>CertificateNumber</code> - Unique certificate number (e.g., "24-0001")</li>
-                    <li><code>CompanyName</code> - Must match existing company</li>
-                    <li><code>ProductName</code> - Must match existing product</li>
-                    <li><code>CertificationType</code> - Must match existing certification type</li>
+                    <li><code>CERTIFICATE_NUMBER</code> - Unique certificate number (e.g., "24-0001")</li>
+                    <li><code>COMPANY_NAME</code> - Company name (auto-created if not exists)</li>
+                    <li><code>PRODUCT_NAME</code> - Product name (auto-created if not exists)</li>
+                    <li><code>CERTIFICATION_TYPE</code> - Must match existing certification type (e.g., "Recycled Content")</li>
                 </ul>
 
-                <p><strong>Optional Columns:</strong></p>
+                <p><strong>Company Columns (Optional):</strong></p>
                 <ul>
-                    <li><code>Status</code> - active, draft, expired, etc. (default: "active")</li>
-                    <li><code>EffectiveDate</code> - Date format: YYYY-MM-DD</li>
-                    <li><code>ExpirationDate</code> - Date format: YYYY-MM-DD</li>
-                    <li><code>Location</code> - City, State</li>
-                    <li><code>Country</code> - Country name</li>
-                    <li><code>Asin</code> - Amazon Standard ID</li>
-                    <li><code>Upc</code> - Universal Product Code</li>
-                    <li><code>Gtin</code> - Global Trade Item Number</li>
-                    <li><code>Ean</code> - European Article Number</li>
-                    <li><code>Partner</code> - Amazon, Novi, or None</li>
+                    <li><code>COMPANY_LOCATION</code> - Company location (City, State)</li>
+                    <li><code>COMPANY_COUNTRY</code> - Company country</li>
+                    <li><code>COMPANY_EMAIL</code> - Company contact email</li>
+                    <li><code>COMPANY_WEBSITE</code> - Company website URL</li>
+                </ul>
+
+                <p><strong>Product Columns (Optional):</strong></p>
+                <ul>
+                    <li><code>PRODUCT_TYPE</code> - Product type (auto-created if not exists)</li>
+                </ul>
+
+                <p><strong>Certificate Columns (Optional):</strong></p>
+                <ul>
+                    <li><code>EFFECTIVE_DATE</code> - Date format: YYYY-MM-DD</li>
+                    <li><code>EXPIRATION_DATE</code> - Date format: YYYY-MM-DD</li>
+                    <li><code>CERTIFICATE_LOCATION</code> - Certificate location (City, State)</li>
+                    <li><code>CERTIFICATE_COUNTRY</code> - Certificate country</li>
+                    <li><code>PARTNER</code> - Amazon, Novi, or None</li>
+                    <li><code>CERTIFICATION_RESULTS</code> - Results/percentage achieved (e.g., "95%")</li>
+                    <li><code>TAGS</code> - Comma-separated tags (e.g., "Sustainable,Verified")</li>
+                </ul>
+
+                <p><strong>Product ID Columns (Optional):</strong></p>
+                <ul>
+                    <li><code>ASIN</code> - Amazon Standard ID</li>
+                    <li><code>UPC</code> - Universal Product Code</li>
+                    <li><code>GTIN</code> - Global Trade Item Number</li>
+                    <li><code>EAN</code> - European Article Number</li>
                 </ul>
 
                 <p class="text-muted" style="margin-top: 1rem;">
-                    <i class="fas fa-info-circle"></i> Tags and PDF attachments are managed separately and not included in CSV import.
+                    <i class="fas fa-info-circle"></i> PDF attachments are managed separately after import.
                 </p>
             </div>
         </div>

@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using Microsoft.Extensions.Configuration;
 using FluentAssertions;
+using NUnit.Framework;
 using GCCWebApp.RoleBasedUI.Tests.Helpers;
 
 namespace GCCWebApp.RoleBasedUI.Tests.Tests.CrossRole;

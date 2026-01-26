@@ -1,9 +1,41 @@
 @model GCCWebApp.Models.Import.CertificateImportPreviewResult
 @{
     ViewData["Title"] = "Import Preview";
+    ViewData["BodyClass"] = "role-admin";
 }
 
+@section Styles {
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <a href="@Url.Action("CertificateTileViewInternal", "Certificate")">Certificates</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="@Url.Action("Index", "CertificateImport")">Import</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Preview</span>
+    </span>
+}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <div class="admin-container">
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
     <header class="admin-header">
         <div class="admin-header-content">
             <div class="admin-title-section">

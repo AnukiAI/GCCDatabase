@@ -2,6 +2,7 @@ using Microsoft.Playwright;
 using Microsoft.Playwright.NUnit;
 using Microsoft.Extensions.Configuration;
 using FluentAssertions;
+using NUnit.Framework;
 using GCCWebApp.RoleBasedUI.Tests.Helpers;
 
 namespace GCCWebApp.RoleBasedUI.Tests.Tests.PublicRole;
@@ -102,7 +103,7 @@ public class PublicRoleUITests : PageTest
             var button = Page.Locator($"button:has-text('{buttonText}'), .btn:has-text('{buttonText}')");
             if (await button.CountAsync() > 0)
             {
-                await Expect(button).Not.ToBeVisibleAsync($"Public users should NOT see {buttonText} button");
+                await Expect(button).Not.ToBeVisibleAsync(); // Public users should NOT see this button
             }
         }
     }
@@ -135,7 +136,7 @@ public class PublicRoleUITests : PageTest
                 var button = Page.Locator($"button:has-text('{buttonText}'), .btn:has-text('{buttonText}')");
                 if (await button.CountAsync() > 0)
                 {
-                    await Expect(button).ToBeVisibleAsync($"Public users should see {buttonText} button");
+                    await Expect(button).ToBeVisibleAsync(); // Public users should see this button
                 }
             }
             
@@ -146,7 +147,7 @@ public class PublicRoleUITests : PageTest
                 var button = Page.Locator($"button:has-text('{buttonText}'), .btn:has-text('{buttonText}')");
                 if (await button.CountAsync() > 0)
                 {
-                    await Expect(button).Not.ToBeVisibleAsync($"Public users should NOT see {buttonText} button");
+                    await Expect(button).Not.ToBeVisibleAsync(); // Public users should NOT see this button
                 }
             }
         }
@@ -217,7 +218,7 @@ public class PublicRoleUITests : PageTest
             var navLink = Page.Locator($"nav a:has-text('{item}'), .nav-link:has-text('{item}')");
             if (await navLink.CountAsync() > 0)
             {
-                await Expect(navLink).Not.ToBeVisibleAsync($"Public users should NOT see {item} navigation");
+                await Expect(navLink).Not.ToBeVisibleAsync(); // Public users should NOT see restricted navigation
             }
         }
         
@@ -225,14 +226,14 @@ public class PublicRoleUITests : PageTest
         var loginLink = Page.Locator("a:has-text('Sign In'), a:has-text('Login'), a[href*='/Account/Login']");
         if (await loginLink.CountAsync() > 0)
         {
-            await Expect(loginLink).ToBeVisibleAsync("Public users should see Login link");
+            await Expect(loginLink).ToBeVisibleAsync(); // Public users should see Login link
         }
         
         // Verify no authenticated user menu is visible
         var userMenu = Page.Locator(".user-menu, .profile-dropdown, .user-info");
         if (await userMenu.CountAsync() > 0)
         {
-            await Expect(userMenu).Not.ToBeVisibleAsync("Public users should not see authenticated user menu");
+            await Expect(userMenu).Not.ToBeVisibleAsync(); // Public users should not see authenticated user menu
         }
     }
 
@@ -270,7 +271,7 @@ public class PublicRoleUITests : PageTest
             var featureElement = Page.Locator($"button:has-text('{feature}'), .btn:has-text('{feature}'), a:has-text('{feature}')");
             if (await featureElement.CountAsync() > 0)
             {
-                await Expect(featureElement).Not.ToBeVisibleAsync($"Public users should NOT see {feature}");
+                await Expect(featureElement).Not.ToBeVisibleAsync(); // Public users should NOT see advanced features
             }
         }
     }
@@ -289,14 +290,14 @@ public class PublicRoleUITests : PageTest
         var logo = Page.Locator("img[alt*='Logo'], .main-logo, .logo-img img");
         if (await logo.CountAsync() > 0)
         {
-            await Expect(logo).ToBeVisibleAsync("Public users should see the main logo");
+            await Expect(logo).ToBeVisibleAsync(); // Public users should see the main logo
         }
         
         // Verify main title and description are visible
         var mainTitle = Page.Locator(".logo-text, h1:has-text('GreenCircle'), .page-title");
         if (await mainTitle.CountAsync() > 0)
         {
-            await Expect(mainTitle).ToBeVisibleAsync("Public users should see the main title");
+            await Expect(mainTitle).ToBeVisibleAsync(); // Public users should see the main title
         }
         
         // Verify public information elements
@@ -318,7 +319,7 @@ public class PublicRoleUITests : PageTest
         var footer = Page.Locator("footer, .footer, .page-footer");
         if (await footer.CountAsync() > 0)
         {
-            await Expect(footer).ToBeVisibleAsync("Public users should see the footer");
+            await Expect(footer).ToBeVisibleAsync(); // Public users should see the footer
         }
         
         // Check for typical public footer links
@@ -328,7 +329,7 @@ public class PublicRoleUITests : PageTest
             var footerLink = Page.Locator($"footer a:has-text('{linkText}'), .footer a:has-text('{linkText}')");
             if (await footerLink.CountAsync() > 0)
             {
-                await Expect(footerLink).ToBeVisibleAsync($"Public users should see {linkText} link in footer");
+                await Expect(footerLink).ToBeVisibleAsync(); // Public users should see footer link
             }
         }
     }

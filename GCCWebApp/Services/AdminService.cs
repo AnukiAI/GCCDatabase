@@ -68,7 +68,9 @@ namespace GCCWebApp.Services
                     Email = u.Email,
                     Role = u.Roles.FirstOrDefault() != null ? u.Roles.FirstOrDefault()!.Name : "Public",
                     Status = u.IsActive ? "active" : "inactive",
+                    CompanyIds = u.Companies.Select(c => c.Id).ToList(),
                     CompanyNames = u.Companies.Select(c => c.Name).ToList(),
+                    PartnerIds = u.Partners.Select(p => p.Id).ToList(),
                     PartnerNames = u.Partners.Select(p => p.Name).ToList(),
                     RequirePasswordReset = u.RequirePasswordReset,
                     LastLogin = u.LastLoginAt,
@@ -130,7 +132,7 @@ namespace GCCWebApp.Services
                     }
                 }
 
-                // Add companies
+                // Add companies (for External role)
                 if (model.CompanyIds.Any())
                 {
                     var companies = await _context.Companies
@@ -140,6 +142,19 @@ namespace GCCWebApp.Services
                     foreach (var company in companies)
                     {
                         user.Companies.Add(company);
+                    }
+                }
+
+                // Add partners (for Partner role)
+                if (model.PartnerIds.Any())
+                {
+                    var partners = await _context.Partners
+                        .Where(p => model.PartnerIds.Contains(p.Id))
+                        .ToListAsync();
+
+                    foreach (var partner in partners)
+                    {
+                        user.Partners.Add(partner);
                     }
                 }
 
@@ -183,6 +198,7 @@ namespace GCCWebApp.Services
             {
                 var user = await _context.Users
                     .Include(u => u.Companies)
+                    .Include(u => u.Partners)
                     .Include(u => u.Roles)
                     .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
 
@@ -193,6 +209,7 @@ namespace GCCWebApp.Services
                     .AsNoTracking()
                     .Include(u => u.Roles)
                     .Include(u => u.Companies)
+                    .Include(u => u.Partners)
                     .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
 
                 var oldRole = oldUser?.Roles.FirstOrDefault()?.Name ?? "None";
@@ -214,7 +231,7 @@ namespace GCCWebApp.Services
                     }
                 }
 
-                // Update companies
+                // Update companies (for External role)
                 user.Companies.Clear();
                 if (model.CompanyIds.Any())
                 {
@@ -225,6 +242,20 @@ namespace GCCWebApp.Services
                     foreach (var company in companies)
                     {
                         user.Companies.Add(company);
+                    }
+                }
+
+                // Update partners (for Partner role)
+                user.Partners.Clear();
+                if (model.PartnerIds.Any())
+                {
+                    var partners = await _context.Partners
+                        .Where(p => model.PartnerIds.Contains(p.Id))
+                        .ToListAsync();
+
+                    foreach (var partner in partners)
+                    {
+                        user.Partners.Add(partner);
                     }
                 }
 

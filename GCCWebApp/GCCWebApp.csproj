@@ -31,6 +31,8 @@
     <Compile Remove="GCCWebApp.Tests.Common\**" />
     <Compile Remove="Scripts\MockDataGenerator.cs" />
     <Compile Remove="Scripts\DatabaseSeeder.cs" />
+    <Compile Remove="Scripts\database\**" />
+    <Compile Remove="docs\**" />
     <Content Remove="0_Documentation\**" />
     <Content Remove="Documentation\**" />
     <Content Remove="pages\**" />

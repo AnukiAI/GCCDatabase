@@ -5,6 +5,7 @@ class UserManagement {
         this.filteredUsers = [];
         this.companies = [];
         this.roles = [];
+        this.partners = [];
         this.currentSort = { field: 'name', direction: 'asc' };
         this.currentEditingId = null;
 
@@ -16,6 +17,7 @@ class UserManagement {
         this.bindEvents();
         await this.loadCompanies();
         await this.loadRoles();
+        await this.loadPartners();
         await this.loadUsers();
         this.renderUsers();
         this.updateUserCount();
@@ -44,7 +46,10 @@ class UserManagement {
         document.querySelectorAll('[data-sort]').forEach(header => {
             header.addEventListener('click', () => this.handleSort(header.dataset.sort));
         });
-        
+
+        // Role change handler - show/hide Company/Partner fields based on role
+        document.getElementById('user-role')?.addEventListener('change', (e) => this.handleRoleChange(e.target.value));
+
         // Handle escape key to close modal
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') this.hideModal();
@@ -116,6 +121,81 @@ class UserManagement {
                 { id: 6, name: 'Public' }
             ];
             this.populateRoleDropdowns();
+        }
+    }
+
+    async loadPartners() {
+        try {
+            const response = await fetch('/Admin/GetPartners', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                this.partners = result.data;
+                console.log(`Loaded ${this.partners.length} partners from backend`);
+                this.populatePartnerDropdown();
+            } else {
+                console.error('Failed to load partners:', result.message);
+                this.partners = [];
+            }
+        } catch (error) {
+            console.error('Error loading partners:', error);
+            this.partners = [];
+        }
+    }
+
+    populatePartnerDropdown() {
+        const partnerSelect = document.getElementById('user-partner');
+        if (partnerSelect) {
+            // Clear existing options except "Select a partner"
+            const firstOption = partnerSelect.children[0];
+            partnerSelect.innerHTML = '';
+            partnerSelect.appendChild(firstOption);
+
+            // Add partner options
+            this.partners.forEach(partner => {
+                const option = document.createElement('option');
+                option.value = partner.id;
+                option.textContent = partner.name;
+                partnerSelect.appendChild(option);
+            });
+        }
+    }
+
+    handleRoleChange(role) {
+        const companyGroup = document.getElementById('company-group');
+        const partnerGroup = document.getElementById('partner-group');
+        const partnerSelect = document.getElementById('user-partner');
+
+        // Reset required attribute
+        if (partnerSelect) {
+            partnerSelect.required = false;
+        }
+
+        // Role-based visibility:
+        // - Partner role: Show Partner dropdown, hide Companies
+        // - External role: Show Companies, hide Partner
+        // - Admin/Analyst: Hide both (full access, no filtering)
+        // - API Integration/Public: Hide both
+
+        if (role === 'Partner') {
+            // Partner users see all certificates tagged with their partner
+            if (companyGroup) companyGroup.style.display = 'none';
+            if (partnerGroup) partnerGroup.style.display = 'block';
+            if (partnerSelect) partnerSelect.required = true;
+        } else if (role === 'External') {
+            // External users see only their company's certificates
+            if (companyGroup) companyGroup.style.display = 'block';
+            if (partnerGroup) partnerGroup.style.display = 'none';
+        } else {
+            // Admin, Analyst, API Integration, Public - no data association needed
+            if (companyGroup) companyGroup.style.display = 'none';
+            if (partnerGroup) partnerGroup.style.display = 'none';
         }
     }
 
@@ -392,7 +472,7 @@ class UserManagement {
         document.getElementById('user-form').reset();
         document.getElementById('user-id').value = '';
         this.currentEditingId = null;
-        
+
         // Set password as required for new users
         const passwordField = document.getElementById('user-password');
         const passwordHelp = document.getElementById('password-help');
@@ -400,7 +480,19 @@ class UserManagement {
             passwordField.required = true;
             passwordHelp.textContent = 'Password is required for new users';
         }
-        
+
+        // Reset partner field
+        const partnerSelect = document.getElementById('user-partner');
+        if (partnerSelect) {
+            partnerSelect.value = '';
+        }
+
+        // Reset role-based field visibility (hide both until role is selected)
+        const companyGroup = document.getElementById('company-group');
+        const partnerGroup = document.getElementById('partner-group');
+        if (companyGroup) companyGroup.style.display = 'none';
+        if (partnerGroup) partnerGroup.style.display = 'none';
+
         this.showModal();
     }
     
@@ -420,13 +512,24 @@ class UserManagement {
         document.getElementById('user-email').value = user.email || '';
         document.getElementById('user-role').value = user.role || '';
         document.getElementById('user-status').value = user.status || '';
-        
+
+        // Trigger role change to show/hide appropriate fields
+        this.handleRoleChange(user.role || '');
+
         // Set selected companies via checkboxes
         const companyCheckboxes = document.querySelectorAll('input[name="user-companies"]');
         if (companyCheckboxes && user.companyIds) {
             companyCheckboxes.forEach(checkbox => {
                 checkbox.checked = user.companyIds.includes(parseInt(checkbox.value));
             });
+        }
+
+        // Set selected partner (first partner in the array, per design: single partner per user)
+        const partnerSelect = document.getElementById('user-partner');
+        if (partnerSelect && user.partnerIds && user.partnerIds.length > 0) {
+            partnerSelect.value = user.partnerIds[0];
+        } else if (partnerSelect) {
+            partnerSelect.value = '';
         }
 
         // Set password as optional for existing users
@@ -437,7 +540,7 @@ class UserManagement {
             passwordField.value = '';
             passwordHelp.textContent = 'Leave blank to keep current password';
         }
-        
+
         this.currentEditingId = userId;
         this.showModal();
     }
@@ -507,12 +610,19 @@ class UserManagement {
         const selectedCompanies = Array.from(companyCheckboxes).map(checkbox => parseInt(checkbox.value));
         const passwordField = document.getElementById('user-password');
         const passwordValue = passwordField.value.trim();
-        
+        const role = document.getElementById('user-role').value;
+
+        // Get partner selection (for Partner role)
+        const partnerSelect = document.getElementById('user-partner');
+        const selectedPartner = partnerSelect ? partnerSelect.value : '';
+        const partnerIds = selectedPartner ? [parseInt(selectedPartner)] : [];
+
         const formData = {
             name: document.getElementById('user-name').value.trim(),
             email: document.getElementById('user-email').value.trim(),
-            companyIds: selectedCompanies,
-            role: document.getElementById('user-role').value,
+            companyIds: role === 'External' ? selectedCompanies : [],  // Only for External role
+            partnerIds: role === 'Partner' ? partnerIds : [],  // Only for Partner role
+            role: role,
             status: document.getElementById('user-status').value,
             requirePasswordReset: document.getElementById('require-password-reset').checked
         };
@@ -544,7 +654,18 @@ class UserManagement {
             this.showNotification('Please enter a valid email address', 'error');
             return;
         }
-        
+
+        // Role-specific validation
+        if (role === 'Partner' && formData.partnerIds.length === 0) {
+            this.showNotification('Partner role requires a partner selection', 'error');
+            return;
+        }
+
+        if (role === 'External' && formData.companyIds.length === 0) {
+            this.showNotification('External role requires at least one company selection', 'error');
+            return;
+        }
+
         try {
             this.showLoading(true, this.currentEditingId ? 'Updating user...' : 'Creating user...');
             

@@ -42,14 +42,32 @@ node_modules/
 # Temporary files
 *.tmp
 *.temp
-nul
 cookies.txt
+
+# Windows reserved device names (can be accidentally created in bash/Unix shells)
+nul
+NUL
+con
+CON
+prn
+PRN
+aux
+AUX
+com[1-9]
+COM[1-9]
+lpt[1-9]
+LPT[1-9]
 customfields.xml
 filters_*.json
 
 # Old deployment artifacts
 WebApp/
 DeploymentPackage/
+TempGCCDeploy/
+
+# Temp pages and problematic filenames
+temp_page.html
+*tempcompany*.html
 
 # Data Protection Keys (keep folder, ignore keys)
 DataProtectionKeys/*.xml

@@ -886,11 +886,169 @@
         }
     };
 
+    // Partner Manager - Multi-partner selection for certificates
+    const PartnerManager = {
+        partners: [],
+        selectedPartnerIds: [],
+
+        init: async function() {
+            const container = document.getElementById('partner-checkboxes');
+            if (!container) return;
+
+            await this.loadPartners();
+            this.renderCheckboxes();
+            this.loadExistingSelections();
+        },
+
+        loadPartners: async function() {
+            try {
+                const response = await fetch('/Admin/GetPartners', {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                if (result.success && result.data) {
+                    // Filter to only active partners
+                    this.partners = result.data.filter(p => p.isActive);
+                } else {
+                    console.error('Failed to load partners:', result.message);
+                    this.partners = [];
+                }
+            } catch (error) {
+                console.error('Error loading partners:', error);
+                this.partners = [];
+            }
+        },
+
+        renderCheckboxes: function() {
+            const container = document.getElementById('partner-checkboxes');
+            if (!container) return;
+
+            // Clear loading message
+            container.innerHTML = '';
+
+            if (this.partners.length === 0) {
+                container.innerHTML = '<span class="text-muted" style="font-size: 14px;">No partners available</span>';
+                return;
+            }
+
+            // Create checkbox for each partner
+            this.partners.forEach(partner => {
+                const checkboxItem = document.createElement('label');
+                checkboxItem.className = 'partner-checkbox-item';
+                checkboxItem.style.cssText = `
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    background: white;
+                    padding: 8px 14px;
+                    border-radius: 20px;
+                    border: 1px solid #e9ecef;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    font-size: 14px;
+                `;
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'partner-checkbox';
+                checkbox.value = partner.id;
+                checkbox.dataset.partnerName = partner.name;
+                checkbox.style.accentColor = '#92C83E';
+                checkbox.addEventListener('change', () => this.updateSelectedPartners());
+
+                const label = document.createElement('span');
+                label.textContent = partner.name;
+
+                checkboxItem.appendChild(checkbox);
+                checkboxItem.appendChild(label);
+
+                // Hover effect
+                checkboxItem.addEventListener('mouseenter', () => {
+                    checkboxItem.style.borderColor = '#92C83E';
+                    checkboxItem.style.background = '#f0f7e6';
+                });
+                checkboxItem.addEventListener('mouseleave', () => {
+                    if (!checkbox.checked) {
+                        checkboxItem.style.borderColor = '#e9ecef';
+                        checkboxItem.style.background = 'white';
+                    }
+                });
+
+                container.appendChild(checkboxItem);
+            });
+        },
+
+        loadExistingSelections: function() {
+            // For edit mode: check if there are existing partner selections
+            // Look for data attribute on the container or hidden field
+            const hiddenField = document.getElementById('partner-ids-hidden');
+            const existingPartner = document.querySelector('select[name="Partner"]')?.value;
+
+            // Handle legacy single partner field (for backward compatibility)
+            if (existingPartner && existingPartner !== '' && existingPartner !== 'None') {
+                const checkbox = document.querySelector(`input[data-partner-name="${existingPartner}"]`);
+                if (checkbox) {
+                    checkbox.checked = true;
+                    this.updateSelectedPartners();
+                }
+            }
+
+            // Handle existing PartnerIds from model (for edit mode)
+            if (hiddenField && hiddenField.dataset.existingIds) {
+                const ids = hiddenField.dataset.existingIds.split(',').map(id => parseInt(id.trim()));
+                ids.forEach(id => {
+                    const checkbox = document.querySelector(`input[name="partner-checkbox"][value="${id}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                    }
+                });
+                this.updateSelectedPartners();
+            }
+        },
+
+        updateSelectedPartners: function() {
+            const checkboxes = document.querySelectorAll('input[name="partner-checkbox"]:checked');
+            this.selectedPartnerIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            // Update hidden field for form submission
+            const hiddenField = document.getElementById('partner-ids-hidden');
+            if (hiddenField) {
+                hiddenField.value = this.selectedPartnerIds.join(',');
+            }
+
+            // Update visual state of checkbox items
+            document.querySelectorAll('input[name="partner-checkbox"]').forEach(cb => {
+                const item = cb.closest('.partner-checkbox-item');
+                if (item) {
+                    if (cb.checked) {
+                        item.style.borderColor = '#92C83E';
+                        item.style.background = '#f0f7e6';
+                    } else {
+                        item.style.borderColor = '#e9ecef';
+                        item.style.background = 'white';
+                    }
+                }
+            });
+
+            // Mark form as changed for unsaved changes tracking
+            if (typeof UnsavedChanges !== 'undefined' && UnsavedChanges.markAsChanged) {
+                UnsavedChanges.markAsChanged();
+            }
+        },
+
+        getSelectedPartnerIds: function() {
+            return this.selectedPartnerIds;
+        }
+    };
+
     // Initialize all components on page load
     window.addEventListener('load', function() {
         ImagePreview.init();
         PdfUpload.init();
         TagManager.init();
+        // PartnerManager.init(); // Commented out - multi-partner UI pending (see todo_pendingChangeRequest.md)
         FormValidation.init();
         UnsavedChanges.init();
 
@@ -916,7 +1074,8 @@
         resetUnsavedChanges: UnsavedChanges.reset.bind(UnsavedChanges),
         markAsChanged: UnsavedChanges.markAsChanged.bind(UnsavedChanges),
         showLoading: LoadingSpinner.show.bind(LoadingSpinner),
-        hideLoading: LoadingSpinner.hide.bind(LoadingSpinner)
+        hideLoading: LoadingSpinner.hide.bind(LoadingSpinner),
+        getSelectedPartnerIds: PartnerManager.getSelectedPartnerIds.bind(PartnerManager)
     };
 
 })();

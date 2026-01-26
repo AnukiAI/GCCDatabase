@@ -65,6 +65,11 @@ const companyDropdown = document.getElementById('company-dropdown');
 const partnersDisplay = document.getElementById('partners-display');
 const partnersDropdown = document.getElementById('partners-dropdown');
 
+// Role-based field elements
+const companyGroup = document.getElementById('company-group');
+const partnerGroup = document.getElementById('partner-group');
+const userPartnerSelect = document.getElementById('user-partner');
+
 // Sorting variables
 let sortColumn = 'name';
 let sortDirection = 'asc';
@@ -152,6 +157,108 @@ function removePartner(value) {
         checkbox.checked = false;
         updatePartnersDisplay();
     }
+}
+
+// ============================================================
+// Role-Based Field Visibility (per Design Recommendations)
+// - Partner role: Show Partner dropdown, hide Companies
+// - External role: Show Companies, hide Partner
+// - Admin/Analyst/Other: Hide both (full access)
+// ============================================================
+
+// Load partners into the single-select Partner dropdown
+async function loadPartnersDropdown() {
+    if (!userPartnerSelect) return;
+
+    try {
+        const response = await fetch('/Admin/GetPartners');
+        const result = await response.json();
+
+        if (result.success && result.data) {
+            // Clear existing options except the first placeholder
+            userPartnerSelect.innerHTML = '<option value="">Select a partner...</option>';
+
+            // Add active partners
+            result.data
+                .filter(p => p.isActive)
+                .forEach(partner => {
+                    const option = document.createElement('option');
+                    option.value = partner.id;
+                    option.textContent = partner.name;
+                    userPartnerSelect.appendChild(option);
+                });
+        }
+    } catch (error) {
+        console.error('Error loading partners for dropdown:', error);
+    }
+}
+
+// Handle role change - show/hide appropriate fields
+function handleRoleChange(role) {
+    const normalizedRole = (role || '').toLowerCase();
+
+    if (!companyGroup || !partnerGroup) {
+        console.warn('Role-based field groups not found');
+        return;
+    }
+
+    // Reset both groups first
+    companyGroup.style.display = 'none';
+    partnerGroup.style.display = 'none';
+
+    switch (normalizedRole) {
+        case 'partner':
+            // Partner role: Show Partner dropdown only
+            partnerGroup.style.display = 'block';
+            // Clear company selections
+            if (companyDropdown) {
+                companyDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                updateCompanyDisplay();
+            }
+            break;
+
+        case 'external':
+            // External role: Show Companies only
+            companyGroup.style.display = 'block';
+            // Clear partner selection
+            if (userPartnerSelect) {
+                userPartnerSelect.value = '';
+            }
+            break;
+
+        case 'admin':
+        case 'analyst':
+        case 'api integration':
+        case 'public':
+        default:
+            // These roles have full access or no data filtering
+            // Hide both association fields, clear selections
+            if (companyDropdown) {
+                companyDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+                updateCompanyDisplay();
+            }
+            if (userPartnerSelect) {
+                userPartnerSelect.value = '';
+            }
+            break;
+    }
+}
+
+// Validate role-based associations before save
+function validateRoleAssociations(role, selectedCompanies, selectedPartnerId) {
+    const normalizedRole = (role || '').toLowerCase();
+
+    if (normalizedRole === 'partner') {
+        if (!selectedPartnerId) {
+            return { valid: false, message: 'Partner role requires a partner selection.' };
+        }
+    } else if (normalizedRole === 'external') {
+        if (!selectedCompanies || selectedCompanies.length === 0) {
+            return { valid: false, message: 'External role requires at least one company selection.' };
+        }
+    }
+
+    return { valid: true };
 }
 
 // Function to format date
@@ -513,6 +620,14 @@ function openAddModal() {
     updateCompanyDisplay();
     updatePartnersDisplay();
 
+    // Reset single partner dropdown
+    if (userPartnerSelect) {
+        userPartnerSelect.value = '';
+    }
+
+    // Apply role-based field visibility (default role)
+    handleRoleChange(userRoleInput.value);
+
     modal.style.display = 'flex';
     modal.classList.add('active');
 }
@@ -535,11 +650,31 @@ function openEditModal(user) {
     });
     updateCompanyDisplay();
 
-    // Set partner checkboxes
+    // Set partner checkboxes (multi-select)
     partnersDropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => {
         cb.checked = user.partners && user.partners.includes(cb.value);
     });
     updatePartnersDisplay();
+
+    // Set single partner dropdown for Partner role users
+    if (userPartnerSelect && user.partners && user.partners.length > 0) {
+        // Try to find matching partner option by name
+        const partnerName = user.partners[0];
+        const options = userPartnerSelect.querySelectorAll('option');
+        let found = false;
+        options.forEach(opt => {
+            if (opt.textContent === partnerName) {
+                userPartnerSelect.value = opt.value;
+                found = true;
+            }
+        });
+        if (!found) {
+            userPartnerSelect.value = '';
+        }
+    }
+
+    // Apply role-based field visibility
+    handleRoleChange(user.role);
 
     modal.style.display = 'flex';
     modal.classList.add('active');
@@ -558,19 +693,43 @@ async function saveUser(event) {
     event.preventDefault();
 
     const userId = userIdInput.value;
+    const role = userRoleInput.value;
+    const normalizedRole = (role || '').toLowerCase();
 
-    // Get selected companies and partners
+    // Get selected companies (for External role)
     const selectedCompanies = Array.from(companyDropdown.querySelectorAll('input[type="checkbox"]:checked'))
         .map(cb => cb.value);
-    const selectedPartners = Array.from(partnersDropdown.querySelectorAll('input[type="checkbox"]:checked'))
-        .map(cb => cb.value);
+
+    // Get selected partner ID based on role
+    let selectedPartnerIds = [];
+    if (normalizedRole === 'partner' && userPartnerSelect) {
+        // For Partner role, use single-select dropdown
+        const partnerId = userPartnerSelect.value;
+        if (partnerId) {
+            selectedPartnerIds = [parseInt(partnerId, 10)];
+        }
+    } else {
+        // For other roles, use multi-select checkboxes (legacy behavior)
+        selectedPartnerIds = Array.from(partnersDropdown.querySelectorAll('input[type="checkbox"]:checked'))
+            .map(cb => parseInt(cb.value, 10));
+    }
+
+    // Validate role-based associations
+    const validation = validateRoleAssociations(role, selectedCompanies, selectedPartnerIds[0] || null);
+    if (!validation.valid) {
+        await AdminCore.showWarningModal({
+            title: 'Validation Error',
+            message: validation.message
+        });
+        return;
+    }
 
     const userData = {
         name: userNameInput.value,
         companyIds: selectedCompanies.map(c => parseInt(c, 10)),
-        partnerIds: selectedPartners.map(p => parseInt(p, 10)),
+        partnerIds: selectedPartnerIds,
         email: userEmailInput.value,
-        role: userRoleInput.value,
+        role: role,
         status: userStatusInput.value,
         requirePasswordReset: requirePasswordResetInput.checked
     };
@@ -900,6 +1059,13 @@ companyFilter.addEventListener('change', () => {
     applyFiltersAndSort();
 });
 
+// Role change event listener in modal - show/hide appropriate fields
+if (userRoleInput) {
+    userRoleInput.addEventListener('change', () => {
+        handleRoleChange(userRoleInput.value);
+    });
+}
+
 // Close modal when clicking outside
 window.addEventListener('click', (event) => {
     if (event.target === modal) {
@@ -911,6 +1077,7 @@ window.addEventListener('click', (event) => {
 document.addEventListener('DOMContentLoaded', function() {
     initializeMultiSelect();
     initializeSortableHeaders();
+    loadPartnersDropdown(); // Load partners for single-select dropdown (Partner role)
     loadUsers(); // Load users from database instead of using hardcoded data
 });
 

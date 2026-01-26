@@ -510,6 +510,35 @@ namespace GCCWebApp.Controllers
                         _logger.LogInformation("Added {Count} product IDs to certificate {Number}", model.ProductIds.Count, certificate.Number);
                     }
 
+                    // Handle Partners (multi-partner support)
+                    if (!string.IsNullOrWhiteSpace(model.PartnerIds))
+                    {
+                        var partnerIdList = model.PartnerIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(id => int.TryParse(id.Trim(), out var parsed) ? parsed : 0)
+                            .Where(id => id > 0)
+                            .ToList();
+
+                        if (partnerIdList.Any())
+                        {
+                            var partners = await _unitOfWork.Partners.FindAsync(p => partnerIdList.Contains(p.Id) && !p.IsDeleted);
+                            var partnerList = partners.ToList();
+
+                            foreach (var partner in partnerList)
+                            {
+                                certificate.Partners.Add(partner);
+                            }
+                            await _unitOfWork.CompleteAsync();
+                            _logger.LogInformation("Added {Count} partners to certificate {Number}", partnerList.Count, certificate.Number);
+
+                            // Also set the legacy Partner field to the first partner name for backward compatibility
+                            if (partnerList.Any())
+                            {
+                                certificate.Partner = partnerList.First().Name;
+                                await _unitOfWork.CompleteAsync();
+                            }
+                        }
+                    }
+
                     // Handle Tags
                     if (!string.IsNullOrWhiteSpace(ExternalTags) || !string.IsNullOrWhiteSpace(InternalTags))
                     {
@@ -611,12 +640,18 @@ namespace GCCWebApp.Controllers
                 // Generate thumbnail if missing (for imported certificates without thumbnails)
                 await EnsureCertificateThumbnailAsync(certificate);
 
+                // Get partner IDs as comma-separated string for the view
+                var partnerIds = certificate.Partners?.Any() == true
+                    ? string.Join(",", certificate.Partners.Select(p => p.Id))
+                    : "";
+
                 var model = new CertificateEditViewModel
                 {
                     Id = certificate.Id,
                     Number = certificate.Number,
                     Status = certificate.Status,
                     Partner = certificate.Partner,
+                    PartnerIds = partnerIds,
                     CertificationResults = certificate.CertificationResults,
                     EffectiveDate = certificate.EffectiveDate,
                     ExpirationDate = certificate.ExpirationDate,
@@ -773,6 +808,44 @@ namespace GCCWebApp.Controllers
                             productId.CertificateId = certificate.Id;
                             certificate.ProductIds.Add(productId);
                         }
+                    }
+
+                    // Handle Partners (multi-partner support)
+                    if (!string.IsNullOrWhiteSpace(model.PartnerIds))
+                    {
+                        var partnerIdList = model.PartnerIds.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                            .Select(pid => int.TryParse(pid.Trim(), out var parsed) ? parsed : 0)
+                            .Where(pid => pid > 0)
+                            .ToList();
+
+                        // Clear existing partners
+                        certificate.Partners.Clear();
+
+                        if (partnerIdList.Any())
+                        {
+                            var partners = await _unitOfWork.Partners.FindAsync(p => partnerIdList.Contains(p.Id) && !p.IsDeleted);
+                            var partnerList = partners.ToList();
+
+                            foreach (var partner in partnerList)
+                            {
+                                certificate.Partners.Add(partner);
+                            }
+
+                            // Also set the legacy Partner field to the first partner name for backward compatibility
+                            certificate.Partner = partnerList.Any() ? partnerList.First().Name : "None";
+
+                            _logger.LogInformation("Updated {Count} partners for certificate {Number}", partnerList.Count, certificate.Number);
+                        }
+                        else
+                        {
+                            certificate.Partner = "None";
+                        }
+                    }
+                    else
+                    {
+                        // No partners selected - clear all
+                        certificate.Partners.Clear();
+                        certificate.Partner = "None";
                     }
 
                     // Handle Tags (External and Internal)

@@ -21,9 +21,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCCWebApp.Security.Tests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCCWebApp.Performance.Tests", "GCCWebApp.Performance.Tests\GCCWebApp.Performance.Tests.csproj", "{5F555F49-A438-4226-B065-13FF7E6BDD09}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GCCWebApp.RoleBasedUI.Tests2", "GCCWebApp.RoleBasedUI.Tests2", "{BD8BB43C-A309-3C23-DD48-1EA6D5945718}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GCCWebApp.RoleBasedUI.Tests", "GCCWebApp.RoleBasedUI.Tests", "{BD8BB43C-A309-3C23-DD48-1EA6D5945718}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCCWebApp.RoleBasedUI.Tests", "GCCWebApp.RoleBasedUI.Tests2\GCCWebApp.RoleBasedUI.Tests.csproj", "{EB7F6313-E482-462D-9DF5-07D46F3A10C4}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GCCWebApp.RoleBasedUI.Tests", "GCCWebApp.RoleBasedUI.Tests\GCCWebApp.RoleBasedUI.Tests.csproj", "{EB7F6313-E482-462D-9DF5-07D46F3A10C4}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

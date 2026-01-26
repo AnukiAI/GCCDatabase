@@ -8,7 +8,7 @@ namespace GCCWebApp.Models
         public int Id { get; set; }
 
         [Required]
-        [MaxLength(7)]
+        [MaxLength(50)]
         public string Number { get; set; } = string.Empty; // Certificate number
 
         [MaxLength(50)]
@@ -84,6 +84,7 @@ namespace GCCWebApp.Models
 
         // Many-to-many relationships
         public ICollection<Tag> Tags { get; set; } = new List<Tag>();
+        public ICollection<Partner> Partners { get; set; } = new List<Partner>(); // Multi-partner support
         public ICollection<CustomFieldValue> CustomFieldValues { get; set; } = new List<CustomFieldValue>();
         
         // Document relationships

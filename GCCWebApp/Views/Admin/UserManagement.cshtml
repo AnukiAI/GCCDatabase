@@ -545,12 +545,23 @@
                     <input type="text" id="user-name" class="admin-input" required aria-required="true" style="border: 1px solid #ced4da; background-color: white; color: #333;">
                 </div>
 
-                <div class="admin-form-group">
+                <!-- Company Association - shown for External role -->
+                <div class="admin-form-group" id="company-group">
                     <label class="admin-label" style="color: #333; font-weight: 500;">Companies</label>
                     <div id="user-companies-container" class="admin-checkbox-list" aria-describedby="company-help">
                         <!-- Company checkboxes will be populated by JavaScript -->
                     </div>
                     <span class="admin-form-help" id="company-help" style="color: #6c757d;">Select all companies this user should have access to</span>
+                </div>
+
+                <!-- Partner Association - shown for Partner role -->
+                <div class="admin-form-group" id="partner-group" style="display: none;">
+                    <label for="user-partner" class="admin-label admin-label--required" style="color: #333; font-weight: 500;">Partner</label>
+                    <select id="user-partner" class="admin-select" aria-describedby="partner-help" style="border: 1px solid #ced4da; background-color: white; color: #333;">
+                        <option value="">Select a partner</option>
+                        <!-- Partners populated dynamically by JavaScript -->
+                    </select>
+                    <span class="admin-form-help" id="partner-help" style="color: #6c757d;">Partner users see all certificates tagged with this partner</span>
                 </div>
 
                 <div class="admin-form-group">

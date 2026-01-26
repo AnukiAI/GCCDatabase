@@ -30,11 +30,15 @@ namespace GCCWebApp.Models
         public bool IsActive { get; set; } = true;
         public bool IsDeleted { get; set; } = false;
 
+        // Partner association (for reporting - which partner program this company belongs to)
+        public int? PartnerId { get; set; }
+
         // Audit fields
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
         // Navigation properties
+        public Partner? Partner { get; set; }
         public ICollection<Certificate> Certificates { get; set; } = new List<Certificate>();
         public ICollection<Product> Products { get; set; } = new List<Product>();
         public ICollection<User> Users { get; set; } = new List<User>();

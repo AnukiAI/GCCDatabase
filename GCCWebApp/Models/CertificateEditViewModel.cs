@@ -22,6 +22,13 @@ namespace GCCWebApp.Models
         [MaxLength(100)]
         public string? Partner { get; set; } = "None";
 
+        /// <summary>
+        /// Partner IDs for multi-partner support
+        /// Comma-separated list from the UI, parsed to list of IDs
+        /// </summary>
+        [Display(Name = "Partners")]
+        public string? PartnerIds { get; set; }
+
         [Display(Name = "Certification Results")]
         [MaxLength(1000)]
         public string? CertificationResults { get; set; }

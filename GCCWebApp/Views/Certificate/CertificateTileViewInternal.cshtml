@@ -590,12 +590,22 @@
                     </div>
                     <div class="import-stat import-stat--modified">
                         <div class="import-stat-value" id="statModified">0</div>
-                        <div class="import-stat-label">Modified</div>
+                        <div class="import-stat-label">Will Update</div>
+                    </div>
+                    <div class="import-stat import-stat--duplicates">
+                        <div class="import-stat-value" id="statDuplicates">0</div>
+                        <div class="import-stat-label">Duplicates</div>
                     </div>
                     <div class="import-stat import-stat--errors">
                         <div class="import-stat-value" id="statErrors">0</div>
                         <div class="import-stat-label">Errors</div>
                     </div>
+                </div>
+
+                <div class="import-duplicates-info" id="duplicatesInfo" style="display: none;">
+                    <h5><i class="fas fa-copy"></i> Duplicate Certificates (Already Exist - No Changes)</h5>
+                    <p class="text-muted">These certificate numbers already exist in the system with identical data. They will be skipped.</p>
+                    <div class="duplicates-list" id="duplicatesList"></div>
                 </div>
 
                 <div class="import-auto-create" id="autoCreateInfo" style="display: none;">
@@ -629,10 +639,10 @@
 
                 <div class="import-actions">
                     <button type="button" class="btn btn-secondary" id="backToUploadBtn">
-                        <i class="fas fa-arrow-left"></i> Back
+                        Cancel
                     </button>
                     <button type="button" class="btn btn-success" id="applyImportBtn">
-                        <i class="fas fa-check"></i> Apply Import
+                        Apply Import
                     </button>
                 </div>
             </div>
@@ -773,9 +783,35 @@
     }
     .import-summary {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(5, 1fr);
         gap: 15px;
         margin-bottom: 20px;
+    }
+    .import-duplicates-info {
+        background: #f8f9fa;
+        border: 1px solid #6c757d;
+        border-radius: 6px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    .import-duplicates-info h5 {
+        margin: 0 0 10px 0;
+        color: #495057;
+    }
+    .import-duplicates-info .duplicates-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .import-duplicates-info .duplicate-badge {
+        background: #e9ecef;
+        border: 1px solid #6c757d;
+        border-radius: 4px;
+        padding: 4px 8px;
+        font-size: 13px;
+        font-family: monospace;
+        color: #495057;
     }
     .import-stat {
         padding: 15px;
@@ -785,6 +821,7 @@
     .import-stat--total { background: #e6f7ff; border: 2px solid #002B76; }
     .import-stat--new { background: #e8f5e1; border: 2px solid #447638; }
     .import-stat--modified { background: #fff3cd; border: 2px solid #ffc107; }
+    .import-stat--duplicates { background: #f0f0f0; border: 2px solid #6c757d; }
     .import-stat--errors { background: #ffebee; border: 2px solid #dc3545; }
     .import-stat-value {
         font-size: 28px;
@@ -793,6 +830,7 @@
     .import-stat--total .import-stat-value { color: #002B76; }
     .import-stat--new .import-stat-value { color: #447638; }
     .import-stat--modified .import-stat-value { color: #856404; }
+    .import-stat--duplicates .import-stat-value { color: #6c757d; }
     .import-stat--errors .import-stat-value { color: #dc3545; }
     .import-stat-label {
         font-size: 12px;
@@ -857,6 +895,48 @@
     .status-badge--new { background: #e8f5e1; color: #447638; }
     .status-badge--modified { background: #fff3cd; color: #856404; }
     .status-badge--error { background: #ffebee; color: #dc3545; }
+
+    /* Modal Button Styling - Match Application Theme */
+    .import-actions .btn-primary {
+        background-color: #92C83E;
+        border-color: #92C83E;
+        color: white;
+    }
+    .import-actions .btn-primary:hover {
+        background-color: #7fb835;
+        border-color: #7fb835;
+    }
+    .import-actions .btn-primary:disabled {
+        background-color: #c5e0a5;
+        border-color: #c5e0a5;
+    }
+    .import-actions .btn-secondary {
+        background-color: transparent;
+        border: 2px solid #6c757d;
+        color: #6c757d;
+    }
+    .import-actions .btn-secondary:hover {
+        background-color: rgba(108, 117, 125, 0.1);
+        color: #5a6268;
+    }
+    .import-actions .btn-success {
+        background-color: #92C83E;
+        border-color: #92C83E;
+        color: white;
+    }
+    .import-actions .btn-success:hover {
+        background-color: #7fb835;
+        border-color: #7fb835;
+    }
+    .import-upload-area .btn-primary {
+        background-color: #92C83E;
+        border-color: #92C83E;
+        color: white;
+    }
+    .import-upload-area .btn-primary:hover {
+        background-color: #7fb835;
+        border-color: #7fb835;
+    }
 </style>
 
 <script>
@@ -986,8 +1066,17 @@
     applyBtn?.addEventListener('click', async () => {
         if (!importId) return;
 
-        const confirmMsg = `Apply import?\n\n${previewData.newCertificates} new certificate(s) will be created\n${previewData.modifiedCertificates} certificate(s) will be updated`;
-        if (!confirm(confirmMsg)) return;
+        // Use AdminCore confirmation modal instead of native confirm()
+        const confirmMessage = `${previewData.newCertificates} new certificate(s) will be created and ${previewData.modifiedCertificates} certificate(s) will be updated.`;
+
+        const confirmed = await AdminCore.showConfirmation({
+            title: 'Confirm Import',
+            message: confirmMessage,
+            confirmText: 'Apply Import',
+            type: 'warning'
+        });
+
+        if (!confirmed) return;
 
         document.getElementById('importStep2').style.display = 'none';
         document.getElementById('importStep3').style.display = 'block';
@@ -1008,7 +1097,7 @@
             const result = await response.json();
 
             if (result.success) {
-                showNotification(`Import successful! ${result.certificatesCreated} created, ${result.certificatesUpdated} updated.`, 'success');
+                AdminCore.showNotification(`Import successful! ${result.certificatesCreated} created, ${result.certificatesUpdated} updated.`, 'success');
                 closeModal();
                 // Refresh the certificate list
                 if (typeof loadCertificates === 'function') {
@@ -1020,7 +1109,7 @@
                 throw new Error(result.message || 'Import failed');
             }
         } catch (error) {
-            showNotification('Import failed: ' + error.message, 'error');
+            AdminCore.showNotification('Import failed: ' + error.message, 'error');
             document.getElementById('importStep3').style.display = 'none';
             document.getElementById('importStep2').style.display = 'block';
         }
@@ -1034,7 +1123,20 @@
         document.getElementById('statTotal').textContent = data.totalRows;
         document.getElementById('statNew').textContent = data.newCertificates;
         document.getElementById('statModified').textContent = data.modifiedCertificates;
+        document.getElementById('statDuplicates').textContent = data.unchangedCertificates || 0;
         document.getElementById('statErrors').textContent = data.invalidRows;
+
+        // Show duplicates info (unchanged certificates that already exist)
+        const duplicatesInfo = document.getElementById('duplicatesInfo');
+        const duplicatesList = document.getElementById('duplicatesList');
+        if (data.unchangedRows && data.unchangedRows.length > 0) {
+            duplicatesList.innerHTML = data.unchangedRows.map(row =>
+                `<span class="duplicate-badge">${row.certificateNumber}</span>`
+            ).join('');
+            duplicatesInfo.style.display = 'block';
+        } else {
+            duplicatesInfo.style.display = 'none';
+        }
 
         // Show auto-create info
         const autoCreateInfo = document.getElementById('autoCreateInfo');
@@ -1096,12 +1198,8 @@
     }
 
     function showNotification(message, type) {
-        // Use AdminCore if available, otherwise use alert
-        if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
-            AdminCore.showNotification(message, type);
-        } else {
-            alert(message);
-        }
+        // Use AdminCore for consistent notifications
+        AdminCore.showNotification(message, type);
     }
 })();
 </script>

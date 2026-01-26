@@ -239,6 +239,15 @@ namespace GCCWebApp.Controllers
                         rowNumber = e.RowNumber,
                         certificateNumber = e.CertificateNumber,
                         errorMessages = e.ErrorMessages
+                    }),
+                    unchangedRows = preview.UnchangedRows.Select(r => new
+                    {
+                        rowNumber = r.RowNumber,
+                        certificateNumber = r.CertificateNumber,
+                        companyName = r.CompanyName,
+                        productName = r.ProductName,
+                        certificationType = r.CertificationType,
+                        status = "Duplicate"
                     })
                 });
             }
@@ -310,9 +319,14 @@ namespace GCCWebApp.Controllers
         {
             // Template matches client-provided format with all 20 supported columns
             // UPC, GTIN, EAN use ="value" format to preserve leading zeros in Excel
-            var templateCsv = @"CERTIFICATE_NUMBER,COMPANY_NAME,COMPANY_LOCATION,COMPANY_COUNTRY,COMPANY_EMAIL,COMPANY_WEBSITE,PRODUCT_NAME,PRODUCT_TYPE,CERTIFICATION_TYPE,EFFECTIVE_DATE,EXPIRATION_DATE,CERTIFICATE_LOCATION,CERTIFICATE_COUNTRY,PARTNER,CERTIFICATION_RESULTS,TAGS,ASIN,UPC,GTIN,EAN
-24-0001,Acme Corporation,""Portland, OR"",United States,contact@acme.com,https://acme.com,Widget Pro,Electronics,Recycled Content,2024-01-01,2025-01-01,""Portland, OR"",United States,Amazon,95%,""Sustainable,Verified"",B08X7N9MRQ,=""846378985421"",=""00846378985421"",=""0846378985421""
-24-0002,Beta Industries,""Berlin, CT"",United States,info@beta.com,https://beta.com,Gadget Plus,Consumer Goods,Recycled Content,2024-02-01,2025-02-01,""Hartford, CT"",United States,Novi,87%,Eco-Friendly,B09XYZ7890,=""234567890123"",,";
+            // Use current year for certificate numbers and dates
+            var currentYear = DateTime.Now.Year;
+            var yearPrefix = (currentYear % 100).ToString("D2"); // "26" for 2026
+            var nextYear = currentYear + 1;
+
+            var templateCsv = $@"CERTIFICATE_NUMBER,COMPANY_NAME,COMPANY_LOCATION,COMPANY_COUNTRY,COMPANY_EMAIL,COMPANY_WEBSITE,PRODUCT_NAME,PRODUCT_TYPE,CERTIFICATION_TYPE,EFFECTIVE_DATE,EXPIRATION_DATE,CERTIFICATE_LOCATION,CERTIFICATE_COUNTRY,PARTNER,CERTIFICATION_RESULTS,TAGS,ASIN,UPC,GTIN,EAN
+{yearPrefix}-0001,Acme Corporation,""Portland, OR"",United States,contact@acme.com,https://acme.com,Widget Pro,Electronics,Recycled Content,{currentYear}-01-01,{nextYear}-01-01,""Portland, OR"",United States,Amazon,95%,""Sustainable,Verified"",B08X7N9MRQ,=""846378985421"",=""00846378985421"",=""0846378985421""
+{yearPrefix}-0002,Beta Industries,""Berlin, CT"",United States,info@beta.com,https://beta.com,Gadget Plus,Consumer Goods,Recycled Content,{currentYear}-02-01,{nextYear}-02-01,""Hartford, CT"",United States,Novi,87%,Eco-Friendly,B09XYZ7890,=""234567890123"",,";
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(templateCsv);
             return File(bytes, "text/csv", $"GCC_Certificate_Import_Template.csv");

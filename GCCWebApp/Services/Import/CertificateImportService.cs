@@ -176,6 +176,15 @@ namespace GCCWebApp.Services.Import
                 // Process each row
                 foreach (var csvRow in csvRows)
                 {
+                    // Skip empty rows (all required fields are empty)
+                    if (string.IsNullOrWhiteSpace(csvRow.CertificateNumber) &&
+                        string.IsNullOrWhiteSpace(csvRow.CompanyName) &&
+                        string.IsNullOrWhiteSpace(csvRow.ProductName) &&
+                        string.IsNullOrWhiteSpace(csvRow.CertificationType))
+                    {
+                        continue;
+                    }
+
                     var importRow = await ProcessRowAsync(
                         csvRow,
                         companies,

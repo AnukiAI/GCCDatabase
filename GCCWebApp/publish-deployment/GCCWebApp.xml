@@ -1,0 +1,3380 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>GCCWebApp</name>
+    </assembly>
+    <members>
+        <member name="M:GCCWebApp.Controllers.AccountController.SignIn(System.String)">
+            <summary>
+            Initiate sign-in process
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.SignedIn(System.String)">
+            <summary>
+            Handle successful sign-in from Azure AD B2C
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.Login(System.String,System.String)">
+            <summary>
+            Display the login page (fallback for non-Azure AD B2C)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.Login(GCCWebApp.Models.LoginViewModel,System.String)">
+            <summary>
+            Handle login form submission (fallback for non-Azure AD B2C)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.Logout">
+            <summary>
+            Initiate sign-out process (GET version for direct navigation)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.LogoutPost">
+            <summary>
+            Initiate sign-out process (POST version for form submission)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.SignedOut">
+            <summary>
+            Handle post-signout redirect
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.ResetPassword">
+            <summary>
+            Reset password (Azure AD B2C)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.EditProfile">
+            <summary>
+            Edit profile (Azure AD B2C)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.AccessDenied">
+            <summary>
+            Access denied page
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.ForgotPassword">
+            <summary>
+            Display the forgot password page (fallback)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.ForgotPassword(GCCWebApp.Models.ForgotPasswordViewModel)">
+            <summary>
+            Handle forgot password form submission (fallback)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.TwoFactorAuthentication">
+            <summary>
+            Display the Two-Factor Authentication page
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.Verify2FA(System.String,System.Boolean)">
+            <summary>
+            Handle Two-Factor Authentication verification
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.Resend2FA">
+            <summary>
+            Resend 2FA code
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.TwoFactorPreferences">
+            <summary>
+            Display 2FA preferences page
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.TwoFactorPreferences(GCCWebApp.Services.TwoFactorPreferences)">
+            <summary>
+            Save 2FA preferences
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.VerifyPhone">
+            <summary>
+            Phone verification page
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.VerifyPhone(System.String)">
+            <summary>
+            Verify phone number
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.SetupTotp">
+            <summary>
+            Setup TOTP (Time-based One-Time Password) for Microsoft Authenticator
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.GenerateQrCode">
+            <summary>
+            Generate QR code image for TOTP setup
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.EnableTotp(System.String)">
+            <summary>
+            Verify and enable TOTP
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.DisableTotp">
+            <summary>
+            Disable TOTP for user
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.ValidateTotp(System.String)">
+            <summary>
+            Validate TOTP code during login
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.TestAuth(System.String,System.String)">
+            <summary>
+            DIAGNOSTIC: Test authentication flow - Development environment only
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.AmazonApiController.GetSettings">
+            <summary>
+            GET /api/admin/amazon/settings - Load current Amazon API settings
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.AmazonApiController.SaveSettings(GCCWebApp.Controllers.Api.AmazonApiSettingsDto)">
+            <summary>
+            POST /api/admin/amazon/settings - Save Amazon API settings
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.AmazonApiController.TestConnection(GCCWebApp.Controllers.Api.AmazonApiSettingsDto)">
+            <summary>
+            POST /api/admin/amazon/test - Test Amazon API connection
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.AmazonApiController.TriggerSync">
+            <summary>
+            POST /api/admin/amazon/sync - Trigger manual sync
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.AmazonApiController.GetSyncHistory(System.Int32)">
+            <summary>
+            GET /api/admin/amazon/history - Get sync history
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.GetCertificates(GCCWebApp.Models.CertificateListRequest)">
+             <summary>
+             Get certificates with filtering, sorting, and pagination
+             </summary>
+             <remarks>
+             This endpoint supports both standard authentication (cookie/JWT) and Partner API key authentication.
+            
+             **Partner API Key Authentication:**
+             When authenticated with a partner API key (X-API-Key header), only certificates
+             associated with that partner are returned.
+            
+             **Standard Authentication:**
+             When authenticated with cookie or JWT, all certificates are returned (filtered by user role).
+            
+             **Example Partner Request:**
+             ```
+             GET /api/certificates?page=1&amp;pageSize=50
+             X-API-Key: gcc_partner_9f8e7d6c5b4a3210...
+             ```
+             </remarks>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.GetCertificate(System.Int32,System.String)">
+            <summary>
+            Get a specific certificate by ID
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.GetCertificateByNumber(System.String,System.String)">
+            <summary>
+            Get certificate by certificate number
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.CreateCertificate(GCCWebApp.Controllers.Api.CreateCertificateRequest)">
+            <summary>
+            Create a new certificate (Admin only)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.UpdateCertificate(System.Int32,GCCWebApp.Controllers.Api.UpdateCertificateRequest)">
+            <summary>
+            Update an existing certificate (Admin only)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.DeleteCertificate(System.Int32)">
+            <summary>
+            Delete a certificate (Admin only)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.UploadCertificateFile(System.Int32,Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Upload a certificate file (Admin only)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.GenerateThumbnail(Microsoft.AspNetCore.Http.IFormFile,System.String)">
+            <summary>
+            Generate a thumbnail preview from a PDF file (AJAX endpoint for real-time preview)
+            </summary>
+            <remarks>
+            This endpoint generates a thumbnail from the first page of a PDF file
+            without requiring the certificate to be saved first. Used for real-time
+            preview during certificate creation/editing.
+            </remarks>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.DownloadCertificateFile(System.Int32)">
+            <summary>
+            Download a certificate file
+            Public certificates can be downloaded without authentication
+            Non-public certificates require authentication
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificatesApiController.ExportCertificates(GCCWebApp.Models.Api.CertificateExportRequest)">
+            <summary>
+            Export certificates to various formats
+            Requires Analyst or Admin role
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.FormatCertificateNumber(System.String,System.Nullable{System.DateTime})">
+            <summary>
+            Format certificate number to YY-NNNN format
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.GetCertificateTiles(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.Int32)">
+            <summary>
+            Get certificates for external partner tile view with lazy loading
+            Only shows certificates relevant to the partner
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.GetAutocompleteSuggestions(System.String)">
+            <summary>
+            Search autocomplete suggestions for external view
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.GetFilterOptions">
+            <summary>
+            Get filter options for external view (limited to partner-accessible data)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.DownloadCertificate(System.Int32)">
+            <summary>
+            Download certificate PDF (same as public endpoint)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.GetShareableLink(GCCWebApp.Controllers.Api.ExternalShareLinkRequest)">
+            <summary>
+            Get shareable link for filtered results (external view)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.GetCurrentUserRole">
+            <summary>
+            Get the current user's role
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.GetUserPartner">
+            <summary>
+            Get the partner associated with the current user (for Partner role)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.GetCurrentUserCompanyIdsAsync">
+            <summary>
+            Get company IDs associated with the current user (for External role)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileExternalApiController.GetCurrentUserPartnerNamesAsync">
+            <summary>
+            Get partner names associated with the current user (for Partner role from database)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileInternalApiController.FormatCertificateNumber(System.String,System.Nullable{System.DateTime})">
+            <summary>
+            Format certificate number to YY-NNNN format
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileInternalApiController.GetCertificateTiles(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Get certificates for internal tile view with lazy loading
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileInternalApiController.GetAutocompleteSuggestions(System.String)">
+            <summary>
+            Search autocomplete suggestions for internal view
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileInternalApiController.GetFilterOptions">
+            <summary>
+            Get filter options for internal view
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileInternalApiController.DownloadCertificate(System.Int32)">
+            <summary>
+            Download certificate PDF (same as public endpoint)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTileInternalApiController.GetShareableLink(GCCWebApp.Controllers.Api.InternalShareLinkRequest)">
+            <summary>
+            Get shareable link for filtered results (internal view)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTilesApiController.FormatCertificateNumber(System.String,System.Nullable{System.DateTime})">
+            <summary>
+            Format certificate number to YY-NNNN format
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTilesApiController.GetCertificates(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.Int32,System.Int32,System.Int32,System.String,System.String,System.String,System.String,System.String)">
+            <summary>
+            Get certificates for tile view
+            GET: /api/certificate-tiles
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTilesApiController.GetFilterOptions">
+            <summary>
+            Get filter options for certificate search
+            GET: /api/certificate-tiles/filters
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTilesApiController.GetAutocompleteSuggestions(System.String)">
+            <summary>
+            Get autocomplete suggestions
+            GET: /api/certificate-tiles/autocomplete
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTilesApiController.DownloadCertificate(System.Int32)">
+            <summary>
+            Download certificate PDF
+            GET: /api/certificate-tiles/{id}/download
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.CertificateTilesApiController.GenerateShareableLink(GCCWebApp.Controllers.Api.ShareableLinkRequest)">
+            <summary>
+            Generate shareable link for current search
+            POST: /api/certificate-tiles/share-link
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ETLController.RunFullETL(GCCWebApp.Models.ETLConfiguration)">
+            <summary>
+            Run a full ETL pipeline
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ETLController.RunIncrementalETL(GCCWebApp.Models.ETLConfiguration)">
+            <summary>
+            Run an incremental ETL pipeline
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ETLController.GetJobStatuses">
+            <summary>
+            Get status of all ETL jobs
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ETLController.CancelJob(System.Guid)">
+            <summary>
+            Cancel a running ETL job
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ETLController.ExtractData(GCCWebApp.Models.ETLConfiguration)">
+            <summary>
+            Extract data only
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ETLController.GetMetrics(System.DateTime,System.DateTime)">
+            <summary>
+            Get ETL metrics for a date range
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ETLController.GetActiveAlerts">
+            <summary>
+            Get active alerts
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ETLController.CreateAlert(GCCWebApp.Models.ETLAlert)">
+            <summary>
+            Create a custom alert
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ETLController.ExportData(GCCWebApp.Controllers.Api.ExportRequest)">
+            <summary>
+            Export certificate data to file
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ETLController.GetDashboardData">
+            <summary>
+            Get ETL dashboard data
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ETLController.ValidateConfiguration(GCCWebApp.Models.ETLConfiguration)">
+            <summary>
+            Validate ETL configuration
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Controllers.Api.PartnerApiController">
+             <summary>
+             Partner API Management
+             </summary>
+             <remarks>
+             Provides administrative endpoints for managing partner API access, API keys, and usage statistics.
+             Partners (Amazon, Novi, etc.) use API keys to access GCC data through dedicated endpoints.
+            
+             ## Features
+             - Generate and revoke partner API keys
+             - View partner-specific usage statistics
+             - Manage partner API access permissions
+             - Track API usage and rate limits
+            
+             ## Authentication
+             All endpoints require Admin role authentication via:
+             - Cookie-based session (GCC.Session)
+             - JWT Bearer token
+            
+             ## Rate Limits
+             Partner API keys have higher rate limits (2,000 requests/hour) compared to standard API keys.
+             </remarks>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.PartnerApiController.GetPartners">
+             <summary>
+             Get all partners
+             </summary>
+             <remarks>
+             Retrieves a list of all partners (Amazon, Novi, etc.) configured in the system.
+             Use this endpoint to populate partner selection dropdowns or display partner information.
+            
+             **Sample Request:**
+             ```
+             GET /api/admin/partner/list
+             Authorization: Bearer {token}
+             ```
+            
+             **Sample Response:**
+             ```json
+             {
+               "success": true,
+               "data": [
+                 {
+                   "id": 1,
+                   "name": "Amazon",
+                   "isActive": true
+                 },
+                 {
+                   "id": 2,
+                   "name": "Novi",
+                   "isActive": true
+                 }
+               ]
+             }
+             ```
+             </remarks>
+             <response code="200">Successfully retrieved partners list</response>
+             <response code="401">Unauthorized - Invalid or missing authentication</response>
+             <response code="403">Forbidden - Requires Admin role</response>
+             <response code="500">Internal server error</response>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.PartnerApiController.GetPartnerApiKeys(System.Int32)">
+             <summary>
+             Get API keys for a specific partner
+             </summary>
+             <remarks>
+             Retrieves all API keys associated with a specific partner, including active and revoked keys.
+             Use this to view, audit, or manage partner API access.
+            
+             **Sample Request:**
+             ```
+             GET /api/admin/partner/1/apikeys
+             Authorization: Bearer {token}
+             ```
+            
+             **Sample Response:**
+             ```json
+             {
+               "success": true,
+               "data": [
+                 {
+                   "id": 1,
+                   "partnerId": 1,
+                   "partnerName": "Amazon",
+                   "apiKey": "amz_1a2b3c4d5e6f...",
+                   "description": "Production API key",
+                   "isActive": true,
+                   "createdAt": "2025-01-15T10:30:00Z",
+                   "expiresAt": "2026-01-15T10:30:00Z",
+                   "lastUsedAt": "2025-11-13T14:22:00Z"
+                 }
+               ]
+             }
+             ```
+             </remarks>
+             <param name="partnerId">The unique identifier of the partner</param>
+             <response code="200">Successfully retrieved API keys</response>
+             <response code="401">Unauthorized - Invalid or missing authentication</response>
+             <response code="403">Forbidden - Requires Admin role</response>
+             <response code="404">Partner not found</response>
+             <response code="500">Internal server error</response>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.PartnerApiController.GenerateApiKey(System.Int32,GCCWebApp.Controllers.Api.GenerateApiKeyRequest)">
+             <summary>
+             Generate a new API key for a partner
+             </summary>
+             <remarks>
+             Creates a new API key for the specified partner with optional description and expiration date.
+             The generated API key should be stored securely by the partner as it cannot be retrieved again.
+            
+             **Sample Request:**
+             ```
+             POST /api/admin/partner/1/apikey
+             Authorization: Bearer {token}
+             Content-Type: application/json
+            
+             {
+               "description": "Production API key for certificate access",
+               "expiresAt": "2026-01-15T00:00:00Z"
+             }
+             ```
+            
+             **Sample Response:**
+             ```json
+             {
+               "success": true,
+               "message": "API key generated successfully",
+               "data": {
+                 "id": 5,
+                 "partnerId": 1,
+                 "partnerName": "Amazon",
+                 "apiKey": "amz_9f8e7d6c5b4a3210...",
+                 "description": "Production API key for certificate access",
+                 "isActive": true,
+                 "createdAt": "2025-11-13T15:30:00Z",
+                 "createdBy": "admin",
+                 "expiresAt": "2026-01-15T00:00:00Z"
+               }
+             }
+             ```
+            
+             **Important Notes:**
+             - The API key is only shown once during generation
+             - Store the API key securely - it cannot be retrieved later
+             - If the key is lost, generate a new one and revoke the old one
+             - Partner API keys have a higher rate limit (2,000 requests/hour)
+             </remarks>
+             <param name="partnerId">The unique identifier of the partner</param>
+             <param name="request">API key generation request containing description and optional expiration</param>
+             <response code="200">API key generated successfully</response>
+             <response code="400">Bad request - Invalid partner ID or request data</response>
+             <response code="401">Unauthorized - Invalid or missing authentication</response>
+             <response code="403">Forbidden - Requires Admin role</response>
+             <response code="500">Internal server error</response>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.PartnerApiController.RevokeApiKey(System.Int32)">
+             <summary>
+             Revoke a partner API key
+             </summary>
+             <remarks>
+             Immediately revokes an API key, preventing it from being used for authentication.
+             This action cannot be undone - you must generate a new key if access is needed again.
+            
+             **Sample Request:**
+             ```
+             DELETE /api/admin/partner/apikey/5
+             Authorization: Bearer {token}
+             ```
+            
+             **Sample Response:**
+             ```json
+             {
+               "success": true,
+               "message": "API key revoked successfully",
+               "data": {
+                 "revoked": true
+               }
+             }
+             ```
+            
+             **Use Cases:**
+             - API key has been compromised or exposed
+             - Partner no longer needs access
+             - Regular key rotation for security
+             - Migrating to a new API key
+            
+             **Important Notes:**
+             - Revocation is immediate and cannot be reversed
+             - All requests using the revoked key will fail with 401 Unauthorized
+             - Revoked keys are kept in the system for audit purposes
+             </remarks>
+             <param name="id">The unique identifier of the API key to revoke</param>
+             <response code="200">API key revoked successfully</response>
+             <response code="401">Unauthorized - Invalid or missing authentication</response>
+             <response code="403">Forbidden - Requires Admin role</response>
+             <response code="404">API key not found</response>
+             <response code="500">Internal server error</response>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.PartnerApiController.GetUsageStats(System.Int32)">
+             <summary>
+             Get usage statistics for a partner
+             </summary>
+             <remarks>
+             Retrieves detailed usage statistics for a specific partner, including API call counts,
+             rate limit information, and usage trends.
+            
+             **Sample Request:**
+             ```
+             GET /api/admin/partner/1/usage
+             Authorization: Bearer {token}
+             ```
+            
+             **Sample Response:**
+             ```json
+             {
+               "success": true,
+               "data": {
+                 "partnerId": 1,
+                 "partnerName": "Amazon",
+                 "totalRequests": 15420,
+                 "requestsToday": 342,
+                 "requestsThisMonth": 8765,
+                 "activeApiKeys": 2,
+                 "revokedApiKeys": 1,
+                 "rateLimit": 2000,
+                 "rateLimitRemaining": 1658,
+                 "lastRequestAt": "2025-11-13T15:45:00Z",
+                 "topEndpoints": [
+                   {
+                     "endpoint": "/api/v1/certificates",
+                     "count": 8520
+                   },
+                   {
+                     "endpoint": "/api/v1/products",
+                     "count": 4230
+                   }
+                 ]
+               }
+             }
+             ```
+            
+             **Use Cases:**
+             - Monitor partner API usage and trends
+             - Identify potential issues or unusual patterns
+             - Plan capacity and rate limit adjustments
+             - Generate usage reports for billing or analytics
+             </remarks>
+             <param name="partnerId">The unique identifier of the partner</param>
+             <response code="200">Successfully retrieved usage statistics</response>
+             <response code="401">Unauthorized - Invalid or missing authentication</response>
+             <response code="403">Forbidden - Requires Admin role</response>
+             <response code="404">Partner not found</response>
+             <response code="500">Internal server error</response>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.PartnerApiController.GetAllApiKeys">
+             <summary>
+             Get all partner API keys (admin overview)
+             </summary>
+             <remarks>
+             Retrieves all API keys across all partners for administrative overview and monitoring.
+             Useful for auditing, security reviews, and managing API access across the entire system.
+            
+             **Sample Request:**
+             ```
+             GET /api/admin/partner/apikeys/all
+             Authorization: Bearer {token}
+             ```
+            
+             **Sample Response:**
+             ```json
+             {
+               "success": true,
+               "data": [
+                 {
+                   "id": 1,
+                   "partnerId": 1,
+                   "partnerName": "Amazon",
+                   "apiKey": "amz_1a2b3c4d...",
+                   "description": "Production key",
+                   "isActive": true,
+                   "createdAt": "2025-01-15T10:30:00Z",
+                   "expiresAt": "2026-01-15T10:30:00Z",
+                   "lastUsedAt": "2025-11-13T14:22:00Z"
+                 },
+                 {
+                   "id": 2,
+                   "partnerId": 2,
+                   "partnerName": "Novi",
+                   "apiKey": "novi_9f8e7d6c...",
+                   "description": "Staging key",
+                   "isActive": true,
+                   "createdAt": "2025-02-20T14:15:00Z",
+                   "expiresAt": "2026-02-20T14:15:00Z",
+                   "lastUsedAt": "2025-11-12T09:30:00Z"
+                 }
+               ]
+             }
+             ```
+            
+             **Use Cases:**
+             - System-wide API key audit
+             - Identify expired or unused keys
+             - Monitor all partner API access
+             - Generate comprehensive security reports
+             - Review API key lifecycle across partners
+             </remarks>
+             <response code="200">Successfully retrieved all API keys</response>
+             <response code="401">Unauthorized - Invalid or missing authentication</response>
+             <response code="403">Forbidden - Requires Admin role</response>
+             <response code="500">Internal server error</response>
+        </member>
+        <member name="T:GCCWebApp.Controllers.Api.GenerateApiKeyRequest">
+            <summary>
+            Request model for generating a new partner API key
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Controllers.Api.GenerateApiKeyRequest.Description">
+            <summary>
+            Optional description for the API key (e.g., "Production key for certificate access")
+            </summary>
+            <example>Production API key for certificate access</example>
+        </member>
+        <member name="P:GCCWebApp.Controllers.Api.GenerateApiKeyRequest.ExpiresAt">
+            <summary>
+            Optional expiration date for the API key. If not provided, the key will not expire.
+            </summary>
+            <example>2026-01-15T00:00:00Z</example>
+        </member>
+        <member name="T:GCCWebApp.Controllers.Api.ProductIdApiController">
+            <summary>
+            API Controller for Product ID CRUD operations
+            Handles all Product ID management for certificates
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ProductIdApiController.GetProductIdsByCertificate(System.Int32)">
+            <summary>
+            Get all product IDs for a certificate
+            </summary>
+            <param name="certificateId">Certificate ID</param>
+            <returns>List of product IDs</returns>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ProductIdApiController.GetProductId(System.Int32)">
+            <summary>
+            Get a specific product ID by its ID
+            </summary>
+            <param name="id">Product ID</param>
+            <returns>Product ID details</returns>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ProductIdApiController.CreateProductId(GCCWebApp.Models.CertificateProductId)">
+            <summary>
+            Create a new product ID
+            </summary>
+            <param name="productId">Product ID data</param>
+            <returns>Created product ID</returns>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ProductIdApiController.UpdateProductId(System.Int32,GCCWebApp.Models.CertificateProductId)">
+            <summary>
+            Update an existing product ID
+            </summary>
+            <param name="id">Product ID</param>
+            <param name="productId">Updated product ID data</param>
+            <returns>Updated product ID</returns>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ProductIdApiController.DeleteProductId(System.Int32)">
+            <summary>
+            Delete a product ID
+            </summary>
+            <param name="id">Product ID</param>
+            <returns>Success status</returns>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ProductIdApiController.ImportProductIds(System.Int32,Microsoft.AspNetCore.Http.IFormFile,System.Boolean)">
+            <summary>
+            Import product IDs from CSV file
+            </summary>
+            <param name="certificateId">Certificate ID</param>
+            <param name="file">CSV file</param>
+            <param name="overwriteExisting">Whether to overwrite existing product IDs</param>
+            <returns>Import results</returns>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ProductIdApiController.ExportProductIds(System.Int32)">
+            <summary>
+            Export product IDs to CSV
+            </summary>
+            <param name="certificateId">Certificate ID</param>
+            <returns>CSV file</returns>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ProductIdApiController.DownloadSampleCsv">
+            <summary>
+            Download sample CSV template
+            </summary>
+            <returns>Sample CSV file</returns>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ProductIdApiController.ValidateProductId(GCCWebApp.Models.CertificateProductId)">
+            <summary>
+            Validate a product ID without saving
+            </summary>
+            <param name="productId">Product ID to validate</param>
+            <returns>Validation result</returns>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.ProductIdApiController.GetCurrentUserId">
+            <summary>
+            Get current user ID from claims
+            </summary>
+            <returns>User ID or null</returns>
+        </member>
+        <member name="T:GCCWebApp.Controllers.Api.ApiResponse`1">
+            <summary>
+            Standard API response wrapper
+            </summary>
+            <typeparam name="T">Response data type</typeparam>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.ApiKeysController.GetApiKeys">
+            <summary>
+            Get all API keys
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.ApiKeysController.GetApiKey(System.Int32)">
+            <summary>
+            Get an API key by ID
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.ApiKeysController.CreateApiKey(GCCWebApp.Controllers.Api.v1.CreateApiKeyRequest)">
+            <summary>
+            Create a new API key
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.ApiKeysController.RevokeApiKey(System.Int32)">
+            <summary>
+            Revoke an API key
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.AuthController.Login(GCCWebApp.Controllers.Api.v1.LoginRequest)">
+            <summary>
+            Authenticate user and return JWT token
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.AuthController.RefreshToken(GCCWebApp.Controllers.Api.v1.RefreshTokenRequest)">
+            <summary>
+            Refresh JWT token
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.AuthController.ValidateToken">
+            <summary>
+            Validate JWT token
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Controllers.Api.v1.CertificatesController">
+             <summary>
+             Certificate management API endpoints
+             Provides CRUD operations for certificates with comprehensive filtering and search capabilities
+             </summary>
+             <remarks>
+             This controller manages all certificate-related operations including:
+             - Retrieving certificates with pagination and filtering
+             - Creating new certificates with validation
+             - Updating existing certificates
+             - Deleting certificates
+             - Advanced search capabilities
+            
+             All endpoints require authentication via API Key or JWT token.
+             Rate limits apply based on authentication method.
+             </remarks>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.GetCertificates(GCCWebApp.Models.Api.PaginationParams,System.Boolean)">
+             <summary>
+             Retrieve certificates with pagination and filtering
+             </summary>
+             <remarks>
+             Returns a paginated list of certificates with optional search filtering.
+            
+             **Features:**
+             - Pagination support (configurable page size)
+             - Search across certificate number, product name, and company name
+             - Sorting by multiple fields (certificate number, dates, product, company)
+             - Response caching for improved performance
+             - Optional product IDs (ASIN, GTIN, MPN, etc.) for partner integrations
+            
+             **Search Examples:**
+             - `searchTerm=24-` - Find certificates starting with "24-"
+             - `searchTerm=Paper` - Find certificates for products containing "Paper"
+             - `searchTerm=Green` - Find certificates for companies containing "Green"
+            
+             **Sorting Options:**
+             - `sortBy=certificatenumber` - Sort by certificate number
+             - `sortBy=issuedate` - Sort by effective date
+             - `sortBy=expirationdate` - Sort by expiration date
+             - `sortBy=productname` - Sort by product name
+             - `sortBy=companyname` - Sort by company name
+            
+             Add `sortDescending=true` for descending order.
+            
+             **Partner Integration (Novi, Amazon, etc.):**
+             Add `includeProductIds=true` to include GTIN, MPN, ASIN, UPC, and other product identifiers.
+             This is essential for partners who need to map certificates to specific product variants.
+            
+             **Example for Amazon/Novi:**
+             ```
+             GET /api/v1/certificates?includeProductIds=true&amp;pageSize=100
+             ```
+            
+             **Product Identifier Response Structure:**
+             When `includeProductIds=true`, each certificate includes a `productIdentifiers` array:
+             ```json
+             "productIdentifiers": [
+               {
+                 "type": "ASIN",           // Product ID type: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN
+                 "value": "B08N5WRWNW",    // The actual product identifier value
+                 "status": "Active",       // Status: Active, Inactive, Pending, Expired
+                 "partner": "Amazon",      // Partner association: Amazon, Novi, None, Other
+                 "productName": "Sample Product",  // Optional product name for this ID
+                 "productSku": "SKU123",           // Optional SKU
+                 "description": "Sample description" // Optional description/notes
+               }
+             ]
+             ```
+             </remarks>
+             <param name="parameters">Pagination and filtering parameters</param>
+             <param name="includeProductIds">Include product identifiers (ASIN, GTIN, MPN, UPC, etc.) in response. Default: false</param>
+             <returns>Paginated list of certificates matching the search criteria</returns>
+             <response code="200">Returns the paginated certificate list</response>
+             <response code="400">Invalid pagination parameters</response>
+             <response code="401">Authentication required</response>
+             <response code="429">Rate limit exceeded</response>
+             <response code="500">Internal server error</response>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.GetCertificate(System.Int32)">
+            <summary>
+            Get a certificate by ID
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.GetCertificateByNumber(System.String)">
+            <summary>
+            Get certificate by certificate number
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.CreateCertificate(GCCWebApp.Models.Certificate)">
+            <summary>
+            Create a new certificate
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.UpdateCertificate(System.Int32,GCCWebApp.Models.Certificate)">
+            <summary>
+            Update an existing certificate
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.DeleteCertificate(System.Int32)">
+            <summary>
+            Delete a certificate
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.SearchCertificates(System.String,System.Nullable{System.Int32},System.Nullable{System.Int32},System.Nullable{System.Int32},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.String,GCCWebApp.Models.Api.PaginationParams)">
+            <summary>
+            Search certificates by various criteria
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.GetExpiringCertificates(System.Int32,GCCWebApp.Models.Api.PaginationParams)">
+            <summary>
+            Get certificates expiring within specified days
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.SearchByProductId(System.String,System.String)">
+             <summary>
+             Search certificates by product ID (ASIN, UPC, GTIN, EAN, etc.)
+             </summary>
+             <remarks>
+             This endpoint allows partners to find certificates by product identifiers such as:
+             - **ASIN** (Amazon Standard Identification Number) - e.g., "B08XQRT456"
+             - **UPC** (Universal Product Code) - e.g., "012345678901"
+             - **GTIN** (Global Trade Item Number) - e.g., "00012345678901"
+             - **EAN** (European Article Number) - e.g., "5901234567890"
+             - **ISBN** (International Standard Book Number)
+             - **SKU** (Stock Keeping Unit)
+             - **MPN** (Manufacturer Part Number)
+            
+             **Examples:**
+            
+             Search by ASIN:
+             ```
+             GET /api/v1/certificates/search/productid?productId=B08XQRT456&amp;type=ASIN
+             ```
+            
+             Search by UPC:
+             ```
+             GET /api/v1/certificates/search/productid?productId=012345678901&amp;type=UPC
+             ```
+            
+             Search across all product ID types:
+             ```
+             GET /api/v1/certificates/search/productid?productId=B08XQRT456
+             ```
+            
+             **Response includes:**
+             - Certificate details (number, status, expiration date)
+             - Product and company information
+             - ALL product IDs associated with the certificate
+             - Download URL for certificate PDF
+            
+             **Product ID Response Structure:**
+             Each certificate includes a `productIds` array with ALL associated identifiers:
+             ```json
+             "productIds": [
+               {
+                 "type": "ASIN",           // Product ID type: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN
+                 "value": "B08N5WRWNW",    // The actual product identifier value
+                 "status": "Active",       // Status: Active, Inactive, Pending, Expired
+                 "partner": "Amazon",      // Partner association: Amazon, Novi, None, Other
+                 "productName": "Sample Product",  // Optional product name for this ID
+                 "productSku": "SKU123",           // Optional SKU
+                 "description": "Sample description", // Optional description/notes
+                 "isMatchedId": true       // True if this ID matched the search query
+               }
+             ]
+             ```
+            
+             **Use Cases:**
+             - Amazon searching for certificates by ASIN
+             - Novi finding certificates by SKU
+             - Retailers verifying product certifications by UPC
+             </remarks>
+             <param name="productId">The product identifier value (e.g., "B08XQRT456", "012345678901")</param>
+             <param name="type">Optional product ID type filter: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN. If not provided, searches all types.</param>
+             <returns>List of certificates matching the product ID</returns>
+             <response code="200">Returns certificates matching the product ID</response>
+             <response code="400">Invalid product ID or type parameter</response>
+             <response code="401">Authentication required</response>
+             <response code="404">No certificates found for the specified product ID</response>
+             <response code="429">Rate limit exceeded</response>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.DownloadCertificate(System.String)">
+             <summary>
+             Download certificate PDF file
+             </summary>
+             <remarks>
+             Downloads the certificate PDF file for the specified certificate.
+            
+             **Authentication:** Requires API Key or JWT token
+            
+             **Parameters:**
+             - `id`: Can be either the certificate number (e.g., "24-0366") or database ID (e.g., 146)
+            
+             **Examples:**
+            
+             Download by certificate number:
+             ```
+             GET /api/v1/certificates/24-0366/download
+             ```
+            
+             Download by database ID:
+             ```
+             GET /api/v1/certificates/146/download
+             ```
+            
+             **Response:**
+             - Content-Type: application/pdf
+             - Content-Disposition: attachment; filename="certificate_24-0366.pdf"
+             - Binary PDF data
+            
+             **Use Cases:**
+             - Downloading certificate PDFs for partner systems
+             - Archiving certificates for compliance
+             - Displaying certificates to end users
+            
+             **Notes:**
+             - If an uploaded certificate file exists, it will be returned
+             - If no uploaded file exists, a dynamically generated PDF will be created
+             </remarks>
+             <param name="id">Certificate number (e.g., "24-0366") or database ID (e.g., 146)</param>
+             <returns>Certificate PDF file</returns>
+             <response code="200">Returns the certificate PDF file</response>
+             <response code="400">Invalid certificate ID format</response>
+             <response code="401">Authentication required</response>
+             <response code="404">Certificate not found</response>
+             <response code="500">Error generating or retrieving PDF</response>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.GetCertificatesGS1(GCCWebApp.Models.Api.PaginationParams)">
+             <summary>
+             Get certificates in GS1 JSON-LD format for Amazon integration
+             </summary>
+             <remarks>
+             Returns certificates in GS1 Web Vocabulary JSON-LD format suitable for Amazon Climate Pledge Friendly.
+            
+             **GS1 JSON-LD Structure:**
+             This endpoint returns data following the GS1 Certification Data Model specification:
+             - `@context`: Points to GS1 certification context file
+             - `$schema`: Points to GS1 schema for validation
+             - Nested `products[]` array with GTIN and additional trade item IDs (ASIN, UPC, etc.)
+             - Nested `certificationInfo` object with certification details
+            
+             **Status Mapping:**
+             - Active → ACTIVE
+             - All other statuses → INACTIVE
+            
+             **Product Identifier Mapping:**
+             - UPC/GTIN/EAN values become the `gtin` field (padded to 14 digits)
+             - ASIN, SKU, MPN, ISBN become `additionalTradeItemId` entries
+            
+             **Example Response:**
+             ```json
+             {
+               "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+               "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+               "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+               "type": "CertificationReport",
+               "issueDate": "2024-01-15",
+               "issuer": "Green Circle Certified",
+               "products": [
+                 {
+                   "id": "https://id.gs1.org/01/00123456789012",
+                   "type": "Product",
+                   "gtin": "00123456789012",
+                   "additionalTradeItemId": [
+                     { "type": "ASIN", "value": "B08XQRT456" }
+                   ],
+                   "name": "Recycled Paper Towels",
+                   "certificationInfo": {
+                     "type": "CertificationDetails",
+                     "agency": "Green Circle Certified",
+                     "program": "UL 2809",
+                     "certificateId": "24-0366",
+                     "status": "ACTIVE",
+                     "value": "95.5% recycled content",
+                     "startDate": "2024-01-15",
+                     "endDate": "2025-01-15"
+                   }
+                 }
+               ]
+             }
+             ```
+             </remarks>
+             <param name="parameters">Pagination parameters</param>
+             <returns>Certificates in GS1 JSON-LD format</returns>
+             <response code="200">Returns the certificates in GS1 format</response>
+             <response code="401">Authentication required</response>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.GetCertificateGS1(System.String)">
+            <summary>
+            Get a single certificate in GS1 JSON-LD format
+            </summary>
+            <param name="certificateNumber">Certificate number (e.g., "24-0366")</param>
+            <returns>Single certificate in GS1 JSON-LD format</returns>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.CertificatesController.MapToGS1Format(GCCWebApp.Models.Certificate,Microsoft.AspNetCore.Http.HttpRequest)">
+            <summary>
+            Maps a certificate entity to GS1 JSON-LD format
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.MetricsController.GetMetrics">
+            <summary>
+            Get current performance metrics
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.MetricsController.GetMetricsSummary">
+            <summary>
+            Get performance metrics summary
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.MetricsController.ResetMetrics">
+            <summary>
+            Reset performance metrics
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.MetricsController.RecordMetric(GCCWebApp.Controllers.Api.v1.RecordMetricRequest)">
+            <summary>
+            Record a custom metric
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Controllers.Api.v1.ProductsController">
+             <summary>
+             Product management API endpoints
+             Provides read operations for products with comprehensive details and filtering
+             </summary>
+             <remarks>
+             This controller manages product-related operations including:
+             - Retrieving products with pagination and filtering
+             - Getting detailed product information including identifiers (ASIN, UPC, etc.)
+             - Searching products by various criteria
+             - Viewing associated certificates
+            
+             All endpoints require authentication via API Key or JWT token.
+             Partners receive filtered product data based on their associations.
+             </remarks>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.ProductsController.GetProducts(GCCWebApp.Models.Api.PaginationParams)">
+             <summary>
+             Retrieve products with pagination and filtering
+             </summary>
+             <remarks>
+             Returns a paginated list of products with optional search filtering.
+            
+             **Features:**
+             - Pagination support (configurable page size)
+             - Search across product name, description, model, and SKU
+             - Sorting by multiple fields
+             - Includes product identifiers (ASIN, UPC, etc.)
+             - Shows associated certificates
+            
+             **Search Examples:**
+             - `searchTerm=Bamboo` - Find products containing "Bamboo"
+             - `searchTerm=B08` - Find products with ASIN starting with "B08"
+             - `searchTerm=012345` - Find products with UPC containing "012345"
+            
+             **Sorting Options:**
+             - `sortBy=name` - Sort by product name (default)
+             - `sortBy=model` - Sort by product model
+             - `sortBy=createdat` - Sort by creation date
+            
+             Add `sortDescending=true` for descending order.
+            
+             **Response includes:**
+             - Product details (name, description, model, SKU)
+             - Company information
+             - Product type and category
+             - Product identifiers (ASIN, UPC, GTIN, EAN, etc.)
+             - Associated certificates
+             </remarks>
+             <param name="parameters">Pagination and filtering parameters</param>
+             <returns>Paginated list of products matching the search criteria</returns>
+             <response code="200">Returns the paginated product list</response>
+             <response code="400">Invalid pagination parameters</response>
+             <response code="401">Authentication required</response>
+             <response code="429">Rate limit exceeded</response>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.ProductsController.GetProduct(System.Int32)">
+             <summary>
+             Get detailed product information by ID
+             </summary>
+             <remarks>
+             Returns comprehensive details for a specific product including all identifiers and certificates.
+            
+             **Response includes:**
+             - Product basic information (name, description, model, SKU)
+             - Company details
+             - Product type and category
+             - All product identifiers:
+               - ASIN (Amazon Standard Identification Number)
+               - UPC (Universal Product Code)
+               - GTIN (Global Trade Item Number)
+               - EAN (European Article Number)
+               - ISBN, SKU, MPN
+             - Associated active certificates
+             - Metadata (creation/update timestamps)
+            
+             **Use Cases:**
+             - Getting complete product details for display
+             - Verifying product certifications
+             - Retrieving all product identifiers for cross-platform mapping
+             </remarks>
+             <param name="id">Product database ID</param>
+             <returns>Detailed product information</returns>
+             <response code="200">Returns the product details</response>
+             <response code="400">Invalid product ID</response>
+             <response code="401">Authentication required</response>
+             <response code="404">Product not found</response>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.ProductsController.CreateProduct(GCCWebApp.Models.Product)">
+            <summary>
+            Create a new product
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.ProductsController.UpdateProduct(System.Int32,GCCWebApp.Models.Product)">
+            <summary>
+            Update an existing product
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.ProductsController.DeleteProduct(System.Int32)">
+            <summary>
+            Delete a product
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.Api.v1.ProductsController.SearchProducts(System.String,System.Nullable{System.Int32},System.Nullable{System.Int32},GCCWebApp.Models.Api.PaginationParams)">
+            <summary>
+            Search products by various criteria
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Controllers.CertificateController">
+            <summary>
+            Controller for Certificate functionality
+            Handles both basic CRUD operations and advanced certificate list functionality
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Certificates(System.Int32,System.Int32,System.String,System.Nullable{System.Int32},System.Nullable{System.Int32},System.String)">
+            <summary>
+            Main certificates listing page
+            GET: /Certificate/Certificates
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.CertificateTileView">
+            <summary>
+            Certificate tile view - Public access allowed
+            GET: /Certificate/CertificateTileView
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.CertificateTileViewExternal">
+            <summary>
+            Certificate tile view for External users (partners)
+            GET: /Certificate/CertificateTileViewExternal
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.CertificateTileViewInternal">
+            <summary>
+            Certificate internal view for Analysts and Admins
+            GET: /Certificate/CertificateTileViewInternal
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.CertificateExternalView(System.String)">
+            <summary>
+            Certificate external view - For external partners
+            GET: /Certificate/CertificateExternalView/24-0366 (by certificate number)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.CertificateInternalView(System.String)">
+            <summary>
+            Certificate internal view - Only for Admin and Analyst roles
+            GET: /Certificate/CertificateInternalView/24-0366 (by certificate number)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.CertificateSingleView(System.String)">
+            <summary>
+            Certificate single view by certificate number - Public access allowed
+            GET: /Certificate/CertificateSingleView/24-0366
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Details(System.String)">
+            <summary>
+            Get certificate details by certificate number
+            GET: /Certificate/Details/24-0366
+            External users can view certificate details (read-only)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Create">
+            <summary>
+            Create new certificate - GET
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Create2">
+            <summary>
+            Test page for Create form - bypasses browser cache
+            GET: /Certificate/Create2
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Create(GCCWebApp.Models.CertificateEditViewModel,Microsoft.AspNetCore.Http.IFormFile,Microsoft.AspNetCore.Http.IFormFile,System.String,System.String,System.String)">
+            <summary>
+            Create new certificate - POST
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.ReloadCreateFormDataAsync">
+            <summary>
+            Helper method to reload form data for Create view
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Edit(System.String)">
+            <summary>
+            Edit certificate by certificate number - GET
+            GET: /Certificate/Edit/24-0366
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Edit(System.Int32,GCCWebApp.Models.CertificateEditViewModel,Microsoft.AspNetCore.Http.IFormFile,Microsoft.AspNetCore.Http.IFormFile,System.String,System.String)">
+            <summary>
+            Edit certificate - POST
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.ReloadEditFormDataAsync(System.Int32)">
+            <summary>
+            Helper method to reload form data for Edit view
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Delete(System.String)">
+            <summary>
+            Delete certificate confirmation - GET
+            GET: /Certificate/Delete/24-0366
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.DeleteConfirmed(System.String)">
+            <summary>
+            Delete certificate - POST
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.SearchApi(System.String,System.Nullable{System.Int32},System.Nullable{System.Int32},System.Nullable{System.Int32},System.String,System.String,System.String,System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.String,System.Boolean,System.Int32,System.Int32)">
+            <summary>
+            API endpoint for advanced certificate search
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Statistics">
+            <summary>
+            API endpoint for certificate statistics
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.EnsureCertificateThumbnailAsync(GCCWebApp.Models.Certificate)">
+            <summary>
+            Generates a thumbnail from the PDF if one doesn't exist
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Download(System.String)">
+            <summary>
+            Download certificate PDF
+            GET: /Certificate/Download/24-0366
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.ViewCertificateFile(System.Int32)">
+            <summary>
+            View certificate file for inline display (preview)
+            GET: /Certificate/ViewCertificateFile/5
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.DownloadByNumber(System.String)">
+            <summary>
+            Download certificate PDF by certificate number
+            GET: /Certificate/Download/24-1605
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.DownloadSelectedZip(System.Collections.Generic.List{System.Int32})">
+            <summary>
+            Download multiple selected certificates as a ZIP file
+            POST: /Certificate/DownloadSelectedZip
+            </summary>
+            <param name="certificateIds">List of certificate IDs to download</param>
+            <returns>ZIP file containing all selected certificate PDFs</returns>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.ExportCertificates(System.String,System.String,System.String,System.String,System.Collections.Generic.List{System.String},System.Collections.Generic.List{System.String},System.Collections.Generic.List{System.String},System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Export certificates to various formats (CSV, Excel, PDF)
+            GET: /Certificate/Export?format=csv&amp;searchTerm=...&amp;filters=...
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Import(System.Collections.Generic.List{CertificateImportDto})">
+            <summary>
+            Import certificates from CSV/JSON data
+            POST: /Certificate/Import
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.GetCustomFields(System.Int32)">
+            <summary>
+            Gets all custom fields (global, applies to all certificate types)
+            Filters internal fields for External users
+            GET: /Certificate/GetCustomFields?certificateTypeId={id}
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.GetCustomFieldValues(System.Int32)">
+            <summary>
+            Gets custom field values for a specific certificate
+            GET: /Certificate/GetCustomFieldValues?certificateId={id}
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.SaveCustomFieldValues(SaveCustomFieldValuesRequest)">
+            <summary>
+            Saves custom field values for a certificate
+            POST: /Certificate/SaveCustomFieldValues
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.GetProductTypes">
+            <summary>
+            Gets all product types for cascading dropdown
+            GET: /Certificate/GetProductTypes
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.GetProductSubcategories(System.Int32)">
+            <summary>
+            Gets product subcategories for a specific product type
+            GET: /Certificate/GetProductSubcategories?productTypeId={id}
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "M:GCCWebApp.Controllers.CertificateController.GetProductsByType(System.Nullable{System.Int32},System.Nullable{System.Int32})" -->
+        <member name="T:GCCWebApp.Controllers.CertificateImportController">
+            <summary>
+            Admin-only controller for certificate CSV import with preview and comparison
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateImportController.Index">
+            <summary>
+            GET: /CertificateImport
+            Shows the upload page
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateImportController.Upload(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            POST: /CertificateImport/Upload
+            Uploads CSV file and generates preview
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateImportController.Preview(System.String)">
+            <summary>
+            GET: /CertificateImport/Preview/{importId}
+            Shows preview of a cached import
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateImportController.Apply(System.String,System.String)">
+            <summary>
+            POST: /CertificateImport/Apply
+            Applies the import after admin approval
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateImportController.ApiPreview(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            POST: /api/CertificateImport/Preview
+            API endpoint for modal - uploads and returns preview as JSON
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateImportController.ApiApply(GCCWebApp.Controllers.CertificateImportController.ApplyImportRequest)">
+            <summary>
+            POST: /api/CertificateImport/Apply
+            API endpoint for modal - applies import and returns result as JSON
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateImportController.DownloadTemplate">
+            <summary>
+            GET: /CertificateImport/DownloadTemplate
+            Downloads a CSV template with example data
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.CertificateImportController.Cancel(System.String)">
+            <summary>
+            POST: /CertificateImport/Cancel
+            Cancels an import preview
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Controllers.DocumentController">
+            <summary>
+            Controller for Certificate Document management
+            Handles document upload, download, preview, and management
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.DocumentController.Upload(System.Int32)">
+            <summary>
+            Display upload form for certificate documents
+            GET: /Document/Upload/{certificateId}
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.DocumentController.Upload(GCCWebApp.Models.CertificateDocumentUploadViewModel)">
+            <summary>
+            Handle document upload
+            POST: /Document/Upload
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.DocumentController.Download(System.Int32)">
+            <summary>
+            Download a document
+            GET: /Document/Download/{id}
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.DocumentController.Preview(System.Int32)">
+            <summary>
+            Preview a document (for supported file types)
+            GET: /Document/Preview/{id}
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.DocumentController.GetDocuments(System.Int32)">
+            <summary>
+            Get documents for a certificate (AJAX)
+            GET: /Document/GetDocuments/{certificateId}
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.DocumentController.Delete(System.Int32)">
+            <summary>
+            Delete a document
+            POST: /Document/Delete/{id}
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.ProductController.ImportProducts(Microsoft.AspNetCore.Http.IFormFile)">
+            <summary>
+            Import products from CSV file
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.ProductController.DownloadProductImportTemplate">
+            <summary>
+            Download sample CSV template for product import
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Data.ApplicationDbContextFactory">
+            <summary>
+            Design-time factory for Entity Framework tooling (migrations, database commands)
+            This forces SQL Server provider for script generation
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Data.SeedData.SeedEssentialSecurityDataAsync(GCCWebApp.Data.ApplicationDbContext)">
+            <summary>
+            Seeds essential security data (Roles, Permissions, Users, API Keys) that must ALWAYS exist.
+            This method is idempotent - it checks if data exists before seeding.
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Extensions.SecureConfigurationExtensions">
+            <summary>
+            Extensions for configuring secure configuration management
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Extensions.SecureConfigurationExtensions.AddSecureConfiguration(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration,Microsoft.AspNetCore.Hosting.IWebHostEnvironment)">
+            <summary>
+            Adds secure configuration management with Azure Key Vault support
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Extensions.SecureConfigurationExtensions.AddAzureKeyVaultIfAvailable(Microsoft.Extensions.Configuration.IConfigurationBuilder,Microsoft.AspNetCore.Hosting.IWebHostEnvironment)">
+            <summary>
+            Configures Azure Key Vault integration for the configuration builder
+            Note: Requires Azure.Extensions.AspNetCore.Configuration.Secrets NuGet package
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Extensions.SecureConfigurationExtensions.ValidateSecureConfigurationAsync(System.IServiceProvider)">
+            <summary>
+            Validates secure configuration during application startup
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Extensions.PrefixKeyVaultSecretManager">
+            <summary>
+            Placeholder for Key Vault secret manager - requires Azure packages to implement
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Extensions.SecureConfigurationHealthCheck">
+            <summary>
+            Health check for secure configuration validation
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Extensions.ConfigurationValidationService">
+            <summary>
+            Startup validation service to ensure configuration is secure before accepting requests
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Extensions.SecurityServicesExtensions">
+            <summary>
+            Extension methods for configuring security services and middleware
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Extensions.SecurityServicesExtensions.ConfigureSecurityServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Configures comprehensive security services in the service collection
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Extensions.SecurityServicesExtensions.AddSecurityServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Adds comprehensive security services to the service collection
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Extensions.SecurityServicesExtensions.AddDataProtection(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Configures data protection with Azure Key Vault or local storage
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Extensions.SecurityServicesExtensions.AddCertificateServices(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Configures certificate services for SSL/TLS
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Extensions.SecurityServicesExtensions.AddSessionSecurity(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Configures session security settings
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Extensions.SecurityServicesExtensions.AddSecureCors(Microsoft.Extensions.DependencyInjection.IServiceCollection,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Configures CORS with security considerations
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Extensions.SecurityServicesExtensions.UseSecurityPipeline(Microsoft.AspNetCore.Builder.IApplicationBuilder,Microsoft.Extensions.Configuration.IConfiguration)">
+            <summary>
+            Configures the security pipeline middleware
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Extensions.CertificateOptions">
+            <summary>
+            Certificate configuration options
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Extensions.ICertificateSelector">
+            <summary>
+            Service for selecting SSL certificates
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Middleware.PartnerApiKeyAuthenticationMiddleware">
+            <summary>
+            Middleware for authenticating Partner API requests using X-API-Key header
+            Partners (Amazon, Novi, etc.) use API keys to access GCC REST API endpoints
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Middleware.PartnerApiKeyAuthenticationMiddleware.IsEndpointAllowed(System.String,System.String)">
+            <summary>
+            Checks if the requested endpoint is allowed based on the AllowedEndpoints configuration
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Middleware.PartnerApiKeyAuthenticationMiddleware.MatchesWildcardPattern(System.String,System.String)">
+            <summary>
+            Matches a request path against a wildcard pattern
+            Examples:
+            - /api/v1/certificates/* matches /api/v1/certificates/123
+            - /api/v1/* matches /api/v1/certificates, /api/v1/products, etc.
+            - /api/v1/certificates matches /api/v1/certificates exactly
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Middleware.SecurityHeadersMiddleware">
+            <summary>
+            Middleware for adding comprehensive security headers to HTTP responses
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Migrations.InitialCreate_SqlServer_Final">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.InitialCreate_SqlServer_Final.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.InitialCreate_SqlServer_Final.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.InitialCreate_SqlServer_Final.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddLevelToCertificationType">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddLevelToCertificationType.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddLevelToCertificationType.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddLevelToCertificationType.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.DistributeCertificatesAcrossTypes">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.DistributeCertificatesAcrossTypes.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.DistributeCertificatesAcrossTypes.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.DistributeCertificatesAcrossTypes.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddParentIdToCertificationType">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddParentIdToCertificationType.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddParentIdToCertificationType.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddParentIdToCertificationType.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.FixWasteSystemAuditLevel">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.FixWasteSystemAuditLevel.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.FixWasteSystemAuditLevel.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.FixWasteSystemAuditLevel.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddAmazonApiIntegration">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddAmazonApiIntegration.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddAmazonApiIntegration.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddAmazonApiIntegration.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddPartnerApiKeys">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddPartnerApiKeys.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddPartnerApiKeys.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddPartnerApiKeys.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddGoogleAnalyticsSettings">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddGoogleAnalyticsSettings.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddGoogleAnalyticsSettings.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddGoogleAnalyticsSettings.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddSectionToCustomFields">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddSectionToCustomFields.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddSectionToCustomFields.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddSectionToCustomFields.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddCertificateStatusHistory">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificateStatusHistory.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificateStatusHistory.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificateStatusHistory.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.RenameRoleUserToUserRoles">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.RenameRoleUserToUserRoles.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.RenameRoleUserToUserRoles.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.RenameRoleUserToUserRoles.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddAuditHistoryTable">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddAuditHistoryTable.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddAuditHistoryTable.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddAuditHistoryTable.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddCertificationResultsToCertificate">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificationResultsToCertificate.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificationResultsToCertificate.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificationResultsToCertificate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddImportBatchAndAuditImportBatchId">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddImportBatchAndAuditImportBatchId.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddImportBatchAndAuditImportBatchId.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddImportBatchAndAuditImportBatchId.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddCertificationTypeSubcategoryId">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificationTypeSubcategoryId.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificationTypeSubcategoryId.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddCertificationTypeSubcategoryId.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.AddRoleVisibilityToCustomFields">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddRoleVisibilityToCustomFields.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddRoleVisibilityToCustomFields.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AddRoleVisibilityToCustomFields.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateTypeViewModel.ParentId">
+            <summary>
+            Parent certification type ID (null for top-level types)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateTypeViewModel.Level">
+            <summary>
+            Hierarchy level (1 = parent/top-level, 2 = subcategory/child)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateTypeViewModel.ParentName">
+            <summary>
+            Parent type name for display purposes
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateFieldViewModel.RoleVisibility">
+            <summary>
+            Role-based visibility: "Public", "External", "Internal"
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Api.CertificateExportRequest">
+            <summary>
+            Request model for exporting certificates in various formats
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.CertificateExportRequest.Format">
+            <summary>
+            Export format (csv, excel, pdf)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.CertificateExportRequest.SearchTerm">
+            <summary>
+            Search term to filter certificates
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.CertificateExportRequest.CompanyId">
+            <summary>
+            Company ID to filter certificates
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.CertificateExportRequest.ProductId">
+            <summary>
+            Product ID to filter certificates
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.CertificateExportRequest.UserRole">
+            <summary>
+            User role for access control
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Api.GS1CertificationReport">
+            <summary>
+            GS1 JSON-LD Certification Report format for Amazon integration.
+            Follows GS1 Web Vocabulary specification.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationReport.Context">
+            <summary>
+            JSON-LD context URI pointing to the GS1 certification context file.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationReport.Schema">
+            <summary>
+            JSON Schema URI for validation.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationReport.Id">
+            <summary>
+            A globally unique URI describing this certification report document.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationReport.Type">
+            <summary>
+            Type declaration. Must be "CertificationReport".
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationReport.IssueDate">
+            <summary>
+            First date of validity for the certification. Format: YYYY-MM-DD
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationReport.Issuer">
+            <summary>
+            GLN or other identifier of document creator.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationReport.Products">
+            <summary>
+            A list of one or more certified products.
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Api.GS1Product">
+            <summary>
+            GS1 Product object within a certification report.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1Product.Id">
+            <summary>
+            Unique identifier describing the certified product. Must be a GS1 Digital Link URI.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1Product.Type">
+            <summary>
+            Type declaration. Must be "Product".
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1Product.Gtin">
+            <summary>
+            A Global Trade Item Number (GTIN). The 14 digit GS1 Identification Key.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1Product.AdditionalTradeItemId">
+            <summary>
+            Additional product identifiers (ASIN, SKU, etc.)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1Product.Name">
+            <summary>
+            Consumer friendly short description of the product.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1Product.Description">
+            <summary>
+            An understandable and useable description of a product.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1Product.CertificationInfo">
+            <summary>
+            Certification information for this product.
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Api.GS1AdditionalTradeItemId">
+            <summary>
+            Additional trade item identifier (ASIN, SKU, DUNS, etc.)
+            Modeled on gs1:additionalOrganizationID structure.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1AdditionalTradeItemId.Type">
+            <summary>
+            Type of identifier (ASIN, SKU, UPC, EAN, ISBN, MPN, etc.)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1AdditionalTradeItemId.Value">
+            <summary>
+            The identifier value.
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Api.GS1CertificationInfo">
+            <summary>
+            GS1 CertificationDetails object containing certification information.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.Id">
+            <summary>
+            A globally unique URI describing this certification.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.Type">
+            <summary>
+            Type declaration. Must be "CertificationDetails".
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.Agency">
+            <summary>
+            Name of the organisation issuing the certification standard.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.AgencyURL">
+            <summary>
+            URL of the certification agency.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.Program">
+            <summary>
+            The certification name or umbrella initiative (e.g., TCO Certified, Global Recycled Standard).
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.CertificateId">
+            <summary>
+            A reference to a vendor specific identifier for the certificate.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.Standard">
+            <summary>
+            Name of the certification standard.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.Status">
+            <summary>
+            Current status of the certification: ACTIVE or INACTIVE.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.Value">
+            <summary>
+            The certification's standard value or level (e.g., Gold, Silver, Level 1).
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.StartDate">
+            <summary>
+            First date of validity for the certification. Format: YYYY-MM-DD
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.EndDate">
+            <summary>
+            Last date of validity for the certification. Format: YYYY-MM-DD
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Api.GS1CertificationInfo.TargetCountries">
+            <summary>
+            Countries where the certification applies.
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Api.GS1CertificationReportListResponse">
+            <summary>
+            Response wrapper for GS1 certification reports list.
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.AuditHistory">
+            <summary>
+            Generic audit history table for tracking changes to all entities
+            Tracks CREATE, UPDATE, DELETE operations with field-level change details
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.EntityType">
+            <summary>
+            Entity type being audited (e.g., "Product", "Company", "Tag", "User", "Certificate")
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.EntityId">
+            <summary>
+            Primary key of the entity being audited (stored as string for flexibility)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.EntityName">
+            <summary>
+            Display name of the entity for historical reference (denormalized)
+            E.g., Product Name, Company Name, Tag Name, Username
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.Action">
+            <summary>
+            Action performed: CREATE, UPDATE, DELETE, RESTORE
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.FieldName">
+            <summary>
+            Specific field that was changed (null for CREATE/DELETE which affect entire entity)
+            E.g., "Name", "Price", "Status", "Email"
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.OldValue">
+            <summary>
+            Previous value before change (null for CREATE)
+            Stored as JSON string for complex objects
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.NewValue">
+            <summary>
+            New value after change (null for DELETE)
+            Stored as JSON string for complex objects
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.ChangedBy">
+            <summary>
+            User ID who made the change (FK to Users table)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.ChangedByUsername">
+            <summary>
+            Username at time of change (denormalized for historical accuracy)
+            Preserved even if user is later deleted or renamed
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.ChangedAt">
+            <summary>
+            Timestamp when change occurred (UTC)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.IpAddress">
+            <summary>
+            IP address of the user who made the change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.UserAgent">
+            <summary>
+            User agent string (browser/client information)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.ChangeSource">
+            <summary>
+            Source of the change: "Web UI", "API", "Import", "Automated", "Migration"
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.Reason">
+            <summary>
+            Optional reason provided by user for the change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.SessionId">
+            <summary>
+            Session ID for correlating multiple changes in same session
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.ImportBatchId">
+            <summary>
+            Import batch ID for correlating all records from a single import operation
+            Used for Phase 2 Import History tracking
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.Metadata">
+            <summary>
+            Additional metadata stored as JSON
+            E.g., {"RoleName": "Admin", "BulkImport": true}
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.AuditHistory.User">
+            <summary>
+            Navigation property to User who made the change
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.AuditAction">
+            <summary>
+            Enum for common audit actions
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.AuditEntityType">
+            <summary>
+            Enum for entity types
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.AuditChangeSource">
+            <summary>
+            Enum for change sources
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Certificate.CertificationTypeId">
+            <summary>
+            Parent certification type (e.g., "Certified Energy Savings"). Required.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Certificate.CertificationTypeSubcategoryId">
+            <summary>
+            Certification type subcategory (e.g., "Consumer Behavior"). Optional.
+            Must belong to the selected CertificationType's children.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Certificate.CertificationType">
+            <summary>
+            Parent certification type (required)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Certificate.CertificationTypeSubcategory">
+            <summary>
+            Certification type subcategory (optional)
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.CertificateDocument">
+            <summary>
+            Represents a document attached to a certificate
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.CertificateEditViewModel">
+            <summary>
+            ViewModel for creating and editing certificates
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateEditViewModel.PartnerIds">
+            <summary>
+            Partner IDs for multi-partner support
+            Comma-separated list from the UI, parsed to list of IDs
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateEditViewModel.ProductIds">
+            <summary>
+            Product IDs associated with this certificate (managed by Product ID Manager)
+            This is for the new Product ID Manager functionality
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateEditViewModel.CustomFieldValues">
+            <summary>
+            Custom field values associated with this certificate
+            Dictionary: Key = CustomField.Id, Value = Field value as string
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.CertificateListViewModelSimple">
+            <summary>
+            Simple ViewModel for Certificate List page
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.CertificateDetailsViewModelSimple">
+            <summary>
+            Simple ViewModel for Certificate Details page
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.CertificateProductId">
+            <summary>
+            Represents a product identifier (ASIN, UPC, GTIN, EAN) associated with a certificate
+            Supports multiple product IDs per certificate for Amazon marketplace integration
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.ProductIdType">
+            <summary>
+            Enumeration of supported product ID types
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.BulkProductIdViewModel">
+            <summary>
+            ViewModel for bulk product ID operations
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.ProductIdImportItem">
+            <summary>
+            Individual product ID for import operations
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.BulkImportResult">
+            <summary>
+            Result of bulk import operation
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.CertificateStatus">
+            <summary>
+            Enumeration of certificate lifecycle status values
+            Aligned with DATA_VALIDATION_RULES.md - 14 documented states
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.CertificateStatusHelper">
+            <summary>
+            Static class for certificate status management and workflow rules
+            Database-driven status values aligned with DATA_VALIDATION_RULES.md
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.GetAllStatuses">
+            <summary>
+            Gets all available status values with their display names
+            These are the 14 documented states from DATA_VALIDATION_RULES.md
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.GetCreationStatuses">
+            <summary>
+            Gets status values available for initial certificate creation
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.GetStatusesForRole(System.String)">
+            <summary>
+            Gets status values available for different user roles
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.IsValidTransition(System.String,System.String)">
+            <summary>
+            Determines if a status transition is valid based on business rules
+            Workflow: Draft → PendingReview → UnderReview → Approved → Active
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.GetDisplayName(System.String)">
+            <summary>
+            Gets the display name for a status value
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.IsActiveStatus(System.String)">
+            <summary>
+            Checks if a status represents an active/valid certificate
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.IsFinalStatus(System.String)">
+            <summary>
+            Checks if a status represents a final/terminal state
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.IsNegativeStatus(System.String)">
+            <summary>
+            Checks if a status represents a negative outcome
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.NeedsAttention(System.String)">
+            <summary>
+            Gets statuses that indicate the certificate needs attention
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.CertificateStatusHistory">
+            <summary>
+            Tracks all certificate status transitions for audit trail and compliance.
+            Provides complete history of status changes with timestamps, user info, and reasons.
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.Id">
+            <summary>
+            Primary key
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.CertificateId">
+            <summary>
+            Foreign key to Certificate
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.CertificateNumber">
+            <summary>
+            Certificate number (denormalized for query performance)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.PreviousStatus">
+            <summary>
+            Previous status before change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.NewStatus">
+            <summary>
+            New status after change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.Reason">
+            <summary>
+            Reason for status change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.Notes">
+            <summary>
+            Additional notes or comments
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.ChangedBy">
+            <summary>
+            User who made the status change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.ChangedByUsername">
+            <summary>
+            User name (denormalized for query performance)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.ChangedAt">
+            <summary>
+            When the status change occurred
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.IpAddress">
+            <summary>
+            IP address of user who made the change
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.UserAgent">
+            <summary>
+            User agent of browser/client
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.ChangeSource">
+            <summary>
+            Source of change: Manual, Automated, API, Import
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.DurationInPreviousStatus">
+            <summary>
+            Duration in previous status (in days)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.IsAutomatedTransition">
+            <summary>
+            Is this an automated transition
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.WorkflowStep">
+            <summary>
+            Related workflow step or action
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.Certificate">
+            <summary>
+            Related certificate
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateStatusHistory.User">
+            <summary>
+            User who made the change
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.CertificateViewModel">
+            <summary>
+            ViewModel for Certificate data based on GCC Database Field Requirements
+            Contains all fields from the Cert Upload Fields specification
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.CertificateNumber">
+            <summary>
+            Certificate Number - Format: XX-XXXX (auto-generated if blank)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.CertificationType">
+            <summary>
+            Type of certification issued
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.CSFAttributes">
+            <summary>
+            Multi-select CSF Attributes
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.Status">
+            <summary>
+            Certificate status - determines public visibility
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.EffectiveDate">
+            <summary>
+            When the certification becomes effective
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.ExpirationDate">
+            <summary>
+            When the certification expires
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.CompanyName">
+            <summary>
+            Company name (dropdown with add capability)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.CompanyContactEmail">
+            <summary>
+            Optional company contact email or URL
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.CompanyContactURL">
+            <summary>
+            Optional company website URL
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.ProductName">
+            <summary>
+            Product name (dropdown with add capability)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.ProductCategory">
+            <summary>
+            Product category (auto-populated from product)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.ProductType">
+            <summary>
+            Product type (sub-level to category)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.ProductTypeSubcategory">
+            <summary>
+            Product type subcategory (level 3)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.Location">
+            <summary>
+            Location (up to 175 characters, multiple locations allowed)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.Country">
+            <summary>
+            Country (required for search filtering and Amazon)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.ExternalTag">
+            <summary>
+            External tags (multi-select, public visible)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.InternalTag">
+            <summary>
+            Internal tags (multi-select, login only)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.Partner">
+            <summary>
+            Partner designation (Amazon/Novi/None/Other)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.CertificationResults">
+            <summary>
+            Optional test results or scores for partner requirements (e.g., Amazon threshold verification)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.ASIN">
+            <summary>
+            Amazon Standard Identification Number
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.UPC">
+            <summary>
+            Universal Product Code
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.GTIN">
+            <summary>
+            Global Trade Item Number
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.EAN">
+            <summary>
+            European Article Number
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.CertificateUploadPath">
+            <summary>
+            Path to uploaded certificate file
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.VerificationURL">
+            <summary>
+            URL for certificate verification
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.RecordCreatedDate">
+            <summary>
+            When the record was created (auto-generated)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.RecordLastUpdatedDate">
+            <summary>
+            When the record was last updated (auto-generated)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.CreatedBy">
+            <summary>
+            User who created the record
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificateViewModel.LastEditedBy">
+            <summary>
+            User who last edited the record (auto-generated)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificationType.Level">
+            <summary>
+            Hierarchy level for display (1 = parent, 2 = child/indented)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificationType.ParentId">
+            <summary>
+            Parent certification type ID for hierarchical relationships (null for top-level types)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificationType.Parent">
+            <summary>
+            Parent certification type (for hierarchical display)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CertificationType.Children">
+            <summary>
+            Child certification types (sub-types)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.CustomField.RoleVisibility">
+            <summary>
+            Role-based visibility: "Public" (all users), "External" (External+), "Internal" (Analyst/Admin only)
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.CertificateDocumentUploadViewModel">
+            <summary>
+            View model for file upload form
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.FileUploadConfiguration">
+            <summary>
+            Configuration for file upload constraints
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.FileUploadResult">
+            <summary>
+            Result of file upload operation
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.FileValidationResult">
+            <summary>
+            File validation result
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.CertificateImportPreviewResult">
+            <summary>
+            Result of certificate import preview showing what will change
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.CertificateImportRow">
+            <summary>
+            Represents a single row from the CSV import file
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.CertificateImportError">
+            <summary>
+            Represents a validation error for a row
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.FieldChange">
+            <summary>
+            Represents a change to a specific field
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.ImportRowStatus">
+            <summary>
+            Status of an import row
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.CertificateImportCsvRow">
+            <summary>
+            CSV row as parsed from file
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.ApplyImportRequest">
+            <summary>
+            Request to apply an import after preview approval
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.ApplyImportResult">
+            <summary>
+            Result of applying an import
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.ImportBatch">
+            <summary>
+            Tracks batch import operations for historical reporting (Phase 2)
+            Each import operation creates one ImportBatch record
+            Individual row results are tracked in AuditHistory with matching ImportBatchId
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.EntityType">
+            <summary>
+            Entity type being imported (Tag, User, Company, Product, etc.)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.FileName">
+            <summary>
+            Original filename that was imported
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.TotalRows">
+            <summary>
+            Total number of rows in the import file
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.NewCount">
+            <summary>
+            Number of new records created
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.ModifiedCount">
+            <summary>
+            Number of existing records updated
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.SkippedCount">
+            <summary>
+            Number of records skipped (user chose not to import)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.UnchangedCount">
+            <summary>
+            Number of unchanged records (already exist with same values)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.ErrorCount">
+            <summary>
+            Number of records that failed to import
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.Status">
+            <summary>
+            Status of the import batch
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.ImportedBy">
+            <summary>
+            User ID who initiated the import
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.ImportedByUsername">
+            <summary>
+            Username at time of import (denormalized for historical accuracy)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.CreatedAt">
+            <summary>
+            Timestamp when import was initiated
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.CompletedAt">
+            <summary>
+            Timestamp when import was completed (null if still processing)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.IpAddress">
+            <summary>
+            IP address of the user who initiated the import
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.ErrorMessage">
+            <summary>
+            Error message if the entire batch failed
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.Import.ImportBatch.User">
+            <summary>
+            Navigation property to User who imported
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.ImportBatchStatus">
+            <summary>
+            Status values for ImportBatch
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.GenericImportPreviewRow`1">
+            <summary>
+            Generic import preview row (extends base ImportRowStatus)
+            Uses existing ImportRowStatus enum from CertificateImportModels.cs
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.GenericImportPreviewResult`1">
+            <summary>
+            Generic result of an import preview operation
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.GenericImportApplyRequest">
+            <summary>
+            Request to apply import after preview
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.GenericImportApplyResult">
+            <summary>
+            Result of applying a generic import
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.Import.GenericImportRowError">
+            <summary>
+            Error details for a specific row
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Models.PartnerApiKey">
+            <summary>
+            Partner-specific API key for accessing GCC API endpoints
+            Tracks usage and permissions for external partners (Amazon, Wayfair, etc.)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.PartnerId">
+            <summary>
+            Partner this API key belongs to
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.ApiKey">
+            <summary>
+            The actual API key (stored encrypted)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.Description">
+            <summary>
+            Human-readable description/label for this key
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.IsActive">
+            <summary>
+            Whether this API key is currently active
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.CreatedAt">
+            <summary>
+            When this API key was created
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.CreatedBy">
+            <summary>
+            User who created this API key
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.ExpiresAt">
+            <summary>
+            When this API key expires (null = never expires)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.LastUsedAt">
+            <summary>
+            When this API key was last used
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.RequestCount">
+            <summary>
+            Total number of API requests made with this key
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.RateLimitPerHour">
+            <summary>
+            Rate limit for this partner (requests per hour)
+            null = no rate limit
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.AllowedEndpoints">
+            <summary>
+            JSON array of allowed endpoint patterns
+            Example: ["/api/v1/certificates/*", "/api/v1/products/*"]
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.Permissions">
+            <summary>
+            JSON object for additional custom permissions
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.Notes">
+            <summary>
+            Notes about this API key (for admin reference)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.RevokedAt">
+            <summary>
+            When this API key was revoked (if applicable)
+            </summary>
+        </member>
+        <member name="P:GCCWebApp.Models.PartnerApiKey.RevokedBy">
+            <summary>
+            User who revoked this API key
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Repositories.CertificateRepository.GenerateNextCertificateNumberAsync">
+            <summary>
+            Generates the next certificate number in format YY-XXXX (e.g., "26-0001")
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Audit.AuditService">
+            <summary>
+            Service for comprehensive audit logging with automatic field-level change detection
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.LogEntityChangeAsync``1(System.String,System.String,System.String,``0,``0,System.Int32,System.String,System.String,System.String)">
+            <summary>
+            Logs entity changes with automatic field-level detection
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.LogAuditEventAsync(System.String,System.String,System.String,System.String,System.Int32,System.String,System.String,System.String,System.String)">
+            <summary>
+            Logs a simple audit event without field-level tracking
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.GetEntityHistoryAsync(System.String,System.String,System.Nullable{System.Int32})">
+            <summary>
+            Gets audit history for a specific entity
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.GetUserAuditHistoryAsync(System.Int32,System.Nullable{System.Int32})">
+            <summary>
+            Gets audit history for a specific user's actions
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.GetRecentAuditHistoryAsync(System.Nullable{System.Int32},System.String,System.String,System.Nullable{System.DateTime})">
+            <summary>
+            Gets recent audit activity
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.SearchAuditHistoryAsync(System.String,System.String,System.String,System.Nullable{System.Int32},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Int32,System.Int32)">
+            <summary>
+            Searches audit history with pagination
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.GetAuditStatisticsAsync(System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Gets audit statistics
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.CreateAuditRecord(System.String,System.String,System.String,System.String,System.String,System.String,System.String,System.Int32,System.String,System.String,System.String)">
+            <summary>
+            Creates an audit record with HTTP context information
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.DetectChanges``1(``0,``0)">
+            <summary>
+            Detects field-level changes between two entity instances
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.ShouldSkipProperty(System.Reflection.PropertyInfo)">
+            <summary>
+            Determines if a property should be skipped during change detection
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.ValuesAreEqual(System.Object,System.Object)">
+            <summary>
+            Compares two values for equality
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.SerializeValue(System.Object)">
+            <summary>
+            Serializes a value to string for storage
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.SerializeEntity``1(``0)">
+            <summary>
+            Serializes an entire entity to JSON
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.AuditService.GetClientIpAddress">
+            <summary>
+            Gets client IP address from HTTP context
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Audit.AuditService.FieldChange">
+            <summary>
+            Represents a field-level change
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Audit.IAuditService">
+            <summary>
+            Service for tracking and querying audit history across all entities
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.IAuditService.LogEntityChangeAsync``1(System.String,System.String,System.String,``0,``0,System.Int32,System.String,System.String,System.String)">
+            <summary>
+            Logs a change to any entity with automatic field-level change detection
+            </summary>
+            <typeparam name="T">Entity type</typeparam>
+            <param name="entityId">Primary key of entity</param>
+            <param name="entityName">Display name for entity (e.g., product name, company name)</param>
+            <param name="action">CREATE, UPDATE, DELETE, etc.</param>
+            <param name="oldEntity">Entity before change (null for CREATE)</param>
+            <param name="newEntity">Entity after change (null for DELETE)</param>
+            <param name="userId">User who made the change</param>
+            <param name="username">Username of user</param>
+            <param name="reason">Optional reason for change</param>
+            <param name="changeSource">Source of change (Web UI, API, Import, etc.)</param>
+            <returns>Number of audit records created</returns>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.IAuditService.LogAuditEventAsync(System.String,System.String,System.String,System.String,System.Int32,System.String,System.String,System.String,System.String)">
+            <summary>
+            Logs a simple audit event without field-level tracking
+            Useful for events like LOGIN, LOGOUT, etc.
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.IAuditService.GetEntityHistoryAsync(System.String,System.String,System.Nullable{System.Int32})">
+            <summary>
+            Gets audit history for a specific entity
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.IAuditService.GetUserAuditHistoryAsync(System.Int32,System.Nullable{System.Int32})">
+            <summary>
+            Gets audit history for a specific user's actions
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.IAuditService.GetRecentAuditHistoryAsync(System.Nullable{System.Int32},System.String,System.String,System.Nullable{System.DateTime})">
+            <summary>
+            Gets recent audit activity across all entities
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.IAuditService.SearchAuditHistoryAsync(System.String,System.String,System.String,System.Nullable{System.Int32},System.Nullable{System.DateTime},System.Nullable{System.DateTime},System.Int32,System.Int32)">
+            <summary>
+            Searches audit history with advanced filters
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Audit.IAuditService.GetAuditStatisticsAsync(System.Nullable{System.DateTime},System.Nullable{System.DateTime})">
+            <summary>
+            Gets aggregated statistics about audit activity
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Audit.AuditStatistics">
+            <summary>
+            Statistics about audit activity
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Audit.UserActivitySummary">
+            <summary>
+            Summary of a user's audit activity
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateFieldService.GetFieldsForRoleAsync(System.String)">
+            <summary>
+            Get custom fields filtered by user role visibility
+            </summary>
+            <param name="userRole">User role: Public, External, Analyst, Admin</param>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateService.SearchCertificatesAsync(GCCWebApp.Models.CertificateListRequest)">
+            <summary>
+            Advanced search functionality for certificates with multi-criteria support
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateService.SearchCertificatesPagedAsync(GCCWebApp.Models.CertificateListRequest)">
+            <summary>
+            Paged search functionality for certificates
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateService.ApplyAdvancedFiltersAsync(GCCWebApp.Models.CertificateListRequest)">
+            <summary>
+            Apply advanced filters to certificate query
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateService.SaveFilterAsync(System.String,System.String,GCCWebApp.Models.CertificateListRequest)">
+            <summary>
+            Save filter configuration for user
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateService.LoadSavedFilterAsync(System.String,System.String)">
+            <summary>
+            Load saved filter configuration for user
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateService.ApplyDynamicFilterAsync(GCCWebApp.Models.CertificateListRequest)">
+            <summary>
+            Apply dynamic filters to certificate results
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateService.ExportFilteredResultsAsync(GCCWebApp.Models.CertificateListRequest,System.String)">
+            <summary>
+            Export filtered results in various formats
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.ICertificateWorkflowService">
+            <summary>
+            Service for managing certificate workflow and status transitions
+            Enforces business rules for certificate lifecycle management
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateWorkflowService.CanTransitionToStatusAsync(System.Int32,System.String,System.String)">
+            <summary>
+            Checks if a certificate can transition to a new status
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateWorkflowService.TransitionCertificateStatusAsync(System.Int32,System.String,System.Int32)">
+            <summary>
+            Transitions a certificate to a new status with validation
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateWorkflowService.GetAvailableStatusesForCertificateAsync(System.Int32,System.String)">
+            <summary>
+            Gets available status options for a certificate based on current status and user role
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateWorkflowService.CheckAndUpdateExpiringCertificatesAsync">
+            <summary>
+            Automated task to check and update certificates that are expiring soon
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateWorkflowService.GetStatusStatisticsAsync">
+            <summary>
+            Gets statistics for certificate statuses
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateWorkflowService.LogStatusChangeAsync(GCCWebApp.Models.Certificate,System.String,System.String,System.Int32,System.String,System.Boolean)">
+            <summary>
+            Logs status change to audit trail
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateWorkflowService.HandleStatusChangeBusinessLogic(GCCWebApp.Models.Certificate,System.String,System.String,System.Int32)">
+            <summary>
+            Handles additional business logic when status changes
+            Status values aligned with DATA_VALIDATION_RULES.md (14 states)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.FileUploadService.GeneratePdfThumbnailAsync(System.String,System.String)">
+            <summary>
+            Generates a thumbnail image from the first page of a PDF file
+            </summary>
+            <param name="pdfFilePath">Relative path to the PDF file (from wwwroot)</param>
+            <param name="certificateNumber">Certificate number for naming the thumbnail</param>
+            <returns>Relative path to the generated thumbnail, or null if failed</returns>
+        </member>
+        <member name="M:GCCWebApp.Services.FileUploadService.ValidateImageAsync(System.IO.Stream)">
+            <summary>
+            Validates image dimensions and detects corruption
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.FileUploadResult">
+            <summary>
+            Represents the result of a file upload operation
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.FileType">
+            <summary>
+            Enumeration of supported file types
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.ImageValidationResult">
+            <summary>
+            Represents the result of image validation
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.ICertificateFieldService.GetFieldsForCertificateTypeAsync(System.Int32)">
+            <summary>
+            Gets all visible custom fields (global - applies to all certificate types)
+            certificateTypeId parameter kept for backward compatibility but ignored
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.ICertificateFieldService.GetFieldsAsync(System.Boolean)">
+            <summary>
+            Gets all visible custom fields with role-based filtering (deprecated - use GetFieldsForRoleAsync)
+            </summary>
+            <param name="includeInternalFields">If true, includes fields where IsPublic=false. If false, only returns public fields.</param>
+            <returns>List of custom fields filtered by visibility and public/internal status</returns>
+        </member>
+        <member name="M:GCCWebApp.Services.ICertificateFieldService.GetFieldsForRoleAsync(System.String)">
+            <summary>
+            Gets custom fields filtered by user role visibility
+            </summary>
+            <param name="userRole">User role: Public, External, Analyst, Admin</param>
+            <returns>List of custom fields visible to the specified role</returns>
+        </member>
+        <member name="M:GCCWebApp.Services.ICertificateFieldService.GetFieldValuesForCertificateAsync(System.Int32)">
+            <summary>
+            Gets all field values for a specific certificate
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.ICertificateFieldService.SaveFieldValuesAsync(System.Int32,System.Collections.Generic.Dictionary{System.Int32,System.String})">
+            <summary>
+            Saves or updates field values for a certificate
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.ICertificateFieldService.ValidateFieldValuesAsync(System.Collections.Generic.Dictionary{System.Int32,System.String},System.Collections.Generic.List{GCCWebApp.Models.CustomField})">
+            <summary>
+            Validates field values against field definitions
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.ICertificateFieldService.GetFormattedFieldValuesAsync(System.Int32)">
+            <summary>
+            Gets formatted display values for certificate details view
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Import.CertificateImportService.GetFieldWithMapping(CsvHelper.CsvReader,System.String[])">
+            <summary>
+            Gets a field value by trying multiple column name formats
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Import.CertificateImportService.StripExcelTextFormat(System.String)">
+            <summary>
+            Strips Excel text format (="value") used to preserve leading zeros
+            Handles: ="12345" -> 12345, "12345" -> 12345, 12345 -> 12345
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Import.CertificateImportService.IsValidEmail(System.String)">
+            <summary>
+            Validates email format
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Import.ICertificateImportService">
+            <summary>
+            Service for importing certificates from CSV files with preview and validation
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Import.ICertificateImportService.PreviewImportAsync(Microsoft.AspNetCore.Http.IFormFile,System.Int32,System.String)">
+            <summary>
+            Parses CSV file and generates preview of changes
+            Does NOT apply changes - only validates and shows what would happen
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Import.ICertificateImportService.ApplyImportAsync(GCCWebApp.Models.Import.CertificateImportPreviewResult,System.Int32,System.String,System.String)">
+            <summary>
+            Applies an import after admin approval
+            Creates/updates certificates and logs all changes to audit history
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.Import.ICertificateImportService.GetCachedPreviewAsync(System.String)">
+            <summary>
+            Gets a cached preview result by import ID
+            Preview results are cached for 30 minutes
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.PartnerApiKeyService.GenerateSecureApiKey">
+            <summary>
+            Generates a cryptographically secure API key
+            Format: gcc_partner_[64 character hex string]
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Performance.IDatabaseOptimizationService">
+            <summary>
+            Service for database optimization including index management and query optimization
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Performance.IResponseCachingService">
+            <summary>
+            Service for managing application-level response caching with intelligent cache invalidation
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Performance.CacheKeys">
+            <summary>
+            Cache key constants and builders for consistent cache key management
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.ProductIdService.ValidateIsbn10Checksum(System.String)">
+            <summary>
+            Validates ISBN-10 checksum using modulo 11 algorithm
+            ISBN-10: Sum of (digit × position) mod 11 = 0
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.ProductIdService.ValidateIsbn13Checksum(System.String)">
+            <summary>
+            Validates ISBN-13 checksum using EAN-13 algorithm
+            ISBN-13: Alternating 1/3 weights, mod 10 = 0
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Security.IKeyVaultService">
+            <summary>
+            Service for managing Azure Key Vault operations and secrets management
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Security.ISecureConfigurationService">
+            <summary>
+            Service for secure configuration management with support for Azure Key Vault,
+            environment variables, and development fallbacks
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Security.ISecurityMonitoringService">
+            <summary>
+            Service for security monitoring, threat detection, and incident response
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.Security.IStructuredLoggingService">
+            <summary>
+            Enhanced structured logging service with security-focused logging capabilities
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.ValidationResult">
+            <summary>
+            Represents validation result with errors
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.TestData.GenerateProductIdTestData">
+            <summary>
+            Generates CSV test files for Product ID bulk import testing
+            Run with: dotnet run --project GCCWebApp -- generate-productid-testdata
+            Or compile and run directly
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Validation.InputSanitizationAttribute">
+            <summary>
+            Validates input against common injection attack patterns
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.CertificateListViewModel">
+            <summary>
+            Main model for the Certificate List page
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.CertificateCardModel">
+            <summary>
+            Model for individual certificate cards
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.CertificateSearchFilters">
+            <summary>
+            Search and filter model
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.PaginationModel">
+            <summary>
+            Pagination model
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.SortOption">
+            <summary>
+            Sort option model
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.FilterOption">
+            <summary>
+            Filter option model for building dynamic filter UI
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.CertificateStatus">
+            <summary>
+            Certificate status enumeration
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.UserRole">
+            <summary>
+            User role enumeration for role-based filtering
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.CertificationType">
+            <summary>
+            Certificate type enumeration
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.CertificateListResponse">
+            <summary>
+            DTO for API responses
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.CertificateListRequest">
+            <summary>
+            Request model for certificate list API
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.CertificateDownloadModel">
+            <summary>
+            Model for certificate download
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.CertificateDetailModel">
+            <summary>
+            Model for certificate details (expanded view)
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.CertificateAuditEntry">
+            <summary>
+            Audit entry model for certificate history
+            </summary>
+        </member>
+        <member name="T:GreenCircleCertified.Models.CertificateListSettings">
+            <summary>
+            Configuration model for certificate list settings
+            </summary>
+        </member>
+    </members>
+</doc>

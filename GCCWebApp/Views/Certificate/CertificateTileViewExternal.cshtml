@@ -20,7 +20,7 @@
             145px     /* 3. Certificate # */
             160px     /* 4. Certification Type */
             130px     /* 5. CSF Attributes */
-            75px      /* 6. Status */
+            120px     /* 6. Status - wider to avoid wrapping */
             95px      /* 7. Effective Date */
             95px      /* 8. Expiration Date */
             170px     /* 9. Company */
@@ -30,7 +30,7 @@
             130px     /* 13. Product Type */
             140px     /* 14. Product Subcategory */
             100px     /* 15. Location */
-            80px      /* 16. Country */
+            110px     /* 16. Country - increased for longer country names */
             100px     /* 17. External Tag */
             85px      /* 18. ASIN */
             85px      /* 19. UPC */
@@ -42,7 +42,7 @@
 
     /* Table container min-width for External (21 columns) */
     .table-grid-container {
-        min-width: 2300px;
+        min-width: 2375px; /* Updated: Status 75->120 (+45), Country 80->110 (+30) */
         width: max-content;
     }
 

@@ -1992,16 +1992,22 @@ body.table-view-active .main-content {
     color: #333;
 }
 
-/* Short data columns stay single line */
+/* Short data columns stay single line - Status nowrap with wider column */
 .table-grid .grid-cell[data-column="status"],
 .table-grid .grid-cell[data-column="effectiveDate"],
 .table-grid .grid-cell[data-column="expirationDate"],
-.table-grid .grid-cell[data-column="country"],
 .table-grid .grid-cell[data-column="asin"],
 .table-grid .grid-cell[data-column="upc"],
 .table-grid .grid-cell[data-column="gtin"],
 .table-grid .grid-cell[data-column="ean"] {
     white-space: nowrap;
+}
+
+/* Country column - allow text wrapping for longer country names */
+.table-grid .grid-cell[data-column="country"] {
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* Grid rows and header inherit template */

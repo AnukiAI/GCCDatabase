@@ -1348,6 +1348,18 @@
         const gtin = cert.gtin || '';
         const ean = cert.ean || '';
 
+        // Helper function to count product IDs (comma-separated values)
+        const countIds = (val) => {
+            if (!val || typeof val !== 'string' || val.trim() === '') return 0;
+            return val.split(',').map(s => s.trim()).filter(s => s.length > 0).length;
+        };
+
+        // Get counts for product ID columns
+        const asinCount = countIds(asin);
+        const upcCount = countIds(upc);
+        const gtinCount = countIds(gtin);
+        const eanCount = countIds(ean);
+
         return `
             <div class="grid-row" data-cert-id="${cert.id}" role="row">
                 <div class="grid-cell select-cell" role="gridcell">
@@ -1382,10 +1394,10 @@
                 <div class="grid-cell" data-column="country" title="${escapeHtml(country)}" role="gridcell">${escapeHtml(country)}</div>
                 <div class="grid-cell" data-column="externalTag" title="${escapeHtml(extTags)}" role="gridcell">${escapeHtml(extTags)}</div>
                 <div class="grid-cell" data-column="internalTag" title="${escapeHtml(intTags)}" role="gridcell">${escapeHtml(intTags)}</div>
-                <div class="grid-cell" data-column="asin" title="${escapeHtml(asin)}" role="gridcell">${escapeHtml(asin)}</div>
-                <div class="grid-cell" data-column="upc" title="${escapeHtml(upc)}" role="gridcell">${escapeHtml(upc)}</div>
-                <div class="grid-cell" data-column="gtin" title="${escapeHtml(gtin)}" role="gridcell">${escapeHtml(gtin)}</div>
-                <div class="grid-cell" data-column="ean" title="${escapeHtml(ean)}" role="gridcell">${escapeHtml(ean)}</div>
+                <div class="grid-cell" data-column="asin" title="${escapeHtml(asin)}" role="gridcell">${asinCount > 0 ? asinCount : ''}</div>
+                <div class="grid-cell" data-column="upc" title="${escapeHtml(upc)}" role="gridcell">${upcCount > 0 ? upcCount : ''}</div>
+                <div class="grid-cell" data-column="gtin" title="${escapeHtml(gtin)}" role="gridcell">${gtinCount > 0 ? gtinCount : ''}</div>
+                <div class="grid-cell" data-column="ean" title="${escapeHtml(ean)}" role="gridcell">${eanCount > 0 ? eanCount : ''}</div>
             </div>
         `;
     }

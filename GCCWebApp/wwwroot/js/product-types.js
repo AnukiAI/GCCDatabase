@@ -684,10 +684,10 @@ class ProductTypeManager {
                         </form>
                     </div>
                     <div class="modal-footer" style="padding: 1rem; border-top: 2px solid #e9ecef; background-color: #f8f9fa; display: flex; justify-content: flex-end; gap: 0.75rem;">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal"
-                                style="padding: 10px 20px; border: 1px solid #92C83E; background: #92C83E; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">Cancel</button>
+                        <button type="button" class="btn btn-danger" data-dismiss="modal"
+                                style="padding: 10px 20px; border: 1px solid #FF5252; background: #FF5252; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">Cancel</button>
                         <button type="button" class="btn btn-primary" id="saveBtn"
-                                style="padding: 10px 20px; border: 1px solid #002B76; background: #002B76; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">
+                                style="padding: 10px 20px; border: 1px solid #92C83E; background: #92C83E; color: white; border-radius: 4px; cursor: pointer; font-size: 16px; font-weight: 500;">
                             ${isEdit ? 'Update' : `Create ${this.capitalize(entityType)}`}
                         </button>
                     </div>

@@ -150,8 +150,8 @@
 .tree-header {
     background: var(--ct-light-gray);
     padding: 12px 16px;
-    border-bottom: 1px solid var(--ct-border-color);
-    font-weight: 500;
+    border-bottom: 2px solid var(--ct-border-color);
+    font-weight: 600;
     font-size: var(--ct-font-size-base);
     color: var(--ct-blue-dark);
 }
@@ -177,7 +177,7 @@
 
 .tree-column-header {
     font-size: var(--ct-font-size-base);
-    font-weight: 500;
+    font-weight: 600;
     color: var(--ct-blue-dark);
     text-align: center;
 }

@@ -191,7 +191,7 @@ body.admin-role-management .search-filter-bar {
 .data-table th {
     background-color: #f9f9f9;
     color: var(--blue-dark);
-    font-weight: 500;
+    font-weight: 600;
     position: sticky;
     top: 0;
     cursor: pointer;
@@ -361,7 +361,7 @@ body.admin-role-management .search-filter-bar {
 .matrix-table th {
     background-color: var(--light-gray);
     color: var(--blue-dark);
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .matrix-table th:first-child,

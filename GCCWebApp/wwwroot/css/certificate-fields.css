@@ -117,9 +117,9 @@
     text-align: left;
     padding: 15px;
     background-color: #f8f9fa;
-    border-bottom: 1px solid #eee;
+    border-bottom: 2px solid #eee;
     color: #555;
-    font-weight: 500;
+    font-weight: 600;
     position: relative;
 }
 

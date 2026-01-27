@@ -443,7 +443,7 @@ html body.table-view-active #tableView {
 
 /* Card Body - Ensure consistent spacing */
 .card-body {
-    padding: 12px;
+    padding: 10px; /* Reduced from 12px to balance increased product-name height */
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -454,7 +454,7 @@ html body.table-view-active #tableView {
     display: flex;
     justify-content: flex-end;
     gap: 12px;
-    padding: 15px 12px 10px 12px;
+    padding: 10px 10px 8px 10px; /* Reduced padding */
     border-top: none;
     background-color: transparent;
     margin-top: auto;
@@ -538,21 +538,21 @@ html body.table-view-active #tableView {
 .certificate-card .product-name {
     font-size: 22px !important;
     font-weight: 600 !important;
-    margin: 5px 0 5px 0 !important;
+    margin: 3px 0 3px 0 !important; /* Reduced margin */
     color: var(--text-color) !important;
-    height: 120px !important; /* Reduced height for better layout consistency */
-    max-height: 120px !important; /* Ensure it doesn't exceed this height */
+    height: 140px !important; /* Increased by 20px for longer product names */
+    max-height: 140px !important; /* Ensure it doesn't exceed this height */
     max-width: 100% !important; /* Allow full width of container */
     width: 100% !important; /* Take full width of container */
     display: -webkit-box !important;
-    -webkit-line-clamp: 4 !important; /* Adjusted for 128px height */
+    -webkit-line-clamp: 4 !important; /* 4 lines with optimized spacing */
     -webkit-box-orient: vertical !important;
-    line-height: 1.5 !important;
+    line-height: 1.45 !important; /* Slightly tighter line height */
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     word-wrap: break-word !important;
     word-break: break-word !important;
-    padding: 10px !important;
+    padding: 8px !important; /* Reduced from 10px */
     box-sizing: border-box !important;
     white-space: normal !important; /* Override any white-space settings */
     word-wrap: break-word !important; /* Override any word-wrap settings */
@@ -578,7 +578,7 @@ html body.table-view-active #tableView {
 }
 
 .certification-period {
-    margin: 10px 0 0 0;
+    margin: 6px 0 0 0; /* Reduced from 10px */
     padding-bottom: 0;
     font-size: 16px;
 }
@@ -586,15 +586,15 @@ html body.table-view-active #tableView {
     .certification-period strong {
         color: var(--text-color);
         display: block;
-        margin-bottom: 4px;
+        margin-bottom: 2px; /* Reduced from 4px */
     }
 
 .certificate-location {
     font-size: 16px;
     color: #666;
-    margin-top: 10px;
-    margin-bottom: 12px;
-    padding-top: 6px;
+    margin-top: 6px; /* Reduced from 10px */
+    margin-bottom: 8px; /* Reduced from 12px */
+    padding-top: 4px; /* Reduced from 6px */
     display: flex;
     align-items: flex-start;
     gap: 8px;
@@ -610,7 +610,7 @@ html body.table-view-active #tableView {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
-    padding: 15px 12px 10px 12px;
+    padding: 10px 10px 8px 10px; /* Reduced padding */
     border-top: none;
     background-color: transparent;
 }

@@ -373,11 +373,11 @@
                     </button>
                     @if (User.IsInRole("Admin"))
                     {
-                        <button type="button" class="btn btn-secondary" id="openImportModalBtn" title="Bulk import certificates from CSV">
-                            <i class="fas fa-file-import"></i> Import CSV
+                        <button type="button" class="btn btn-outline" id="openImportModalBtn" title="Bulk import certificates from CSV" style="background-color: white;">
+                            <i class="fas fa-file-import"></i> Import
                         </button>
-                        <a href="@Url.Action("DownloadTemplate", "CertificateImport")" class="btn btn-outline-secondary" title="Download CSV template with example data">
-                            <i class="fas fa-file-download"></i> Download Template
+                        <a href="@Url.Action("DownloadTemplate", "CertificateImport")" class="btn btn-outline" title="Download CSV template with example data" style="background-color: white;">
+                            <i class="fas fa-file-download"></i> Template
                         </a>
                     }
                 </div>

@@ -444,7 +444,11 @@ namespace GCCWebApp.Services
 
                 if (role == null) return false;
 
-                role.Name = model.Name;
+                // For system roles, preserve the original name (cannot be changed)
+                if (!role.IsSystem)
+                {
+                    role.Name = model.Name;
+                }
                 role.Description = model.Description;
                 role.UpdatedAt = DateTime.UtcNow;
 

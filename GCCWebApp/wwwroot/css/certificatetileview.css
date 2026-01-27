@@ -540,12 +540,12 @@ html body.table-view-active #tableView {
     font-weight: 600 !important;
     margin: 3px 0 3px 0 !important; /* Reduced margin */
     color: var(--text-color) !important;
-    height: 140px !important; /* Increased by 20px for longer product names */
-    max-height: 140px !important; /* Ensure it doesn't exceed this height */
+    height: 170px !important; /* Increased to 170px for very long product names */
+    max-height: 170px !important; /* Ensure it doesn't exceed this height */
     max-width: 100% !important; /* Allow full width of container */
     width: 100% !important; /* Take full width of container */
     display: -webkit-box !important;
-    -webkit-line-clamp: 4 !important; /* 4 lines with optimized spacing */
+    -webkit-line-clamp: 5 !important; /* 5 lines to accommodate long names */
     -webkit-box-orient: vertical !important;
     line-height: 1.45 !important; /* Slightly tighter line height */
     overflow: hidden !important;

@@ -358,7 +358,7 @@
                 <button type="submit" name="action" value="save" class="btn btn-primary" aria-label="Save certificate changes" id="saveButton">
                     Save Changes
                 </button>
-                <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="btn btn-outline" aria-label="Cancel and return to certificate management">
+                <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="btn btn-danger" aria-label="Cancel and return to certificate management">
                     Cancel
                 </a>
                 @if (User.IsInRole("Admin"))

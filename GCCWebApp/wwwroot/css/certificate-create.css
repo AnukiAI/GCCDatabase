@@ -668,6 +668,16 @@ body:has(.admin-container) .page-header {
     background-color: #f8f9fa;
 }
 
+.btn-danger {
+    background-color: #FF5252;
+    color: #ffffff;
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #e04545;
+}
+
 /* ===== ACTION BUTTONS ===== */
 .action-buttons {
     display: flex;

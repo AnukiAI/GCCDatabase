@@ -122,8 +122,8 @@ namespace GCCWebApp.Data
             };
             externalRole.Permissions = permissions.Where(p => externalPermissions.Contains(p.Codename)).ToList();
 
-            // Public gets only view certificates and products
-            var publicPermissions = new[] { "certificate.view", "products.view" };
+            // Public gets only view certificates (public tile view) - NO product access
+            var publicPermissions = new[] { "certificate.view" };
             publicRole.Permissions = permissions.Where(p => publicPermissions.Contains(p.Codename)).ToList();
 
             await context.SaveChangesAsync();

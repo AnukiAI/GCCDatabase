@@ -247,6 +247,13 @@ class RoleManagement {
         document.getElementById('role-description').value = '';
         document.getElementById('system-role-warning').style.display = 'none';
 
+        // Ensure role name input is enabled for new roles
+        const roleNameInput = document.getElementById('role-name');
+        roleNameInput.disabled = false;
+        roleNameInput.style.backgroundColor = 'white';
+        roleNameInput.style.cursor = 'text';
+        roleNameInput.title = '';
+
         // Populate permissions
         this.populatePermissions([]);
 
@@ -269,9 +276,23 @@ class RoleManagement {
         document.getElementById('role-name').value = role.name || '';
         document.getElementById('role-description').value = role.description || '';
 
-        // Show system role warning if applicable
+        // Show system role warning and disable name field for system roles
         const isSystemRole = role.isSystem || role.name === 'Admin';
         document.getElementById('system-role-warning').style.display = isSystemRole ? 'block' : 'none';
+
+        // Disable role name input for system roles (Admin, Analyst, External, Public)
+        const roleNameInput = document.getElementById('role-name');
+        if (isSystemRole) {
+            roleNameInput.disabled = true;
+            roleNameInput.style.backgroundColor = '#e9ecef';
+            roleNameInput.style.cursor = 'not-allowed';
+            roleNameInput.title = 'System role names cannot be changed';
+        } else {
+            roleNameInput.disabled = false;
+            roleNameInput.style.backgroundColor = 'white';
+            roleNameInput.style.cursor = 'text';
+            roleNameInput.title = '';
+        }
 
         // Populate permissions
         this.populatePermissions(role.permissions || []);

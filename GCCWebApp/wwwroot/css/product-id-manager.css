@@ -56,6 +56,18 @@
     flex-wrap: wrap;
 }
 
+/* Add Product ID Button - Primary Green per UI Standards */
+#addProductId {
+    background-color: #92C83E !important;
+    border-color: #92C83E !important;
+    color: #ffffff !important;
+}
+
+#addProductId:hover {
+    background-color: #7AB32E !important;
+    border-color: #7AB32E !important;
+}
+
 .product-manager-filters {
     padding: 16px 24px 8px;
     background: #f8f9fa;

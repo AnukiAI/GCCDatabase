@@ -101,12 +101,15 @@
                     </div>
 
                     <div class="form-group" id="subcategory-group">
-                        <label asp-for="CertificationTypeSubcategoryId">Certificate Subcategory <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
-                        <select asp-for="CertificationTypeSubcategoryId" id="CertificationTypeSubcategoryId" class="form-control">
+                        <label>Certificate Subcategories <span class="text-muted" style="font-size: 12px;">(Optional - Multiple)</span></label>
+                        <select id="subcategorySelect" class="form-control" aria-label="Select certificate subcategories">
                             <option value="">Select subcategory...</option>
+                            <!-- Options populated by JavaScript based on parent type -->
                         </select>
-                        <span asp-validation-for="CertificationTypeSubcategoryId" class="text-danger" role="alert"></span>
-                        <small class="form-text text-muted">Select a subcategory if applicable</small>
+                        <div class="subcategories-container" id="subcategoriesContainer" aria-live="polite" aria-label="Selected subcategories">
+                            <!-- Selected subcategories displayed as pills -->
+                        </div>
+                        <input type="hidden" name="SubcategoryIds" id="subcategoriesHidden" />
                     </div>
 
                     <div class="form-group">
@@ -492,15 +495,20 @@
                 }
             }
 
-            // ===== Certification Type Subcategories =====
+            // ===== Certification Type Subcategories (Multi-Select) =====
 
             // Load subcategories when certification type changes
             $('#CertificationTypeId').change(function() {
                 const typeId = $(this).val();
-                const subcategorySelect = $('#CertificationTypeSubcategoryId');
+                const subcategorySelect = $('#subcategorySelect');
 
                 // Clear existing subcategory options
                 subcategorySelect.html('<option value="">Select subcategory...</option>');
+
+                // Clear selected subcategories when parent type changes
+                if (window.CertificateCreate && window.CertificateCreate.SubcategoryManager) {
+                    window.CertificateCreate.SubcategoryManager.clear();
+                }
 
                 if (typeId) {
                     // Filter subcategories for the selected parent type

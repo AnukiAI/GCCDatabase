@@ -22,6 +22,21 @@ namespace GCCWebApp.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("CertificateCertificationType", b =>
+                {
+                    b.Property<int>("CertificateId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("CertificationTypeSubcategoriesId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CertificateId", "CertificationTypeSubcategoriesId");
+
+                    b.HasIndex("CertificationTypeSubcategoriesId");
+
+                    b.ToTable("CertificateCertificationTypeSubcategories", (string)null);
+                });
+
             modelBuilder.Entity("CertificatePartner", b =>
                 {
                     b.Property<int>("CertificatesId")
@@ -2002,6 +2017,21 @@ namespace GCCWebApp.Migrations
                     b.HasIndex("UsersId");
 
                     b.ToTable("UserRoles", (string)null);
+                });
+
+            modelBuilder.Entity("CertificateCertificationType", b =>
+                {
+                    b.HasOne("GCCWebApp.Models.Certificate", null)
+                        .WithMany()
+                        .HasForeignKey("CertificateId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("GCCWebApp.Models.CertificationType", null)
+                        .WithMany()
+                        .HasForeignKey("CertificationTypeSubcategoriesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CertificatePartner", b =>

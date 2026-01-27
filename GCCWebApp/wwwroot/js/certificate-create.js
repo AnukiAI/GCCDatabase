@@ -441,23 +441,110 @@
         }
     };
 
+    // Subcategory Management System (Multi-Select)
+    const SubcategoryManager = {
+        subcategories: [],
+
+        init: function() {
+            const subcategorySelect = document.getElementById('subcategorySelect');
+            if (subcategorySelect) {
+                subcategorySelect.addEventListener('change', () => this.addSubcategory());
+            }
+        },
+
+        addSubcategory: function() {
+            const select = document.getElementById('subcategorySelect');
+            const selectedValue = parseInt(select.value);
+            const selectedText = select.options[select.selectedIndex].text;
+
+            if (!selectedValue) {
+                return;
+            }
+
+            // Check if subcategory already exists
+            if (this.subcategories.find(s => s.id === selectedValue)) {
+                ModalSystem.showNotification('Subcategory already added.', 'warning');
+                select.selectedIndex = 0;
+                return;
+            }
+
+            // Add subcategory
+            this.subcategories.push({ id: selectedValue, name: selectedText });
+            this.updateDisplay();
+            this.updateHiddenInput();
+
+            select.selectedIndex = 0;
+        },
+
+        removeSubcategory: function(subcatId) {
+            this.subcategories = this.subcategories.filter(s => s.id !== parseInt(subcatId));
+            this.updateDisplay();
+            this.updateHiddenInput();
+        },
+
+        updateDisplay: function() {
+            const container = document.getElementById('subcategoriesContainer');
+            if (!container) return;
+
+            container.innerHTML = this.subcategories.map(s => `
+                <span class="tag subcategory" data-subcategory-id="${s.id}">
+                    ${s.name}
+                    <button type="button" class="tag-remove" onclick="window.CertificateCreate.removeSubcategory('${s.id}')">
+                        ×
+                    </button>
+                </span>
+            `).join('');
+        },
+
+        updateHiddenInput: function() {
+            const hiddenInput = document.getElementById('subcategoriesHidden');
+            if (hiddenInput) {
+                hiddenInput.value = JSON.stringify(this.subcategories.map(s => s.id));
+            }
+        },
+
+        loadExisting: function(existingSubcategories) {
+            if (!existingSubcategories || !Array.isArray(existingSubcategories)) return;
+            this.subcategories = existingSubcategories.map(s => ({ id: s.Id || s.id, name: s.Name || s.name }));
+            this.updateDisplay();
+            this.updateHiddenInput();
+        },
+
+        clear: function() {
+            this.subcategories = [];
+            this.updateDisplay();
+            this.updateHiddenInput();
+        }
+    };
+
     // Unsaved Changes Detection
     const UnsavedChanges = {
         originalFormData: null,
         isSubmitting: false,
         hasChanges: false,
+        initialized: false,
 
         init: function() {
             const form = document.getElementById('certificateCreateForm') || document.getElementById('certificateEditForm');
             if (!form) return;
 
-            // Store original form values
-            this.originalFormData = new FormData(form);
-            this.originalValues = this.getFormValues(form);
+            // Delay initialization to allow other components to finish setup
+            // This prevents false positives from initialization-triggered changes
+            setTimeout(() => {
+                // Store original form values AFTER other components have initialized
+                this.originalFormData = new FormData(form);
+                this.originalValues = this.getFormValues(form);
+                this.initialized = true;
+                console.log('[UnsavedChanges] Initialized - now tracking changes');
+            }, 500);
 
-            // Track changes on all form inputs
-            form.addEventListener('input', () => this.markAsChanged());
-            form.addEventListener('change', () => this.markAsChanged());
+            // Track changes on all form inputs (only mark as changed if initialized)
+            form.addEventListener('input', () => {
+                if (this.initialized) this.markAsChanged();
+            });
+            form.addEventListener('change', () => {
+                if (this.initialized) this.markAsChanged();
+            });
 
             // Track form submission
             form.addEventListener('submit', () => {
@@ -513,7 +600,9 @@
 
                 console.log('[UnsavedChanges] User confirmed:', confirmed);
                 if (confirmed) {
-                    this.isSubmitting = true; // Prevent double prompt
+                    // Reset all flags to prevent any interference with navigation
+                    this.hasChanges = false;
+                    this.isSubmitting = true;
                     console.log('[UnsavedChanges] Navigating to:', href);
                     window.location.href = href;
                 }
@@ -1048,6 +1137,7 @@
         ImagePreview.init();
         PdfUpload.init();
         TagManager.init();
+        SubcategoryManager.init();
         // PartnerManager.init(); // Commented out - multi-partner UI pending (see todo_pendingChangeRequest.md)
         FormValidation.init();
         UnsavedChanges.init();
@@ -1069,6 +1159,8 @@
     window.CertificateCreate = {
         removePdfPreview: PdfUpload.removePdfPreview,
         removeTag: TagManager.removeTag.bind(TagManager),
+        removeSubcategory: SubcategoryManager.removeSubcategory.bind(SubcategoryManager),
+        SubcategoryManager: SubcategoryManager,
         showNotification: ModalSystem.showNotification,
         showConfirmation: ModalSystem.showConfirmation,
         resetUnsavedChanges: UnsavedChanges.reset.bind(UnsavedChanges),

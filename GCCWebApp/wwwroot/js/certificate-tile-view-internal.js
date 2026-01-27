@@ -1394,6 +1394,7 @@
                 <div class="grid-cell" data-column="country" title="${escapeHtml(country)}" role="gridcell">${escapeHtml(country)}</div>
                 <div class="grid-cell" data-column="externalTag" title="${escapeHtml(extTags)}" role="gridcell">${escapeHtml(extTags)}</div>
                 <div class="grid-cell" data-column="internalTag" title="${escapeHtml(intTags)}" role="gridcell">${escapeHtml(intTags)}</div>
+                <div class="grid-cell" data-column="partner" title="${escapeHtml(cert.partner || '')}" role="gridcell">${escapeHtml(cert.partner || '')}</div>
                 <div class="grid-cell" data-column="asin" title="${escapeHtml(asin)}" role="gridcell">${asinCount > 0 ? asinCount : ''}</div>
                 <div class="grid-cell" data-column="upc" title="${escapeHtml(upc)}" role="gridcell">${upcCount > 0 ? upcCount : ''}</div>
                 <div class="grid-cell" data-column="gtin" title="${escapeHtml(gtin)}" role="gridcell">${gtinCount > 0 ? gtinCount : ''}</div>

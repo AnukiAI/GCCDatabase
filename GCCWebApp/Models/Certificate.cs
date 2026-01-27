@@ -55,6 +55,8 @@ namespace GCCWebApp.Models
         /// <summary>
         /// Certification type subcategory (e.g., "Consumer Behavior"). Optional.
         /// Must belong to the selected CertificationType's children.
+        /// DEPRECATED: Use CertificationTypeSubcategories collection instead for multi-select.
+        /// Kept for backwards compatibility during migration.
         /// </summary>
         public int? CertificationTypeSubcategoryId { get; set; }
 
@@ -76,8 +78,15 @@ namespace GCCWebApp.Models
 
         /// <summary>
         /// Certification type subcategory (optional)
+        /// DEPRECATED: Use CertificationTypeSubcategories collection for multi-select.
         /// </summary>
         public CertificationType? CertificationTypeSubcategory { get; set; }
+
+        /// <summary>
+        /// Multiple certification type subcategories (optional).
+        /// All must belong to the selected CertificationType's children.
+        /// </summary>
+        public ICollection<CertificationType> CertificationTypeSubcategories { get; set; } = new List<CertificationType>();
 
         public User? CreatedByUser { get; set; }
         public User? UpdatedByUser { get; set; }

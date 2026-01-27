@@ -450,6 +450,20 @@ body:has(.admin-container) .page-header {
     border: 1px solid #00AEEF;
 }
 
+.tag.subcategory {
+    background: #6C5CE7;
+    color: #ffffff;
+    border: 1px solid #6C5CE7;
+}
+
+.subcategories-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    min-height: 24px;
+}
+
 .tag:hover {
     opacity: 0.9;
 }

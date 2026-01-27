@@ -11,7 +11,7 @@
        All shared styles are in certificatetileview.css
        ==================================================== */
 
-    /* Grid layout for Internal view (22 columns - HAS Internal Tag) */
+    /* Grid layout for Internal view (23 columns - HAS Internal Tag + Partner) */
     .table-grid {
         display: grid;
         grid-template-columns:
@@ -20,7 +20,7 @@
             145px     /* 3. Certificate # */
             160px     /* 4. Certification Type */
             130px     /* 5. CSF Attributes */
-            120px     /* 6. Status - wider to avoid wrapping */
+            120px     /* 6. Status */
             95px      /* 7. Effective Date */
             95px      /* 8. Expiration Date */
             170px     /* 9. Company */
@@ -30,20 +30,21 @@
             130px     /* 13. Product Type */
             140px     /* 14. Product Subcategory */
             100px     /* 15. Location */
-            110px     /* 16. Country - increased for longer country names */
+            110px     /* 16. Country */
             100px     /* 17. External Tag */
             100px     /* 18. Internal Tag */
-            85px      /* 19. ASIN */
-            85px      /* 20. UPC */
-            85px      /* 21. GTIN */
-            85px;     /* 22. EAN */
+            100px     /* 19. Partner */
+            85px      /* 20. ASIN */
+            85px      /* 21. UPC */
+            85px      /* 22. GTIN */
+            85px;     /* 23. EAN */
         min-width: max-content;
         width: 100%;
     }
 
-    /* Table container min-width for Internal (22 columns) */
+    /* Table container min-width for Internal (23 columns) */
     .table-grid-container {
-        min-width: 2525px; /* Updated: Status 75->120 (+45), Country 80->110 (+30) */
+        min-width: 2625px;
         width: max-content;
     }
 
@@ -126,6 +127,23 @@
     .table-grid .grid-cell[data-column="certificateNumber"] {
         font-weight: 600 !important;
         font-family: 'Consolas', 'Courier New', monospace !important;
+    }
+
+    /* Fix for btn-outline text visibility in export-options - Grey styling to match Admin/Tags page */
+    .export-options .btn.btn-outline {
+        background-color: white !important;
+        color: #333 !important;
+        border: 1px solid #ddd !important;
+    }
+
+    .export-options .btn.btn-outline:hover {
+        background-color: #f8f9fa !important;
+        border-color: #999 !important;
+        color: #333 !important;
+    }
+
+    .export-options .btn.btn-outline i {
+        color: inherit !important;
     }
 </style>
 <!-- Main Container -->
@@ -373,10 +391,10 @@
                     </button>
                     @if (User.IsInRole("Admin"))
                     {
-                        <button type="button" class="btn btn-outline" id="openImportModalBtn" title="Bulk import certificates from CSV" style="background-color: white;">
-                            <i class="fas fa-file-import"></i> Import
+                        <button type="button" class="btn btn-outline" id="openImportModalBtn" title="Bulk import certificates from CSV">
+                            <i class="fas fa-upload"></i> Import
                         </button>
-                        <a href="@Url.Action("DownloadTemplate", "CertificateImport")" class="btn btn-outline" title="Download CSV template with example data" style="background-color: white;">
+                        <a href="@Url.Action("DownloadTemplate", "CertificateImport")" class="btn btn-outline" title="Download CSV template with example data">
                             <i class="fas fa-file-download"></i> Template
                         </a>
                     }
@@ -432,83 +450,87 @@
                             </div>
                             <div class="grid-header-cell" data-sort-column="certificate" role="columnheader">
                                 Certificate #
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="certificationType" role="columnheader">
                                 Certification Type
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="csfAttributes" role="columnheader">
                                 CSF Attributes
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="status" role="columnheader">
                                 Status
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="effectiveDate" role="columnheader">
                                 Effective Date
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="expirationDate" role="columnheader">
                                 Expiration Date
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="company" role="columnheader">
                                 Company
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="companyContact" role="columnheader">
                                 Company Contact Email/URL
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="productName" role="columnheader">
                                 Product Name
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="productCategory" role="columnheader">
                                 Product Category
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="productType" role="columnheader">
                                 Product Type
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="productSubcategory" role="columnheader">
                                 Product Type Subcategory
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="location" role="columnheader">
                                 Location
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="country" role="columnheader">
                                 Country
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="externalTag" role="columnheader">
                                 External Tag
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="internalTag" role="columnheader">
                                 Internal Tag
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
+                            </div>
+                            <div class="grid-header-cell" data-sort-column="partner" role="columnheader">
+                                Partner
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="asin" role="columnheader">
                                 ASIN
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="upc" role="columnheader">
                                 UPC
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="gtin" role="columnheader">
                                 GTIN
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                             <div class="grid-header-cell" data-sort-column="ean" role="columnheader">
                                 EAN
-                                <i class="fas fa-sort sort-indicator" aria-hidden="true"></i>
+                                <span class="sort-icon">▼</span>
                             </div>
                         </div>
 

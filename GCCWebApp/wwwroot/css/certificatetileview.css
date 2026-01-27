@@ -1472,17 +1472,21 @@ html body.table-view-active #tableView {
     border-right: none;
 }
 
-/* Sort indicator styling - stays inline with header text */
-.grid-header-cell .sort-indicator {
-    margin-left: 4px;
-    font-size: 14px;
-    color: #999;
+/* Sort icon styling - stays inline with header text (matches admin pages) */
+.grid-header-cell .sort-icon {
+    margin-left: 6px;
+    font-size: 12px;
+    opacity: 0.4;
     flex-shrink: 0;  /* Prevent icon from shrinking */
     white-space: nowrap;  /* Never wrap the icon */
+    display: inline-block;
+    vertical-align: middle;
+    transition: opacity 0.15s ease;
 }
 
-.grid-header-cell[data-sort-active="true"] .sort-indicator {
-    color: #007bff;
+.grid-header-cell[data-sort-active="true"] .sort-icon,
+.grid-header-cell.active-sort .sort-icon {
+    opacity: 1;
 }
 
 /* Body row styling */
@@ -1972,11 +1976,11 @@ body.table-view-active .main-content {
     gap: 4px;
 }
 
-/* Sort icon - inline, no wrap */
-.table-grid .grid-header-cell .sort-indicator {
+/* Sort icon - inline, no wrap (matches admin pages) */
+.table-grid .grid-header-cell .sort-icon {
     flex-shrink: 0;
     white-space: nowrap;
-    margin-left: 4px;
+    margin-left: 6px;
 }
 
 /* Body cells - 16px min per Master Design Guide */
@@ -2075,6 +2079,30 @@ body.table-view-active .main-content {
     word-wrap: break-word;
     word-break: break-word;
     white-space: normal;
+}
+
+/* ====================================================
+   CERTIFICATE TILE VIEW - Status Badge Override
+   Remove tag-like styling for status in tile/card view
+   ==================================================== */
+
+/* Status badges in tile/card view - plain text, same color for all */
+.certificate-card .status-badge,
+.certificate-card .status-badge.status-active,
+.certificate-card .status-badge.active,
+.certificate-card .status-badge.status-valid,
+.certificate-card .status-badge.status-expired,
+.certificate-card .status-badge.status-pending,
+.certificate-card .status-badge.status-revoked,
+.certificate-card .status-badge.status-draft,
+.certificate-card .status-badge.status-default {
+    padding: 0;
+    border-radius: 0;
+    background: transparent !important;
+    font-weight: 500;
+    font-size: 16px;
+    text-transform: capitalize;
+    color: #fff;
 }
 
 /* ====================================================

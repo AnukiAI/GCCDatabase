@@ -407,7 +407,8 @@ namespace GCCWebApp.Controllers
             IFormFile? certificatePdf,
             string? action,
             string? ExternalTags,
-            string? InternalTags)
+            string? InternalTags,
+            string? SubcategoryIds)
         {
             try
             {
@@ -569,6 +570,26 @@ namespace GCCWebApp.Controllers
                         _logger.LogInformation("Added {Count} tags to certificate {Number}", tagIds.Count, certificate.Number);
                     }
 
+                    // Handle Subcategories (multi-select)
+                    if (!string.IsNullOrWhiteSpace(SubcategoryIds))
+                    {
+                        var subcategoryIdList = System.Text.Json.JsonSerializer.Deserialize<List<int>>(SubcategoryIds);
+                        if (subcategoryIdList != null && subcategoryIdList.Any())
+                        {
+                            foreach (var subcatId in subcategoryIdList)
+                            {
+                                var subcategory = await _unitOfWork.CertificationTypes.GetByIdAsync(subcatId);
+                                // Validate that subcategory belongs to the selected parent type
+                                if (subcategory != null && subcategory.ParentId == certificate.CertificationTypeId)
+                                {
+                                    certificate.CertificationTypeSubcategories.Add(subcategory);
+                                }
+                            }
+                            await _unitOfWork.CompleteAsync();
+                            _logger.LogInformation("Added {Count} subcategories to certificate {Number}", subcategoryIdList.Count, certificate.Number);
+                        }
+                    }
+
                     _logger.LogInformation("Certificate {Number} created by user {UserId}", certificate.Number, GetCurrentUserId());
 
                     // Handle "Save & Add Another" action
@@ -694,6 +715,16 @@ namespace GCCWebApp.Controllers
                 ViewBag.ExistingExternalTags = existingTags.Where(t => t.TagType == "external").Select(t => new { t.Id, t.Name }).ToList();
                 ViewBag.ExistingInternalTags = existingTags.Where(t => t.TagType == "internal").Select(t => new { t.Id, t.Name }).ToList();
 
+                // Load existing subcategories for this certificate (multi-select)
+                if (certificate.CertificationTypeSubcategories != null && certificate.CertificationTypeSubcategories.Any())
+                {
+                    ViewBag.ExistingSubcategories = certificate.CertificationTypeSubcategories.Select(s => new { s.Id, s.Name }).ToList();
+                }
+                else
+                {
+                    ViewBag.ExistingSubcategories = new List<object>();
+                }
+
                 return View(model);
             }
             catch (Exception ex)
@@ -715,7 +746,8 @@ namespace GCCWebApp.Controllers
             IFormFile? certificateImage,
             IFormFile? certificatePdf,
             string? ExternalTags,
-            string? InternalTags)
+            string? InternalTags,
+            string? SubcategoryIds)
         {
             if (id != model.Id)
             {
@@ -876,6 +908,26 @@ namespace GCCWebApp.Controllers
                             {
                                 certificate.Tags.Add(tag);
                             }
+                        }
+                    }
+
+                    // Handle Subcategories (multi-select)
+                    certificate.CertificationTypeSubcategories.Clear();
+                    if (!string.IsNullOrWhiteSpace(SubcategoryIds))
+                    {
+                        var subcategoryIdList = System.Text.Json.JsonSerializer.Deserialize<List<int>>(SubcategoryIds);
+                        if (subcategoryIdList != null && subcategoryIdList.Any())
+                        {
+                            foreach (var subcatId in subcategoryIdList)
+                            {
+                                var subcategory = await _unitOfWork.CertificationTypes.GetByIdAsync(subcatId);
+                                // Validate that subcategory belongs to the selected parent type
+                                if (subcategory != null && subcategory.ParentId == certificate.CertificationTypeId)
+                                {
+                                    certificate.CertificationTypeSubcategories.Add(subcategory);
+                                }
+                            }
+                            _logger.LogInformation("Updated {Count} subcategories for certificate {Number}", subcategoryIdList.Count, certificate.Number);
                         }
                     }
 

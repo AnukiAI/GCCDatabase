@@ -425,6 +425,12 @@ namespace GCCWebApp.Data
                 .WithMany(p => p.Certificates)
                 .UsingEntity(j => j.ToTable("CertificatePartners"));
 
+            // Certificate-CertificationTypeSubcategories many-to-many (multi-select subcategories)
+            modelBuilder.Entity<Certificate>()
+                .HasMany(c => c.CertificationTypeSubcategories)
+                .WithMany()
+                .UsingEntity(j => j.ToTable("CertificateCertificationTypeSubcategories"));
+
             // Company-Partner optional relationship (for reporting)
             modelBuilder.Entity<Company>()
                 .HasOne(c => c.Partner)

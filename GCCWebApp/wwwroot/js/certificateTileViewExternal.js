@@ -790,6 +790,7 @@ class CertificateTileViewExternal {
                 <div class="grid-cell" data-column="location" title="${location}" role="gridcell">${location}</div>
                 <div class="grid-cell" data-column="country" title="${this.escapeHtml(country)}" role="gridcell">${this.escapeHtml(country)}</div>
                 <div class="grid-cell" data-column="externalTag" title="${this.escapeHtml(extTags)}" role="gridcell">${this.escapeHtml(extTags)}</div>
+                <div class="grid-cell" data-column="partner" title="${this.escapeHtml(cert.partner || '')}" role="gridcell">${this.escapeHtml(cert.partner || '')}</div>
                 <div class="grid-cell" data-column="asin" title="${this.escapeHtml(asin)}" role="gridcell">${this.escapeHtml(asin)}</div>
                 <div class="grid-cell" data-column="upc" title="${this.escapeHtml(upc)}" role="gridcell">${this.escapeHtml(upc)}</div>
                 <div class="grid-cell" data-column="gtin" title="${this.escapeHtml(gtin)}" role="gridcell">${this.escapeHtml(gtin)}</div>

@@ -90,12 +90,15 @@
                     </div>
 
                     <div class="form-group" id="subcategory-group">
-                        <label asp-for="CertificationTypeSubcategoryId">Certificate Subcategory <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
-                        <select asp-for="CertificationTypeSubcategoryId" id="CertificationTypeSubcategoryId" class="form-control">
+                        <label>Certificate Subcategories <span class="text-muted" style="font-size: 12px;">(Optional - Multiple)</span></label>
+                        <select id="subcategorySelect" class="form-control" aria-label="Select certificate subcategories">
                             <option value="">Select subcategory...</option>
+                            <!-- Options populated by JavaScript based on parent type -->
                         </select>
-                        <span asp-validation-for="CertificationTypeSubcategoryId" class="text-danger" role="alert"></span>
-                        <small class="form-text text-muted">Select a subcategory if applicable (e.g., "Consumer Behavior" under "Certified Energy Savings")</small>
+                        <div class="subcategories-container" id="subcategoriesContainer" aria-live="polite" aria-label="Selected subcategories">
+                            <!-- Selected subcategories displayed as pills -->
+                        </div>
+                        <input type="hidden" name="SubcategoryIds" id="subcategoriesHidden" />
                     </div>
 
                     <div class="form-group">
@@ -420,7 +423,6 @@
 
         // Store all certification types for subcategory filtering
         var allCertificationTypes = @Html.Raw(Json.Serialize(ViewBag.AllCertificationTypes ?? new List<object>()));
-        var initialSubcategoryId = @(Model.CertificationTypeSubcategoryId.HasValue ? Model.CertificationTypeSubcategoryId.Value.ToString() : "null");
 
         $(document).ready(async function() {
             const certificateId = @Model.Id;
@@ -524,11 +526,11 @@
                 }
             }
 
-            // ===== Certification Type Subcategories =====
+            // ===== Certification Type Subcategories (Multi-Select) =====
 
             // Initialize subcategory dropdown based on current type
             function initializeSubcategory() {
-                const subcategorySelect = $('#CertificationTypeSubcategoryId');
+                const subcategorySelect = $('#subcategorySelect');
 
                 subcategorySelect.html('<option value="">Select subcategory...</option>');
 
@@ -537,8 +539,7 @@
 
                     if (subcategories.length > 0) {
                         subcategories.forEach(sub => {
-                            const selected = sub.id === initialSubcategoryId ? 'selected' : '';
-                            subcategorySelect.append(`<option value="${sub.id}" ${selected}>${sub.name}</option>`);
+                            subcategorySelect.append(`<option value="${sub.id}">${sub.name}</option>`);
                         });
                     }
                     // Field always stays visible
@@ -547,12 +548,31 @@
 
             initializeSubcategory();
 
+            // Load existing subcategories for this certificate (multi-select)
+            @if (ViewBag.ExistingSubcategories != null && ((IEnumerable<dynamic>)ViewBag.ExistingSubcategories).Any())
+            {
+                <text>
+                const existingSubcategories = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.ExistingSubcategories));
+                // Wait for SubcategoryManager to be available
+                setTimeout(function() {
+                    if (window.CertificateCreate && window.CertificateCreate.SubcategoryManager) {
+                        window.CertificateCreate.SubcategoryManager.loadExisting(existingSubcategories);
+                    }
+                }, 100);
+                </text>
+            }
+
             // Load subcategories when certification type changes
             $('#CertificationTypeId').change(function() {
                 const newTypeId = parseInt($(this).val());
-                const subcategorySelect = $('#CertificationTypeSubcategoryId');
+                const subcategorySelect = $('#subcategorySelect');
 
                 subcategorySelect.html('<option value="">Select subcategory...</option>');
+
+                // Clear selected subcategories when parent type changes
+                if (window.CertificateCreate && window.CertificateCreate.SubcategoryManager) {
+                    window.CertificateCreate.SubcategoryManager.clear();
+                }
 
                 if (newTypeId) {
                     const subcategories = allCertificationTypes.filter(ct => ct.parentId === newTypeId);

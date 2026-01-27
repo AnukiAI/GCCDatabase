@@ -224,6 +224,8 @@ body.admin-role-management .search-filter-bar {
     display: flex;
     gap: 5px;
     justify-content: center;
+    align-items: center;
+    flex-wrap: nowrap;
 }
 
 /* Action Buttons */

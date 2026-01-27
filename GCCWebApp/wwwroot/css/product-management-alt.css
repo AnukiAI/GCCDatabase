@@ -481,6 +481,11 @@
 .actions-cell {
     text-align: center;
     white-space: nowrap;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 4px;
 }
 
 .btn-edit, .btn-view, .btn-delete {

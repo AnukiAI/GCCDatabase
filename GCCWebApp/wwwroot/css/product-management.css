@@ -567,8 +567,14 @@
     text-align: center;
     white-space: nowrap;
     width: 15%;
+    min-width: 100px;
     max-width: 150px;
     padding: 8px 4px !important;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 4px;
 }
 
 .actions-col {

@@ -234,6 +234,7 @@
     gap: 6px !important;
     justify-content: center !important;
     align-items: center !important;
+    flex-wrap: nowrap !important;
 }
 
 /* Individual action buttons - standardized styling */

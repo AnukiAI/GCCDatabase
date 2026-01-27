@@ -5268,6 +5268,12 @@ input[type="checkbox"] {
 
 .actions-column, .actions-cell {
     text-align: center;
+    white-space: nowrap;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 4px;
 }
 
 .cert-id-cell {

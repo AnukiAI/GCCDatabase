@@ -201,6 +201,10 @@ namespace GCCWebApp.Repositories
             if (filter.TagIds != null && filter.TagIds.Any())
                 query = query.Where(c => c.Tags.Any(t => filter.TagIds.Contains(t.Id)));
 
+            // Filter by tag names (used by tile view APIs)
+            if (filter.Tags != null && filter.Tags.Any())
+                query = query.Where(c => c.Tags.Any(t => filter.Tags.Contains(t.Name)));
+
             // New filter properties for API
             if (filter.CertificationTypeNames != null && filter.CertificationTypeNames.Any())
                 query = query.Where(c => c.CertificationType != null && filter.CertificationTypeNames.Contains(c.CertificationType.Name));

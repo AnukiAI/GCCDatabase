@@ -447,6 +447,20 @@ namespace GCCWebApp.Controllers.Api
                         .OrderBy(c => c)
                         .ToListAsync(),
 
+                    // Internal view: provide separate lists for internal and external tags
+                    internalTags = await _context.Tags
+                        .Where(t => t.IsActive && t.TagType == "internal")
+                        .OrderBy(t => t.Name)
+                        .Select(t => t.Name)
+                        .ToListAsync(),
+
+                    externalTags = await _context.Tags
+                        .Where(t => t.IsActive && t.TagType == "external")
+                        .OrderBy(t => t.Name)
+                        .Select(t => t.Name)
+                        .ToListAsync(),
+
+                    // Combined tags for backward compatibility
                     tags = await _context.Tags
                         .Where(t => t.IsActive)
                         .OrderBy(t => t.Name)

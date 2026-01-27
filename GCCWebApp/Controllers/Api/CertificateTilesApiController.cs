@@ -148,7 +148,23 @@ namespace GCCWebApp.Controllers.Api
                 var tagsFilter = tags ?? certTags;
                 if (!string.IsNullOrEmpty(tagsFilter))
                 {
-                    filter.Tags = tagsFilter.Split(',').ToList();
+                    // PUBLIC API: Only allow filtering by external tags
+                    var requestedTags = tagsFilter.Split(',', StringSplitOptions.RemoveEmptyEntries).ToList();
+                    var validExternalTags = await _context.Tags
+                        .Where(t => requestedTags.Contains(t.Name) && t.TagType == "external" && t.IsActive)
+                        .Select(t => t.Name)
+                        .ToListAsync();
+
+                    // If tags were requested but none are valid external tags, use a non-existent tag
+                    // to ensure no results are returned (security: don't allow internal tag filtering)
+                    if (requestedTags.Any() && !validExternalTags.Any())
+                    {
+                        filter.Tags = new List<string> { "__INVALID_TAG_FILTER__" };
+                    }
+                    else
+                    {
+                        filter.Tags = validExternalTags;
+                    }
                 }
 
                 if (!string.IsNullOrEmpty(additional))

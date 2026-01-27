@@ -3549,3 +3549,91 @@ Build succeeded with 0 errors.
 - `Services/AdminService.cs` (lines 741-825)
 - `Controllers/AdminController.cs` (lines 690-735)
 
+---
+
+## 2026-01-26 - Tag Filtering Audit - Critical Issues Found
+
+### Summary
+Conducted exhaustive review of all tag filtering logic in response to:
+1. External tags not showing in Certificate public view
+2. Internal view not showing the right tags
+
+### Critical Issues Identified
+
+**Issue #1: Public View - No TagType Validation**
+- `CertificateTilesApiController.cs` Lines 148-152
+- Filter dropdown correctly shows only external tags
+- BUT main query accepts ANY tag name without TagType validation
+
+**Issue #2: External User View - Wrong Tags Can Pass Through**
+- `CertificateTileExternalApiController.cs` Lines 165-170
+- External users can filter by ANY tag (including internal)
+- Missing `&& t.TagType == "external"` in query
+
+**Issue #3: Internal View - Inconsistent Display**
+- Response correctly splits tags by type (Lines 178-179)
+- BUT filter options show ALL tags together (Lines 450-469)
+- Confusing UX - tags split in display but combined in filter
+
+**Issue #4: Repository Level - No Defense**
+- `CertificateRepository.cs` Lines 201-202
+- No TagType validation at repository level
+- All controllers rely on this without passing restrictions
+
+**Issue #5: CSF Tags - Unclear Handling**
+- TagType "csf" exists but not consistently filtered
+- Unclear if CSF should display as external, internal, or separately
+
+### Security Implications
+- External users can see internal tag names via API
+- Tag filter bypass possible via manual API requests
+- No server-side defense-in-depth
+
+### Documentation Created
+- Full audit: `docs/TAG-FILTERING-AUDIT.md`
+- Contains fix recommendations and testing checklist
+
+### Priority Actions
+1. P1: Fix External API tag validation (Low effort)
+2. P1: Fix Public API tag validation (Low effort)
+3. P2: Split Internal API filter options (Medium effort)
+4. P3: Add repository-level validation (Medium effort)
+
+### FIXES IMPLEMENTED - January 26, 2026
+
+**Files Modified:**
+
+1. **CertificateTilesApiController.cs** (Lines 148-157)
+   - Added validation to only accept external tags in public API
+   - Validates requested tags against database before filtering
+
+2. **CertificateTileExternalApiController.cs** (Lines 165-170, 201)
+   - Added `t.TagType == "external"` to tag filter query
+   - Fixed ExternalTags display to only show external tags
+
+3. **CertificateTileInternalApiController.cs** (Lines 450-469)
+   - Added separate `internalTags` and `externalTags` lists in filter options
+   - Kept combined `tags` list for backward compatibility
+
+**Build Status:** SUCCESS (0 errors)
+
+**Additional Fix Required:**
+4. **CertificateRepository.cs** (Lines 204-206)
+   - Added handling for `filter.Tags` (string names) - repository only handled `filter.TagIds` before
+
+**API Test Results (January 26, 2026):**
+
+| Test | Result | Status |
+|------|--------|--------|
+| No filter (baseline) | 24 certificates | PASS |
+| External tag (Eco-Friendly) | 1 certificate | PASS |
+| Internal tag (High Priority Client) | 0 certificates | PASS - BLOCKED |
+| Non-existent tag (FakeTag) | 0 certificates | PASS - BLOCKED |
+
+**Testing Completed:**
+- [x] Public view shows only external tags in filter (Eco-Friendly, Verified)
+- [x] Public API blocks internal tag filtering
+- [x] Public API blocks non-existent tag filtering
+- [ ] External user view only shows external tags (requires manual test)
+- [ ] Internal view shows both tag types properly separated (requires manual test)
+

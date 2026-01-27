@@ -162,11 +162,11 @@ namespace GCCWebApp.Controllers.Api
                     query = query.Where(c => countries.Contains(c.Country));
                 }
 
-                // Apply tags filter
+                // Apply tags filter - EXTERNAL TAGS ONLY for external users
                 if (!string.IsNullOrWhiteSpace(tags))
                 {
                     var tagsList = tags.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                    query = query.Where(c => c.Tags.Any(t => tagsList.Contains(t.Name)));
+                    query = query.Where(c => c.Tags.Any(t => tagsList.Contains(t.Name) && t.TagType == "external"));
                 }
 
                 // Filter to only show active/valid certificates for external partners
@@ -198,7 +198,7 @@ namespace GCCWebApp.Controllers.Api
                         ProductSubcategory = c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : "",
                         c.Location,
                         c.Country,
-                        ExternalTags = string.Join(", ", c.Tags.Select(t => t.Name)),
+                        ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name)),
                         PdfPath = c.CertificateFile,
                         c.Partner
                         // Note: Status and internal fields are not exposed for external view

@@ -587,34 +587,10 @@ app.Use(async (context, next) =>
     await next();
 });
 
-// ===== SWAGGER CONFIGURATION (Admin Only) =====
-// Swagger is available in all environments but restricted to Admin users
+// ===== SWAGGER CONFIGURATION =====
+// Development: Public access (no authentication required)
+// Production: Role-based access (handled in SwaggerExtensions.cs)
 var apiVersionDescriptionProvider = app.Services.GetRequiredService<Asp.Versioning.ApiExplorer.IApiVersionDescriptionProvider>();
-
-// Protect Swagger endpoints - Admin only
-app.UseWhen(context => context.Request.Path.StartsWithSegments("/swagger"), appBuilder =>
-{
-    appBuilder.Use(async (context, next) =>
-    {
-        // Check if user is authenticated and has Admin role
-        if (!context.User.Identity?.IsAuthenticated == true)
-        {
-            context.Response.Redirect("/Account/Login?returnUrl=" + Uri.EscapeDataString(context.Request.Path));
-            return;
-        }
-
-        var userRole = context.User.FindFirst("Role")?.Value;
-        if (userRole != "Admin")
-        {
-            context.Response.StatusCode = 403;
-            await context.Response.WriteAsync("Access denied. Admin role required for Swagger documentation.");
-            return;
-        }
-
-        await next();
-    });
-});
-
 app.UseSwaggerConfiguration(apiVersionDescriptionProvider);
 
 // ===== REDOC CONFIGURATION (Client-Friendly Documentation) =====

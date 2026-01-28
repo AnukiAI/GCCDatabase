@@ -162,6 +162,9 @@ async function loadPartners() {
         // Populate partner dropdown in generate modal
         populatePartnerDropdown();
 
+        // Update stats bar - total partners count
+        document.getElementById('total-partners').textContent = partnersData.length;
+
         loadingEl.style.display = 'none';
         containerEl.style.display = 'block';
 
@@ -349,6 +352,10 @@ async function loadAllApiKeys() {
                     </td>
                 </tr>
             `;
+            // Update stats bar - API keys counts (0)
+            document.getElementById('total-api-keys').textContent = '0';
+            document.getElementById('active-api-keys').textContent = '0';
+            document.getElementById('partner-count').textContent = `Showing ${partnersData.length} partners and 0 API keys`;
         } else {
             tbody.innerHTML = keys.map(key => `
                 <tr>
@@ -382,6 +389,15 @@ async function loadAllApiKeys() {
                 </tr>
             `).join('');
         }
+
+        // Update stats bar - API keys counts
+        document.getElementById('total-api-keys').textContent = keys.length;
+        const activeCount = keys.filter(k => k.isActive).length;
+        document.getElementById('active-api-keys').textContent = activeCount;
+
+        // Update footer count
+        const partnerCount = partnersData.length;
+        document.getElementById('partner-count').textContent = `Showing ${partnerCount} partners and ${keys.length} API keys`;
 
         loadingEl.style.display = 'none';
         containerEl.style.display = 'block';

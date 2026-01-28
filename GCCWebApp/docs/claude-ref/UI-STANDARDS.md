@@ -177,6 +177,77 @@ box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 
 **Consistency Rule**: All search inputs across the application use the single word "Search" - no variations.
 
+### Search Bar Width Standard
+
+**ALL search bars must be 95% width of their container.**
+
+```css
+/* Standard search container width */
+.search-box,
+.search-bar,
+.admin-search-section {
+    width: 95%;
+    max-width: none;
+}
+```
+
+**CSS File**: `css/components/forms.css` contains the unified search bar styles.
+
+**Exceptions**:
+- Sidebar search bars: 100% of sidebar width (they are already constrained by the sidebar)
+
+## Table Action Columns (US-018)
+
+**Edit/Delete icons in table rows MUST stay on the same row - no wrapping.**
+
+### Container Structure
+```html
+<!-- Table cell -->
+<td class="actions-cell">
+    <!-- Action buttons container -->
+    <div class="action-buttons">
+        <button class="action-btn edit" title="Edit">
+            <i class="fas fa-edit"></i>
+        </button>
+        <button class="action-btn delete" title="Delete">
+            <i class="fas fa-trash"></i>
+        </button>
+    </div>
+</td>
+```
+
+### CSS Requirements
+```css
+/* Action cell - prevent wrapping, center vertically */
+.actions-cell {
+    white-space: nowrap;
+    min-width: 80px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* Action buttons container - inline-flex with NO wrap */
+.action-buttons {
+    display: inline-flex;
+    flex-wrap: nowrap;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+```
+
+### Column Header
+```html
+<th class="actions-col" style="width: 10%; min-width: 80px;">Actions</th>
+```
+
+**CSS File**: `css/components/buttons.css` contains the action column styles.
+
+**DO NOT**:
+- Use `flex-wrap: wrap` in action button containers
+- Use narrow column widths that force wrapping
+- Stack buttons vertically in table rows (only allowed on mobile breakpoints)
+
 ## Color Palette
 - Primary Green: #92C83E
 - Dark Green: #447638

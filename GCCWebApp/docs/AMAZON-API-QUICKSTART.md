@@ -2,8 +2,8 @@
 
 **Green Circle Certified - Partner API Integration**
 
-**Version:** 2.0
-**Date:** 2026-01-19
+**Version:** 2.1
+**Date:** 2026-01-28
 
 ---
 
@@ -178,18 +178,22 @@ curl -X GET "https://[domain]/api/v1/certificates?includeProductIds=true&pageSiz
       "status": "Active",
       "issueDate": "2024-01-15T00:00:00Z",
       "expirationDate": "2025-01-15T00:00:00Z",
-      "brandName": "EcoProduct Co",
+      "company": "EcoProduct Co",
+      "companyId": 45,
       "productName": "Recycled Paper Towels",
-      "certificationName": "UL 2809",
+      "productId": 78,
+      "certificationType": "UL 2809",
+      "certificationTypeId": 3,
+      "certificationTypeSubcategory": "Level 2",
+      "certificationTypeSubcategoryId": 12,
       "issuer": "Green Circle Certified",
-      "standardVersion": "Level 2",
       "certificationResults": "95.5% recycled content verified",
-      "productIdentifiers": [
+      "productIds": [
         {
           "type": "ASIN",
           "value": "B08XQRT456",
-          "partner": "Amazon",
           "status": "Active",
+          "partner": "Amazon",
           "productName": "Recycled Paper Towels - 12 Pack",
           "productSku": "RPT-12PK-ECO",
           "description": "12-pack of 100% recycled paper towels"
@@ -197,8 +201,8 @@ curl -X GET "https://[domain]/api/v1/certificates?includeProductIds=true&pageSiz
         {
           "type": "UPC",
           "value": "012345678901",
-          "partner": null,
           "status": "Active",
+          "partner": null,
           "productName": "Recycled Paper Towels",
           "productSku": "RPT-SINGLE",
           "description": "Single roll recycled paper towels"
@@ -218,7 +222,7 @@ curl -X GET "https://[domain]/api/v1/certificates?includeProductIds=true&pageSiz
 }
 ```
 
-### 5.2 Search by ASIN
+### 5.3 Search by ASIN
 
 Find certificates containing a specific ASIN:
 
@@ -237,16 +241,22 @@ curl -X GET "https://[domain]/api/v1/certificates/search/productid?productId=B08
       "id": 123,
       "certificateNumber": "24-0366",
       "productName": "Recycled Paper Towels",
+      "productType": "Paper Products",
       "company": "EcoProduct Co",
+      "companyId": 45,
+      "partner": "Amazon",
       "certificationResults": "95.5% recycled content verified",
       "status": "Active",
-      "pdfUrl": "/api/v1/certificates/24-0366/download",
+      "certificationType": "UL 2809",
+      "issueDate": "2024-01-15T00:00:00Z",
+      "expirationDate": "2025-01-15T00:00:00Z",
+      "pdfDownloadUrl": "/api/v1/certificates/24-0366/download",
       "productIds": [
         {
           "type": "ASIN",
           "value": "B08XQRT456",
-          "partner": "Amazon",
           "status": "Active",
+          "partner": "Amazon",
           "productName": "Recycled Paper Towels - 12 Pack",
           "productSku": "RPT-12PK-ECO",
           "description": "12-pack product",
@@ -285,21 +295,24 @@ curl -X GET "https://[domain]/api/v1/certificates/24-0366/download" \
 
 | Amazon Requirement | GCC API Field | Notes |
 |--------------------|---------------|-------|
-| Product ASIN | `productIdentifiers[].value` (where type=ASIN) | Use `includeProductIds=true` |
-| Brand name | `brandName` | Company name |
+| Product ASIN | `productIds[].value` (where type="ASIN") | Use `includeProductIds=true` |
+| Brand name | `company` | Company/brand name |
 | Product name | `productName` | Product name |
+| Product type | `productType` | Product type (in search results) |
 | Certificate ID | `certificateNumber` | Format: YY-NNNN |
 | Issue date | `issueDate` | ISO 8601 format |
 | Expiration date | `expirationDate` | ISO 8601 format |
-| Certification name | `certificationName` | e.g., "UL 2809" |
+| Certification type | `certificationType` | e.g., "UL 2809" |
+| Standard version | `certificationTypeSubcategory` | May be null |
 | Issuer | `issuer` | Always "Green Circle Certified" |
-| Standard version | `standardVersion` | May be null |
-| **Certification Results** | `certificationResults` | Threshold/score data |
+| **Certification Results** | `certificationResults` | Threshold/score data for compliance |
+| Partner | `partner` | "Amazon" for filtered results |
+| Status | `status` | Active, Expired, etc. |
 | PDF download | `pdfDownloadUrl` | Relative URL path |
 
 ### Product Identifier Fields
 
-Each item in `productIdentifiers[]` contains:
+Each item in `productIds[]` contains:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -310,6 +323,7 @@ Each item in `productIdentifiers[]` contains:
 | productName | string | Product name for this specific ID |
 | productSku | string | SKU for this identifier |
 | description | string | Optional notes |
+| isMatchedId | boolean | True if this ID matched search (search only) |
 
 ---
 
@@ -356,7 +370,7 @@ Use this checklist to validate your integration:
 - [ ] Authenticate with API key (expect 200)
 - [ ] Test invalid API key (expect 401)
 - [ ] List certificates with `includeProductIds=true`
-- [ ] Verify ASIN values appear in `productIdentifiers[]`
+- [ ] Verify ASIN values appear in `productIds[]`
 - [ ] Search by a known ASIN
 - [ ] Verify `certificationResults` field is present
 - [ ] Download a certificate PDF
@@ -386,7 +400,7 @@ Write-Host "Total certificates: $($response.pagination.totalCount)"
 $response = Invoke-RestMethod -Uri "$baseUrl/api/v1/certificates?includeProductIds=true&pageSize=5" -Headers $headers
 foreach ($cert in $response.data) {
     Write-Host "Certificate: $($cert.certificateNumber) - $($cert.productName)"
-    foreach ($pid in $cert.productIdentifiers) {
+    foreach ($pid in $cert.productIds) {
         if ($pid.type -eq "ASIN") {
             Write-Host "  ASIN: $($pid.value)"
         }
@@ -404,7 +418,7 @@ BASE_URL="https://[production-domain]"
 curl -s -H "X-API-Key: $API_KEY" "$BASE_URL/api/v1/certificates?pageSize=1" | jq '.pagination.totalCount'
 
 # List with product IDs
-curl -s -H "X-API-Key: $API_KEY" "$BASE_URL/api/v1/certificates?includeProductIds=true&pageSize=5" | jq '.data[] | {cert: .certificateNumber, asins: [.productIdentifiers[] | select(.type=="ASIN") | .value]}'
+curl -s -H "X-API-Key: $API_KEY" "$BASE_URL/api/v1/certificates?includeProductIds=true&pageSize=5" | jq '.data[] | {cert: .certificateNumber, asins: [.productIds[] | select(.type=="ASIN") | .value]}'
 
 # Search by ASIN
 curl -s -H "X-API-Key: $API_KEY" "$BASE_URL/api/v1/certificates/search/productid?productId=B08XQRT456&type=ASIN" | jq '.'
@@ -473,4 +487,4 @@ GET /api/v1/certificates?includeProductIds=true&pageSize=100
 ---
 
 *Document maintained by: Green Circle Certified*
-*Last updated: 2026-01-18*
+*Last updated: 2026-01-28*

@@ -414,9 +414,13 @@ Cookies are secure, HTTP-only, and have appropriate SameSite settings."
 
         public static WebApplication UseSwaggerConfiguration(this WebApplication app, object? apiVersionDescriptionProvider = null)
         {
-            if (app.Environment.IsDevelopment())
+            // Swagger is enabled in all environments
+            // Development: Public access (no authentication required)
+            // Production: Role-based access (Admin only for full access)
+
+            if (!app.Environment.IsDevelopment())
             {
-                // Add role-based authorization middleware for Swagger endpoints
+                // Production: Add role-based authorization middleware for Swagger endpoints
                 app.Use(async (context, next) =>
                 {
                     // Check if the request is for Swagger UI or Swagger JSON
@@ -437,11 +441,10 @@ Cookies are secure, HTTP-only, and have appropriate SameSite settings."
                         var isExternal = user?.HasClaim("Role", "External") == true;
                         var isAuthenticated = user?.Identity?.IsAuthenticated == true;
 
-                        // Block unauthenticated users entirely
+                        // Block unauthenticated users entirely in production
                         if (!isAuthenticated)
                         {
-                            context.Response.StatusCode = 403;
-                            context.Response.Redirect("/Account/AccessDenied");
+                            context.Response.Redirect("/Account/Login?returnUrl=" + Uri.EscapeDataString(context.Request.Path));
                             return;
                         }
 
@@ -480,28 +483,29 @@ Cookies are secure, HTTP-only, and have appropriate SameSite settings."
 
                     await next();
                 });
-
-                app.UseSwagger();
-                app.UseSwaggerUI(c =>
-                {
-                    // Admin & General API Documentation
-                    c.SwaggerEndpoint("/swagger/v1/swagger.json", "GCC Web API - Admin & General");
-
-                    // Partner Data Access API (Partner-facing, Read-only)
-                    c.SwaggerEndpoint("/swagger/partner-data/swagger.json", "Partner Data Access API");
-
-                    // Partner API Management (Admin-only)
-                    c.SwaggerEndpoint("/swagger/partner-management/swagger.json", "Partner API Management");
-
-                    c.RoutePrefix = "swagger";
-                    c.DocumentTitle = "GCC API Documentation";
-                    c.DefaultModelsExpandDepth(2);
-                    c.DefaultModelExpandDepth(2);
-                    c.DisplayRequestDuration();
-                    c.EnableDeepLinking();
-                    c.EnableFilter();
-                });
             }
+            // Development: No authentication middleware - public access to Swagger
+
+            app.UseSwagger();
+            app.UseSwaggerUI(c =>
+            {
+                // Admin & General API Documentation
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "GCC Web API - Admin & General");
+
+                // Partner Data Access API (Partner-facing, Read-only)
+                c.SwaggerEndpoint("/swagger/partner-data/swagger.json", "Partner Data Access API");
+
+                // Partner API Management (Admin-only)
+                c.SwaggerEndpoint("/swagger/partner-management/swagger.json", "Partner API Management");
+
+                c.RoutePrefix = "swagger";
+                c.DocumentTitle = "GCC API Documentation";
+                c.DefaultModelsExpandDepth(2);
+                c.DefaultModelExpandDepth(2);
+                c.DisplayRequestDuration();
+                c.EnableDeepLinking();
+                c.EnableFilter();
+            });
 
             return app;
         }

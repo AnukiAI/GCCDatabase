@@ -456,17 +456,21 @@ curl -X GET "https://[domain]/api/v1/certificates?includeProductIds=true&pageSiz
       "country": "USA",
       "partner": "Amazon",
       "certificationResults": "95.5% recycled content verified",
-      "brandName": "EcoProduct Co",
+      "company": "EcoProduct Co",
+      "companyId": 45,
       "productName": "Recycled Paper Towels",
-      "certificationName": "UL 2809",
+      "productId": 78,
+      "certificationType": "UL 2809",
+      "certificationTypeId": 3,
+      "certificationTypeSubcategory": "Level 2",
+      "certificationTypeSubcategoryId": 12,
       "issuer": "Green Circle Certified",
-      "standardVersion": "Level 2",
-      "productIdentifiers": [
+      "productIds": [
         {
           "type": "ASIN",
           "value": "B08XQRT456",
-          "partner": "Amazon",
           "status": "Active",
+          "partner": "Amazon",
           "productName": "Recycled Paper Towels - 12 Pack",
           "productSku": "RPT-12PK-ECO",
           "description": "12-pack of 100% recycled paper towels"
@@ -474,8 +478,8 @@ curl -X GET "https://[domain]/api/v1/certificates?includeProductIds=true&pageSiz
         {
           "type": "UPC",
           "value": "012345678901",
-          "partner": "None",
           "status": "Active",
+          "partner": "None",
           "productName": "Recycled Paper Towels",
           "productSku": "RPT-SINGLE",
           "description": "Single roll recycled paper towels"
@@ -572,16 +576,24 @@ curl -X GET "https://[domain]/api/v1/certificates/search/productid?productId=B08
       "id": 123,
       "certificateNumber": "24-0366",
       "productName": "Recycled Paper Towels",
+      "productType": "Paper Products",
       "company": "EcoProduct Co",
+      "companyId": 45,
+      "partner": "Amazon",
       "certificationResults": "95.5% recycled content verified",
       "status": "Active",
-      "pdfUrl": "/api/v1/certificates/24-0366/download",
+      "certificationType": "UL 2809",
+      "issueDate": "2024-01-15T00:00:00Z",
+      "expirationDate": "2025-01-15T00:00:00Z",
+      "location": "United States",
+      "country": "USA",
+      "pdfDownloadUrl": "/api/v1/certificates/24-0366/download",
       "productIds": [
         {
           "type": "ASIN",
           "value": "B08XQRT456",
-          "partner": "Amazon",
           "status": "Active",
+          "partner": "Amazon",
           "productName": "Recycled Paper Towels - 12 Pack",
           "productSku": "RPT-12PK-ECO",
           "description": "12-pack of 100% recycled paper towels",
@@ -590,8 +602,8 @@ curl -X GET "https://[domain]/api/v1/certificates/search/productid?productId=B08
         {
           "type": "UPC",
           "value": "012345678901",
-          "partner": "None",
           "status": "Active",
+          "partner": "None",
           "productName": "Recycled Paper Towels",
           "productSku": "RPT-SINGLE",
           "description": "Single roll recycled paper towels",
@@ -669,14 +681,19 @@ curl -X GET "https://[domain]/api/v1/certificates/expiring?days=90" \
 | `expirationDate` | datetime | Yes | ISO 8601 format |
 | `location` | string | Yes | Geographic location |
 | `country` | string | Yes | Country code or name |
-| `partner` | string | Yes | Partner designation |
-| `certificationResults` | string | Yes | Certification test results |
-| `brandName` | string | No | Company/brand name |
+| `partner` | string | Yes | Partner designation ("Amazon", "Novi", etc.) |
+| `certificationResults` | string | Yes | Certification test results/threshold data |
+| `company` | string | No | Company/brand name |
+| `companyId` | integer | No | Company database ID |
 | `productName` | string | No | Product name |
-| `certificationName` | string | No | Type of certification |
+| `productId` | integer | No | Product database ID |
+| `productType` | string | Yes | Product type name (in search results) |
+| `certificationType` | string | No | Type of certification (e.g., "UL 2809") |
+| `certificationTypeId` | integer | No | Certification type database ID |
+| `certificationTypeSubcategory` | string | Yes | Standard version or level |
+| `certificationTypeSubcategoryId` | integer | Yes | Subcategory database ID |
 | `issuer` | string | No | Always "Green Circle Certified" |
-| `standardVersion` | string | Yes | Standard version or level |
-| `productIdentifiers` | array | Yes | Array of product identifiers |
+| `productIds` | array | Yes | Array of product identifiers (see 7.2) |
 | `pdfDownloadUrl` | string | No | Relative URL for PDF download |
 | `createdAt` | datetime | No | Record creation timestamp |
 | `updatedAt` | datetime | No | Last update timestamp |
@@ -1258,19 +1275,22 @@ curl -X GET "https://[domain]/api/v1/certificates/expiring?days=90&pageSize=50" 
 
 ### Appendix B: Field Mapping Summary
 
-| Amazon Requirement | GCC API Location | Notes |
-|--------------------|------------------|-------|
-| ASIN | `productIdentifiers[].value` where `type=ASIN` | Requires `includeProductIds=true` |
-| Brand Name | `brandName` | Company name |
+| Amazon Requirement | GCC API Field | Notes |
+|--------------------|---------------|-------|
+| ASIN | `productIds[].value` where `type="ASIN"` | Requires `includeProductIds=true` |
+| Brand Name | `company` | Company/brand name |
 | Product Name | `productName` | From Product entity |
+| Product Type | `productType` | Product type name (in search results) |
 | Certificate ID | `certificateNumber` | Format: YY-NNNN |
-| Issue Date | `issueDate` | ISO 8601 |
-| Expiration Date | `expirationDate` | ISO 8601 |
-| Certification Type | `certificationName` | e.g., "UL 2809" |
-| Issuer | `issuer` | "Green Circle Certified" |
-| Standard Version | `standardVersion` | May be null |
-| Certification Results | `certificationResults` | Threshold/score data |
-| Certificate PDF | `pdfDownloadUrl` | Relative URL |
+| Issue Date | `issueDate` | ISO 8601 format |
+| Expiration Date | `expirationDate` | ISO 8601 format |
+| Certification Type | `certificationType` | e.g., "UL 2809" |
+| Standard Version | `certificationTypeSubcategory` | May be null |
+| Issuer | `issuer` | Always "Green Circle Certified" |
+| Certification Results | `certificationResults` | Threshold/score data for compliance |
+| Certificate PDF | `pdfDownloadUrl` | Relative URL for download |
+| Partner | `partner` | "Amazon" for filtered results |
+| Status | `status` | Active, Expired, etc. |
 
 ---
 
@@ -1300,6 +1320,7 @@ curl -X GET "https://[domain]/api/v1/certificates/expiring?days=90&pageSize=50" 
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 1.1 | 2026-01-28 | Standardized field names to camelCase across all endpoints. Changed: `brandName`→`company`, `certificationName`→`certificationType`, `standardVersion`→`certificationTypeSubcategory`, `productIdentifiers`→`productIds`. Added `companyId`, `productId`, `productType`, `certificationTypeId`, `certificationTypeSubcategoryId` fields. |
 | 1.0 | 2026-01-18 | Initial release |
 
 ---

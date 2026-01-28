@@ -9,6 +9,7 @@ using GCCWebApp.Attributes;
 using Asp.Versioning;
 using Swashbuckle.AspNetCore.Annotations;
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 
 namespace GCCWebApp.Controllers.Api.v1
 {
@@ -133,6 +134,52 @@ namespace GCCWebApp.Controllers.Api.v1
                     query = query.Include(c => c.ProductIds);
                 }
 
+                // Apply role-based filtering for Partner API keys and External users
+                var userRole = GetCurrentUserRole();
+                var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
+
+                if (userRole == "Partner")
+                {
+                    // Partner API keys can ONLY see certificates with their partner indicator
+                    if (userPartnerNames.Any())
+                    {
+                        query = query.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        _logger.LogInformation("Partner API filtering applied for partner(s): {Partners}", string.Join(", ", userPartnerNames));
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Partner API key used but no partner name found in claims");
+                        return PaginatedResponse(new List<object>(), 0, parameters.PageNumber, parameters.PageSize);
+                    }
+                }
+                else if (userRole == "External")
+                {
+                    bool hasCompanies = userCompanyIds.Any();
+                    bool hasPartners = userPartnerNames.Any();
+
+                    if (hasCompanies && hasPartners)
+                    {
+                        query = query.Where(c =>
+                            userCompanyIds.Contains(c.CompanyId) ||
+                            userPartnerNames.Contains(c.Partner ?? "None")
+                        );
+                    }
+                    else if (hasCompanies)
+                    {
+                        query = query.Where(c => userCompanyIds.Contains(c.CompanyId));
+                    }
+                    else if (hasPartners)
+                    {
+                        query = query.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                    }
+                    else
+                    {
+                        return PaginatedResponse(new List<object>(), 0, parameters.PageNumber, parameters.PageSize);
+                    }
+                }
+                // Admin and Analyst see all certificates (no additional filtering)
+
                 if (!string.IsNullOrEmpty(parameters.SearchTerm))
                 {
                     query = query.Where(c =>
@@ -168,47 +215,47 @@ namespace GCCWebApp.Controllers.Api.v1
                 if (includeProductIds)
                 {
                     // Full projection with ProductIds for partner integrations (Novi, Amazon, etc.)
+                    // Field names standardized to camelCase for consistency across all endpoints
                     var certificatesWithProductIds = await pagedQuery
                         .Select(c => new
                         {
-                            c.Id,
-                            CertificateNumber = c.Number,
-                            c.Status,
-                            IssueDate = c.EffectiveDate,
-                            c.ExpirationDate,
-                            c.Location,
-                            c.Country,
-                            c.Partner,
-                            c.CertificationResults,
-                            // Novi required fields
-                            BrandName = c.Company != null ? c.Company.Name : null,
-                            ProductName = c.Product != null ? c.Product.Name : null,
-                            CertificationName = c.CertificationType != null ? c.CertificationType.Name : null,
-                            Issuer = "Green Circle Certified",
-                            StandardVersion = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
+                            id = c.Id,
+                            certificateNumber = c.Number,
+                            status = c.Status,
+                            issueDate = c.EffectiveDate,
+                            expirationDate = c.ExpirationDate,
+                            location = c.Location,
+                            country = c.Country,
+                            partner = c.Partner,
+                            certificationResults = c.CertificationResults,
+                            // Company and product info
+                            company = c.Company != null ? c.Company.Name : null,
+                            companyId = c.CompanyId,
+                            productName = c.Product != null ? c.Product.Name : null,
+                            productId = c.ProductId,
+                            certificationType = c.CertificationType != null ? c.CertificationType.Name : null,
+                            certificationTypeId = c.CertificationTypeId,
+                            certificationTypeSubcategory = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
+                            certificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
+                            issuer = "Green Circle Certified",
                             // Product identifiers (GTIN, MPN, ASIN, UPC, etc.)
-                            ProductIdentifiers = c.ProductIds
+                            productIds = c.ProductIds
                                 .Where(pi => pi.Status == "Active")
                                 .Select(pi => new
                                 {
-                                    Type = pi.ProductIdType,
-                                    Value = pi.ProductIdValue,
-                                    pi.Status,
-                                    pi.Partner,
-                                    pi.ProductName,
-                                    pi.ProductSku,
-                                    pi.Description
+                                    type = pi.ProductIdType,
+                                    value = pi.ProductIdValue,
+                                    status = pi.Status,
+                                    partner = pi.Partner,
+                                    productName = pi.ProductName,
+                                    productSku = pi.ProductSku,
+                                    description = pi.Description
                                 })
                                 .ToList(),
-                            // Additional IDs for reference
-                            ProductId = c.ProductId,
-                            CompanyId = c.CompanyId,
-                            CertificationTypeId = c.CertificationTypeId,
-                            CertificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
-                            c.CreatedAt,
-                            c.UpdatedAt,
+                            createdAt = c.CreatedAt,
+                            updatedAt = c.UpdatedAt,
                             // Download URL for certificate PDF
-                            PdfDownloadUrl = $"/api/v1/certificates/{c.Number}/download"
+                            pdfDownloadUrl = $"/api/v1/certificates/{c.Number}/download"
                         })
                         .ToListAsync();
 
@@ -216,29 +263,30 @@ namespace GCCWebApp.Controllers.Api.v1
                 }
                 else
                 {
-                    // Standard projection without ProductIds (backward compatible)
+                    // Standard projection without ProductIds
+                    // Field names standardized to camelCase for consistency across all endpoints
                     var certificates = await pagedQuery
                         .Select(c => new
                         {
-                            c.Id,
-                            CertificateNumber = c.Number,
-                            c.Status,
-                            c.EffectiveDate,
-                            c.ExpirationDate,
-                            c.Location,
-                            c.Country,
-                            c.Partner,
-                            c.CertificationResults,
-                            ProductName = c.Product != null ? c.Product.Name : null,
-                            ProductId = c.ProductId,
-                            CompanyName = c.Company != null ? c.Company.Name : null,
-                            CompanyId = c.CompanyId,
-                            CertificationType = c.CertificationType != null ? c.CertificationType.Name : null,
-                            CertificationTypeId = c.CertificationTypeId,
-                            CertificationTypeSubcategory = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
-                            CertificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
-                            c.CreatedAt,
-                            c.UpdatedAt
+                            id = c.Id,
+                            certificateNumber = c.Number,
+                            status = c.Status,
+                            issueDate = c.EffectiveDate,
+                            expirationDate = c.ExpirationDate,
+                            location = c.Location,
+                            country = c.Country,
+                            partner = c.Partner,
+                            certificationResults = c.CertificationResults,
+                            productName = c.Product != null ? c.Product.Name : null,
+                            productId = c.ProductId,
+                            company = c.Company != null ? c.Company.Name : null,
+                            companyId = c.CompanyId,
+                            certificationType = c.CertificationType != null ? c.CertificationType.Name : null,
+                            certificationTypeId = c.CertificationTypeId,
+                            certificationTypeSubcategory = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
+                            certificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
+                            createdAt = c.CreatedAt,
+                            updatedAt = c.UpdatedAt
                         })
                         .ToListAsync();
 
@@ -717,8 +765,24 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     .Include(c => c.ProductIds)
                     .Where(c => certificateIds.Contains(c.Id));
 
-                // Apply role-based filtering for External users
-                if (userRole == "External")
+                // Apply role-based filtering for Partner API keys
+                if (userRole == "Partner")
+                {
+                    // Partner API keys can ONLY see certificates with their partner indicator
+                    if (userPartnerNames.Any())
+                    {
+                        certificatesQuery = certificatesQuery.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        _logger.LogInformation("Partner API filtering applied for partner(s): {Partners}", string.Join(", ", userPartnerNames));
+                    }
+                    else
+                    {
+                        // No partner association found - this shouldn't happen with valid Partner API key
+                        _logger.LogWarning("Partner API key used but no partner name found in claims");
+                        return SuccessResponse(new List<object>(), "No certificates found matching your access permissions");
+                    }
+                }
+                // Apply role-based filtering for External users (logged in via session)
+                else if (userRole == "External")
                 {
                     bool hasCompanies = userCompanyIds.Any();
                     bool hasPartners = userPartnerNames.Any();
@@ -807,7 +871,17 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
 
         private string GetCurrentUserRole()
         {
-            return User?.FindFirst("Role")?.Value ?? "Public";
+            // Check for role claim (supports both custom "Role" claim and standard ClaimTypes.Role)
+            var role = User?.FindFirst("Role")?.Value
+                    ?? User?.FindFirst(ClaimTypes.Role)?.Value;
+
+            // Partner API keys get "Partner" role from middleware
+            if (role == "Partner")
+            {
+                return "Partner";
+            }
+
+            return role ?? "Public";
         }
 
         private async Task<List<int>> GetCurrentUserCompanyIdsAsync()
@@ -832,6 +906,15 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
 
         private async Task<List<string>> GetCurrentUserPartnerNamesAsync()
         {
+            // First check if this is a Partner API key request (has partner_name claim directly)
+            var partnerNameClaim = User?.FindFirst("partner_name")?.Value;
+            if (!string.IsNullOrEmpty(partnerNameClaim))
+            {
+                // Partner API key - return the partner name from the claim
+                return new List<string> { partnerNameClaim };
+            }
+
+            // Otherwise, look up user by email (for External users logged in via session)
             var userEmail = User?.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
 
             if (string.IsNullOrEmpty(userEmail))
@@ -1053,6 +1136,63 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     .Include(c => c.CertificationTypeSubcategory)
                     .Include(c => c.ProductIds)
                     .AsQueryable();
+
+                // Apply role-based filtering for Partner API keys (especially important for GS1/Amazon endpoint)
+                var userRole = GetCurrentUserRole();
+                var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                var userCompanyIds = await GetCurrentUserCompanyIdsAsync();
+
+                if (userRole == "Partner")
+                {
+                    if (userPartnerNames.Any())
+                    {
+                        query = query.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                        _logger.LogInformation("GS1 endpoint: Partner API filtering applied for partner(s): {Partners}", string.Join(", ", userPartnerNames));
+                    }
+                    else
+                    {
+                        _logger.LogWarning("GS1 endpoint: Partner API key used but no partner name found");
+                        return Ok(new GS1CertificationReportListResponse
+                        {
+                            Success = true,
+                            Data = new List<GS1CertificationReport>(),
+                            Pagination = new PaginationMetadata { TotalCount = 0 },
+                            Message = "No certificates found matching your access permissions"
+                        });
+                    }
+                }
+                else if (userRole == "External")
+                {
+                    bool hasCompanies = userCompanyIds.Any();
+                    bool hasPartners = userPartnerNames.Any();
+
+                    if (hasCompanies && hasPartners)
+                    {
+                        query = query.Where(c =>
+                            userCompanyIds.Contains(c.CompanyId) ||
+                            userPartnerNames.Contains(c.Partner ?? "None")
+                        );
+                    }
+                    else if (hasCompanies)
+                    {
+                        query = query.Where(c => userCompanyIds.Contains(c.CompanyId));
+                    }
+                    else if (hasPartners)
+                    {
+                        query = query.Where(c => userPartnerNames.Contains(c.Partner ?? "None"));
+                    }
+                    else
+                    {
+                        return Ok(new GS1CertificationReportListResponse
+                        {
+                            Success = true,
+                            Data = new List<GS1CertificationReport>(),
+                            Pagination = new PaginationMetadata { TotalCount = 0 },
+                            Message = "No certificates found matching your access permissions"
+                        });
+                    }
+                }
+                // Admin and Analyst see all certificates
 
                 // Apply search filter if provided
                 if (!string.IsNullOrEmpty(parameters.SearchTerm))

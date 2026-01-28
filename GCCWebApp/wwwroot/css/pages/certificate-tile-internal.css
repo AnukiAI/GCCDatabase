@@ -1,0 +1,155 @@
+/* =============================================================================
+   CERTIFICATE TILE VIEW INTERNAL - PAGE-SPECIFIC STYLES
+
+   Extracted from Views/Certificate/CertificateTileViewInternal.cshtml
+   This file contains grid column definitions specific to the Internal view.
+   All shared styles are in certificatetileview.css
+
+   Last Updated: January 2026
+   ============================================================================= */
+
+/* =============================================================================
+   GRID LAYOUT - INTERNAL VIEW (23 COLUMNS)
+   Includes: Internal Tag + Partner columns
+   ============================================================================= */
+
+.table-grid {
+    display: grid;
+    grid-template-columns:
+        36px      /* 1. Select checkbox */
+        90px      /* 2. Actions (Edit + Download + View) */
+        145px     /* 3. Certificate # */
+        160px     /* 4. Certification Type */
+        130px     /* 5. CSF Attributes */
+        120px     /* 6. Status */
+        95px      /* 7. Effective Date */
+        95px      /* 8. Expiration Date */
+        170px     /* 9. Company */
+        170px     /* 10. Company Contact */
+        170px     /* 11. Product Name */
+        130px     /* 12. Product Category */
+        130px     /* 13. Product Type */
+        140px     /* 14. Product Subcategory */
+        100px     /* 15. Location */
+        110px     /* 16. Country */
+        100px     /* 17. External Tag */
+        100px     /* 18. Internal Tag */
+        100px     /* 19. Partner */
+        85px      /* 20. ASIN */
+        85px      /* 21. UPC */
+        85px      /* 22. GTIN */
+        85px;     /* 23. EAN */
+    min-width: max-content;
+    width: 100%;
+}
+
+/* Table container min-width for Internal (23 columns) */
+.table-grid-container {
+    min-width: 2625px;
+    width: max-content;
+}
+
+/* =============================================================================
+   SELECT & ACTIONS COLUMNS - CENTERED LAYOUT
+   ============================================================================= */
+
+/* Select cell - header & body - CENTERED checkbox */
+.table-grid .grid-header-cell.select-cell,
+.table-grid .grid-cell.select-cell {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px !important;
+    text-align: center !important;
+}
+
+/* Actions column - header & body - CENTERED content */
+.table-grid .grid-header-cell.actions-column,
+.table-grid .grid-cell.actions-column {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 8px 6px !important;
+    overflow: visible !important;
+}
+
+/* Actions header text centering - full width span */
+.table-grid .grid-header-cell.actions-column span {
+    display: block !important;
+    text-align: center !important;
+    width: 100% !important;
+    font-weight: 600 !important;
+}
+
+/* Action buttons container - centered within the cell */
+.table-grid .grid-cell.actions-column .action-buttons {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+}
+
+/* Individual action buttons - consistent sizing */
+.table-grid .grid-cell.actions-column .action-btn {
+    padding: 4px !important;
+    min-width: 26px !important;
+    height: 26px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    background: transparent !important;
+    border-radius: 4px !important;
+    color: #666 !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+}
+
+.table-grid .grid-cell.actions-column .action-btn:hover {
+    background: #e3f2fd !important;
+    color: #007bff !important;
+}
+
+.table-grid .grid-cell.actions-column .action-btn i {
+    font-size: 14px !important;
+}
+
+/* =============================================================================
+   CERTIFICATE NUMBER COLUMN - LEFT ALIGNED
+   ============================================================================= */
+
+.table-grid .grid-header-cell[data-sort-column="certificate"],
+.table-grid .grid-cell[data-column="certificateNumber"] {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding-left: 10px !important;
+}
+
+.table-grid .grid-cell[data-column="certificateNumber"] {
+    font-weight: 400 !important;
+    font-family: 'Consolas', 'Courier New', monospace !important;
+}
+
+/* =============================================================================
+   EXPORT OPTIONS - BUTTON STYLING
+   Grey styling to match Admin/Tags page
+   ============================================================================= */
+
+.export-options .btn.btn-outline {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #ddd !important;
+}
+
+.export-options .btn.btn-outline:hover {
+    background-color: #f8f9fa !important;
+    border-color: #999 !important;
+    color: #333 !important;
+}
+
+.export-options .btn.btn-outline i {
+    color: inherit !important;
+}

@@ -548,17 +548,17 @@
 
             initializeSubcategory();
 
-            // Load existing subcategories for this certificate (multi-select)
+            // Load existing subcategories for this certificate (multi-select with checkboxes)
             @if (ViewBag.ExistingSubcategories != null && ((IEnumerable<dynamic>)ViewBag.ExistingSubcategories).Any())
             {
                 <text>
                 const existingSubcategories = @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(ViewBag.ExistingSubcategories));
-                // Wait for SubcategoryManager to be available
+                // Wait for multi-select dropdown to be initialized
                 setTimeout(function() {
-                    if (window.CertificateCreate && window.CertificateCreate.SubcategoryManager) {
-                        window.CertificateCreate.SubcategoryManager.loadExisting(existingSubcategories);
+                    if (window.CertificateInlineCreate && window.CertificateInlineCreate.loadExistingSubcategories) {
+                        window.CertificateInlineCreate.loadExistingSubcategories(existingSubcategories);
                     }
-                }, 100);
+                }, 200);
                 </text>
             }
 
@@ -570,8 +570,8 @@
                 subcategorySelect.html('<option value="">Select subcategory...</option>');
 
                 // Clear selected subcategories when parent type changes
-                if (window.CertificateCreate && window.CertificateCreate.SubcategoryManager) {
-                    window.CertificateCreate.SubcategoryManager.clear();
+                if (window.CertificateInlineCreate && window.CertificateInlineCreate.clearSubcategories) {
+                    window.CertificateInlineCreate.clearSubcategories();
                 }
 
                 if (newTypeId) {
@@ -583,6 +583,11 @@
                         });
                     }
                     // Field always stays visible
+
+                    // Refresh the multi-select dropdown to show new options
+                    if (window.CertificateInlineCreate && window.CertificateInlineCreate.refreshSubcategories) {
+                        setTimeout(() => window.CertificateInlineCreate.refreshSubcategories(), 50);
+                    }
 
                     // Load custom fields for the selected type (only if container exists)
                     if (typeof certificateCustomFields !== 'undefined' && document.getElementById('custom-fields-container')) {

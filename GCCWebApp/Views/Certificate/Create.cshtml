@@ -495,7 +495,7 @@
                 }
             }
 
-            // ===== Certification Type Subcategories (Multi-Select) =====
+            // ===== Certification Type Subcategories (Multi-Select with Checkboxes) =====
 
             // Load subcategories when certification type changes
             $('#CertificationTypeId').change(function() {
@@ -506,8 +506,8 @@
                 subcategorySelect.html('<option value="">Select subcategory...</option>');
 
                 // Clear selected subcategories when parent type changes
-                if (window.CertificateCreate && window.CertificateCreate.SubcategoryManager) {
-                    window.CertificateCreate.SubcategoryManager.clear();
+                if (window.CertificateInlineCreate && window.CertificateInlineCreate.clearSubcategories) {
+                    window.CertificateInlineCreate.clearSubcategories();
                 }
 
                 if (typeId) {
@@ -519,6 +519,11 @@
                         subcategories.forEach(sub => {
                             subcategorySelect.append(`<option value="${sub.id}">${sub.name}</option>`);
                         });
+                    }
+
+                    // Refresh the multi-select dropdown to show new options
+                    if (window.CertificateInlineCreate && window.CertificateInlineCreate.refreshSubcategories) {
+                        setTimeout(() => window.CertificateInlineCreate.refreshSubcategories(), 50);
                     }
 
                     // Load custom fields for the selected type (only if container exists)

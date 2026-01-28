@@ -775,6 +775,256 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
     }
 
     /**
+     * Create a multi-select dropdown with checkboxes
+     * @param {HTMLSelectElement} selectElement - The original select element
+     * @param {HTMLElement} hiddenInput - The hidden input to store selected IDs as JSON
+     * @param {HTMLElement} pillsContainer - Container to display selected items as pills
+     * @param {Function} onChangeCallback - Optional callback when selection changes
+     */
+    function createMultiSelectDropdown(selectElement, hiddenInput, pillsContainer, onChangeCallback) {
+        if (!selectElement || selectElement.dataset.multiSelectInit) return;
+        selectElement.dataset.multiSelectInit = 'true';
+
+        const formGroup = selectElement.closest('.form-group');
+        if (!formGroup) return;
+
+        // Track selected items
+        let selectedItems = [];
+
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'custom-dropdown-wrapper multi-select-dropdown';
+        wrapper.style.cssText = 'position: relative; width: 100%;';
+
+        // Create trigger button
+        const trigger = document.createElement('div');
+        trigger.className = 'custom-dropdown-trigger';
+        trigger.style.cssText = `
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;
+            background: white; cursor: pointer; font-size: 14px; min-height: 38px;
+            transition: border-color 0.2s;
+        `;
+        trigger.innerHTML = `
+            <span class="custom-dropdown-selected" style="color: #6c757d;">Select subcategories...</span>
+            <i class="fas fa-chevron-down" style="color: #6c757d; font-size: 12px; transition: transform 0.2s;"></i>
+        `;
+
+        // Create dropdown panel
+        const panel = document.createElement('div');
+        panel.className = 'custom-dropdown-panel';
+        panel.style.cssText = `
+            position: absolute; top: 100%; left: 0; right: 0; z-index: 1000;
+            background: white; border: 1px solid #ced4da; border-top: none;
+            border-radius: 0 0 4px 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none; max-height: 300px; overflow-y: auto;
+        `;
+
+        // Options container
+        const optionsContainer = document.createElement('div');
+        optionsContainer.className = 'custom-dropdown-options';
+        optionsContainer.style.cssText = 'padding: 8px 0;';
+
+        panel.appendChild(optionsContainer);
+
+        // Insert into DOM - keep original select for options source
+        selectElement.style.display = 'none';
+        selectElement.parentNode.insertBefore(wrapper, selectElement);
+        wrapper.appendChild(trigger);
+        wrapper.appendChild(panel);
+        wrapper.appendChild(selectElement);
+
+        // Build options from select element
+        function buildOptions() {
+            optionsContainer.innerHTML = '';
+            const options = Array.from(selectElement.options);
+
+            if (options.length <= 1) {
+                // Only placeholder or empty
+                optionsContainer.innerHTML = '<div style="padding: 12px 16px; color: #6c757d; font-style: italic;">No subcategories available</div>';
+                return;
+            }
+
+            options.forEach((opt, index) => {
+                if (index === 0 && !opt.value) return; // Skip placeholder
+
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'custom-dropdown-option';
+                optionDiv.dataset.value = opt.value;
+                optionDiv.style.cssText = `
+                    display: flex; align-items: center; gap: 10px;
+                    padding: 10px 16px; cursor: pointer; transition: background 0.15s;
+                `;
+
+                const isSelected = selectedItems.some(item => item.id === parseInt(opt.value));
+                optionDiv.innerHTML = `
+                    <span style="width: 18px; height: 18px; border: 2px solid ${isSelected ? '#92C83E' : '#ced4da'};
+                        border-radius: 3px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+                        background: ${isSelected ? '#92C83E' : 'white'};">
+                        ${isSelected ? '<i class="fas fa-check" style="color: white; font-size: 10px;"></i>' : ''}
+                    </span>
+                    <span style="color: #333;">${opt.textContent}</span>
+                `;
+
+                optionDiv.onmouseenter = () => optionDiv.style.backgroundColor = '#f8f9fa';
+                optionDiv.onmouseleave = () => optionDiv.style.backgroundColor = 'transparent';
+
+                optionDiv.onclick = (e) => {
+                    e.stopPropagation();
+                    toggleSelection(parseInt(opt.value), opt.textContent);
+                };
+
+                optionsContainer.appendChild(optionDiv);
+            });
+        }
+
+        // Toggle selection
+        function toggleSelection(id, name) {
+            const existingIndex = selectedItems.findIndex(item => item.id === id);
+
+            if (existingIndex > -1) {
+                // Remove
+                selectedItems.splice(existingIndex, 1);
+            } else {
+                // Add
+                selectedItems.push({ id, name });
+            }
+
+            updateDisplay();
+            updateHiddenInput();
+            buildOptions(); // Rebuild to update checkboxes
+
+            if (onChangeCallback) onChangeCallback(selectedItems);
+        }
+
+        // Update trigger text
+        function updateTrigger() {
+            const selectedSpan = trigger.querySelector('.custom-dropdown-selected');
+            if (selectedItems.length > 0) {
+                selectedSpan.textContent = `${selectedItems.length} selected`;
+                selectedSpan.style.color = '#333';
+            } else {
+                selectedSpan.textContent = 'Select subcategories...';
+                selectedSpan.style.color = '#6c757d';
+            }
+        }
+
+        // Update pills display
+        function updateDisplay() {
+            updateTrigger();
+
+            if (!pillsContainer) return;
+
+            pillsContainer.innerHTML = selectedItems.map(item => `
+                <span class="tag subcategory" data-subcategory-id="${item.id}" style="
+                    display: inline-flex; align-items: center; gap: 4px;
+                    background: linear-gradient(135deg, #f0f7e6 0%, #e8f5d9 100%);
+                    border: 1px solid #92C83E; border-radius: 12px;
+                    padding: 2px 8px; font-size: 12px; color: #447638; margin: 3px 3px 3px 0;
+                ">
+                    ${item.name}
+                    <button type="button" class="tag-remove" onclick="window.CertificateInlineCreate.removeSubcategory(${item.id})" style="
+                        background: none; border: none; color: #92C83E; cursor: pointer;
+                        font-size: 13px; line-height: 1; padding: 0 2px; font-weight: bold;
+                    ">&times;</button>
+                </span>
+            `).join('');
+        }
+
+        // Update hidden input
+        function updateHiddenInput() {
+            if (hiddenInput) {
+                hiddenInput.value = JSON.stringify(selectedItems.map(item => item.id));
+            }
+        }
+
+        // Toggle dropdown
+        let isOpen = false;
+        function openDropdown() {
+            panel.style.display = 'block';
+            trigger.style.borderColor = '#92C83E';
+            trigger.style.borderRadius = '4px 4px 0 0';
+            trigger.querySelector('i').style.transform = 'rotate(180deg)';
+            isOpen = true;
+            buildOptions();
+        }
+
+        function closeDropdown() {
+            panel.style.display = 'none';
+            trigger.style.borderColor = '#ced4da';
+            trigger.style.borderRadius = '4px';
+            trigger.querySelector('i').style.transform = 'rotate(0deg)';
+            isOpen = false;
+        }
+
+        trigger.onclick = (e) => {
+            e.stopPropagation();
+            if (isOpen) closeDropdown();
+            else openDropdown();
+        };
+
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) closeDropdown();
+        });
+
+        // Public methods for external control
+        wrapper.multiSelect = {
+            clear: function() {
+                selectedItems = [];
+                updateDisplay();
+                updateHiddenInput();
+                if (isOpen) buildOptions();
+            },
+            loadExisting: function(items) {
+                if (!items || !Array.isArray(items)) return;
+                selectedItems = items.map(item => ({
+                    id: item.Id || item.id,
+                    name: item.Name || item.name
+                }));
+                updateDisplay();
+                updateHiddenInput();
+            },
+            refresh: function() {
+                buildOptions();
+            },
+            getSelected: function() {
+                return selectedItems;
+            }
+        };
+
+        // Store reference for external access
+        selectElement.multiSelectWrapper = wrapper;
+
+        // Initial state
+        updateDisplay();
+
+        return wrapper;
+    }
+
+    // Remove subcategory (called from pill X button)
+    CertificateInlineCreate.removeSubcategory = function(id) {
+        const wrapper = document.getElementById('subcategorySelect')?.multiSelectWrapper;
+        if (wrapper && wrapper.multiSelect) {
+            const selected = wrapper.multiSelect.getSelected();
+            const newSelected = selected.filter(item => item.id !== parseInt(id));
+            wrapper.multiSelect.clear();
+            newSelected.forEach(item => {
+                // Re-add each item
+                const select = document.getElementById('subcategorySelect');
+                const opt = Array.from(select.options).find(o => parseInt(o.value) === item.id);
+                if (opt) {
+                    // Trigger click on the option
+                    const optionDiv = wrapper.querySelector(`[data-value="${item.id}"]`);
+                    if (optionDiv) optionDiv.click();
+                }
+            });
+            // Simpler approach: just reload
+            wrapper.multiSelect.loadExisting(newSelected);
+        }
+    };
+
+    /**
      * Initialize inline creation - converts dropdowns to custom dropdowns with fixed "Add" footer
      * Called on document ready
      */
@@ -790,6 +1040,42 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
         // Convert Product dropdown to custom dropdown with Add footer
         if (productSelect) {
             createCustomDropdown(productSelect, 'product', 'Enter product name');
+        }
+
+        // Convert Subcategory to multi-select dropdown with checkboxes
+        const subcategorySelect = document.getElementById('subcategorySelect');
+        const subcategoriesHidden = document.getElementById('subcategoriesHidden');
+        const subcategoriesContainer = document.getElementById('subcategoriesContainer');
+
+        if (subcategorySelect && subcategoriesHidden && subcategoriesContainer) {
+            createMultiSelectDropdown(subcategorySelect, subcategoriesHidden, subcategoriesContainer);
+
+            // Store reference for SubcategoryManager compatibility
+            window.CertificateInlineCreate.subcategoryMultiSelect = subcategorySelect.multiSelectWrapper?.multiSelect;
+        }
+    };
+
+    // Expose method to clear subcategories (for parent type change)
+    CertificateInlineCreate.clearSubcategories = function() {
+        const wrapper = document.getElementById('subcategorySelect')?.multiSelectWrapper;
+        if (wrapper && wrapper.multiSelect) {
+            wrapper.multiSelect.clear();
+        }
+    };
+
+    // Expose method to refresh subcategory options
+    CertificateInlineCreate.refreshSubcategories = function() {
+        const wrapper = document.getElementById('subcategorySelect')?.multiSelectWrapper;
+        if (wrapper && wrapper.multiSelect) {
+            wrapper.multiSelect.refresh();
+        }
+    };
+
+    // Expose method to load existing subcategories (for edit page)
+    CertificateInlineCreate.loadExistingSubcategories = function(items) {
+        const wrapper = document.getElementById('subcategorySelect')?.multiSelectWrapper;
+        if (wrapper && wrapper.multiSelect) {
+            wrapper.multiSelect.loadExisting(items);
         }
     };
 

@@ -104,16 +104,29 @@ box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 | Type | Class | Background | Use |
 |------|-------|------------|-----|
 | Primary | `.btn-primary` | #92C83E | Save, Submit, Add New |
-| Secondary | `.btn-secondary-blue` | #00AEEF | Alternative actions |
+| Secondary/Cancel | `.btn-secondary`, `.btn-cancel` | transparent + #6c757d border | Cancel, Close, Back |
+| Secondary Blue | `.btn-secondary-blue` | #00AEEF | Alternative actions |
 | Tertiary | `.btn-tertiary` | transparent + #447638 border | Export, Import, Template |
-| Danger | `.btn-danger` | #FF5252 | Delete |
+| Danger | `.btn-danger` | #FF5252 | Delete ONLY (never Cancel) |
 
 ```css
 /* Primary */
 .btn-primary { background: #92C83E; color: white; }
 .btn-primary:hover { background: #7fb835; }
 
-/* Secondary */
+/* Secondary/Cancel - STANDARD FOR ALL CANCEL BUTTONS */
+.btn-secondary, .btn-cancel, .admin-btn--secondary {
+    background-color: transparent;
+    color: #6c757d;
+    border: 1px solid #6c757d;
+}
+.btn-secondary:hover, .btn-cancel:hover, .admin-btn--secondary:hover {
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #5a6268;
+    border-color: #5a6268;
+}
+
+/* Secondary Blue */
 .btn-secondary-blue { background: #00AEEF; color: white; }
 .btn-secondary-blue:hover { background: #0095d8; }
 
@@ -121,10 +134,16 @@ box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 .btn-tertiary { background: transparent; border: 2px solid #447638; color: #447638; }
 .btn-tertiary:hover { background: rgba(68, 118, 56, 0.1); }
 
-/* Danger */
+/* Danger - DELETE ONLY, NEVER for Cancel */
 .btn-danger { background: #FF5252; color: white; }
 .btn-danger:hover { background: #e04545; }
 ```
+
+### Cancel Button Rules (CRITICAL)
+- **ALWAYS** use grey/neutral styling for Cancel buttons
+- **NEVER** use red/danger styling for Cancel buttons
+- Red is reserved for destructive DELETE actions only
+- Cancel is a non-destructive action and must appear neutral
 
 **Sizes**: `.btn-lg` (18px), `.btn-md` (16px default), `.btn-sm` (14px)
 
@@ -163,7 +182,9 @@ box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
 - Dark Green: #447638
 - Primary Blue: #00AEEF
 - Navy: #002B76
-- Danger Red: #FF5252
+- Danger Red: #FF5252 (Delete only, never Cancel)
 - Warning Yellow: #FFC107
+- Secondary Grey: #6c757d (Cancel, Close, Back buttons)
+- Secondary Grey Hover: #5a6268
 - Gray Light: #f8f9fa
 - Border: #e9ecef

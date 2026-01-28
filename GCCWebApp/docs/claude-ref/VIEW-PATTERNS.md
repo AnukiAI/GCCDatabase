@@ -1,5 +1,57 @@
 # View Patterns Reference
 
+## CRITICAL: Standard Structure (ALL Views Must Follow)
+
+### CSS Inclusion Rules
+
+**NEVER** use inline `<style>` blocks in views. Always use external CSS files.
+
+```cshtml
+@* CORRECT - External CSS *@
+@section Styles {
+    <link href="~/css/core/variables.css" rel="stylesheet" />
+    <link href="~/css/components/buttons.css" rel="stylesheet" />
+    <link href="~/css/layouts/admin-layout.css" rel="stylesheet" />
+    <link href="~/css/pages/page-specific.css" rel="stylesheet" />
+}
+
+@* WRONG - Inline styles *@
+@section Styles {
+    <style>
+        /* 300+ lines of CSS - DO NOT DO THIS */
+    </style>
+}
+```
+
+### Button Classes (Single Standard)
+
+| Action | Class | Example |
+|--------|-------|---------|
+| Save, Submit, Add | `.btn--primary` | `<button class="btn btn--primary">Save</button>` |
+| Cancel, Close, Back | `.btn--secondary` | `<button class="btn btn--secondary">Cancel</button>` |
+| Delete ONLY | `.btn--danger` | `<button class="btn btn--danger">Delete</button>` |
+| Export, Import, Template | `.btn--outline` | `<button class="btn btn--outline">Export</button>` |
+
+**NEVER** use inline style overrides on buttons:
+```html
+<!-- WRONG -->
+<button class="btn btn--secondary" style="padding: 10px; background: white;">Cancel</button>
+
+<!-- CORRECT -->
+<button class="btn btn--secondary">Cancel</button>
+```
+
+### ViewData Settings
+
+```cshtml
+@{
+    ViewData["Title"] = "Page Name";           // Required - rendered in _Layout
+    ViewData["BodyClass"] = "role-admin";      // Optional - for role-specific CSS
+}
+```
+
+---
+
 ## Admin Page Structure (US-016 Hybrid Layout)
 
 ### Complete Template

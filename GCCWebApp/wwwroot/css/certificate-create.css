@@ -195,13 +195,13 @@ body:has(.admin-container) .page-header {
     display: grid !important;
     grid-template-columns: 1fr 1fr !important;
     gap: 20px 24px !important;
+    align-items: start; /* Align items to top so rows expand properly with dynamic content */
     background: #ffffff;
     padding: 32px;
     border-radius: 8px;
     border: 1px solid #e0e0e0;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
     min-width: 0;
-    overflow: hidden; /* Prevent children from overflowing */
     box-sizing: border-box;
 }
 

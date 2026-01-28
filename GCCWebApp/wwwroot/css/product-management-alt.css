@@ -142,14 +142,15 @@
 }
 
 .btn-secondary {
-    background: #6c757d;
-    color: white;
-    border: none;
+    background-color: transparent;
+    color: #6c757d;
+    border: 1px solid #6c757d;
 }
 
 .btn-secondary:hover {
-    background: #545b62;
-    color: white;
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #5a6268;
+    border-color: #5a6268;
 }
 
 /* Input Styles */

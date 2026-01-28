@@ -219,7 +219,7 @@
                                 editImageSrc = editImagePath.StartsWith("/") ? editImagePath : $"/{editImagePath}";
                             }
                         }
-                        <div class="preview-container" style="width: 350px; height: 350px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; position: relative; cursor: pointer;">
+                        <div class="preview-container" style="width: 350px; height: 350px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; position: relative; cursor: pointer; margin: 0 auto;">
                             @if (editHasValidSnapshot)
                             {
                                 <img id="certificateImagePreviewImg" src="@editImageSrc" alt="Certificate Preview"
@@ -361,7 +361,7 @@
                 <button type="submit" name="action" value="save" class="btn btn-primary" aria-label="Save certificate changes" id="saveButton">
                     Save Changes
                 </button>
-                <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="btn btn-danger" aria-label="Cancel and return to certificate management">
+                <a href="@Url.Action("CertificateTileViewInternal", "Certificate")" class="btn btn-secondary" aria-label="Cancel and return to certificate management">
                     Cancel
                 </a>
                 @if (User.IsInRole("Admin"))

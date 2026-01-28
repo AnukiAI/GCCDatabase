@@ -607,13 +607,15 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 
 /* Additional Button Variants */
 .btn-secondary {
-    background-color: #6c757d;
-    color: white;
-    border: none;
+    background-color: transparent;
+    color: #6c757d;
+    border: 1px solid #6c757d;
 }
 
 .btn-secondary:hover {
-    background-color: #5a6268;
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #5a6268;
+    border-color: #5a6268;
 }
 
 .btn-test {
@@ -826,11 +828,15 @@ label:has(input[type="checkbox"]) input[type="checkbox"] {
 }
 
 .btn.btn-secondary {
-    background: #6c757d;
+    background-color: transparent;
+    color: #6c757d;
+    border: 1px solid #6c757d;
 }
 
 .btn.btn-secondary:hover {
-    background: #5a6268;
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #5a6268;
+    border-color: #5a6268;
 }
 
 .action-buttons {

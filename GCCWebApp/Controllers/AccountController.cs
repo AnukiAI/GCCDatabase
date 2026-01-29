@@ -167,6 +167,17 @@ namespace GCCWebApp.Controllers
                 return View(model);
             }
 
+            // Check if user requires password reset
+            if (CheckRequirePasswordReset(model.Email))
+            {
+                _logger.LogInformation("User {Email} requires password reset on login", model.Email);
+                TempData["ForceResetEmail"] = model.Email;
+                TempData["ForceResetRole"] = userRole;
+                TempData["ForceResetReturnUrl"] = returnUrl;
+                TempData["ForceResetRememberMe"] = model.RememberMe;
+                return RedirectToAction("ForcePasswordReset");
+            }
+
             // Check if 2FA is enabled
             var is2FAEnabled = _configuration.GetValue<bool>("Authentication:Enable2FA", true);
             
@@ -370,6 +381,128 @@ namespace GCCWebApp.Controllers
             await Task.CompletedTask;
             
             return View("ForgotPasswordConfirmation");
+        }
+
+        /// <summary>
+        /// Display forced password reset page (when RequirePasswordReset flag is set)
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet]
+        public IActionResult ForcePasswordReset()
+        {
+            var email = TempData["ForceResetEmail"]?.ToString();
+
+            if (string.IsNullOrEmpty(email))
+            {
+                _logger.LogWarning("Force password reset page accessed without proper session data");
+                return RedirectToAction("Login");
+            }
+
+            // Keep TempData for POST action
+            TempData.Keep();
+
+            ViewBag.Email = email;
+            ViewBag.IsForced = true;
+            return View("ForcePasswordReset");
+        }
+
+        /// <summary>
+        /// Handle forced password reset form submission
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ForcePasswordReset(string password, string confirmPassword)
+        {
+            var email = TempData["ForceResetEmail"]?.ToString();
+            var role = TempData["ForceResetRole"]?.ToString();
+            var returnUrl = TempData["ForceResetReturnUrl"]?.ToString();
+            var rememberMe = TempData["ForceResetRememberMe"] as bool? ?? false;
+
+            if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(role))
+            {
+                _logger.LogWarning("Force password reset attempted without proper session data");
+                return RedirectToAction("Login");
+            }
+
+            // Validate passwords
+            if (string.IsNullOrEmpty(password) || password.Length < 8)
+            {
+                ViewBag.Error = "Password must be at least 8 characters long.";
+                ViewBag.Email = email;
+                ViewBag.IsForced = true;
+                TempData["ForceResetEmail"] = email;
+                TempData["ForceResetRole"] = role;
+                TempData["ForceResetReturnUrl"] = returnUrl;
+                TempData["ForceResetRememberMe"] = rememberMe;
+                return View("ForcePasswordReset");
+            }
+
+            if (password != confirmPassword)
+            {
+                ViewBag.Error = "Passwords do not match.";
+                ViewBag.Email = email;
+                ViewBag.IsForced = true;
+                TempData["ForceResetEmail"] = email;
+                TempData["ForceResetRole"] = role;
+                TempData["ForceResetReturnUrl"] = returnUrl;
+                TempData["ForceResetRememberMe"] = rememberMe;
+                return View("ForcePasswordReset");
+            }
+
+            try
+            {
+                // Update password in database
+                var user = _context.Users.FirstOrDefault(u => u.Email == email || u.Username == email);
+                if (user == null)
+                {
+                    _logger.LogError("User not found during forced password reset: {Email}", email);
+                    return RedirectToAction("Login");
+                }
+
+                // Hash and update password
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
+                user.RequirePasswordReset = false;
+                _context.SaveChanges();
+
+                _logger.LogInformation("Password successfully reset for user {Email}", email);
+
+                // Check if 2FA is required after password reset
+                var is2FAEnabled = _configuration.GetValue<bool>("Authentication:Enable2FA", true);
+
+                if (is2FAEnabled)
+                {
+                    // Proceed with 2FA flow
+                    var preferences = await _twoFactorService.GetUserPreferencesAsync(email);
+                    var code = _twoFactorService.GenerateCode();
+                    _twoFactorService.StoreCode(email, code);
+                    await _twoFactorService.SendCodeAsync(email, code, preferences.PreferredMethod, preferences.Email, preferences.PhoneNumber);
+
+                    TempData["2FAEmail"] = email;
+                    TempData["2FARole"] = role;
+                    TempData["ReturnUrl"] = returnUrl;
+                    TempData["RememberMe"] = rememberMe;
+                    TempData["2FAMethod"] = preferences.PreferredMethod.ToString();
+
+                    return RedirectToAction("TwoFactorAuthentication");
+                }
+
+                // Sign in directly without 2FA
+                await SignInUser(email, role, rememberMe);
+                return RedirectToLocal(returnUrl);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during forced password reset for {Email}", email);
+                ViewBag.Error = "An error occurred while resetting your password. Please try again.";
+                ViewBag.Email = email;
+                ViewBag.IsForced = true;
+                TempData["ForceResetEmail"] = email;
+                TempData["ForceResetRole"] = role;
+                TempData["ForceResetReturnUrl"] = returnUrl;
+                TempData["ForceResetRememberMe"] = rememberMe;
+                return View("ForcePasswordReset");
+            }
         }
 
         /// <summary>
@@ -694,6 +827,47 @@ namespace GCCWebApp.Controllers
             {
                 _logger.LogError(ex, "Error validating user {Email}", email);
                 return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Check if user requires password reset on next login
+        /// </summary>
+        private bool CheckRequirePasswordReset(string email)
+        {
+            try
+            {
+                var user = _context.Users.FirstOrDefault(u => u.Email == email || u.Username == email);
+                return user?.RequirePasswordReset ?? false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking password reset requirement for {Email}", email);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Clear the password reset requirement for a user
+        /// </summary>
+        private bool ClearRequirePasswordReset(string email)
+        {
+            try
+            {
+                var user = _context.Users.FirstOrDefault(u => u.Email == email || u.Username == email);
+                if (user != null)
+                {
+                    user.RequirePasswordReset = false;
+                    _context.SaveChanges();
+                    _logger.LogInformation("Password reset requirement cleared for user {Email}", email);
+                    return true;
+                }
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error clearing password reset requirement for {Email}", email);
+                return false;
             }
         }
 

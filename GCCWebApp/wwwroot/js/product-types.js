@@ -768,15 +768,15 @@ class ProductTypeManager {
         if (closeBtn) {
             closeBtn.addEventListener('click', () => modal.remove());
         }
-        
-        // Cancel button
-        const cancelBtn = modal.querySelector('[data-dismiss="modal"]');
-        if (cancelBtn) {
-            cancelBtn.addEventListener('click', () => modal.remove());
-        }
-        
-        // Also handle by class name as backup
-        const cancelBtnByClass = modal.querySelector('.btn-secondary');
+
+        // Cancel button - use querySelectorAll to get ALL elements with data-dismiss="modal"
+        const dismissBtns = modal.querySelectorAll('[data-dismiss="modal"]');
+        dismissBtns.forEach(btn => {
+            btn.addEventListener('click', () => modal.remove());
+        });
+
+        // Also handle btn-danger Cancel button specifically (in case data-dismiss is missing)
+        const cancelBtnByClass = modal.querySelector('.modal-footer .btn-danger');
         if (cancelBtnByClass) {
             cancelBtnByClass.addEventListener('click', () => modal.remove());
         }

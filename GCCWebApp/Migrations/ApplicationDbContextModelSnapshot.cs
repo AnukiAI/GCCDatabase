@@ -914,9 +914,15 @@ namespace GCCWebApp.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("IX_CertificationTypes_Name_TopLevel")
+                        .HasFilter("[ParentId] IS NULL");
 
                     b.HasIndex("ParentId");
+
+                    b.HasIndex("Name", "ParentId")
+                        .IsUnique()
+                        .HasFilter("[ParentId] IS NOT NULL");
 
                     b.ToTable("CertificationTypes");
                 });
@@ -1739,7 +1745,16 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("CategoryId");
 
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ProductTypes_Name_TopLevel")
+                        .HasFilter("[ParentId] IS NULL");
+
                     b.HasIndex("ParentId");
+
+                    b.HasIndex("Name", "ParentId")
+                        .IsUnique()
+                        .HasFilter("[ParentId] IS NOT NULL");
 
                     b.ToTable("ProductTypes");
                 });

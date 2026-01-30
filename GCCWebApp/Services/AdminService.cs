@@ -601,10 +601,31 @@ namespace GCCWebApp.Services
             };
         }
 
-        public async Task<ProductTypeViewModel?> CreateProductTypeAsync(ProductTypeViewModel model)
+        public async Task<(bool Success, string? ErrorMessage, ProductTypeViewModel? Data)> CreateProductTypeAsync(ProductTypeViewModel model)
         {
             try
             {
+                // Check for duplicate name at the same level (same parent)
+                var existingType = await _context.ProductTypes
+                    .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
+                        && pt.ParentId == model.ParentId);
+
+                if (existingType != null)
+                {
+                    if (model.ParentId.HasValue)
+                    {
+                        var parentName = await _context.ProductTypes
+                            .Where(pt => pt.Id == model.ParentId.Value)
+                            .Select(pt => pt.Name)
+                            .FirstOrDefaultAsync();
+                        return (false, $"'{model.Name}' already exists under '{parentName}'", null);
+                    }
+                    else
+                    {
+                        return (false, $"'{model.Name}' already exists at the root level", null);
+                    }
+                }
+
                 // Determine level and CategoryId based on parent
                 int level = 0;
                 int categoryId = 0;
@@ -652,7 +673,7 @@ namespace GCCWebApp.Services
                 await _context.SaveChangesAsync();
 
                 // Return the created product type as view model
-                return new ProductTypeViewModel
+                var result = new ProductTypeViewModel
                 {
                     Id = productType.Id,
                     Name = productType.Name,
@@ -660,21 +681,44 @@ namespace GCCWebApp.Services
                     Level = productType.Level,
                     SortOrder = productType.SortOrder
                 };
+                return (true, null, result);
             }
             catch (Exception ex)
             {
                 // Log the actual error for debugging
                 _logger.LogError(ex, "Error creating product type: {Name}", model.Name);
-                return null;
+                return (false, $"Error creating product type: {ex.Message}", null);
             }
         }
 
-        public async Task<bool> UpdateProductTypeAsync(ProductTypeViewModel model)
+        public async Task<(bool Success, string? ErrorMessage)> UpdateProductTypeAsync(ProductTypeViewModel model)
         {
             try
             {
                 var productType = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.Id);
-                if (productType == null) return false;
+                if (productType == null) return (false, "Product type not found");
+
+                // Check for duplicate name at the same level (same parent), excluding the current record
+                var existingType = await _context.ProductTypes
+                    .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
+                        && pt.ParentId == model.ParentId
+                        && pt.Id != model.Id);
+
+                if (existingType != null)
+                {
+                    if (model.ParentId.HasValue)
+                    {
+                        var parentName = await _context.ProductTypes
+                            .Where(pt => pt.Id == model.ParentId.Value)
+                            .Select(pt => pt.Name)
+                            .FirstOrDefaultAsync();
+                        return (false, $"'{model.Name}' already exists under '{parentName}'");
+                    }
+                    else
+                    {
+                        return (false, $"'{model.Name}' already exists at the root level");
+                    }
+                }
 
                 // Update level based on new parent
                 if (model.ParentId != productType.ParentId)
@@ -698,11 +742,11 @@ namespace GCCWebApp.Services
                 productType.SortOrder = model.SortOrder;
 
                 await _context.SaveChangesAsync();
-                return true;
+                return (true, null);
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                return (false, $"Error updating product type: {ex.Message}");
             }
         }
 
@@ -1376,17 +1420,33 @@ namespace GCCWebApp.Services
         {
             try
             {
+                // Get or create a default ProductCategory (required field)
+                var defaultCategory = await _context.ProductCategories.FirstOrDefaultAsync();
+                if (defaultCategory == null)
+                {
+                    defaultCategory = new ProductCategory
+                    {
+                        Name = "Default",
+                        Description = "Default product category",
+                        IsActive = true,
+                        SortOrder = 0
+                    };
+                    _context.ProductCategories.Add(defaultCategory);
+                    await _context.SaveChangesAsync();
+                }
+
                 var product = new Product
                 {
                     Name = model.Name,
                     Description = model.Description,
+                    CategoryId = defaultCategory.Id,
                     IsActive = model.IsActive,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow,
                     IsDeleted = false
                 };
 
-                // Set ProductType if provided
+                // Set ProductType if provided - also inherit CategoryId from ProductType
                 if (!string.IsNullOrEmpty(model.ProductTypeName))
                 {
                     var productType = await _context.ProductTypes
@@ -1394,6 +1454,7 @@ namespace GCCWebApp.Services
                     if (productType != null)
                     {
                         product.ProductTypeId = productType.Id;
+                        product.CategoryId = productType.CategoryId;
                     }
                 }
 
@@ -1412,9 +1473,9 @@ namespace GCCWebApp.Services
                 await _context.SaveChangesAsync();
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
-                // Log error here in production
+                _logger.LogError(ex, "Error creating product: {Name}", model.Name);
                 return false;
             }
         }

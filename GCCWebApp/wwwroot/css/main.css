@@ -693,8 +693,10 @@ th,
     }
 
 /* ===== 9. BREADCRUMBS ===== */
+/* Always reserve space for breadcrumbs for consistent layout across all roles */
 .breadcrumbs {
-    display: none; /* Hidden per client request */
+    display: block !important; /* Override role-element hiding - always show container */
+    min-height: 32px; /* Consistent spacing whether content visible or not */
     background-color: var(--light-gray);
     padding: 8px 0px 8px 0px;
     font-size: 16px;
@@ -708,6 +710,12 @@ th,
     display: flex;
     align-items: center;
     padding: 0px 40px;
+    visibility: hidden; /* Hide content by default */
+}
+
+/* Show breadcrumb content only for Admin role */
+.role-admin .breadcrumb-wrapper {
+    visibility: visible;
 }
 
 .breadcrumbs a {

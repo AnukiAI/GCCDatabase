@@ -12,7 +12,7 @@ namespace GCCWebApp.E2E.Tests.Tests.UI
         private IPage _page = null!;
         
         // Update this URL to match your local development server
-        private const string BaseUrl = "https://localhost:7001";
+        private const string BaseUrl = "http://localhost:5101";
 
         public async Task InitializeAsync()
         {

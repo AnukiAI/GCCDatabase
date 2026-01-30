@@ -25,8 +25,8 @@ namespace GCCWebApp.Services
         // Product Types
         Task<List<ProductTypeViewModel>> GetProductTypesAsync();
         Task<ProductTypeViewModel?> GetProductTypeByIdAsync(int id);
-        Task<ProductTypeViewModel?> CreateProductTypeAsync(ProductTypeViewModel model);
-        Task<bool> UpdateProductTypeAsync(ProductTypeViewModel model);
+        Task<(bool Success, string? ErrorMessage, ProductTypeViewModel? Data)> CreateProductTypeAsync(ProductTypeViewModel model);
+        Task<(bool Success, string? ErrorMessage)> UpdateProductTypeAsync(ProductTypeViewModel model);
         Task<(bool Success, string Message)> DeleteProductTypeAsync(int id);
         
         // Certificate Types

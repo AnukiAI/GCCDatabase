@@ -578,9 +578,9 @@ namespace GCCWebApp.Controllers
                 var result = await _adminService.CreateProductTypeAsync(model);
                 return Json(new ApiResponse<ProductTypeViewModel>
                 {
-                    Success = result != null,
-                    Data = result,
-                    Message = result != null ? "Product type created successfully" : "Failed to create product type"
+                    Success = result.Success,
+                    Data = result.Data,
+                    Message = result.Success ? "Product type created successfully" : result.ErrorMessage ?? "Failed to create product type"
                 });
             }
             catch (Exception ex)
@@ -612,8 +612,8 @@ namespace GCCWebApp.Controllers
                 var result = await _adminService.UpdateProductTypeAsync(model);
                 return Json(new ApiResponse<ProductTypeViewModel>
                 {
-                    Success = result,
-                    Message = result ? "Product type updated successfully" : "Failed to update product type"
+                    Success = result.Success,
+                    Message = result.Success ? "Product type updated successfully" : result.ErrorMessage ?? "Failed to update product type"
                 });
             }
             catch (Exception ex)

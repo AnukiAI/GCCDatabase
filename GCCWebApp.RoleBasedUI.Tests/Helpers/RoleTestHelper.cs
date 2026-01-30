@@ -150,26 +150,59 @@ public static class RoleTestHelper
     public static async Task LoginAsRoleAsync(IPage page, string role, IConfiguration configuration)
     {
         var baseUrl = configuration["TestConfiguration:BaseUrl"];
-        
+
+        // First, ensure we're logged out by clearing cookies/navigating to logout
+        try
+        {
+            // Check if already logged in by looking for logout link
+            await page.GotoAsync($"{baseUrl}/Account/Logout");
+            await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        }
+        catch
+        {
+            // Ignore errors during logout - user might not be logged in
+        }
+
+        // Clear browser context cookies to ensure clean state
+        await page.Context.ClearCookiesAsync();
+
         // Navigate to login page
         await page.GotoAsync($"{baseUrl}/Account/Login");
-        
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
         // Get credentials based on role
         var (username, password) = GetCredentialsForRole(role, configuration);
-        
+
+        // Wait for login form to be available
+        await page.WaitForSelectorAsync("#Email", new PageWaitForSelectorOptions { Timeout = 10000 });
+
         // Fill login form
         await page.FillAsync("#Email", username);
         await page.FillAsync("#Password", password);
-        
+
         // Submit login form
         await page.ClickAsync("button[type='submit']");
-        
+
         // Wait for redirect after login
-        await page.WaitForURLAsync($"{baseUrl}/**");
-        
+        await page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        // Wait for URL to change (not login or 2FA pages)
+        var maxAttempts = 10;
+        for (var i = 0; i < maxAttempts; i++)
+        {
+            var currentUrl = page.Url.ToLower();
+            if (!currentUrl.Contains("/account/login") &&
+                !currentUrl.Contains("/account/twofactorauthentication") &&
+                !currentUrl.Contains("/account/forcepasswordreset"))
+            {
+                break;
+            }
+            await Task.Delay(500);
+        }
+
         // Verify login was successful (should not be on login page)
-        var currentUrl = page.Url;
-        currentUrl.Should().NotContain("/Account/Login", $"Login failed for {role} role");
+        var finalUrl = page.Url;
+        finalUrl.Should().NotContain("/Account/Login", $"Login failed for {role} role");
     }
 
     public static async Task TakeRoleScreenshotAsync(IPage page, string testName, string role, IConfiguration configuration)

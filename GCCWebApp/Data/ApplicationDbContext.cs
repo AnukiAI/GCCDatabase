@@ -202,7 +202,7 @@ namespace GCCWebApp.Data
             modelBuilder.Entity<ProductType>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                
+
                 entity.HasOne(e => e.Category)
                     .WithMany(pc => pc.ProductTypes)
                     .HasForeignKey(e => e.CategoryId);
@@ -210,6 +210,17 @@ namespace GCCWebApp.Data
                 entity.HasOne(e => e.Parent)
                     .WithMany(pt => pt.Children)
                     .HasForeignKey(e => e.ParentId);
+
+                // Unique constraint for child items: same name allowed under different parents
+                entity.HasIndex(e => new { e.Name, e.ParentId })
+                    .IsUnique()
+                    .HasFilter("[ParentId] IS NOT NULL");
+
+                // Unique constraint for top-level items: no duplicate names at root level
+                entity.HasIndex(e => e.Name)
+                    .IsUnique()
+                    .HasDatabaseName("IX_ProductTypes_Name_TopLevel")
+                    .HasFilter("[ParentId] IS NULL");
             });
 
             // Product subcategory configuration
@@ -227,7 +238,17 @@ namespace GCCWebApp.Data
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).HasMaxLength(255).IsRequired();
-                entity.HasIndex(e => e.Name).IsUnique();
+
+                // Unique constraint for subcategories: same name allowed under different parents
+                entity.HasIndex(e => new { e.Name, e.ParentId })
+                    .IsUnique()
+                    .HasFilter("[ParentId] IS NOT NULL");
+
+                // Unique constraint for top-level types: no duplicate names at root level
+                entity.HasIndex(e => e.Name)
+                    .IsUnique()
+                    .HasDatabaseName("IX_CertificationTypes_Name_TopLevel")
+                    .HasFilter("[ParentId] IS NULL");
             });
 
             // Custom field configuration

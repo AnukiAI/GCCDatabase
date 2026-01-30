@@ -64,6 +64,16 @@
             Handle forgot password form submission (fallback)
             </summary>
         </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.ForcePasswordReset">
+            <summary>
+            Display forced password reset page (when RequirePasswordReset flag is set)
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.ForcePasswordReset(System.String,System.String)">
+            <summary>
+            Handle forced password reset form submission
+            </summary>
+        </member>
         <member name="M:GCCWebApp.Controllers.AccountController.TwoFactorAuthentication">
             <summary>
             Display the Two-Factor Authentication page
@@ -97,6 +107,16 @@
         <member name="M:GCCWebApp.Controllers.AccountController.VerifyPhone(System.String)">
             <summary>
             Verify phone number
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.CheckRequirePasswordReset(System.String)">
+            <summary>
+            Check if user requires password reset on next login
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.ClearRequirePasswordReset(System.String)">
+            <summary>
+            Clear the password reset requirement for a user
             </summary>
         </member>
         <member name="M:GCCWebApp.Controllers.AccountController.SetupTotp">
@@ -1662,6 +1682,12 @@
         <member name="T:GCCWebApp.Extensions.ICertificateSelector">
             <summary>
             Service for selecting SSL certificates
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Middleware.ApiAuthenticationMiddleware">
+            <summary>
+            Middleware to ensure API endpoints return JSON responses for authentication/authorization failures
+            instead of HTML redirect responses (login pages, access denied pages, etc.)
             </summary>
         </member>
         <member name="T:GCCWebApp.Middleware.PartnerApiKeyAuthenticationMiddleware">

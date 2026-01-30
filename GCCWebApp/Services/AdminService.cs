@@ -605,15 +605,37 @@ namespace GCCWebApp.Services
         {
             try
             {
-                // Determine level based on parent
+                // Determine level and CategoryId based on parent
                 int level = 0;
+                int categoryId = 0;
+
                 if (model.ParentId.HasValue)
                 {
                     var parent = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.ParentId.Value);
                     if (parent != null)
                     {
                         level = parent.Level + 1;
+                        categoryId = parent.CategoryId; // Inherit CategoryId from parent
                     }
+                }
+                else
+                {
+                    // For root-level items (categories), get or create a default ProductCategory
+                    var defaultCategory = await _context.ProductCategories.FirstOrDefaultAsync();
+                    if (defaultCategory == null)
+                    {
+                        // Create a default category if none exists
+                        defaultCategory = new ProductCategory
+                        {
+                            Name = "Default",
+                            Description = "Default product category",
+                            IsActive = true,
+                            SortOrder = 0
+                        };
+                        _context.ProductCategories.Add(defaultCategory);
+                        await _context.SaveChangesAsync();
+                    }
+                    categoryId = defaultCategory.Id;
                 }
 
                 var productType = new ProductType
@@ -622,12 +644,13 @@ namespace GCCWebApp.Services
                     ParentId = model.ParentId,
                     Level = level,
                     SortOrder = model.SortOrder,
+                    CategoryId = categoryId,
                     IsActive = true
                 };
 
                 _context.ProductTypes.Add(productType);
                 await _context.SaveChangesAsync();
-                
+
                 // Return the created product type as view model
                 return new ProductTypeViewModel
                 {
@@ -638,8 +661,10 @@ namespace GCCWebApp.Services
                     SortOrder = productType.SortOrder
                 };
             }
-            catch
+            catch (Exception ex)
             {
+                // Log the actual error for debugging
+                _logger.LogError(ex, "Error creating product type: {Name}", model.Name);
                 return null;
             }
         }
@@ -681,20 +706,41 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> DeleteProductTypeAsync(int id)
+        public async Task<(bool Success, string Message)> DeleteProductTypeAsync(int id)
         {
             try
             {
-                var productType = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == id);
-                if (productType == null) return false;
+                var productType = await _context.ProductTypes
+                    .Include(pt => pt.Children)
+                    .Include(pt => pt.Products)
+                    .FirstOrDefaultAsync(pt => pt.Id == id);
+
+                if (productType == null)
+                    return (false, "Product type not found");
+
+                // Check if it has children
+                if (productType.Children != null && productType.Children.Any())
+                {
+                    var childCount = productType.Children.Count;
+                    var childType = productType.Level == 0 ? "types" : "subcategories";
+                    return (false, $"Cannot delete: This item has {childCount} {childType}. Please delete or move them first.");
+                }
+
+                // Check if it has products assigned
+                if (productType.Products != null && productType.Products.Any())
+                {
+                    var productCount = productType.Products.Count;
+                    return (false, $"Cannot delete: {productCount} product(s) are assigned to this item. Please reassign them first.");
+                }
 
                 _context.ProductTypes.Remove(productType);
                 await _context.SaveChangesAsync();
-                return true;
+                return (true, "Product type deleted successfully");
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                _logger.LogError(ex, "Error deleting product type {Id}", id);
+                return (false, "An error occurred while deleting. Please try again.");
             }
         }
 

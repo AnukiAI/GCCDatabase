@@ -1,0 +1,665 @@
+/* user-management.css - User Management specific styles */
+
+/* US-016: Use standard 1400px container width from admin framework
+   Removed full-width overrides for consistency across all admin pages */
+
+/* Admin Container - inherits from admin-layout.css (1400px max-width) */
+/* No overrides needed - uses framework defaults */
+
+/* ===== ADMIN HEADER ===== */
+.admin-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 0;
+}
+
+/* Title styling now handled by main.css .page-title */
+
+.buttons-area {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    padding-top: 16px;
+}
+
+/* ===== BUTTONS ===== */
+.btn {
+    background-color: #fff;
+    color: var(--blue-dark);
+    border: 1px solid var(--border-color);
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    text-decoration: none;
+}
+
+.btn:hover {
+    background-color: #f5f5f5;
+}
+
+.btn-outline {
+    background-color: #fff;
+    color: var(--blue-primary);
+    border: 1px solid var(--blue-primary);
+}
+
+.btn-outline:hover {
+    background-color: var(--blue-primary);
+    color: white;
+}
+
+.btn-add {
+    background-color: var(--green-primary);
+    color: white;
+    border: none;
+}
+
+.btn-add:hover {
+    background-color: var(--green-secondary);
+}
+
+.btn-primary {
+    background-color: var(--green-primary);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: var(--green-secondary);
+}
+
+.btn-cancel {
+    background-color: #f8f9fa;
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+}
+
+.btn-cancel:hover {
+    background-color: #e2e6ea;
+}
+
+/* ===== SEARCH AND FILTERS ===== */
+.search-filter-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.search-box {
+    position: relative;
+    flex: 1;
+    min-width: 250px;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+    box-sizing: border-box;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #777;
+    font-size: 16px;
+}
+
+.filters {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+    background: white;
+    min-width: 120px;
+}
+
+/* Inline Editing Styles */
+#user-table td.edit-mode {
+    background-color: #f8f9fa;
+    border: 2px solid var(--blue-primary);
+    border-radius: 4px;
+    padding: 2px;
+}
+
+#user-table td .text-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    padding: 8px;
+    font-size: 16px;
+    background: transparent;
+    font-family: inherit;
+}
+
+#user-table td[data-field] {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#user-table td[data-field]:hover {
+    background-color: #f5f5f5;
+}
+
+/* ===== TABLE STYLES ===== */
+.table-container {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+    margin-bottom: 24px;
+    box-shadow: var(--shadow-light);
+    width: 100%;
+}
+
+#user-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#user-table th,
+#user-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+    vertical-align: middle;
+}
+
+#user-table th {
+    background-color: #f9f9f9;
+    color: var(--blue-dark);
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+#user-table th:hover {
+    background-color: #f0f0f0;
+}
+
+.sort-icon {
+    margin-left: 5px;
+    font-size: 16px;
+    opacity: 0.6;
+}
+
+#user-table th.active-sort .sort-icon {
+    opacity: 1;
+}
+
+#user-table tbody tr {
+    background-color: white;
+}
+
+#user-table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+.actions-col {
+    width: 120px;
+    text-align: center;
+}
+
+.actions-cell {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: nowrap;
+}
+
+/* Action Buttons */
+.btn-edit,
+.btn-delete,
+.btn-view {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 4px;
+    font-size: 16px;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    min-height: 32px;
+}
+
+.btn-edit {
+    color: var(--blue-primary);
+}
+
+.btn-edit:hover {
+    background-color: rgba(0, 174, 239, 0.1);
+    transform: scale(1.1);
+}
+
+.btn-delete {
+    color: var(--warning);
+}
+
+.btn-delete:hover {
+    background-color: rgba(255, 82, 82, 0.1);
+    transform: scale(1.1);
+}
+
+.btn-view {
+    color: var(--green-primary);
+}
+
+.btn-view:hover {
+    background-color: rgba(68, 118, 56, 0.1);
+    transform: scale(1.1);
+}
+
+/* Multi-select Styles */
+.multi-select-container {
+    position: relative;
+    min-width: 200px;
+}
+
+.multi-select-display {
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 8px 12px;
+    background: white;
+    cursor: pointer;
+    min-height: 20px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+}
+
+.multi-select-tag {
+    background: var(--blue-primary);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.multi-select-tag .remove {
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.multi-select-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-top: none;
+    border-radius: 0 0 4px 4px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 1000;
+    display: none;
+}
+
+.multi-select-dropdown.active {
+    display: block;
+}
+
+.multi-select-option {
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.multi-select-option:hover {
+    background-color: #f5f5f5;
+}
+
+.multi-select-option input[type="checkbox"] {
+    margin: 0;
+}
+
+/* Modal Styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+}
+
+.modal-content {
+    background-color: white;
+    border-radius: 6px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    width: 90%;
+    max-width: 1200px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 24px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-title {
+    color: var(--blue-dark);
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #999;
+    padding: 0;
+}
+
+.modal-close:hover {
+    color: var(--text-color);
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 20px 24px;
+    border-top: 1px solid var(--border-color);
+    background-color: #fafafa;
+}
+
+/* Form Styles */
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    color: var(--text-color);
+    font-weight: 500;
+    font-size: 16px;
+}
+
+.form-group label.required::after {
+    content: " *";
+    color: var(--warning);
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="password"],
+.form-group select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+    box-sizing: border-box;
+    font-family: inherit;
+}
+
+.form-group input[type="text"]:focus,
+.form-group input[type="email"]:focus,
+.form-group input[type="password"]:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--blue-primary);
+    box-shadow: 0 0 0 2px rgba(0, 174, 239, 0.1);
+}
+
+.form-group input[type="checkbox"] {
+    margin-right: 8px;
+}
+
+.password-help {
+    font-size: 16px;
+    color: #666;
+    margin-top: 5px;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+}
+
+.error-message {
+    color: var(--warning);
+    font-size: 16px;
+    margin-top: 5px;
+    display: none;
+}
+
+.error-message.active {
+    display: block;
+}
+
+/* Status Indicators */
+.status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 8px;
+}
+
+.status-indicator.status-active {
+    background-color: var(--green-primary);
+}
+
+.status-indicator.status-inactive {
+    background-color: var(--warning);
+}
+
+.status-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.status-badge.active {
+    background-color: rgba(146, 200, 62, 0.1);
+    color: var(--green-primary);
+}
+
+.status-badge.inactive {
+    background-color: rgba(255, 82, 82, 0.1);
+    color: var(--warning);
+}
+
+/* Toast Notifications */
+.toast {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: var(--green-secondary);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1001;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toast.error {
+    background-color: var(--warning);
+}
+
+.toast.warning {
+    background-color: #ffa500;
+}
+
+/* Footer */
+.footer-info {
+    padding: 12px 0;
+    color: #666;
+    font-size: 14px;
+    text-align: right;
+    margin-top: 16px;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+    .search-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .search-box {
+        max-width: none;
+    }
+
+    .filters {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    .admin-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .buttons-area {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+        width: 100%;
+    }
+
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #user-table {
+        min-width: 800px;
+        font-size: 16px;
+    }
+
+    #user-table th,
+    #user-table td {
+        padding: 8px 6px;
+        white-space: nowrap;
+    }
+
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .actions-cell {
+        flex-direction: column;
+        gap: 4px;
+        min-width: 60px;
+    }
+}
+
+@media (max-width: 480px) {
+    .btn {
+        font-size: 16px;
+        padding: 8px 12px;
+    }
+
+    .buttons-area {
+        grid-template-columns: 1fr;
+    }
+
+    .filters {
+        grid-template-columns: 1fr;
+    }
+
+    #user-table {
+        min-width: 600px;
+        font-size: 16px;
+    }
+
+    #user-table th,
+    #user-table td {
+        padding: 6px 4px;
+    }
+
+    .modal-content {
+        width: 98%;
+        margin: 5px;
+    }
+}

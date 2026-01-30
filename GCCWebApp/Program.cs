@@ -166,14 +166,23 @@ if (isAzureAdB2CConfigured)
             builder.Configuration.Bind("AzureAdB2C", options);
             options.Authority = azureAdB2CConfig!.SignUpSignInAuthority;
             options.SignedOutCallbackPath = azureAdB2CConfig.SignedOutCallbackPath;
-            
+
             // Configure events for B2C specific scenarios
             options.Events = new OpenIdConnectEvents
             {
                 OnRedirectToIdentityProvider = context =>
                 {
+                    // For API requests, return JSON instead of redirecting
+                    if (context.Request.Path.StartsWithSegments("/api"))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+                        context.HandleResponse();
+                        return context.Response.WriteAsync("{\"success\":false,\"message\":\"Authentication required. Please log in.\",\"errorCode\":\"UNAUTHORIZED\"}");
+                    }
+
                     // Handle password reset policy
-                    if (context.Properties.Items.ContainsKey("policy") && 
+                    if (context.Properties.Items.ContainsKey("policy") &&
                         context.Properties.Items["policy"] == azureAdB2CConfig.ResetPasswordPolicyId)
                     {
                         context.ProtocolMessage.IssuerAddress = azureAdB2CConfig.ResetPasswordAuthority + "/oauth2/v2.0/authorize";
@@ -193,6 +202,36 @@ if (isAzureAdB2CConfigured)
                 }
             };
         });
+
+    // Configure cookie events for B2C to handle API requests
+    builder.Services.Configure<CookieAuthenticationOptions>(CookieAuthenticationDefaults.AuthenticationScheme, options =>
+    {
+        options.Events = new CookieAuthenticationEvents
+        {
+            OnRedirectToLogin = context =>
+            {
+                if (context.Request.Path.StartsWithSegments("/api"))
+                {
+                    context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                    context.Response.ContentType = "application/json";
+                    return context.Response.WriteAsync("{\"success\":false,\"message\":\"Authentication required. Please log in.\",\"errorCode\":\"UNAUTHORIZED\"}");
+                }
+                context.Response.Redirect(context.RedirectUri);
+                return Task.CompletedTask;
+            },
+            OnRedirectToAccessDenied = context =>
+            {
+                if (context.Request.Path.StartsWithSegments("/api"))
+                {
+                    context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                    context.Response.ContentType = "application/json";
+                    return context.Response.WriteAsync("{\"success\":false,\"message\":\"Access denied. You do not have permission to perform this action.\",\"errorCode\":\"FORBIDDEN\"}");
+                }
+                context.Response.Redirect(context.RedirectUri);
+                return Task.CompletedTask;
+            }
+        };
+    });
 }
 else
 {
@@ -210,6 +249,33 @@ else
             // TEMPORARY FIX: Allow cookies without valid SSL certificate
             // TODO: Install proper SSL certificate and change back to CookieSecurePolicy.Always
             options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+            // Handle API requests - return JSON instead of redirecting to login page
+            options.Events = new CookieAuthenticationEvents
+            {
+                OnRedirectToLogin = context =>
+                {
+                    if (context.Request.Path.StartsWithSegments("/api"))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+                        return context.Response.WriteAsync("{\"success\":false,\"message\":\"Authentication required. Please log in.\",\"errorCode\":\"UNAUTHORIZED\"}");
+                    }
+                    context.Response.Redirect(context.RedirectUri);
+                    return Task.CompletedTask;
+                },
+                OnRedirectToAccessDenied = context =>
+                {
+                    if (context.Request.Path.StartsWithSegments("/api"))
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        context.Response.ContentType = "application/json";
+                        return context.Response.WriteAsync("{\"success\":false,\"message\":\"Access denied. You do not have permission to perform this action.\",\"errorCode\":\"FORBIDDEN\"}");
+                    }
+                    context.Response.Redirect(context.RedirectUri);
+                    return Task.CompletedTask;
+                }
+            };
         });
 }
 
@@ -551,6 +617,9 @@ app.UseAuthentication();
 app.UseMiddleware<PartnerApiKeyAuthenticationMiddleware>();
 
 app.UseAuthorization();
+
+// API Authentication Middleware - ensures API endpoints return JSON for auth failures instead of HTML redirects
+app.UseApiAuthenticationMiddleware();
 
 // Role middleware - set session roles based on claims
 app.Use(async (context, next) =>

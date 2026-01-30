@@ -2,14 +2,17 @@
 
 class ProductTypeManager {
     constructor() {
+        console.log('ProductTypeManager: Constructor called');
         this.currentView = 'tree';
         this.hierarchyData = [];
         this.init();
     }
 
     init() {
+        console.log('ProductTypeManager: init() called');
         this.loadProductTypes();
         this.setupEventListeners();
+        console.log('ProductTypeManager: init() completed');
     }
 
     async loadProductTypes() {
@@ -461,23 +464,50 @@ class ProductTypeManager {
     }
 
     showAddModal(entityType, parentId = null) {
-        const modal = this.createModal('Add ' + this.capitalize(entityType), entityType, null, parentId);
-        document.body.appendChild(modal);
-        this.setupModalEvents(modal);
+        console.log('showAddModal called with entityType:', entityType, 'parentId:', parentId);
+        try {
+            const modal = this.createModal('Add ' + this.capitalize(entityType), entityType, null, parentId);
+            console.log('Modal created:', modal);
+            document.body.appendChild(modal);
+            console.log('Modal appended to body');
+            this.setupModalEvents(modal);
+            console.log('Modal events set up');
+        } catch (error) {
+            console.error('Error in showAddModal:', error);
+        }
     }
 
     showEditModal(id, entityType) {
-        const item = this.hierarchyData.find(d => d.id == id);
-        if (!item) return;
-        
+        console.log('showEditModal called with id:', id, 'entityType:', entityType);
+        console.log('hierarchyData:', JSON.stringify(this.hierarchyData, null, 2));
+
+        // Use findItemById to search nested hierarchy
+        const item = this.findItemById(id);
+        console.log('findItemById result:', item);
+
+        if (!item) {
+            console.error('Could not find item with id:', id, 'in hierarchyData');
+            this.showNotification('Could not find the item to edit. Please refresh the page.', 'error');
+            return;
+        }
+
         const modal = this.createModal('Edit ' + this.capitalize(entityType), entityType, item);
         document.body.appendChild(modal);
         this.setupModalEvents(modal);
     }
 
     async showDeleteConfirm(id, entityType) {
-        const item = this.hierarchyData.find(d => d.id == id);
-        if (!item) return;
+        console.log('showDeleteConfirm called with id:', id, 'entityType:', entityType);
+
+        // Use findItemById to search nested hierarchy
+        const item = this.findItemById(id);
+        console.log('findItemById result for delete:', item);
+
+        if (!item) {
+            console.error('Could not find item with id:', id);
+            this.showNotification('Could not find the item to delete. Please refresh the page.', 'error');
+            return;
+        }
 
         const confirmed = await AdminCore.showConfirmation({
             title: 'Delete Confirmation',
@@ -575,7 +605,7 @@ class ProductTypeManager {
         const contextBar = (entityType !== 'category' && parentName) ? `
             <div style="background: #e8f4fd; padding: 8px 16px; border-bottom: 1px solid #bee5eb; font-size: 14px;">
                 <i class="fas fa-sitemap" style="color: #002B76; margin-right: 8px;"></i>
-                Adding ${entityType} to: <strong style="color: #002B76;">${parentName}</strong>${grandparentName ? ` (in ${grandparentName})` : ''}
+                ${isEdit ? 'Editing' : 'Adding'} ${entityType} ${isEdit ? 'in' : 'to'}: <strong style="color: #002B76;">${parentName}</strong>${grandparentName ? ` (in ${grandparentName})` : ''}
             </div>
         ` : '';
 
@@ -644,6 +674,7 @@ class ProductTypeManager {
                         </div>
 
                         <form id="productTypeForm">
+                            ${isEdit ? `<input type="hidden" id="editItemId" name="editItemId" value="${item.id}">` : ''}
                             ${parentSelectorHtml}
                             ${parentDisplayHtml}
 
@@ -708,9 +739,32 @@ class ProductTypeManager {
 
     // Helper method to find an item by ID in the nested hierarchy
     findItemById(id) {
+        console.log('findItemById searching for id:', id, 'type:', typeof id);
+        const search = (items, depth = 0) => {
+            for (const item of items) {
+                console.log(`  ${'  '.repeat(depth)}Checking item id=${item.id} (${typeof item.id}) name="${item.name}"`);
+                if (item.id == id) {
+                    console.log(`  ${'  '.repeat(depth)}FOUND MATCH!`);
+                    return item;
+                }
+                if (item.children && item.children.length > 0) {
+                    console.log(`  ${'  '.repeat(depth)}Searching ${item.children.length} children...`);
+                    const found = search(item.children, depth + 1);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        const result = search(this.hierarchyData);
+        console.log('findItemById result:', result);
+        return result;
+    }
+
+    // Helper method to find an item by name in the nested hierarchy
+    findItemByName(name) {
         const search = (items) => {
             for (const item of items) {
-                if (item.id == id) return item;
+                if (item.name === name) return item;
                 if (item.children && item.children.length > 0) {
                     const found = search(item.children);
                     if (found) return found;
@@ -744,21 +798,33 @@ class ProductTypeManager {
 
     getParentOptions(entityType, excludeId = null) {
         let parents = [];
-        
+
         if (entityType === 'type') {
-            // For types, parents are categories
-            parents = this.hierarchyData.filter(d => d.level === 0);
+            // For types, parents are categories (root level items)
+            parents = this.hierarchyData.map(cat => ({
+                id: cat.id,
+                name: cat.name
+            }));
         } else if (entityType === 'subcategory') {
-            // For subcategories, parents are types
-            parents = this.hierarchyData.filter(d => d.level === 1);
+            // For subcategories, parents are types (children of categories)
+            this.hierarchyData.forEach(category => {
+                if (category.children && category.children.length > 0) {
+                    category.children.forEach(type => {
+                        parents.push({
+                            id: type.id,
+                            name: `${type.name} (${category.name})`
+                        });
+                    });
+                }
+            });
         }
-        
+
         // Exclude current item and its children if editing
         if (excludeId) {
             parents = parents.filter(p => p.id != excludeId);
         }
-        
-        return '<option value="">Select Parent...</option>' + 
+
+        return '<option value="">Select Parent...</option>' +
                parents.map(p => `<option value="${p.id}">${p.name}</option>`).join('');
     }
 
@@ -795,11 +861,12 @@ class ProductTypeManager {
                     const isEdit = title.includes('Edit');
                     
                     if (isEdit) {
-                        // Get ID from the item being edited
-                        const itemName = form.querySelector('#name').defaultValue;
-                        const item = this.hierarchyData.find(d => d.name === itemName);
-                        if (item) {
-                            this.updateProductType(item.id, data);
+                        // Get ID from hidden input (more reliable than searching by name)
+                        const editItemId = form.querySelector('#editItemId')?.value;
+                        if (editItemId) {
+                            this.updateProductType(editItemId, data);
+                        } else {
+                            console.error('Could not find editItemId in form');
                         }
                     } else {
                         this.createProductType(data);
@@ -831,16 +898,23 @@ class ProductTypeManager {
 
     async createProductType(data) {
         try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+            console.log('createProductType called with data:', JSON.stringify(data, null, 2));
+            console.log('Anti-forgery token found:', token ? 'Yes (length: ' + token.length + ')' : 'NO - TOKEN MISSING!');
+
             const response = await fetch('/Admin/CreateProductType', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    'RequestVerificationToken': token
                 },
                 body: JSON.stringify(data)
             });
-            
+
+            console.log('Response status:', response.status, response.statusText);
             const result = await response.json();
+            console.log('Response body:', JSON.stringify(result, null, 2));
+
             if (result.success) {
                 this.showNotification('Product type created successfully', 'success');
                 this.loadProductTypes();
@@ -929,9 +1003,15 @@ function toggleNode(element) {
 
 // Form functions
 function showAddForm(entityType, parentElement = null) {
+    console.log('showAddForm called with entityType:', entityType, 'parentElement:', parentElement);
+    console.log('window.productTypeManager exists:', !!window.productTypeManager);
     if (window.productTypeManager) {
         const parentId = parentElement ? parentElement.dataset.parentId : null;
+        console.log('Calling showAddModal with parentId:', parentId);
         window.productTypeManager.showAddModal(entityType, parentId);
+    } else {
+        console.error('ProductTypeManager not initialized! Cannot open add modal.');
+        alert('Error: Page not fully loaded. Please refresh and try again.');
     }
 }
 
@@ -969,13 +1049,21 @@ function collapseAll() {
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    window.productTypeManager = new ProductTypeManager();
-    
-    // Initialize export functionality
-    initializeExportFunctionality();
-    
-    // Initialize all event handlers to replace inline onclick handlers
-    initializeEventHandlers();
+    console.log('ProductTypes: DOMContentLoaded - initializing...');
+    try {
+        window.productTypeManager = new ProductTypeManager();
+        console.log('ProductTypes: ProductTypeManager created successfully');
+
+        // Initialize export functionality
+        initializeExportFunctionality();
+        console.log('ProductTypes: Export functionality initialized');
+
+        // Initialize all event handlers to replace inline onclick handlers
+        initializeEventHandlers();
+        console.log('ProductTypes: Event handlers initialized');
+    } catch (error) {
+        console.error('ProductTypes: Error during initialization:', error);
+    }
 });
 
 // Export functionality

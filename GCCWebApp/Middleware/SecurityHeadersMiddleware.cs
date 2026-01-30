@@ -125,15 +125,15 @@ public class SecurityHeadersMiddleware
         // Default source
         cspBuilder.Add("default-src 'self'");
 
-        // Script source (includes Google Analytics)
+        // Script source (includes Google Analytics and ReDoc)
         if (isDevelopment)
         {
-            cspBuilder.Add("script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com");
+            cspBuilder.Add("script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.redoc.ly");
         }
         else
         {
             // FIXED: Added 'unsafe-inline' for production to allow inline scripts (login form, etc.)
-            cspBuilder.Add("script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com");
+            cspBuilder.Add("script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com https://www.google-analytics.com https://cdn.redoc.ly");
         }
 
         // Style source - allow inline styles and CDN resources

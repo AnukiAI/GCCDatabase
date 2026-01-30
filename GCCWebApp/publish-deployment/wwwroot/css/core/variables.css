@@ -1,0 +1,170 @@
+/* =============================================================================
+   CSS VARIABLES - SINGLE SOURCE OF TRUTH
+
+   All design tokens defined here. Reference these variables throughout the app.
+   DO NOT hardcode colors/spacing elsewhere - use var(--name) instead.
+
+   Last Updated: January 2026
+   ============================================================================= */
+
+:root {
+    /* =========================================================================
+       BRAND COLORS
+       ========================================================================= */
+
+    /* Primary Green - Save, Submit, Add, Success */
+    --color-primary: #92C83E;
+    --color-primary-hover: #7fb835;
+    --color-primary-dark: #447638;
+    --color-primary-rgb: 146, 200, 62;
+
+    /* Blue - Secondary actions, Links, Info */
+    --color-blue: #00AEEF;
+    --color-blue-hover: #0095d8;
+    --color-blue-dark: #002B76;
+    --color-blue-rgb: 0, 174, 239;
+
+    /* Danger Red - DELETE ONLY (never Cancel) */
+    --color-danger: #FF5252;
+    --color-danger-hover: #e04545;
+    --color-danger-rgb: 255, 82, 82;
+
+    /* Warning Yellow */
+    --color-warning: #FFC107;
+    --color-warning-hover: #e5ac00;
+    --color-warning-rgb: 255, 193, 7;
+
+    /* Grey - Cancel, Close, Secondary, Neutral */
+    --color-grey: #6c757d;
+    --color-grey-hover: #5a6268;
+    --color-grey-light: #adb5bd;
+    --color-grey-rgb: 108, 117, 125;
+
+    /* =========================================================================
+       BACKGROUND COLORS
+       ========================================================================= */
+    --bg-page: #f5f5f5;
+    --bg-card: #ffffff;
+    --bg-hover: rgba(0, 0, 0, 0.02);
+    --bg-light: #f8f9fa;
+    --bg-dark: #343a40;
+
+    /* Table backgrounds */
+    --bg-table-row: #ffffff;
+    --bg-table-row-alt: #fafafa;
+    --bg-table-hover: #f5f5f5;
+    --bg-table-header: #f8f9fa;
+
+    /* =========================================================================
+       TEXT COLORS
+       ========================================================================= */
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --text-muted: #adb5bd;
+    --text-light: #ffffff;
+    --text-link: #00AEEF;
+    --text-link-hover: #0095d8;
+
+    /* =========================================================================
+       BORDERS
+       ========================================================================= */
+    --border-color: #e9ecef;
+    --border-color-dark: #dee2e6;
+    --border-color-light: #f1f3f4;
+    --border-radius: 6px;
+    --border-radius-sm: 4px;
+    --border-radius-lg: 12px;
+    --border-radius-xl: 16px;
+    --border-width: 1px;
+
+    /* =========================================================================
+       SPACING
+       ========================================================================= */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+    --spacing-2xl: 48px;
+
+    /* =========================================================================
+       TYPOGRAPHY
+       ========================================================================= */
+    --font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+    --font-family-mono: 'Consolas', 'Courier New', monospace;
+
+    --font-size-xs: 12px;
+    --font-size-sm: 14px;
+    --font-size-base: 16px;  /* Minimum per accessibility standards */
+    --font-size-lg: 18px;
+    --font-size-xl: 20px;
+    --font-size-2xl: 24px;
+    --font-size-3xl: 32px;
+
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    --line-height-tight: 1.25;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.75;
+
+    /* =========================================================================
+       LAYOUT
+       ========================================================================= */
+    --container-max-width: 1400px;
+    --container-padding: 24px;
+    --sidebar-width: 280px;
+    --header-height: 60px;
+
+    /* =========================================================================
+       SHADOWS
+       ========================================================================= */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.15);
+
+    /* =========================================================================
+       MODAL
+       ========================================================================= */
+    --modal-backdrop: rgba(0, 0, 0, 0.85);
+    --modal-backdrop-blur: 3px;
+    --modal-max-width: 650px;
+    --modal-z-backdrop: 9998;
+    --modal-z-content: 9999;
+
+    /* =========================================================================
+       TRANSITIONS
+       ========================================================================= */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.2s ease;
+    --transition-slow: 0.3s ease;
+
+    /* =========================================================================
+       Z-INDEX SCALE
+       ========================================================================= */
+    --z-dropdown: 1000;
+    --z-sticky: 1020;
+    --z-fixed: 1030;
+    --z-modal-backdrop: 9998;
+    --z-modal: 9999;
+    --z-tooltip: 10000;
+
+    /* =========================================================================
+       STATUS COLORS (for badges, indicators)
+       ========================================================================= */
+    --status-active: #92C83E;
+    --status-draft: #FFC107;
+    --status-expired: #FF5252;
+    --status-inactive: #6c757d;
+    --status-pending: #00AEEF;
+}
+
+/* Dark mode support (future) */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Override variables for dark mode when implemented */
+    }
+}

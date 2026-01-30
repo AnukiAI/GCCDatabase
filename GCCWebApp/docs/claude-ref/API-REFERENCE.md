@@ -35,15 +35,15 @@ Partners pull data via GCC REST API with dedicated API keys.
 ### Field Mapping
 | Novi Requirement | GCC API Field |
 |------------------|---------------|
-| Brand name | BrandName (Company.Name) |
-| Variant / product name | ProductName (Product.Name) |
-| Variant identifier | ProductIdentifiers[] (use `includeProductIds=true`) |
-| Certification name | CertificationName (CertificationType.Name) |
-| Certificate / license ID | CertificateNumber |
-| Issue date | IssueDate (EffectiveDate) |
-| Expiration date | ExpirationDate |
-| Issuer | "Green Circle Certified" (static) |
-| Standard version | StandardVersion (Subcategory) |
+| Brand name | `company` (Company.Name) |
+| Variant / product name | `productName` (Product.Name) |
+| Variant identifier | `productIds[]` (use `includeProductIds=true`) |
+| Certification name | `certificationType` (CertificationType.Name) |
+| Certificate / license ID | `certificateNumber` |
+| Issue date | `issueDate` (EffectiveDate) |
+| Expiration date | `expirationDate` |
+| Issuer | `issuer` - "Green Circle Certified" (static) |
+| Standard version | `certificationTypeSubcategory` (Subcategory) |
 
 ### Novi Endpoints
 ```bash
@@ -63,19 +63,35 @@ GET /api/v1/certificates/24-0366/download
 ### Sample Response
 ```json
 {
+  "pagination": {
+    "totalCount": 150,
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalPages": 2,
+    "hasPrevious": false,
+    "hasNext": true
+  },
   "success": true,
   "data": [{
     "id": 123,
     "certificateNumber": "24-0366",
     "status": "Active",
     "issueDate": "2024-01-15T00:00:00Z",
-    "expirationDate": "2025-01-15T00:00:00Z",
-    "brandName": "EcoProduct Co",
+    "expirationDate": "2027-01-15T00:00:00Z",
+    "location": "Seattle, WA",
+    "country": "United States",
+    "partner": "Amazon",
+    "certificationResults": "95.5% recycled content",
+    "company": "EcoProduct Co",
+    "companyId": 123,
     "productName": "Recycled Paper Towels",
-    "certificationName": "UL 2809",
+    "productId": 456,
+    "certificationType": "UL 2809",
+    "certificationTypeId": 1,
+    "certificationTypeSubcategory": "Level 2",
+    "certificationTypeSubcategoryId": 5,
     "issuer": "Green Circle Certified",
-    "standardVersion": "Level 2",
-    "productIdentifiers": [
+    "productIds": [
       {
         "type": "ASIN",
         "value": "B08N5WRWNW",
@@ -95,11 +111,15 @@ GET /api/v1/certificates/24-0366/download
         "description": "Another description"
       }
     ],
+    "createdAt": "2024-01-15T00:00:00Z",
+    "updatedAt": "2024-01-15T00:00:00Z",
     "pdfDownloadUrl": "/api/v1/certificates/24-0366/download"
   }],
-  "totalCount": 150,
-  "pageNumber": 1,
-  "pageSize": 100
+  "message": null,
+  "errors": [],
+  "timestamp": "2024-01-15T12:00:00Z",
+  "requestId": "abc123",
+  "version": "1.0"
 }
 ```
 

@@ -348,11 +348,12 @@
 }
 
 .admin-action-btn--cancel {
-    color: #e74c3c;
+    color: #6c757d;
 }
 
 .admin-action-btn--cancel:hover {
-    background-color: #fee;
+    background-color: rgba(108, 117, 125, 0.1);
+    color: #5a6268;
 }
 
 /* =============================================================================

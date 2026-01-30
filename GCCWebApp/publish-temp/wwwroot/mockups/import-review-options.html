@@ -1,0 +1,1468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Import Review System - Mockup Options</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* GCC Admin Design System */
+        :root {
+            --gcc-green-primary: #447638;
+            --gcc-green-secondary: #92C83E;
+            --gcc-green-light: #e8f5e1;
+            --gcc-blue-dark: #002B76;
+            --gcc-blue-light: #e6f7ff;
+            --admin-danger: #ff5252;
+            --admin-danger-light: #ffebee;
+            --admin-warning: #ffc107;
+            --admin-warning-light: #fff8e1;
+            --admin-text-primary: #333;
+            --admin-text-secondary: #666;
+            --admin-border-primary: #ddd;
+            --admin-bg-secondary: #f9f9f9;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Century Gothic', CenturyGothic, AppleGothic, sans-serif;
+            font-size: 16px;
+            line-height: 1.5;
+            color: var(--admin-text-primary);
+            background: #f5f7fa;
+        }
+
+        /* Navigation Tabs */
+        .mockup-nav {
+            background: var(--gcc-blue-dark);
+            padding: 0 20px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .mockup-nav h1 {
+            color: white;
+            font-size: 18px;
+            padding: 15px 0 10px;
+            margin: 0;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 5px;
+            list-style: none;
+            padding-bottom: 0;
+        }
+
+        .nav-tabs li a {
+            display: block;
+            padding: 12px 20px;
+            color: rgba(255,255,255,0.7);
+            text-decoration: none;
+            border-radius: 8px 8px 0 0;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .nav-tabs li a:hover {
+            background: rgba(255,255,255,0.1);
+            color: white;
+        }
+
+        .nav-tabs li a.active {
+            background: white;
+            color: var(--gcc-blue-dark);
+        }
+
+        /* Mockup Container */
+        .mockup-container {
+            display: none;
+            padding: 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .mockup-container.active {
+            display: block;
+        }
+
+        .mockup-title {
+            font-size: 24px;
+            color: var(--gcc-blue-dark);
+            margin-bottom: 10px;
+        }
+
+        .mockup-description {
+            color: var(--admin-text-secondary);
+            margin-bottom: 30px;
+            padding: 15px;
+            background: var(--gcc-blue-light);
+            border-radius: 8px;
+            border-left: 4px solid var(--gcc-blue-dark);
+        }
+
+        /* Admin Container */
+        .admin-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        /* Admin Header */
+        .admin-header {
+            padding: 20px 30px;
+            border-bottom: 1px solid var(--admin-border-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .admin-title {
+            font-size: 20px;
+            color: var(--gcc-blue-dark);
+            margin: 0;
+        }
+
+        .admin-subtitle {
+            font-size: 14px;
+            color: var(--admin-text-secondary);
+            margin-top: 5px;
+        }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--gcc-green-secondary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--gcc-green-primary);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: var(--admin-text-primary);
+            border: 1px solid var(--admin-border-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--admin-bg-secondary);
+        }
+
+        .btn-danger {
+            background: var(--admin-danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* Upload Zone */
+        .upload-zone {
+            border: 2px dashed var(--admin-border-primary);
+            border-radius: 12px;
+            padding: 40px;
+            text-align: center;
+            margin: 20px 30px;
+            background: var(--admin-bg-secondary);
+            transition: all 0.2s;
+        }
+
+        .upload-zone:hover {
+            border-color: var(--gcc-green-secondary);
+            background: var(--gcc-green-light);
+        }
+
+        .upload-zone i {
+            font-size: 48px;
+            color: var(--gcc-green-secondary);
+            margin-bottom: 15px;
+        }
+
+        .upload-zone h3 {
+            color: var(--admin-text-primary);
+            margin-bottom: 10px;
+        }
+
+        .upload-zone p {
+            color: var(--admin-text-secondary);
+            font-size: 14px;
+        }
+
+        /* Stats Cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            padding: 20px 30px;
+            background: var(--admin-bg-secondary);
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--admin-border-primary);
+        }
+
+        .stat-card.new { border-left: 4px solid var(--gcc-green-secondary); }
+        .stat-card.modified { border-left: 4px solid var(--admin-warning); }
+        .stat-card.unchanged { border-left: 4px solid var(--admin-text-secondary); }
+        .stat-card.error { border-left: 4px solid var(--admin-danger); }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--gcc-blue-dark);
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--admin-text-secondary);
+            margin-top: 5px;
+        }
+
+        /* Table Styles */
+        .admin-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .admin-table th {
+            background: var(--admin-bg-secondary);
+            padding: 12px 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--admin-text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid var(--admin-border-primary);
+        }
+
+        .admin-table td {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+
+        .admin-table tbody tr:hover {
+            background: var(--admin-bg-secondary);
+        }
+
+        /* Status Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-new {
+            background: var(--gcc-green-light);
+            color: var(--gcc-green-primary);
+        }
+
+        .badge-modified {
+            background: var(--admin-warning-light);
+            color: #8a6d00;
+        }
+
+        .badge-error {
+            background: var(--admin-danger-light);
+            color: var(--admin-danger);
+        }
+
+        .badge-unchanged {
+            background: #f0f0f0;
+            color: var(--admin-text-secondary);
+        }
+
+        .badge-pending {
+            background: var(--gcc-blue-light);
+            color: var(--gcc-blue-dark);
+        }
+
+        .badge-approved {
+            background: var(--gcc-green-light);
+            color: var(--gcc-green-primary);
+        }
+
+        .badge-completed {
+            background: var(--gcc-green-secondary);
+            color: white;
+        }
+
+        /* Diff View */
+        .diff-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .diff-old {
+            background: var(--admin-danger-light);
+            padding: 2px 6px;
+            border-radius: 3px;
+            text-decoration: line-through;
+            color: var(--admin-danger);
+            font-size: 13px;
+        }
+
+        .diff-new {
+            background: var(--gcc-green-light);
+            padding: 2px 6px;
+            border-radius: 3px;
+            color: var(--gcc-green-primary);
+            font-size: 13px;
+        }
+
+        /* Checkbox */
+        .checkbox-cell {
+            width: 40px;
+            text-align: center;
+        }
+
+        .checkbox-cell input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        /* Action Buttons in Table */
+        .action-btn {
+            background: none;
+            border: none;
+            padding: 6px 10px;
+            cursor: pointer;
+            border-radius: 4px;
+            color: var(--admin-text-secondary);
+            transition: all 0.2s;
+        }
+
+        .action-btn:hover {
+            background: var(--admin-bg-secondary);
+            color: var(--gcc-blue-dark);
+        }
+
+        .action-btn.danger:hover {
+            background: var(--admin-danger-light);
+            color: var(--admin-danger);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid var(--admin-border-primary);
+            padding: 0 30px;
+        }
+
+        .tab {
+            padding: 15px 25px;
+            border: none;
+            background: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--admin-text-secondary);
+            cursor: pointer;
+            position: relative;
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--gcc-blue-dark);
+        }
+
+        .tab.active {
+            color: var(--gcc-green-secondary);
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--gcc-green-secondary);
+            border-radius: 3px 3px 0 0;
+        }
+
+        .tab-badge {
+            background: var(--gcc-green-light);
+            color: var(--gcc-green-primary);
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        .tab-badge.error {
+            background: var(--admin-danger-light);
+            color: var(--admin-danger);
+        }
+
+        /* Footer Actions */
+        .admin-footer {
+            padding: 20px 30px;
+            background: var(--admin-bg-secondary);
+            border-top: 1px solid var(--admin-border-primary);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .selection-info {
+            color: var(--admin-text-secondary);
+            font-size: 14px;
+        }
+
+        /* Modal Overlay */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(3px);
+            z-index: 9998;
+            display: none;
+        }
+
+        .modal-backdrop.show {
+            display: block;
+        }
+
+        .modal-container {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            border-radius: 12px;
+            max-width: 900px;
+            width: 95%;
+            max-height: 90vh;
+            overflow: hidden;
+            z-index: 9999;
+            display: none;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+
+        .modal-container.show {
+            display: block;
+        }
+
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 2px solid #e9ecef;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-header h3 {
+            color: var(--gcc-blue-dark);
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--admin-text-secondary);
+            padding: 5px;
+        }
+
+        .modal-body {
+            padding: 25px;
+            max-height: calc(90vh - 150px);
+            overflow-y: auto;
+        }
+
+        .modal-footer {
+            padding: 20px 25px;
+            border-top: 2px solid #e9ecef;
+            background: #f8f9fa;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* Conflict Resolution */
+        .conflict-item {
+            background: var(--admin-warning-light);
+            border: 1px solid var(--admin-warning);
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .conflict-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .conflict-title {
+            font-weight: 600;
+            color: var(--admin-text-primary);
+        }
+
+        .conflict-options {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .conflict-options label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 15px;
+            background: white;
+            border: 1px solid var(--admin-border-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .conflict-options label:hover {
+            border-color: var(--gcc-green-secondary);
+        }
+
+        .conflict-options input[type="radio"]:checked + span {
+            color: var(--gcc-green-primary);
+            font-weight: 500;
+        }
+
+        /* Queue Status */
+        .queue-status {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 15px;
+            background: var(--gcc-blue-light);
+            border-radius: 8px;
+            margin: 20px 30px;
+        }
+
+        .queue-status i {
+            font-size: 24px;
+            color: var(--gcc-blue-dark);
+        }
+
+        .queue-status-text h4 {
+            margin: 0;
+            color: var(--gcc-blue-dark);
+        }
+
+        .queue-status-text p {
+            margin: 5px 0 0;
+            color: var(--admin-text-secondary);
+            font-size: 14px;
+        }
+
+        /* Timeline */
+        .timeline {
+            padding: 20px 30px;
+        }
+
+        .timeline-item {
+            display: flex;
+            gap: 15px;
+            padding-bottom: 20px;
+            position: relative;
+        }
+
+        .timeline-item:not(:last-child)::before {
+            content: '';
+            position: absolute;
+            left: 15px;
+            top: 35px;
+            bottom: 0;
+            width: 2px;
+            background: var(--admin-border-primary);
+        }
+
+        .timeline-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--gcc-green-light);
+            color: var(--gcc-green-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .timeline-icon.pending {
+            background: var(--gcc-blue-light);
+            color: var(--gcc-blue-dark);
+        }
+
+        .timeline-content h4 {
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .timeline-content p {
+            margin: 5px 0 0;
+            font-size: 13px;
+            color: var(--admin-text-secondary);
+        }
+
+        /* Filter Bar */
+        .filter-bar {
+            display: flex;
+            gap: 15px;
+            padding: 15px 30px;
+            background: var(--admin-bg-secondary);
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-bar select,
+        .filter-bar input[type="text"],
+        .filter-bar input[type="date"] {
+            padding: 8px 12px;
+            border: 1px solid var(--admin-border-primary);
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+
+        /* Pros/Cons */
+        .pros-cons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .pros, .cons {
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .pros {
+            background: var(--gcc-green-light);
+            border: 1px solid var(--gcc-green-secondary);
+        }
+
+        .cons {
+            background: var(--admin-danger-light);
+            border: 1px solid var(--admin-danger);
+        }
+
+        .pros h4, .cons h4 {
+            margin: 0 0 10px;
+            font-size: 14px;
+        }
+
+        .pros h4 { color: var(--gcc-green-primary); }
+        .cons h4 { color: var(--admin-danger); }
+
+        .pros ul, .cons ul {
+            margin: 0;
+            padding-left: 20px;
+            font-size: 13px;
+        }
+
+        .pros li, .cons li {
+            margin-bottom: 5px;
+        }
+
+        /* Entity Type Select */
+        .entity-type-tabs {
+            display: flex;
+            gap: 10px;
+            padding: 15px 30px;
+            background: white;
+            border-bottom: 1px solid var(--admin-border-primary);
+        }
+
+        .entity-tab {
+            padding: 8px 16px;
+            border: 1px solid var(--admin-border-primary);
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .entity-tab:hover {
+            border-color: var(--gcc-green-secondary);
+        }
+
+        .entity-tab.active {
+            background: var(--gcc-green-secondary);
+            color: white;
+            border-color: var(--gcc-green-secondary);
+        }
+    </style>
+</head>
+<body>
+    <nav class="mockup-nav">
+        <h1><i class="fas fa-file-import"></i> Import Review System - Design Options</h1>
+        <ul class="nav-tabs">
+            <li><a href="#option-a" class="active" onclick="showOption('option-a', this)">Option A: Unified</a></li>
+            <li><a href="#option-b" onclick="showOption('option-b', this)">Option B: Modal</a></li>
+            <li><a href="#option-c" onclick="showOption('option-c', this)">Option C: Queue</a></li>
+            <li><a href="#option-d" onclick="showOption('option-d', this)">Option D: Hybrid</a></li>
+        </ul>
+    </nav>
+
+    <!-- OPTION A: Unified Import Management Page -->
+    <div id="option-a" class="mockup-container active">
+        <h2 class="mockup-title">Option A: Unified Import Management Page</h2>
+        <div class="mockup-description">
+            <strong>Concept:</strong> Single admin page (<code>/Admin/ImportManagement</code>) that handles ALL entity imports (Tags, Users, Companies, Products) with upload, preview, diff view, and conflict resolution.
+            <div class="pros-cons">
+                <div class="pros">
+                    <h4><i class="fas fa-check"></i> Pros</h4>
+                    <ul>
+                        <li>Consistent experience across all imports</li>
+                        <li>Single place to learn and use</li>
+                        <li>Full control over what gets imported</li>
+                        <li>Built-in conflict resolution</li>
+                    </ul>
+                </div>
+                <div class="cons">
+                    <h4><i class="fas fa-times"></i> Cons</h4>
+                    <ul>
+                        <li>More complex to build initially</li>
+                        <li>Users navigate away from entity pages</li>
+                        <li>Larger upfront development effort</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-container">
+            <div class="admin-header">
+                <div>
+                    <h1 class="admin-title">Import Management</h1>
+                    <p class="admin-subtitle">Upload, preview, and apply bulk data imports</p>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-secondary"><i class="fas fa-history"></i> Import History</button>
+                </div>
+            </div>
+
+            <!-- Entity Type Selection -->
+            <div class="entity-type-tabs">
+                <button class="entity-tab active"><i class="fas fa-tags"></i> Tags</button>
+                <button class="entity-tab"><i class="fas fa-users"></i> Users</button>
+                <button class="entity-tab"><i class="fas fa-building"></i> Companies</button>
+                <button class="entity-tab"><i class="fas fa-box"></i> Products</button>
+                <button class="entity-tab"><i class="fas fa-certificate"></i> Certificates</button>
+            </div>
+
+            <!-- Upload Zone -->
+            <div class="upload-zone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <h3>Drop your CSV file here or click to browse</h3>
+                <p>Supported formats: CSV, Excel (.xlsx). Max file size: 10MB</p>
+                <button class="btn btn-primary" style="margin-top: 15px;"><i class="fas fa-file-csv"></i> Download Template</button>
+            </div>
+
+            <!-- Preview Results (shown after upload) -->
+            <div class="stats-row">
+                <div class="stat-card new">
+                    <div class="stat-number">12</div>
+                    <div class="stat-label">New Records</div>
+                </div>
+                <div class="stat-card modified">
+                    <div class="stat-number">5</div>
+                    <div class="stat-label">Will be Updated</div>
+                </div>
+                <div class="stat-card unchanged">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">No Changes</div>
+                </div>
+                <div class="stat-card error">
+                    <div class="stat-number">2</div>
+                    <div class="stat-label">Errors</div>
+                </div>
+            </div>
+
+            <!-- Tabs for different row types -->
+            <div class="tabs">
+                <button class="tab active">New <span class="tab-badge">12</span></button>
+                <button class="tab">Modified <span class="tab-badge">5</span></button>
+                <button class="tab">Unchanged <span class="tab-badge">8</span></button>
+                <button class="tab">Errors <span class="tab-badge error">2</span></button>
+            </div>
+
+            <!-- Preview Table -->
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th class="checkbox-cell"><input type="checkbox" checked></th>
+                        <th>Row</th>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox" checked></td>
+                        <td>2</td>
+                        <td>Eco-Friendly</td>
+                        <td>External</td>
+                        <td>Products with eco certifications</td>
+                        <td><span class="badge badge-new"><i class="fas fa-plus"></i> New</span></td>
+                        <td>
+                            <button class="action-btn" title="View Details"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn danger" title="Exclude"><i class="fas fa-times"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="checkbox-cell"><input type="checkbox" checked></td>
+                        <td>3</td>
+                        <td>Recycled Content</td>
+                        <td>External</td>
+                        <td>Made with recycled materials</td>
+                        <td><span class="badge badge-new"><i class="fas fa-plus"></i> New</span></td>
+                        <td>
+                            <button class="action-btn" title="View Details"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn danger" title="Exclude"><i class="fas fa-times"></i></button>
+                        </td>
+                    </tr>
+                    <tr style="background: var(--admin-warning-light);">
+                        <td class="checkbox-cell"><input type="checkbox" checked></td>
+                        <td>4</td>
+                        <td>Sustainable</td>
+                        <td>
+                            <div class="diff-cell">
+                                <span class="diff-old">Internal</span>
+                                <span class="diff-new">External</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="diff-cell">
+                                <span class="diff-old">Sustainable products</span>
+                                <span class="diff-new">Products meeting sustainability standards</span>
+                            </div>
+                        </td>
+                        <td><span class="badge badge-modified"><i class="fas fa-edit"></i> Modified</span></td>
+                        <td>
+                            <button class="action-btn" title="View Diff"><i class="fas fa-columns"></i></button>
+                            <button class="action-btn danger" title="Exclude"><i class="fas fa-times"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="admin-footer">
+                <div class="selection-info">
+                    <input type="checkbox" checked> <strong>17</strong> of 27 rows selected for import
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-secondary"><i class="fas fa-times"></i> Cancel</button>
+                    <button class="btn btn-primary"><i class="fas fa-check"></i> Apply Import (17 records)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPTION B: Import Preview Modal -->
+    <div id="option-b" class="mockup-container">
+        <h2 class="mockup-title">Option B: Import Preview Modal</h2>
+        <div class="mockup-description">
+            <strong>Concept:</strong> Keep imports on existing entity pages (Tags, Users, etc.) but add a preview modal that shows parsed data, validation, and conflicts before applying.
+            <div class="pros-cons">
+                <div class="pros">
+                    <h4><i class="fas fa-check"></i> Pros</h4>
+                    <ul>
+                        <li>Familiar workflow for users</li>
+                        <li>No navigation required</li>
+                        <li>Faster to implement per entity</li>
+                        <li>Context stays on entity page</li>
+                    </ul>
+                </div>
+                <div class="cons">
+                    <h4><i class="fas fa-times"></i> Cons</h4>
+                    <ul>
+                        <li>Repeated implementation per entity</li>
+                        <li>Modal can feel cramped for large imports</li>
+                        <li>No central import history view</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulated Tags Page Behind Modal -->
+        <div class="admin-container" style="opacity: 0.5;">
+            <div class="admin-header">
+                <div>
+                    <h1 class="admin-title">Tag Management</h1>
+                    <p class="admin-subtitle">Manage tags for certificates</p>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-secondary"><i class="fas fa-file-download"></i> Template</button>
+                    <button class="btn btn-secondary"><i class="fas fa-upload"></i> Import</button>
+                    <button class="btn btn-secondary"><i class="fas fa-download"></i> Export</button>
+                    <button class="btn btn-primary"><i class="fas fa-plus"></i> Add Tag</button>
+                </div>
+            </div>
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Sustainable</td>
+                        <td><span class="badge badge-approved">External</span></td>
+                        <td>Sustainable products</td>
+                        <td>...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Modal Overlay -->
+        <div class="modal-backdrop show"></div>
+        <div class="modal-container show">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-import"></i> Import Preview - Tags</h3>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <!-- Stats -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+                    <div class="stat-card new" style="padding: 15px;">
+                        <div class="stat-number" style="font-size: 24px;">3</div>
+                        <div class="stat-label">New</div>
+                    </div>
+                    <div class="stat-card modified" style="padding: 15px;">
+                        <div class="stat-number" style="font-size: 24px;">1</div>
+                        <div class="stat-label">Modified</div>
+                    </div>
+                    <div class="stat-card unchanged" style="padding: 15px;">
+                        <div class="stat-number" style="font-size: 24px;">2</div>
+                        <div class="stat-label">Unchanged</div>
+                    </div>
+                    <div class="stat-card error" style="padding: 15px;">
+                        <div class="stat-number" style="font-size: 24px;">1</div>
+                        <div class="stat-label">Errors</div>
+                    </div>
+                </div>
+
+                <!-- Conflict Resolution -->
+                <div class="conflict-item">
+                    <div class="conflict-header">
+                        <span class="conflict-title"><i class="fas fa-exclamation-triangle"></i> Conflict: "Sustainable" already exists</span>
+                    </div>
+                    <p style="font-size: 14px; color: var(--admin-text-secondary); margin-bottom: 10px;">
+                        The tag "Sustainable" exists with different values. How would you like to handle this?
+                    </p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 13px;">
+                        <div>
+                            <strong>Existing:</strong><br>
+                            Type: Internal<br>
+                            Description: Sustainable products
+                        </div>
+                        <div>
+                            <strong>Import File:</strong><br>
+                            Type: External<br>
+                            Description: Products meeting sustainability standards
+                        </div>
+                    </div>
+                    <div class="conflict-options">
+                        <label><input type="radio" name="conflict1"> <span>Skip (keep existing)</span></label>
+                        <label><input type="radio" name="conflict1" checked> <span>Overwrite with new</span></label>
+                        <label><input type="radio" name="conflict1"> <span>Create duplicate</span></label>
+                    </div>
+                </div>
+
+                <!-- Preview Table -->
+                <table class="admin-table" style="font-size: 13px;">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell"><input type="checkbox" checked></th>
+                            <th>Row</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="checkbox-cell"><input type="checkbox" checked></td>
+                            <td>2</td>
+                            <td>Eco-Friendly</td>
+                            <td>External</td>
+                            <td><span class="badge badge-new">New</span></td>
+                        </tr>
+                        <tr>
+                            <td class="checkbox-cell"><input type="checkbox" checked></td>
+                            <td>3</td>
+                            <td>Recycled</td>
+                            <td>External</td>
+                            <td><span class="badge badge-new">New</span></td>
+                        </tr>
+                        <tr style="background: var(--admin-danger-light);">
+                            <td class="checkbox-cell"><input type="checkbox" disabled></td>
+                            <td>4</td>
+                            <td style="color: var(--admin-danger);">Invalid-Tag-Name!!!</td>
+                            <td>???</td>
+                            <td><span class="badge badge-error">Invalid characters</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary">Cancel</button>
+                <button class="btn btn-primary"><i class="fas fa-check"></i> Import 4 Records</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPTION C: Import Queue -->
+    <div id="option-c" class="mockup-container">
+        <h2 class="mockup-title">Option C: Staged Import with Queue</h2>
+        <div class="mockup-description">
+            <strong>Concept:</strong> Background processing workflow where imports are uploaded, queued for admin review, then approved/rejected before processing.
+            <div class="pros-cons">
+                <div class="pros">
+                    <h4><i class="fas fa-check"></i> Pros</h4>
+                    <ul>
+                        <li>Better for large imports</li>
+                        <li>Async processing doesn't block UI</li>
+                        <li>Full audit compliance</li>
+                        <li>Multiple approvers possible</li>
+                    </ul>
+                </div>
+                <div class="cons">
+                    <h4><i class="fas fa-times"></i> Cons</h4>
+                    <ul>
+                        <li>More complex architecture</li>
+                        <li>Longer workflow for simple imports</li>
+                        <li>Requires background job processing</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-container">
+            <div class="admin-header">
+                <div>
+                    <h1 class="admin-title">Import Queue</h1>
+                    <p class="admin-subtitle">Review and approve pending imports</p>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary"><i class="fas fa-plus"></i> New Import</button>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="filter-bar">
+                <select>
+                    <option>All Entity Types</option>
+                    <option>Tags</option>
+                    <option>Users</option>
+                    <option>Companies</option>
+                    <option>Products</option>
+                </select>
+                <select>
+                    <option>All Statuses</option>
+                    <option>Pending Review</option>
+                    <option>Approved</option>
+                    <option>Rejected</option>
+                    <option>Processing</option>
+                    <option>Completed</option>
+                </select>
+                <input type="date" placeholder="From Date">
+                <input type="date" placeholder="To Date">
+                <button class="btn btn-secondary"><i class="fas fa-search"></i> Filter</button>
+            </div>
+
+            <!-- Queue Table -->
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Import ID</th>
+                        <th>Entity Type</th>
+                        <th>File</th>
+                        <th>Records</th>
+                        <th>Uploaded By</th>
+                        <th>Uploaded At</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>IMP-2024-001</code></td>
+                        <td><i class="fas fa-tags"></i> Tags</td>
+                        <td>tags_import_dec2024.csv</td>
+                        <td>27 rows (12 new, 5 modified)</td>
+                        <td>admin@gcc.com</td>
+                        <td>Dec 7, 2024 10:30 AM</td>
+                        <td><span class="badge badge-pending"><i class="fas fa-clock"></i> Pending Review</span></td>
+                        <td>
+                            <button class="btn btn-primary" style="padding: 6px 12px; font-size: 13px;"><i class="fas fa-eye"></i> Review</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>IMP-2024-002</code></td>
+                        <td><i class="fas fa-users"></i> Users</td>
+                        <td>new_users_batch.csv</td>
+                        <td>15 rows (15 new)</td>
+                        <td>admin@gcc.com</td>
+                        <td>Dec 7, 2024 09:15 AM</td>
+                        <td><span class="badge badge-approved"><i class="fas fa-check"></i> Approved</span></td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px;"><i class="fas fa-play"></i> Process</button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>IMP-2024-003</code></td>
+                        <td><i class="fas fa-building"></i> Companies</td>
+                        <td>companies_update.csv</td>
+                        <td>50 rows (10 new, 40 modified)</td>
+                        <td>analyst@gcc.com</td>
+                        <td>Dec 6, 2024 4:45 PM</td>
+                        <td><span class="badge badge-completed"><i class="fas fa-check-double"></i> Completed</span></td>
+                        <td>
+                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px;"><i class="fas fa-history"></i> View Log</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Import Detail View (Expanded) -->
+            <div style="margin: 20px 30px; border: 2px solid var(--gcc-green-secondary); border-radius: 12px; overflow: hidden;">
+                <div style="background: var(--gcc-green-light); padding: 15px 20px; border-bottom: 1px solid var(--gcc-green-secondary);">
+                    <h3 style="margin: 0; color: var(--gcc-green-primary);"><i class="fas fa-file-import"></i> Import Detail: IMP-2024-001</h3>
+                </div>
+
+                <!-- Timeline -->
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-icon"><i class="fas fa-upload"></i></div>
+                        <div class="timeline-content">
+                            <h4>File Uploaded</h4>
+                            <p>tags_import_dec2024.csv uploaded by admin@gcc.com</p>
+                            <p style="color: var(--admin-text-muted);">Dec 7, 2024 10:30 AM</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-icon"><i class="fas fa-check-circle"></i></div>
+                        <div class="timeline-content">
+                            <h4>Validation Complete</h4>
+                            <p>27 rows parsed: 12 new, 5 modified, 8 unchanged, 2 errors</p>
+                            <p style="color: var(--admin-text-muted);">Dec 7, 2024 10:30 AM</p>
+                        </div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="timeline-icon pending"><i class="fas fa-hourglass-half"></i></div>
+                        <div class="timeline-content">
+                            <h4>Awaiting Approval</h4>
+                            <p>Waiting for admin review and approval</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="padding: 20px; background: var(--admin-bg-secondary); display: flex; justify-content: flex-end; gap: 10px;">
+                    <button class="btn btn-danger"><i class="fas fa-times"></i> Reject Import</button>
+                    <button class="btn btn-primary"><i class="fas fa-check"></i> Approve & Process</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- OPTION D: Hybrid -->
+    <div id="option-d" class="mockup-container">
+        <h2 class="mockup-title">Option D: Hybrid - Preview + History (Recommended)</h2>
+        <div class="mockup-description">
+            <strong>Concept:</strong> Combines the best of both worlds: Enhanced import flow with preview modal on existing pages, PLUS a central Import History page for reviewing past imports and audit trails.
+            <div class="pros-cons">
+                <div class="pros">
+                    <h4><i class="fas fa-check"></i> Pros</h4>
+                    <ul>
+                        <li>Immediate feedback during import</li>
+                        <li>Full audit trail accessible to admins</li>
+                        <li>Can be built incrementally</li>
+                        <li>Best user experience</li>
+                    </ul>
+                </div>
+                <div class="cons">
+                    <h4><i class="fas fa-times"></i> Cons</h4>
+                    <ul>
+                        <li>Two components to build</li>
+                        <li>Slightly more complex than modal-only</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <h3 style="margin: 20px 0 15px; color: var(--gcc-blue-dark);">Part 1: Enhanced Import Modal (on existing pages)</h3>
+
+        <!-- Simulated Tags Page with Modal -->
+        <div class="admin-container" style="opacity: 0.4; margin-bottom: 40px;">
+            <div class="admin-header">
+                <div>
+                    <h1 class="admin-title">Tag Management</h1>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-secondary"><i class="fas fa-upload"></i> Import</button>
+                    <button class="btn btn-primary"><i class="fas fa-plus"></i> Add Tag</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-backdrop show" style="position: relative; height: 500px; border-radius: 12px;"></div>
+        <div class="modal-container show" style="position: relative; top: 0; left: 50%; transform: translateX(-50%); margin-top: -480px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-import"></i> Import Preview - Tags</h3>
+                <button class="modal-close"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="max-height: 350px;">
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px;">
+                    <div class="stat-card new" style="padding: 12px;"><div class="stat-number" style="font-size: 20px;">3</div><div class="stat-label">New</div></div>
+                    <div class="stat-card modified" style="padding: 12px;"><div class="stat-number" style="font-size: 20px;">1</div><div class="stat-label">Modified</div></div>
+                    <div class="stat-card unchanged" style="padding: 12px;"><div class="stat-number" style="font-size: 20px;">2</div><div class="stat-label">Unchanged</div></div>
+                    <div class="stat-card error" style="padding: 12px;"><div class="stat-number" style="font-size: 20px;">1</div><div class="stat-label">Errors</div></div>
+                </div>
+
+                <div class="conflict-item" style="padding: 12px;">
+                    <div class="conflict-header" style="margin-bottom: 8px;">
+                        <span class="conflict-title" style="font-size: 14px;"><i class="fas fa-exclamation-triangle"></i> "Sustainable" exists - how to handle?</span>
+                    </div>
+                    <div class="conflict-options" style="margin-top: 8px;">
+                        <label style="padding: 6px 12px; font-size: 13px;"><input type="radio" name="conflict-d"> <span>Skip</span></label>
+                        <label style="padding: 6px 12px; font-size: 13px;"><input type="radio" name="conflict-d" checked> <span>Overwrite</span></label>
+                    </div>
+                </div>
+
+                <table class="admin-table" style="font-size: 12px;">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell"><input type="checkbox" checked></th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="checkbox-cell"><input type="checkbox" checked></td>
+                            <td>Eco-Friendly</td>
+                            <td>External</td>
+                            <td><span class="badge badge-new">New</span></td>
+                        </tr>
+                        <tr>
+                            <td class="checkbox-cell"><input type="checkbox" checked></td>
+                            <td>Recycled</td>
+                            <td>External</td>
+                            <td><span class="badge badge-new">New</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary">Cancel</button>
+                <button class="btn btn-primary"><i class="fas fa-check"></i> Import 4 Records</button>
+            </div>
+        </div>
+
+        <h3 style="margin: 40px 0 15px; color: var(--gcc-blue-dark);">Part 2: Import History Page (/Admin/ImportHistory)</h3>
+
+        <div class="admin-container">
+            <div class="admin-header">
+                <div>
+                    <h1 class="admin-title">Import History</h1>
+                    <p class="admin-subtitle">View all past imports with full audit trail</p>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-secondary"><i class="fas fa-download"></i> Export Report</button>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <input type="text" placeholder="Search imports...">
+                <select>
+                    <option>All Entity Types</option>
+                    <option>Tags</option>
+                    <option>Users</option>
+                    <option>Companies</option>
+                </select>
+                <select>
+                    <option>All Users</option>
+                    <option>admin@gcc.com</option>
+                    <option>analyst@gcc.com</option>
+                </select>
+                <input type="date">
+                <input type="date">
+            </div>
+
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Import ID</th>
+                        <th>Entity Type</th>
+                        <th>Results</th>
+                        <th>Imported By</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><code>IMP-2024-047</code></td>
+                        <td><i class="fas fa-tags"></i> Tags</td>
+                        <td>
+                            <span style="color: var(--gcc-green-primary);"><i class="fas fa-plus"></i> 3 created</span>
+                            <span style="color: var(--admin-warning); margin-left: 10px;"><i class="fas fa-edit"></i> 1 updated</span>
+                            <span style="color: var(--admin-danger); margin-left: 10px;"><i class="fas fa-times"></i> 1 failed</span>
+                        </td>
+                        <td>admin@gcc.com</td>
+                        <td>Dec 7, 2024 10:45 AM</td>
+                        <td>
+                            <button class="action-btn" title="View Details"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn" title="View Audit Log"><i class="fas fa-history"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>IMP-2024-046</code></td>
+                        <td><i class="fas fa-building"></i> Companies</td>
+                        <td>
+                            <span style="color: var(--gcc-green-primary);"><i class="fas fa-plus"></i> 12 created</span>
+                            <span style="color: var(--admin-warning); margin-left: 10px;"><i class="fas fa-edit"></i> 5 updated</span>
+                        </td>
+                        <td>analyst@gcc.com</td>
+                        <td>Dec 6, 2024 3:20 PM</td>
+                        <td>
+                            <button class="action-btn" title="View Details"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn" title="View Audit Log"><i class="fas fa-history"></i></button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><code>IMP-2024-045</code></td>
+                        <td><i class="fas fa-users"></i> Users</td>
+                        <td>
+                            <span style="color: var(--gcc-green-primary);"><i class="fas fa-plus"></i> 8 created</span>
+                        </td>
+                        <td>admin@gcc.com</td>
+                        <td>Dec 5, 2024 11:00 AM</td>
+                        <td>
+                            <button class="action-btn" title="View Details"><i class="fas fa-eye"></i></button>
+                            <button class="action-btn" title="View Audit Log"><i class="fas fa-history"></i></button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <!-- Import Detail Expanded -->
+            <div style="margin: 20px 30px; border: 1px solid var(--admin-border-primary); border-radius: 8px; overflow: hidden;">
+                <div style="background: var(--admin-bg-secondary); padding: 12px 20px; border-bottom: 1px solid var(--admin-border-primary); display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="margin: 0;"><i class="fas fa-info-circle"></i> Import Details: IMP-2024-047</h4>
+                    <span class="badge badge-completed">Completed</span>
+                </div>
+                <div style="padding: 20px;">
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 20px;">
+                        <div><strong>Entity Type:</strong><br>Tags</div>
+                        <div><strong>File:</strong><br>tags_dec2024.csv</div>
+                        <div><strong>Imported By:</strong><br>admin@gcc.com</div>
+                        <div><strong>Duration:</strong><br>1.2 seconds</div>
+                    </div>
+
+                    <h5 style="margin: 20px 0 10px;">Records Affected:</h5>
+                    <table class="admin-table" style="font-size: 13px;">
+                        <thead>
+                            <tr>
+                                <th>Record</th>
+                                <th>Action</th>
+                                <th>Changes</th>
+                                <th>Audit Link</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Eco-Friendly (ID: 45)</td>
+                                <td><span class="badge badge-new">Created</span></td>
+                                <td>-</td>
+                                <td><a href="#" style="color: var(--gcc-blue-dark);"><i class="fas fa-external-link-alt"></i> View</a></td>
+                            </tr>
+                            <tr>
+                                <td>Sustainable (ID: 12)</td>
+                                <td><span class="badge badge-modified">Updated</span></td>
+                                <td>Type: Internal → External</td>
+                                <td><a href="#" style="color: var(--gcc-blue-dark);"><i class="fas fa-external-link-alt"></i> View</a></td>
+                            </tr>
+                            <tr style="background: var(--admin-danger-light);">
+                                <td>Invalid-Tag!!!</td>
+                                <td><span class="badge badge-error">Failed</span></td>
+                                <td>Invalid characters in name</td>
+                                <td>-</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showOption(id, link) {
+            // Hide all containers
+            document.querySelectorAll('.mockup-container').forEach(c => c.classList.remove('active'));
+            // Remove active from all tabs
+            document.querySelectorAll('.nav-tabs a').forEach(a => a.classList.remove('active'));
+            // Show selected
+            document.getElementById(id).classList.add('active');
+            link.classList.add('active');
+        }
+    </script>
+</body>
+</html>

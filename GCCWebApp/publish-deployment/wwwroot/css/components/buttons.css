@@ -1,0 +1,478 @@
+/* =============================================================================
+   BUTTON SYSTEM - SINGLE SOURCE OF TRUTH
+
+   ALL button styles defined here. DO NOT define buttons in other CSS files.
+   This file includes backwards-compatible aliases for existing class names.
+
+   Usage:
+   - Primary (Save, Submit, Add):    class="btn btn--primary"
+   - Secondary (Cancel, Close):      class="btn btn--secondary"
+   - Danger (Delete ONLY):           class="btn btn--danger"
+   - Outline (Export, Import):       class="btn btn--outline"
+   - Blue (Alternative actions):     class="btn btn--blue"
+
+   Last Updated: January 2026
+   ============================================================================= */
+
+/* =============================================================================
+   BASE BUTTON
+   ============================================================================= */
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm, 8px);
+    padding: 10px 20px;
+    font-family: var(--font-family, inherit);
+    font-size: var(--font-size-sm, 14px);
+    font-weight: var(--font-weight-medium, 500);
+    line-height: var(--line-height-normal, 1.5);
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+    border-radius: var(--border-radius, 6px);
+    transition: all var(--transition-normal, 0.2s ease);
+    min-height: 40px;
+}
+
+.btn:focus {
+    outline: 2px solid var(--color-blue, #00AEEF);
+    outline-offset: 2px;
+}
+
+.btn:disabled,
+.btn.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* =============================================================================
+   PRIMARY BUTTON - Save, Submit, Add New
+   Color: Green (#92C83E)
+   ============================================================================= */
+
+.btn--primary,
+.btn-primary,
+.admin-btn--primary,
+.admin-btn.admin-btn--primary,
+.btn-add,
+.btn-save {
+    background-color: var(--color-primary, #92C83E);
+    border-color: var(--color-primary, #92C83E);
+    color: var(--text-light, #ffffff);
+}
+
+.btn--primary:hover,
+.btn-primary:hover,
+.admin-btn--primary:hover,
+.admin-btn.admin-btn--primary:hover,
+.btn-add:hover,
+.btn-save:hover {
+    background-color: var(--color-primary-hover, #7fb835);
+    border-color: var(--color-primary-hover, #7fb835);
+    color: var(--text-light, #ffffff);
+}
+
+.btn--primary:active,
+.btn-primary:active,
+.admin-btn--primary:active {
+    background-color: var(--color-primary-dark, #447638);
+    border-color: var(--color-primary-dark, #447638);
+}
+
+/* =============================================================================
+   SECONDARY BUTTON - Cancel, Close, Back
+   Color: Grey (#6c757d) - NEVER RED
+   ============================================================================= */
+
+.btn--secondary,
+.btn-secondary,
+.admin-btn--secondary,
+.admin-btn.admin-btn--secondary,
+.btn-cancel,
+.btn-close,
+.company-btn-cancel,
+.partners-btn-cancel,
+.admin-action-btn--cancel {
+    background-color: transparent;
+    border-color: var(--color-grey, #6c757d);
+    color: var(--color-grey, #6c757d);
+}
+
+.btn--secondary:hover,
+.btn-secondary:hover,
+.admin-btn--secondary:hover,
+.admin-btn.admin-btn--secondary:hover,
+.btn-cancel:hover,
+.btn-close:hover,
+.company-btn-cancel:hover,
+.partners-btn-cancel:hover,
+.admin-action-btn--cancel:hover {
+    background-color: rgba(108, 117, 125, 0.1);
+    border-color: var(--color-grey-hover, #5a6268);
+    color: var(--color-grey-hover, #5a6268);
+}
+
+.btn--secondary:active,
+.btn-secondary:active,
+.admin-btn--secondary:active {
+    background-color: rgba(108, 117, 125, 0.2);
+}
+
+/* =============================================================================
+   DANGER BUTTON - DELETE ONLY (Never use for Cancel)
+   Color: Red (#FF5252)
+   ============================================================================= */
+
+.btn--danger,
+.btn-danger,
+.admin-btn--danger,
+.admin-btn.admin-btn--danger,
+.btn-delete {
+    background-color: var(--color-danger, #FF5252);
+    border-color: var(--color-danger, #FF5252);
+    color: var(--text-light, #ffffff);
+}
+
+.btn--danger:hover,
+.btn-danger:hover,
+.admin-btn--danger:hover,
+.admin-btn.admin-btn--danger:hover,
+.btn-delete:hover {
+    background-color: var(--color-danger-hover, #e04545);
+    border-color: var(--color-danger-hover, #e04545);
+    color: var(--text-light, #ffffff);
+}
+
+.btn--danger:active,
+.btn-danger:active,
+.admin-btn--danger:active {
+    background-color: #d63030;
+    border-color: #d63030;
+}
+
+/* =============================================================================
+   OUTLINE BUTTON - Export, Import, Template (Tertiary)
+   Color: Dark Green border (#447638)
+   ============================================================================= */
+
+.btn--outline,
+.btn-outline,
+.btn-tertiary,
+.admin-btn--tertiary {
+    background-color: transparent;
+    border-color: var(--color-primary-dark, #447638);
+    border-width: 2px;
+    color: var(--color-primary-dark, #447638);
+}
+
+.btn--outline:hover,
+.btn-outline:hover,
+.btn-tertiary:hover,
+.admin-btn--tertiary:hover {
+    background-color: rgba(68, 118, 56, 0.1);
+    border-color: var(--color-primary-dark, #447638);
+    color: var(--color-primary-dark, #447638);
+}
+
+.btn--outline:active,
+.btn-outline:active,
+.btn-tertiary:active {
+    background-color: rgba(68, 118, 56, 0.2);
+}
+
+/* =============================================================================
+   BLUE BUTTON - Alternative actions, Info
+   Color: Blue (#00AEEF)
+   ============================================================================= */
+
+.btn--blue,
+.btn-secondary-blue,
+.admin-btn--blue,
+.btn-info {
+    background-color: var(--color-blue, #00AEEF);
+    border-color: var(--color-blue, #00AEEF);
+    color: var(--text-light, #ffffff);
+}
+
+.btn--blue:hover,
+.btn-secondary-blue:hover,
+.admin-btn--blue:hover,
+.btn-info:hover {
+    background-color: var(--color-blue-hover, #0095d8);
+    border-color: var(--color-blue-hover, #0095d8);
+    color: var(--text-light, #ffffff);
+}
+
+.btn--blue:active,
+.btn-secondary-blue:active,
+.admin-btn--blue:active {
+    background-color: #007bb5;
+    border-color: #007bb5;
+}
+
+/* =============================================================================
+   WARNING BUTTON
+   Color: Yellow (#FFC107)
+   ============================================================================= */
+
+.btn--warning,
+.btn-warning {
+    background-color: var(--color-warning, #FFC107);
+    border-color: var(--color-warning, #FFC107);
+    color: var(--text-primary, #212529);
+}
+
+.btn--warning:hover,
+.btn-warning:hover {
+    background-color: var(--color-warning-hover, #e5ac00);
+    border-color: var(--color-warning-hover, #e5ac00);
+    color: var(--text-primary, #212529);
+}
+
+/* =============================================================================
+   BUTTON SIZES
+   ============================================================================= */
+
+.btn--sm,
+.btn-sm,
+.admin-btn--sm {
+    padding: 6px 12px;
+    font-size: var(--font-size-xs, 13px);
+    min-height: 32px;
+    gap: var(--spacing-xs, 4px);
+}
+
+.btn--lg,
+.btn-lg,
+.admin-btn--lg {
+    padding: 14px 28px;
+    font-size: var(--font-size-base, 16px);
+    min-height: 48px;
+    gap: var(--spacing-sm, 8px);
+}
+
+/* =============================================================================
+   ICON BUTTONS (Table action buttons - Edit/Delete/View in rows)
+   ============================================================================= */
+
+.btn--icon,
+.action-btn,
+.admin-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-sm, 8px);
+    min-height: auto;
+    min-width: auto;
+    background: transparent;
+    border: none;
+    border-radius: var(--border-radius-sm, 4px);
+    color: var(--color-grey, #6c757d);
+    cursor: pointer;
+    transition: all var(--transition-normal, 0.2s ease);
+}
+
+.btn--icon:hover,
+.action-btn:hover,
+.admin-action-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+    transform: scale(1.1);
+}
+
+/* Icon button variants */
+.btn--icon.edit:hover,
+.action-btn.edit:hover,
+.admin-action-btn--edit:hover {
+    color: var(--color-blue, #00AEEF);
+    background-color: rgba(0, 174, 239, 0.1);
+}
+
+.btn--icon.delete:hover,
+.action-btn.delete:hover,
+.admin-action-btn--delete:hover {
+    color: var(--color-danger, #FF5252);
+    background-color: rgba(255, 82, 82, 0.1);
+}
+
+.btn--icon.view:hover,
+.action-btn.view:hover,
+.admin-action-btn--view:hover {
+    color: var(--color-primary, #92C83E);
+    background-color: rgba(146, 200, 62, 0.1);
+}
+
+.btn--icon.save:hover,
+.action-btn.save:hover,
+.admin-action-btn--save:hover {
+    color: var(--color-primary, #92C83E);
+    background-color: rgba(146, 200, 62, 0.1);
+}
+
+.btn--icon.cancel:hover,
+.action-btn.cancel:hover {
+    color: var(--color-grey-hover, #5a6268);
+    background-color: rgba(108, 117, 125, 0.1);
+}
+
+/* =============================================================================
+   BUTTON GROUPS
+   ============================================================================= */
+
+.btn-group,
+.admin-button-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-sm, 8px);
+}
+
+/* =============================================================================
+   TABLE ACTION COLUMNS (US-018)
+   Edit/Delete/View icons in table rows - MUST stay on same row
+   ============================================================================= */
+
+/* Action cell container (table td) */
+.actions-cell,
+.admin-table-td--actions,
+td.actions-col,
+td[data-label="Actions"] {
+    white-space: nowrap !important;
+    min-width: 80px !important;
+    text-align: center;
+    vertical-align: middle !important;
+}
+
+/* Action buttons container inside table cells - NO WRAP */
+.actions-cell .action-buttons,
+.actions-cell > div,
+td .action-buttons,
+.admin-inline-add-actions,
+.company-action-buttons,
+.company-edit-actions,
+.partners-edit-actions,
+.product-edit-actions {
+    display: inline-flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: var(--spacing-xs, 4px) !important;
+}
+
+/* Prevent action buttons from shrinking */
+.actions-cell .action-btn,
+.actions-cell .btn-edit,
+.actions-cell .btn-delete,
+.actions-cell .btn-view {
+    flex-shrink: 0 !important;
+}
+
+.btn-group--vertical {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+/* =============================================================================
+   FULL WIDTH BUTTON
+   ============================================================================= */
+
+.btn--block,
+.btn-block {
+    display: flex;
+    width: 100%;
+}
+
+/* =============================================================================
+   LOADING STATE
+   ============================================================================= */
+
+.btn--loading,
+.btn.loading {
+    position: relative;
+    color: transparent;
+    pointer-events: none;
+}
+
+.btn--loading::after,
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 50%;
+    animation: btn-spin 0.75s linear infinite;
+}
+
+@keyframes btn-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* =============================================================================
+   BACKWARDS COMPATIBILITY - Admin button base class
+   Maps .admin-btn to same base styles as .btn
+   ============================================================================= */
+
+.admin-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm, 8px);
+    padding: 10px 20px;
+    font-family: var(--font-family, inherit);
+    font-size: var(--font-size-sm, 14px);
+    font-weight: var(--font-weight-medium, 500);
+    line-height: var(--line-height-normal, 1.5);
+    text-align: center;
+    text-decoration: none;
+    white-space: nowrap;
+    vertical-align: middle;
+    cursor: pointer;
+    user-select: none;
+    border: 1px solid transparent;
+    border-radius: var(--border-radius, 6px);
+    transition: all var(--transition-normal, 0.2s ease);
+    min-height: 40px;
+}
+
+.admin-btn:focus {
+    outline: 2px solid var(--color-blue, #00AEEF);
+    outline-offset: 2px;
+}
+
+.admin-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* =============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .btn,
+    .admin-btn {
+        padding: 10px 16px;
+        font-size: var(--font-size-sm, 14px);
+    }
+
+    .btn--lg,
+    .btn-lg,
+    .admin-btn--lg {
+        padding: 12px 20px;
+        font-size: var(--font-size-sm, 14px);
+    }
+
+    .btn-group,
+    .admin-button-group {
+        gap: var(--spacing-xs, 4px);
+    }
+}

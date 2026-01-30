@@ -206,7 +206,12 @@
 }
 
 .cancel-btn {
-    color: #ff9800;
+    color: #6c757d;
+}
+
+.cancel-btn:hover {
+    color: #5a6268;
+    background-color: rgba(108, 117, 125, 0.1);
 }
 
 .action-buttons {

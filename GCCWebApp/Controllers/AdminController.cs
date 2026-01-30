@@ -632,11 +632,11 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var result = await _adminService.DeleteProductTypeAsync(id);
+                var (success, message) = await _adminService.DeleteProductTypeAsync(id);
                 return Json(new ApiResponse<object>
                 {
-                    Success = result,
-                    Message = result ? "Product type deleted successfully" : "Failed to delete product type"
+                    Success = success,
+                    Message = message
                 });
             }
             catch (Exception ex)

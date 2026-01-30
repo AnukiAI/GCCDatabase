@@ -1,18 +1,10 @@
 /* Certificate Create/Edit Form Styles - Matches company-management.css theme */
 /* Updated: 2025-12-03 - Grid layout fix - Widen container for 3-column layout */
+/* Updated: 2026-01-30 - Standardized to match other admin pages for consistent layout */
 
-/* ===== PAGE CONTAINER OVERRIDE FOR CERTIFICATE FORMS ===== */
-/* Override the default page-container max-width for certificate create/edit pages */
-body.role-admin .page-container:has(.admin-container),
-body.role-analyst .page-container:has(.admin-container) {
-    max-width: 1800px !important;
-    padding: 0 24px !important;
-}
-
-/* Hide layout page header when admin-container is present (it has its own header) */
-body:has(.admin-container) .page-header {
-    display: none !important;
-}
+/* ===== PAGE CONTAINER - Use standard admin page settings ===== */
+/* Page-header hiding is now handled by admin-mockup-override.css for all admin pages */
+/* Container width matches standard admin pages (calc(100% - 40px)) via admin-mockup-override.css */
 
 /* ===== ADMIN BUTTON STYLES (for header buttons) ===== */
 .admin-btn {
@@ -47,14 +39,18 @@ body:has(.admin-container) .page-header {
     align-items: center;
 }
 
-/* ===== FORM CONTAINER - Matches admin-container ===== */
-.form-container,
-.admin-container {
+/* ===== FORM CONTAINER - Extends admin-container styles ===== */
+/* Note: Base admin-container width/margin handled by admin-mockup-override.css */
+.form-container {
     background-color: #ffffff;
     padding: 32px;
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    width: 100%;
+}
+
+/* Certificate form needs more internal padding for complex layout */
+.admin-container .admin-content form {
+    padding: 0;
 }
 
 .form-header,

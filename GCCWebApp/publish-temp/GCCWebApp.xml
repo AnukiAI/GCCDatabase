@@ -1919,6 +1919,30 @@
         <member name="M:GCCWebApp.Migrations.AddMultipleSubcategoriesToCertificate.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
             <inheritdoc />
         </member>
+        <member name="T:GCCWebApp.Migrations.AllowDuplicateSubcategoryNamesUnderDifferentParents">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AllowDuplicateSubcategoryNamesUnderDifferentParents.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AllowDuplicateSubcategoryNamesUnderDifferentParents.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.AllowDuplicateSubcategoryNamesUnderDifferentParents.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="T:GCCWebApp.Migrations.ProductTypesPreventDuplicatesUnderSameParent">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.ProductTypesPreventDuplicatesUnderSameParent.Up(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.ProductTypesPreventDuplicatesUnderSameParent.Down(Microsoft.EntityFrameworkCore.Migrations.MigrationBuilder)">
+            <inheritdoc />
+        </member>
+        <member name="M:GCCWebApp.Migrations.ProductTypesPreventDuplicatesUnderSameParent.BuildTargetModel(Microsoft.EntityFrameworkCore.ModelBuilder)">
+            <inheritdoc />
+        </member>
         <member name="P:GCCWebApp.Models.CertificateTypeViewModel.ParentId">
             <summary>
             Parent certification type ID (null for top-level types)

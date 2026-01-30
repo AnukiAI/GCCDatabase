@@ -393,6 +393,12 @@
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Hide layout page-header when admin-container is present (admin pages use their own header) */
+/* This ensures consistent spacing across all admin pages */
+body:has(.admin-container) .page-header {
+    display: none !important;
+}
+
 .admin-content {
     margin-top: 0;
 }

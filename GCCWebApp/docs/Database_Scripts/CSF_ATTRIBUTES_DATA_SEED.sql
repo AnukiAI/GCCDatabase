@@ -35,91 +35,77 @@ BEGIN
 END
 
 -- CSF Attributes are stored in Tags table with TagType = 'csf'
-IF NOT EXISTS (SELECT 1 FROM dbo.Tags WHERE TagType = 'csf')
-BEGIN
-    SET IDENTITY_INSERT dbo.Tags ON;
+-- First remove any CSF attribute assignments from CertificateTag junction table
+DELETE ct
+FROM dbo.CertificateTag ct
+INNER JOIN dbo.Tags t ON ct.TagsId = t.Id
+WHERE t.TagType = 'csf';
+PRINT '✓ Removed CSF attribute assignments from certificates';
 
-    INSERT INTO dbo.Tags (Id, Name, TagType, Description, IsActive)
-    VALUES
-        -- Environmental Impact Attributes
-        (1001, 'Carbon Footprint', 'csf', 'Total greenhouse gas emissions in kg CO2 equivalent per unit', 1),
-        (1002, 'Water Consumption', 'csf', 'Total water used in production in liters per unit', 1),
-        (1003, 'Energy Consumption', 'csf', 'Total energy used in manufacturing in kWh per unit', 1),
-        (1004, 'Waste Generated', 'csf', 'Total waste produced during manufacturing in kg per unit', 1),
-        (1005, 'Air Quality Impact', 'csf', 'VOC and particulate emissions rating (1-10 scale)', 1),
+-- Then delete existing CSF attributes to ensure clean state
+DELETE FROM dbo.Tags WHERE TagType = 'csf';
+PRINT '✓ Cleared existing CSF Attributes';
 
-        -- Material Content Attributes
-        (1006, 'Recycled Content Percentage', 'csf', 'Percentage of recycled materials by weight (0-100%)', 1),
-        (1007, 'Post-Consumer Recycled Content', 'csf', 'Percentage of post-consumer recycled materials (0-100%)', 1),
-        (1008, 'Bio-Based Content Percentage', 'csf', 'Percentage of bio-based or renewable materials (0-100%)', 1),
-        (1009, 'Hazardous Material Free', 'csf', 'Indicates product is free of hazardous substances (Yes/No)', 1),
-        (1010, 'Heavy Metals Content', 'csf', 'Contains lead, cadmium, mercury, or other heavy metals (Yes/No/PPM level)', 1),
+SET IDENTITY_INSERT dbo.Tags ON;
 
-        -- Chemical Safety Attributes
-        (1011, 'VOC Emissions Level', 'csf', 'Volatile organic compound emissions in g/L', 1),
-        (1012, 'Formaldehyde Free', 'csf', 'Product contains no added formaldehyde (Yes/No)', 1),
-        (1013, 'Phthalate Free', 'csf', 'Product is free of phthalates (Yes/No)', 1),
-        (1014, 'BPA Free', 'csf', 'Product contains no Bisphenol A (Yes/No)', 1),
-        (1015, 'Flame Retardant Free', 'csf', 'Product contains no halogenated flame retardants (Yes/No)', 1),
+INSERT INTO dbo.Tags (Id, Name, TagType, Description, IsActive)
+VALUES
+    -- Material & Content Attributes
+    (1001, 'CSF: Biobased Content', 'csf', 'Product contains biobased or bio-derived materials', 1),
+    (1002, 'CSF: Closed Loop', 'csf', 'Product participates in closed loop manufacturing system', 1),
+    (1003, 'CSF: Dematerialization', 'csf', 'Product designed with reduced material usage', 1),
+    (1004, 'CSF: Recycled Content', 'csf', 'Product contains recycled materials', 1),
+    (1005, 'CSF: Recyclable Material', 'csf', 'Product materials can be recycled', 1),
+    (1006, 'CSF: Take Back Recycling Program', 'csf', 'Manufacturer offers take-back recycling program', 1),
 
-        -- Energy & Efficiency Attributes
-        (1016, 'Energy Efficiency Rating', 'csf', 'Energy efficiency classification (A+++ to G scale)', 1),
-        (1017, 'Annual Energy Cost', 'csf', 'Estimated annual energy cost in USD', 1),
-        (1018, 'Standby Power Consumption', 'csf', 'Power consumption in standby mode in watts', 1),
-        (1019, 'Operational Efficiency', 'csf', 'Percentage efficiency during normal operation (0-100%)', 1),
-        (1020, 'Energy Star Qualified', 'csf', 'Meets Energy Star program requirements (Yes/No)', 1),
+    -- Waste Reduction Attributes
+    (1007, 'CSF: Total Waste Reduction', 'csf', 'Product or process demonstrates total waste reduction', 1),
+    (1008, 'CSF: Waste to Landfill Reduction', 'csf', 'Product or process reduces waste sent to landfill', 1),
+    (1009, 'CSF: Waste Diversion from Landfill', 'csf', 'Product or process diverts waste from landfill', 1),
+    (1010, 'CSF: Zero Waste to Landfill', 'csf', 'Product or facility achieves zero waste to landfill', 1),
 
-        -- Product Lifecycle Attributes
-        (1021, 'Expected Product Lifespan', 'csf', 'Expected usable life in years', 1),
-        (1022, 'Recyclability Percentage', 'csf', 'Percentage of product that can be recycled at end of life (0-100%)', 1),
-        (1023, 'Biodegradable Components', 'csf', 'Percentage of biodegradable components (0-100%)', 1),
-        (1024, 'Disassembly Rating', 'csf', 'Ease of disassembly for recycling (1-10 scale)', 1),
-        (1025, 'Circular Economy Compatibility', 'csf', 'Product designed for circular economy principles (Yes/No)', 1),
+    -- Disclosure & Transparency Attributes
+    (1011, 'CSF: Food Transparency Disclosure', 'csf', 'Product provides food ingredient transparency', 1),
+    (1012, 'CSF: Low-Emitting Materials Disclosure', 'csf', 'Product discloses low-emitting materials information', 1),
+    (1013, 'CSF: Material Ingredient Reporting', 'csf', 'Product provides material ingredient reporting', 1),
+    (1014, 'CSF: Facility Employee Safety Programs', 'csf', 'Facility maintains employee safety programs', 1),
 
-        -- Social Responsibility Attributes
-        (1026, 'Fair Trade Certified', 'csf', 'Product meets fair trade standards (Yes/No)', 1),
-        (1027, 'Conflict-Free Materials', 'csf', 'Uses only conflict-free sourced materials (Yes/No)', 1),
-        (1028, 'Labor Standards Compliance', 'csf', 'Manufactured under fair labor conditions (Yes/No)', 1),
-        (1029, 'Local Sourcing Percentage', 'csf', 'Percentage of materials sourced within 500 miles (0-100%)', 1),
-        (1030, 'Community Impact Score', 'csf', 'Positive community impact rating (1-10 scale)', 1),
+    -- Energy & Carbon Attributes
+    (1015, 'CSF: Certified Energy Savings', 'csf', 'Product demonstrates certified energy savings', 1),
+    (1016, 'CSF: Embodied Carbon Disclosures', 'csf', 'Product discloses embodied carbon information', 1),
+    (1017, 'CSF: Environmental Product Declaration', 'csf', 'Product has Environmental Product Declaration (EPD)', 1),
+    (1018, 'CSF: Product Carbon Footprint', 'csf', 'Product carbon footprint has been measured and disclosed', 1),
+    (1019, 'CSF: Facility Carbon Emissions Reduction', 'csf', 'Facility demonstrates carbon emissions reduction', 1),
+    (1020, 'CSF: Facility Carbon Neutral', 'csf', 'Facility is carbon neutral for Scope 1 and Scope 2 emissions', 1),
+    (1021, 'CSF: Life Cycle Assessment Optimized', 'csf', 'Product optimized through Life Cycle Assessment', 1),
+    (1022, 'CSF: Carbon Footprint Reduction', 'csf', 'Product optimized for carbon footprint reduction', 1),
 
-        -- Certification & Standards Attributes
-        (1031, 'FSC Certified', 'csf', 'Forest Stewardship Council certified (Yes/No)', 1),
-        (1032, 'PEFC Certified', 'csf', 'Programme for the Endorsement of Forest Certification (Yes/No)', 1),
-        (1033, 'SFI Certified', 'csf', 'Sustainable Forestry Initiative certified (Yes/No)', 1),
-        (1034, 'LEED Contribution Points', 'csf', 'Number of LEED points this product contributes (0-10)', 1),
-        (1035, 'GREENGUARD Certified', 'csf', 'GREENGUARD certification level (None/Certified/Gold)', 1),
-        (1036, 'Cradle to Cradle Level', 'csf', 'Cradle to Cradle certification level (Basic/Bronze/Silver/Gold/Platinum)', 1),
-        (1037, 'ISO 14001 Compliant', 'csf', 'Manufactured in ISO 14001 certified facility (Yes/No)', 1),
-        (1038, 'Carbon Neutral Certified', 'csf', 'Product is carbon neutral certified (Yes/No)', 1),
+    -- Sustainable Energy Attributes
+    (1023, 'CSF: Sustainable Energy Practices', 'csf', 'Facility or product uses sustainable energy practices', 1),
+    (1024, 'CSF: Facility Energy Usage Reduction', 'csf', 'Facility demonstrates energy usage reduction', 1),
+    (1025, 'CSF: Carbon Free or Renewable Energy', 'csf', 'Facility uses carbon free or renewable energy', 1),
+    (1026, 'CSF: Renewable Energy Usage Increase', 'csf', 'Facility demonstrates increase in carbon free or renewable energy usage', 1),
+    (1027, 'CSF: Onsite Fossil Fuel Reduction', 'csf', 'Facility demonstrates reduction in onsite fossil fuel usage', 1),
 
-        -- Packaging Attributes
-        (1039, 'Packaging Recycled Content', 'csf', 'Percentage of recycled content in packaging (0-100%)', 1),
-        (1040, 'Packaging Recyclability', 'csf', 'Percentage of packaging that is recyclable (0-100%)', 1),
-        (1041, 'Minimal Packaging Design', 'csf', 'Uses minimal/optimized packaging (Yes/No)', 1),
-        (1042, 'Plastic-Free Packaging', 'csf', 'Packaging contains no plastic materials (Yes/No)', 1),
+    -- Water & Environmental Attributes
+    (1028, 'CSF: Certified Water Savings', 'csf', 'Product demonstrates certified water savings', 1),
+    (1029, 'CSF: Commitment to Animal Welfare', 'csf', 'Product or company demonstrates commitment to animal welfare', 1),
+    (1030, 'CSF: Land Protection and Preservation', 'csf', 'Company demonstrates commitment to land protection and preservation', 1),
+    (1031, 'CSF: Environmental Management Program', 'csf', 'Facility maintains environmental protection and management program', 1),
+    (1032, 'CSF: Facility Water Usage Reduction', 'csf', 'Facility demonstrates water usage reduction', 1),
+    (1033, 'CSF: Sustainable Sourcing', 'csf', 'Product uses sustainably sourced materials', 1),
 
-        -- Transportation & Logistics Attributes
-        (1043, 'Transportation Carbon Impact', 'csf', 'CO2 emissions from transportation in kg', 1),
-        (1044, 'Local Manufacturing', 'csf', 'Manufactured within regional market (Yes/No)', 1),
-        (1045, 'Shipping Distance', 'csf', 'Average shipping distance to point of sale in km', 1),
+    -- Social Responsibility Attributes
+    (1034, 'CSF: Community Stewardship', 'csf', 'Company demonstrates community stewardship', 1),
+    (1035, 'CSF: Diversity and Inclusion Program', 'csf', 'Company maintains diversity and inclusion program', 1),
+    (1036, 'CSF: Equity in Employment', 'csf', 'Company demonstrates equity in employment practices', 1),
+    (1037, 'CSF: Ethical Supply Chain Policies', 'csf', 'Company maintains ethical supply chain policies', 1),
+    (1038, 'CSF: Ethical Business Practices', 'csf', 'Company demonstrates ethical business practices', 1);
 
-        -- Indoor Environmental Quality Attributes
-        (1046, 'Indoor Air Quality Certified', 'csf', 'Certified for low indoor air pollution (Yes/No)', 1),
-        (1047, 'Low Emission Product', 'csf', 'Meets California Section 01350 standards (Yes/No)', 1),
-        (1048, 'Odor-Free Certification', 'csf', 'Product has minimal odor emissions (Yes/No)', 1),
-        (1049, 'Antimicrobial Properties', 'csf', 'Product has natural antimicrobial properties (Yes/No)', 1),
-        (1050, 'Allergen-Free Certification', 'csf', 'Product is certified allergen-free (Yes/No)', 1);
+SET IDENTITY_INSERT dbo.Tags OFF;
 
-    SET IDENTITY_INSERT dbo.Tags OFF;
-
-    DECLARE @AttributeCount INT = @@ROWCOUNT;
-    PRINT '✓ ' + CAST(@AttributeCount AS VARCHAR) + ' CSF Attributes created in Tags table';
-END
-ELSE
-BEGIN
-    PRINT '○ CSF Attributes already exist, skipping';
-END
+DECLARE @AttributeCount INT = @@ROWCOUNT;
+PRINT '✓ ' + CAST(@AttributeCount AS VARCHAR) + ' CSF Attributes created in Tags table';
 
 PRINT '';
 
@@ -140,16 +126,14 @@ WHERE TagType = 'csf';
 
 PRINT '';
 PRINT 'CSF Attribute Categories:';
-PRINT '  - Environmental Impact: 5 attributes';
-PRINT '  - Material Content: 5 attributes';
-PRINT '  - Chemical Safety: 5 attributes';
-PRINT '  - Energy & Efficiency: 5 attributes';
-PRINT '  - Product Lifecycle: 5 attributes';
+PRINT '  - Material & Content: 6 attributes';
+PRINT '  - Waste Reduction: 4 attributes';
+PRINT '  - Disclosure & Transparency: 4 attributes';
+PRINT '  - Energy & Carbon: 8 attributes';
+PRINT '  - Sustainable Energy: 5 attributes';
+PRINT '  - Water & Environmental: 6 attributes';
 PRINT '  - Social Responsibility: 5 attributes';
-PRINT '  - Certification & Standards: 8 attributes';
-PRINT '  - Packaging: 4 attributes';
-PRINT '  - Transportation & Logistics: 3 attributes';
-PRINT '  - Indoor Environmental Quality: 5 attributes';
+PRINT '  - TOTAL: 38 attributes';
 
 PRINT '';
 PRINT 'These attributes support the Certified Sustainability Facts (CSF) program,';

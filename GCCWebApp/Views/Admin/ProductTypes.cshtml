@@ -20,17 +20,6 @@
     </span>
 }
 
-@section PageActions {
-    <button id="help-hierarchy-btn" class="admin-btn admin-btn--secondary" title="Learn how the hierarchy works" aria-label="Help: Understanding the product hierarchy" onclick="openHelpModal()">
-        <i class="fas fa-question-circle" aria-hidden="true"></i> Help
-    </button>
-    <button id="export-btn" class="admin-btn admin-btn--secondary" aria-label="Export product types to CSV file">
-        <i class="fas fa-download" aria-hidden="true"></i> Export
-    </button>
-    <button class="admin-btn admin-btn--primary" onclick="showAddForm('category')" aria-label="Add a new product category">
-        <i class="fas fa-plus" aria-hidden="true"></i> Add New Category
-    </button>
-}
 
 @Html.AntiForgeryToken()
 
@@ -60,6 +49,27 @@
 </script>
 
 <div class="admin-container">
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <h1 class="admin-page-title">@ViewData["Title"]</h1>
+                <p class="admin-page-subtitle">Manage product categories, types, and subcategories</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <button id="help-hierarchy-btn" class="admin-btn admin-btn--secondary" title="Learn how the hierarchy works" aria-label="Help: Understanding the product hierarchy" onclick="openHelpModal()">
+                        <i class="fas fa-question-circle" aria-hidden="true"></i> Help
+                    </button>
+                    <button id="export-btn" class="admin-btn admin-btn--secondary" aria-label="Export product types to CSV file">
+                        <i class="fas fa-download" aria-hidden="true"></i> Export
+                    </button>
+                    <button class="admin-btn admin-btn--primary" onclick="showAddForm('category')" aria-label="Add a new product category">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Category
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
     <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
     <div class="admin-body-content">
         <div class="admin-toolbar">

@@ -18,22 +18,31 @@
     </span>
 }
 
-@section PageActions {
-    <button id="refresh-btn" class="admin-btn admin-btn--secondary" title="Refresh data" aria-label="Refresh partner and API key data">
-        <i class="fas fa-sync" aria-hidden="true"></i> Refresh
-    </button>
-    <button id="copy-docs-link-btn" class="admin-btn admin-btn--secondary" title="Copy API documentation link for clients" aria-label="Copy API documentation link">
-        <i class="fas fa-book" aria-hidden="true"></i> Copy Docs Link
-    </button>
-    <a href="/api-docs" target="_blank" class="admin-btn admin-btn--secondary" title="View client API documentation" aria-label="View API documentation">
-        <i class="fas fa-external-link-alt" aria-hidden="true"></i> View Docs
-    </a>
-    <button id="generate-key-btn" class="admin-btn admin-btn--primary" title="Generate new API key for a partner" aria-label="Generate new API key for a partner">
-        <i class="fas fa-key" aria-hidden="true"></i> Generate API Key
-    </button>
-}
-
 <div class="admin-container">
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <h1 class="admin-page-title">@ViewData["Title"]</h1>
+                <p class="admin-page-subtitle">Manage API keys for partner integrations</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <button id="refresh-btn" class="admin-btn admin-btn--secondary" title="Refresh data" aria-label="Refresh partner and API key data">
+                        <i class="fas fa-sync" aria-hidden="true"></i> Refresh
+                    </button>
+                    <button id="copy-docs-link-btn" class="admin-btn admin-btn--secondary" title="Copy API documentation link for clients" aria-label="Copy API documentation link">
+                        <i class="fas fa-book" aria-hidden="true"></i> Copy Docs Link
+                    </button>
+                    <a href="/api-docs" target="_blank" class="admin-btn admin-btn--secondary" title="View client API documentation" aria-label="View API documentation">
+                        <i class="fas fa-external-link-alt" aria-hidden="true"></i> View Docs
+                    </a>
+                    <button id="generate-key-btn" class="admin-btn admin-btn--primary" title="Generate new API key for a partner" aria-label="Generate new API key for a partner">
+                        <i class="fas fa-key" aria-hidden="true"></i> Generate API Key
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
     <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
     <div class="admin-body-content">
         <div class="admin-toolbar">

@@ -113,7 +113,7 @@ function populateTable(data) {
         // View mode
         const descView = document.createElement('span');
         descView.className = 'admin-inline-view';
-        descView.textContent = attribute.description || '-';
+        descView.textContent = attribute.description || '';
         descCell.appendChild(descView);
 
         // Edit mode
@@ -420,7 +420,7 @@ async function saveCSFEdit(id) {
     const viewElements = row.querySelectorAll('.admin-inline-view');
     if (viewElements.length >= 3) {
         viewElements[0].textContent = newName;
-        viewElements[1].textContent = newDescription || '-';
+        viewElements[1].textContent = newDescription || '';
         viewElements[2].innerHTML = newIsActive ?
             '<i class="fas fa-check-circle" style="color: #92C83E;"></i>' :
             '<i class="fas fa-times-circle" style="color: #FF5252;"></i>';

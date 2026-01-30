@@ -88,7 +88,8 @@ namespace GCCWebApp.Repositories
                            c.Company.Name.ToLower().Contains(lowerSearchTerm) ||
                            c.Product.Name.ToLower().Contains(lowerSearchTerm) ||
                            (c.Location != null && c.Location.ToLower().Contains(lowerSearchTerm)) ||
-                           (c.Country != null && c.Country.ToLower().Contains(lowerSearchTerm)))
+                           (c.Country != null && c.Country.ToLower().Contains(lowerSearchTerm)) ||
+                           c.Tags.Any(t => t.Name.ToLower().Contains(lowerSearchTerm)))
                 .ToListAsync();
         }
 
@@ -103,7 +104,8 @@ namespace GCCWebApp.Repositories
                 var lowerSearchTerm = searchTerm.ToLower();
                 query = query.Where(c => c.Number.ToLower().Contains(lowerSearchTerm) ||
                                         c.Company.Name.ToLower().Contains(lowerSearchTerm) ||
-                                        c.Product.Name.ToLower().Contains(lowerSearchTerm));
+                                        c.Product.Name.ToLower().Contains(lowerSearchTerm) ||
+                                        c.Tags.Any(t => t.Name.ToLower().Contains(lowerSearchTerm)));
             }
 
             if (companyId.HasValue)
@@ -157,7 +159,7 @@ namespace GCCWebApp.Repositories
         {
             var query = _dbSet.AsQueryable();
 
-            // Apply search term filter
+            // Apply search term filter (includes tags for keyword matching)
             if (!string.IsNullOrEmpty(filter.SearchTerm))
             {
                 var lowerSearchTerm = filter.SearchTerm.ToLower();
@@ -166,7 +168,8 @@ namespace GCCWebApp.Repositories
                                         c.Product.Name.ToLower().Contains(lowerSearchTerm) ||
                                         c.CertificationType.Name.ToLower().Contains(lowerSearchTerm) ||
                                         (c.Location != null && c.Location.ToLower().Contains(lowerSearchTerm)) ||
-                                        (c.Country != null && c.Country.ToLower().Contains(lowerSearchTerm)));
+                                        (c.Country != null && c.Country.ToLower().Contains(lowerSearchTerm)) ||
+                                        c.Tags.Any(t => t.Name.ToLower().Contains(lowerSearchTerm)));
             }
 
             // Apply filters

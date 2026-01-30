@@ -517,10 +517,12 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 if (!string.IsNullOrEmpty(term))
                 {
+                    var lowerTerm = term.ToLower();
                     query = query.Where(c =>
-                        c.Number.Contains(term) ||
-                        c.Product.Name.Contains(term) ||
-                        c.Company.Name.Contains(term));
+                        c.Number.ToLower().Contains(lowerTerm) ||
+                        c.Product.Name.ToLower().Contains(lowerTerm) ||
+                        c.Company.Name.ToLower().Contains(lowerTerm) ||
+                        c.Tags.Any(t => t.Name.ToLower().Contains(lowerTerm)));
                 }
 
                 if (productId.HasValue)

@@ -32,16 +32,18 @@ namespace GCCWebApp.Services
                     .Include(c => c.Company)
                     .Include(c => c.Product)
                     .Include(c => c.CertificationType)
+                    .Include(c => c.Tags)
                     .AsQueryable();
 
-                // Apply search filters
+                // Apply search filters (includes tag matching)
                 if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
                 {
                     var searchTerm = request.Filters.SearchTerm.ToLower();
                     query = query.Where(c =>
                         c.Company.Name.ToLower().Contains(searchTerm) ||
                         c.Product.Name.ToLower().Contains(searchTerm) ||
-                        c.Number.ToLower().Contains(searchTerm));
+                        c.Number.ToLower().Contains(searchTerm) ||
+                        c.Tags.Any(t => t.Name.ToLower().Contains(searchTerm)));
                 }
 
                 if (request.Filters.CertificationTypes.Any())
@@ -157,17 +159,19 @@ namespace GCCWebApp.Services
                     .Include(c => c.Company)
                     .Include(c => c.Product)
                     .Include(c => c.CertificationType)
+                    .Include(c => c.Tags)
                     .Where(c => c.Partner == partnerName) // Filter by partner
                     .AsQueryable();
 
-                // Apply search filters
+                // Apply search filters (includes tag matching)
                 if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
                 {
                     var searchTerm = request.Filters.SearchTerm.ToLower();
                     query = query.Where(c =>
                         c.Company.Name.ToLower().Contains(searchTerm) ||
                         c.Product.Name.ToLower().Contains(searchTerm) ||
-                        c.Number.ToLower().Contains(searchTerm));
+                        c.Number.ToLower().Contains(searchTerm) ||
+                        c.Tags.Any(t => t.Name.ToLower().Contains(searchTerm)));
                 }
 
                 if (request.Filters.CertificationTypes.Any())

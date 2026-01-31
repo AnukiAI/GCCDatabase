@@ -172,7 +172,7 @@ namespace GCCWebApp.Controllers
                     .Include(p => p.ProductType)
                     .Include(p => p.Company)
                     .Include(p => p.Certificates)
-                    .Include(p => p.ProductIdentifiers)
+                        .ThenInclude(c => c.ProductIds)
                     .AsQueryable();
 
                 // Apply role-based filtering (per Design Recommendations - NO OR logic)
@@ -211,6 +211,7 @@ namespace GCCWebApp.Controllers
                 // Admin and Analyst can see all products (no filtering needed)
 
                 // First, get the products with related data
+                // Now pulling identifiers from CERTIFICATE level (CertificateProductId) instead of Product level
                 var productsData = await query
                     .Select(p => new
                     {
@@ -225,8 +226,12 @@ namespace GCCWebApp.Controllers
                         p.IsActive,
                         CertificateCount = p.Certificates.Count(),
                         p.CreatedAt,
-                        // Get identifiers as flat list - will group client-side
-                        ProductIdentifiers = p.ProductIdentifiers.Select(pi => new { pi.IdentifierType, pi.IdentifierValue }).ToList()
+                        // Get identifiers from certificate-level (CertificateProductId) - flatten all certificates' product IDs
+                        CertificateIdentifiers = p.Certificates
+                            .SelectMany(c => c.ProductIds)
+                            .Where(pid => pid.IsActive)
+                            .Select(pid => new { pid.ProductIdType, pid.ProductIdValue })
+                            .ToList()
                     })
                     .ToListAsync();
 
@@ -244,9 +249,10 @@ namespace GCCWebApp.Controllers
                     Status = p.IsActive ? "Active" : "Inactive",
                     CertificateCount = p.CertificateCount,
                     CreatedAt = p.CreatedAt,
-                    Identifiers = p.ProductIdentifiers
-                        .GroupBy(pi => pi.IdentifierType)
-                        .ToDictionary(g => g.Key.ToLower(), g => g.Select(pi => pi.IdentifierValue).ToList())
+                    // Group certificate-level identifiers by type (ASIN, UPC, etc.)
+                    Identifiers = p.CertificateIdentifiers
+                        .GroupBy(pi => pi.ProductIdType)
+                        .ToDictionary(g => g.Key.ToLower(), g => g.Select(pi => pi.ProductIdValue).Distinct().ToList())
                 }).ToList();
 
                 return Json(new ApiResponse<List<ProductListViewModel>> { Success = true, Data = products });

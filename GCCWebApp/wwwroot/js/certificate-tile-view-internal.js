@@ -557,6 +557,7 @@
             'company': 'company',
             'countries': 'country',
             'cert-tags': 'tags',
+            'additional': 'tags',
             'status': 'status',
             'partner': 'partner'
         };
@@ -1333,7 +1334,6 @@
         // Build cell values for tooltips
         const certNumber = cert.certificateNumber || '';
         const certType = cert.certificationType || '';
-        const csfAttrs = cert.csfAttributes || '';
         const company = cert.companyName || '';
         const contact = cert.companyContact || '';
         const product = cert.productName || '';
@@ -1380,7 +1380,6 @@
                 </div>
                 <div class="grid-cell" data-column="certificateNumber" title="${escapeHtml(certNumber)}" role="gridcell">${escapeHtml(certNumber)}</div>
                 <div class="grid-cell" data-column="certificationType" title="${escapeHtml(certType)}" role="gridcell">${escapeHtml(certType)}</div>
-                <div class="grid-cell" data-column="csfAttributes" title="${escapeHtml(csfAttrs)}" role="gridcell">${escapeHtml(csfAttrs)}</div>
                 <div class="grid-cell" data-column="status" role="gridcell">${statusBadge}</div>
                 <div class="grid-cell" data-column="effectiveDate" role="gridcell">${effectiveDate}</div>
                 <div class="grid-cell" data-column="expirationDate" role="gridcell">${expirationDate}</div>

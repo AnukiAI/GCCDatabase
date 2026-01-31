@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
 using GCCWebApp.Models;
+using System.Text.RegularExpressions;
 
 namespace GCCWebApp.Repositories
 {
@@ -8,6 +9,47 @@ namespace GCCWebApp.Repositories
     {
         public CertificateRepository(ApplicationDbContext context) : base(context)
         {
+        }
+
+        /// <summary>
+        /// Normalizes a string by removing hyphens, spaces, and special characters for flexible matching.
+        /// E.g., "Len-Tex" -> "lentex", "3-Form" -> "3form"
+        /// </summary>
+        private static string NormalizeForSearch(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+            // Remove hyphens, spaces, underscores and convert to lowercase
+            return Regex.Replace(input.ToLower(), @"[-\s_]", "");
+        }
+
+        /// <summary>
+        /// Generates search term variations for flexible matching.
+        /// Returns the original term plus a normalized version (no hyphens/spaces).
+        /// </summary>
+        private static List<string> GetSearchTermVariations(string searchTerm)
+        {
+            var variations = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            var lower = searchTerm.ToLower().Trim();
+
+            // Add original term
+            variations.Add(lower);
+
+            // Add version without hyphens/spaces
+            var normalized = NormalizeForSearch(lower);
+            if (!string.IsNullOrEmpty(normalized) && normalized != lower)
+                variations.Add(normalized);
+
+            // If original has no hyphens, try adding hyphen after each capital letter position
+            // This helps "LenTex" match "Len-Tex"
+            if (!lower.Contains('-'))
+            {
+                // Try inserting hyphens at common positions (before capital letters in original)
+                var withHyphens = Regex.Replace(searchTerm, @"(?<=[a-z])(?=[A-Z])", "-").ToLower();
+                if (withHyphens != lower)
+                    variations.Add(withHyphens);
+            }
+
+            return variations.ToList();
         }
 
         public async Task<IEnumerable<Certificate>> GetActiveCertificatesAsync()
@@ -159,17 +201,28 @@ namespace GCCWebApp.Repositories
         {
             var query = _dbSet.AsQueryable();
 
-            // Apply search term filter (includes tags for keyword matching)
+            // Apply search term filter with flexible matching (handles hyphens, spaces, capitalization)
+            // E.g., "LenTex" matches "Len-Tex", "lentex" matches "Len-Tex", etc.
             if (!string.IsNullOrEmpty(filter.SearchTerm))
             {
-                var lowerSearchTerm = filter.SearchTerm.ToLower();
-                query = query.Where(c => c.Number.ToLower().Contains(lowerSearchTerm) ||
-                                        c.Company.Name.ToLower().Contains(lowerSearchTerm) ||
-                                        c.Product.Name.ToLower().Contains(lowerSearchTerm) ||
-                                        c.CertificationType.Name.ToLower().Contains(lowerSearchTerm) ||
-                                        (c.Location != null && c.Location.ToLower().Contains(lowerSearchTerm)) ||
-                                        (c.Country != null && c.Country.ToLower().Contains(lowerSearchTerm)) ||
-                                        c.Tags.Any(t => t.Name.ToLower().Contains(lowerSearchTerm)));
+                var searchVariations = GetSearchTermVariations(filter.SearchTerm);
+                var normalizedSearch = NormalizeForSearch(filter.SearchTerm);
+
+                // Build flexible search: check if any variation matches OR if normalized values match
+                query = query.Where(c =>
+                    // Standard search with variations
+                    searchVariations.Any(term =>
+                        c.Number.ToLower().Contains(term) ||
+                        c.Company.Name.ToLower().Contains(term) ||
+                        c.Product.Name.ToLower().Contains(term) ||
+                        c.CertificationType.Name.ToLower().Contains(term) ||
+                        (c.Location != null && c.Location.ToLower().Contains(term)) ||
+                        (c.Country != null && c.Country.ToLower().Contains(term)) ||
+                        c.Tags.Any(t => t.Name.ToLower().Contains(term))) ||
+                    // Flexible matching: compare normalized values (without hyphens/spaces)
+                    c.Company.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
+                    c.Product.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
+                    (c.Location != null && c.Location.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch)));
             }
 
             // Apply filters

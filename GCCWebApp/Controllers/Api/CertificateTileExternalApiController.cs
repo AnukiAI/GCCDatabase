@@ -24,6 +24,16 @@ namespace GCCWebApp.Controllers.Api
         }
 
         /// <summary>
+        /// Normalizes a string by removing hyphens, spaces, and special characters for flexible matching.
+        /// E.g., "Len-Tex" -> "lentex", "3-Form" -> "3form"
+        /// </summary>
+        private static string NormalizeForSearch(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+            return Regex.Replace(input.ToLower(), @"[-\s_]", "");
+        }
+
+        /// <summary>
         /// Format certificate number to YY-NNNN format
         /// </summary>
         private static string FormatCertificateNumber(string? number, DateTime? effectiveDate)
@@ -119,19 +129,27 @@ namespace GCCWebApp.Controllers.Api
                     query = query.Where(c => partners.Contains(c.Partner ?? "None"));
                 }
 
-                // Apply search filter
+                // Apply search filter with flexible matching (handles hyphens, spaces, capitalization)
+                // E.g., "LenTex" matches "Len-Tex", "lentex" matches "Len-Tex", etc.
                 if (!string.IsNullOrWhiteSpace(search))
                 {
-                    search = search.ToLower();
+                    var searchLower = search.ToLower();
+                    var normalizedSearch = NormalizeForSearch(search);
+
                     query = query.Where(c =>
-                        c.Number.ToLower().Contains(search) ||
-                        c.CertificationType.Name.ToLower().Contains(search) ||
-                        c.Company.Name.ToLower().Contains(search) ||
-                        c.Product.Name.ToLower().Contains(search) ||
-                        c.Product.Category.Name.ToLower().Contains(search) ||
-                        (c.Location != null && c.Location.ToLower().Contains(search)) ||
-                        (c.Country != null && c.Country.ToLower().Contains(search)) ||
-                        c.Tags.Any(t => t.Name.ToLower().Contains(search)));
+                        // Standard search
+                        c.Number.ToLower().Contains(searchLower) ||
+                        c.CertificationType.Name.ToLower().Contains(searchLower) ||
+                        c.Company.Name.ToLower().Contains(searchLower) ||
+                        c.Product.Name.ToLower().Contains(searchLower) ||
+                        c.Product.Category.Name.ToLower().Contains(searchLower) ||
+                        (c.Location != null && c.Location.ToLower().Contains(searchLower)) ||
+                        (c.Country != null && c.Country.ToLower().Contains(searchLower)) ||
+                        c.Tags.Any(t => t.Name.ToLower().Contains(searchLower)) ||
+                        // Flexible matching: compare normalized values (without hyphens/spaces)
+                        c.Company.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
+                        c.Product.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
+                        (c.Location != null && c.Location.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch)));
                 }
 
                 // Apply certification type filter

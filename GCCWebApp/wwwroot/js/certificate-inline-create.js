@@ -366,6 +366,11 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
                     productSelect.value = result.data.id;
                     productSelect.dataset.previousValue = result.data.id;
 
+                    // Update autocomplete input if using autocomplete
+                    if (productSelect.autocompleteInput) {
+                        productSelect.autocompleteInput.value = result.data.name;
+                    }
+
                     // Trigger change event
                     productSelect.dispatchEvent(new Event('change'));
                 }
@@ -775,6 +780,385 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
     }
 
     /**
+     * Create Product Autocomplete with duplicate detection
+     * Replaces the standard dropdown with a searchable autocomplete input
+     */
+    function createProductAutocomplete(selectElement) {
+        if (!selectElement || selectElement.dataset.autocompleteInit) return;
+        selectElement.dataset.autocompleteInit = 'true';
+
+        const formGroup = selectElement.closest('.form-group');
+        if (!formGroup) return;
+
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'product-autocomplete-wrapper';
+        wrapper.style.cssText = 'position: relative; width: 100%;';
+
+        // Create text input for autocomplete
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control product-autocomplete-input';
+        input.placeholder = 'Type to search products...';
+        input.autocomplete = 'off';
+        input.style.cssText = 'width: 100%; padding: 10px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;';
+
+        // Create dropdown for suggestions
+        const dropdown = document.createElement('div');
+        dropdown.className = 'product-autocomplete-dropdown';
+        dropdown.style.cssText = `
+            position: absolute; top: 100%; left: 0; right: 0; z-index: 1000;
+            background: white; border: 1px solid #ced4da; border-top: none;
+            border-radius: 0 0 4px 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: none; max-height: 300px; overflow-y: auto;
+        `;
+
+        // Hide original select but keep it for form submission
+        selectElement.style.position = 'absolute';
+        selectElement.style.opacity = '0';
+        selectElement.style.height = '0';
+        selectElement.style.width = '0';
+        selectElement.style.overflow = 'hidden';
+        selectElement.style.pointerEvents = 'none';
+
+        // Insert wrapper
+        selectElement.parentNode.insertBefore(wrapper, selectElement);
+        wrapper.appendChild(input);
+        wrapper.appendChild(dropdown);
+        wrapper.appendChild(selectElement);
+
+        // State
+        let debounceTimer = null;
+        let isOpen = false;
+        let selectedProductId = selectElement.value || '';
+        let selectedProductName = '';
+
+        // If select already has a value (edit mode), populate input
+        if (selectElement.value) {
+            const selectedOption = selectElement.options[selectElement.selectedIndex];
+            if (selectedOption && selectedOption.value) {
+                selectedProductName = selectedOption.textContent;
+                input.value = selectedProductName;
+            }
+        }
+
+        // Search products API
+        async function searchProducts(query) {
+            try {
+                const response = await fetch(`/Certificate/SearchProducts?query=${encodeURIComponent(query)}`);
+                const result = await response.json();
+                if (result.success) {
+                    return result.data || [];
+                }
+            } catch (error) {
+                console.error('Error searching products:', error);
+            }
+            return [];
+        }
+
+        // Find similar products for duplicate checking
+        async function findSimilarProducts(name) {
+            try {
+                const response = await fetch(`/Certificate/FindSimilarProducts?name=${encodeURIComponent(name)}`);
+                const result = await response.json();
+                if (result.success) {
+                    return {
+                        exactMatch: result.exactMatch,
+                        products: result.data || []
+                    };
+                }
+            } catch (error) {
+                console.error('Error finding similar products:', error);
+            }
+            return { exactMatch: false, products: [] };
+        }
+
+        // Render dropdown options
+        function renderDropdown(products, query) {
+            dropdown.innerHTML = '';
+
+            if (products.length === 0 && query) {
+                // No results - show "Add new" option
+                const addNewDiv = document.createElement('div');
+                addNewDiv.className = 'product-autocomplete-add-new';
+                addNewDiv.style.cssText = `
+                    padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+                    background: #f8f9fa; border-top: 1px solid #e9ecef;
+                `;
+                addNewDiv.innerHTML = `
+                    <span style="color: #92C83E; font-size: 18px; font-weight: bold;">+</span>
+                    <span style="color: #333;">Add "<strong>${escapeHtml(query)}</strong>" as new product</span>
+                `;
+                addNewDiv.onclick = () => handleAddNew(query);
+                dropdown.appendChild(addNewDiv);
+            } else {
+                // Show matching products
+                products.forEach(product => {
+                    const optionDiv = document.createElement('div');
+                    optionDiv.className = 'product-autocomplete-option';
+                    optionDiv.dataset.id = product.id;
+                    optionDiv.dataset.name = product.name;
+                    optionDiv.style.cssText = `
+                        padding: 10px 16px; cursor: pointer; transition: background 0.15s;
+                    `;
+                    optionDiv.innerHTML = highlightMatch(product.name, query);
+
+                    optionDiv.onmouseenter = () => optionDiv.style.backgroundColor = '#f8f9fa';
+                    optionDiv.onmouseleave = () => optionDiv.style.backgroundColor = 'transparent';
+
+                    optionDiv.onclick = () => selectProduct(product.id, product.name);
+                    dropdown.appendChild(optionDiv);
+                });
+
+                // Always show "Add new" at bottom if query doesn't exactly match any result
+                if (query && !products.some(p => p.name.toLowerCase() === query.toLowerCase())) {
+                    const addNewDiv = document.createElement('div');
+                    addNewDiv.className = 'product-autocomplete-add-new';
+                    addNewDiv.style.cssText = `
+                        padding: 12px 16px; cursor: pointer; display: flex; align-items: center; gap: 8px;
+                        background: #f8f9fa; border-top: 1px solid #e9ecef;
+                    `;
+                    addNewDiv.innerHTML = `
+                        <span style="color: #92C83E; font-size: 18px; font-weight: bold;">+</span>
+                        <span style="color: #333;">Add "<strong>${escapeHtml(query)}</strong>" as new product</span>
+                    `;
+                    addNewDiv.onclick = () => handleAddNew(query);
+                    dropdown.appendChild(addNewDiv);
+                }
+            }
+
+            openDropdown();
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Highlight matching text
+        function highlightMatch(text, query) {
+            if (!query) return escapeHtml(text);
+            const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return escapeHtml(text).replace(regex, '<strong style="color: #92C83E;">$1</strong>');
+        }
+
+        // Select a product
+        function selectProduct(id, name) {
+            selectedProductId = id;
+            selectedProductName = name;
+            input.value = name;
+            selectElement.value = id;
+            selectElement.dispatchEvent(new Event('change', { bubbles: true }));
+            closeDropdown();
+            clearValidationError();
+        }
+
+        // Handle adding new product with duplicate check
+        async function handleAddNew(name) {
+            closeDropdown();
+
+            // Check for similar products first
+            const similar = await findSimilarProducts(name);
+
+            if (similar.exactMatch && similar.products.length > 0) {
+                // Exact match found - just select it
+                const product = similar.products[0];
+                selectProduct(product.id, product.name);
+                showNotification(`Selected existing product "${product.name}"`, 'info');
+                return;
+            }
+
+            if (similar.products.length > 0) {
+                // Similar products found - show "Did you mean?" modal
+                showDidYouMeanModal(name, similar.products);
+            } else {
+                // No similar products - proceed to create
+                showQuickAddProductModal(name);
+            }
+        }
+
+        // Show "Did you mean?" modal for similar products
+        function showDidYouMeanModal(newName, similarProducts) {
+            const optionsHtml = similarProducts.map(p => `
+                <div class="similar-product-option" data-id="${p.id}" data-name="${escapeHtml(p.name)}"
+                    style="padding: 12px 16px; border: 1px solid #e9ecef; border-radius: 4px; margin-bottom: 8px; cursor: pointer; transition: all 0.2s;">
+                    <div style="font-weight: 500; color: #333;">${escapeHtml(p.name)}</div>
+                </div>
+            `).join('');
+
+            const modalHtml = `
+                <div id="didYouMeanModal" class="admin-modal" style="display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; align-items: center; justify-content: center;">
+                    <div class="admin-modal-backdrop" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5);" onclick="CertificateInlineCreate.closeModal('didYouMeanModal')"></div>
+                    <div class="admin-modal-content" style="position: relative; background: white; border-radius: 8px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); width: 100%; max-width: 480px; margin: 20px;">
+                        <div class="admin-modal-header" style="padding: 20px; border-bottom: 2px solid #92C83E;">
+                            <h4 style="margin: 0; font-size: 18px; color: #333;">
+                                <i class="fas fa-question-circle" style="color: #FFC107; margin-right: 8px;"></i>
+                                Did you mean...?
+                            </h4>
+                        </div>
+                        <div class="admin-modal-body" style="padding: 20px;">
+                            <p style="color: #666; margin-bottom: 16px;">
+                                We found similar products. Did you mean one of these?
+                            </p>
+                            <div id="similarProductOptions" style="margin-bottom: 16px;">
+                                ${optionsHtml}
+                            </div>
+                            <div style="padding: 12px 16px; background: #f8f9fa; border-radius: 4px; border: 2px dashed #92C83E;">
+                                <div style="font-weight: 500; color: #333; margin-bottom: 4px;">
+                                    <i class="fas fa-plus" style="color: #92C83E; margin-right: 8px;"></i>
+                                    Create new: "${escapeHtml(newName)}"
+                                </div>
+                                <small style="color: #666;">This will add a new product to the database</small>
+                            </div>
+                        </div>
+                        <div class="admin-modal-footer" style="background-color: #f8f9fa; border-top: 2px solid #e9ecef; padding: 16px 20px; display: flex; justify-content: flex-end; gap: 12px;">
+                            <button type="button" class="btn btn-outline" onclick="CertificateInlineCreate.closeModal('didYouMeanModal')"
+                                style="padding: 10px 20px; border: 1px solid #6c757d; color: #6c757d; background: white; border-radius: 4px; cursor: pointer; font-weight: 500;">
+                                Cancel
+                            </button>
+                            <button type="button" class="btn btn-primary" id="createNewProductBtn"
+                                style="padding: 10px 20px; background-color: #92C83E; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+                                Create New Product
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Remove existing modal if any
+            const existingModal = document.getElementById('didYouMeanModal');
+            if (existingModal) existingModal.remove();
+
+            document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+            // Add click handlers for similar product options
+            document.querySelectorAll('#similarProductOptions .similar-product-option').forEach(opt => {
+                opt.onmouseenter = () => {
+                    opt.style.borderColor = '#92C83E';
+                    opt.style.backgroundColor = '#f8fff0';
+                };
+                opt.onmouseleave = () => {
+                    opt.style.borderColor = '#e9ecef';
+                    opt.style.backgroundColor = 'transparent';
+                };
+                opt.onclick = () => {
+                    const id = parseInt(opt.dataset.id);
+                    const name = opt.dataset.name;
+                    selectProduct(id, name);
+                    CertificateInlineCreate.closeModal('didYouMeanModal');
+                    showNotification(`Selected existing product "${name}"`, 'success');
+                };
+            });
+
+            // Create new product button
+            document.getElementById('createNewProductBtn').onclick = () => {
+                CertificateInlineCreate.closeModal('didYouMeanModal');
+                showQuickAddProductModal(newName);
+            };
+        }
+
+        // Show quick add product modal (reuse existing with prefilled name)
+        function showQuickAddProductModal(prefillName) {
+            CertificateInlineCreate.showQuickAddProduct();
+            // Wait for modal to render, then prefill the name
+            setTimeout(() => {
+                const nameInput = document.getElementById('quickProductName');
+                if (nameInput) {
+                    nameInput.value = prefillName;
+                }
+            }, 100);
+        }
+
+        // Open/close dropdown
+        function openDropdown() {
+            dropdown.style.display = 'block';
+            input.style.borderRadius = '4px 4px 0 0';
+            input.style.borderColor = '#92C83E';
+            isOpen = true;
+        }
+
+        function closeDropdown() {
+            dropdown.style.display = 'none';
+            input.style.borderRadius = '4px';
+            input.style.borderColor = '#ced4da';
+            isOpen = false;
+        }
+
+        // Clear validation error
+        function clearValidationError() {
+            const errorDiv = formGroup.querySelector('.inline-validation-error');
+            if (errorDiv) errorDiv.remove();
+            formGroup.classList.remove('has-error');
+            input.style.borderColor = '#ced4da';
+        }
+
+        // Input event handlers
+        input.addEventListener('input', () => {
+            clearValidationError();
+            const query = input.value.trim();
+
+            // Clear selection if user is typing something different
+            if (selectedProductName && query !== selectedProductName) {
+                selectedProductId = '';
+                selectElement.value = '';
+            }
+
+            // Debounce search
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(async () => {
+                if (query.length >= 1) {
+                    const products = await searchProducts(query);
+                    renderDropdown(products, query);
+                } else {
+                    closeDropdown();
+                }
+            }, 250);
+        });
+
+        input.addEventListener('focus', async () => {
+            const query = input.value.trim();
+            if (query.length >= 1) {
+                const products = await searchProducts(query);
+                renderDropdown(products, query);
+            } else {
+                // Show default products on focus
+                const products = await searchProducts('');
+                if (products.length > 0) {
+                    renderDropdown(products, '');
+                }
+            }
+        });
+
+        // Close on outside click
+        document.addEventListener('click', (e) => {
+            if (!wrapper.contains(e.target)) {
+                closeDropdown();
+            }
+        });
+
+        // Handle validation
+        selectElement.addEventListener('invalid', (e) => {
+            e.preventDefault();
+            formGroup.classList.add('has-error');
+            input.style.borderColor = '#dc3545';
+            if (!formGroup.querySelector('.inline-validation-error')) {
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'inline-validation-error';
+                errorDiv.textContent = 'Product Name is required';
+                wrapper.insertAdjacentElement('afterend', errorDiv);
+            }
+        });
+
+        // Store reference for external access
+        selectElement.autocompleteWrapper = wrapper;
+        selectElement.autocompleteInput = input;
+
+        return wrapper;
+    }
+
+    /**
      * Create a multi-select dropdown with checkboxes
      * @param {HTMLSelectElement} selectElement - The original select element
      * @param {HTMLElement} hiddenInput - The hidden input to store selected IDs as JSON
@@ -1037,9 +1421,9 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
             createCustomDropdown(companySelect, 'company', 'Enter company name');
         }
 
-        // Convert Product dropdown to custom dropdown with Add footer
+        // Convert Product dropdown to autocomplete with duplicate detection
         if (productSelect) {
-            createCustomDropdown(productSelect, 'product', 'Enter product name');
+            createProductAutocomplete(productSelect);
         }
 
         // Convert Subcategory to multi-select dropdown with checkboxes

@@ -2115,6 +2115,147 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        /// <summary>
+        /// Search products by name for autocomplete
+        /// GET: /Certificate/SearchProducts?query={term}
+        /// </summary>
+        [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> SearchProducts(string query)
+        {
+            try
+            {
+                var allProducts = await _unitOfWork.Products.GetAllAsync();
+                var activeProducts = allProducts.Where(p => p.IsActive && !p.IsDeleted);
+
+                if (string.IsNullOrWhiteSpace(query))
+                {
+                    // Return top 20 products alphabetically if no query
+                    var defaultProducts = activeProducts
+                        .OrderBy(p => p.Name)
+                        .Take(20)
+                        .Select(p => new { id = p.Id, name = p.Name })
+                        .ToList();
+                    return Json(new { success = true, data = defaultProducts });
+                }
+
+                var searchTerm = query.Trim().ToLowerInvariant();
+
+                // Search by name (contains, case-insensitive)
+                var matchingProducts = activeProducts
+                    .Where(p => p.Name.ToLowerInvariant().Contains(searchTerm))
+                    .OrderBy(p =>
+                        // Prioritize exact matches, then starts-with, then contains
+                        p.Name.Equals(query, StringComparison.OrdinalIgnoreCase) ? 0 :
+                        p.Name.StartsWith(query, StringComparison.OrdinalIgnoreCase) ? 1 : 2)
+                    .ThenBy(p => p.Name)
+                    .Take(20)
+                    .Select(p => new { id = p.Id, name = p.Name })
+                    .ToList();
+
+                return Json(new { success = true, data = matchingProducts });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching products with query {Query}", query);
+                return Json(new { success = false, message = "Error searching products" });
+            }
+        }
+
+        /// <summary>
+        /// Find similar products by name (for duplicate detection)
+        /// GET: /Certificate/FindSimilarProducts?name={name}
+        /// </summary>
+        [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> FindSimilarProducts(string name)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(name))
+                {
+                    return Json(new { success = true, data = new List<object>() });
+                }
+
+                var allProducts = await _unitOfWork.Products.GetAllAsync();
+                var activeProducts = allProducts.Where(p => p.IsActive && !p.IsDeleted).ToList();
+
+                var searchName = name.Trim().ToLowerInvariant();
+
+                // Check for exact match first
+                var exactMatch = activeProducts.FirstOrDefault(p =>
+                    p.Name.Equals(name.Trim(), StringComparison.OrdinalIgnoreCase));
+
+                if (exactMatch != null)
+                {
+                    return Json(new {
+                        success = true,
+                        exactMatch = true,
+                        data = new[] { new { id = exactMatch.Id, name = exactMatch.Name } }
+                    });
+                }
+
+                // Find similar products using various fuzzy matching techniques
+                var similarProducts = new List<(int Id, string Name, int Score)>();
+
+                foreach (var product in activeProducts)
+                {
+                    var productName = product.Name.ToLowerInvariant();
+                    var score = 0;
+
+                    // Contains match
+                    if (productName.Contains(searchName) || searchName.Contains(productName))
+                    {
+                        score = 70;
+                    }
+                    // Starts with same word
+                    else if (productName.Split(' ').FirstOrDefault() == searchName.Split(' ').FirstOrDefault()
+                        && searchName.Split(' ').FirstOrDefault()?.Length > 2)
+                    {
+                        score = 60;
+                    }
+                    // Levenshtein-like: check if removing whitespace and comparing
+                    else
+                    {
+                        var cleanSearch = searchName.Replace(" ", "").Replace("-", "").Replace("_", "");
+                        var cleanProduct = productName.Replace(" ", "").Replace("-", "").Replace("_", "");
+
+                        if (cleanSearch == cleanProduct)
+                        {
+                            score = 90; // Same text, different formatting
+                        }
+                        else if (cleanProduct.Contains(cleanSearch) || cleanSearch.Contains(cleanProduct))
+                        {
+                            score = 50;
+                        }
+                    }
+
+                    if (score > 0)
+                    {
+                        similarProducts.Add((product.Id, product.Name, score));
+                    }
+                }
+
+                var results = similarProducts
+                    .OrderByDescending(p => p.Score)
+                    .ThenBy(p => p.Name)
+                    .Take(5)
+                    .Select(p => new { id = p.Id, name = p.Name, score = p.Score })
+                    .ToList();
+
+                return Json(new {
+                    success = true,
+                    exactMatch = false,
+                    data = results
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error finding similar products for name {Name}", name);
+                return Json(new { success = false, message = "Error finding similar products" });
+            }
+        }
+
         #endregion
 
         #endregion

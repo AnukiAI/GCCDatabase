@@ -24,6 +24,16 @@ namespace GCCWebApp.Controllers.Api
         }
 
         /// <summary>
+        /// Normalizes a string by removing hyphens, spaces, and special characters for flexible matching.
+        /// E.g., "Len-Tex" -> "lentex", "3-Form" -> "3form"
+        /// </summary>
+        private static string NormalizeForSearch(string input)
+        {
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+            return Regex.Replace(input.ToLower(), @"[-\s_]", "");
+        }
+
+        /// <summary>
         /// Format certificate number to YY-NNNN format
         /// </summary>
         private static string FormatCertificateNumber(string? number, DateTime? effectiveDate)
@@ -80,19 +90,27 @@ namespace GCCWebApp.Controllers.Api
                     .Include(c => c.ProductIds)
                     .AsQueryable();
 
-                // Apply search filter
+                // Apply search filter with flexible matching (handles hyphens, spaces, capitalization)
+                // E.g., "LenTex" matches "Len-Tex", "lentex" matches "Len-Tex", etc.
                 if (!string.IsNullOrWhiteSpace(search))
                 {
-                    search = search.ToLower();
+                    var searchLower = search.ToLower();
+                    var normalizedSearch = NormalizeForSearch(search);
+
                     query = query.Where(c =>
-                        c.Number.ToLower().Contains(search) ||
-                        c.CertificationType.Name.ToLower().Contains(search) ||
-                        c.Company.Name.ToLower().Contains(search) ||
-                        c.Product.Name.ToLower().Contains(search) ||
-                        c.Product.Category.Name.ToLower().Contains(search) ||
-                        (c.Location != null && c.Location.ToLower().Contains(search)) ||
-                        (c.Country != null && c.Country.ToLower().Contains(search)) ||
-                        c.Tags.Any(t => t.Name.ToLower().Contains(search)));
+                        // Standard search
+                        c.Number.ToLower().Contains(searchLower) ||
+                        c.CertificationType.Name.ToLower().Contains(searchLower) ||
+                        c.Company.Name.ToLower().Contains(searchLower) ||
+                        c.Product.Name.ToLower().Contains(searchLower) ||
+                        c.Product.Category.Name.ToLower().Contains(searchLower) ||
+                        (c.Location != null && c.Location.ToLower().Contains(searchLower)) ||
+                        (c.Country != null && c.Country.ToLower().Contains(searchLower)) ||
+                        c.Tags.Any(t => t.Name.ToLower().Contains(searchLower)) ||
+                        // Flexible matching: compare normalized values (without hyphens/spaces)
+                        c.Company.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
+                        c.Product.Name.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch) ||
+                        (c.Location != null && c.Location.ToLower().Replace("-", "").Replace(" ", "").Contains(normalizedSearch)));
                 }
 
                 // Apply certification type filter
@@ -177,11 +195,16 @@ namespace GCCWebApp.Controllers.Api
                         c.Country,
                         ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name)),
                         InternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name)),
-                        // Product IDs - get first of each type for backward compatibility with old fields
-                        Asin = c.ProductIds.Where(pid => pid.ProductIdType == "ASIN" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? c.Asin ?? "",
-                        Upc = c.ProductIds.Where(pid => pid.ProductIdType == "UPC" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? c.Upc ?? "",
-                        Gtin = c.ProductIds.Where(pid => pid.ProductIdType == "GTIN" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? c.Gtin ?? "",
-                        Ean = c.ProductIds.Where(pid => pid.ProductIdType == "EAN" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? c.Ean ?? "",
+                        // Product IDs - get ALL active IDs of each type, comma-separated for display
+                        // Fallback to legacy certificate fields if ProductIds collection is empty
+                        AsinList = c.ProductIds.Where(pid => pid.ProductIdType == "ASIN" && pid.IsActive).Select(pid => pid.ProductIdValue).ToList(),
+                        LegacyAsin = c.Asin ?? "",
+                        UpcList = c.ProductIds.Where(pid => pid.ProductIdType == "UPC" && pid.IsActive).Select(pid => pid.ProductIdValue).ToList(),
+                        LegacyUpc = c.Upc ?? "",
+                        GtinList = c.ProductIds.Where(pid => pid.ProductIdType == "GTIN" && pid.IsActive).Select(pid => pid.ProductIdValue).ToList(),
+                        LegacyGtin = c.Gtin ?? "",
+                        EanList = c.ProductIds.Where(pid => pid.ProductIdType == "EAN" && pid.IsActive).Select(pid => pid.ProductIdValue).ToList(),
+                        LegacyEan = c.Ean ?? "",
                         // Additional product ID types
                         Isbn = c.ProductIds.Where(pid => pid.ProductIdType == "ISBN" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? "",
                         Sku = c.ProductIds.Where(pid => pid.ProductIdType == "SKU" && pid.IsActive).Select(pid => pid.ProductIdValue).FirstOrDefault() ?? "",
@@ -200,7 +223,7 @@ namespace GCCWebApp.Controllers.Api
                     })
                     .ToListAsync();
 
-                // Format certificate numbers to YY-NNNN format
+                // Format certificate numbers to YY-NNNN format and combine product IDs with legacy fallback
                 var certificates = rawCertificates.Select(c => new
                 {
                     c.Id,
@@ -220,10 +243,11 @@ namespace GCCWebApp.Controllers.Api
                     c.Country,
                     c.ExternalTags,
                     c.InternalTags,
-                    c.Asin,
-                    c.Upc,
-                    c.Gtin,
-                    c.Ean,
+                    // Combine ProductIds list with legacy field fallback
+                    Asin = c.AsinList.Count > 0 ? string.Join(", ", c.AsinList) : c.LegacyAsin,
+                    Upc = c.UpcList.Count > 0 ? string.Join(", ", c.UpcList) : c.LegacyUpc,
+                    Gtin = c.GtinList.Count > 0 ? string.Join(", ", c.GtinList) : c.LegacyGtin,
+                    Ean = c.EanList.Count > 0 ? string.Join(", ", c.EanList) : c.LegacyEan,
                     c.Isbn,
                     c.Sku,
                     c.Mpn,

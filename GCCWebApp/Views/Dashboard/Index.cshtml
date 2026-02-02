@@ -192,6 +192,7 @@
                 </button>
             </div>
             <table>
+                <caption class="admin-sr-only">Total Active Certificates by Certification Type</caption>
                 <thead>
                     <tr>
                         <th>Certification Type</th>
@@ -226,6 +227,7 @@
                 </button>
             </div>
             <table>
+                <caption class="admin-sr-only">Top 10 Companies by Active Certificate Count</caption>
                 <thead>
                     <tr>
                         <th>Company</th>
@@ -267,6 +269,7 @@
                 </button>
             </div>
             <table>
+                <caption class="admin-sr-only">Number of Certificates by Status</caption>
                 <thead>
                     <tr>
                         <th>Status</th>
@@ -298,6 +301,7 @@
                 </button>
             </div>
             <table>
+                <caption class="admin-sr-only">Top 10 Product Types by Active Certificate Count</caption>
                 <thead>
                     <tr>
                         <th>Product Type</th>
@@ -339,6 +343,7 @@
                 </button>
             </div>
             <table>
+                <caption class="admin-sr-only">Top 5 Product Categories by Active Certificate Count</caption>
                 <thead>
                     <tr>
                         <th>Product Category</th>
@@ -374,16 +379,16 @@
 
 <!-- Action Buttons -->
 <div class="action-buttons">
-    <button type="button" class="action-button" onclick="event.preventDefault(); DashboardFunctions.showExpiringCerts(3)">
-        <i class="fas fa-download"></i>
+    <button type="button" class="action-button" onclick="event.preventDefault(); DashboardFunctions.showExpiringCerts(3)" aria-label="Download expiring certificates report for next 3 months">
+        <i class="fas fa-download" aria-hidden="true"></i>
         Download Expiring Certs Report (Next 3 Months)
     </button>
-    <button type="button" class="action-button" onclick="event.preventDefault(); DashboardFunctions.showActiveCerts()">
-        <i class="fas fa-download"></i>
+    <button type="button" class="action-button" onclick="event.preventDefault(); DashboardFunctions.showActiveCerts()" aria-label="Download current active certificates report">
+        <i class="fas fa-download" aria-hidden="true"></i>
         Download Current Active Certs Report
     </button>
-    <button type="button" class="action-button" onclick="event.preventDefault(); DashboardFunctions.showExpiringCerts(1)">
-        <i class="fas fa-download"></i>
+    <button type="button" class="action-button" onclick="event.preventDefault(); DashboardFunctions.showExpiringCerts(1)" aria-label="Download expiring certificates report for next 30 days">
+        <i class="fas fa-download" aria-hidden="true"></i>
         Download Expiring Certs Report (Next 30 Days)
     </button>
 </div>

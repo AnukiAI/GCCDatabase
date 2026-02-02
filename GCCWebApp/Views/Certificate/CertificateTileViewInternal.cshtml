@@ -9,17 +9,17 @@
 <!-- Main Container -->
 <div class="main-container" style="width: 100%;">
     <!-- Show Filters button (visible when sidebar collapsed) -->
-    <button class="sidebar-toggle-tab" id="sidebarToggleTab">
+    <button class="sidebar-toggle-tab" id="sidebarToggleTab" aria-label="Show filters" aria-controls="filterSidebar" aria-expanded="false">
         <span>Show Filters</span>
-        <i class="fas fa-chevron-right"></i>
+        <i class="fas fa-chevron-right" aria-hidden="true"></i>
     </button>
 
     <!-- Sidebar (Filters) -->
-    <div class="sidebar" id="filterSidebar">
+    <aside id="filterSidebar" class="sidebar" role="complementary" aria-label="Certificate filters">
         <!-- Hide Filters button - matches mobile toggle style -->
-        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn">
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Hide filters" aria-expanded="true">
             <span>Hide Filters</span>
-            <i class="fas fa-chevron-left"></i>
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
         </button>
 
         <button class="mobile-filter-toggle" style="display: none;">
@@ -29,8 +29,9 @@
 
         <!-- Search Bar -->
         <div class="search-bar">
-            <i class="fas fa-search search-icon"></i>
-            <input type="text" class="search-input" placeholder="Search">
+            <label for="certificate-search" class="admin-sr-only">Search certificates</label>
+            <i class="fas fa-search search-icon" aria-hidden="true"></i>
+            <input type="text" id="certificate-search" class="search-input" placeholder="Search" aria-label="Search certificates by company, product, or certification type">
         </div>
 
         <div class="filters-header">
@@ -40,94 +41,99 @@
 
         <!-- Certification Type Filter -->
         <div class="filter-panel">
-            <div class="filter-header" data-filter="cert-type">
+            <button class="filter-header" data-filter="cert-type" aria-expanded="true" aria-controls="cert-type-content">
                 <span>Certification Type</span>
-                <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="filter-content" id="cert-type-content">
-                <ul class="filter-tree">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <fieldset class="filter-content" id="cert-type-content">
+                <legend class="admin-sr-only">Filter by certification type</legend>
+                <ul class="filter-tree" role="group">
                     <!-- Certification types will be dynamically populated from the database via JavaScript -->
                     <li class="filter-item">
                         <span style="color: #999; font-style: italic;">Loading certification types...</span>
                     </li>
                 </ul>
-            </div>
+            </fieldset>
         </div>
 
         <!-- Product Categories Filter -->
         <div class="filter-panel">
-            <div class="filter-header" data-filter="product-cat">
+            <button class="filter-header" data-filter="product-cat" aria-expanded="true" aria-controls="product-cat-content">
                 <span>Product Categories</span>
-                <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="filter-content" id="product-cat-content">
-                <ul class="filter-tree">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <fieldset class="filter-content" id="product-cat-content">
+                <legend class="admin-sr-only">Filter by product category</legend>
+                <ul class="filter-tree" role="group">
                     <!-- Product categories will be dynamically populated from the database via JavaScript -->
                     <li class="filter-item">
                         <span style="color: #999; font-style: italic;">Loading categories...</span>
                     </li>
                 </ul>
-            </div>
+            </fieldset>
         </div>
 
         <!-- Company Filter -->
         <div class="filter-panel">
-            <div class="filter-header" data-filter="company">
+            <button class="filter-header" data-filter="company" aria-expanded="true" aria-controls="company-content">
                 <span>Company</span>
-                <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="filter-content" id="company-content">
-                <ul class="filter-tree">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <fieldset class="filter-content" id="company-content">
+                <legend class="admin-sr-only">Filter by company</legend>
+                <ul class="filter-tree" role="group">
                     <!-- Companies will be dynamically populated from the database via JavaScript (only companies with active certificates) -->
                     <li class="filter-item">
                         <span style="color: #999; font-style: italic;">Loading companies...</span>
                     </li>
                 </ul>
-            </div>
+            </fieldset>
         </div>
 
         <!-- Countries Filter -->
         <div class="filter-panel">
-            <div class="filter-header" data-filter="countries">
+            <button class="filter-header" data-filter="countries" aria-expanded="true" aria-controls="countries-content">
                 <span>Countries</span>
-                <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="filter-content" id="countries-content">
-                <ul class="filter-tree">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <fieldset class="filter-content" id="countries-content">
+                <legend class="admin-sr-only">Filter by country</legend>
+                <ul class="filter-tree" role="group">
                     <!-- Countries will be dynamically populated from the database via JavaScript (only countries with active certificates) -->
                     <li class="filter-item">
                         <span style="color: #999; font-style: italic;">Loading countries...</span>
                     </li>
                 </ul>
-            </div>
+            </fieldset>
         </div>
 
         <!-- Additional Filter -->
         <div class="filter-panel">
-            <div class="filter-header" data-filter="additional">
+            <button class="filter-header" data-filter="additional" aria-expanded="true" aria-controls="additional-content">
                 <span>Additional</span>
-                <i class="fas fa-chevron-down"></i>
-            </div>
-            <div class="filter-content" id="additional-content">
-                <ul class="filter-tree">
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <fieldset class="filter-content" id="additional-content">
+                <legend class="admin-sr-only">Filter by additional tags</legend>
+                <ul class="filter-tree" role="group">
                     <!-- Additional tags will be dynamically populated from the database via JavaScript -->
                     <li class="filter-item">
                         <span style="color: #999; font-style: italic;">Loading additional tags...</span>
                     </li>
                 </ul>
-            </div>
+            </fieldset>
         </div>
-    </div>
+    </aside>
     <!-- Main Content Area -->
-    <div class="main-content">
+    <div class="tile-view-content">
         <div class="results-header">
             <div class="results-count" id="resultsCount">15 Results</div>
 
 
             <div class="sort-controls">
-                <span class="sort-label" id="sortByLabel">Sort By</span>
+                <label for="sortDropdownButton" class="sort-label" id="sortByLabel">Sort By</label>
                 <div class="sort-dropdown" id="sortDropdown">
-                    <button class="sort-dropdown-button" aria-expanded="false" aria-haspopup="listbox" aria-controls="sortContent" aria-labelledby="sortByLabel sortLabel">
+                    <button id="sortDropdownButton" class="sort-dropdown-button" aria-expanded="false" aria-haspopup="listbox" aria-controls="sortContent" aria-label="Sort certificates. Current sort: Default">
                         <span id="sortLabel">Default</span>
                         <i class="fas fa-chevron-down" aria-hidden="true"></i>
                     </button>
@@ -240,22 +246,22 @@
         <div class="results-controls">
             <div class="left-controls">
                 <div class="export-options">
-                    <a href="@Url.Action("Create", "Certificate")" class="btn btn-add">
-                        <i class="fas fa-plus"></i> Add Certificate
+                    <a href="@Url.Action("Create", "Certificate")" class="btn btn-add" aria-label="Add new certificate">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add Certificate
                     </a>
-                    <button class="btn btn-primary" id="downloadSelectedBtn" disabled title="Select certificates in table view to download">
-                        <i class="fas fa-download"></i> Download Selected
+                    <button class="btn btn-primary" id="downloadSelectedBtn" disabled title="Select certificates in table view to download" aria-label="Download selected certificates. Currently disabled - select certificates first.">
+                        <i class="fas fa-download" aria-hidden="true"></i> Download Selected
                     </button>
-                    <button class="btn btn-primary" id="exportAllBtn">
-                        <i class="fas fa-file-excel"></i> Export All to Excel
+                    <button class="btn btn-primary" id="exportAllBtn" aria-label="Export all visible certificates to Excel file">
+                        <i class="fas fa-file-excel" aria-hidden="true"></i> Export All to Excel
                     </button>
                     @if (User.IsInRole("Admin"))
                     {
-                        <button type="button" class="btn btn-outline" id="openImportModalBtn" title="Bulk import certificates from CSV">
-                            <i class="fas fa-upload"></i> Import
+                        <button type="button" class="btn btn-outline" id="openImportModalBtn" title="Bulk import certificates from CSV" aria-label="Bulk import certificates from CSV file">
+                            <i class="fas fa-upload" aria-hidden="true"></i> Import
                         </button>
-                        <a href="@Url.Action("DownloadTemplate", "CertificateImport")" class="btn btn-outline" title="Download CSV template with example data">
-                            <i class="fas fa-file-download"></i> Template
+                        <a href="@Url.Action("DownloadTemplate", "CertificateImport")" class="btn btn-outline" title="Download CSV template with example data" aria-label="Download CSV import template with example data">
+                            <i class="fas fa-file-download" aria-hidden="true"></i> Template
                         </a>
                     }
                 </div>
@@ -263,12 +269,12 @@
 
             <div class="right-controls">
                 <div class="view-toggle-container">
-                    <div class="view-toggle">
-                        <button class="toggle-btn active" data-view="tile">
-                            <i class="fas fa-th"></i> Tile
+                    <div class="view-toggle" role="group" aria-label="View mode">
+                        <button class="toggle-btn active" data-view="tile" aria-pressed="true" aria-label="Tile view">
+                            <i class="fas fa-th" aria-hidden="true"></i> Tile
                         </button>
-                        <button class="toggle-btn" data-view="list">
-                            <i class="fas fa-list"></i> List
+                        <button class="toggle-btn" data-view="list" aria-pressed="false" aria-label="List view">
+                            <i class="fas fa-list" aria-hidden="true"></i> List
                         </button>
                     </div>
                 </div>
@@ -280,25 +286,31 @@
         </div>
 
         <!-- LOADING INDICATOR FOR LAZY LOADING -->
-        <div id="loadingIndicator" class="loading-indicator" role="status" aria-live="polite" aria-atomic="true">
+        <div id="loadingIndicator" class="loading-indicator" role="status" aria-live="polite" aria-atomic="true" aria-busy="false">
             <div class="loading-spinner" aria-hidden="true"></div>
             <div class="loading-text">Loading more certificates...</div>
         </div>
 
+        <!-- Skip to footer link for infinite scroll accessibility -->
+        <a href="#footer" class="skip-to-footer admin-sr-only" tabindex="0">Skip to footer</a>
+
         <!-- TABLE VIEW CONTAINER -->
         <div id="tableView" class="view-container" style="display: none;">
             <!-- Bulk Actions Bar - Compact Selection Info Only -->
-            <div class="bulk-actions-bar" style="display: none;" id="bulkActionsBar" role="status">
+            <div class="bulk-actions-bar" style="display: none;" id="bulkActionsBar" role="region" aria-label="Bulk actions">
                 <div class="bulk-actions-left">
                     <span class="selected-count" id="selectedCount" aria-live="polite" aria-atomic="true">0 certificates selected</span>
-                    <button class="clear-selection-btn" data-action="clear-selection">Clear Selection</button>
+                    <button class="clear-selection-btn" data-action="clear-selection" aria-label="Clear all selections">Clear Selection</button>
                 </div>
             </div>
 
             <!-- Table Grid Container -->
             <div class="table-scroll-wrapper">
                 <div class="table-grid-container">
-                    <div class="table-grid" id="certificateGrid" role="table" aria-label="Certificates table">
+                    <div class="table-grid" id="certificateGrid" role="table" aria-label="Certificates data table" aria-describedby="tableDescription">
+                        <div id="tableDescription" class="admin-sr-only">
+                            Table showing certificate information including number, type, status, dates, company, and product details. Use arrow keys to navigate cells.
+                        </div>
 
                         <!-- HEADER ROW -->
                         <div class="grid-header" role="rowgroup">
@@ -409,15 +421,15 @@
 @if (User.IsInRole("Admin"))
 {
 <!-- Certificate Import Modal -->
-<div id="certificate-import-modal" class="import-modal-wrapper" style="display: none;">
+<div id="certificate-import-modal" class="import-modal-wrapper" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="importModalTitle">
     <div class="import-modal-backdrop"></div>
     <div class="import-modal-container">
         <div class="import-modal-header">
             <h3 class="import-modal-title">
-                <i class="fas fa-file-import"></i> <span id="importModalTitle">Import Certificates</span>
+                <i class="fas fa-file-import" aria-hidden="true"></i> <span id="importModalTitle">Import Certificates</span>
             </h3>
-            <button type="button" class="import-modal-close" id="closeImportModalBtn">
-                <i class="fas fa-times"></i>
+            <button type="button" class="import-modal-close" id="closeImportModalBtn" aria-label="Close import modal">
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         </div>
 

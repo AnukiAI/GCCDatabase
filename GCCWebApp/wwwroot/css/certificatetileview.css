@@ -211,8 +211,8 @@ html body.table-view-active .main-container {
     box-sizing: border-box !important;
 }
 
-body.table-view-active .main-content,
-html body.table-view-active .main-content {
+body.table-view-active .tile-view-content,
+html body.table-view-active .tile-view-content {
     max-width: 100% !important;
     width: 100% !important;
     padding: 15px !important;
@@ -383,10 +383,22 @@ html body.table-view-active #tableView {
     padding-left: 60px !important;
 }
 
-/* Main Content */
-.main-content {
+/* ===== LAYOUT CONSISTENCY FIX ===== */
+/* Remove .page-container padding when .main-container is present to match admin page layout */
+body:has(.main-container) .page-container {
+    padding: 0;
+    max-width: 100%;
+}
+
+/* Hide the layout's page-header for certificate tile views (like admin pages do) */
+body:has(.main-container) .page-header {
+    display: none !important;
+}
+
+/* Main Content Area (renamed from .main-content to avoid conflict with _Layout.cshtml) */
+.tile-view-content {
     flex: 1;
-    padding: 20px;
+    padding: 24px; /* Match admin-container padding */
 }
 .results-header {
     display: flex;
@@ -1556,9 +1568,9 @@ html body.table-view-active #tableView {
    using more specific .table-grid selectors (lines ~1821-1895) */
 
 /* Main content width */
-.main-content {
+.tile-view-content {
     flex: 1;
-    padding: 20px;
+    padding: 24px; /* Match admin-container padding */
     min-width: 0;
     width: 100%;
     max-width: 100vw; /* Allow full viewport width */
@@ -1742,7 +1754,7 @@ body.table-view-active .table-scroll-wrapper {
     max-width: 100%;
 }
 
-.main-container.sidebar-collapsed .main-content {
+.main-container.sidebar-collapsed .tile-view-content {
     max-width: 100%;
 }
 
@@ -1779,7 +1791,7 @@ body.table-view-active .main-container {
     margin: 0;
 }
 
-body.table-view-active .main-content {
+body.table-view-active .tile-view-content {
     max-width: 100%;
     width: 100%;
 }
@@ -1905,7 +1917,7 @@ body.table-view-active .main-content {
    REDUCE SPACING BETWEEN BUTTONS AND TABLE
    ==================================================== */
 
-.main-content .results-header {
+.tile-view-content .results-header {
     margin-bottom: 8px;
     padding-top: 5px;
     padding-bottom: 0;
@@ -1913,7 +1925,7 @@ body.table-view-active .main-content {
     padding-left: 0;
 }
 
-.main-content .results-controls {
+.tile-view-content .results-controls {
     margin-bottom: 8px;
     margin-top: 0;
     padding: 0;
@@ -1921,18 +1933,18 @@ body.table-view-active .main-content {
 }
 
 /* Explicit left alignment for buttons and table */
-.main-content .left-controls {
+.tile-view-content .left-controls {
     margin-left: 10px; /* Align with first tile/table column */
     padding-left: 0;
 }
 
-.main-content .export-options {
+.tile-view-content .export-options {
     margin-left: 0;
     padding-left: 0;
 }
 
-.main-content .table-scroll-wrapper,
-.main-content #tableView {
+.tile-view-content .table-scroll-wrapper,
+.tile-view-content #tableView {
     margin-left: 5px; /* Align table with buttons */
     padding-left: 0;
 }
@@ -2127,5 +2139,35 @@ body.table-view-active .main-content {
 .action-btn.edit-btn:hover {
     color: #0056b3;
     background-color: #e3f2fd;
+}
+
+/* ====================================================
+   CRITICAL FIX: Ensure certificate cards are ALWAYS visible
+   This overrides any animation/opacity issues from other CSS files
+   ==================================================== */
+.certificates-grid .certificate-card,
+.certificates-grid .certificate-card.internal-card,
+.certificates-grid .certificate-card.animated,
+.certificates-grid .certificate-card.fadeInUp,
+#certificatesGrid .certificate-card,
+#certificatesGrid > div {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: flex !important;
+    transform: none !important;
+}
+
+/* Ensure the grid container is visible */
+.certificates-grid,
+#certificatesGrid {
+    opacity: 1 !important;
+    visibility: visible !important;
+    display: grid !important;
+    min-height: 200px;
+}
+
+/* Only hide cards when specifically in table-view mode */
+.certificates-grid.table-view .certificate-card {
+    display: none !important;
 }
 

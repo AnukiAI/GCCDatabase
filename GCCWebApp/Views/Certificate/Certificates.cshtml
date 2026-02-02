@@ -41,8 +41,10 @@
     <div class="certificate-search-container">
         <div class="certificate-search-bar">
             <input type="text" class="certificate-search-input" placeholder="Search" id="certificate-search">
-            <button class="certificate-search-button" type="button">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <button class="certificate-search-button" type="button" aria-label="Search certificates">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" role="img" aria-labelledby="searchIconTitle searchIconDesc">
+                    <title id="searchIconTitle">Search</title>
+                    <desc id="searchIconDesc">Magnifying glass icon to initiate search</desc>
                     <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
                 </svg>
             </button>
@@ -51,33 +53,38 @@
         <div class="certificate-sort-by">
             <div class="certificate-sort-by-label">Sort By</div>
             <div class="certificate-sort-dropdown">
-                <button class="certificate-sort-dropdown-button" type="button">
+                <button class="certificate-sort-dropdown-button" type="button" aria-label="Sort options dropdown" aria-haspopup="true" aria-expanded="false">
                     <span>Default</span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16" role="img" aria-labelledby="dropdownIconTitle">
+                        <title id="dropdownIconTitle">Dropdown arrow</title>
                         <path d="M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z" />
                     </svg>
                 </button>
                 <div class="certificate-sort-dropdown-content">
                     <a href="#" class="certificate-sort-option" data-sort="newest">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" role="img" aria-labelledby="sortNewestTitle">
+                            <title id="sortNewestTitle">Sort ascending</title>
                             <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
                         </svg>
                         Newest Effective Date
                     </a>
                     <a href="#" class="certificate-sort-option" data-sort="expiring">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" role="img" aria-labelledby="sortExpiringTitle">
+                            <title id="sortExpiringTitle">Sort by expiration</title>
                             <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
                         </svg>
                         Expiring Soon
                     </a>
                     <a href="#" class="certificate-sort-option" data-sort="product-az">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" role="img" aria-labelledby="sortProductTitle">
+                            <title id="sortProductTitle">Sort alphabetically</title>
                             <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
                         </svg>
                         Product Name A-Z
                     </a>
                     <a href="#" class="certificate-sort-option" data-sort="company-az">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" role="img" aria-labelledby="sortCompanyTitle">
+                            <title id="sortCompanyTitle">Sort alphabetically</title>
                             <path d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5z" />
                         </svg>
                         Company A-Z

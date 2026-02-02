@@ -287,13 +287,15 @@
                 </div>
                 <div class="form-group">
                     <label for="certificatePdf">Upload PDF Certificate <span class="text-danger" aria-label="required">*</span></label>
-                    <div class="pdf-upload" id="pdfUploadZone" role="button" tabindex="0" aria-label="Upload PDF certificate file. You can drag and drop a file here or press Enter to select a file." onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificatePdf').click();}">
-                        <i class="fas fa-file-pdf" style="font-size: 48px; color: #FFC107; margin-bottom: 12px;"></i>
+                    <div class="pdf-upload" id="pdfUploadZone" role="button" tabindex="0" aria-label="Upload PDF certificate. Press Enter or Space to browse files, or drag and drop a PDF file here. Maximum file size 10MB." onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificatePdf').click();}">
+                        <i class="fas fa-file-pdf" style="font-size: 48px; color: #FFC107; margin-bottom: 12px;" aria-hidden="true"></i>
                         <div class="pdf-upload-text">Drag and drop PDF here or click to select</div>
-                        <small style="color: #6c757d; font-size: 13px;">Maximum file size: 10MB</small>
+                        <small style="color: #6c757d; font-size: 16px;">Maximum file size: 10MB</small>
                     </div>
-                    <input type="file" id="certificatePdf" name="certificatePdf" accept="application/pdf" style="display: none;" required aria-required="true" aria-describedby="pdf-help" />
-                    <div id="pdfPreviewContainer" aria-live="polite"></div>
+                    <input type="file" id="certificatePdf" name="certificatePdf" accept="application/pdf" style="display: none;" required aria-required="true" aria-describedby="pdf-help pdf-requirements" />
+                    <small id="pdf-help" class="form-text text-muted">PDF file required for certificate creation. Image preview will be generated automatically.</small>
+                    <small id="pdf-requirements" class="admin-sr-only">File must be PDF format, maximum 10 megabytes</small>
+                    <div id="pdfPreviewContainer" aria-live="polite" aria-atomic="true"></div>
                 </div>
             </div>
 

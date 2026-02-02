@@ -46,32 +46,40 @@
         </div>
     </header>
 
-    <div class="search-filter-bar">
-        <div class="search-box">
-            <input type="text" id="search-input" placeholder="Search">
-            <i class="fas fa-search search-icon"></i>
+    <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
+                <div class="admin-search-box">
+                    <label for="search-input" class="admin-sr-only">Search companies</label>
+                    <input type="text" id="search-input" class="admin-search-input" placeholder="Search" aria-label="Search companies">
+                    <i class="fas fa-search admin-search-icon"></i>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="table-container">
-        <table id="company-table">
-            <thead>
-                <tr>
-                    <th style="width: 28%;" data-sort="name">Company Name <span class="sort-icon">▼</span></th>
-                    <th style="width: 28%;" data-sort="email">Email <span class="sort-icon">▼</span></th>
-                    <th style="width: 28%;" data-sort="url">URL <span class="sort-icon">▼</span></th>
-                    <th class="actions-col" style="width: 16%; min-width: 100px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Data will be populated by JavaScript -->
-            </tbody>
-        </table>
-    </div>
+        <div class="admin-content">
+            <div class="admin-table-container">
+                <table id="company-table" class="admin-table">
+                    <thead class="admin-table-header">
+                        <tr>
+                            <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="28%">Company Name <span class="sort-icon">▼</span></th>
+                            <th class="admin-table-th admin-table-th--sortable" data-sort="email" width="28%">Email <span class="sort-icon">▼</span></th>
+                            <th class="admin-table-th admin-table-th--sortable" data-sort="url" width="28%">URL <span class="sort-icon">▼</span></th>
+                            <th class="admin-table-th admin-table-th--actions" width="16%">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="admin-table-body">
+                        <!-- Data will be populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-    <div class="footer-info">
-        <span id="company-count">Showing 0 of 0 companies</span>
-    </div>
+        <div class="admin-footer-info">
+            <span id="company-count" class="admin-count-display">Showing 0 of 0 companies</span>
+        </div>
+    </div> <!-- End admin-body-content -->
 </div>
 
 <!-- Import Preview Modal (US-015 Backdrop Standard) -->

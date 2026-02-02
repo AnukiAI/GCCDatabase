@@ -148,10 +148,10 @@
     visibility: hidden;
 }
 
-/* Certificate card animations */
+/* Certificate card animations - FIXED: Cards visible by default to prevent animation failures */
 .certificate-card {
-    opacity: 0;
-    transform: translateY(20px);
+    opacity: 1; /* Always visible - animation enhances but doesn't control visibility */
+    transform: translateY(0);
     transition: opacity 0.4s ease, transform 0.4s ease, box-shadow 0.3s ease;
 }
 

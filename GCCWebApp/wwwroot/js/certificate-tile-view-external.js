@@ -383,11 +383,11 @@
                 <td class="location">${location}</td>
                 <td class="partner">${partnerBadge}</td>
                 <td class="actions">
-                    <button class="btn-icon" title="View Details" onclick="event.stopPropagation(); viewCertificateDetails('${cert.certificateNumber}')">
-                        <i class="fas fa-eye"></i>
+                    <button class="btn-icon" title="View Details" aria-label="View details for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); viewCertificateDetails('${cert.certificateNumber}')">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
                     </button>
-                    <button class="btn-icon" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
-                        <i class="fas fa-download"></i>
+                    <button class="btn-icon" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
+                        <i class="fas fa-download" aria-hidden="true"></i>
                     </button>
                 </td>
             </tr>

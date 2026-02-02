@@ -282,10 +282,13 @@
     // Render certificates to the grid
     function renderCertificates(append = false) {
         const grid = document.getElementById('certificatesGrid');
+        console.log('DEBUG renderCertificates: grid element found:', !!grid);
+        console.log('DEBUG renderCertificates: certificates count:', state.certificates.length);
         if (!grid) return;
 
         // Check if we're in table view or tile view
         const isTableView = grid.classList.contains('table-view');
+        console.log('DEBUG renderCertificates: isTableView:', isTableView);
         
         if (isTableView) {
             renderCertificatesTable();
@@ -307,9 +310,29 @@
     // Render certificates in tile format (default)
     function renderCertificatesTiles() {
         const grid = document.getElementById('certificatesGrid');
-        if (!grid) return;
+        if (!grid) {
+            console.error('ERROR: certificatesGrid element not found!');
+            return;
+        }
 
-        grid.innerHTML = state.certificates.map(cert => createCertificateCard(cert)).join('');
+        // Force grid to be visible
+        grid.style.display = 'grid';
+        grid.style.opacity = '1';
+        grid.style.visibility = 'visible';
+
+        const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
+        console.log('DEBUG renderCertificatesTiles: HTML length:', html.length);
+        console.log('DEBUG renderCertificatesTiles: Certificates count:', state.certificates.length);
+
+        grid.innerHTML = html;
+
+        console.log('DEBUG renderCertificatesTiles: Children count:', grid.children.length);
+        if (grid.children.length === 0 && state.certificates.length > 0) {
+            console.error('ERROR: No children after setting innerHTML!');
+            console.log('HTML was:', html.substring(0, 1000));
+        }
+
+        // Force all cards visible immediately
         animateCards();
     }
 
@@ -363,14 +386,14 @@
                 <td class="location">${location}</td>
                 <td class="partner">${partnerBadge}</td>
                 <td class="actions">
-                    <button class="btn-icon" title="View Details" onclick="event.stopPropagation(); viewCertificateDetails('${cert.certificateNumber}')">
-                        <i class="fas fa-eye"></i>
+                    <button class="btn-icon" title="View Details" aria-label="View details for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); viewCertificateDetails('${cert.certificateNumber}')">
+                        <i class="fas fa-eye" aria-hidden="true"></i>
                     </button>
-                    <button class="btn-icon" title="Edit Certificate" onclick="event.stopPropagation(); editCertificate('${cert.certificateNumber}')">
-                        <i class="fas fa-edit"></i>
+                    <button class="btn-icon" title="Edit Certificate" aria-label="Edit certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); editCertificate('${cert.certificateNumber}')">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
                     </button>
-                    <button class="btn-icon" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
-                        <i class="fas fa-download"></i>
+                    <button class="btn-icon" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
+                        <i class="fas fa-download" aria-hidden="true"></i>
                     </button>
                 </td>
             </tr>
@@ -432,14 +455,14 @@
                     ` : ''}
                 </div>
                 <div class="card-actions">
-                    <div class="action-icon download" title="Download PDF" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
-                        <i class="fas fa-download"></i>
+                    <div class="action-icon download" title="Download PDF" role="button" tabindex="0" aria-label="Download PDF for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')" onkeypress="if(event.key==='Enter'||event.key===' '){event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')}">
+                        <i class="fas fa-download" aria-hidden="true"></i>
                     </div>
-                    <div class="action-icon external" title="View Details" onclick="event.stopPropagation(); viewCertificate('${cert.certificateNumber}')">
-                        <i class="fas fa-external-link-alt"></i>
+                    <div class="action-icon external" title="View Details" role="button" tabindex="0" aria-label="View details for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); viewCertificate('${cert.certificateNumber}')" onkeypress="if(event.key==='Enter'||event.key===' '){event.stopPropagation(); viewCertificate('${cert.certificateNumber}')}">
+                        <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                     </div>
-                    <div class="action-icon edit" title="Edit Certificate" onclick="event.stopPropagation(); editCertificate('${cert.certificateNumber}')">
-                        <i class="fas fa-edit"></i>
+                    <div class="action-icon edit" title="Edit Certificate" role="button" tabindex="0" aria-label="Edit certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); editCertificate('${cert.certificateNumber}')" onkeypress="if(event.key==='Enter'||event.key===' '){event.stopPropagation(); editCertificate('${cert.certificateNumber}')}">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
                     </div>
                 </div>
             </div>
@@ -973,11 +996,13 @@
     }
 
     function animateCards() {
-        const cards = document.querySelectorAll('.certificate-card:not(.animated)');
-        cards.forEach((card, index) => {
-            setTimeout(() => {
-                card.classList.add('animated', 'fadeInUp');
-            }, index * 50);
+        // Immediately make all cards visible - no animation delays
+        const cards = document.querySelectorAll('.certificate-card');
+        cards.forEach((card) => {
+            card.classList.add('animated', 'fadeInUp');
+            // Force visibility in case CSS isn't applying
+            card.style.opacity = '1';
+            card.style.visibility = 'visible';
         });
     }
 

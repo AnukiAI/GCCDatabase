@@ -120,11 +120,11 @@ class CompanyManagement {
                 <td class="company-url">${websiteDisplay}</td>
                 <td class="actions-col">
                     <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="companyManagement.editCompany(${company.id})" title="Edit Company">
-                            <i class="fas fa-edit"></i>
+                        <button class="action-btn edit-btn" onclick="companyManagement.editCompany(${company.id})" title="Edit Company" aria-label="Edit company ${this.escapeHtml(company.name)}">
+                            <i class="fas fa-edit" aria-hidden="true"></i>
                         </button>
-                        <button class="action-btn delete-btn" onclick="companyManagement.deleteCompany(${company.id})" title="Delete Company">
-                            <i class="fas fa-trash"></i>
+                        <button class="action-btn delete-btn" onclick="companyManagement.deleteCompany(${company.id})" title="Delete Company" aria-label="Delete company ${this.escapeHtml(company.name)}">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
                         </button>
                     </div>
                 </td>
@@ -190,15 +190,26 @@ class CompanyManagement {
     
     updateSortIcons(activeField) {
         document.querySelectorAll('[data-sort] .sort-icon').forEach(icon => {
-            const field = icon.closest('[data-sort]').dataset.sort;
+            const header = icon.closest('[data-sort]');
+            const field = header.dataset.sort;
             if (field === activeField) {
                 icon.textContent = this.currentSort.direction === 'asc' ? '▲' : '▼';
-                icon.closest('th').classList.add('sorted');
+                header.classList.add('sorted');
+                header.setAttribute('aria-sort', this.currentSort.direction === 'asc' ? 'ascending' : 'descending');
             } else {
                 icon.textContent = '▼';
-                icon.closest('th').classList.remove('sorted');
+                header.classList.remove('sorted');
+                header.setAttribute('aria-sort', 'none');
             }
         });
+
+        // Announce sort change to screen readers
+        if (window.AdminCore && window.AdminCore.announceToScreenReader) {
+            const activeHeader = document.querySelector(`[data-sort="${activeField}"]`);
+            if (activeHeader) {
+                AdminCore.announceToScreenReader(`Table sorted by ${activeHeader.textContent.trim()}, ${this.currentSort.direction === 'asc' ? 'ascending' : 'descending'}`);
+            }
+        }
     }
     
     updateCompanyCount() {

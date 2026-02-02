@@ -52,62 +52,63 @@
             <div class="admin-search-section">
                 <div class="admin-search-box">
                     <label for="search-input" class="admin-sr-only">Search users</label>
-                <input type="text" id="search-input" class="admin-search-input" placeholder="Search" aria-label="Search users">
-                <i class="fas fa-search admin-search-icon"></i>
+                    <input type="text" id="search-input" class="admin-search-input" placeholder="Search" aria-label="Search users">
+                    <i class="fas fa-search admin-search-icon"></i>
+                </div>
+            </div>
+            <div class="admin-filter-section">
+                <div class="admin-filter-group">
+                    <label for="status-filter" class="admin-sr-only">Filter by status</label>
+                    <select id="status-filter" class="admin-filter-select" aria-label="Filter by status">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                    <label for="role-filter" class="admin-sr-only">Filter by role</label>
+                    <select id="role-filter" class="admin-filter-select" aria-label="Filter by role">
+                        <option value="all">All Roles</option>
+                        <!-- Roles populated dynamically by JavaScript -->
+                    </select>
+                    <label for="company-filter" class="admin-sr-only">Filter by company</label>
+                    <select id="company-filter" class="admin-filter-select" aria-label="Filter by company">
+                        <option value="all">All Companies</option>
+                        <!-- Companies populated dynamically by JavaScript -->
+                    </select>
+                </div>
             </div>
         </div>
-        <div class="admin-filter-section">
-            <div class="admin-filter-group">
-                <label for="status-filter" class="admin-sr-only">Filter by status</label>
-                <select id="status-filter" class="admin-filter-select" aria-label="Filter by status">
-                    <option value="all">All Status</option>
-                    <option value="active">Active</option>
-                    <option value="inactive">Inactive</option>
-                </select>
-                <label for="role-filter" class="admin-sr-only">Filter by role</label>
-                <select id="role-filter" class="admin-filter-select" aria-label="Filter by role">
-                    <option value="all">All Roles</option>
-                    <!-- Roles populated dynamically by JavaScript -->
-                </select>
-                <label for="company-filter" class="admin-sr-only">Filter by company</label>
-                <select id="company-filter" class="admin-filter-select" aria-label="Filter by company">
-                    <option value="all">All Companies</option>
-                    <!-- Companies populated dynamically by JavaScript -->
-                </select>
-            </div>
-        </div>
-    </div>
 
-    <div class="admin-content">
+        <div class="admin-content">
         <!-- Screen reader announcements for table updates -->
         <div class="sr-only" aria-live="polite" aria-atomic="true" id="tableAnnouncement"></div>
 
         <div class="admin-table-container">
             <table id="user-table" class="admin-table">
+                <caption class="admin-sr-only">User management table showing all users with their details and available actions</caption>
                 <thead class="admin-table-header">
                     <tr>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="18%">
-                            Name <span class="sort-icon">▼</span>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="18%" aria-sort="none" role="columnheader">
+                            Name <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="company" width="20%">
-                            Company <span class="sort-icon">▼</span>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="company" width="20%" aria-sort="none" role="columnheader">
+                            Company <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="email" width="22%">
-                            Email <span class="sort-icon">▼</span>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="email" width="22%" aria-sort="none" role="columnheader">
+                            Email <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="role" width="12%">
-                            Role <span class="sort-icon">▼</span>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="role" width="12%" aria-sort="none" role="columnheader">
+                            Role <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="status" width="10%">
-                            Status <span class="sort-icon">▼</span>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="status" width="10%" aria-sort="none" role="columnheader">
+                            Status <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
-                        <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="lastLogin" width="10%">
-                            Last Login <span class="sort-icon">▼</span>
+                        <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="lastLogin" width="10%" aria-sort="none" role="columnheader">
+                            Last Login <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="twoFactorEnabled" width="8%">
-                            2FA <span class="sort-icon">▼</span>
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="twoFactorEnabled" width="8%" aria-sort="none" role="columnheader">
+                            2FA <span class="sort-icon" aria-hidden="true">▼</span>
                         </th>
-                        <th class="admin-table-th admin-table-th--actions" width="10%">Actions</th>
+                        <th class="admin-table-th admin-table-th--actions" width="10%" role="columnheader">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="admin-table-body">
@@ -124,18 +125,18 @@
 </div>
 
 <!-- Import Preview Modal (US-015 Backdrop Standard) -->
-<div id="import-preview-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9997;">
+<div id="import-preview-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 9997;" role="dialog" aria-modal="true" aria-labelledby="import-modal-title">
     <!-- Backdrop (sibling) -->
     <div class="import-modal-backdrop" style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 9998; backdrop-filter: blur(3px);"></div>
 
     <!-- Modal Container (sibling) -->
     <div class="import-modal-container" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 9999; width: 95%; max-width: 1200px; max-height: 90vh; background-color: white; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); display: flex; flex-direction: column; opacity: 1;">
         <div class="admin-modal-header" style="background-color: #f8f9fa; border-bottom: 2px solid #e9ecef; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-radius: 8px 8px 0 0;">
-            <h3 class="admin-modal-title" style="color: #002B76; font-weight: 600; margin: 0; font-size: 18px;">
-                <i class="fas fa-file-import" style="margin-right: 8px;"></i> Import Preview - Users
+            <h3 id="import-modal-title" class="admin-modal-title" style="color: #002B76; font-weight: 600; margin: 0; font-size: 18px;">
+                <i class="fas fa-file-import" style="margin-right: 8px;" aria-hidden="true"></i> Import Preview - Users
             </h3>
-            <button class="admin-modal-close" onclick="userManagement.closeImportPreviewModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #666; padding: 4px 8px;">
-                <i class="fas fa-times"></i>
+            <button class="admin-modal-close" onclick="userManagement.closeImportPreviewModal()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #666; padding: 4px 8px;" aria-label="Close import preview modal">
+                <i class="fas fa-times" aria-hidden="true"></i>
             </button>
         </div>
 
@@ -326,15 +327,20 @@
         function togglePasswordVisibility() {
             const passwordInput = document.getElementById('user-password');
             const toggleIcon = document.getElementById('password-toggle-icon');
+            const toggleButton = document.getElementById('toggle-password-visibility');
 
             if (passwordInput.type === 'text') {
                 passwordInput.type = 'password';
                 toggleIcon.classList.remove('fa-eye-slash');
                 toggleIcon.classList.add('fa-eye');
+                toggleButton.setAttribute('aria-label', 'Show password');
+                toggleButton.setAttribute('aria-pressed', 'true');
             } else {
                 passwordInput.type = 'text';
                 toggleIcon.classList.remove('fa-eye');
                 toggleIcon.classList.add('fa-eye-slash');
+                toggleButton.setAttribute('aria-label', 'Hide password');
+                toggleButton.setAttribute('aria-pressed', 'false');
             }
         }
     </script>

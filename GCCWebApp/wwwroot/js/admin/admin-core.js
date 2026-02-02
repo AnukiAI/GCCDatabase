@@ -406,7 +406,7 @@ const AdminCore = {
             // Create modal overlay
             const overlay = document.createElement('div');
             overlay.className = 'admin-modal-overlay gcc-modal-overlay';
-            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('role', 'alertdialog');
             overlay.setAttribute('aria-modal', 'true');
             overlay.setAttribute('aria-labelledby', 'modal-title');
             overlay.setAttribute('aria-describedby', 'modal-message');

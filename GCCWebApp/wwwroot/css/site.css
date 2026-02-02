@@ -1,5 +1,34 @@
 /* site.css - Global Bootstrap overrides and base styles */
 
+/* ===== ABBREVIATION STYLING ===== */
+/* Remove default browser dotted underline on abbreviations */
+/* The title attribute still provides tooltip on hover for accessibility */
+abbr,
+abbr[title] {
+    text-decoration: none;
+    border-bottom: none;
+    cursor: default;
+}
+
+/* In headings and titles, abbr should be completely seamless */
+h1 abbr,
+h2 abbr,
+h3 abbr,
+h4 abbr,
+h5 abbr,
+h6 abbr,
+.admin-page-title abbr,
+.admin-page-subtitle abbr,
+.admin-card-title abbr,
+.page-title abbr,
+button abbr,
+.btn abbr {
+    text-decoration: none;
+    border-bottom: none;
+    cursor: inherit;
+    font-style: normal;
+}
+
 /* ===== BASE STYLES ===== */
 html {
     font-size: 16px;
@@ -15,6 +44,40 @@ html {
 
 body {
     margin-bottom: 60px;
+    /* Ensure text can resize up to 200% without loss of content or functionality */
+    overflow-x: hidden;
+}
+
+/* Ensure containers don't have fixed heights that prevent text reflow */
+* {
+    max-width: 100%;
+}
+
+/* Allow text to reflow properly when zoomed */
+.admin-container,
+.main-container,
+.page-container {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+/* Prevent horizontal scroll at all zoom levels */
+html, body {
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+/* ===== ACCESSIBILITY - REDUCE MOTION ===== */
+/* Respect user's motion preferences for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 /* ===== FORM CONTROLS & FOCUS STATES ===== */
@@ -24,4 +87,29 @@ body {
 .form-control:focus,
 .form-check-input:focus {
     box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+}
+
+/* ===== LINK ACCESSIBILITY ===== */
+/* Ensure inline links have adequate spacing for touch targets */
+a {
+    display: inline-block;
+    min-height: 24px;
+    padding: 2px 0;
+}
+
+/* Exception for links that are already properly sized (navigation, buttons, etc.) */
+.nav-link,
+.btn,
+.action-btn,
+.admin-action-btn,
+.btn-icon {
+    display: inline-flex;
+    padding: revert;
+    min-height: revert;
+}
+
+/* Ensure adequate spacing between inline links */
+p a + a,
+span a + a {
+    margin-left: 8px;
 }

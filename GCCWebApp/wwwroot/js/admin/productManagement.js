@@ -211,16 +211,18 @@ class ProductManagement {
                 // Show edit and delete buttons
                 const editBtn = document.createElement('button');
                 editBtn.className = 'action-btn edit-btn';
-                editBtn.innerHTML = '<i class="fas fa-edit"></i>';
+                editBtn.innerHTML = '<i class="fas fa-edit" aria-hidden="true"></i>';
                 editBtn.title = 'Edit';
+                editBtn.setAttribute('aria-label', `Edit product ${product.name}`);
                 editBtn.addEventListener('click', () => this.editProduct(product.id));
-                
+
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'action-btn delete-btn';
-                deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+                deleteBtn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i>';
                 deleteBtn.title = 'Delete';
+                deleteBtn.setAttribute('aria-label', `Delete product ${product.name}`);
                 deleteBtn.addEventListener('click', () => this.deleteProduct(product.id));
-                
+
                 actionsCell.appendChild(editBtn);
                 actionsCell.appendChild(deleteBtn);
             }
@@ -282,15 +284,26 @@ class ProductManagement {
     
     updateSortIcons(activeField) {
         document.querySelectorAll('[data-sort] .sort-icon').forEach(icon => {
-            const field = icon.closest('[data-sort]').dataset.sort;
+            const header = icon.closest('[data-sort]');
+            const field = header.dataset.sort;
             if (field === activeField) {
                 icon.textContent = this.currentSort.direction === 'asc' ? '▲' : '▼';
-                icon.closest('th').classList.add('sorted');
+                header.classList.add('sorted');
+                header.setAttribute('aria-sort', this.currentSort.direction === 'asc' ? 'ascending' : 'descending');
             } else {
                 icon.textContent = '▼';
-                icon.closest('th').classList.remove('sorted');
+                header.classList.remove('sorted');
+                header.setAttribute('aria-sort', 'none');
             }
         });
+
+        // Announce sort change to screen readers
+        if (window.AdminCore && window.AdminCore.announceToScreenReader) {
+            const activeHeader = document.querySelector(`[data-sort="${activeField}"]`);
+            if (activeHeader) {
+                AdminCore.announceToScreenReader(`Table sorted by ${activeHeader.textContent.trim()}, ${this.currentSort.direction === 'asc' ? 'ascending' : 'descending'}`);
+            }
+        }
     }
     
     updateProductCount() {

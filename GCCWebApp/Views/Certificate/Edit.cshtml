@@ -320,6 +320,7 @@
                         <small style="color: var(--text-secondary); font-size: 13px;">Maximum file size: 10MB. @(string.IsNullOrEmpty(Model.CertificateImagePath) ? "" : "Leave empty to keep existing PDF.")</small>
                     </div>
                     <input type="file" id="certificatePdf" name="certificatePdf" accept="application/pdf" style="display: none;" aria-describedby="pdf-help" />
+                    <small id="pdf-help" class="form-text text-muted">PDF file optional for editing. Leave empty to keep existing PDF. Image preview will be regenerated if new file uploaded.</small>
                     <div id="pdfPreviewContainer" aria-live="polite"></div>
                 </div>
             </div>

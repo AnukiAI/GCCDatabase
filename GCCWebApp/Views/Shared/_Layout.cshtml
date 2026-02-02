@@ -53,6 +53,9 @@
     <!-- Unified Component System (standardized buttons, modals, layouts) -->
     <link href="~/css/unified-components.css" rel="stylesheet" />
 
+    <!-- Accessibility Enhancements - Low Priority Fixes (WCAG 2.1 Level AA) -->
+    <link href="~/css/accessibility-enhancements-low-priority.css" rel="stylesheet" />
+
     <!-- Component-specific CSS loaded per page -->
     @RenderSection("Styles", required: false)
 
@@ -87,6 +90,9 @@
     }
 </head>
 <body class="theme-option4 @roleCssClass @ViewData["BodyClass"]">
+    <!-- Skip to main content link for keyboard navigation -->
+    <a href="#main-content" class="admin-sr-only skip-to-main">Skip to main content</a>
+
     <!-- Header -->
     <header class="header">
         <!-- Top bar with user controls -->
@@ -123,7 +129,7 @@
             <div class="page-container">
                 <div class="logo-area">
                     <div class="logo-img">
-                        <img src="~/img/gcclogo.png" alt="GCC Logo" class="main-logo" />
+                        <img src="~/img/gcclogo.png" alt="GreenCircle Certified Logo" class="main-logo" />
                     </div>
                     <div class="logo-text-group">
                         <div class="logo-text">GreenCircle Certified Database</div>
@@ -137,9 +143,9 @@
 
         <!-- Navigation wrapper - Always visible for design consistency -->
         <div class="nav-wrapper">
-            <nav class="main-nav">
-                <div class="mobile-toggle" id="mobile-toggle">
-                    <i class="fas fa-bars"></i>
+            <nav class="main-nav" aria-label="Main navigation">
+                <div class="mobile-toggle" id="mobile-toggle" role="button" aria-label="Open navigation menu" tabindex="0">
+                    <i class="fas fa-bars" aria-hidden="true"></i>
                 </div>
                 <ul class="nav-links">
                     <li class="mobile-nav-close-item">
@@ -280,14 +286,14 @@
     </header>
 
     <!-- Breadcrumbs - Only visible for Admin role -->
-    <div class="breadcrumbs role-element role-admin-show">
+    <nav class="breadcrumbs role-element role-admin-show" aria-label="Breadcrumb">
         <div class="breadcrumb-wrapper">
             @RenderSection("Breadcrumbs", required: false)
         </div>
-    </div>
+    </nav>
 
     <!-- Main content -->
-    <main class="main-content">
+    <main id="main-content" class="main-content">
         <div class="page-container">
             <div class="page-header">
                 <h1 class="page-title">@ViewData["Title"]</h1>
@@ -300,7 +306,7 @@
     </main>
 
     <!-- Footer -->
-    <footer>
+    <footer id="footer" role="contentinfo">
         <div class="footer-content">
             <div class="disclaimer">
                 The certificates in this public database are available for viewing at the consent of the client; not all awarded certificates are made publicly available. Additionally, some previously awarded certificates might not come up in a search of this database but may be valid for products in circulation that were produced during the evaluation period.
@@ -321,6 +327,7 @@
     <script src="~/js/main.js"></script>
     <script src="~/js/auth.js"></script>
     <script src="~/js/admin/admin-core.js"></script>
+    <script src="~/js/accessibility-enhancements.js"></script>
 
     @RenderSection("Scripts", required: false)
 </body>

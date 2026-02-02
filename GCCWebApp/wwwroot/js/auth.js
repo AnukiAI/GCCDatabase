@@ -65,10 +65,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Handle session timeout
     let sessionTimeout;
+    let warningTimeout;
     const SESSION_TIMEOUT = 30 * 60 * 1000; // 30 minutes
-    
+    const WARNING_TIME = 5 * 60 * 1000; // 5 minutes before timeout
+    let warningShown = false;
+
     function resetSessionTimeout() {
         clearTimeout(sessionTimeout);
+        clearTimeout(warningTimeout);
+        warningShown = false;
+
+        // Show warning 5 minutes before timeout
+        warningTimeout = setTimeout(() => {
+            if (document.querySelector('#logoutForm') && !warningShown) {
+                warningShown = true;
+                AdminCore.showNotification(
+                    'Your session will expire in 5 minutes due to inactivity. Click anywhere to stay logged in.',
+                    'warning',
+                    { duration: 10000 }
+                );
+            }
+        }, SESSION_TIMEOUT - WARNING_TIME);
+
+        // Logout at timeout
         sessionTimeout = setTimeout(() => {
             if (document.querySelector('#logoutForm')) {
                 AdminCore.showNotification('Your session has expired. You will be logged out.', 'warning', { duration: 0 });
@@ -78,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, SESSION_TIMEOUT);
     }
-    
+
     // Reset timeout on user activity
     if (document.querySelector('#logoutForm')) {
         ['click', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {

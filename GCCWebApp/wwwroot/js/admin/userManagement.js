@@ -348,6 +348,7 @@ function populateTable(data) {
         editButton.className = 'btn-edit';
         editButton.innerHTML = '<i class="fas fa-edit"></i>';
         editButton.title = 'Edit';
+        editButton.setAttribute('aria-label', `Edit user ${user.name}`);
         editButton.addEventListener('click', () => openEditModal(user));
         actionsCell.appendChild(editButton);
 
@@ -356,6 +357,7 @@ function populateTable(data) {
         deleteButton.className = 'btn-delete';
         deleteButton.innerHTML = '<i class="fas fa-trash"></i>';
         deleteButton.title = 'Delete';
+        deleteButton.setAttribute('aria-label', `Delete user ${user.name}`);
         deleteButton.addEventListener('click', () => deleteUser(user.id));
         actionsCell.appendChild(deleteButton);
 
@@ -510,9 +512,10 @@ function initializeSortableHeaders() {
                 sortDirection = 'asc';
             }
 
-            // Update header styling
+            // Update header styling and ARIA attributes
             headers.forEach(h => {
                 h.classList.remove('active-sort');
+                h.setAttribute('aria-sort', 'none');
                 const icon = h.querySelector('.sort-icon');
                 if (icon) {
                     icon.textContent = '▼';
@@ -521,10 +524,16 @@ function initializeSortableHeaders() {
             });
 
             header.classList.add('active-sort');
+            header.setAttribute('aria-sort', sortDirection === 'asc' ? 'ascending' : 'descending');
             const sortIcon = header.querySelector('.sort-icon');
             if (sortIcon) {
                 sortIcon.textContent = sortDirection === 'asc' ? '▼' : '▲';
                 sortIcon.style.opacity = '1';
+            }
+
+            // Announce sort change to screen readers
+            if (window.AdminCore && window.AdminCore.announceToScreenReader) {
+                AdminCore.announceToScreenReader(`Table sorted by ${header.textContent.trim()}, ${sortDirection === 'asc' ? 'ascending' : 'descending'}`);
             }
 
             // Apply filters and sort

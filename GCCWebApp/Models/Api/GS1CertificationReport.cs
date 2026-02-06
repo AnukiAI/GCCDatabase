@@ -194,6 +194,14 @@ namespace GCCWebApp.Models.Api
         /// </summary>
         [JsonPropertyName("targetCountries")]
         public List<string>? TargetCountries { get; set; }
+
+        /// <summary>
+        /// Amazon-specific certification code (e.g., "greencircle_energy_savings").
+        /// Custom extension for Climate Pledge Friendly integration.
+        /// </summary>
+        [JsonPropertyName("amazonCode")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? AmazonCode { get; set; }
     }
 
     /// <summary>

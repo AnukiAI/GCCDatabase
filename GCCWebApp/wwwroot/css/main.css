@@ -796,10 +796,10 @@ th,
 
 /* ===== ACTION COLUMNS (Admin Pages) ===== */
 .actions-col {
-    text-align: right;
+    text-align: center;
     white-space: nowrap;
-    width: 10%;
-    min-width: 80px;
+    width: 120px;
+    min-width: 120px;
 }
 
 /* ===== 11. BUTTON SYSTEM ===== */
@@ -5320,14 +5320,21 @@ input[type="checkbox"] {
     text-align: center;
 }
 
+/* Action column/cell - NO display:flex on td/th, only on inner container */
 .actions-column, .actions-cell {
     text-align: center;
     white-space: nowrap;
-    display: flex;
+    vertical-align: middle;
+}
+
+/* Action buttons container inside cells - this is where flex goes */
+.actions-column .action-buttons,
+.actions-cell .action-buttons {
+    display: inline-flex;
     justify-content: center;
     align-items: center;
     flex-wrap: nowrap;
-    gap: 4px;
+    gap: 8px;
 }
 
 .cert-id-cell {

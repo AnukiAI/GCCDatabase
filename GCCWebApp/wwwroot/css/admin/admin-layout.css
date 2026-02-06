@@ -155,7 +155,7 @@
     border: 1px solid var(--admin-border-primary);
     border-radius: var(--admin-radius-md);
     box-shadow: var(--admin-shadow-sm);
-    overflow: hidden;
+    overflow: visible; /* Changed from hidden to allow dropdowns to overflow */
 }
 
 .admin-content--padded {
@@ -176,7 +176,7 @@
     border: 1px solid var(--admin-border-primary);
     border-radius: var(--admin-radius-lg);
     box-shadow: var(--admin-shadow-sm);
-    overflow: hidden;
+    overflow: visible; /* Changed from hidden to allow dropdowns to overflow */
     padding: var(--admin-space-lg);
 }
 

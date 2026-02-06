@@ -227,14 +227,22 @@
    ACTION BUTTONS - Standardized Across All Admin Pages
    ============================================================================= */
 
-/* Action column containers - standardized spacing and alignment */
-.action-buttons,
+/* Action cell (td element) - do NOT use display:flex on table cells */
 .actions-cell {
-    display: flex !important;
-    gap: 6px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+}
+
+/* Action buttons container inside td - THIS is where flex goes */
+.action-buttons {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    gap: 8px !important;
     justify-content: center !important;
     align-items: center !important;
     flex-wrap: nowrap !important;
+    white-space: nowrap !important;
 }
 
 /* Individual action buttons - standardized styling */
@@ -383,6 +391,42 @@
    RESPONSIVE DESIGN
    ============================================================================= */
 
+/* =============================================================================
+   PRODUCT TABLE SPECIFIC - Highest Priority Action Button Rules
+   ============================================================================= */
+
+#product-table .actions-cell,
+#product-table td.actions-cell {
+    text-align: center !important;
+    white-space: nowrap !important;
+    vertical-align: middle !important;
+}
+
+#product-table .actions-cell .action-buttons,
+#product-table td.actions-cell .action-buttons,
+#product-table .actions-cell > div {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+}
+
+#product-table .actions-cell .btn-edit,
+#product-table .actions-cell .btn-delete,
+#product-table td.actions-cell button {
+    display: inline-flex !important;
+    flex-shrink: 0 !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    padding: 4px !important;
+    margin: 0 !important;
+}
+
 @media (max-width: 768px) {
     /* Container responsive styling inherited from admin-layout.css */
 
@@ -400,5 +444,24 @@
 
     .search-box {
         width: 100% !important;
+    }
+
+    /* Product table mobile - force horizontal action buttons */
+    #product-table .actions-cell .action-buttons,
+    #product-table td.actions-cell .action-buttons,
+    #product-table .actions-cell > div {
+        display: inline-flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        gap: 8px !important;
+    }
+
+    #product-table .actions-cell .btn-edit,
+    #product-table .actions-cell .btn-delete,
+    #product-table td.actions-cell button {
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+        max-width: 44px !important;
     }
 }

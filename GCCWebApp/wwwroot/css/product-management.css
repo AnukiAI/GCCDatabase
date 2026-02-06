@@ -564,24 +564,54 @@
     color: #ffc107;
 }
 
-.actions-cell {
-    text-align: center;
-    white-space: nowrap;
-    width: 15%;
-    min-width: 100px;
-    max-width: 150px;
-    padding: 8px 4px !important;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-wrap: nowrap;
-    gap: 4px;
+/* Actions column header */
+.actions-col,
+#product-table th.actions-col {
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    text-align: center !important;
+    white-space: nowrap !important;
 }
 
-.actions-col {
-    width: 15%;
-    min-width: 120px;
-    text-align: center;
+/* Actions cell in table body - DO NOT use display:flex on td */
+.actions-cell,
+#product-table td.actions-cell {
+    text-align: center !important;
+    white-space: nowrap !important;
+    width: 120px !important;
+    min-width: 120px !important;
+    max-width: 120px !important;
+    padding: 8px 8px !important;
+    vertical-align: middle !important;
+}
+
+/* Action buttons container inside td - this is where flex goes */
+#product-table .actions-cell .action-buttons,
+#product-table td.actions-cell .action-buttons,
+#product-table td.actions-cell > div {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    white-space: nowrap !important;
+}
+
+/* Action buttons - ensure they stay on same line */
+#product-table .actions-cell .btn-edit,
+#product-table .actions-cell .btn-delete,
+#product-table td.actions-cell button {
+    display: inline-flex !important;
+    flex-shrink: 0 !important;
+    flex-direction: row !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    max-width: 32px !important;
+    padding: 4px !important;
+    margin: 0 !important;
 }
 
 .btn-edit, .btn-view, .btn-delete {
@@ -1211,11 +1241,16 @@
     #product-table thead {
         display: none;
     }
-    
-    #product-table, 
-    #product-table tbody, 
-    #product-table tr, 
-    #product-table td {
+
+    #product-table,
+    #product-table tbody,
+    #product-table tr {
+        display: block;
+        width: 100%;
+    }
+
+    /* Regular td becomes block, but actions-cell stays special */
+    #product-table td:not(.actions-cell) {
         display: block;
         width: 100%;
     }
@@ -1248,14 +1283,40 @@
     }
     
     .actions-cell {
-        text-align: center;
-        padding: 15px 0 5px 0;
+        text-align: center !important;
+        padding: 15px 0 5px 0 !important;
+        padding-left: 0 !important;
         border-top: 1px solid #f0f0f0;
         margin-top: 10px;
     }
-    
+
     .actions-cell:before {
         display: none;
+    }
+
+    /* Mobile action buttons container - MUST stay horizontal */
+    .actions-cell .action-buttons,
+    #product-table .actions-cell > div,
+    #product-table td.actions-cell .action-buttons {
+        display: inline-flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 8px !important;
+        white-space: nowrap !important;
+    }
+
+    /* Mobile action buttons - force horizontal layout */
+    #product-table .actions-cell .btn-edit,
+    #product-table .actions-cell .btn-delete,
+    #product-table td.actions-cell button {
+        display: inline-flex !important;
+        flex-shrink: 0 !important;
+        width: 44px !important;
+        height: 44px !important;
+        min-width: 44px !important;
+        max-width: 44px !important;
     }
 }
 

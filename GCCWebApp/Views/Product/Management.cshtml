@@ -102,14 +102,14 @@
             <table id="product-table" class="admin-table">
                 <thead class="admin-table-header">
                     <tr>
-                        <th width="5%"></th>
-                        <th width="20%" data-sort="name" class="admin-table-th--sortable">Product Name <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th width="15%" data-sort="company" class="admin-table-th--sortable">Company <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th width="15%" data-sort="category" class="admin-table-th--sortable">Category <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th width="10%" data-sort="status" class="admin-table-th--sortable">Status <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th width="10%" data-sort="certificates" class="admin-table-th--sortable">Certificates <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th width="10%" data-sort="identifiers" class="admin-table-th--sortable">Identifiers <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th width="15%" class="actions-col role-element role-analyst-show role-admin-show">Actions</th>
+                        <th style="width: 40px;"></th>
+                        <th data-sort="name" class="admin-table-th--sortable">Product Name <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="company" class="admin-table-th--sortable" style="width: 15%;">Company <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="category" class="admin-table-th--sortable" style="width: 15%;">Category <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="status" class="admin-table-th--sortable" style="width: 80px;">Status <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="certificates" class="admin-table-th--sortable" style="width: 100px;">Certificates <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="identifiers" class="admin-table-th--sortable" style="width: 110px;">Identifiers <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th class="actions-col role-element role-analyst-show role-admin-show" style="width: 120px; min-width: 120px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="admin-table-body">
@@ -624,12 +624,14 @@
                         </div>
                     </td>
                     <td class="actions-cell role-element role-analyst-show role-admin-show" data-label="Actions">
-                        <button class="btn-edit role-element role-analyst-show role-admin-show" onclick="editProduct(${product.id})" title="Edit Product">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-delete role-element role-analyst-show role-admin-show" onclick="deleteProduct(${product.id})" title="Delete Product">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div class="action-buttons">
+                            <button class="btn-edit role-element role-analyst-show role-admin-show" onclick="editProduct(${product.id})" title="Edit Product">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-delete role-element role-analyst-show role-admin-show" onclick="deleteProduct(${product.id})" title="Delete Product">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </td>
                 `;
                 productTableBody.appendChild(row);

@@ -234,22 +234,70 @@
     border-bottom: none;
 }
 
-/* Actions column specific styling */
+/* Actions column header styling */
 .actions-col,
-#company-table th.actions-col {
+#company-table th.actions-col,
+#company-table th.admin-table-th--actions,
+.admin-table-th--actions {
     text-align: center !important;
     white-space: nowrap !important;
-    min-width: 100px !important;
-    width: 16% !important;
+    min-width: 120px !important;
+    width: 120px !important;
 }
 
+/* Actions cell in table body - DO NOT use display:flex on td */
 #company-table td:last-child,
 #company-table td.actions-cell {
     text-align: center !important;
     white-space: nowrap !important;
-    padding: 8px 4px !important;
-    min-width: 100px !important;
+    padding: 8px 12px !important;
+    min-width: 120px !important;
+    width: 120px !important;
     overflow: visible !important;
+    vertical-align: middle;
+}
+
+/* Action buttons container inside td - this is where flex goes */
+#company-table .action-buttons {
+    display: inline-flex !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+
+#company-table .btn-edit,
+#company-table .btn-delete {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 32px !important;
+    height: 32px !important;
+    padding: 0 !important;
+    background: none !important;
+    border: none !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+    font-size: 16px !important;
+    transition: all 0.2s ease !important;
+}
+
+#company-table .btn-edit {
+    color: #00AEEF !important;
+}
+
+#company-table .btn-edit:hover {
+    background-color: rgba(0, 174, 239, 0.15) !important;
+    transform: scale(1.1);
+}
+
+#company-table .btn-delete {
+    color: #FF5252 !important;
+}
+
+#company-table .btn-delete:hover {
+    background-color: rgba(255, 82, 82, 0.15) !important;
+    transform: scale(1.1);
 }
 
 /* ===== MODAL STYLES ===== */
@@ -390,29 +438,38 @@
 }
 
 /* Edit action buttons */
-.action-buttons {
-    display: flex;
-    gap: 5px;
+#company-table .action-buttons {
+    display: inline-flex !important;
+    gap: 8px;
     justify-content: center;
+    align-items: center;
+    flex-wrap: nowrap;
 }
 
-.company-edit-actions {
-    display: none;
-    gap: 5px;
+/* Edit actions - hidden by default */
+#company-table .company-edit-actions {
+    display: none !important;
+}
+
+/* When row is in edit mode: hide regular buttons, show edit buttons */
+#company-table .company-edit-row .action-buttons {
+    display: none !important;
+}
+
+#company-table .company-edit-row .company-edit-actions {
+    display: inline-flex !important;
+    gap: 8px;
     justify-content: center;
-}
-
-.company-edit-row .action-buttons {
-    display: none;
-}
-
-.company-edit-row .company-edit-actions {
-    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
 }
 
 /* Always show actions for add row */
-.company-add-row .company-edit-actions {
-    display: flex;
+#company-table .company-add-row .company-edit-actions {
+    display: inline-flex !important;
+    gap: 8px;
+    justify-content: center;
+    align-items: center;
 }
 
 .company-btn-save,

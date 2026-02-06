@@ -479,14 +479,20 @@
     transform: scale(1.05);
 }
 
+/* Actions cell - do NOT use display:flex on td */
 .actions-cell {
     text-align: center;
     white-space: nowrap;
-    display: flex;
+    vertical-align: middle;
+}
+
+/* Action buttons container inside td */
+.actions-cell .action-buttons {
+    display: inline-flex;
     justify-content: center;
     align-items: center;
     flex-wrap: nowrap;
-    gap: 4px;
+    gap: 8px;
 }
 
 .btn-edit, .btn-view, .btn-delete {

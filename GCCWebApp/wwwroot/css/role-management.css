@@ -217,12 +217,21 @@ body.admin-role-management .search-filter-bar {
 
 .actions-column {
     width: 120px;
+    min-width: 120px;
     text-align: center;
 }
 
+/* Actions cell - do NOT use display:flex on td */
 .actions-cell {
-    display: flex;
-    gap: 5px;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+/* Action buttons container inside td */
+.actions-cell .action-buttons {
+    display: inline-flex;
+    gap: 8px;
     justify-content: center;
     align-items: center;
     flex-wrap: nowrap;

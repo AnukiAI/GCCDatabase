@@ -355,18 +355,25 @@ td[data-label="Actions"] {
 
 /* Action buttons container inside table cells - NO WRAP */
 .actions-cell .action-buttons,
-.actions-cell > div,
 td .action-buttons,
-.admin-inline-add-actions,
-.company-action-buttons,
-.company-edit-actions,
-.partners-edit-actions,
-.product-edit-actions {
+.admin-inline-add-actions {
     display: inline-flex !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
     justify-content: center !important;
-    gap: var(--spacing-xs, 4px) !important;
+    gap: var(--spacing-sm, 8px) !important;
+}
+
+/* Edit action containers - only show when row is in edit mode */
+/* These are hidden by default in page-specific CSS and shown via .company-edit-row etc. */
+.company-edit-row .company-edit-actions,
+.partners-edit-row .partners-edit-actions,
+.product-edit-row .product-edit-actions {
+    display: inline-flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: var(--spacing-sm, 8px) !important;
 }
 
 /* Prevent action buttons from shrinking */

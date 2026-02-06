@@ -237,6 +237,7 @@ namespace GCCWebApp.Controllers.Api.v1
                             certificationTypeId = c.CertificationTypeId,
                             certificationTypeSubcategory = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
                             certificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
+                            amazonCode = c.CertificationType != null ? c.CertificationType.AmazonCode : null,
                             issuer = "Green Circle Certified",
                             // Product identifiers (GTIN, MPN, ASIN, UPC, etc.)
                             productIds = c.ProductIds
@@ -285,6 +286,7 @@ namespace GCCWebApp.Controllers.Api.v1
                             certificationTypeId = c.CertificationTypeId,
                             certificationTypeSubcategory = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
                             certificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
+                            amazonCode = c.CertificationType != null ? c.CertificationType.AmazonCode : null,
                             createdAt = c.CreatedAt,
                             updatedAt = c.UpdatedAt
                         })
@@ -835,6 +837,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     certificationResults = cert.CertificationResults,
                     status = cert.Status,
                     certificationType = cert.CertificationType?.Name,
+                    amazonCode = cert.CertificationType?.AmazonCode,
                     issueDate = cert.EffectiveDate,
                     expirationDate = cert.ExpirationDate,
                     location = cert.Location,
@@ -1356,7 +1359,8 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                             EndDate = endDate,
                             TargetCountries = !string.IsNullOrEmpty(cert.Country)
                                 ? new List<string> { cert.Country }
-                                : null
+                                : null,
+                            AmazonCode = cert.CertificationType?.AmazonCode
                         }
                     }
                 }

@@ -33,15 +33,15 @@
                     
                     <div class="form-group">
                        <label for="Email" class="form-label">Email or Username <span class="text-danger" aria-label="required">*</span></label>
-                       <input type="text" id="Email" name="Email" class="form-control" placeholder="Enter your email or username" required aria-required="true" aria-describedby="email-help" data-val="true" data-val-required="The Email or Username field is required." value="" />
+                       <input type="text" id="Email" name="Email" class="form-control" placeholder="Enter your email or username" required aria-required="true" aria-describedby="email-help email-error" autocomplete="username" data-val="true" data-val-required="The Email or Username field is required." value="" />
                        <small id="email-help" class="form-text text-muted">You can login with either your email address or username.</small>
-                       <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="Email" data-valmsg-replace="true"></span>
+                       <span id="email-error" class="text-danger field-validation-valid" role="alert" data-valmsg-for="Email" data-valmsg-replace="true"></span>
                     </div>
 
                     <div class="form-group">
                         <label for="Password" class="form-label">Password <span class="text-danger" aria-label="required">*</span></label>
-                        <input type="password" id="Password" name="Password" class="form-control" placeholder="Enter your password" required aria-required="true" data-val="true" data-val-required="The Password field is required." />
-                        <span class="text-danger field-validation-valid" role="alert" data-valmsg-for="Password" data-valmsg-replace="true"></span>
+                        <input type="password" id="Password" name="Password" class="form-control" placeholder="Enter your password" required aria-required="true" aria-describedby="password-error" autocomplete="current-password" data-val="true" data-val-required="The Password field is required." />
+                        <span id="password-error" class="text-danger field-validation-valid" role="alert" data-valmsg-for="Password" data-valmsg-replace="true"></span>
                     </div>
 
                     <div class="form-group checkbox-group">
@@ -54,7 +54,7 @@
                     <div class="link">
                         <a href="/Account/ForgotPassword">Forgot Password</a>
                     </div>
-                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8CHx-_BSm9hNiZUouAeJhVZNf7m0TE2cLp5p5pgHGJZfNo6thX1abERzKOXFWnZAPW2tiO9DVWCtpfyVZ4a8B-lVwTo-aTnyQw1KxH1LzMVAvxB-9feYeIinXAC1dkG0Hx2fhH3OUpdbqgPXhQDRI4c" /><input name="RememberMe" type="hidden" value="false" /></form>
+                <input name="__RequestVerificationToken" type="hidden" value="CfDJ8CbbvcMMNUFEl6No72Mfi93ucEvtzFPiBLdslkBAWLWJX80K-bdLpuFGUO4eGxVS8VlVTZxPDucNGjE4SuRHUSVKW4yHvDN3eRKr9pb7ewVWlkTLSeiJl6nXnzmC6Wf99aIfbickbQxC3hRWv2owb7M" /><input name="RememberMe" type="hidden" value="false" /></form>
 
                 
             </div>

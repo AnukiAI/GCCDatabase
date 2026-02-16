@@ -9,8 +9,9 @@
    ============================================================================= */
 
 /* =============================================================================
-   GRID LAYOUT - EXTERNAL VIEW (22 COLUMNS)
+   GRID LAYOUT - EXTERNAL VIEW (21 COLUMNS)
    Does NOT include: Internal Tag column (only visible to internal users)
+   CSF Attributes column removed per client request
    ============================================================================= */
 
 .table-grid {
@@ -20,31 +21,30 @@
         80px      /* 2. Actions (Download + View) */
         145px     /* 3. Certificate # */
         160px     /* 4. Certification Type */
-        130px     /* 5. CSF Attributes */
-        120px     /* 6. Status */
-        95px      /* 7. Effective Date */
-        95px      /* 8. Expiration Date */
-        170px     /* 9. Company */
-        170px     /* 10. Company Contact */
-        170px     /* 11. Product Name */
-        130px     /* 12. Product Category */
-        130px     /* 13. Product Type */
-        140px     /* 14. Product Subcategory */
-        100px     /* 15. Location */
-        110px     /* 16. Country */
-        100px     /* 17. External Tag */
-        100px     /* 18. Partner */
-        85px      /* 19. ASIN */
-        85px      /* 20. UPC */
-        85px      /* 21. GTIN */
-        85px;     /* 22. EAN */
+        120px     /* 5. Status */
+        95px      /* 6. Effective Date */
+        95px      /* 7. Expiration Date */
+        170px     /* 8. Company */
+        170px     /* 9. Company Contact */
+        170px     /* 10. Product Name */
+        130px     /* 11. Product Category */
+        130px     /* 12. Product Type */
+        140px     /* 13. Product Subcategory */
+        100px     /* 14. Location */
+        110px     /* 15. Country */
+        100px     /* 16. External Tag */
+        100px     /* 17. Partner */
+        85px      /* 18. ASIN */
+        85px      /* 19. UPC */
+        85px      /* 20. GTIN */
+        85px;     /* 21. EAN */
     min-width: max-content;
     width: 100%;
 }
 
-/* Table container min-width for External (22 columns) */
+/* Table container min-width for External (21 columns) */
 .table-grid-container {
-    min-width: 2475px;
+    min-width: 2345px;
     width: max-content;
 }
 

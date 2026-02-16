@@ -202,6 +202,14 @@ namespace GCCWebApp.Models.Api
         [JsonPropertyName("amazonCode")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? AmazonCode { get; set; }
+
+        /// <summary>
+        /// Certification pathway providing context for results (e.g., "Energy usage reduction").
+        /// Used by Amazon CPF program.
+        /// </summary>
+        [JsonPropertyName("pathway")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Pathway { get; set; }
     }
 
     /// <summary>

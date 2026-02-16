@@ -197,6 +197,13 @@ class CertificateTypeManager {
             statNumbers[1].textContent = subcategories;
             statNumbers[2].textContent = totalCerts;
         }
+
+        // Update footer item count
+        const totalItems = types + subcategories;
+        const itemCount = document.getElementById('item-count');
+        if (itemCount) {
+            itemCount.textContent = `Showing ${totalItems} items`;
+        }
     }
 
     setupEventListeners() {

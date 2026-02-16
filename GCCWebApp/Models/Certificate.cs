@@ -43,6 +43,8 @@ namespace GCCWebApp.Models
         [MaxLength(1000)]
         public string? CertificationResults { get; set; } // Optional: Test results/scores for partner requirements (e.g., Amazon threshold verification)
 
+        public int? PathwayId { get; set; }
+
         // Foreign Keys
         public int CompanyId { get; set; }
         public int ProductId { get; set; }
@@ -88,6 +90,7 @@ namespace GCCWebApp.Models
         /// </summary>
         public ICollection<CertificationType> CertificationTypeSubcategories { get; set; } = new List<CertificationType>();
 
+        public Pathway? Pathway { get; set; }
         public User? CreatedByUser { get; set; }
         public User? UpdatedByUser { get; set; }
 

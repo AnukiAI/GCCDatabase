@@ -298,6 +298,9 @@
 
         console.log('Rendering certificates:', state.certificates.length, 'append:', append);
 
+        // Remove skeleton placeholders on first render
+        removeSkeleton();
+
         // Handle empty state
         if (state.certificates.length === 0 && !append) {
             showEmptyState();
@@ -488,8 +491,9 @@
         const tileView = document.getElementById('certificatesGrid');
         const tableView = document.getElementById('tableView');
 
-        if (tileView) tileView.style.display = 'none';
+        if (tileView) tileView.classList.add('hidden-for-table');
         if (tableView) {
+            tableView.classList.add('active');
             tableView.style.display = 'block';
             populateTableView();
         }
@@ -500,8 +504,11 @@
         const tileView = document.getElementById('certificatesGrid');
         const tableView = document.getElementById('tableView');
 
-        if (tableView) tableView.style.display = 'none';
-        if (tileView) tileView.style.display = 'grid';
+        if (tableView) {
+            tableView.classList.remove('active');
+            tableView.style.display = 'none';
+        }
+        if (tileView) tileView.classList.remove('hidden-for-table');
     }
     
     // Handle access type change (External/Internal)
@@ -1010,15 +1017,25 @@
         return certificateNumber; // Return as-is if we can't format it
     }
 
+    function removeSkeleton() {
+        // Remove skeleton cards from the grid (initial load only)
+        const grid = document.getElementById('certificatesGrid');
+        if (grid) {
+            grid.querySelectorAll('.skeleton-card').forEach(el => el.remove());
+        }
+    }
+
     function showLoadingIndicator() {
+        // Don't show spinner if skeleton cards are still visible (initial load)
         const grid = document.getElementById('certificatesGrid');
         if (!grid) return;
-        
+        if (grid.querySelector('.skeleton-card')) return;
+
         const loader = document.createElement('div');
         loader.className = 'loading-indicator';
         loader.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading certificates...';
         loader.id = 'loading-indicator';
-        
+
         if (!document.getElementById('loading-indicator')) {
             grid.parentElement.appendChild(loader);
         }

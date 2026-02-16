@@ -47,10 +47,10 @@
             <fieldset class="filter-content" id="cert-type-content">
                 <legend class="admin-sr-only">Filter by certification type</legend>
                 <ul class="filter-tree" role="group">
-                    <!-- Certification types will be dynamically populated from the database via JavaScript -->
-                    <li class="filter-item">
-                        <span style="color: #999; font-style: italic;">Loading certification types...</span>
-                    </li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:85%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:70%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:90%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:60%"></span></li>
                 </ul>
             </fieldset>
         </div>
@@ -64,10 +64,9 @@
             <fieldset class="filter-content" id="product-cat-content">
                 <legend class="admin-sr-only">Filter by product category</legend>
                 <ul class="filter-tree" role="group">
-                    <!-- Product categories will be dynamically populated from the database via JavaScript -->
-                    <li class="filter-item">
-                        <span style="color: #999; font-style: italic;">Loading categories...</span>
-                    </li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:75%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:90%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:65%"></span></li>
                 </ul>
             </fieldset>
         </div>
@@ -81,10 +80,9 @@
             <fieldset class="filter-content" id="company-content">
                 <legend class="admin-sr-only">Filter by company</legend>
                 <ul class="filter-tree" role="group">
-                    <!-- Companies will be dynamically populated from the database via JavaScript (only companies with active certificates) -->
-                    <li class="filter-item">
-                        <span style="color: #999; font-style: italic;">Loading companies...</span>
-                    </li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:80%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:70%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:85%"></span></li>
                 </ul>
             </fieldset>
         </div>
@@ -98,10 +96,9 @@
             <fieldset class="filter-content" id="countries-content">
                 <legend class="admin-sr-only">Filter by country</legend>
                 <ul class="filter-tree" role="group">
-                    <!-- Countries will be dynamically populated from the database via JavaScript (only countries with active certificates) -->
-                    <li class="filter-item">
-                        <span style="color: #999; font-style: italic;">Loading countries...</span>
-                    </li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:65%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:80%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:55%"></span></li>
                 </ul>
             </fieldset>
         </div>
@@ -115,10 +112,8 @@
             <fieldset class="filter-content" id="additional-content">
                 <legend class="admin-sr-only">Filter by additional tags</legend>
                 <ul class="filter-tree" role="group">
-                    <!-- Additional tags will be dynamically populated from the database via JavaScript -->
-                    <li class="filter-item">
-                        <span style="color: #999; font-style: italic;">Loading additional tags...</span>
-                    </li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:70%"></span></li>
+                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:85%"></span></li>
                 </ul>
             </fieldset>
         </div>
@@ -270,7 +265,37 @@
         </div>
 
         <div class="certificates-grid" id="certificatesGrid">
-            <!-- Certificates will be loaded dynamically by JavaScript -->
+            <!-- Skeleton placeholder cards shown during initial load -->
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton-card-header"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-body"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-actions"><span class="skeleton-icon"></span><span class="skeleton-icon"></span></div>
+            </div>
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton-card-header"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-body"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-actions"><span class="skeleton-icon"></span><span class="skeleton-icon"></span></div>
+            </div>
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton-card-header"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-body"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-actions"><span class="skeleton-icon"></span><span class="skeleton-icon"></span></div>
+            </div>
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton-card-header"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-body"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-actions"><span class="skeleton-icon"></span><span class="skeleton-icon"></span></div>
+            </div>
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton-card-header"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-body"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-actions"><span class="skeleton-icon"></span><span class="skeleton-icon"></span></div>
+            </div>
+            <div class="skeleton-card" aria-hidden="true">
+                <div class="skeleton-card-header"><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-body"><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div><div class="skeleton-line"></div></div>
+                <div class="skeleton-card-actions"><span class="skeleton-icon"></span><span class="skeleton-icon"></span></div>
+            </div>
         </div>
 
         <!-- LOADING INDICATOR FOR LAZY LOADING -->

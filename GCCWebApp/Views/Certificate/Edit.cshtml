@@ -180,6 +180,21 @@
                     </div>
 
                     <div class="form-group">
+                        <label asp-for="PathwayId">Pathway <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <select asp-for="PathwayId" class="form-control">
+                            <option value="">Select pathway...</option>
+                            @if (ViewBag.Pathways != null)
+                            {
+                                foreach (var pathway in ViewBag.Pathways)
+                                {
+                                    <option value="@pathway.Id" selected="@(Model.PathwayId == pathway.Id)">@pathway.Name</option>
+                                }
+                            }
+                        </select>
+                        <span asp-validation-for="PathwayId" class="text-danger" role="alert"></span>
+                    </div>
+
+                    <div class="form-group">
                         <label asp-for="Location">Location</label>
                         <input asp-for="Location" placeholder="City, State" maxlength="175" />
                         <span asp-validation-for="Location" class="text-danger" role="alert"></span>

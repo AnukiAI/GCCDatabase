@@ -622,8 +622,9 @@ class CertificateTileViewExternal {
         const tileView = document.getElementById('certificatesGrid');
         const tableView = document.getElementById('tableView');
 
-        if (tileView) tileView.style.display = 'none';
+        if (tileView) tileView.classList.add('hidden-for-table');
         if (tableView) {
+            tableView.classList.add('active');
             tableView.style.display = 'block';
 
             // If certificates aren't loaded yet, load them first
@@ -650,8 +651,11 @@ class CertificateTileViewExternal {
         const tileView = document.getElementById('certificatesGrid');
         const tableView = document.getElementById('tableView');
 
-        if (tableView) tableView.style.display = 'none';
-        if (tileView) tileView.style.display = 'grid';
+        if (tableView) {
+            tableView.classList.remove('active');
+            tableView.style.display = 'none';
+        }
+        if (tileView) tileView.classList.remove('hidden-for-table');
 
         // Remove wider layout class when switching back to tile view
         document.body.classList.remove('table-view-active');
@@ -746,7 +750,6 @@ class CertificateTileViewExternal {
         // Build cell values for tooltips
         const certNumber = cert.certificateNumber || '';
         const certType = cert.certificationType || '';
-        const csfAttrs = cert.csfAttributes || '';
         const company = cert.companyName || '';
         const contact = cert.companyContact || '';
         const product = cert.productName || '';
@@ -777,7 +780,6 @@ class CertificateTileViewExternal {
                 </div>
                 <div class="grid-cell" data-column="certificateNumber" title="${this.escapeHtml(certNumber)}" role="gridcell">${this.escapeHtml(certNumber)}</div>
                 <div class="grid-cell" data-column="certificationType" title="${this.escapeHtml(certType)}" role="gridcell">${this.escapeHtml(certType)}</div>
-                <div class="grid-cell" data-column="csfAttributes" title="${this.escapeHtml(csfAttrs)}" role="gridcell">${this.escapeHtml(csfAttrs)}</div>
                 <div class="grid-cell" data-column="status" role="gridcell">${statusBadge}</div>
                 <div class="grid-cell" data-column="effectiveDate" role="gridcell">${effectiveDate}</div>
                 <div class="grid-cell" data-column="expirationDate" role="gridcell">${expirationDate}</div>
@@ -1110,9 +1112,10 @@ class CertificateTileViewExternal {
      */
     showLoadingState() {
         const grid = document.getElementById('certificatesGrid');
-        if (grid) {
-            grid.innerHTML = '<div class="loading-message">Loading certificates...</div>';
-        }
+        if (!grid) return;
+        // If skeleton cards are present (initial load), let them stay visible
+        if (grid.querySelector('.skeleton-card')) return;
+        grid.innerHTML = '<div class="loading-message">Loading certificates...</div>';
     }
 
     /**

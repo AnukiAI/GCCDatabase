@@ -5,6 +5,110 @@
     margin-bottom: 0;
 }
 
+/* ====================================================
+   SKELETON PLACEHOLDER STYLES
+   Shimmer animation for initial page load
+   ==================================================== */
+@keyframes skeleton-shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
+
+.skeleton-line {
+    background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
+    background-size: 800px 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 4px;
+    height: 16px;
+    margin-bottom: 8px;
+}
+
+/* Skeleton filter items in the sidebar */
+.skeleton-filter-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+}
+
+.skeleton-filter-item .skeleton-checkbox {
+    width: 16px;
+    height: 16px;
+    min-width: 16px;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
+    background-size: 800px 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
+.skeleton-filter-item .skeleton-line {
+    margin-bottom: 0;
+    height: 14px;
+    flex: 1;
+}
+
+/* Skeleton certificate card */
+.skeleton-card {
+    background-color: var(--white, #fff);
+    border: 1px solid var(--border-color, #e0e0e0);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow, 0 1px 3px rgba(0,0,0,0.1));
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.skeleton-card-header {
+    background-color: #c8d6e5;
+    padding: 10px 12px;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    background: linear-gradient(90deg, #c8d6e5 25%, #d5e0eb 50%, #c8d6e5 75%);
+    background-size: 800px 100%;
+}
+
+.skeleton-card-header .skeleton-line {
+    background: linear-gradient(90deg, rgba(255,255,255,0.2) 25%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0.2) 75%);
+    background-size: 800px 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    height: 14px;
+    margin-bottom: 6px;
+}
+
+.skeleton-card-header .skeleton-line:last-child {
+    margin-bottom: 0;
+    width: 60%;
+}
+
+.skeleton-card-body {
+    padding: 10px 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.skeleton-card-body .skeleton-line:nth-child(1) { width: 80%; }
+.skeleton-card-body .skeleton-line:nth-child(2) { width: 55%; height: 12px; }
+.skeleton-card-body .skeleton-line:nth-child(3) { width: 70%; margin-top: 6px; }
+.skeleton-card-body .skeleton-line:nth-child(4) { width: 45%; height: 12px; }
+
+.skeleton-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    padding: 10px 12px 8px;
+}
+
+.skeleton-card-actions .skeleton-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: linear-gradient(90deg, #e8e8e8 25%, #f5f5f5 50%, #e8e8e8 75%);
+    background-size: 800px 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+}
+
 /* Infinite scroll loading and end states */
 .loading-container {
     display: flex;
@@ -2157,13 +2261,19 @@ body.table-view-active .tile-view-content {
     transform: none !important;
 }
 
-/* Ensure the grid container is visible */
+/* Ensure the grid container is visible by default */
 .certificates-grid,
 #certificatesGrid {
     opacity: 1 !important;
     visibility: visible !important;
     display: grid !important;
     min-height: 200px;
+}
+
+/* Hide the grid when table/list view is active */
+.certificates-grid.hidden-for-table,
+#certificatesGrid.hidden-for-table {
+    display: none !important;
 }
 
 /* Only hide cards when specifically in table-view mode */

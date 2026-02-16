@@ -1095,6 +1095,102 @@ namespace GCCWebApp.Controllers
             }
         }
 
+        // Pathways
+        public IActionResult Pathways()
+        {
+            ViewData["Title"] = "Pathways Management";
+            ViewData["BodyClass"] = "role-admin";
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPathways()
+        {
+            try
+            {
+                var pathways = await _adminService.GetPathwaysAsync();
+                return Json(new ApiResponse<List<PathwayViewModel>> { Success = true, Data = pathways });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving pathways");
+                return Json(new ApiResponse<List<PathwayViewModel>> { Success = false, Message = "Error retrieving pathways", Data = new List<PathwayViewModel>() });
+            }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreatePathway([FromBody] PathwayViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Invalid data provided" });
+                }
+
+                var result = await _adminService.CreatePathwayAsync(model);
+                if (result)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Pathway created successfully" });
+                }
+
+                return Json(new ApiResponse<object> { Success = false, Message = "Failed to create pathway" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating pathway");
+                return Json(new ApiResponse<object> { Success = false, Message = "Error creating pathway" });
+            }
+        }
+
+        [HttpPut]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdatePathway(int id, [FromBody] PathwayViewModel model)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return Json(new ApiResponse<object> { Success = false, Message = "Invalid data provided" });
+                }
+
+                var result = await _adminService.UpdatePathwayAsync(id, model);
+                if (result)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Pathway updated successfully" });
+                }
+
+                return Json(new ApiResponse<object> { Success = false, Message = "Pathway not found or update failed" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating pathway {PathwayId}", id);
+                return Json(new ApiResponse<object> { Success = false, Message = "Error updating pathway" });
+            }
+        }
+
+        [HttpDelete]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeletePathway(int id)
+        {
+            try
+            {
+                var result = await _adminService.DeletePathwayAsync(id);
+                if (result)
+                {
+                    return Json(new ApiResponse<object> { Success = true, Message = "Pathway deleted successfully" });
+                }
+
+                return Json(new ApiResponse<object> { Success = false, Message = "Pathway not found or delete failed" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting pathway {PathwayId}", id);
+                return Json(new ApiResponse<object> { Success = false, Message = "Error deleting pathway" });
+            }
+        }
+
         // Product Management
         public IActionResult ProductManagement()
         {

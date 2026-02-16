@@ -126,6 +126,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
                     .Include(c => c.CertificationTypeSubcategory)
+                    .Include(c => c.Pathway)
                     .AsQueryable();
 
                 // Include ProductIds if requested (for partner integrations like Novi)
@@ -228,6 +229,7 @@ namespace GCCWebApp.Controllers.Api.v1
                             country = c.Country,
                             partner = c.Partner,
                             certificationResults = c.CertificationResults,
+                            pathway = c.Pathway != null ? c.Pathway.Name : null,
                             // Company and product info
                             company = c.Company != null ? c.Company.Name : null,
                             companyId = c.CompanyId,
@@ -278,6 +280,7 @@ namespace GCCWebApp.Controllers.Api.v1
                             country = c.Country,
                             partner = c.Partner,
                             certificationResults = c.CertificationResults,
+                            pathway = c.Pathway != null ? c.Pathway.Name : null,
                             productName = c.Product != null ? c.Product.Name : null,
                             productId = c.ProductId,
                             company = c.Company != null ? c.Company.Name : null,
@@ -766,6 +769,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         .ThenInclude(p => p.ProductType)
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
+                    .Include(c => c.Pathway)
                     .Include(c => c.ProductIds)
                     .Where(c => certificateIds.Contains(c.Id));
 
@@ -835,6 +839,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     companyId = cert.CompanyId,
                     partner = cert.Partner,
                     certificationResults = cert.CertificationResults,
+                    pathway = cert.Pathway?.Name,
                     status = cert.Status,
                     certificationType = cert.CertificationType?.Name,
                     amazonCode = cert.CertificationType?.AmazonCode,
@@ -1139,6 +1144,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
                     .Include(c => c.CertificationTypeSubcategory)
+                    .Include(c => c.Pathway)
                     .Include(c => c.ProductIds)
                     .AsQueryable();
 
@@ -1270,6 +1276,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
                     .Include(c => c.CertificationTypeSubcategory)
+                    .Include(c => c.Pathway)
                     .Include(c => c.ProductIds)
                     .FirstOrDefaultAsync(c => c.Number == certificateNumber);
 
@@ -1360,7 +1367,8 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                             TargetCountries = !string.IsNullOrEmpty(cert.Country)
                                 ? new List<string> { cert.Country }
                                 : null,
-                            AmazonCode = cert.CertificationType?.AmazonCode
+                            AmazonCode = cert.CertificationType?.AmazonCode,
+                            Pathway = cert.Pathway?.Name
                         }
                     }
                 }

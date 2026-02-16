@@ -3637,3 +3637,19 @@ Conducted exhaustive review of all tag filtering logic in response to:
 - [ ] External user view only shows external tags (requires manual test)
 - [ ] Internal view shows both tag types properly separated (requires manual test)
 
+---
+
+## Session: February 16, 2026
+
+### Observation: "Showing 0 items" Footer Bug
+- **ProductTypes** and **CertificateTypes** pages had hardcoded "Showing 0 items" in footer (`#item-count`) that was never updated by JavaScript after data loaded
+- All other admin pages (RoleManagement, Tags, Partners, etc.) correctly update their footer counts
+- **Fix:** Added footer update logic to `updateStats()` in `product-types.js` and `certificate-types.js`
+
+### Potential TODO (Pending Client Confirmation)
+- **CSF Attributes architecture:** Currently CSF Attributes are stored in the `Tags` table with `TagType = "csf"`, reusing the Tag model (Name, Description, IsActive only). However, there is an original `CSFAttribute` model in `CertificateDetailsRelatedModels.cs` with richer fields: `AttributeName`, `AttributeValue`, `Unit`, `Category`, `DisplayOrder`, `IsPubliclyVisible`. Need to confirm with client whether CSF Attributes should have their own dedicated table with these additional fields, or if the current Tags-based approach is sufficient.
+
+### CSF Attributes Data Update
+- Updated production CSF Attributes to match client's full list (36 attributes)
+- Data stored in Tags table with TagType = "csf"
+

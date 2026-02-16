@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using GCCWebApp.Data;
 using GCCWebApp.Models;
 using GCCWebApp.Repositories;
 using GCCWebApp.Services;
@@ -25,6 +27,7 @@ namespace GCCWebApp.Controllers
         private readonly IFileUploadService _fileUploadService;
         private readonly ICertificateFieldService _certificateFieldService;
         private readonly GCCWebApp.Services.Audit.IAuditService _auditService;
+        private readonly ApplicationDbContext _context;
 
         public CertificateController(
             ILogger<CertificateController> logger,
@@ -35,7 +38,8 @@ namespace GCCWebApp.Controllers
             IWebHostEnvironment hostingEnvironment,
             IFileUploadService fileUploadService,
             ICertificateFieldService certificateFieldService,
-            GCCWebApp.Services.Audit.IAuditService auditService)
+            GCCWebApp.Services.Audit.IAuditService auditService,
+            ApplicationDbContext context)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
@@ -46,6 +50,7 @@ namespace GCCWebApp.Controllers
             _fileUploadService = fileUploadService;
             _certificateFieldService = certificateFieldService;
             _auditService = auditService;
+            _context = context;
         }
 
         #region Basic CRUD Operations
@@ -350,6 +355,9 @@ namespace GCCWebApp.Controllers
                 ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
                 ViewBag.InternalTags = allTags.Where(t => t.TagType == "internal" && t.IsActive).ToList();
 
+                // Load pathways
+                ViewBag.Pathways = await _context.Pathways.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync();
+
                 return View(model);
             }
             catch (Exception ex)
@@ -435,6 +443,7 @@ namespace GCCWebApp.Controllers
                         Status = model.Status ?? "Draft",
                         Partner = model.Partner ?? "None",
                         CertificationResults = model.CertificationResults,
+                        PathwayId = model.PathwayId,
                         EffectiveDate = model.EffectiveDate,
                         ExpirationDate = model.ExpirationDate,
                         Location = model.Location,
@@ -636,6 +645,8 @@ namespace GCCWebApp.Controllers
             var allTags = await _unitOfWork.Tags.GetAllAsync();
             ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
             ViewBag.InternalTags = allTags.Where(t => t.TagType == "internal" && t.IsActive).ToList();
+
+            ViewBag.Pathways = await _context.Pathways.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync();
         }
 
         /// <summary>
@@ -674,6 +685,7 @@ namespace GCCWebApp.Controllers
                     Partner = certificate.Partner,
                     PartnerIds = partnerIds,
                     CertificationResults = certificate.CertificationResults,
+                    PathwayId = certificate.PathwayId,
                     EffectiveDate = certificate.EffectiveDate,
                     ExpirationDate = certificate.ExpirationDate,
                     Location = certificate.Location,
@@ -709,6 +721,9 @@ namespace GCCWebApp.Controllers
                 var allTags = await _unitOfWork.Tags.GetAllAsync();
                 ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
                 ViewBag.InternalTags = allTags.Where(t => t.TagType == "internal" && t.IsActive).ToList();
+
+                // Load pathways
+                ViewBag.Pathways = await _context.Pathways.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync();
 
                 // Load existing tags for this certificate
                 var existingTags = certificate.Tags?.ToList() ?? new List<Tag>();
@@ -769,6 +784,7 @@ namespace GCCWebApp.Controllers
                     certificate.Status = model.Status ?? "Draft";
                     certificate.Partner = model.Partner;
                     certificate.CertificationResults = model.CertificationResults;
+                    certificate.PathwayId = model.PathwayId;
                     certificate.EffectiveDate = model.EffectiveDate;
                     certificate.ExpirationDate = model.ExpirationDate;
                     certificate.Location = model.Location;
@@ -1009,6 +1025,8 @@ namespace GCCWebApp.Controllers
             var allTags = await _unitOfWork.Tags.GetAllAsync();
             ViewBag.ExternalTags = allTags.Where(t => t.TagType == "external" && t.IsActive).ToList();
             ViewBag.InternalTags = allTags.Where(t => t.TagType == "internal" && t.IsActive).ToList();
+
+            ViewBag.Pathways = await _context.Pathways.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync();
 
             // Load existing tags for the certificate
             var certificate = await _certificateRepository.GetByIdAsync(certificateId);

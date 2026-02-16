@@ -198,6 +198,13 @@ class ProductTypeManager {
             statNumbers[2].textContent = subcategories;
             statNumbers[3].textContent = totalProducts;
         }
+
+        // Update footer item count
+        const totalItems = categories + types + subcategories;
+        const itemCount = document.getElementById('item-count');
+        if (itemCount) {
+            itemCount.textContent = `Showing ${totalItems} items`;
+        }
     }
 
     setupEventListeners() {

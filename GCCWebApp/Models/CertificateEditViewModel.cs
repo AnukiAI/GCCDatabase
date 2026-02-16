@@ -33,6 +33,9 @@ namespace GCCWebApp.Models
         [MaxLength(1000)]
         public string? CertificationResults { get; set; }
 
+        [Display(Name = "Pathway")]
+        public int? PathwayId { get; set; }
+
         [Required]
         [Display(Name = "Effective Date")]
         [DataType(DataType.Date)]

@@ -1776,12 +1776,11 @@ body.theme-option4 .certificate-single-card .card-body {
     font-weight: 600;
     margin-bottom: 10px; /* Reduced from 14px - tighter spacing below title */
     color: var(--blue-dark);
-    border-left: 5px solid var(--blue-primary); /* Increased from 4px */
-    padding-left: 14px; /* Increased from 10px */
-    padding-right: 14px; /* Added right padding */
-    padding-top: 8px; /* Added top padding */
-    padding-bottom: 8px; /* Increased from 6px */
-    border-radius: 4px; /* Rounded corners */
+    border-left: none;
+    padding-left: 0;
+    padding-right: 14px;
+    padding-top: 8px;
+    padding-bottom: 8px;
 }
 
 .certificate-single-card .certificate-field {

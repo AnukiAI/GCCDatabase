@@ -102,7 +102,7 @@ class ProductManagement {
             // Show no data message
             const noDataRow = document.createElement('tr');
             noDataRow.innerHTML = `
-                <td colspan="2" class="no-data">
+                <td colspan="4" class="no-data">
                     <div class="no-data-message">
                         <i class="fas fa-box-open"></i>
                         <p>No products found</p>
@@ -142,13 +142,6 @@ class ProductManagement {
             identifiersCell.className = 'product-identifiers-cell';
 
             if (product.productIdentifiers && product.productIdentifiers.length > 0) {
-                // Create identifiers summary and copy button
-                const identifiersContainer = document.createElement('div');
-                identifiersContainer.className = 'identifiers-container';
-                identifiersContainer.style.display = 'flex';
-                identifiersContainer.style.alignItems = 'center';
-                identifiersContainer.style.gap = '8px';
-
                 // Group identifiers by type and create summary
                 const grouped = {};
                 product.productIdentifiers.forEach(pi => {
@@ -158,31 +151,26 @@ class ProductManagement {
                     grouped[pi.identifierType].push(pi.identifierValue);
                 });
 
-                // Create summary text (e.g., "ASIN: 3, UPC: 2")
                 const summaryText = document.createElement('span');
                 summaryText.className = 'identifiers-summary';
                 summaryText.textContent = Object.keys(grouped)
                     .map(type => `${type}: ${grouped[type].length}`)
                     .join(', ');
-
-                // Create copy button
-                const copyBtn = document.createElement('button');
-                copyBtn.className = 'copy-identifiers-btn';
-                copyBtn.innerHTML = '<i class="fas fa-copy"></i>';
-                copyBtn.title = 'Copy all identifiers';
-                copyBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    this.copyAllIdentifiers(product.productIdentifiers, product.name);
-                });
-
-                identifiersContainer.appendChild(summaryText);
-                identifiersContainer.appendChild(copyBtn);
-                identifiersCell.appendChild(identifiersContainer);
+                identifiersCell.appendChild(summaryText);
             } else {
                 identifiersCell.innerHTML = '<span class="text-muted">None</span>';
             }
 
             row.appendChild(identifiersCell);
+
+            // Status cell
+            const statusCell = document.createElement('td');
+            statusCell.setAttribute('data-label', 'Status');
+            const statusBadge = document.createElement('span');
+            statusBadge.className = product.isActive ? 'badge bg-success' : 'badge bg-secondary';
+            statusBadge.textContent = product.isActive ? 'Active' : 'Inactive';
+            statusCell.appendChild(statusBadge);
+            row.appendChild(statusCell);
 
             // Actions cell
             const actionsCell = document.createElement('td');
@@ -2045,27 +2033,88 @@ class ProductManagement {
         }
 
         try {
-            const exportData = this.filteredProducts.map(product => ({
-                ID: product.id,
-                Name: product.name || '',
-                Description: product.description || '',
-                'Product Type': product.productTypeName || '',
-                Company: product.companyName || '',
-                Status: product.isActive ? 'Active' : 'Inactive',
-                'Certificate Count': product.certificateCount || 0,
-                'Created Date': product.createdDate ? new Date(product.createdDate).toLocaleDateString() : ''
-            }));
+            const safeStr = (val) => (val == null || val === 'undefined') ? '' : String(val);
+
+            const exportData = [];
+            this.filteredProducts.forEach(product => {
+                const baseRow = {
+                    'Product Name': safeStr(product.name),
+                    Company: safeStr(product.companyName),
+                    Category: safeStr(product.categoryName),
+                    'Product Type': safeStr(product.productTypeName),
+                    Description: safeStr(product.description),
+                    Status: product.isActive ? 'Active' : 'Inactive',
+                    'Certificate Count': product.certificateCount || 0,
+                    'Identifier Type': '',
+                    'Identifier Value': ''
+                };
+
+                // Collect all identifiers from CertificateProductIds (primary source),
+                // plus direct fields and ProductIdentifiers as fallback
+                const allIdentifiers = [];
+
+                // CertificateProductIds - identifiers linked via Certificates
+                const cpids = product.certificateProductIds;
+                if (Array.isArray(cpids)) {
+                    cpids.forEach(cpid => {
+                        if (cpid.productIdValue) {
+                            allIdentifiers.push({ type: safeStr(cpid.productIdType), value: safeStr(cpid.productIdValue) });
+                        }
+                    });
+                }
+
+                // Direct fields on the product (ASIN, UPC, SKU, Model) as fallback
+                if (product.asin) allIdentifiers.push({ type: 'ASIN', value: product.asin });
+                if (product.upc) allIdentifiers.push({ type: 'UPC', value: product.upc });
+                if (product.sku) allIdentifiers.push({ type: 'SKU', value: product.sku });
+                if (product.model) allIdentifiers.push({ type: 'Model', value: product.model });
+
+                // ProductIdentifiers collection as additional fallback
+                const piList = product.productIdentifiers;
+                if (Array.isArray(piList)) {
+                    piList.forEach(pi => {
+                        if (pi.identifierValue) {
+                            allIdentifiers.push({ type: safeStr(pi.identifierType), value: safeStr(pi.identifierValue) });
+                        }
+                    });
+                }
+
+                // Deduplicate by type+value
+                const seen = new Set();
+                const uniqueIdentifiers = allIdentifiers.filter(id => {
+                    const key = `${id.type}:${id.value}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+
+                // One row per identifier, or one row with empty identifiers if none
+                if (uniqueIdentifiers.length > 0) {
+                    uniqueIdentifiers.forEach(id => {
+                        exportData.push({
+                            ...baseRow,
+                            'Identifier Type': id.type,
+                            'Identifier Value': id.value
+                        });
+                    });
+                } else {
+                    exportData.push(baseRow);
+                }
+            });
 
             const headers = Object.keys(exportData[0]);
+            const escapeValue = (val, forceQuote = false) => {
+                const str = String(val ?? '');
+                if (forceQuote || str.includes(',') || str.includes('"') || str.includes('\n'))
+                    return `"${str.replace(/"/g, '""')}"`;
+                return str;
+            };
+            // Force-quote Identifier Value so Excel doesn't convert UPCs to scientific notation
+            const forceQuoteHeaders = new Set(['Identifier Value']);
             const csvContent = [
                 headers.join(','),
                 ...exportData.map(row =>
-                    headers.map(header => {
-                        const value = row[header] || '';
-                        return value.includes(',') || value.includes('"')
-                            ? `"${value.replace(/"/g, '""')}"`
-                            : value;
-                    }).join(',')
+                    headers.map(header => escapeValue(row[header], forceQuoteHeaders.has(header))).join(',')
                 )
             ].join('\n');
 
@@ -2079,7 +2128,7 @@ class ProductManagement {
             link.click();
             document.body.removeChild(link);
 
-            this.showToast(`Exported ${exportData.length} products successfully`, 'success');
+            this.showToast(`Exported ${exportData.length} rows (${this.filteredProducts.length} products) successfully`, 'success');
         } catch (error) {
             console.error('Error exporting products:', error);
             this.showToast('Error exporting products. Please try again.', 'error');

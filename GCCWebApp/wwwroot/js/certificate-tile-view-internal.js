@@ -23,11 +23,10 @@
         isLoading: false,
         hasMore: true,
         filterOptions: {},
-        debounceTimer: null
+        debounceTimer: null,
+        currentView: 'tile', // Track current view: 'tile' or 'list'
+        initialized: false
     };
-
-    // Initialize on DOM ready
-    document.addEventListener('DOMContentLoaded', initialize);
 
     function initialize() {
         loadFilterOptions();
@@ -282,16 +281,14 @@
     // Render certificates to the grid
     function renderCertificates(append = false) {
         const grid = document.getElementById('certificatesGrid');
-        console.log('DEBUG renderCertificates: grid element found:', !!grid);
-        console.log('DEBUG renderCertificates: certificates count:', state.certificates.length);
         if (!grid) return;
 
-        // Check if we're in table view or tile view
-        const isTableView = grid.classList.contains('table-view');
-        console.log('DEBUG renderCertificates: isTableView:', isTableView);
-        
-        if (isTableView) {
-            renderCertificatesTable();
+        // Remove skeleton placeholders on first render
+        removeSkeleton();
+
+        // Use tracked view state instead of CSS class check
+        if (state.currentView === 'list') {
+            populateTableView();
         } else {
             if (append) {
                 const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
@@ -299,10 +296,6 @@
             } else {
                 renderCertificatesTiles();
             }
-        }
-
-        // Animate new cards if in tile view
-        if (!isTableView) {
             animateCards();
         }
     }
@@ -315,10 +308,8 @@
             return;
         }
 
-        // Force grid to be visible
-        grid.style.display = 'grid';
-        grid.style.opacity = '1';
-        grid.style.visibility = 'visible';
+        // Ensure grid is not hidden (CSS handles display: grid via !important)
+        grid.classList.remove('hidden-for-table');
 
         const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
         console.log('DEBUG renderCertificatesTiles: HTML length:', html.length);
@@ -520,6 +511,9 @@
         // Sidebar collapse/expand buttons
         setupSidebarToggle();
 
+        // Table column sort headers
+        setupTableColumnSort();
+
         attachFilterEventListeners();
     }
 
@@ -561,6 +555,64 @@
         if (sidebar) sidebar.classList.remove('collapsed');
         if (toggleTab) toggleTab.classList.remove('visible');
         if (mainContainer) mainContainer.classList.remove('sidebar-collapsed');
+    }
+
+    // Setup table column sort click handlers
+    function setupTableColumnSort() {
+        document.querySelectorAll('.grid-header-cell[data-sort-column]').forEach(header => {
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', () => {
+                const column = header.dataset.sortColumn;
+                // Map table column names to API sort values
+                const sortMap = {
+                    'certificate': 'cert-number-newest',
+                    'certificationType': 'cert-type',
+                    'status': 'status',
+                    'effectiveDate': 'newest',
+                    'expirationDate': 'expiring',
+                    'company': 'company-az',
+                    'productName': 'product-az',
+                    'productCategory': 'product-type',
+                    'productType': 'product-type',
+                    'location': 'location-az',
+                    'country': 'country',
+                    'partner': 'partner'
+                };
+
+                const sortValue = sortMap[column] || 'newest';
+
+                // Toggle ascending/descending
+                const currentDir = header.dataset.sortDir || 'asc';
+                const newDir = currentDir === 'asc' ? 'desc' : 'asc';
+                header.dataset.sortDir = newDir;
+
+                // Map to reverse sort if descending
+                const reverseSortMap = {
+                    'cert-number-newest': 'cert-number-oldest',
+                    'cert-type': 'cert-type-za',
+                    'newest': 'oldest-effective',
+                    'expiring': 'longest-validity',
+                    'company-az': 'company-za',
+                    'product-az': 'product-za',
+                    'location-az': 'location-za',
+                    'country': 'country-za'
+                };
+
+                const finalSort = newDir === 'desc' ? (reverseSortMap[sortValue] || sortValue) : sortValue;
+
+                // Update sort icon
+                document.querySelectorAll('.grid-header-cell .sort-icon').forEach(icon => {
+                    icon.textContent = '▼';
+                });
+                const sortIcon = header.querySelector('.sort-icon');
+                if (sortIcon) {
+                    sortIcon.textContent = newDir === 'asc' ? '▲' : '▼';
+                }
+
+                state.filters.sortBy = finalSort;
+                loadInitialCertificates();
+            });
+        });
     }
 
     // Attach event listeners to filter checkboxes
@@ -974,15 +1026,23 @@
         });
     }
 
+    function removeSkeleton() {
+        const grid = document.getElementById('certificatesGrid');
+        if (grid) {
+            grid.querySelectorAll('.skeleton-card').forEach(el => el.remove());
+        }
+    }
+
     function showLoadingIndicator() {
         const grid = document.getElementById('certificatesGrid');
         if (!grid) return;
-        
+        if (grid.querySelector('.skeleton-card')) return;
+
         const loader = document.createElement('div');
         loader.className = 'loading-indicator';
         loader.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Loading certificates...';
         loader.id = 'loading-indicator';
-        
+
         if (!document.getElementById('loading-indicator')) {
             grid.parentElement.appendChild(loader);
         }
@@ -1212,6 +1272,9 @@
         });
         document.querySelector(`[data-view="${viewType}"]`).classList.add('active');
 
+        // Track current view state
+        state.currentView = viewType;
+
         if (viewType === 'list') {
             // Show table view within same page
             await showTableView();
@@ -1227,8 +1290,9 @@
         const tileView = document.getElementById('certificatesGrid');
         const tableView = document.getElementById('tableView');
 
-        if (tileView) tileView.style.display = 'none';
+        if (tileView) tileView.classList.add('hidden-for-table');
         if (tableView) {
+            tableView.classList.add('active');
             tableView.style.display = 'block';
 
             // If certificates aren't loaded yet, load them first
@@ -1251,8 +1315,11 @@
         const tileView = document.getElementById('certificatesGrid');
         const tableView = document.getElementById('tableView');
 
-        if (tableView) tableView.style.display = 'none';
-        if (tileView) tileView.style.display = 'grid';
+        if (tableView) {
+            tableView.classList.remove('active');
+            tableView.style.display = 'none';
+        }
+        if (tileView) tileView.classList.remove('hidden-for-table');
 
         // Remove wider layout class when switching back to tile view
         document.body.classList.remove('table-view-active');
@@ -1419,10 +1486,10 @@
                 <div class="grid-cell" data-column="externalTag" title="${escapeHtml(extTags)}" role="gridcell">${escapeHtml(extTags)}</div>
                 <div class="grid-cell" data-column="internalTag" title="${escapeHtml(intTags)}" role="gridcell">${escapeHtml(intTags)}</div>
                 <div class="grid-cell" data-column="partner" title="${escapeHtml(cert.partner || '')}" role="gridcell">${escapeHtml(cert.partner || '')}</div>
-                <div class="grid-cell" data-column="asin" title="${escapeHtml(asin)}" role="gridcell">${asinCount > 0 ? asinCount : ''}</div>
-                <div class="grid-cell" data-column="upc" title="${escapeHtml(upc)}" role="gridcell">${upcCount > 0 ? upcCount : ''}</div>
-                <div class="grid-cell" data-column="gtin" title="${escapeHtml(gtin)}" role="gridcell">${gtinCount > 0 ? gtinCount : ''}</div>
-                <div class="grid-cell" data-column="ean" title="${escapeHtml(ean)}" role="gridcell">${eanCount > 0 ? eanCount : ''}</div>
+                <div class="grid-cell id-count-cell" data-column="asin" data-ids="${escapeHtml(asin)}" title="Click to copy ASINs" role="gridcell">${asinCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(asin)}', 'ASIN')">${asinCount}</span>` : ''}</div>
+                <div class="grid-cell id-count-cell" data-column="upc" data-ids="${escapeHtml(upc)}" title="Click to copy UPCs" role="gridcell">${upcCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(upc)}', 'UPC')">${upcCount}</span>` : ''}</div>
+                <div class="grid-cell id-count-cell" data-column="gtin" data-ids="${escapeHtml(gtin)}" title="Click to copy GTINs" role="gridcell">${gtinCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(gtin)}', 'GTIN')">${gtinCount}</span>` : ''}</div>
+                <div class="grid-cell id-count-cell" data-column="ean" data-ids="${escapeHtml(ean)}" title="Click to copy EANs" role="gridcell">${eanCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(ean)}', 'EAN')">${eanCount}</span>` : ''}</div>
             </div>
         `;
     }
@@ -1463,7 +1530,29 @@
         showToast(message, 'error');
     }
 
+    // Copy product IDs to clipboard as newline-separated values (excel-friendly column)
+    function copyIdsToClipboard(idsString, idType) {
+        if (!idsString) return;
+        // Convert comma-separated to newline-separated for excel column paste
+        const ids = idsString.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        const excelText = ids.join('\n');
+
+        navigator.clipboard.writeText(excelText).then(() => {
+            showToast(`${ids.length} ${idType}(s) copied - paste into Excel column`, 'success');
+        }).catch(() => {
+            // Fallback for older browsers
+            const textarea = document.createElement('textarea');
+            textarea.value = excelText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast(`${ids.length} ${idType}(s) copied - paste into Excel column`, 'success');
+        });
+    }
+
     // Export functions for global access
+    window.copyIdsToClipboard = copyIdsToClipboard;
     window.viewCertificate = viewCertificate;
     window.viewCertificateDetails = viewCertificateDetails;
     window.editCertificate = editCertificate;
@@ -1478,10 +1567,18 @@
         populateTableView: populateTableView
     };
 
-    // Initialize the app when DOM is ready
+    // Initialize the app when DOM is ready (single initialization only)
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initialize);
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!state.initialized) {
+                state.initialized = true;
+                initialize();
+            }
+        });
     } else {
-        initialize();
+        if (!state.initialized) {
+            state.initialized = true;
+            initialize();
+        }
     }
 })();

@@ -698,6 +698,23 @@ namespace GCCWebApp.Services
                 var productType = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.Id);
                 if (productType == null) return (false, "Product type not found");
 
+                // Validate new parent exists (if specified)
+                ProductType? newParent = null;
+                if (model.ParentId.HasValue)
+                {
+                    newParent = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.ParentId.Value);
+                    if (newParent == null)
+                        return (false, "The selected parent does not exist");
+
+                    // Prevent circular reference: new parent cannot be self or a descendant
+                    if (model.ParentId.Value == model.Id)
+                        return (false, "An item cannot be its own parent");
+
+                    var descendantIds = await GetDescendantIdsAsync(model.Id);
+                    if (descendantIds.Contains(model.ParentId.Value))
+                        return (false, "Cannot move an item under one of its own descendants");
+                }
+
                 // Check for duplicate name at the same level (same parent), excluding the current record
                 var existingType = await _context.ProductTypes
                     .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
@@ -708,11 +725,7 @@ namespace GCCWebApp.Services
                 {
                     if (model.ParentId.HasValue)
                     {
-                        var parentName = await _context.ProductTypes
-                            .Where(pt => pt.Id == model.ParentId.Value)
-                            .Select(pt => pt.Name)
-                            .FirstOrDefaultAsync();
-                        return (false, $"'{model.Name}' already exists under '{parentName}'");
+                        return (false, $"'{model.Name}' already exists under '{newParent?.Name}'");
                     }
                     else
                     {
@@ -720,20 +733,23 @@ namespace GCCWebApp.Services
                     }
                 }
 
-                // Update level based on new parent
+                // Update level and CategoryId based on new parent
                 if (model.ParentId != productType.ParentId)
                 {
-                    if (model.ParentId.HasValue)
+                    if (newParent != null)
                     {
-                        var parent = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.ParentId.Value);
-                        if (parent != null)
-                        {
-                            productType.Level = parent.Level + 1;
-                        }
+                        productType.Level = newParent.Level + 1;
+                        productType.CategoryId = newParent.CategoryId;
                     }
                     else
                     {
                         productType.Level = 0;
+                        // For root-level items, get or create a default ProductCategory
+                        var defaultCategory = await _context.ProductCategories.FirstOrDefaultAsync();
+                        if (defaultCategory != null)
+                        {
+                            productType.CategoryId = defaultCategory.Id;
+                        }
                     }
                 }
 
@@ -742,12 +758,42 @@ namespace GCCWebApp.Services
                 productType.SortOrder = model.SortOrder;
 
                 await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Product type {Id} '{Name}' updated successfully", model.Id, model.Name);
                 return (true, null);
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error updating product type {Id}: {Name}", model.Id, model.Name);
                 return (false, $"Error updating product type: {ex.Message}");
             }
+        }
+
+        // Helper: get all descendant IDs of a product type to prevent circular references
+        private async Task<HashSet<int>> GetDescendantIdsAsync(int productTypeId)
+        {
+            var descendants = new HashSet<int>();
+            var queue = new Queue<int>();
+            queue.Enqueue(productTypeId);
+
+            while (queue.Count > 0)
+            {
+                var currentId = queue.Dequeue();
+                var childIds = await _context.ProductTypes
+                    .Where(pt => pt.ParentId == currentId)
+                    .Select(pt => pt.Id)
+                    .ToListAsync();
+
+                foreach (var childId in childIds)
+                {
+                    if (descendants.Add(childId))
+                    {
+                        queue.Enqueue(childId);
+                    }
+                }
+            }
+
+            return descendants;
         }
 
         public async Task<(bool Success, string Message)> DeleteProductTypeAsync(int id)
@@ -836,7 +882,9 @@ namespace GCCWebApp.Services
         {
             try
             {
-                // Check for duplicate name at the same level (same parent)
+                // Only check for duplicates within the SAME parent scope
+                // A subcategory CAN have the same name as a top-level type (different scope)
+                // A subcategory CAN have the same name as a subcategory under a DIFFERENT parent
                 var existingType = await _context.CertificationTypes
                     .FirstOrDefaultAsync(ct => ct.Name.ToLower() == model.Name.ToLower()
                         && ct.ParentId == model.ParentId);
@@ -869,6 +917,53 @@ namespace GCCWebApp.Services
                 _context.CertificationTypes.Add(certType);
                 await _context.SaveChangesAsync();
                 return (true, null);
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException dbEx)
+            {
+                // Handle database constraint violations - likely the old unique index hasn't been updated
+                var innerMsg = dbEx.InnerException?.Message ?? dbEx.Message;
+                if (innerMsg.Contains("IX_CertificationTypes_Name") || innerMsg.Contains("duplicate key"))
+                {
+                    _logger.LogWarning("Database unique constraint violation when creating cert type '{Name}' under parent {ParentId}. " +
+                        "This may indicate the migration AllowDuplicateSubcategoryNamesUnderDifferentParents has not been applied. Error: {Error}",
+                        model.Name, model.ParentId, innerMsg);
+
+                    // Try to apply the fix: drop old index and create new ones via raw SQL
+                    try
+                    {
+                        await _context.Database.ExecuteSqlRawAsync(@"
+                            IF EXISTS (SELECT 1 FROM sys.indexes WHERE name = 'IX_CertificationTypes_Name' AND object_id = OBJECT_ID('CertificationTypes'))
+                            BEGIN
+                                DROP INDEX [IX_CertificationTypes_Name] ON [CertificationTypes];
+
+                                CREATE UNIQUE INDEX [IX_CertificationTypes_Name_ParentId]
+                                    ON [CertificationTypes] ([Name], [ParentId])
+                                    WHERE [ParentId] IS NOT NULL;
+
+                                CREATE UNIQUE INDEX [IX_CertificationTypes_Name_TopLevel]
+                                    ON [CertificationTypes] ([Name])
+                                    WHERE [ParentId] IS NULL;
+                            END");
+
+                        // Retry the insert after fixing the index
+                        _context.CertificationTypes.Add(new CertificationType
+                        {
+                            Name = model.Name,
+                            Description = model.Description,
+                            IsActive = model.IsActive,
+                            ParentId = model.ParentId,
+                            Level = model.ParentId.HasValue ? 2 : 1
+                        });
+                        await _context.SaveChangesAsync();
+                        return (true, null);
+                    }
+                    catch (Exception retryEx)
+                    {
+                        _logger.LogError(retryEx, "Failed to fix database index and retry cert type creation");
+                        return (false, $"A name conflict occurred. The database indexes may need updating. Please contact support.");
+                    }
+                }
+                return (false, $"Error creating certificate type: {innerMsg}");
             }
             catch (Exception ex)
             {
@@ -1365,24 +1460,143 @@ namespace GCCWebApp.Services
             }
         }
 
+        // Pathways
+        public async Task<List<PathwayViewModel>> GetPathwaysAsync()
+        {
+            return await _context.Pathways
+                .Where(p => !p.IsDeleted)
+                .OrderBy(p => p.SortOrder)
+                .ThenBy(p => p.Name)
+                .Select(p => new PathwayViewModel
+                {
+                    Id = p.Id,
+                    Name = p.Name,
+                    Description = p.Description ?? "",
+                    IsActive = p.IsActive,
+                    SortOrder = p.SortOrder,
+                    CertificateCount = p.Certificates.Count,
+                    CreatedDate = p.CreatedAt
+                })
+                .ToListAsync();
+        }
+
+        public async Task<PathwayViewModel?> GetPathwayByIdAsync(int id)
+        {
+            var pathway = await _context.Pathways
+                .Where(p => p.Id == id && !p.IsDeleted)
+                .FirstOrDefaultAsync();
+
+            if (pathway == null) return null;
+
+            return new PathwayViewModel
+            {
+                Id = pathway.Id,
+                Name = pathway.Name,
+                Description = pathway.Description ?? "",
+                IsActive = pathway.IsActive,
+                SortOrder = pathway.SortOrder,
+                CreatedDate = pathway.CreatedAt
+            };
+        }
+
+        public async Task<bool> CreatePathwayAsync(PathwayViewModel model)
+        {
+            try
+            {
+                var pathway = new Pathway
+                {
+                    Name = model.Name,
+                    Description = model.Description,
+                    IsActive = model.IsActive,
+                    SortOrder = model.SortOrder,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Pathways.Add(pathway);
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating pathway {PathwayName}", model.Name);
+                return false;
+            }
+        }
+
+        public async Task<bool> UpdatePathwayAsync(int id, PathwayViewModel model)
+        {
+            try
+            {
+                var pathway = await _context.Pathways
+                    .Where(p => p.Id == id && !p.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (pathway == null) return false;
+
+                pathway.Name = model.Name;
+                pathway.Description = model.Description;
+                pathway.IsActive = model.IsActive;
+                pathway.SortOrder = model.SortOrder;
+                pathway.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating pathway {PathwayId}", id);
+                return false;
+            }
+        }
+
+        public async Task<bool> DeletePathwayAsync(int id)
+        {
+            try
+            {
+                var pathway = await _context.Pathways
+                    .Where(p => p.Id == id && !p.IsDeleted)
+                    .FirstOrDefaultAsync();
+
+                if (pathway == null) return false;
+
+                // Soft delete
+                pathway.IsDeleted = true;
+                pathway.UpdatedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting pathway {PathwayId}", id);
+                return false;
+            }
+        }
+
         public async Task<List<ProductViewModel>> GetProductsAsync()
         {
-            return await _context.Products
-                .Include(p => p.ProductType)
-                .Include(p => p.Company)
-                .Include(p => p.Certificates)
-                .Include(p => p.ProductIdentifiers)
-                .AsSplitQuery()
+            // Query 1: Get all products
+            var products = await _context.Products
+                .Where(p => !p.IsDeleted)
                 .Select(p => new ProductViewModel
                 {
                     Id = p.Id,
                     Name = p.Name,
-                    Description = p.Description ?? string.Empty ?? "",
+                    Description = p.Description ?? "",
+                    ProductTypeId = p.ProductTypeId,
                     ProductTypeName = p.ProductType != null ? p.ProductType.Name : "",
+                    CompanyId = p.CompanyId,
                     CompanyName = p.Company != null ? p.Company.Name : "",
+                    CategoryId = p.CategoryId,
+                    CategoryName = p.Category != null ? p.Category.Name : "",
                     IsActive = p.IsActive,
                     CertificateCount = p.Certificates.Count(),
                     CreatedDate = p.CreatedAt,
+                    Model = p.Model,
+                    Sku = p.Sku,
+                    Upc = p.Upc,
+                    Asin = p.Asin,
                     ProductIdentifiers = p.ProductIdentifiers.Select(pi => new ProductIdentifierViewModel
                     {
                         Id = pi.Id,
@@ -1391,6 +1605,35 @@ namespace GCCWebApp.Services
                     }).ToList()
                 })
                 .ToListAsync();
+
+            // Query 2: Get CertificateProductIds grouped by ProductId
+            var certProductIds = await _context.CertificateProductIds
+                .Where(cpid => cpid.IsActive)
+                .Select(cpid => new
+                {
+                    cpid.Certificate.ProductId,
+                    cpid.ProductIdType,
+                    cpid.ProductIdValue
+                })
+                .ToListAsync();
+
+            // Merge: attach CertificateProductIds to their products
+            var grouped = certProductIds.GroupBy(x => x.ProductId)
+                .ToDictionary(g => g.Key, g => g.Select(x => new CertificateProductIdExportViewModel
+                {
+                    ProductIdType = x.ProductIdType,
+                    ProductIdValue = x.ProductIdValue
+                }).ToList());
+
+            foreach (var product in products)
+            {
+                if (grouped.TryGetValue(product.Id, out var ids))
+                {
+                    product.CertificateProductIds = ids;
+                }
+            }
+
+            return products;
         }
 
         public async Task<ProductViewModel?> GetProductByIdAsync(int id)

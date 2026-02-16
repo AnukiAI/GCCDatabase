@@ -266,6 +266,27 @@ namespace GCCWebApp.Models
         public int UserCount { get; set; }
     }
 
+    // Pathways Models
+    public class PathwayViewModel
+    {
+        public int Id { get; set; }
+
+        [Required]
+        [StringLength(200)]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(500)]
+        public string Description { get; set; } = string.Empty;
+
+        public bool IsActive { get; set; } = true;
+
+        public int SortOrder { get; set; } = 0;
+
+        public DateTime CreatedDate { get; set; }
+
+        public int CertificateCount { get; set; }
+    }
+
     // Product Management Models
     public class ProductViewModel
     {
@@ -286,13 +307,26 @@ namespace GCCWebApp.Models
 
         public string CompanyName { get; set; } = string.Empty;
 
+        public int CategoryId { get; set; }
+
+        public string CategoryName { get; set; } = string.Empty;
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedDate { get; set; }
 
         public int CertificateCount { get; set; }
 
+        // Direct identifier fields from Product entity
+        public string? Model { get; set; }
+        public string? Sku { get; set; }
+        public string? Upc { get; set; }
+        public string? Asin { get; set; }
+
         public List<ProductIdentifierViewModel> ProductIdentifiers { get; set; } = new List<ProductIdentifierViewModel>();
+
+        // Identifiers from CertificateProductIds (via Certificate relationship)
+        public List<CertificateProductIdExportViewModel> CertificateProductIds { get; set; } = new List<CertificateProductIdExportViewModel>();
     }
 
     public class ProductIdentifierViewModel
@@ -300,6 +334,12 @@ namespace GCCWebApp.Models
         public int Id { get; set; }
         public string IdentifierType { get; set; } = string.Empty;
         public string IdentifierValue { get; set; } = string.Empty;
+    }
+
+    public class CertificateProductIdExportViewModel
+    {
+        public string ProductIdType { get; set; } = string.Empty;
+        public string ProductIdValue { get; set; } = string.Empty;
     }
 
     // Amazon API Models

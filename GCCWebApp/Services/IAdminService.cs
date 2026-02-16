@@ -63,6 +63,13 @@ namespace GCCWebApp.Services
         Task<bool> CreatePartnerAsync(PartnerViewModel model);
         Task<bool> UpdatePartnerAsync(int id, PartnerViewModel model);
         Task<bool> DeletePartnerAsync(int id);
+
+        // Pathways
+        Task<List<PathwayViewModel>> GetPathwaysAsync();
+        Task<PathwayViewModel?> GetPathwayByIdAsync(int id);
+        Task<bool> CreatePathwayAsync(PathwayViewModel model);
+        Task<bool> UpdatePathwayAsync(int id, PathwayViewModel model);
+        Task<bool> DeletePathwayAsync(int id);
         
         // Product Management
         Task<List<ProductViewModel>> GetProductsAsync();

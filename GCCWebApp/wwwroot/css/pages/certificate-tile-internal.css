@@ -9,8 +9,9 @@
    ============================================================================= */
 
 /* =============================================================================
-   GRID LAYOUT - INTERNAL VIEW (23 COLUMNS)
+   GRID LAYOUT - INTERNAL VIEW (22 COLUMNS)
    Includes: Internal Tag + Partner columns
+   CSF Attributes column removed per client request
    ============================================================================= */
 
 .table-grid {
@@ -20,32 +21,31 @@
         90px      /* 2. Actions (Edit + Download + View) */
         145px     /* 3. Certificate # */
         160px     /* 4. Certification Type */
-        130px     /* 5. CSF Attributes */
-        120px     /* 6. Status */
-        95px      /* 7. Effective Date */
-        95px      /* 8. Expiration Date */
-        170px     /* 9. Company */
-        170px     /* 10. Company Contact */
-        170px     /* 11. Product Name */
-        130px     /* 12. Product Category */
-        130px     /* 13. Product Type */
-        140px     /* 14. Product Subcategory */
-        100px     /* 15. Location */
-        110px     /* 16. Country */
-        100px     /* 17. External Tag */
-        100px     /* 18. Internal Tag */
-        100px     /* 19. Partner */
-        85px      /* 20. ASIN */
-        85px      /* 21. UPC */
-        85px      /* 22. GTIN */
-        85px;     /* 23. EAN */
+        120px     /* 5. Status */
+        95px      /* 6. Effective Date */
+        95px      /* 7. Expiration Date */
+        170px     /* 8. Company */
+        170px     /* 9. Company Contact */
+        170px     /* 10. Product Name */
+        130px     /* 11. Product Category */
+        130px     /* 12. Product Type */
+        140px     /* 13. Product Subcategory */
+        100px     /* 14. Location */
+        110px     /* 15. Country */
+        100px     /* 16. External Tag */
+        100px     /* 17. Internal Tag */
+        100px     /* 18. Partner */
+        85px      /* 19. ASIN */
+        85px      /* 20. UPC */
+        85px      /* 21. GTIN */
+        85px;     /* 22. EAN */
     min-width: max-content;
     width: 100%;
 }
 
-/* Table container min-width for Internal (23 columns) */
+/* Table container min-width for Internal (22 columns) */
 .table-grid-container {
-    min-width: 2625px;
+    min-width: 2495px;
     width: max-content;
 }
 
@@ -152,4 +152,44 @@
 
 .export-options .btn.btn-outline i {
     color: inherit !important;
+}
+
+/* =============================================================================
+   PRODUCT ID COUNT BADGE - CLICKABLE FOR EXCEL-FRIENDLY COPY
+   ============================================================================= */
+
+.id-count-cell {
+    text-align: center !important;
+    justify-content: center !important;
+}
+
+.id-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    padding: 2px 8px;
+    background: #e8f5e1;
+    color: #447638;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.id-count-badge:hover {
+    background: #c5e0a5;
+    color: #2d5a1e;
+}
+
+/* Sort icon styling for table headers */
+.grid-header-cell[data-sort-column] {
+    cursor: pointer;
+    user-select: none;
+}
+
+.grid-header-cell[data-sort-column]:hover {
+    background-color: #e8f5e1;
 }

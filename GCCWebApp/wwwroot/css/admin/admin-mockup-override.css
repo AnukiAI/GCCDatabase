@@ -302,6 +302,15 @@
     opacity: 1;
 }
 
+/* Badge overrides - enforce 16px minimum font size */
+.admin-table .badge,
+#products-table .badge,
+.admin-table-body .badge {
+    font-size: 16px;
+    padding: 4px 10px;
+    font-weight: 500;
+}
+
 /* Action buttons in tables */
 .admin-action-btn,
 .btn-edit,

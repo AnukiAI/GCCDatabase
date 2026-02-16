@@ -1,0 +1,608 @@
+@{
+    ViewData["Title"] = "Pathways Management";
+    ViewData["BodyClass"] = "role-admin";
+}
+
+@section Styles {
+    <link href="~/css/admin/admin.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-mockup-override.css" rel="stylesheet" />
+    <link href="~/css/admin/admin-inline-editing.css" rel="stylesheet" />
+    <link href="~/css/admin-company-style.css" rel="stylesheet" />
+}
+
+@section Breadcrumbs {
+    <span class="role-element role-admin-show">
+        <a href="#">Administration</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <a href="#">Data Management</a>
+        <span class="separator"><i class="fas fa-chevron-right"></i></span>
+        <span class="current">Pathways</span>
+    </span>
+}
+
+<div class="admin-container">
+    <header class="admin-header">
+        <div class="admin-header-content">
+            <div class="admin-title-section">
+                <h1 class="admin-page-title">@ViewData["Title"]</h1>
+                <p class="admin-page-subtitle">Manage certification pathways</p>
+            </div>
+            <div class="admin-actions-section">
+                <div class="admin-button-group">
+                    <button id="pathways-export-btn" class="admin-btn admin-btn--secondary" aria-label="Export pathways to CSV file">
+                        <i class="fas fa-download" aria-hidden="true"></i> Export
+                    </button>
+                    <button id="pathways-add-btn" class="admin-btn admin-btn--primary" aria-label="Add a new pathway">
+                        <i class="fas fa-plus" aria-hidden="true"></i> Add New Pathway
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Unified toolbar + content wrapper (US-016 Hybrid Layout) -->
+    <div class="admin-body-content">
+        <div class="admin-toolbar">
+            <div class="admin-search-section">
+                <div class="admin-search-box">
+                    <label for="pathways-search-input" class="admin-sr-only">Search pathways</label>
+                    <i class="fas fa-search admin-search-icon" aria-hidden="true"></i>
+                    <input type="text" id="pathways-search-input" class="admin-search-input" placeholder="Search" aria-label="Search pathways">
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-content">
+        <div class="admin-table-container">
+            <table id="pathways-table" class="admin-table">
+            <thead class="admin-table-header">
+                <tr>
+                    <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="90%">
+                        Pathway Name <span class="sort-icon">&#9660;</span>
+                    </th>
+                    <th class="admin-table-th admin-table-th--actions" width="10%">Actions</th>
+                </tr>
+            </thead>
+            <tbody id="pathways-table-body" class="admin-table-body">
+            <!-- Add pathway row (initially hidden) -->
+            <tr id="pathways-add-row" class="admin-inline-add-row">
+                <td>
+                    <input type="text" id="new-pathway-name" class="admin-inline-input" placeholder="Enter pathway name">
+                </td>
+                <td>
+                    <div class="admin-inline-add-actions">
+                        <button type="button" class="admin-action-btn admin-action-btn--save" onclick="saveNewPathway()" title="Save" aria-label="Save new pathway">
+                            <i class="fas fa-check" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="admin-action-btn admin-action-btn--cancel" onclick="cancelAddPathway()" title="Cancel" aria-label="Cancel adding pathway">
+                            <i class="fas fa-times" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            <!-- Table rows will be populated by JavaScript -->
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+        <div class="admin-footer-info">
+            <span id="pathways-count" class="admin-count-display">Showing 0 of 0 pathways</span>
+        </div>
+    </div> <!-- End admin-body-content -->
+</div>
+
+<!-- Antiforgery token for AJAX requests -->
+@Html.AntiForgeryToken()
+
+<!-- Toast notifications handled by AdminCore.showNotification -->
+
+@section Scripts {
+    <script>
+        // Initialize pathways management
+        let pathwaysData = [];
+        let sortColumn = 'name';
+        let sortDirection = 'asc';
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializePathwaysManagement();
+        });
+
+        function initializePathwaysManagement() {
+            // Load initial data
+            loadPathways();
+
+            // Initialize search
+            const searchInput = document.getElementById('pathways-search-input');
+            if (searchInput) {
+                searchInput.addEventListener('input', handlePathwaysSearch);
+            }
+
+            // Initialize sorting
+            initializePathwaysSorting();
+
+            // Initialize page actions
+            initializePathwaysPageActions();
+        }
+
+        function loadPathways() {
+            // Show loading state - preserve add row
+            const tableBody = document.getElementById('pathways-table-body');
+            const addRow = document.getElementById('pathways-add-row');
+            if (tableBody) {
+                const savedAddRow = addRow ? addRow.cloneNode(true) : null;
+                tableBody.innerHTML = '<tr><td colspan="2" class="partners-loading">Loading pathways...</td></tr>';
+                if (savedAddRow) {
+                    tableBody.insertBefore(savedAddRow, tableBody.firstChild);
+                }
+            }
+
+            // Make AJAX call to get pathways from server
+            fetch('/Admin/GetPathways', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (result.success && result.data) {
+                    pathwaysData = result.data.map(pathway => ({
+                        id: pathway.id,
+                        name: pathway.name,
+                        description: pathway.description || '',
+                        isActive: pathway.isActive,
+                        sortOrder: pathway.sortOrder || 0,
+                        certificateCount: pathway.certificateCount || 0,
+                        createdDate: pathway.createdDate
+                    }));
+                    populatePathwaysTable(pathwaysData);
+                } else {
+                    throw new Error(result.message || 'Failed to load pathways');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading pathways:', error);
+                showPathwaysToast('Error loading pathways: ' + error.message, 'error');
+
+                const tableBody = document.getElementById('pathways-table-body');
+                const addRow = document.getElementById('pathways-add-row');
+                if (tableBody) {
+                    const savedAddRow = addRow ? addRow.cloneNode(true) : null;
+                    tableBody.innerHTML = '<tr><td colspan="2" class="partners-empty-state"><h3>Error Loading Pathways</h3><p>Unable to load pathways data. Please try refreshing the page.</p></td></tr>';
+                    if (savedAddRow) {
+                        tableBody.insertBefore(savedAddRow, tableBody.firstChild);
+                    }
+                }
+            });
+        }
+
+        function populatePathwaysTable(data) {
+            const tableBody = document.getElementById('pathways-table-body');
+            if (!tableBody) return;
+
+            // Clear existing data rows but keep the add row
+            const addRow = document.getElementById('pathways-add-row');
+            tableBody.innerHTML = '';
+            if (addRow) {
+                tableBody.appendChild(addRow);
+            }
+
+            // Add existing pathways
+            data.forEach(pathway => {
+                const row = document.createElement('tr');
+                row.setAttribute('data-id', pathway.id);
+
+                // Pathway Name cell
+                const nameCell = document.createElement('td');
+
+                // View mode
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'admin-inline-view';
+                nameSpan.textContent = pathway.name;
+                nameCell.appendChild(nameSpan);
+
+                // Edit mode
+                const nameEditDiv = document.createElement('div');
+                nameEditDiv.className = 'admin-inline-edit';
+                nameEditDiv.innerHTML = `<input type="text" class="admin-inline-input" value="${pathway.name}">`;
+                nameCell.appendChild(nameEditDiv);
+
+                // Actions cell
+                const actionsCell = document.createElement('td');
+
+                // Regular action buttons (view mode)
+                const actionButtons = document.createElement('div');
+                actionButtons.className = 'admin-inline-actions';
+                actionButtons.innerHTML = `
+                    <button class="admin-inline-action-btn admin-inline-action-btn--edit" onclick="editPathway(${pathway.id})" title="Edit Pathway" aria-label="Edit pathway ${pathway.name}">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
+                    </button>
+                    <button class="admin-inline-action-btn admin-inline-action-btn--delete" onclick="deletePathway(${pathway.id})" title="Delete Pathway" aria-label="Delete pathway ${pathway.name}">
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                    </button>
+                `;
+                actionsCell.appendChild(actionButtons);
+
+                // Edit action buttons (edit mode)
+                const editActions = document.createElement('div');
+                editActions.className = 'admin-inline-edit-actions';
+                editActions.innerHTML = `
+                    <button type="button" class="admin-action-btn admin-action-btn--save" onclick="savePathway(${pathway.id})" title="Save" aria-label="Save changes"><i class="fas fa-check" aria-hidden="true"></i></button>
+                    <button type="button" class="admin-action-btn admin-action-btn--cancel" onclick="cancelEdit(${pathway.id})" title="Cancel" aria-label="Cancel editing"><i class="fas fa-times" aria-hidden="true"></i></button>
+                `;
+                actionsCell.appendChild(editActions);
+
+                row.appendChild(nameCell);
+                row.appendChild(actionsCell);
+                tableBody.appendChild(row);
+            });
+
+            // Update pathway count
+            updatePathwaysCount(data.length);
+        }
+
+        function initializePathwaysSorting() {
+            const headers = document.querySelectorAll('#pathways-table th[data-sort]');
+
+            headers.forEach(header => {
+                header.addEventListener('click', () => {
+                    const column = header.getAttribute('data-sort');
+
+                    if (sortColumn === column) {
+                        sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        sortColumn = column;
+                        sortDirection = 'asc';
+                    }
+
+                    headers.forEach(h => {
+                        h.classList.remove('active-sort');
+                        const icon = h.querySelector('.sort-icon');
+                        if (icon) {
+                            icon.textContent = '\u25BC';
+                        }
+                    });
+
+                    header.classList.add('active-sort');
+                    const sortIcon = header.querySelector('.sort-icon');
+                    if (sortIcon) {
+                        sortIcon.textContent = sortDirection === 'asc' ? '\u25B2' : '\u25BC';
+                    }
+
+                    sortPathwaysData();
+                });
+            });
+        }
+
+        function sortPathwaysData() {
+            const filteredData = getFilteredPathwaysData();
+
+            filteredData.sort((a, b) => {
+                const valueA = a[sortColumn].toString().toLowerCase();
+                const valueB = b[sortColumn].toString().toLowerCase();
+
+                if (sortDirection === 'asc') {
+                    return valueA.localeCompare(valueB);
+                } else {
+                    return valueB.localeCompare(valueA);
+                }
+            });
+
+            populatePathwaysTable(filteredData);
+        }
+
+        function getFilteredPathwaysData() {
+            const searchInput = document.getElementById('pathways-search-input');
+            const searchTerm = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+            if (!searchTerm) {
+                return [...pathwaysData];
+            }
+
+            return pathwaysData.filter(pathway =>
+                pathway.name.toLowerCase().includes(searchTerm)
+            );
+        }
+
+        function handlePathwaysSearch() {
+            sortPathwaysData();
+        }
+
+        function updatePathwaysCount(count) {
+            const countElement = document.getElementById('pathways-count');
+            if (countElement) {
+                countElement.textContent = `Showing ${count} of ${pathwaysData.length} pathways`;
+            }
+        }
+
+        function initializePathwaysPageActions() {
+            const addBtn = document.getElementById('pathways-add-btn');
+            const exportBtn = document.getElementById('pathways-export-btn');
+
+            if (addBtn) {
+                addBtn.addEventListener('click', showAddPathwayRow);
+            }
+
+            if (exportBtn) {
+                exportBtn.addEventListener('click', exportPathways);
+            }
+        }
+
+        // Pathway Management Functions
+        function showAddPathwayRow() {
+            const addRow = document.getElementById('pathways-add-row');
+            if (addRow) {
+                addRow.classList.add('active');
+                const input = addRow.querySelector('.admin-inline-input');
+                if (input) {
+                    input.value = '';
+                    input.focus();
+                }
+            }
+        }
+
+        function saveNewPathway() {
+            const nameInput = document.getElementById('new-pathway-name');
+            const name = nameInput ? nameInput.value.trim() : '';
+
+            if (!name) {
+                showPathwaysToast('Pathway name cannot be empty', 'error');
+                if (nameInput) nameInput.focus();
+                return;
+            }
+
+            // Check for duplicate names
+            const existingPathway = pathwaysData.find(p => p.name.toLowerCase() === name.toLowerCase());
+            if (existingPathway) {
+                showPathwaysToast('Pathway name already exists', 'error');
+                if (nameInput) nameInput.focus();
+                return;
+            }
+
+            // Get antiforgery token
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+            // Make AJAX call to create new pathway
+            fetch('/Admin/CreatePathway', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    name: name,
+                    description: '',
+                    isActive: true,
+                    sortOrder: 0
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (result.success) {
+                    if (nameInput) nameInput.value = '';
+                    const addRow = document.getElementById('pathways-add-row');
+                    if (addRow) addRow.classList.remove('active');
+
+                    loadPathways();
+                    showPathwaysToast('Pathway added successfully', 'success');
+                } else {
+                    throw new Error(result.message || 'Failed to create pathway');
+                }
+            })
+            .catch(error => {
+                console.error('Error creating pathway:', error);
+                showPathwaysToast('Error creating pathway: ' + error.message, 'error');
+                if (nameInput) nameInput.focus();
+            });
+        }
+
+        function cancelAddPathway() {
+            const nameInput = document.getElementById('new-pathway-name');
+            if (nameInput) nameInput.value = '';
+
+            const addRow = document.getElementById('pathways-add-row');
+            if (addRow) addRow.classList.remove('active');
+        }
+
+        function editPathway(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            row.classList.add('admin-inline-edit-row');
+            const input = row.querySelector('.admin-inline-input');
+            if (input) {
+                input.focus();
+                input.select();
+            }
+        }
+
+        function savePathway(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            const input = row.querySelector('.admin-inline-input');
+            const newName = input ? input.value.trim() : '';
+
+            if (!newName) {
+                showPathwaysToast('Pathway name cannot be empty', 'error');
+                if (input) input.focus();
+                return;
+            }
+
+            // Check for duplicate names (excluding current pathway)
+            const existingPathway = pathwaysData.find(p => p.id !== id && p.name.toLowerCase() === newName.toLowerCase());
+            if (existingPathway) {
+                showPathwaysToast('Pathway name already exists', 'error');
+                if (input) input.focus();
+                return;
+            }
+
+            const currentPathway = pathwaysData.find(p => p.id === id);
+            if (!currentPathway) {
+                showPathwaysToast('Pathway not found', 'error');
+                return;
+            }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+            fetch(`/Admin/UpdatePathway/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify({
+                    id: id,
+                    name: newName,
+                    description: currentPathway.description || '',
+                    isActive: currentPathway.isActive,
+                    sortOrder: currentPathway.sortOrder || 0
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (result.success) {
+                    const pathwayIndex = pathwaysData.findIndex(p => p.id === id);
+                    if (pathwayIndex !== -1) {
+                        pathwaysData[pathwayIndex].name = newName;
+                    }
+
+                    const nameSpan = row.querySelector('.admin-inline-view');
+                    if (nameSpan) nameSpan.textContent = newName;
+
+                    row.classList.remove('admin-inline-edit-row');
+                    showPathwaysToast('Pathway updated successfully', 'success');
+                } else {
+                    throw new Error(result.message || 'Failed to update pathway');
+                }
+            })
+            .catch(error => {
+                console.error('Error updating pathway:', error);
+                showPathwaysToast('Error updating pathway: ' + error.message, 'error');
+                if (input) input.focus();
+            });
+        }
+
+        function cancelEdit(id) {
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (!row) return;
+
+            const pathway = pathwaysData.find(p => p.id === id);
+            if (!pathway) return;
+
+            const input = row.querySelector('.admin-inline-input');
+            if (input) input.value = pathway.name;
+
+            row.classList.remove('admin-inline-edit-row');
+        }
+
+        async function deletePathway(id) {
+            const pathway = pathwaysData.find(p => p.id === id);
+            if (!pathway) return;
+
+            // Use AdminCore.showConfirmation instead of native confirm
+            const confirmed = await AdminCore.showConfirmation({
+                title: 'Delete Confirmation',
+                message: `Are you sure you want to delete <strong>${pathway.name}</strong>? This action cannot be undone.`,
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                type: 'danger',
+                allowHtml: true
+            });
+
+            if (!confirmed) {
+                return;
+            }
+
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+
+            fetch(`/Admin/DeletePathway/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'RequestVerificationToken': token
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (result.success) {
+                    pathwaysData = pathwaysData.filter(p => p.id !== id);
+                    sortPathwaysData();
+                    showPathwaysToast('Pathway deleted successfully', 'success');
+                } else {
+                    throw new Error(result.message || 'Failed to delete pathway');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting pathway:', error);
+                showPathwaysToast('Error deleting pathway: ' + error.message, 'error');
+            });
+        }
+
+        function exportPathways() {
+            if (pathwaysData.length === 0) {
+                showPathwaysToast('No pathways to export', 'warning');
+                return;
+            }
+
+            // Client-side CSV export using ExportUtils pattern
+            const headers = ['Name', 'Description', 'Active', 'Sort Order'];
+            const rows = pathwaysData.map(p => [
+                p.name,
+                p.description || '',
+                p.isActive ? 'Yes' : 'No',
+                p.sortOrder
+            ]);
+
+            let csv = headers.join(',') + '\n';
+            rows.forEach(row => {
+                csv += row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(',') + '\n';
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `pathways_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showPathwaysToast('Pathways exported successfully', 'success');
+        }
+
+        // Use AdminCore.showNotification for all toast notifications (US-015 compliant)
+        function showPathwaysToast(message, type = 'info') {
+            AdminCore.showNotification(message, type);
+        }
+    </script>
+}

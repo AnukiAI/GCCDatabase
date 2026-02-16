@@ -40,6 +40,7 @@ namespace GCCWebApp.Data
         public DbSet<Role> Roles { get; set; }
         public DbSet<Permission> Permissions { get; set; }
         public DbSet<Partner> Partners { get; set; }
+        public DbSet<Pathway> Pathways { get; set; }
 
         // API management
         public DbSet<ApiKey> ApiKeys { get; set; }
@@ -106,6 +107,14 @@ namespace GCCWebApp.Data
                 entity.HasOne(e => e.CertificationTypeSubcategory)
                     .WithMany()
                     .HasForeignKey(e => e.CertificationTypeSubcategoryId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
+
+                // Pathway (optional)
+                entity.HasIndex(e => e.PathwayId);
+                entity.HasOne(e => e.Pathway)
+                    .WithMany(p => p.Certificates)
+                    .HasForeignKey(e => e.PathwayId)
                     .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired(false);
 
@@ -378,13 +387,26 @@ namespace GCCWebApp.Data
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.Name).HasMaxLength(255).IsRequired();
                 entity.HasIndex(e => e.Name).IsUnique();
-                
+
                 // Performance indexes for partner searches
                 entity.HasIndex(e => e.IsActive);
                 entity.HasIndex(e => e.SortOrder);
                 entity.HasIndex(e => e.CreatedAt);
-                
+
                 // Composite indexes
+                entity.HasIndex(e => new { e.IsActive, e.SortOrder });
+            });
+
+            // Pathway configuration
+            modelBuilder.Entity<Pathway>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Name).HasMaxLength(200).IsRequired();
+                entity.HasIndex(e => e.Name).IsUnique().HasFilter("[IsDeleted] = 0");
+
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.SortOrder);
+
                 entity.HasIndex(e => new { e.IsActive, e.SortOrder });
             });
             

@@ -508,6 +508,9 @@ namespace GCCWebApp.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<int?>("PathwayId")
+                        .HasColumnType("int");
+
                     b.Property<int>("ProductId")
                         .HasColumnType("int");
 
@@ -545,6 +548,8 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("Number")
                         .IsUnique();
+
+                    b.HasIndex("PathwayId");
 
                     b.HasIndex("ProductId");
 
@@ -1496,6 +1501,53 @@ namespace GCCWebApp.Migrations
                     b.ToTable("PartnerApiKeys");
                 });
 
+            modelBuilder.Entity("GCCWebApp.Models.Pathway", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasFilter("[IsDeleted] = 0");
+
+                    b.HasIndex("SortOrder");
+
+                    b.HasIndex("IsActive", "SortOrder");
+
+                    b.ToTable("Pathways");
+                });
+
             modelBuilder.Entity("GCCWebApp.Models.Permission", b =>
                 {
                     b.Property<int>("Id")
@@ -2129,6 +2181,11 @@ namespace GCCWebApp.Migrations
                         .HasForeignKey("CreatedBy")
                         .OnDelete(DeleteBehavior.NoAction);
 
+                    b.HasOne("GCCWebApp.Models.Pathway", "Pathway")
+                        .WithMany("Certificates")
+                        .HasForeignKey("PathwayId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("GCCWebApp.Models.Product", "Product")
                         .WithMany("Certificates")
                         .HasForeignKey("ProductId")
@@ -2147,6 +2204,8 @@ namespace GCCWebApp.Migrations
                     b.Navigation("Company");
 
                     b.Navigation("CreatedByUser");
+
+                    b.Navigation("Pathway");
 
                     b.Navigation("Product");
 
@@ -2459,6 +2518,11 @@ namespace GCCWebApp.Migrations
             modelBuilder.Entity("GCCWebApp.Models.Partner", b =>
                 {
                     b.Navigation("Companies");
+                });
+
+            modelBuilder.Entity("GCCWebApp.Models.Pathway", b =>
+                {
+                    b.Navigation("Certificates");
                 });
 
             modelBuilder.Entity("GCCWebApp.Models.Product", b =>

@@ -64,11 +64,12 @@
             <table id="products-table" class="admin-table">
                 <thead class="admin-table-header">
                     <tr>
-                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="40%">
+                        <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="30%">
                             Product Name <i class="admin-sort-icon fas fa-sort"></i>
                         </th>
-                        <th class="admin-table-th" width="40%">Parent Identifiers</th>
-                        <th class="admin-table-th admin-table-th--actions" width="20%">Actions</th>
+                        <th class="admin-table-th" width="30%">Parent Identifiers</th>
+                        <th class="admin-table-th" width="15%">Status</th>
+                        <th class="admin-table-th admin-table-th--actions" width="25%">Actions</th>
                     </tr>
                 </thead>
                 <tbody id="products-table-body" class="admin-table-body">
@@ -188,7 +189,7 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/admin/productManagement.js"></script>
+    <script src="~/js/admin/productManagement.js?v=5"></script>
     <script>
         // Enhanced product management with admin framework
         document.addEventListener('DOMContentLoaded', function() {

@@ -338,6 +338,26 @@ function populateTable(data) {
         lastLoginCell.textContent = formatDate(user.lastLogin);
         row.appendChild(lastLoginCell);
 
+        // 2FA Status cell
+        const twoFACell = document.createElement('td');
+        twoFACell.dataset.field = 'twoFactorEnabled';
+        twoFACell.style.textAlign = 'center';
+        if (user.twoFactorEnabled) {
+            const badge = document.createElement('span');
+            badge.className = 'badge-2fa badge-2fa-enabled';
+            const method = (user.twoFactorMethod || 'Email').toUpperCase();
+            badge.innerHTML = '<i class="fas fa-shield-alt"></i> ' + method;
+            badge.title = '2FA enabled via ' + method;
+            twoFACell.appendChild(badge);
+        } else {
+            const badge = document.createElement('span');
+            badge.className = 'badge-2fa badge-2fa-disabled';
+            badge.textContent = 'Off';
+            badge.title = '2FA not enabled';
+            twoFACell.appendChild(badge);
+        }
+        row.appendChild(twoFACell);
+
         // Actions cell
         const actionsCell = document.createElement('td');
         actionsCell.style.whiteSpace = 'nowrap';
@@ -360,6 +380,24 @@ function populateTable(data) {
         deleteButton.setAttribute('aria-label', `Delete user ${user.name}`);
         deleteButton.addEventListener('click', () => deleteUser(user.id));
         actionsCell.appendChild(deleteButton);
+
+        // 2FA action dropdown
+        const twoFADropdown = document.createElement('div');
+        twoFADropdown.className = 'dropdown-2fa';
+        twoFADropdown.style.display = 'inline-block';
+        twoFADropdown.style.position = 'relative';
+
+        const twoFABtn = document.createElement('button');
+        twoFABtn.className = 'btn-2fa';
+        twoFABtn.innerHTML = '<i class="fas fa-shield-alt"></i>';
+        twoFABtn.title = '2FA Actions';
+        twoFABtn.setAttribute('aria-label', `2FA actions for ${user.name}`);
+        twoFABtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            show2FAMenu(user, twoFADropdown);
+        });
+        twoFADropdown.appendChild(twoFABtn);
+        actionsCell.appendChild(twoFADropdown);
 
         row.appendChild(actionsCell);
         userTableBody.appendChild(row);
@@ -869,6 +907,146 @@ async function deleteUser(id) {
             title: 'Error',
             message: 'Error deleting user: ' + error.message
         });
+    }
+}
+
+// ===== 2FA Management Functions =====
+
+function show2FAMenu(user, container) {
+    // Close any existing menus
+    document.querySelectorAll('.dropdown-2fa-menu').forEach(m => m.remove());
+
+    const menu = document.createElement('div');
+    menu.className = 'dropdown-2fa-menu';
+
+    const currentUserId = parseInt(document.getElementById('currentUserId')?.value || '0');
+    const isSelf = user.id === currentUserId;
+
+    if (user.twoFactorEnabled) {
+        menu.appendChild(create2FAMenuItem('Reset 2FA', 'fas fa-undo', () => reset2FA(user), isSelf));
+        menu.appendChild(create2FAMenuItem('Disable 2FA', 'fas fa-times-circle', () => disable2FA(user), isSelf));
+    } else {
+        menu.appendChild(create2FAMenuItem('Enable 2FA (Email)', 'fas fa-envelope', () => enable2FA(user, 'Email'), isSelf));
+        menu.appendChild(create2FAMenuItem('Enable 2FA (TOTP)', 'fas fa-mobile-alt', () => enable2FA(user, 'TOTP'), isSelf));
+    }
+
+    container.appendChild(menu);
+
+    // Close on outside click
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu() {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }, { once: true });
+    }, 0);
+}
+
+function create2FAMenuItem(text, iconClass, onClick, disabled) {
+    const btn = document.createElement('button');
+    btn.className = 'dropdown-2fa-item';
+    btn.innerHTML = `<i class="${iconClass}"></i> ${text}`;
+    if (disabled) {
+        btn.disabled = true;
+        btn.title = 'Cannot modify your own 2FA from admin panel';
+    } else {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            document.querySelectorAll('.dropdown-2fa-menu').forEach(m => m.remove());
+            onClick();
+        });
+    }
+    return btn;
+}
+
+async function reset2FA(user) {
+    const confirmed = await AdminCore.showConfirmation({
+        title: 'Reset 2FA',
+        message: `Are you sure you want to reset 2FA for ${user.name}? This will clear their authenticator setup and recovery codes. They will need to set up 2FA again.`,
+        confirmText: 'Reset',
+        cancelText: 'Cancel',
+        type: 'warning'
+    });
+    if (!confirmed) return;
+
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    try {
+        const response = await fetch('/Admin/Reset2FA', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token || '' },
+            body: JSON.stringify({ userId: user.id })
+        });
+        const result = await response.json();
+        if (result.success) {
+            user.twoFactorEnabled = false;
+            user.twoFactorMethod = null;
+            applyFiltersAndSort();
+            AdminCore.showNotification('2FA has been reset successfully.', 'success');
+        } else {
+            AdminCore.showNotification(result.message || 'Failed to reset 2FA.', 'error');
+        }
+    } catch (err) {
+        AdminCore.showNotification('Error resetting 2FA.', 'error');
+    }
+}
+
+async function disable2FA(user) {
+    const confirmed = await AdminCore.showConfirmation({
+        title: 'Disable 2FA',
+        message: `Are you sure you want to disable 2FA for ${user.name}?`,
+        confirmText: 'Disable',
+        cancelText: 'Cancel',
+        type: 'warning'
+    });
+    if (!confirmed) return;
+
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    try {
+        const response = await fetch('/Admin/Disable2FA', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token || '' },
+            body: JSON.stringify({ userId: user.id })
+        });
+        const result = await response.json();
+        if (result.success) {
+            user.twoFactorEnabled = false;
+            applyFiltersAndSort();
+            AdminCore.showNotification('2FA has been disabled successfully.', 'success');
+        } else {
+            AdminCore.showNotification(result.message || 'Failed to disable 2FA.', 'error');
+        }
+    } catch (err) {
+        AdminCore.showNotification('Error disabling 2FA.', 'error');
+    }
+}
+
+async function enable2FA(user, method) {
+    const confirmed = await AdminCore.showConfirmation({
+        title: 'Enable 2FA',
+        message: `Enable ${method} two-factor authentication for ${user.name}?`,
+        confirmText: 'Enable',
+        cancelText: 'Cancel',
+        type: 'info'
+    });
+    if (!confirmed) return;
+
+    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+    try {
+        const response = await fetch('/Admin/Enable2FA', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token || '' },
+            body: JSON.stringify({ userId: user.id, twoFactorMethod: method })
+        });
+        const result = await response.json();
+        if (result.success) {
+            user.twoFactorEnabled = true;
+            user.twoFactorMethod = method;
+            applyFiltersAndSort();
+            AdminCore.showNotification(`2FA (${method}) has been enabled successfully.`, 'success');
+        } else {
+            AdminCore.showNotification(result.message || 'Failed to enable 2FA.', 'error');
+        }
+    } catch (err) {
+        AdminCore.showNotification('Error enabling 2FA.', 'error');
     }
 }
 

@@ -69,10 +69,10 @@ namespace GCCWebApp.E2E.Tests.Tests.UI
         {
             // Navigate to home
             await _page.GotoAsync(BaseUrl);
-            
-            // Look for navigation links
-            var navLinks = await _page.QuerySelectorAllAsync("nav a, .navbar a");
-            navLinks.Should().NotBeEmpty();
+
+            // Verify navigation structure exists (nav links are only populated for authenticated users)
+            var mainNav = await _page.QuerySelectorAsync(".main-nav, .nav-links");
+            mainNav.Should().NotBeNull("Navigation structure should exist in layout");
         }
 
         [Fact]

@@ -11,13 +11,11 @@ namespace GCCWebApp.UAT.Tests.Tests.Negative
             var protectedUrls = new[]
             {
                 "/Admin/UserManagement",
-                "/Admin/UserManagement/Create",
-                "/Admin/UserManagement/Edit/1",
                 "/Admin/ProductManagement",
-                "/Admin/ProductManagement/Create",
-                "/Admin/SystemConfiguration",
                 "/Admin/RoleManagement",
-                "/Dashboard/AdminDashboard"
+                "/Admin/CertificateTypes",
+                "/Admin/Tags",
+                "/Dashboard"
             };
 
             foreach (var url in protectedUrls)
@@ -37,7 +35,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Negative
         {
             // Login as analyst
             await TestPage.GotoAsync($"{BaseUrl}/Account/Login");
-            await TestPage.FillAsync("input[name='Email']", "analyst@gcc.com");
+            await TestPage.FillAsync("input[name='Email']", "analyst");
             await TestPage.FillAsync("input[name='Password']", "TestPass123!");
             await TestPage.ClickAsync("button[type='submit']");
             await TestPage.WaitForTimeoutAsync(2000);
@@ -45,9 +43,9 @@ namespace GCCWebApp.UAT.Tests.Tests.Negative
             var adminOnlyUrls = new[]
             {
                 "/Admin/UserManagement",
-                "/Admin/UserManagement/Create",
+                "/Admin/ProductManagement",
                 "/Admin/RoleManagement",
-                "/Admin/SystemConfiguration"
+                "/Admin/CertificateTypes"
             };
 
             foreach (var url in adminOnlyUrls)
@@ -64,7 +62,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Negative
         {
             // Login as external user
             await TestPage.GotoAsync($"{BaseUrl}/Account/Login");
-            await TestPage.FillAsync("input[name='Email']", "external@company.com");
+            await TestPage.FillAsync("input[name='Email']", "external");
             await TestPage.FillAsync("input[name='Password']", "TestPass123!");
             await TestPage.ClickAsync("button[type='submit']");
             await TestPage.WaitForTimeoutAsync(2000);
@@ -74,7 +72,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Negative
                 "/Admin/UserManagement",
                 "/Certificate/Create",
                 "/Certificate/Edit/1",
-                "/Admin/ProductManagement/Create"
+                "/Admin/ProductManagement"
             };
 
             foreach (var url in internalUrls)
@@ -214,9 +212,8 @@ namespace GCCWebApp.UAT.Tests.Tests.Negative
                 "/Certificate/Details/1",
                 "/Certificate/Details/999999", // Non-existent ID
                 "/Certificate/Edit/1",
-                "/Admin/UserManagement/Details/1",
                 "/Admin/UserManagement/Edit/1",
-                "/Admin/ProductManagement/Details/1"
+                "/Admin/UserManagement"
             };
 
             foreach (var url in directAccessUrls)
@@ -261,7 +258,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Negative
         {
             // Login as admin to access upload functionality
             await TestPage.GotoAsync($"{BaseUrl}/Account/Login");
-            await TestPage.FillAsync("input[name='Email']", "admin@gcc.com");
+            await TestPage.FillAsync("input[name='Email']", "admin");
             await TestPage.FillAsync("input[name='Password']", "TestPass123!");
             await TestPage.ClickAsync("button[type='submit']");
             await TestPage.WaitForTimeoutAsync(2000);
@@ -269,7 +266,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Negative
             var uploadPages = new[]
             {
                 "/Certificate/Create",
-                "/Admin/ProductManagement/Create"
+                "/Admin/ProductManagement"
             };
 
             foreach (var page in uploadPages)

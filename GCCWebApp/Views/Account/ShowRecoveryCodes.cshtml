@@ -1,0 +1,100 @@
+@{
+    ViewData["Title"] = "Save Your Recovery Codes";
+    var codes = ViewBag.RecoveryCodes as List<string> ?? new List<string>();
+}
+
+<div class="container-fluid h-100">
+    <div class="row justify-content-center align-items-center" style="min-height: 80vh; padding-top: 2rem;">
+        <div class="col-md-8 col-lg-6">
+            <div class="card shadow-lg border-0" style="border-radius: 15px; overflow: hidden;">
+                <div class="card-header text-white text-center py-4" style="background: #002B76;">
+                    <i class="fas fa-key fa-2x mb-2"></i>
+                    <h3 class="mb-0">Save Your Recovery Codes</h3>
+                    <p class="mb-0 small">Microsoft Authenticator has been enabled</p>
+                </div>
+
+                <div class="card-body p-4">
+                    <div class="alert alert-warning" role="alert" style="border-left: 4px solid #ffc107;">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        <strong>Important:</strong> Save these codes in a safe place. Each code can only be used <strong>once</strong>.
+                        You will <strong>not</strong> be able to see them again after leaving this page.
+                    </div>
+
+                    <p style="font-size: 16px; color: #555;">
+                        If you lose access to your authenticator app, you can use one of these codes to sign in to your account.
+                    </p>
+
+                    <div id="recoveryCodesContainer" style="background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 10px; padding: 24px; margin: 20px 0;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-family: 'Courier New', monospace; font-size: 18px; font-weight: 600;">
+                            @foreach (var code in codes)
+                            {
+                                <div style="padding: 8px 12px; background: #fff; border: 1px solid #e9ecef; border-radius: 6px; text-align: center; letter-spacing: 2px;">
+                                    @code.Substring(0, 4)-@code.Substring(4, 4)
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; justify-content: center; margin: 20px 0; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline-primary" onclick="copyAllCodes()" style="padding: 10px 20px; border-radius: 8px; font-weight: 600;">
+                            <i class="fas fa-copy me-2"></i>Copy All
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="downloadCodes()" style="padding: 10px 20px; border-radius: 8px; font-weight: 600;">
+                            <i class="fas fa-download me-2"></i>Download as Text
+                        </button>
+                    </div>
+
+                    <div id="copySuccess" style="display: none; text-align: center; color: #28a745; font-weight: 600; margin: 8px 0;">
+                        <i class="fas fa-check-circle"></i> Copied to clipboard
+                    </div>
+                </div>
+
+                <div class="card-footer text-center py-3" style="background: #f8f9fa;">
+                    <a href="@Url.Action("TwoFactorPreferences")" class="btn btn-success btn-lg" style="padding: 12px 32px; border-radius: 8px; font-weight: 600;">
+                        <i class="fas fa-check me-2"></i>I Have Saved My Codes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var recoveryCodes = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(codes));
+
+    function formatCode(code) {
+        return code.substring(0, 4) + '-' + code.substring(4, 4);
+    }
+
+    function copyAllCodes() {
+        var text = 'GreenCircle Certified Database - Recovery Codes\n';
+        text += '================================================\n\n';
+        recoveryCodes.forEach(function(code, i) {
+            text += (i + 1) + '. ' + formatCode(code) + '\n';
+        });
+        text += '\nEach code can only be used once.\nGenerated: ' + new Date().toLocaleDateString();
+
+        navigator.clipboard.writeText(text).then(function() {
+            var el = document.getElementById('copySuccess');
+            el.style.display = 'block';
+            setTimeout(function() { el.style.display = 'none'; }, 3000);
+        });
+    }
+
+    function downloadCodes() {
+        var text = 'GreenCircle Certified Database - Recovery Codes\r\n';
+        text += '================================================\r\n\r\n';
+        recoveryCodes.forEach(function(code, i) {
+            text += (i + 1) + '. ' + formatCode(code) + '\r\n';
+        });
+        text += '\r\nEach code can only be used once.\r\nGenerated: ' + new Date().toLocaleDateString();
+        text += '\r\n\r\nKeep these codes in a safe place.';
+
+        var blob = new Blob([text], { type: 'text/plain' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'gcc-recovery-codes.txt';
+        a.click();
+        URL.revokeObjectURL(a.href);
+    }
+</script>

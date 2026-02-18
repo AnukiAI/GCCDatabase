@@ -358,9 +358,11 @@ public class UIDesignReviewScreenshotTests : ScreenshotTestBase
     [Category("Certificate")]
     public async Task Capture_26_ExportCertificates()
     {
-        await AdminUserPage.GotoAsync($"{BaseUrl}/Certificate/ExportCertificates");
+        // ExportCertificates is a file download endpoint (CSV), not a page view.
+        // Navigate to certificate list instead and capture the export button context.
+        await AdminUserPage.GotoAsync($"{BaseUrl}/Certificate/Certificates");
         await AdminUserPage.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        await CaptureScreenshot(AdminUserPage, "26-Export-Certificates-Page.png", "Export Certificates Page");
+        await CaptureScreenshot(AdminUserPage, "26-Export-Certificates-Page.png", "Export Certificates Page (from Certificate List)");
     }
 
     #endregion

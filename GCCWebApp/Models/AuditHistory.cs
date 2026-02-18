@@ -149,6 +149,15 @@ namespace GCCWebApp.Models
         public const string ImportUpdate = "IMPORT_UPDATE";
         public const string ImportSkipped = "IMPORT_SKIPPED";
         public const string ImportError = "IMPORT_ERROR";
+        // Two-Factor Authentication actions
+        public const string TotpEnabled = "TOTP_ENABLED";
+        public const string TotpDisabled = "TOTP_DISABLED";
+        public const string TwoFactorReset = "2FA_RESET";
+        public const string TwoFactorDisabledAdmin = "2FA_DISABLED_ADMIN";
+        public const string TwoFactorEnabledAdmin = "2FA_ENABLED_ADMIN";
+        public const string RecoveryCodeUsed = "RECOVERY_CODE_USED";
+        public const string RecoveryCodesGenerated = "RECOVERY_CODES_GENERATED";
+        public const string TwoFactorVerificationFailed = "2FA_VERIFICATION_FAILED";
     }
 
     /// <summary>

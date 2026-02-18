@@ -17,9 +17,9 @@ public static class TestDataHelper
         {
             ["Admin"] = (AdminEmail, TestPassword, new[] { "/Admin", "/Admin/UserManagement", "/Admin/RoleManagement", "/Admin/ProductManagement" }),
             ["Analyst"] = (AnalystEmail, TestPassword, new[] { "/Certificate", "/Dashboard", "/Product" }),
-            ["External"] = (ExternalEmail, TestPassword, new[] { "/Certificate", "/Dashboard" }),
-            ["Client"] = (ClientEmail, TestPassword, new[] { "/Certificate", "/Dashboard" }),
-            ["Partner"] = (PartnerEmail, TestPassword, new[] { "/Certificate", "/Dashboard" }),
+            ["External"] = (ExternalEmail, TestPassword, new[] { "/Certificate", "/Certificate/CertificateTileView" }),
+            ["Client"] = (ClientEmail, TestPassword, new[] { "/Certificate", "/Certificate/CertificateTileView" }),
+            ["Partner"] = (PartnerEmail, TestPassword, new[] { "/Certificate", "/Certificate/CertificateTileView" }),
             ["Public"] = ("", "", new[] { "/", "/Certificate/CertificateTileView" })
         };
     }

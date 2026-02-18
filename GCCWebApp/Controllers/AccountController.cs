@@ -11,6 +11,7 @@ using QRCoder;
 using BCrypt.Net;
 using GCCWebApp.Configuration;
 using GCCWebApp.Services;
+using GCCWebApp.Services.Audit;
 using GCCWebApp.Models;
 using GCCWebApp.Data;
 
@@ -25,6 +26,7 @@ namespace GCCWebApp.Controllers
         private readonly IEnhancedTwoFactorService _twoFactorService;
         private readonly IEmailService _emailService;
         private readonly ApplicationDbContext _context;
+        private readonly IAuditService _auditService;
 
         public AccountController(
             ILogger<AccountController> logger,
@@ -32,7 +34,8 @@ namespace GCCWebApp.Controllers
             IConfiguration configuration,
             IEnhancedTwoFactorService twoFactorService,
             IEmailService emailService,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IAuditService auditService)
         {
             _logger = logger;
             _azureAdB2COptions = azureAdB2COptions?.Value;
@@ -40,6 +43,7 @@ namespace GCCWebApp.Controllers
             _twoFactorService = twoFactorService;
             _emailService = emailService;
             _context = context;
+            _auditService = auditService;
 
             // Check if Azure AD B2C is properly configured
             _isAzureAdB2CConfigured = _azureAdB2COptions != null &&
@@ -535,48 +539,82 @@ namespace GCCWebApp.Controllers
             var role = TempData["2FARole"]?.ToString();
             var returnUrl = TempData["ReturnUrl"]?.ToString();
             var rememberMe = TempData["RememberMe"] as bool? ?? false;
-            
+
             if (string.IsNullOrEmpty(email) || string.IsNullOrEmpty(role))
             {
                 _logger.LogWarning("2FA verification attempted without proper session data");
                 return RedirectToAction("Login");
             }
-            
-            if (string.IsNullOrWhiteSpace(authCode) || authCode.Length != 6)
+
+            if (string.IsNullOrWhiteSpace(authCode))
             {
-                ViewBag.Error = "Please enter a valid 6-digit code.";
-                TempData.Keep(); // Keep for retry
+                ViewBag.Error = "Please enter a verification code.";
+                TempData.Keep();
                 return View("2FAAuthenticate");
             }
-            
-            // Try TOTP first, then fallback to email/SMS codes
+
+            // Try TOTP first, then fallback to email/SMS codes, then recovery codes
             var isValidCode = false;
-            
-            // Check if user has TOTP enabled
-            var totpValid = await _twoFactorService.ValidateTotpCodeAsync(email, authCode);
-            if (totpValid)
+            var normalizedCode = authCode.Replace("-", "").Trim();
+
+            // 6-digit numeric codes: TOTP or email/SMS
+            if (normalizedCode.Length == 6 && normalizedCode.All(char.IsDigit))
             {
-                isValidCode = true;
-                _logger.LogInformation($"TOTP verification successful for {email}");
-            }
-            else
-            {
-                // Fallback to email/SMS code validation
-                var emailSmsValid = _twoFactorService.ValidateCode(email, authCode);
-                if (emailSmsValid)
+                // Check if user has TOTP enabled
+                var totpValid = await _twoFactorService.ValidateTotpCodeAsync(email, normalizedCode);
+                if (totpValid)
                 {
                     isValidCode = true;
-                    _logger.LogInformation($"Email/SMS 2FA verification successful for {email}");
+                    _logger.LogInformation("TOTP verification successful for {Email}", email);
+                }
+                else
+                {
+                    // Fallback to email/SMS code validation
+                    var emailSmsValid = _twoFactorService.ValidateCode(email, normalizedCode);
+                    if (emailSmsValid)
+                    {
+                        isValidCode = true;
+                        _logger.LogInformation("Email/SMS 2FA verification successful for {Email}", email);
+                    }
                 }
             }
-            
+
+            // 8-char alphanumeric: recovery code
+            if (!isValidCode && normalizedCode.Length == 8)
+            {
+                var recoveryValid = await _twoFactorService.ValidateRecoveryCodeAsync(email, normalizedCode);
+                if (recoveryValid)
+                {
+                    isValidCode = true;
+                    _logger.LogInformation("Recovery code used for {Email}", email);
+                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+                    if (user != null)
+                    {
+                        await _auditService.LogAuditEventAsync(
+                            AuditEntityType.User, user.Id.ToString(), user.Username,
+                            AuditAction.RecoveryCodeUsed, user.Id, user.Username,
+                            "Recovery code used for 2FA verification", changeSource: AuditChangeSource.WebUI);
+                    }
+                }
+            }
+
             if (isValidCode)
             {
                 await SignInUser(email, role, rememberMe || trustDevice);
                 return RedirectToLocal(returnUrl);
             }
-            
-            _logger.LogWarning($"2FA verification failed for {email}");
+
+            // Log failed verification
+            var failedUser = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+            if (failedUser != null)
+            {
+                await _auditService.LogAuditEventAsync(
+                    AuditEntityType.User, failedUser.Id.ToString(), failedUser.Username,
+                    AuditAction.TwoFactorVerificationFailed, failedUser.Id, failedUser.Username,
+                    "2FA verification failed", changeSource: AuditChangeSource.WebUI);
+            }
+
+            _logger.LogWarning("2FA verification failed for {Email}", email);
             ViewBag.Error = "Invalid or expired code. Please try again.";
             TempData.Keep(); // Keep for retry
             return View("2FAAuthenticate");
@@ -1050,8 +1088,25 @@ namespace GCCWebApp.Controllers
             var success = await _twoFactorService.EnableTotpAsync(userEmail, totpCode);
             if (success)
             {
-                TempData["SuccessMessage"] = "Microsoft Authenticator has been successfully enabled for your account.";
-                return RedirectToAction("TwoFactorPreferences");
+                // Generate recovery codes
+                var recoveryCodes = await _twoFactorService.GenerateRecoveryCodesAsync(userEmail);
+                TempData["RecoveryCodes"] = System.Text.Json.JsonSerializer.Serialize(recoveryCodes);
+
+                // Audit logging
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+                if (user != null)
+                {
+                    await _auditService.LogAuditEventAsync(
+                        AuditEntityType.User, user.Id.ToString(), user.Username,
+                        AuditAction.TotpEnabled, user.Id, user.Username,
+                        "User enabled TOTP authenticator", changeSource: AuditChangeSource.WebUI);
+                    await _auditService.LogAuditEventAsync(
+                        AuditEntityType.User, user.Id.ToString(), user.Username,
+                        AuditAction.RecoveryCodesGenerated, user.Id, user.Username,
+                        "Recovery codes generated during TOTP setup", changeSource: AuditChangeSource.WebUI);
+                }
+
+                return RedirectToAction("ShowRecoveryCodes");
             }
             else
             {
@@ -1061,7 +1116,7 @@ namespace GCCWebApp.Controllers
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Failed to enable TOTP for user {userEmail}");
+            _logger.LogError(ex, "Failed to enable TOTP for user {UserEmail}", userEmail);
             TempData["ErrorMessage"] = "Failed to enable authenticator. Please try again.";
             return RedirectToAction("SetupTotp");
         }
@@ -1087,20 +1142,72 @@ namespace GCCWebApp.Controllers
             if (success)
             {
                 TempData["SuccessMessage"] = "Microsoft Authenticator has been disabled for your account.";
+                var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+                if (user != null)
+                {
+                    await _auditService.LogAuditEventAsync(
+                        AuditEntityType.User, user.Id.ToString(), user.Username,
+                        AuditAction.TotpDisabled, user.Id, user.Username,
+                        "User disabled TOTP authenticator", changeSource: AuditChangeSource.WebUI);
+                }
             }
             else
             {
                 TempData["ErrorMessage"] = "Failed to disable authenticator.";
             }
-            
+
             return RedirectToAction("TwoFactorPreferences");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, $"Failed to disable TOTP for user {userEmail}");
+            _logger.LogError(ex, "Failed to disable TOTP for user {UserEmail}", userEmail);
             TempData["ErrorMessage"] = "Failed to disable authenticator. Please try again.";
             return RedirectToAction("TwoFactorPreferences");
         }
+    }
+
+    /// <summary>
+    /// Show recovery codes after TOTP setup (one-time display)
+    /// </summary>
+    [Authorize]
+    [HttpGet]
+    public IActionResult ShowRecoveryCodes()
+    {
+        var codesJson = TempData["RecoveryCodes"]?.ToString();
+        if (string.IsNullOrEmpty(codesJson))
+        {
+            return RedirectToAction("TwoFactorPreferences");
+        }
+        var codes = System.Text.Json.JsonSerializer.Deserialize<List<string>>(codesJson);
+        ViewBag.RecoveryCodes = codes;
+        return View();
+    }
+
+    /// <summary>
+    /// Regenerate recovery codes for authenticated user
+    /// </summary>
+    [Authorize]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RegenerateRecoveryCodes()
+    {
+        var userEmail = HttpContext.Session.GetString("UserEmail") ?? User.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrEmpty(userEmail))
+            return RedirectToAction("Login");
+
+        var codes = await _twoFactorService.GenerateRecoveryCodesAsync(userEmail);
+        TempData["RecoveryCodes"] = System.Text.Json.JsonSerializer.Serialize(codes);
+
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+        if (user != null)
+        {
+            await _auditService.LogAuditEventAsync(
+                AuditEntityType.User, user.Id.ToString(), user.Username,
+                AuditAction.RecoveryCodesGenerated, user.Id, user.Username,
+                "Recovery codes regenerated by user", changeSource: AuditChangeSource.WebUI);
+        }
+
+        return RedirectToAction("ShowRecoveryCodes");
     }
 
     /// <summary>

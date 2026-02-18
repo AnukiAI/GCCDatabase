@@ -86,7 +86,7 @@ namespace GCCWebApp.UAT.Tests.Tests.EdgeCases
         {
             // Login as admin to access forms with numeric fields
             await TestPage.GotoAsync($"{BaseUrl}/Account/Login");
-            await TestPage.FillAsync("input[name='Email']", "admin@gcc.com");
+            await TestPage.FillAsync("input[name='Email']", "admin");
             await TestPage.FillAsync("input[name='Password']", "TestPass123!");
             await TestPage.ClickAsync("button[type='submit']");
             await TestPage.WaitForTimeoutAsync(2000);
@@ -94,7 +94,7 @@ namespace GCCWebApp.UAT.Tests.Tests.EdgeCases
             var formsToTest = new[]
             {
                 "/Certificate/Create",
-                "/Admin/ProductManagement/Create"
+                "/Admin/ProductManagement"
             };
 
             foreach (var form in formsToTest)
@@ -146,7 +146,7 @@ namespace GCCWebApp.UAT.Tests.Tests.EdgeCases
         public async Task DateFields_HandleEdgeCases()
         {
             await TestPage.GotoAsync($"{BaseUrl}/Account/Login");
-            await TestPage.FillAsync("input[name='Email']", "admin@gcc.com");
+            await TestPage.FillAsync("input[name='Email']", "admin");
             await TestPage.FillAsync("input[name='Password']", "TestPass123!");
             await TestPage.ClickAsync("button[type='submit']");
             await TestPage.WaitForTimeoutAsync(2000);
@@ -238,8 +238,8 @@ namespace GCCWebApp.UAT.Tests.Tests.EdgeCases
                 // Login same user in two different sessions
                 var loginTasks = new[]
                 {
-                    LoginUser(page1, "admin@gcc.com", "TestPass123!"),
-                    LoginUser(page2, "analyst@gcc.com", "TestPass123!")
+                    LoginUser(page1, "admin", "TestPass123!"),
+                    LoginUser(page2, "analyst", "TestPass123!")
                 };
 
                 await Task.WhenAll(loginTasks);
@@ -251,10 +251,11 @@ namespace GCCWebApp.UAT.Tests.Tests.EdgeCases
                 var page1Content = await page1.ContentAsync();
                 var page2Content = await page2.ContentAsync();
 
-                Assert.That(page1Content, Does.Not.Contain("error").IgnoreCase, 
-                    "First session should work properly");
-                Assert.That(page2Content, Does.Not.Contain("error").IgnoreCase, 
-                    "Second session should work properly");
+                // Check for actual server errors, not just the word "error" in CSS classes or form helpers
+                Assert.That(page1Content, Does.Not.Contain("Error 500").And.Not.Contain("Exception"),
+                    "First session should work without server errors");
+                Assert.That(page2Content, Does.Not.Contain("Error 500").And.Not.Contain("Exception"),
+                    "Second session should work without server errors");
             }
             finally
             {
@@ -393,7 +394,7 @@ namespace GCCWebApp.UAT.Tests.Tests.EdgeCases
         {
             // Login first
             await TestPage.GotoAsync($"{BaseUrl}/Account/Login");
-            await TestPage.FillAsync("input[name='Email']", "admin@gcc.com");
+            await TestPage.FillAsync("input[name='Email']", "admin");
             await TestPage.FillAsync("input[name='Password']", "TestPass123!");
             await TestPage.ClickAsync("button[type='submit']");
             await TestPage.WaitForTimeoutAsync(2000);

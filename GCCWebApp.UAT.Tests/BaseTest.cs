@@ -145,20 +145,52 @@ public abstract class BaseTest : PageTest
     {
         try
         {
-            // Check if logout button/link exists
-            var logoutSelector = Helpers.TestDataHelper.Selectors.LogoutButton;
-            if (await Page.Locator(logoutSelector).CountAsync() > 0)
+            // The logout button is inside a dropdown under .user-profile
+            // Must click .user-profile first to open the dropdown
+            var userProfile = Page.Locator(".user-profile");
+            if (await userProfile.CountAsync() > 0 && await userProfile.IsVisibleAsync())
             {
-                await Page.ClickAsync(logoutSelector);
-                await Page.WaitForURLAsync(url => url.Contains("/Account/Login") || url.Contains("/"));
-                await TakeScreenshot("logged_out");
-                TestContext.WriteLine("Successfully logged out");
+                await userProfile.ClickAsync();
+
+                // Wait for dropdown to become visible
+                try
+                {
+                    await Page.WaitForSelectorAsync(".user-dropdown", new() { State = WaitForSelectorState.Visible, Timeout = 3000 });
+                }
+                catch (TimeoutException)
+                {
+                    // Dropdown may already be open or different structure
+                }
+
+                var logoutButton = Page.Locator(".logout-form button");
+                if (await logoutButton.CountAsync() > 0 && await logoutButton.IsVisibleAsync())
+                {
+                    await logoutButton.ClickAsync();
+                    await Page.WaitForURLAsync(url => url.Contains("/Account/Login") || url.Contains("/Certificate"), new() { Timeout = 10000 });
+                    await TakeScreenshot("logged_out");
+                    TestContext.WriteLine("Successfully logged out via dropdown");
+                    return;
+                }
             }
+
+            // Fallback: navigate directly to logout URL (GET version)
+            await Page.GotoAsync(BaseUrl + "/Account/Logout", new() { Timeout = 10000 });
+            await Page.WaitForLoadStateAsync(LoadState.NetworkIdle, new() { Timeout = 10000 });
+            await TakeScreenshot("logged_out_via_navigation");
+            TestContext.WriteLine("Successfully logged out via direct navigation");
         }
         catch (Exception ex)
         {
             TestContext.WriteLine($"Logout attempt failed: {ex.Message}");
-            // Continue anyway - might not have been logged in
+            // Last resort: navigate to logout URL to clear session
+            try
+            {
+                await Page.GotoAsync(BaseUrl + "/Account/Logout", new() { Timeout = 5000 });
+            }
+            catch
+            {
+                // Continue anyway - might not have been logged in
+            }
         }
     }
     

@@ -2109,7 +2109,7 @@ namespace GCCWebApp.Services
         }
 
         // Two-Factor Authentication Management
-        public async Task<bool> Reset2FAAsync(int userId)
+        public async Task<bool> Reset2FAAsync(int userId, int adminUserId = 0, string adminUsername = "System")
         {
             try
             {
@@ -2122,16 +2122,23 @@ namespace GCCWebApp.Services
                 user.RecoveryCodes = null;
 
                 await _context.SaveChangesAsync();
+
+                await _auditService.LogAuditEventAsync(
+                    AuditEntityType.User, userId.ToString(), user.Username,
+                    AuditAction.TwoFactorReset, adminUserId, adminUsername,
+                    "Admin reset 2FA: cleared secret, recovery codes, and disabled 2FA",
+                    changeSource: AuditChangeSource.WebUI);
+
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
-                // Log error here in production
+                _logger.LogError(ex, "Error resetting 2FA for user {UserId}", userId);
                 return false;
             }
         }
 
-        public async Task<bool> Disable2FAAsync(int userId)
+        public async Task<bool> Disable2FAAsync(int userId, int adminUserId = 0, string adminUsername = "System")
         {
             try
             {
@@ -2142,16 +2149,23 @@ namespace GCCWebApp.Services
                 user.TwoFactorEnabled = false;
 
                 await _context.SaveChangesAsync();
+
+                await _auditService.LogAuditEventAsync(
+                    AuditEntityType.User, userId.ToString(), user.Username,
+                    AuditAction.TwoFactorDisabledAdmin, adminUserId, adminUsername,
+                    "Admin disabled 2FA for user",
+                    changeSource: AuditChangeSource.WebUI);
+
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
-                // Log error here in production
+                _logger.LogError(ex, "Error disabling 2FA for user {UserId}", userId);
                 return false;
             }
         }
 
-        public async Task<bool> Enable2FAAsync(int userId, string twoFactorMethod)
+        public async Task<bool> Enable2FAAsync(int userId, string twoFactorMethod, int adminUserId = 0, string adminUsername = "System")
         {
             try
             {
@@ -2165,11 +2179,18 @@ namespace GCCWebApp.Services
                 user.TwoFactorSecret = null;
 
                 await _context.SaveChangesAsync();
+
+                await _auditService.LogAuditEventAsync(
+                    AuditEntityType.User, userId.ToString(), user.Username,
+                    AuditAction.TwoFactorEnabledAdmin, adminUserId, adminUsername,
+                    $"Admin enabled 2FA with method: {twoFactorMethod}",
+                    changeSource: AuditChangeSource.WebUI);
+
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
-                // Log error here in production
+                _logger.LogError(ex, "Error enabling 2FA for user {UserId}", userId);
                 return false;
             }
         }

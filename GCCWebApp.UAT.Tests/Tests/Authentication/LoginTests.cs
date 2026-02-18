@@ -10,12 +10,10 @@ public class LoginTests : BaseTest
     public async Task User_CanLoginWithValidCredentials()
     {
         // Arrange
-        var homePage = new HomePage(Page);
         var loginPage = new LoginPage(Page);
 
-        // Act - Navigate to login page
-        await NavigateToPage(TestDataHelper.Urls.Home);
-        await homePage.NavigateToLogin();
+        // Act - Navigate directly to login page (home page may not have visible login link)
+        await NavigateToPage(TestDataHelper.Urls.Login);
         await TakeScreenshot("login_page_loaded");
 
         // Verify login page loaded
@@ -30,7 +28,7 @@ public class LoginTests : BaseTest
         await Page.WaitForTimeoutAsync(TestDataHelper.WaitTimes.Medium);
         var stillOnLoginPage = await loginPage.IsOnLoginPage();
         Assert.That(stillOnLoginPage, Is.False, "Should be redirected away from login page after successful login");
-        
+
         await TakeScreenshot("login_successful");
     }
 

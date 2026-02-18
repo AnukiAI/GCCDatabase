@@ -5,6 +5,7 @@
 
 @* Anti-forgery token for AJAX requests *@
 @Html.AntiForgeryToken()
+<input type="hidden" id="currentUserId" value="@ViewBag.CurrentUserId" />
 
 @section Styles {
     <link href="~/css/admin/admin.css" rel="stylesheet" />

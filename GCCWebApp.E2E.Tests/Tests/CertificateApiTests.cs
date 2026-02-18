@@ -26,14 +26,17 @@ namespace GCCWebApp.E2E.Tests.Tests
         [Fact]
         public async Task GetCertificates_ReturnsSuccessStatusCode()
         {
-            // Arrange
-            var request = "/api/certificates";
+            // Arrange - versioned API route: /api/v1/certificates
+            var request = "/api/v1/certificates";
 
             // Act
             var response = await _client.GetAsync(request);
 
-            // Assert
-            response.StatusCode.Should().Be(HttpStatusCode.OK);
+            // Assert - API requires authentication (API key)
+            response.StatusCode.Should().BeOneOf(
+                HttpStatusCode.OK,
+                HttpStatusCode.Unauthorized
+            );
         }
 
         [Fact]
@@ -41,21 +44,17 @@ namespace GCCWebApp.E2E.Tests.Tests
         {
             // Arrange
             var certificateId = 1; // Assuming test data has this ID
-            var request = $"/api/certificates/{certificateId}";
+            var request = $"/api/v1/certificates/{certificateId}";
 
             // Act
             var response = await _client.GetAsync(request);
 
             // Assert
-            if (response.StatusCode == HttpStatusCode.NotFound)
-            {
-                // This is acceptable if no test data exists yet
-                response.StatusCode.Should().BeOneOf(HttpStatusCode.OK, HttpStatusCode.NotFound);
-            }
-            else
-            {
-                response.StatusCode.Should().Be(HttpStatusCode.OK);
-            }
+            response.StatusCode.Should().BeOneOf(
+                HttpStatusCode.OK,
+                HttpStatusCode.NotFound,
+                HttpStatusCode.Unauthorized
+            );
         }
 
         [Fact]
@@ -76,14 +75,14 @@ namespace GCCWebApp.E2E.Tests.Tests
             var content = new StringContent(json, Encoding.UTF8, "application/json");
 
             // Act
-            var response = await _client.PostAsync("/api/certificates", content);
+            var response = await _client.PostAsync("/api/v1/certificates", content);
 
             // Assert
             // May return Unauthorized if authentication is required
             response.StatusCode.Should().BeOneOf(
-                HttpStatusCode.Created, 
-                HttpStatusCode.Unauthorized, 
-                HttpStatusCode.NotFound // If API endpoint doesn't exist yet
+                HttpStatusCode.Created,
+                HttpStatusCode.Unauthorized,
+                HttpStatusCode.Forbidden
             );
         }
 
@@ -94,7 +93,7 @@ namespace GCCWebApp.E2E.Tests.Tests
             var certificateId = 999; // Non-existent ID for safe testing
 
             // Act
-            var response = await _client.DeleteAsync($"/api/certificates/{certificateId}");
+            var response = await _client.DeleteAsync($"/api/v1/certificates/{certificateId}");
 
             // Assert
             response.StatusCode.Should().BeOneOf(

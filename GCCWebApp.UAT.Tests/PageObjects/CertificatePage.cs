@@ -15,7 +15,7 @@ public class CertificatePage
     public ILocator CertificateTitle => _page.Locator("h1, .certificate-title");
     public ILocator CompanyName => _page.Locator(".company-name, .certificate-company");
     public ILocator ProductName => _page.Locator(".product-name, .certificate-product");
-    public ILocator CertificateDetails => _page.Locator(".certificate-details, .details-section");
+    public ILocator CertificateDetails => _page.Locator(".certificate-details, .details-section").First;
     public ILocator FilterDropdown => _page.Locator("#filter-dropdown, .filter-select");
     public ILocator SortDropdown => _page.Locator("#sort-dropdown, .sort-select");
     public ILocator CertificateGrid => _page.Locator(".certificate-grid, .certificates-container");

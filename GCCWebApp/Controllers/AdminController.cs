@@ -45,6 +45,7 @@ namespace GCCWebApp.Controllers
         // User Management
         public IActionResult UserManagement()
         {
+            ViewBag.CurrentUserId = GetCurrentUserId() ?? 0;
             return View();
         }
 
@@ -1398,7 +1399,9 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var success = await _adminService.Reset2FAAsync(request.UserId);
+                var adminUserId = GetCurrentUserId() ?? 0;
+                var adminUsername = User.Identity?.Name ?? "admin";
+                var success = await _adminService.Reset2FAAsync(request.UserId, adminUserId, adminUsername);
                 if (success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "2FA reset successfully" });
@@ -1420,7 +1423,9 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var success = await _adminService.Disable2FAAsync(request.UserId);
+                var adminUserId = GetCurrentUserId() ?? 0;
+                var adminUsername = User.Identity?.Name ?? "admin";
+                var success = await _adminService.Disable2FAAsync(request.UserId, adminUserId, adminUsername);
                 if (success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "2FA disabled successfully" });
@@ -1442,7 +1447,9 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var success = await _adminService.Enable2FAAsync(request.UserId, request.TwoFactorMethod ?? "TOTP");
+                var adminUserId = GetCurrentUserId() ?? 0;
+                var adminUsername = User.Identity?.Name ?? "admin";
+                var success = await _adminService.Enable2FAAsync(request.UserId, request.TwoFactorMethod ?? "TOTP", adminUserId, adminUsername);
                 if (success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "2FA enabled successfully" });

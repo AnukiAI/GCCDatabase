@@ -172,7 +172,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Negative
             {
                 // Login as normal user
                 await TestPage.GotoAsync($"{BaseUrl}/Account/Login");
-                await TestPage.FillAsync("input[name='Email']", "analyst@gcc.com");
+                await TestPage.FillAsync("input[name='Email']", "analyst");
                 await TestPage.FillAsync("input[name='Password']", "TestPass123!");
                 await TestPage.ClickAsync("button[type='submit']");
                 await TestPage.WaitForTimeoutAsync(2000);
@@ -180,7 +180,9 @@ namespace GCCWebApp.UAT.Tests.Tests.Negative
                 // Get session cookies
                 var cookies = await TestPage.Context.CookiesAsync();
                 result.HasSessionCookie = cookies.Any(c => c.Name.Contains("session", StringComparison.OrdinalIgnoreCase) ||
-                                                          c.Name.Contains("auth", StringComparison.OrdinalIgnoreCase));
+                                                          c.Name.Contains("auth", StringComparison.OrdinalIgnoreCase) ||
+                                                          c.Name.Contains(".AspNetCore.", StringComparison.OrdinalIgnoreCase) ||
+                                                          c.Name.Contains("Identity", StringComparison.OrdinalIgnoreCase));
 
                 // Test session fixation - clear cookies and try to access protected content
                 await TestPage.Context.ClearCookiesAsync();

@@ -77,6 +77,21 @@
             </a>
             <span id="resend-status" class="sr-only">Resend available after countdown</span>
         </div>
+
+        <div style="margin-top: 20px; text-align: center; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 16px;">
+            <a href="#" id="toggleRecovery" style="color: #adb5bd; font-size: 14px; text-decoration: none;">
+                <i class="fas fa-key" aria-hidden="true"></i> Use a recovery code instead
+            </a>
+            <div id="recoverySection" style="display: none; margin-top: 16px;">
+                <input type="text" id="recoveryCodeInput" class="form-control"
+                       placeholder="XXXX-XXXX" maxlength="9"
+                       style="text-align: center; letter-spacing: 3px; font-size: 18px; font-weight: 600; font-family: 'Courier New', monospace; padding: 12px; border-radius: 8px; border: 2px solid #dee2e6; max-width: 220px; margin: 0 auto;"
+                       aria-label="Enter 8-character recovery code" />
+                <button type="button" class="btn-lime" style="margin-top: 12px; width: auto; padding: 10px 24px;" onclick="submitRecoveryCode()">
+                    <i class="fas fa-key" aria-hidden="true"></i> Verify Recovery Code
+                </button>
+            </div>
+        </div>
     </main>
 
     <script>
@@ -156,7 +171,33 @@
                 updateTimer();
                 // Add actual resend logic here
             });
+
+            // Recovery code toggle
+            const toggleLink = document.getElementById('toggleRecovery');
+            const recoverySection = document.getElementById('recoverySection');
+            if (toggleLink && recoverySection) {
+                toggleLink.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const isHidden = recoverySection.style.display === 'none';
+                    recoverySection.style.display = isHidden ? 'block' : 'none';
+                    toggleLink.textContent = isHidden ? 'Use a verification code instead' : 'Use a recovery code instead';
+                    if (isHidden) {
+                        document.getElementById('recoveryCodeInput').focus();
+                    } else {
+                        codeInputs[0].focus();
+                    }
+                });
+            }
         });
+        function submitRecoveryCode() {
+            var code = document.getElementById('recoveryCodeInput').value.replace('-', '').trim();
+            if (code.length !== 8) {
+                alert('Please enter a valid 8-character recovery code.');
+                return;
+            }
+            document.getElementById('AuthCode').value = code;
+            document.querySelector('form').submit();
+        }
     </script>
 </body>
 </html>

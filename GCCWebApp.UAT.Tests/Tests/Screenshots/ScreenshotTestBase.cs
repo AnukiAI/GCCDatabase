@@ -21,9 +21,9 @@ public abstract class ScreenshotTestBase : PageTest
     protected readonly Dictionary<string, string> UserCredentials = new()
     {
         { "Public", "" },
-        { "External", "external@company.com:TestPass123!" },
-        { "Analyst", "analyst@gcc.com:TestPass123!" },
-        { "Admin", "admin@gcc.com:TestPass123!" }
+        { "External", "external:TestPass123!" },
+        { "Analyst", "analyst:TestPass123!" },
+        { "Admin", "admin:TestPass123!" }
     };
 
     protected static readonly ViewportSize[] TestViewports = new[]

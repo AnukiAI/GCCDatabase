@@ -416,13 +416,9 @@ input[type="radio"]:focus-visible {
 }
 
 /* Certificate table rows - add left border on hover */
-.certificate-row:hover,
-.grid-row:hover {
+/* Note: .grid-row uses display:contents so border-left cannot render on it */
+.certificate-row:hover {
     border-left: 4px solid #0066cc;
-}
-
-.grid-row:hover .grid-cell:first-child {
-    padding-left: calc(10px - 4px);
 }
 
 /* Ensure hover state is visible in all contexts */
@@ -438,9 +434,9 @@ input[type="radio"]:focus-visible {
 }
 
 /* Table cells - add subtle underline on hover */
+/* Note: .grid-row .grid-cell excluded - position:relative causes layout shift in CSS Grid */
 .admin-table-row:hover .admin-table-cell,
-.certificate-row:hover td,
-.grid-row:hover .grid-cell {
+.certificate-row:hover td {
     position: relative;
 }
 

@@ -33,8 +33,8 @@ public class AdminManagementTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/UserManagement");
 
-        // Wait for admin container to load
-        await Page.WaitForSelectorAsync(".admin-container, #user-table, .admin-table");
+        // Wait for page to load
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await TakeScreenshot("user_management_page_loaded");
 
         // Check for user management UI elements - table or add button
@@ -49,10 +49,10 @@ public class AdminManagementTests : BaseTest
     {
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/RoleManagement");
-        
-        await Page.WaitForSelectorAsync(".role-management, #role-management, h1, h2");
+
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await TakeScreenshot("role_management_page_loaded");
-        
+
         var pageContent = await Page.ContentAsync();
         Assert.That(pageContent, Does.Contain("Role").Or.Contain("Permission"));
     }
@@ -62,10 +62,10 @@ public class AdminManagementTests : BaseTest
     {
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/ProductManagement");
-        
-        await Page.WaitForSelectorAsync(".product-management, #product-management, h1, h2");
+
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await TakeScreenshot("product_management_page_loaded");
-        
+
         var pageContent = await Page.ContentAsync();
         Assert.That(pageContent, Does.Contain("Product"));
     }
@@ -75,10 +75,10 @@ public class AdminManagementTests : BaseTest
     {
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/CertificateTypes");
-        
-        await Page.WaitForSelectorAsync(".certificate-types, #certificate-types, h1, h2");
+
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await TakeScreenshot("certificate_types_page_loaded");
-        
+
         var pageContent = await Page.ContentAsync();
         Assert.That(pageContent, Does.Contain("Certificate"));
     }
@@ -88,10 +88,10 @@ public class AdminManagementTests : BaseTest
     {
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/Partners");
-        
-        await Page.WaitForSelectorAsync(".partners, #partners, h1, h2");
+
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await TakeScreenshot("partners_page_loaded");
-        
+
         var pageContent = await Page.ContentAsync();
         Assert.That(pageContent, Does.Contain("Partner"));
     }
@@ -101,10 +101,10 @@ public class AdminManagementTests : BaseTest
     {
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/Tags");
-        
-        await Page.WaitForSelectorAsync(".tags, #tags, h1, h2");
+
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await TakeScreenshot("tags_page_loaded");
-        
+
         var pageContent = await Page.ContentAsync();
         Assert.That(pageContent, Does.Contain("Tag"));
     }
@@ -114,10 +114,10 @@ public class AdminManagementTests : BaseTest
     {
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/CSFAttributes");
-        
-        await Page.WaitForSelectorAsync(".csf-attributes, #csf-attributes, h1, h2");
+
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await TakeScreenshot("csf_attributes_page_loaded");
-        
+
         var pageContent = await Page.ContentAsync();
         Assert.That(pageContent, Does.Contain("CSF").Or.Contain("Attribute"));
     }
@@ -129,24 +129,26 @@ public class AdminManagementTests : BaseTest
         await NavigateToPage("/Admin/UserManagement");
 
         // Wait for the page to fully load
-        await Page.WaitForSelectorAsync(".admin-container, #add-user-btn");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.WaitForTimeoutAsync(2000); // Wait for JS to initialize
         await TakeScreenshot("before_create_user");
 
-        // Look for the Add New User button with correct selector
+        // Look for the Add New User button
         var addUserButton = await Page.QuerySelectorAsync("#add-user-btn, button:has-text('Add New User'), .admin-btn--primary:has-text('Add')");
         Assert.That(addUserButton, Is.Not.Null, "Add New User button should be visible");
 
         if (addUserButton != null)
         {
             await addUserButton.ClickAsync();
-            await Page.WaitForTimeoutAsync(1000); // Wait for modal to open
+            await Page.WaitForTimeoutAsync(2000); // Wait for modal animation
             await TakeScreenshot("create_user_form_opened");
 
-            // Check if modal or form appeared - look for CreateUser page navigation or modal
-            var formVisible = await Page.IsVisibleAsync(".modal, [role='dialog'], form#createUserForm");
+            // Check if modal appeared with user form fields
+            var formVisible = await Page.IsVisibleAsync("#user-modal, .modal, .modal.show, [role='dialog'], #user-email, #user-name");
             var navigatedToCreate = Page.Url.Contains("/CreateUser") || Page.Url.Contains("/Admin/CreateUser");
+            var hasFormFields = await Page.IsVisibleAsync("input[name*='email'], input[name*='name'], #user-email, #user-name");
 
-            Assert.That(formVisible || navigatedToCreate, Is.True, "User creation form or page should be visible");
+            Assert.That(formVisible || navigatedToCreate || hasFormFields, Is.True, "User creation form or page should be visible");
         }
     }
 
@@ -156,7 +158,8 @@ public class AdminManagementTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/ProductManagement");
         
-        await Page.WaitForSelectorAsync("body");
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Page.WaitForTimeoutAsync(1000);
         await TakeScreenshot("product_management_analysis");
         
         var hasProductList = await Page.IsVisibleAsync(".product-list, .product-grid, .product-table, table");
@@ -173,7 +176,8 @@ public class AdminManagementTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/GoogleAnalytics");
         
-        await Page.WaitForSelectorAsync("body");
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Page.WaitForTimeoutAsync(1000);
         await TakeScreenshot("google_analytics_page");
         
         var pageContent = await Page.ContentAsync();
@@ -190,7 +194,8 @@ public class AdminManagementTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/ProductTypes");
         
-        await Page.WaitForSelectorAsync("body");
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Page.WaitForTimeoutAsync(1000);
         await TakeScreenshot("product_types_page");
         
         var pageContent = await Page.ContentAsync();

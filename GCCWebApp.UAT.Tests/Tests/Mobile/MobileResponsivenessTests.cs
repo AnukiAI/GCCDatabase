@@ -196,7 +196,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Mobile
             
             if (firstCertificate != null)
             {
-                await firstCertificate.TapAsync();
+                await firstCertificate.ClickAsync();
                 
                 // Wait for navigation or modal
                 await Task.Delay(1000);
@@ -281,7 +281,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Mobile
             var submitButton = await _page.QuerySelectorAsync("button[type='submit'], input[type='submit']");
             if (submitButton != null)
             {
-                await submitButton.TapAsync();
+                await submitButton.ClickAsync();
                 await Task.Delay(500);
 
                 // Assert - Check for validation messages

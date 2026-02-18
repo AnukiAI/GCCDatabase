@@ -103,7 +103,7 @@ namespace GCCWebApp.Controllers.Api.v1
         /// <response code="429">Rate limit exceeded</response>
         /// <response code="500">Internal server error</response>
         [HttpGet]
-        [ApiCache(durationInSeconds: CacheProfiles.Medium, varyByQueryParams: true)]
+        [ApiCache(durationInSeconds: CacheProfiles.Medium, varyByQueryParams: true, varyByUser: true)]
         [SwaggerOperation(
             Summary = "Get certificates with pagination",
             Description = "Retrieve a paginated list of certificates with optional search and sorting. Use includeProductIds=true for partner integrations (Novi, Amazon).",

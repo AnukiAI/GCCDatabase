@@ -86,8 +86,8 @@ namespace GCCWebApp.Services
         Task<byte[]> ExportDataAsync(string entityType, string format);
         
         // Two-Factor Authentication Management
-        Task<bool> Reset2FAAsync(int userId);
-        Task<bool> Disable2FAAsync(int userId);
-        Task<bool> Enable2FAAsync(int userId, string twoFactorMethod);
+        Task<bool> Reset2FAAsync(int userId, int adminUserId = 0, string adminUsername = "System");
+        Task<bool> Disable2FAAsync(int userId, int adminUserId = 0, string adminUsername = "System");
+        Task<bool> Enable2FAAsync(int userId, string twoFactorMethod, int adminUserId = 0, string adminUsername = "System");
     }
 }

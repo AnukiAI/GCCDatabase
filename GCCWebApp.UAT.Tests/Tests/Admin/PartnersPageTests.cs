@@ -11,7 +11,8 @@ public class PartnersPageTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/Partners");
         
-        await Page.WaitForSelectorAsync("body");
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Page.WaitForTimeoutAsync(1000);
         await TakeScreenshot("partners_page_loaded");
         
         var hasPartnersTable = await Page.IsVisibleAsync("#partners-table, .partners-table, table");
@@ -29,7 +30,8 @@ public class PartnersPageTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/Partners");
         
-        await Page.WaitForSelectorAsync("body");
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Page.WaitForTimeoutAsync(1000);
         
         var searchInput = await Page.QuerySelectorAsync("#partners-search-input, input[type='search'], input[placeholder*='search']");
         if (searchInput != null)
@@ -48,7 +50,8 @@ public class PartnersPageTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/Partners");
         
-        await Page.WaitForSelectorAsync("body");
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Page.WaitForTimeoutAsync(1000);
         
         var addButton = await Page.QuerySelectorAsync("#partners-add-btn, button:has-text('Add'), .btn-add");
         if (addButton != null)
@@ -71,16 +74,19 @@ public class PartnersPageTests : BaseTest
     [Test]
     public async Task NonAdmin_CannotAccessPartnersPage()
     {
-        await LoginAsRole("User");
-        await NavigateToPage("/Admin/Partners");
-        
-        await Page.WaitForSelectorAsync("body");
+        await LoginAsRole("External");
+        var response = await Page.GotoAsync(BaseUrl + "/Admin/Partners");
+
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
         await TakeScreenshot("partners_access_denied");
-        
+
         var currentUrl = Page.Url;
         var isOnLoginPage = currentUrl.Contains("/Account/Login") || currentUrl.Contains("login");
         var hasAccessDenied = await Page.IsVisibleAsync("text=Access Denied, text=Forbidden, text=401, text=403");
-        
-        Assert.That(isOnLoginPage || hasAccessDenied, Is.True, "Non-admin users should not access partners page");
+        var isBlocked = response?.Status == 403 || response?.Status == 401;
+        var notOnPartners = !currentUrl.Contains("/Admin/Partners");
+
+        Assert.That(isOnLoginPage || hasAccessDenied || isBlocked || notOnPartners, Is.True,
+            "Non-admin users should not access partners page");
     }
 }

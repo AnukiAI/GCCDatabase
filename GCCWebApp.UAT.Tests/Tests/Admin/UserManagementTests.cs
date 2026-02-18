@@ -11,8 +11,8 @@ public class UserManagementTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/UserManagement");
 
-        // Wait for admin container and table to load
-        await Page.WaitForSelectorAsync(".admin-container, #user-table");
+        // Wait for page to load
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await TakeScreenshot("user_management_loaded");
 
         // Check for user table or admin container
@@ -30,7 +30,8 @@ public class UserManagementTests : BaseTest
         await NavigateToPage("/Admin/UserManagement");
 
         // Wait for page to load
-        await Page.WaitForSelectorAsync(".admin-container, #add-user-btn");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.WaitForTimeoutAsync(2000); // Wait for JS to initialize
 
         // Click Add New User button
         var createButton = await Page.QuerySelectorAsync("#add-user-btn, button:has-text('Add New User')");
@@ -39,14 +40,16 @@ public class UserManagementTests : BaseTest
         if (createButton != null)
         {
             await createButton.ClickAsync();
-            await Page.WaitForTimeoutAsync(1000);
+            await Page.WaitForTimeoutAsync(2000); // Wait for modal animation
             await TakeScreenshot("create_user_form_opened");
 
             // Check if we navigated to CreateUser page or opened modal
             var onCreatePage = Page.Url.Contains("/CreateUser") || Page.Url.Contains("/Admin/CreateUser");
-            var hasModal = await Page.IsVisibleAsync(".modal, [role='dialog']");
+            var hasModal = await Page.IsVisibleAsync("#user-modal, .modal, .modal.show, [role='dialog']");
+            var hasFormFields = await Page.IsVisibleAsync("#user-email, #user-name, input[name*='email']");
 
-            Assert.That(onCreatePage || hasModal, Is.True, "Should navigate to create user page or open modal");
+            Assert.That(onCreatePage || hasModal || hasFormFields, Is.True,
+                $"Should navigate to create user page or open modal (URL: {Page.Url})");
         }
     }
 
@@ -57,7 +60,8 @@ public class UserManagementTests : BaseTest
         await NavigateToPage("/Admin/UserManagement");
 
         // Wait for page to load
-        await Page.WaitForSelectorAsync(".admin-container, #add-user-btn");
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+        await Page.WaitForTimeoutAsync(2000); // Wait for JS to initialize
 
         // Click Add New User button
         var createButton = await Page.QuerySelectorAsync("#add-user-btn, button:has-text('Add New User')");
@@ -66,14 +70,17 @@ public class UserManagementTests : BaseTest
         if (createButton != null)
         {
             await createButton.ClickAsync();
-            await Page.WaitForTimeoutAsync(1000);
+            await Page.WaitForTimeoutAsync(2000); // Wait for modal animation
             await TakeScreenshot("create_user_form_opened");
 
-            // Check if we navigated to CreateUser page
+            // Check if we navigated to CreateUser page or opened user modal
             var onCreatePage = Page.Url.Contains("/CreateUser") || Page.Url.Contains("/Admin/CreateUser");
-            var hasModal = await Page.IsVisibleAsync(".modal, [role='dialog']");
+            var hasModal = await Page.IsVisibleAsync("#user-modal, .modal, .modal.show, [role='dialog']");
+            // Also check if form fields appeared (modal may not have standard class)
+            var hasFormFields = await Page.IsVisibleAsync("#user-email, #user-name, input[name*='email']");
 
-            Assert.That(onCreatePage || hasModal, Is.True, "User creation form or page should be accessible");
+            Assert.That(onCreatePage || hasModal || hasFormFields, Is.True,
+                $"User creation form or page should be accessible (URL: {Page.Url})");
         }
     }
 
@@ -123,8 +130,8 @@ public class UserManagementTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/UserManagement");
 
-        // Wait for admin container and table to load
-        await Page.WaitForSelectorAsync(".admin-container, #user-table");
+        // Wait for page to load
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await Page.WaitForTimeoutAsync(1000);
 
         // Check for table rows in the user table
@@ -181,8 +188,8 @@ public class UserManagementTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/UserManagement");
 
-        // Wait for admin container to load
-        await Page.WaitForSelectorAsync(".admin-container, #add-user-btn");
+        // Wait for page to load
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         var createButton = await Page.QuerySelectorAsync("#add-user-btn, button:has-text('Add New User')");
         Assert.That(createButton, Is.Not.Null, "Add New User button should exist");
@@ -195,14 +202,14 @@ public class UserManagementTests : BaseTest
 
             // Check if navigated to CreateUser page or modal opened
             var navigatedToCreate = Page.Url.Contains("/CreateUser") || Page.Url.Contains("/Admin/CreateUser");
-            var hasModal = await Page.IsVisibleAsync(".modal, [role='dialog']");
+            var hasModal = await Page.IsVisibleAsync("#user-modal, .modal, [role='dialog']");
 
             if (navigatedToCreate || hasModal)
             {
-                // Check for form fields on create page
-                var hasEmailField = await Page.IsVisibleAsync("input[type='email'], input[name*='email'], input[id*='email'], #Email");
-                var hasNameField = await Page.IsVisibleAsync("input[name*='name'], input[id*='name'], #Name, #FirstName, #DisplayName");
-                var hasRoleField = await Page.IsVisibleAsync("select[name*='role'], select[id*='role'], #Role, #RoleId");
+                // Check for form fields on create page or modal
+                var hasEmailField = await Page.IsVisibleAsync("#user-email, input[type='email'], input[name*='email'], input[id*='email'], #Email");
+                var hasNameField = await Page.IsVisibleAsync("#user-name, input[name*='name'], input[id*='name'], #Name, #FirstName, #DisplayName");
+                var hasRoleField = await Page.IsVisibleAsync("#user-role, select[name*='role'], select[id*='role'], #Role, #RoleId");
 
                 Assert.That(hasEmailField || hasNameField || hasRoleField, Is.True,
                     "User form should have at least one required field (email, name, or role)");
@@ -220,7 +227,8 @@ public class UserManagementTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/UserManagement");
         
-        await Page.WaitForSelectorAsync("body");
+        await Page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await Page.WaitForTimeoutAsync(1000);
         
         var loadButton = await Page.QuerySelectorAsync("button:has-text('Load'), button:has-text('Get'), .load-users");
         if (loadButton != null)
@@ -245,8 +253,8 @@ public class UserManagementTests : BaseTest
         await LoginAsRole("Admin");
         await NavigateToPage("/Admin/UserManagement");
 
-        // Wait for admin container to load
-        await Page.WaitForSelectorAsync(".admin-container");
+        // Wait for page to load
+        await Page.WaitForLoadStateAsync(LoadState.NetworkIdle);
         await TakeScreenshot("user_filter_check");
 
         // Check for search and filter elements with correct selectors

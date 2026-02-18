@@ -50,6 +50,11 @@ namespace GCCWebApp.Services
         Task<bool> ValidateTotpCodeAsync(string userId, string userCode);
         Task<bool> EnableTotpAsync(string userId, string userCode);
         Task<bool> DisableTotpAsync(string userId);
+
+        // Recovery Code Methods
+        Task<List<string>> GenerateRecoveryCodesAsync(string userId, int count = 10);
+        Task<bool> ValidateRecoveryCodeAsync(string userId, string code);
+        Task<int> GetRemainingRecoveryCodeCountAsync(string userId);
     }
 
     public class EnhancedTwoFactorService : IEnhancedTwoFactorService
@@ -684,6 +689,91 @@ namespace GCCWebApp.Services
             }
             
             return result.ToArray();
+        }
+
+        #endregion
+
+        #region Recovery Code Methods
+
+        public async Task<List<string>> GenerateRecoveryCodesAsync(string userId, int count = 10)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userId);
+            if (user == null)
+                throw new InvalidOperationException($"User not found: {userId}");
+
+            var plainCodes = new List<string>();
+            var hashedCodes = new List<string>();
+
+            for (int i = 0; i < count; i++)
+            {
+                var code = GenerateRecoveryCode();
+                plainCodes.Add(code);
+                hashedCodes.Add(HashRecoveryCode(code));
+            }
+
+            user.RecoveryCodes = System.Text.Json.JsonSerializer.Serialize(hashedCodes);
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Generated {Count} recovery codes for user {UserId}", count, userId);
+            return plainCodes;
+        }
+
+        public async Task<bool> ValidateRecoveryCodeAsync(string userId, string code)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userId);
+            if (user == null || string.IsNullOrEmpty(user.RecoveryCodes))
+                return false;
+
+            var hashedCodes = System.Text.Json.JsonSerializer.Deserialize<List<string>>(user.RecoveryCodes);
+            if (hashedCodes == null || hashedCodes.Count == 0)
+                return false;
+
+            var hashedInput = HashRecoveryCode(code);
+            var matchIndex = hashedCodes.IndexOf(hashedInput);
+
+            if (matchIndex >= 0)
+            {
+                hashedCodes.RemoveAt(matchIndex);
+                user.RecoveryCodes = System.Text.Json.JsonSerializer.Serialize(hashedCodes);
+                user.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Recovery code used for user {UserId}. {Remaining} codes remaining", userId, hashedCodes.Count);
+                return true;
+            }
+
+            _logger.LogWarning("Invalid recovery code attempt for user {UserId}", userId);
+            return false;
+        }
+
+        public async Task<int> GetRemainingRecoveryCodeCountAsync(string userId)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userId);
+            if (user == null || string.IsNullOrEmpty(user.RecoveryCodes))
+                return 0;
+
+            var codes = System.Text.Json.JsonSerializer.Deserialize<List<string>>(user.RecoveryCodes);
+            return codes?.Count ?? 0;
+        }
+
+        private static string GenerateRecoveryCode()
+        {
+            const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // Ambiguity-free charset (no I, O, 0, 1)
+            var code = new char[8];
+            using var rng = RandomNumberGenerator.Create();
+            var bytes = new byte[8];
+            rng.GetBytes(bytes);
+            for (int i = 0; i < 8; i++)
+                code[i] = chars[bytes[i] % chars.Length];
+            return new string(code);
+        }
+
+        private static string HashRecoveryCode(string code)
+        {
+            var normalized = code.Replace("-", "").ToUpperInvariant();
+            using var sha = SHA256.Create();
+            var hash = sha.ComputeHash(Encoding.UTF8.GetBytes(normalized));
+            return Convert.ToHexString(hash);
         }
 
         #endregion

@@ -23,9 +23,25 @@ namespace GCCWebApp.Middleware
             _options = options;
         }
 
+        // Internal browser-to-server API paths that should not be rate-limited
+        private static readonly string[] ExemptApiPaths = new[]
+        {
+            "/api/CertificateTiles",
+            "/api/certificate-tiles",
+            "/api/certificate-tiles-internal",
+            "/api/CertificateTileExternal"
+        };
+
         public async Task InvokeAsync(HttpContext context)
         {
             if (!context.Request.Path.StartsWithSegments("/api"))
+            {
+                await _next(context);
+                return;
+            }
+
+            // Skip rate limiting for internal tile API calls (used by page views)
+            if (ExemptApiPaths.Any(p => context.Request.Path.StartsWithSegments(p, StringComparison.OrdinalIgnoreCase)))
             {
                 await _next(context);
                 return;

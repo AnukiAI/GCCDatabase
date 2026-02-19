@@ -627,3 +627,80 @@ The "building features Amazon does not consume" risk from the original document 
 
 - `docs/0_Documentation/docs/PHASE1_IMPLEMENTATION_SUMMARY.md` -- Markdown change order (updated with confirmations)
 - `docs/0_Documentation/docs/PROPOSED_CHANGES_Amazon_API_2026-02-05.html` -- HTML change order for PDF export (updated with confirmations)
+
+---
+
+### Observation Entry: February 19, 2026
+
+#### Comprehensive UAT Guide Created - Testing Gap Analysis
+
+**Context:** User requested review of existing user guides, testing documentation, and user flow coverage across all roles. Comprehensive audit performed.
+
+**What Existed Before:**
+- Role Management Help Guide (good coverage of RBAC)
+- UAT Credentials Guide (good)
+- Certificate Create/Edit Flow (developer-focused, Mermaid diagrams)
+- Import Test Guide (20+ test cases, import-only)
+- API Testing Plan (100+ test IDs, partner API only)
+- Partner API Testing Guide (40+ tests)
+- Pre/Post Deployment Checklists
+
+**Gaps Identified:**
+1. NO unified UAT guide covering all roles end-to-end
+2. NO step-by-step test scripts for Admin CRUD operations (Users, Roles, Tags, Partners, etc.)
+3. NO External user test guide (data isolation verification missing)
+4. NO 14-state workflow transition test matrix
+5. NO cross-role permission verification matrix
+6. NO end-to-end business scenario tests (multi-role journeys)
+7. NO Certificate Tile View validation guide per role
+8. NO CSV Export test coverage across entities
+9. NO notification pattern validation tests (alert vs. AdminCore)
+10. NO requirements traceability matrix
+
+**Document Created:** `docs/0_Documentation/docs/COMPREHENSIVE_UAT_GUIDE.md` (v2.0)
+- **Part A:** 359 feature-level test cases across 10 modules (Auth, Public, External, Analyst, Admin, Workflow, API, Permissions, Export/Import, Edge Cases)
+- **Part B:** 221 end-to-end scenario steps across 9 business journeys:
+  - E2E Scenario 1: Certificate Full Lifecycle (Admin→Analyst→Public→External→API, 46 steps)
+  - E2E Scenario 2: New Company Onboarding (26 steps)
+  - E2E Scenario 3: Partner API Integration (18 steps)
+  - E2E Scenario 4: Admin System Setup Day 1 (27 steps)
+  - E2E Scenario 5: Certificate Renewal Lifecycle (14 steps)
+  - E2E Scenario 6: Rejection & Recovery Flow (14 steps)
+  - E2E Scenario 7: Bulk Operations Workflow (24 steps)
+  - E2E Scenario 8: User Access Lifecycle (26 steps)
+  - E2E Scenario 9: Search & Discovery Cross-Role (26 steps)
+- **Part C:** Requirements Traceability Matrix + Defect Template + Execution Summary
+- **Total:** 580 test cases/steps across 19 modules
+
+**Key Insight:** The existing docs were developer/technical-focused. What was missing was a document a stakeholder, QA tester, or client could pick up and systematically validate the entire system. This guide fills that gap.
+
+### Observation Entry: February 19, 2026 (continued)
+
+#### UAT Guide v3.0 - Gap Fixes, Accessibility Module, Test Data Script
+
+**Context:** Detailed section-by-section walkthrough of the UAT guide revealed several inaccuracies and gaps. Code research confirmed the issues. Three updates applied:
+
+**Gap Fixes Applied:**
+1. **Analyst Status Dropdown (TC-ANL-034, TC-WF-043):** Guide incorrectly stated analysts see "Draft, Active, Expired, Pending Review". Code research of `CertificateStatusHelper.GetStatusesForRole()` confirmed analysts see **12 of 14 statuses** (all except Rejected and Revoked). Fixed.
+2. **Certificate Import Access (TC-ANL-059-065 → TC-ADM-075-081):** Guide placed Certificate Import under Analyst module. Code research showed `CertificateImportController` has `[Authorize(Policy = "AdminOnly")]` at class level. Moved entire section to Admin module. Updated TC-PERM-019 from Analyst=Allowed to Analyst=**Denied**.
+3. **Missing Test Cases Added:**
+   - TC-PUB-013a/b/c: Draft/Archived not visible to public + database-driven filters
+   - TC-ANL-061/62/63: Cascading company→product dropdown + filter validation
+   - TC-ADM-085-089: Delete entity with dependencies protection
+   - TC-ADM-090-092: Duplicate entity prevention
+4. **Section Reference Fix:** "How to Use" pointed to old section numbers (15/16) instead of correct (25/26).
+
+**Accessibility Module Added (Module 20):**
+- 50 test cases (TC-A11Y-001 to TC-A11Y-050) covering WCAG 2.1 Level AA
+- 8 subsections: Keyboard Nav, Screen Reader, Color Contrast, ARIA, Forms, Modals, Responsive/Zoom, Data Tables
+- Based on actual codebase inspection of ARIA attributes, admin-sr-only labels, and button classes
+
+**Test Data Setup Script Created:**
+- `docs/0_Documentation/docs/UAT_TEST_DATA_SETUP.sql`
+- Creates all pre-condition data for E2E scenarios: 3 partners, 4 companies, 6 products, 8 certificates (various statuses), 7 tags, 3 cert types with 5 subcategories, 3 custom fields, product IDs, status history
+- Idempotent (uses IF NOT EXISTS for all inserts)
+- Includes verification queries
+
+**Updated Totals:** v3.0 = **647 test cases** across 20 modules (Part A: 376, Part B: 221, Part B2: 50 accessibility)
+
+**Risk Note:** The analyst status error could have led to incorrect pass/fail judgments during UAT. The Certificate Import access error would have wasted testing time (analysts would get Access Denied). Both caught through code verification before testing began - validates the importance of code-verified test cases.

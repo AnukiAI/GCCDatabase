@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - Data Migration Guide</title>
+    <style>
+@page { size: letter; margin: 0.6in 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 20px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 13pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 24px; margin-bottom: 10px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 16px; margin-bottom: 6px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 12px; margin-bottom: 5px; page-break-after: avoid; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 14px 0; font-size: 8.5pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 7px; font-size: 8.5pt; white-space: nowrap; }
+td { padding: 5px 7px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+ul, ol { margin: 4px 0 10px 0; padding-left: 18px; }
+li { margin-bottom: 3px; font-size: 9.5pt; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; overflow-x: auto; font-size: 8pt; line-height: 1.4; margin: 6px 0 14px 0; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 10px 0; font-size: 9pt; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.callout-warning { border-color: #e65100; background: #fff8f0; }
+.checkbox { display: inline-block; width: 14px; height: 14px; border: 1.5px solid #666; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 16px; margin: 12px 0 20px 0; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 6px; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+@media print { body { padding: 0; } .toc { break-inside: avoid; } h2 { break-after: avoid; } table { font-size: 8pt; } }
+    </style>
+</head>
+<body>
+    <div class="doc-header">
+        <h1>GCC Data Migration Guide</h1>
+        <p class="subtitle">GCC Database Solution</p>
+        <div class="doc-meta">
+            <div><strong>Project:</strong> GCC Web Application</div>
+            <div><strong>Date:</strong> February 19, 2026</div>
+        </div>
+    </div>
+
+    <div class="toc">
+        <div class="toc-title">Table of Contents</div>
+        <a href="#overview">Overview</a>
+        <a href="#data-import-order">Data Import Order (Dependencies)</a>
+        <a href="#csv-templates">CSV Templates</a>
+        <a href="#csv-1">&nbsp;&nbsp;&nbsp;&nbsp;1. Certification Types</a>
+        <a href="#csv-2">&nbsp;&nbsp;&nbsp;&nbsp;2. Product Categories</a>
+        <a href="#csv-3">&nbsp;&nbsp;&nbsp;&nbsp;3. Product Types</a>
+        <a href="#csv-3a">&nbsp;&nbsp;&nbsp;&nbsp;3a. Product Subcategories</a>
+        <a href="#csv-4">&nbsp;&nbsp;&nbsp;&nbsp;4. Companies</a>
+        <a href="#csv-5">&nbsp;&nbsp;&nbsp;&nbsp;5. Products</a>
+        <a href="#csv-6">&nbsp;&nbsp;&nbsp;&nbsp;6. Tags</a>
+        <a href="#csv-7">&nbsp;&nbsp;&nbsp;&nbsp;7. Certificates</a>
+        <a href="#csv-8">&nbsp;&nbsp;&nbsp;&nbsp;8. Certificate Product IDs</a>
+        <a href="#data-validation-rules">Data Validation Rules</a>
+        <a href="#sample-data">Sample Data</a>
+        <a href="#questions">Questions?</a>
+    </div>
+
+    <h2 id="overview">Overview</h2>
+    <p>This guide explains how to prepare data for migration into the GCC Certificate Management System. The client should populate the CSV templates in the order specified below.</p>
+
+    <h2 id="data-import-order">Data Import Order (Dependencies)</h2>
+    <p>Data must be imported in this order due to foreign key relationships:</p>
+    <pre><code>1. Certification Types       (no dependencies)
+2. Product Categories        (no dependencies)
+3. Product Types             (depends on: Product Categories)
+3a. Product Subcategories    (depends on: Product Types) - OPTIONAL
+4. Companies                 (no dependencies)
+5. Products                  (depends on: Categories, Types, Subcategories, Companies)
+6. Tags                      (no dependencies) - OPTIONAL
+7. Certificates              (depends on: Companies, Products, Certification Types)
+8. Certificate Product IDs   (depends on: Certificates) - FOR AMAZON INTEGRATION</code></pre>
+
+    <h2 id="csv-templates">CSV Templates</h2>
+
+    <h3 id="csv-1">1. Certification Types (<code>01_certification_types.csv</code>)</h3>
+    <p>The types of certifications your organization issues.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Certification type name</td>
+                <td>Recycled Content</td>
+            </tr>
+            <tr>
+                <td>AMAZON_CODE</td>
+                <td>No</td>
+                <td>255</td>
+                <td>Amazon partner code</td>
+                <td>RC</td>
+            </tr>
+            <tr>
+                <td>DESCRIPTION</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Description of cert type</td>
+                <td>Recycled content certification</td>
+            </tr>
+            <tr>
+                <td>PARENT_NAME</td>
+                <td>No</td>
+                <td>255</td>
+                <td>Parent type name (for subcategories)</td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><strong>Current System Values:</strong></p>
+    <ul>
+        <li>Recycled Content</li>
+        <li>GreenCircle Audited</li>
+        <li>Certified Environmental Facts</li>
+        <li>Waste Diversion from Landfill</li>
+        <li>Carbon Footprint Reduction</li>
+        <li>Material Ingredient Reporting</li>
+        <li>Certified Sustainability Facts</li>
+        <li>LCA Optimized</li>
+        <li>Certified Energy Savings</li>
+        <li>Closed Loop Product</li>
+    </ul>
+
+    <h3 id="csv-2">2. Product Categories (<code>02_product_categories.csv</code>)</h3>
+    <p>High-level groupings for products.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Category name</td>
+                <td>Building Materials</td>
+            </tr>
+            <tr>
+                <td>DESCRIPTION</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Description</td>
+                <td>Construction products</td>
+            </tr>
+            <tr>
+                <td>SORT_ORDER</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Display order (1, 2, 3...)</td>
+                <td>1</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 id="csv-3">3. Product Types (<code>03_product_types.csv</code>)</h3>
+    <p>Specific product types within categories.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Product type name</td>
+                <td>Insulation</td>
+            </tr>
+            <tr>
+                <td>CATEGORY_NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Must match a Product Category</td>
+                <td>Building Materials</td>
+            </tr>
+            <tr>
+                <td>PARENT_NAME</td>
+                <td>No</td>
+                <td>255</td>
+                <td>Parent type (for sub-types)</td>
+                <td></td>
+            </tr>
+            <tr>
+                <td>SORT_ORDER</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Display order</td>
+                <td>1</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 id="csv-3a">3a. Product Subcategories (<code>03a_product_subcategories.csv</code>) - OPTIONAL</h3>
+    <p>Third level of product hierarchy (Category &gt; Type &gt; Subcategory).</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Subcategory name</td>
+                <td>Foam Board</td>
+            </tr>
+            <tr>
+                <td>PRODUCT_TYPE_NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Must match a Product Type</td>
+                <td>Insulation</td>
+            </tr>
+            <tr>
+                <td>DESCRIPTION</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Description</td>
+                <td>Rigid foam insulation boards</td>
+            </tr>
+            <tr>
+                <td>SORT_ORDER</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Display order</td>
+                <td>1</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 id="csv-4">4. Companies (<code>04_companies.csv</code>)</h3>
+    <p>Organizations that hold certificates.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Company name</td>
+                <td>Sofidel America Corp.</td>
+            </tr>
+            <tr>
+                <td>CONTACT_INFO</td>
+                <td>No</td>
+                <td>255</td>
+                <td>Contact person/dept</td>
+                <td>John Smith, Sustainability</td>
+            </tr>
+            <tr>
+                <td>EMAIL</td>
+                <td>No</td>
+                <td>255</td>
+                <td>Contact email</td>
+                <td>sustainability@company.com</td>
+            </tr>
+            <tr>
+                <td>WEBSITE</td>
+                <td>No</td>
+                <td>500</td>
+                <td>Company website URL</td>
+                <td>https://www.company.com</td>
+            </tr>
+            <tr>
+                <td>LOCATION</td>
+                <td>No</td>
+                <td>175</td>
+                <td>City, State/Region</td>
+                <td>Horsham, PA</td>
+            </tr>
+            <tr>
+                <td>COUNTRY</td>
+                <td>No</td>
+                <td>100</td>
+                <td>Country name</td>
+                <td>United States</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 id="csv-5">5. Products (<code>05_products.csv</code>)</h3>
+    <p>Products that are certified.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Product name</td>
+                <td>Plastic Film Packaging</td>
+            </tr>
+            <tr>
+                <td>DESCRIPTION</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Product description</td>
+                <td>Recyclable packaging film</td>
+            </tr>
+            <tr>
+                <td>COMPANY_NAME</td>
+                <td>No</td>
+                <td>255</td>
+                <td>Owning company (must match Companies)</td>
+                <td>Sofidel America Corp.</td>
+            </tr>
+            <tr>
+                <td>CATEGORY_NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Must match a Product Category</td>
+                <td>Materials / Plastics</td>
+            </tr>
+            <tr>
+                <td>PRODUCT_TYPE_NAME</td>
+                <td>No</td>
+                <td>255</td>
+                <td>Must match a Product Type</td>
+                <td>Packaging</td>
+            </tr>
+            <tr>
+                <td>MODEL</td>
+                <td>No</td>
+                <td>100</td>
+                <td>Model number</td>
+                <td>PKG-2000</td>
+            </tr>
+            <tr>
+                <td>SKU</td>
+                <td>No</td>
+                <td>50</td>
+                <td>Stock keeping unit</td>
+                <td>SKU-12345</td>
+            </tr>
+            <tr>
+                <td>UPC</td>
+                <td>No</td>
+                <td>50</td>
+                <td>Universal Product Code</td>
+                <td>012345678901</td>
+            </tr>
+            <tr>
+                <td>ASIN</td>
+                <td>No</td>
+                <td>50</td>
+                <td>Amazon Standard ID</td>
+                <td>B08XYZ1234</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3 id="csv-6">6. Tags (<code>06_tags.csv</code>) - Optional</h3>
+    <p>Tags for filtering and categorization.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Description</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>50</td>
+                <td>Tag name</td>
+                <td>APR</td>
+            </tr>
+            <tr>
+                <td>TAG_TYPE</td>
+                <td><strong>Yes</strong></td>
+                <td>20</td>
+                <td><code>external</code> or <code>internal</code></td>
+                <td>external</td>
+            </tr>
+            <tr>
+                <td>DESCRIPTION</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Tag description</td>
+                <td>Association of Plastic Recyclers</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><strong>Tag Types:</strong></p>
+    <ul>
+        <li><code>external</code> - Visible to all users (APR, LEED, FSC, etc.)</li>
+        <li><code>internal</code> - Only visible to analysts/admins</li>
+    </ul>
+
+    <h3 id="csv-7">7. Certificates (<code>07_certificates.csv</code>)</h3>
+    <p>The main certificate data.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Valid Values</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>CERTIFICATE_NUMBER</td>
+                <td><strong>Yes</strong></td>
+                <td>7</td>
+                <td>Format: YY-NNNN</td>
+                <td>23-0358</td>
+            </tr>
+            <tr>
+                <td>COMPANY_NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Must match Companies</td>
+                <td>Sofidel America Corp.</td>
+            </tr>
+            <tr>
+                <td>PRODUCT_NAME</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Must match Products</td>
+                <td>Plastic Film Packaging</td>
+            </tr>
+            <tr>
+                <td>CERTIFICATION_TYPE</td>
+                <td><strong>Yes</strong></td>
+                <td>255</td>
+                <td>Must match Certification Types</td>
+                <td>Recycled Content</td>
+            </tr>
+            <tr>
+                <td>EFFECTIVE_DATE</td>
+                <td><strong>Yes</strong></td>
+                <td>-</td>
+                <td>Format: M/D/YYYY</td>
+                <td>6/1/2023</td>
+            </tr>
+            <tr>
+                <td>EXPIRATION_DATE</td>
+                <td><strong>Yes</strong></td>
+                <td>-</td>
+                <td>Format: M/D/YYYY or blank for perpetual</td>
+                <td>5/31/2026</td>
+            </tr>
+            <tr>
+                <td>LOCATION</td>
+                <td>No</td>
+                <td>175</td>
+                <td>Manufacturing/facility location</td>
+                <td>Horsham, PA</td>
+            </tr>
+            <tr>
+                <td>COUNTRY</td>
+                <td>No</td>
+                <td>100</td>
+                <td>Country name</td>
+                <td>United States</td>
+            </tr>
+            <tr>
+                <td>STATUS</td>
+                <td>No</td>
+                <td>50</td>
+                <td>See status values below</td>
+                <td>active</td>
+            </tr>
+            <tr>
+                <td>PARTNER</td>
+                <td>No</td>
+                <td>100</td>
+                <td>Amazon, Novi, or None</td>
+                <td>None</td>
+            </tr>
+            <tr>
+                <td>CERTIFICATION_RESULTS</td>
+                <td>No</td>
+                <td>1000</td>
+                <td>Test results/scores</td>
+                <td>95% recycled content</td>
+            </tr>
+            <tr>
+                <td>TAGS</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Comma-separated tag names</td>
+                <td>APR, LEED</td>
+            </tr>
+            <tr>
+                <td>ASIN</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Amazon Standard ID</td>
+                <td>B08XYZ1234</td>
+            </tr>
+            <tr>
+                <td>UPC</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Universal Product Code</td>
+                <td>012345678901</td>
+            </tr>
+            <tr>
+                <td>GTIN</td>
+                <td>No</td>
+                <td>-</td>
+                <td>Global Trade Item Number</td>
+                <td>00012345678905</td>
+            </tr>
+            <tr>
+                <td>EAN</td>
+                <td>No</td>
+                <td>-</td>
+                <td>European Article Number</td>
+                <td>5012345678900</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><strong>Valid Status Values:</strong></p>
+    <table>
+        <thead>
+            <tr>
+                <th>Status</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>active</code></td>
+                <td><strong>Use this for live certificates</strong></td>
+            </tr>
+            <tr>
+                <td><code>draft</code></td>
+                <td>Work in progress</td>
+            </tr>
+            <tr>
+                <td><code>pending_review</code></td>
+                <td>Awaiting review</td>
+            </tr>
+            <tr>
+                <td><code>expiring_soon</code></td>
+                <td>Near expiration</td>
+            </tr>
+            <tr>
+                <td><code>expired</code></td>
+                <td>Past expiration date</td>
+            </tr>
+            <tr>
+                <td><code>renewal_in_progress</code></td>
+                <td>Being renewed</td>
+            </tr>
+            <tr>
+                <td><code>suspended</code></td>
+                <td>Temporarily inactive</td>
+            </tr>
+            <tr>
+                <td><code>revoked</code></td>
+                <td>Permanently revoked</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout callout-info">
+        <strong>Note:</strong> For certificates to appear on the public tile view, they must have status <code>active</code>, <code>expiring_soon</code>, or <code>renewal_in_progress</code>.
+    </div>
+
+    <h3 id="csv-8">8. Certificate Product IDs (<code>08_certificate_product_ids.csv</code>) - FOR AMAZON</h3>
+    <p>Multiple product identifiers per certificate for Amazon/partner marketplace integration.</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Valid Values</th>
+                <th>Example</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>CERTIFICATE_NUMBER</td>
+                <td><strong>Yes</strong></td>
+                <td>7</td>
+                <td>Must match a Certificate</td>
+                <td>23-0358</td>
+            </tr>
+            <tr>
+                <td>PRODUCT_ID_TYPE</td>
+                <td><strong>Yes</strong></td>
+                <td>10</td>
+                <td>ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN</td>
+                <td>ASIN</td>
+            </tr>
+            <tr>
+                <td>PRODUCT_ID_VALUE</td>
+                <td><strong>Yes</strong></td>
+                <td>50</td>
+                <td>The actual ID value</td>
+                <td>B08XYZ1234</td>
+            </tr>
+            <tr>
+                <td>PARTNER</td>
+                <td>No</td>
+                <td>50</td>
+                <td>Amazon, Novi, None, Other</td>
+                <td>Amazon</td>
+            </tr>
+            <tr>
+                <td>STATUS</td>
+                <td>No</td>
+                <td>20</td>
+                <td>Active, Inactive, Pending, Expired</td>
+                <td>Active</td>
+            </tr>
+            <tr>
+                <td>PRODUCT_NAME</td>
+                <td>No</td>
+                <td>200</td>
+                <td>Product name for this specific ID</td>
+                <td>Plastic Film Roll - 100ft</td>
+            </tr>
+            <tr>
+                <td>PRODUCT_SKU</td>
+                <td>No</td>
+                <td>100</td>
+                <td>SKU for this product variant</td>
+                <td>SKU-PF100</td>
+            </tr>
+            <tr>
+                <td>DESCRIPTION</td>
+                <td>No</td>
+                <td>500</td>
+                <td>Notes about this product ID</td>
+                <td>Main Amazon listing</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p><strong>Product ID Types:</strong></p>
+    <ul>
+        <li><code>ASIN</code> - Amazon Standard Identification Number (10 chars, starts with B0)</li>
+        <li><code>UPC</code> - Universal Product Code (12 digits)</li>
+        <li><code>GTIN</code> - Global Trade Item Number (14 digits)</li>
+        <li><code>EAN</code> - European Article Number (13 digits)</li>
+        <li><code>ISBN</code> - International Standard Book Number</li>
+        <li><code>SKU</code> - Stock Keeping Unit</li>
+        <li><code>MPN</code> - Manufacturer Part Number</li>
+    </ul>
+
+    <div class="callout callout-info">
+        <strong>Use Case:</strong> A single certificate can have multiple product IDs. For example, if a company has the same certified product listed with different sizes on Amazon, each ASIN would be a separate row.
+    </div>
+
+    <h2 id="data-validation-rules">Data Validation Rules</h2>
+
+    <h3>Certificate Number Format</h3>
+    <ul>
+        <li>Must be 7 characters: <code>YY-NNNN</code></li>
+        <li>YY = 2-digit year</li>
+        <li>NNNN = 4-digit sequence number</li>
+        <li>Example: <code>23-0358</code>, <code>24-1597</code>, <code>25-0123</code></li>
+    </ul>
+
+    <h3>Date Formats</h3>
+    <ul>
+        <li>Accepted: <code>M/D/YYYY</code>, <code>MM/DD/YYYY</code>, <code>YYYY-MM-DD</code></li>
+        <li>For perpetual certificates (no expiration): leave EXPIRATION_DATE blank or use <code>2099-12-31</code></li>
+    </ul>
+
+    <h3>Country Values</h3>
+    <p>Please use consistent country names:</p>
+    <ul>
+        <li><code>United States</code> (not USA, US, U.S.)</li>
+        <li><code>Canada</code></li>
+        <li><code>United Kingdom</code> (not UK, U.K.)</li>
+        <li><code>Mexico</code></li>
+        <li>etc.</li>
+    </ul>
+
+    <h3>Required vs Optional Fields</h3>
+    <ul>
+        <li>Fields marked <strong>Yes</strong> in Required column must have values</li>
+        <li>If PRODUCT_NAME is blank, system will use "Not Specified"</li>
+        <li>If EXPIRATION_DATE is blank, system will use 2099-12-31</li>
+    </ul>
+
+    <h2 id="sample-data">Sample Data</h2>
+    <p>See the sample CSV files in this folder for examples of properly formatted data.</p>
+
+    <h2 id="questions">Questions?</h2>
+    <p>Contact the development team for assistance with data formatting or migration issues.</p>
+
+    <div class="doc-footer">Generated: February 19, 2026 | GCC Database Solution - Anuki Consulting</div>
+</body>
+</html>

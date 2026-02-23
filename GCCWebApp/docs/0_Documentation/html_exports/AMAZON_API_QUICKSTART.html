@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - Amazon API Quick Start Guide</title>
+    <style>
+@page { size: letter; margin: 0.6in 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 20px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 13pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 24px; margin-bottom: 10px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 16px; margin-bottom: 6px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 12px; margin-bottom: 5px; page-break-after: avoid; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 14px 0; font-size: 8.5pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 7px; font-size: 8.5pt; white-space: nowrap; }
+td { padding: 5px 7px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+ul, ol { margin: 4px 0 10px 0; padding-left: 18px; }
+li { margin-bottom: 3px; font-size: 9.5pt; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; overflow-x: auto; font-size: 8pt; line-height: 1.4; margin: 6px 0 14px 0; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 10px 0; font-size: 9pt; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.callout-warning { border-color: #e65100; background: #fff8f0; }
+.callout-success { border-color: #2e7d32; background: #f0f8e8; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+.tag-covered { background: #e8f5e1; color: #2e7d32; }
+.tag-pending { background: #fff3e0; color: #e65100; }
+.tag-gap { background: #ffebee; color: #c62828; }
+.architecture-diagram { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8pt; line-height: 1.5; overflow-x: auto; white-space: pre; margin: 10px 0; page-break-inside: avoid; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 16px; margin: 12px 0 20px 0; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 6px; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+.sign-off-table td { padding: 12px 10px; border: 1px solid #ccc; min-width: 120px; }
+.sign-off-table td:first-child { font-weight: 600; width: 160px; }
+.checkbox { display: inline-block; width: 14px; height: 14px; border: 1.5px solid #666; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.confidential { background: #fff3e0; border: 2px solid #e65100; padding: 8px 14px; border-radius: 4px; font-size: 9pt; margin: 10px 0; text-align: center; font-weight: 600; color: #e65100; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+@media print { body { padding: 0; } .toc { break-inside: avoid; } h2 { break-after: avoid; } table { font-size: 8pt; } }
+    </style>
+</head>
+<body>
+
+<div class="doc-header">
+    <h1>Amazon API Quick Start Guide</h1>
+    <p class="subtitle">GCC Database Solution</p>
+    <div class="doc-meta">
+        <div><strong>Version:</strong> 2.1</div>
+        <div><strong>Date:</strong> January 28, 2026</div>
+        <div><strong>Project:</strong> GCC Web Application</div>
+        <div><strong>Classification:</strong> Partner Documentation</div>
+    </div>
+</div>
+
+<div class="toc">
+    <div class="toc-title">Table of Contents</div>
+    <a href="#overview">Overview</a>
+    <a href="#s1">1. Getting Your API Key</a>
+    <a href="#s2">2. Authentication</a>
+    <a href="#s3">3. Data Access Scope</a>
+    <a href="#s4">4. Key Endpoints</a>
+    <a href="#s5">5. Common Use Cases</a>
+    <a href="#s6">6. Field Mapping Reference</a>
+    <a href="#s7">7. Pagination</a>
+    <a href="#s8">8. Rate Limits</a>
+    <a href="#s9">9. Testing Checklist</a>
+    <a href="#s10">10. Sample Test Script</a>
+    <a href="#s11">11. Error Handling</a>
+    <a href="#s12">12. Support</a>
+    <a href="#appendix">Appendix: Quick Reference</a>
+</div>
+
+<h2 id="overview">Overview</h2>
+<p>This guide helps Amazon integrate with the GCC (Green Circle Certified) Partner API to retrieve certificate and product identifier data.</p>
+<p><strong>Integration Model:</strong> Amazon PULLS data from GCC using API keys.</p>
+
+<h2 id="s1">1. Getting Your API Key</h2>
+<p>Contact Green Circle Certified to receive your partner API key. Keys follow this format:</p>
+<pre><code>gcc_partner_[32-character-hash]</code></pre>
+<p>Example: <code>gcc_partner_b451fb3b31c645e9dd900c3c7b2f6250fbb7480bbb4510d602efc5e52102fc4d</code></p>
+<div class="callout callout-warning"><strong>Important:</strong> Keep your API key secure. Do not share it in public repositories or client-side code.</div>
+
+<h2 id="s2">2. Authentication</h2>
+<p>All API requests require the <code>X-API-Key</code> header:</p>
+<pre><code class="language-bash">curl -X GET "https://[production-domain]/api/v1/certificates" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Accept: application/json"</code></pre>
+
+<h3>Response Codes</h3>
+<table>
+    <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+    <tbody>
+        <tr><td>200</td><td>Success</td></tr>
+        <tr><td>401</td><td>Invalid or missing API key</td></tr>
+        <tr><td>403</td><td>Endpoint not permitted for your key</td></tr>
+        <tr><td>404</td><td>Resource not found</td></tr>
+        <tr><td>429</td><td>Rate limit exceeded (200 requests/hour)</td></tr>
+    </tbody>
+</table>
+
+<h2 id="s3">3. Data Access Scope</h2>
+<p>Your API key determines what data you can access:</p>
+<table>
+    <thead><tr><th>Association Type</th><th>Data Access</th></tr></thead>
+    <tbody>
+        <tr><td>Partner = Amazon</td><td>Certificates where Partner field = "Amazon"</td></tr>
+        <tr><td>Company associations</td><td>Certificates for those specific companies</td></tr>
+        <tr><td>Both Partner + Companies</td><td>Certificates matching EITHER (OR logic)</td></tr>
+        <tr><td>No associations</td><td>No data access (empty results)</td></tr>
+    </tbody>
+</table>
+<div class="callout callout-info"><strong>Note:</strong> You will only see certificates and product identifiers associated with your partner account. This is automatic - no additional filtering is needed.</div>
+
+<h2 id="s4">4. Key Endpoints</h2>
+
+<h3>Base URL</h3>
+<pre><code>Production: https://[production-domain]/api/v1</code></pre>
+
+<h3>Available Endpoints</h3>
+<table>
+    <thead><tr><th>Endpoint</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td><code>GET /certificates</code></td><td>List all accessible certificates</td></tr>
+        <tr><td><code>GET /certificates?includeProductIds=true</code></td><td>List with ASINs/UPCs</td></tr>
+        <tr><td><code>GET /certificates/gs1</code></td><td><strong>GS1 JSON-LD format (RECOMMENDED for Amazon)</strong></td></tr>
+        <tr><td><code>GET /certificates/gs1/{number}</code></td><td>Single certificate in GS1 format</td></tr>
+        <tr><td><code>GET /certificates/{id}</code></td><td>Get certificate by database ID</td></tr>
+        <tr><td><code>GET /certificates/number/{number}</code></td><td>Get certificate by number (e.g., 24-0366)</td></tr>
+        <tr><td><code>GET /certificates/search/productid</code></td><td>Search by ASIN/UPC</td></tr>
+        <tr><td><code>GET /certificates/{number}/download</code></td><td>Download certificate PDF</td></tr>
+    </tbody>
+</table>
+
+<h2 id="s5">5. Common Use Cases</h2>
+
+<h3>5.1 GS1 JSON-LD Format (RECOMMENDED)</h3>
+<div class="callout callout-success"><strong>This is the primary endpoint for Amazon Climate Pledge Friendly integration.</strong></div>
+<p>The GS1 endpoint returns data in the GS1 Web Vocabulary JSON-LD format, which matches Amazon's certification data requirements.</p>
+<pre><code class="language-bash">curl -X GET "https://[domain]/api/v1/certificates/gs1?pageSize=100" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Accept: application/json"</code></pre>
+
+<p><strong>Response:</strong></p>
+<pre><code class="language-json">{
+  "success": true,
+  "data": [
+    {
+      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+      "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+      "type": "CertificationReport",
+      "issueDate": "2024-01-15",
+      "issuer": "Green Circle Certified",
+      "products": [
+        {
+          "id": "https://id.gs1.org/01/00012345678901",
+          "type": "Product",
+          "gtin": "00012345678901",
+          "additionalTradeItemId": [
+            { "type": "ASIN", "value": "B08XQRT456" }
+          ],
+          "name": "Recycled Paper Towels",
+          "description": "100% recycled paper towels",
+          "certificationInfo": {
+            "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366/certification",
+            "type": "CertificationDetails",
+            "agency": "Green Circle Certified",
+            "agencyURL": "https://www.greencirclecertified.com",
+            "program": "UL 2809",
+            "certificateId": "24-0366",
+            "standard": "UL 2809",
+            "status": "ACTIVE",
+            "value": "95.5% recycled content",
+            "startDate": "2024-01-15",
+            "endDate": "2025-01-15",
+            "targetCountries": ["United States"]
+          }
+        }
+      ]
+    }
+  ],
+  "pagination": {
+    "totalCount": 150,
+    "pageNumber": 1,
+    "pageSize": 100
+  }
+}</code></pre>
+
+<p><strong>Key GS1 Fields:</strong></p>
+<ul>
+    <li><code>@context</code>, <code>$schema</code>: JSON-LD metadata for schema validation</li>
+    <li><code>gtin</code>: Global Trade Item Number (14 digits, padded with leading zeros)</li>
+    <li><code>additionalTradeItemId</code>: Array of ASIN, SKU, MPN, ISBN identifiers</li>
+    <li><code>certificationInfo.status</code>: ACTIVE or INACTIVE</li>
+    <li><code>certificationInfo.value</code>: Certification results/level (e.g., recycled content percentage)</li>
+</ul>
+
+<h3>5.2 List All Certificates with Product Identifiers</h3>
+<p><strong>Alternative endpoint with flat JSON structure.</strong></p>
+<pre><code class="language-bash">curl -X GET "https://[domain]/api/v1/certificates?includeProductIds=true&amp;pageSize=100" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Accept: application/json"</code></pre>
+
+<p><strong>Response:</strong></p>
+<pre><code class="language-json">{
+  "success": true,
+  "data": [
+    {
+      "id": 123,
+      "certificateNumber": "24-0366",
+      "status": "Active",
+      "issueDate": "2024-01-15T00:00:00Z",
+      "expirationDate": "2025-01-15T00:00:00Z",
+      "company": "EcoProduct Co",
+      "companyId": 45,
+      "productName": "Recycled Paper Towels",
+      "productId": 78,
+      "certificationType": "UL 2809",
+      "certificationTypeId": 3,
+      "certificationTypeSubcategory": "Level 2",
+      "certificationTypeSubcategoryId": 12,
+      "issuer": "Green Circle Certified",
+      "certificationResults": "95.5% recycled content verified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B08XQRT456",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Recycled Paper Towels - 12 Pack",
+          "productSku": "RPT-12PK-ECO",
+          "description": "12-pack of 100% recycled paper towels"
+        },
+        {
+          "type": "UPC",
+          "value": "012345678901",
+          "status": "Active",
+          "partner": null,
+          "productName": "Recycled Paper Towels",
+          "productSku": "RPT-SINGLE",
+          "description": "Single roll recycled paper towels"
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/24-0366/download"
+    }
+  ],
+  "pagination": {
+    "totalCount": 150,
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalPages": 2,
+    "hasNext": true,
+    "hasPrevious": false
+  }
+}</code></pre>
+
+<h3>5.3 Search by ASIN</h3>
+<p>Find certificates containing a specific ASIN:</p>
+<pre><code class="language-bash">curl -X GET "https://[domain]/api/v1/certificates/search/productid?productId=B08XQRT456&amp;type=ASIN" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Accept: application/json"</code></pre>
+
+<p><strong>Response:</strong></p>
+<pre><code class="language-json">{
+  "success": true,
+  "data": [
+    {
+      "id": 123,
+      "certificateNumber": "24-0366",
+      "productName": "Recycled Paper Towels",
+      "productType": "Paper Products",
+      "company": "EcoProduct Co",
+      "companyId": 45,
+      "partner": "Amazon",
+      "certificationResults": "95.5% recycled content verified",
+      "status": "Active",
+      "certificationType": "UL 2809",
+      "issueDate": "2024-01-15T00:00:00Z",
+      "expirationDate": "2025-01-15T00:00:00Z",
+      "pdfDownloadUrl": "/api/v1/certificates/24-0366/download",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B08XQRT456",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Recycled Paper Towels - 12 Pack",
+          "productSku": "RPT-12PK-ECO",
+          "description": "12-pack product",
+          "isMatchedId": true
+        }
+      ]
+    }
+  ],
+  "message": "Found 1 certificate(s) with 1 total product IDs for search: B08XQRT456"
+}</code></pre>
+<div class="callout callout-info"><strong>Note:</strong> The <code>isMatchedId: true</code> flag indicates which product identifier matched your search.</div>
+
+<h3>5.3 Get Certificate by Number</h3>
+<pre><code class="language-bash">curl -X GET "https://[domain]/api/v1/certificates/number/24-0366" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -H "Accept: application/json"</code></pre>
+
+<h3>5.4 Download Certificate PDF</h3>
+<pre><code class="language-bash">curl -X GET "https://[domain]/api/v1/certificates/24-0366/download" \
+  -H "X-API-Key: YOUR_API_KEY" \
+  -o certificate.pdf</code></pre>
+
+<h2 id="s6">6. Field Mapping Reference</h2>
+
+<h3>Certificate Fields</h3>
+<table>
+    <thead><tr><th>Amazon Requirement</th><th>GCC API Field</th><th>Notes</th></tr></thead>
+    <tbody>
+        <tr><td>Product ASIN</td><td><code>productIds[].value</code> (where type="ASIN")</td><td>Use <code>includeProductIds=true</code></td></tr>
+        <tr><td>Brand name</td><td><code>company</code></td><td>Company/brand name</td></tr>
+        <tr><td>Product name</td><td><code>productName</code></td><td>Product name</td></tr>
+        <tr><td>Product type</td><td><code>productType</code></td><td>Product type (in search results)</td></tr>
+        <tr><td>Certificate ID</td><td><code>certificateNumber</code></td><td>Format: YY-NNNN</td></tr>
+        <tr><td>Issue date</td><td><code>issueDate</code></td><td>ISO 8601 format</td></tr>
+        <tr><td>Expiration date</td><td><code>expirationDate</code></td><td>ISO 8601 format</td></tr>
+        <tr><td>Certification type</td><td><code>certificationType</code></td><td>e.g., "UL 2809"</td></tr>
+        <tr><td>Standard version</td><td><code>certificationTypeSubcategory</code></td><td>May be null</td></tr>
+        <tr><td>Issuer</td><td><code>issuer</code></td><td>Always "Green Circle Certified"</td></tr>
+        <tr><td><strong>Certification Results</strong></td><td><code>certificationResults</code></td><td>Threshold/score data for compliance</td></tr>
+        <tr><td>Partner</td><td><code>partner</code></td><td>"Amazon" for filtered results</td></tr>
+        <tr><td>Status</td><td><code>status</code></td><td>Active, Expired, etc.</td></tr>
+        <tr><td>PDF download</td><td><code>pdfDownloadUrl</code></td><td>Relative URL path</td></tr>
+    </tbody>
+</table>
+
+<h3>Product Identifier Fields</h3>
+<p>Each item in <code>productIds[]</code> contains:</p>
+<table>
+    <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td>type</td><td>string</td><td>ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN</td></tr>
+        <tr><td>value</td><td>string</td><td>The identifier value</td></tr>
+        <tr><td>status</td><td>string</td><td>Active, Inactive, Pending, Expired</td></tr>
+        <tr><td>partner</td><td>string</td><td>Amazon, Novi, None, Other</td></tr>
+        <tr><td>productName</td><td>string</td><td>Product name for this specific ID</td></tr>
+        <tr><td>productSku</td><td>string</td><td>SKU for this identifier</td></tr>
+        <tr><td>description</td><td>string</td><td>Optional notes</td></tr>
+        <tr><td>isMatchedId</td><td>boolean</td><td>True if this ID matched search (search only)</td></tr>
+    </tbody>
+</table>
+
+<h2 id="s7">7. Pagination</h2>
+<p>Use these query parameters to paginate results:</p>
+<table>
+    <thead><tr><th>Parameter</th><th>Default</th><th>Max</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td><code>pageNumber</code></td><td>1</td><td>-</td><td>Page to retrieve</td></tr>
+        <tr><td><code>pageSize</code></td><td>20</td><td>100</td><td>Items per page</td></tr>
+    </tbody>
+</table>
+
+<p><strong>Example:</strong> Get page 2 with 50 items:</p>
+<pre><code class="language-bash">curl "https://[domain]/api/v1/certificates?includeProductIds=true&amp;pageNumber=2&amp;pageSize=50" \
+  -H "X-API-Key: YOUR_API_KEY"</code></pre>
+
+<p><strong>Pagination Response Fields:</strong></p>
+<ul>
+    <li><code>totalCount</code> - Total number of certificates</li>
+    <li><code>pageNumber</code> - Current page</li>
+    <li><code>pageSize</code> - Items per page</li>
+    <li><code>totalPages</code> - Total pages available</li>
+    <li><code>hasNext</code> - More pages available</li>
+    <li><code>hasPrevious</code> - Previous pages exist</li>
+</ul>
+
+<h2 id="s8">8. Rate Limits</h2>
+<table>
+    <thead><tr><th>Metric</th><th>Limit</th></tr></thead>
+    <tbody>
+        <tr><td>Requests per hour</td><td>200</td></tr>
+        <tr><td>Requests per minute</td><td>~3</td></tr>
+    </tbody>
+</table>
+<p>When rate limited, you'll receive HTTP 429. Implement exponential backoff in your integration.</p>
+
+<h2 id="s9">9. Testing Checklist</h2>
+<p>Use this checklist to validate your integration:</p>
+<table>
+    <thead><tr><th>Test</th><th>Status</th></tr></thead>
+    <tbody>
+        <tr><td>Authenticate with API key (expect 200)</td><td><span class="checkbox"></span></td></tr>
+        <tr><td>Test invalid API key (expect 401)</td><td><span class="checkbox"></span></td></tr>
+        <tr><td>List certificates with <code>includeProductIds=true</code></td><td><span class="checkbox"></span></td></tr>
+        <tr><td>Verify ASIN values appear in <code>productIds[]</code></td><td><span class="checkbox"></span></td></tr>
+        <tr><td>Search by a known ASIN</td><td><span class="checkbox"></span></td></tr>
+        <tr><td>Verify <code>certificationResults</code> field is present</td><td><span class="checkbox"></span></td></tr>
+        <tr><td>Download a certificate PDF</td><td><span class="checkbox"></span></td></tr>
+        <tr><td>Test pagination (page 1, page 2)</td><td><span class="checkbox"></span></td></tr>
+        <tr><td>Verify date formats are ISO 8601</td><td><span class="checkbox"></span></td></tr>
+    </tbody>
+</table>
+
+<h2 id="s10">10. Sample Test Script</h2>
+
+<h3>PowerShell</h3>
+<pre><code class="language-powershell">$apiKey = "YOUR_API_KEY"
+$baseUrl = "https://[production-domain]"
+
+$headers = @{
+    "X-API-Key" = $apiKey
+    "Accept" = "application/json"
+}
+
+# Test authentication
+$response = Invoke-RestMethod -Uri "$baseUrl/api/v1/certificates?pageSize=1" -Headers $headers
+Write-Host "Total certificates: $($response.pagination.totalCount)"
+
+# List with product IDs
+$response = Invoke-RestMethod -Uri "$baseUrl/api/v1/certificates?includeProductIds=true&amp;pageSize=5" -Headers $headers
+foreach ($cert in $response.data) {
+    Write-Host "Certificate: $($cert.certificateNumber) - $($cert.productName)"
+    foreach ($pid in $cert.productIds) {
+        if ($pid.type -eq "ASIN") {
+            Write-Host "  ASIN: $($pid.value)"
+        }
+    }
+}</code></pre>
+
+<h3>Bash/cURL</h3>
+<pre><code class="language-bash">API_KEY="YOUR_API_KEY"
+BASE_URL="https://[production-domain]"
+
+# Test authentication
+curl -s -H "X-API-Key: $API_KEY" "$BASE_URL/api/v1/certificates?pageSize=1" | jq '.pagination.totalCount'
+
+# List with product IDs
+curl -s -H "X-API-Key: $API_KEY" \
+  "$BASE_URL/api/v1/certificates?includeProductIds=true&amp;pageSize=5" | \
+  jq '.data[] | {cert: .certificateNumber, asins: [.productIds[] | select(.type=="ASIN") | .value]}'
+
+# Search by ASIN
+curl -s -H "X-API-Key: $API_KEY" \
+  "$BASE_URL/api/v1/certificates/search/productid?productId=B08XQRT456&amp;type=ASIN" | jq '.'</code></pre>
+
+<h2 id="s11">11. Error Handling</h2>
+
+<h3>Error Response Format</h3>
+<pre><code class="language-json">{
+  "success": false,
+  "errors": [
+    {
+      "code": "ERROR_CODE",
+      "message": "Human-readable error message"
+    }
+  ]
+}</code></pre>
+
+<h3>Common Error Codes</h3>
+<table>
+    <thead><tr><th>Code</th><th>Description</th><th>Resolution</th></tr></thead>
+    <tbody>
+        <tr><td><code>UNAUTHORIZED</code></td><td>Invalid or missing API key</td><td>Check X-API-Key header</td></tr>
+        <tr><td><code>FORBIDDEN</code></td><td>Endpoint not permitted</td><td>Contact GCC for permissions</td></tr>
+        <tr><td><code>RESOURCE_NOT_FOUND</code></td><td>Certificate/resource not found</td><td>Verify ID or number</td></tr>
+        <tr><td><code>VALIDATION_ERROR</code></td><td>Invalid request parameters</td><td>Check query parameters</td></tr>
+        <tr><td><code>RATE_LIMIT_EXCEEDED</code></td><td>Too many requests</td><td>Wait and retry with backoff</td></tr>
+    </tbody>
+</table>
+
+<h2 id="s12">12. Support</h2>
+<p>For API issues or questions:</p>
+<ul>
+    <li><strong>Technical Support:</strong> [Contact GCC Technical Team]</li>
+    <li><strong>API Key Issues:</strong> [Contact GCC Admin]</li>
+    <li><strong>Documentation:</strong> See full API reference at <code>/swagger</code> (development only)</li>
+</ul>
+
+<h2 id="appendix">Appendix: Quick Reference</h2>
+
+<h3>Minimum Required Headers</h3>
+<pre><code>X-API-Key: YOUR_API_KEY
+Accept: application/json</code></pre>
+
+<h3>Most Common Request</h3>
+<pre><code class="language-bash">GET /api/v1/certificates?includeProductIds=true&amp;pageSize=100</code></pre>
+
+<h3>Certificate Status Values</h3>
+<ul>
+    <li><code>Draft</code> - Not yet active</li>
+    <li><code>Active</code> - Currently valid</li>
+    <li><code>Expired</code> - Past expiration date</li>
+    <li><code>Suspended</code> - Temporarily inactive</li>
+    <li><code>Revoked</code> - Permanently invalidated</li>
+</ul>
+
+<p style="text-align: center; font-size: 9pt; color: #555; margin-top: 20px;"><em>Document maintained by: Green Circle Certified</em><br/><em>Last updated: 2026-01-28</em></p>
+
+<div class="doc-footer">Generated: February 19, 2026 | GCC Database Solution - Anuki Consulting</div>
+
+</body>
+</html>

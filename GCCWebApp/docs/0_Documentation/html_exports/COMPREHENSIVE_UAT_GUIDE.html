@@ -1,0 +1,1589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - Comprehensive UAT Testing Guide</title>
+    <style>
+@page { size: letter; margin: 0.6in 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 20px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 13pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 24px; margin-bottom: 10px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 16px; margin-bottom: 6px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 12px; margin-bottom: 5px; page-break-after: avoid; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 14px 0; font-size: 8.5pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 7px; font-size: 8.5pt; white-space: nowrap; }
+td { padding: 5px 7px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+ul, ol { margin: 4px 0 10px 0; padding-left: 18px; }
+li { margin-bottom: 3px; font-size: 9.5pt; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; overflow-x: auto; font-size: 8pt; line-height: 1.4; margin: 6px 0 14px 0; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 10px 0; font-size: 9pt; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 16px; margin: 12px 0 20px 0; columns: 2; column-gap: 30px; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 6px; column-span: all; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+.sign-off { border: 1px solid #ccc; padding: 12px; margin: 10px 0; font-size: 9pt; }
+.sign-off-line { border-bottom: 1px solid #666; min-width: 200px; display: inline-block; margin: 0 8px; }
+.checkbox { display: inline-block; width: 14px; height: 14px; border: 1.5px solid #666; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+.tag-p1 { background: #ffebee; color: #c62828; }
+.tag-p2 { background: #fff3e0; color: #e65100; }
+.tag-p3 { background: #e3f2fd; color: #1565c0; }
+.tag-p4 { background: #f3e5f5; color: #6a1b9a; }
+.gap-tag { background: #fff9c4; color: #f57f17; padding: 1px 6px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; }
+.pending-tag { background: #e8eaf6; color: #283593; padding: 1px 6px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; }
+.deferred-tag { background: #fce4ec; color: #880e4f; padding: 1px 6px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; }
+@media print { body { padding: 0; } .toc { break-inside: avoid; } h2 { break-after: avoid; } h3 { break-after: avoid; } table { font-size: 8pt; } }
+    </style>
+</head>
+<body>
+    <div class="doc-header">
+        <h1>Comprehensive UAT Testing Guide</h1>
+        <p class="subtitle">GCC Database Solution</p>
+        <div class="doc-meta">
+            <div><strong>Version:</strong> 3.2</div>
+            <div><strong>Date:</strong> February 19, 2026</div>
+            <div><strong>Project:</strong> GCC Web Application (ASP.NET Core 8.0)</div>
+            <div><strong>Environment:</strong> UAT / System Test</div>
+        </div>
+    </div>
+
+    <div class="toc">
+        <div class="toc-title">Table of Contents</div>
+        <a href="#s1"><strong>Part A: Feature-Level Testing</strong></a>
+        <a href="#s1">&nbsp;&nbsp;1. Overview &amp; Purpose</a>
+        <a href="#s2">&nbsp;&nbsp;2. Test Credentials &amp; Setup</a>
+        <a href="#s3">&nbsp;&nbsp;3. Test Case Format &amp; Status Key</a>
+        <a href="#s4">&nbsp;&nbsp;4. Module 1: Authentication</a>
+        <a href="#s5">&nbsp;&nbsp;5. Module 2: Public User Flows</a>
+        <a href="#s6">&nbsp;&nbsp;6. Module 3: External User Flows</a>
+        <a href="#s7">&nbsp;&nbsp;7. Module 4: Analyst User Flows</a>
+        <a href="#s8">&nbsp;&nbsp;8. Module 5: Admin User Flows</a>
+        <a href="#s9">&nbsp;&nbsp;9. Module 6: 14-State Workflow</a>
+        <a href="#s10">&nbsp;&nbsp;10. Module 7: Partner API Flows</a>
+        <a href="#s11">&nbsp;&nbsp;11. Module 8: Permission Matrix</a>
+        <a href="#s12">&nbsp;&nbsp;12. Module 9: Export &amp; Import</a>
+        <a href="#s13">&nbsp;&nbsp;13. Module 10: Edge Cases</a>
+        <a href="#s14a">&nbsp;&nbsp;14. Module 10b: Audit Trail</a>
+        <a href="#partb"><strong>Part B: E2E Scenarios (11-19)</strong></a>
+        <a href="#s14">&nbsp;&nbsp;Module 11: Certificate Lifecycle</a>
+        <a href="#s15">&nbsp;&nbsp;Module 12: Company Onboarding</a>
+        <a href="#s16">&nbsp;&nbsp;Module 13: Partner API Integration</a>
+        <a href="#s17">&nbsp;&nbsp;Module 14: Admin System Setup</a>
+        <a href="#s18">&nbsp;&nbsp;Module 15: Certificate Renewal</a>
+        <a href="#s19">&nbsp;&nbsp;Module 16: Rejection &amp; Recovery</a>
+        <a href="#s20">&nbsp;&nbsp;Module 17: Bulk Operations</a>
+        <a href="#s21">&nbsp;&nbsp;Module 18: User Access Lifecycle</a>
+        <a href="#s22">&nbsp;&nbsp;Module 19: Search &amp; Discovery</a>
+        <a href="#partb2"><strong>Part B2: Accessibility (Module 20)</strong></a>
+        <a href="#partc"><strong>Part C: Traceability &amp; Reporting</strong></a>
+        <a href="#s24">&nbsp;&nbsp;24. Traceability Matrix</a>
+        <a href="#s25">&nbsp;&nbsp;25. Defect Report Template</a>
+        <a href="#s26">&nbsp;&nbsp;26. Test Execution Summary</a>
+    </div>
+
+    <!-- Section 1: Overview -->
+    <h2 id="s1">1. Overview &amp; Purpose</h2>
+    <p>This guide provides a <strong>complete, end-to-end</strong> User Acceptance Testing plan for the GCC Database Solution. It covers:</p>
+    <ul>
+        <li><strong>All 6 user roles</strong>: Public, External Client, Partner, Analyst, Admin, API Integration</li>
+        <li><strong>All application pages</strong>: 30+ pages across authentication, certificates, admin, and API</li>
+        <li><strong>14-state certificate workflow</strong>: Every status transition with role-based access</li>
+        <li><strong>Permission verification</strong>: What each role can and cannot do</li>
+        <li><strong>Requirements validation</strong>: Mapping test cases back to documented requirements</li>
+    </ul>
+    <h3>How to Use This Guide</h3>
+    <ol>
+        <li><strong>Before starting</strong>: Set up test accounts per Section 2</li>
+        <li><strong>Execute by module</strong>: Work through Modules 1-10 in order</li>
+        <li><strong>Record results</strong>: Use Pass/Fail/Blocked columns in each test table</li>
+        <li><strong>Log defects</strong>: Use the template in Section 25</li>
+        <li><strong>Track progress</strong>: Update the summary in Section 26</li>
+    </ol>
+
+    <!-- Section 2: Credentials -->
+    <h2 id="s2">2. Test Credentials &amp; Setup</h2>
+    <h3>Test Accounts</h3>
+    <table>
+        <thead><tr><th>Username</th><th>Password</th><th>Role</th><th>Company</th><th>Purpose</th></tr></thead>
+        <tbody>
+            <tr><td>admin</td><td>TestPass123!</td><td>Administrator</td><td>N/A</td><td>Full system access</td></tr>
+            <tr><td>analyst</td><td>TestPass123!</td><td>Analyst</td><td>N/A</td><td>Certificate management</td></tr>
+            <tr><td>external</td><td>TestPass123!</td><td>External Client</td><td>(Assigned Company)</td><td>Company-scoped view</td></tr>
+            <tr><td>(no account)</td><td>N/A</td><td>Public</td><td>N/A</td><td>Unauthenticated access</td></tr>
+        </tbody>
+    </table>
+    <h3>Environment URLs</h3>
+    <table>
+        <thead><tr><th>Environment</th><th>URL</th></tr></thead>
+        <tbody>
+            <tr><td>Local Dev</td><td>http://localhost:5101</td></tr>
+            <tr><td>UAT</td><td>(TBD - configure per deployment)</td></tr>
+        </tbody>
+    </table>
+    <h3>Pre-Test Checklist</h3>
+    <ul style="list-style:none;padding-left:0;">
+        <li><span class="checkbox"></span> Application is running and accessible</li>
+        <li><span class="checkbox"></span> <strong>Run <code>UAT_TEST_DATA_SETUP.sql</code></strong> against UAT database</li>
+        <li><span class="checkbox"></span> Database seeded with test data (4 companies, 6 products, 8 certificates, 7 tags)</li>
+        <li><span class="checkbox"></span> 8 certificates in various statuses (Active x3, Draft, Archived, Expired, PendingReview, Active-expiring)</li>
+        <li><span class="checkbox"></span> 4 companies with products (EcoProduct Co, GreenTech Industries, TestCo UAT, OtherCo)</li>
+        <li><span class="checkbox"></span> External user associated with TestCo UAT (Company Id 3)</li>
+        <li><span class="checkbox"></span> PDF test file available (&lt; 10MB) for upload testing</li>
+        <li><span class="checkbox"></span> CSV test files available for import testing</li>
+        <li><span class="checkbox"></span> Browser DevTools available for API/network inspection</li>
+        <li><span class="checkbox"></span> For accessibility testing: Screen reader installed (NVDA/JAWS/VoiceOver)</li>
+    </ul>
+
+    <!-- Section 3: Status Key -->
+    <h2 id="s3">3. Test Case Format &amp; Status Key</h2>
+    <p>Each test case includes: <strong>ID</strong>, <strong>Description</strong>, <strong>Pre-conditions</strong>, <strong>Steps</strong>, <strong>Expected Result</strong>, and <strong>Status</strong>.</p>
+    <table>
+        <thead><tr><th>Status</th><th>Icon</th><th>Meaning</th></tr></thead>
+        <tbody>
+            <tr><td>Pass</td><td>&#10003;</td><td>Test passed as expected</td></tr>
+            <tr><td>Fail</td><td>&#10007;</td><td>Test did not produce expected result</td></tr>
+            <tr><td>Blocked</td><td>&#8856;</td><td>Cannot execute due to dependency</td></tr>
+            <tr><td>Not Run</td><td>&#9744;</td><td>Not yet executed</td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 4: Module 1 Authentication -->
+    <h2 id="s4">4. Module 1: Authentication &amp; Account Management</h2>
+    <h3>1.1 Login Flow</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-AUTH-001</td><td>Valid admin login</td><td>1. Navigate to /Account/Login 2. Enter admin/TestPass123! 3. Click Sign In</td><td>Redirect to Dashboard or Internal Tile View</td><td></td></tr>
+            <tr><td>TC-AUTH-002</td><td>Valid analyst login</td><td>1. Navigate to /Account/Login 2. Enter analyst/TestPass123! 3. Click Sign In</td><td>Redirect to Internal Tile View</td><td></td></tr>
+            <tr><td>TC-AUTH-003</td><td>Valid external login</td><td>1. Navigate to /Account/Login 2. Enter external/TestPass123! 3. Click Sign In</td><td>Redirect to External Tile View</td><td></td></tr>
+            <tr><td>TC-AUTH-004</td><td>Invalid password</td><td>1. Navigate to /Account/Login 2. Enter admin/WrongPassword 3. Click Sign In</td><td>Error message displayed, no redirect</td><td></td></tr>
+            <tr><td>TC-AUTH-005</td><td>Invalid username</td><td>1. Navigate to /Account/Login 2. Enter nonexistent/TestPass123! 3. Click Sign In</td><td>Error message displayed</td><td></td></tr>
+            <tr><td>TC-AUTH-006</td><td>Empty fields submission</td><td>1. Navigate to /Account/Login 2. Leave both fields empty 3. Click Sign In</td><td>Validation errors shown for required fields</td><td></td></tr>
+            <tr><td>TC-AUTH-007</td><td>Account lockout</td><td>1. Enter wrong password 5+ times for same account</td><td>Account locked message displayed</td><td></td></tr>
+            <tr><td>TC-AUTH-008</td><td>Remember Me functionality</td><td>1. Login with Remember Me checked 2. Close browser 3. Reopen and navigate to app</td><td>User remains authenticated</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>1.2 Two-Factor Authentication (2FA)</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-AUTH-009</td><td>Enable 2FA</td><td>1. Login as admin 2. Navigate to Account &gt; Two Factor Preferences 3. Enable 2FA 4. Scan QR code 5. Enter TOTP code</td><td>2FA enabled, recovery codes displayed</td><td></td></tr>
+            <tr><td>TC-AUTH-010</td><td>Login with 2FA enabled</td><td>1. Login with username/password 2. Enter TOTP code from authenticator</td><td>Successful login after 2FA verification</td><td></td></tr>
+            <tr><td>TC-AUTH-011</td><td>Invalid 2FA code</td><td>1. Login with username/password 2. Enter wrong TOTP code</td><td>Error message, not authenticated</td><td></td></tr>
+            <tr><td>TC-AUTH-012</td><td>Disable 2FA (Admin)</td><td>1. Login as admin 2. Navigate to User Management 3. Select user with 2FA 4. Click Disable 2FA</td><td>2FA disabled for target user</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>1.3 Password Management</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-AUTH-013</td><td>Forgot password flow</td><td>1. Click Forgot Password 2. Enter email 3. Check email for reset link 4. Set new password</td><td>Password reset successful, can login with new password</td><td></td></tr>
+            <tr><td>TC-AUTH-014</td><td>Force password reset</td><td>1. Admin flags user for password reset 2. User logs in 3. User is redirected to password reset</td><td>User must set new password before accessing system</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>1.4 Session &amp; Authorization</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-AUTH-015</td><td>Session timeout</td><td>1. Login 2. Leave idle beyond session timeout 3. Attempt action</td><td>Redirect to login page</td><td></td></tr>
+            <tr><td>TC-AUTH-016</td><td>Access denied - External to Admin</td><td>1. Login as external 2. Navigate directly to /Admin/UserManagement</td><td>Access Denied page or redirect</td><td></td></tr>
+            <tr><td>TC-AUTH-017</td><td>Access denied - Analyst to Admin</td><td>1. Login as analyst 2. Navigate directly to /Admin/UserManagement</td><td>Access Denied page or redirect</td><td></td></tr>
+            <tr><td>TC-AUTH-018</td><td>Logout</td><td>1. Login as any user 2. Click Logout</td><td>Redirected to login page, session cleared</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 5: Module 2 Public -->
+    <h2 id="s5">5. Module 2: Public User Flows</h2>
+    <p><strong>Role</strong>: Unauthenticated user (no login required)</p>
+    <h3>2.1 Public Certificate Tile View</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-PUB-001</td><td>Access public tile view</td><td>1. Navigate to /Certificate/CertificateTileView (no login)</td><td>Page loads with certificate tiles visible</td><td></td></tr>
+            <tr><td>TC-PUB-002</td><td>Infinite scroll loading</td><td>1. View tile view 2. Scroll to bottom</td><td>Additional certificates load automatically</td><td></td></tr>
+            <tr><td>TC-PUB-003</td><td>Search by certificate number</td><td>1. Type certificate number in search bar</td><td>Autocomplete suggestions appear, results filter</td><td></td></tr>
+            <tr><td>TC-PUB-004</td><td>Search by company name</td><td>1. Type company name in search bar</td><td>Autocomplete suggestions with categorized results</td><td></td></tr>
+            <tr><td>TC-PUB-005</td><td>Filter by certification type</td><td>1. Open filter panel 2. Select a certification type checkbox</td><td>Tiles filter to show only selected type</td><td></td></tr>
+            <tr><td>TC-PUB-006</td><td>Filter by status</td><td>1. Open filter panel 2. Select "Active" status</td><td>Only Active certificates shown</td><td></td></tr>
+            <tr><td>TC-PUB-007</td><td>Multiple filters combined</td><td>1. Select certification type filter 2. Select status filter 3. Enter search text</td><td>Results match ALL applied filters</td><td></td></tr>
+            <tr><td>TC-PUB-008</td><td>Clear all filters</td><td>1. Apply multiple filters 2. Click clear/reset</td><td>All certificates shown, filters cleared</td><td></td></tr>
+            <tr><td>TC-PUB-009</td><td>Shareable URL</td><td>1. Apply filters 2. Copy URL 3. Open in new incognito window</td><td>Same filters applied, same results shown</td><td></td></tr>
+            <tr><td>TC-PUB-010</td><td>No edit/create buttons visible</td><td>1. View tile view as public user</td><td>No Add, Edit, or Delete buttons anywhere</td><td></td></tr>
+            <tr><td>TC-PUB-011</td><td>No internal tags visible</td><td>1. View certificate tiles</td><td>Internal tag column/data is NOT shown</td><td></td></tr>
+            <tr><td>TC-PUB-012</td><td>No navigation menu</td><td>1. View page as unauthenticated user</td><td>Only public tile view accessible, no admin/management nav links</td><td></td></tr>
+            <tr><td>TC-PUB-013a</td><td>Draft certificates NOT visible</td><td>1. Ensure a Draft certificate exists 2. View public tile view</td><td>Certificate NOT shown (only Active visible to public)</td><td></td></tr>
+            <tr><td>TC-PUB-013b</td><td>Archived certificates NOT visible</td><td>1. Ensure an Archived certificate exists 2. View public tile view</td><td>Certificate NOT shown</td><td></td></tr>
+            <tr><td>TC-PUB-013c</td><td>Filter options from database</td><td>1. Open filter panel on public tile view</td><td>Filter options dynamically loaded from database, not hardcoded</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>2.2 Public Certificate Details</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-PUB-013</td><td>View single certificate</td><td>1. Click on a certificate tile</td><td>Certificate detail page loads with: Certificate Number, Company, Product, Status, Dates, Certification Type</td><td></td></tr>
+            <tr><td>TC-PUB-014</td><td>Certificate preview image</td><td>1. View certificate details</td><td>PDF thumbnail preview shown (or placeholder)</td><td></td></tr>
+            <tr><td>TC-PUB-015</td><td>Download certificate PDF</td><td>1. View certificate with PDF uploaded 2. Click Download</td><td>PDF file downloads</td><td></td></tr>
+            <tr><td>TC-PUB-016</td><td>No edit buttons on details</td><td>1. View certificate detail page as public</td><td>No Edit or Delete buttons visible</td><td></td></tr>
+            <tr><td>TC-PUB-017</td><td>Certificate number in URL</td><td>1. View certificate details</td><td>URL uses certificate number (e.g., /Certificate/CertificateSingleView/24-0366), NOT database ID</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 6: Module 3 External User -->
+    <h2 id="s6">6. Module 3: External User Flows</h2>
+    <p><strong>Role</strong>: External Client (login: external / TestPass123!)<br><strong>Key Rule</strong>: Can ONLY see data for their associated company/partner</p>
+    <h3>3.1 External Certificate Tile View</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-EXT-001</td><td>Access external tile view</td><td>1. Login as external 2. Verify redirect to /Certificate/CertificateTileViewExternal</td><td>External tile view loads</td><td></td></tr>
+            <tr><td>TC-EXT-002</td><td>Only own company data visible</td><td>1. View tile view 2. Check all visible certificates</td><td>ALL certificates belong to external user's associated company only</td><td></td></tr>
+            <tr><td>TC-EXT-003</td><td>Cannot see other company data</td><td>1. Search for a certificate from a different company</td><td>No results returned for other companies</td><td></td></tr>
+            <tr><td>TC-EXT-004</td><td>No Add Certificate button</td><td>1. View external tile view</td><td>No "Add" or "Create" button visible</td><td></td></tr>
+            <tr><td>TC-EXT-005</td><td>No Edit buttons</td><td>1. View tiles</td><td>No Edit button/icon on any certificate</td><td></td></tr>
+            <tr><td>TC-EXT-006</td><td>No Delete buttons</td><td>1. View tiles</td><td>No Delete button/icon on any certificate</td><td></td></tr>
+            <tr><td>TC-EXT-007</td><td>No internal tags visible</td><td>1. View certificate tiles</td><td>Internal Tag column is NOT displayed</td><td></td></tr>
+            <tr><td>TC-EXT-008</td><td>External tags visible</td><td>1. View certificate with external tags</td><td>External tags ARE displayed</td><td></td></tr>
+            <tr><td>TC-EXT-009</td><td>Search within own data</td><td>1. Use search bar 2. Enter text</td><td>Search works but only within company's certificates</td><td></td></tr>
+            <tr><td>TC-EXT-010</td><td>Filter within own data</td><td>1. Apply certification type filter</td><td>Filters work within company's data only</td><td></td></tr>
+            <tr><td>TC-EXT-011</td><td>Infinite scroll</td><td>1. Scroll to bottom</td><td>More certificates from own company load</td><td></td></tr>
+            <tr><td>TC-EXT-012</td><td>Bulk ZIP download</td><td>1. Select multiple certificates 2. Click download</td><td>ZIP file downloads with selected certificate PDFs</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>3.2 External Certificate Details</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-EXT-013</td><td>View own certificate detail</td><td>1. Click on a certificate tile</td><td>Detail view shows certificate data (read-only)</td><td></td></tr>
+            <tr><td>TC-EXT-014</td><td>No edit/delete on details</td><td>1. View certificate detail page</td><td>No Edit or Delete buttons</td><td></td></tr>
+            <tr><td>TC-EXT-015</td><td>Cannot access other company cert via URL</td><td>1. Manually enter URL for a certificate from another company</td><td>Access denied or certificate not found</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>3.3 External Product Management</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-EXT-016</td><td>Access product management</td><td>1. Navigate to /Product/Management</td><td>Page loads with products</td><td></td></tr>
+            <tr><td>TC-EXT-017</td><td>Only own company products</td><td>1. View product list</td><td>Only products for external user's company shown</td><td></td></tr>
+            <tr><td>TC-EXT-018</td><td>No Actions column</td><td>1. View product table</td><td>Actions column (Edit/Delete) is NOT visible</td><td></td></tr>
+            <tr><td>TC-EXT-019</td><td>No Add Product button</td><td>1. View product page</td><td>No Add/Create button visible</td><td></td></tr>
+            <tr><td>TC-EXT-020</td><td>Product data is read-only</td><td>1. Try to interact with product data</td><td>No inline editing available</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>3.4 External Navigation Verification</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-EXT-021</td><td>Navigation menu items</td><td>1. Check main navigation menu</td><td>Only see: Certificates, Products (NO Admin, NO Companies, NO Dashboard)</td><td></td></tr>
+            <tr><td>TC-EXT-022</td><td>Cannot access admin pages</td><td>1. Navigate directly to /Admin/UserManagement</td><td>Access denied</td><td></td></tr>
+            <tr><td>TC-EXT-023</td><td>Cannot access certificate create</td><td>1. Navigate directly to /Certificate/Create</td><td>Access denied</td><td></td></tr>
+            <tr><td>TC-EXT-024</td><td>Cannot access company management</td><td>1. Navigate directly to /Company/Index</td><td>Access denied</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 7: Module 4 Analyst -->
+    <h2 id="s7">7. Module 4: Analyst User Flows</h2>
+    <p><strong>Role</strong>: Analyst (login: analyst / TestPass123!)<br><strong>Key Rule</strong>: Can create/edit certificates, manage workflow, but NO admin or delete access</p>
+    <h3>4.1 Internal Certificate Tile View</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ANL-001</td><td>Access internal tile view</td><td>1. Login as analyst</td><td>Internal tile view loads at /Certificate/CertificateTileViewInternal</td><td></td></tr>
+            <tr><td>TC-ANL-002</td><td>See all certificates</td><td>1. View tile view</td><td>Certificates from ALL companies visible (not scoped)</td><td></td></tr>
+            <tr><td>TC-ANL-003</td><td>Internal tags visible</td><td>1. View tiles</td><td>Internal tags column IS visible</td><td></td></tr>
+            <tr><td>TC-ANL-004</td><td>Add Certificate button visible</td><td>1. View tile view</td><td>Add/Create New button IS visible</td><td></td></tr>
+            <tr><td>TC-ANL-005</td><td>Edit button visible</td><td>1. View certificate tile</td><td>Edit button/icon IS visible on each tile</td><td></td></tr>
+            <tr><td>TC-ANL-006</td><td>Search across all data</td><td>1. Search for certificate</td><td>Results span all companies and types</td><td></td></tr>
+            <tr><td>TC-ANL-007</td><td>All filters available</td><td>1. Open filter panel</td><td>Can filter by: Certification Type, Status, Company, Partner, Tags</td><td></td></tr>
+            <tr><td>TC-ANL-008</td><td>Shareable URL with filters</td><td>1. Apply filters 2. Copy URL 3. Share with another analyst</td><td>Same filters/results when opened</td><td></td></tr>
+            <tr><td>TC-ANL-009</td><td>Bulk ZIP download</td><td>1. Select multiple certificates 2. Download</td><td>ZIP file with PDFs downloads</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>4.2 Certificate Create Flow</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ANL-010</td><td>Navigate to create page</td><td>1. Click Add/Create New from tile view</td><td>/Certificate/Create page loads</td><td></td></tr>
+            <tr><td>TC-ANL-011</td><td>Auto-generated certificate number</td><td>1. View create form</td><td>Certificate Number field pre-populated with next sequential number (YY-NNNN format)</td><td></td></tr>
+            <tr><td>TC-ANL-012</td><td>Required field validation</td><td>1. Leave all fields empty 2. Click Save</td><td>Validation errors shown for required fields</td><td></td></tr>
+            <tr><td>TC-ANL-013</td><td>Select company</td><td>1. Select a company from dropdown</td><td>Company selected, associated products may update</td><td></td></tr>
+            <tr><td>TC-ANL-014</td><td>Select product</td><td>1. Select a product from dropdown</td><td>Product selected</td><td></td></tr>
+            <tr><td>TC-ANL-015</td><td>Select certification type</td><td>1. Select parent certification type</td><td>Subcategory dropdown populates with child types</td><td></td></tr>
+            <tr><td>TC-ANL-016</td><td>Select subcategory</td><td>1. Select subcategory from populated dropdown</td><td>Subcategory selected, custom fields may load</td><td></td></tr>
+            <tr><td>TC-ANL-017</td><td>Custom fields load dynamically</td><td>1. Select a certification type that has custom fields</td><td>Custom field inputs appear below cert type selection</td><td></td></tr>
+            <tr><td>TC-ANL-018</td><td>Set effective date</td><td>1. Enter or pick effective date</td><td>Date accepted in correct format</td><td></td></tr>
+            <tr><td>TC-ANL-019</td><td>Set expiration date</td><td>1. Enter expiration date (after effective date)</td><td>Date accepted</td><td></td></tr>
+            <tr><td>TC-ANL-020</td><td>Expiration before effective date</td><td>1. Set expiration date BEFORE effective date</td><td>Validation error shown</td><td></td></tr>
+            <tr><td>TC-ANL-021</td><td>Upload PDF certificate</td><td>1. Click upload zone or drag PDF file 2. Verify preview</td><td>File name shown, preview generated, success toast</td><td></td></tr>
+            <tr><td>TC-ANL-022</td><td>Upload invalid file type</td><td>1. Try to upload a .docx or .jpg file</td><td>Error: Invalid file type</td><td></td></tr>
+            <tr><td>TC-ANL-023</td><td>Upload oversized file</td><td>1. Try to upload PDF &gt; 10MB</td><td>Error: File too large</td><td></td></tr>
+            <tr><td>TC-ANL-024</td><td>Add external tags</td><td>1. Select external tags from dropdown</td><td>Tag badges appear, can be removed with X</td><td></td></tr>
+            <tr><td>TC-ANL-025</td><td>Add internal tags</td><td>1. Select internal tags from dropdown</td><td>Tag badges appear</td><td></td></tr>
+            <tr><td>TC-ANL-026</td><td>Add product identifiers</td><td>1. Click Add Product ID 2. Fill in Type (ASIN), Value, Status 3. Save</td><td>Product ID appears in table below form</td><td></td></tr>
+            <tr><td>TC-ANL-027</td><td>Add multiple product IDs</td><td>1. Add 3+ product IDs of different types (ASIN, UPC, GTIN)</td><td>All appear in product ID table</td><td></td></tr>
+            <tr><td>TC-ANL-028</td><td>Edit product identifier</td><td>1. Click edit on a product ID row 2. Modify value 3. Save</td><td>Updated value shown in table</td><td></td></tr>
+            <tr><td>TC-ANL-029</td><td>Delete product identifier</td><td>1. Click delete on a product ID row 2. Confirm</td><td>Product ID removed from table</td><td></td></tr>
+            <tr><td>TC-ANL-030</td><td>Import product IDs via CSV</td><td>1. Click Import on product ID section 2. Upload CSV</td><td>Product IDs populated from CSV</td><td></td></tr>
+            <tr><td>TC-ANL-031</td><td>Enter Certification Results</td><td>1. Enter text in Certification Results field (optional)</td><td>Text accepted (up to 1000 chars)</td><td></td></tr>
+            <tr><td>TC-ANL-031a</td><td>Cert Results visible in tile view</td><td>1. Save certificate with Cert Results 2. Return to internal tile view</td><td>Certification Results column visible with entered value</td><td></td></tr>
+            <tr><td>TC-ANL-031b</td><td>Cert Results in CSV export</td><td>1. Export certificates from tile view 2. Open CSV</td><td>Certification Results column present in exported CSV</td><td></td></tr>
+            <tr><td>TC-ANL-031c</td><td>Pathway dropdown on create form</td><td>1. Select Certification Type that has pathways configured</td><td>Pathway dropdown appears with options scoped to selected cert type</td><td></td></tr>
+            <tr><td>TC-ANL-031d</td><td>Pathway hidden when no pathways</td><td>1. Select Certification Type with NO pathways configured</td><td>Pathway dropdown is hidden (not shown)</td><td></td></tr>
+            <tr><td>TC-ANL-031e</td><td>Pathway selection saved</td><td>1. Select Pathway 2. Save certificate 3. Re-open edit</td><td>Selected Pathway value persists on certificate</td><td></td></tr>
+            <tr><td>TC-ANL-031f</td><td>Soft warning - Amazon cert missing Cert Results</td><td>1. Select Partner = "Amazon" 2. Leave Cert Results empty 3. Save</td><td>Warning message displayed (NOT blocking). Certificate saves successfully.</td><td><span class="pending-tag">Pending Q4</span></td></tr>
+            <tr><td>TC-ANL-032</td><td>Set partner</td><td>1. Select partner (Amazon/Novi/Other/None)</td><td>Partner set</td><td></td></tr>
+            <tr><td>TC-ANL-033</td><td>Set location and country</td><td>1. Enter location and country</td><td>Fields populated</td><td></td></tr>
+            <tr><td>TC-ANL-034</td><td>Analyst available statuses</td><td>1. Check Status dropdown options</td><td>Should see 12 of 14 statuses (all except Rejected and Revoked)</td><td></td></tr>
+            <tr><td>TC-ANL-035</td><td>Save certificate</td><td>1. Fill all required fields 2. Click Save</td><td>Certificate created, redirect to details, success notification</td><td></td></tr>
+            <tr><td>TC-ANL-036</td><td>Save &amp; Add Another</td><td>1. Fill all required fields 2. Click Save &amp; Add Another</td><td>Certificate created, redirect back to blank Create form</td><td></td></tr>
+            <tr><td>TC-ANL-037</td><td>Unsaved changes warning</td><td>1. Fill some fields 2. Try to navigate away without saving</td><td>Warning prompt about unsaved changes</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>4.3 Certificate Edit Flow</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ANL-038</td><td>Open edit page</td><td>1. From tile view, click Edit on a certificate</td><td>Edit page loads with all current data pre-populated</td><td></td></tr>
+            <tr><td>TC-ANL-039</td><td>All fields pre-populated</td><td>1. Verify all fields on edit page</td><td>Company, Product, Type, Subcategory, Dates, Tags, Product IDs, Custom Fields, Cert Results, Pathway all pre-filled</td><td></td></tr>
+            <tr><td>TC-ANL-040</td><td>Edit company</td><td>1. Change company dropdown</td><td>Company updated</td><td></td></tr>
+            <tr><td>TC-ANL-041</td><td>Edit certification type</td><td>1. Change certification type</td><td>Subcategory and custom fields update</td><td></td></tr>
+            <tr><td>TC-ANL-042</td><td>Add new tag on edit</td><td>1. Add a tag that wasn't previously assigned</td><td>Tag badge appears</td><td></td></tr>
+            <tr><td>TC-ANL-043</td><td>Remove existing tag</td><td>1. Click X on an existing tag badge</td><td>Tag removed</td><td></td></tr>
+            <tr><td>TC-ANL-044</td><td>Replace PDF</td><td>1. Upload new PDF on edit page</td><td>New file shown, old replaced</td><td></td></tr>
+            <tr><td>TC-ANL-045</td><td>Change status on edit</td><td>1. Change status dropdown</td><td>Status updated (within allowed transitions)</td><td></td></tr>
+            <tr><td>TC-ANL-046</td><td>Save edited certificate</td><td>1. Make changes 2. Click Save Changes</td><td>Changes saved, redirect to details, success notification</td><td></td></tr>
+            <tr><td>TC-ANL-047</td><td>Certificate number unchanged</td><td>1. Open edit 2. Check certificate number field</td><td>Certificate number cannot be changed on edit</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>4.4 Certificate Details View (Internal)</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ANL-048</td><td>View certificate details</td><td>1. Click on certificate from tile view</td><td>Detail page shows ALL fields including internal tags</td><td></td></tr>
+            <tr><td>TC-ANL-049</td><td>PDF preview and download</td><td>1. View details of cert with PDF</td><td>Thumbnail preview visible, Download button works</td><td></td></tr>
+            <tr><td>TC-ANL-050</td><td>Click-to-zoom preview</td><td>1. Click on thumbnail preview</td><td>Full-size modal opens with certificate image</td><td></td></tr>
+            <tr><td>TC-ANL-051</td><td>Edit button on details</td><td>1. View details page</td><td>Edit button visible and functional</td><td></td></tr>
+            <tr><td>TC-ANL-052</td><td>Certificate number displayed (not ID)</td><td>1. View details page</td><td>Page shows Certificate Number (e.g., 24-0366), NOT database ID</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>4.5 Analyst Navigation &amp; Restrictions</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ANL-053</td><td>Navigation menu</td><td>1. Check navigation</td><td>See: Certificates, Dashboard, Companies &amp; Products (NOT Administration)</td><td></td></tr>
+            <tr><td>TC-ANL-054</td><td>Cannot delete certificates</td><td>1. Check tile view and details</td><td>No Delete button/option visible for analyst</td><td></td></tr>
+            <tr><td>TC-ANL-055</td><td>Cannot access admin pages</td><td>1. Navigate to /Admin/UserManagement directly</td><td>Access denied</td><td></td></tr>
+            <tr><td>TC-ANL-056</td><td>Can access Dashboard</td><td>1. Click Dashboard in nav</td><td>Dashboard page loads with statistics</td><td></td></tr>
+            <tr><td>TC-ANL-057</td><td>Can access Companies</td><td>1. Navigate to /Company/Index</td><td>Company list loads</td><td></td></tr>
+            <tr><td>TC-ANL-058</td><td>Can manage products</td><td>1. Navigate to /Product/Management</td><td>Product page with CRUD operations</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>4.6 Certificate Import Access (Analyst - DENIED)</h3>
+    <div class="callout callout-info"><strong>Note</strong>: Certificate Import is Admin-only. Analysts CANNOT access the bulk import page.</div>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ANL-059</td><td>Analyst cannot access certificate import</td><td>1. Login as analyst 2. Navigate to /CertificateImport/Index</td><td>Access denied / redirect</td><td></td></tr>
+            <tr><td>TC-ANL-060</td><td>No import menu item for analyst</td><td>1. Check navigation menu as analyst</td><td>Certificate Import link NOT visible in nav</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>4.7 Additional Analyst Validations</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ANL-061</td><td>Cascading company-product dropdown</td><td>1. On Create form, select a Company 2. Open Product dropdown</td><td>Product dropdown filters to show only products linked to selected company</td><td></td></tr>
+            <tr><td>TC-ANL-062</td><td>Company change resets product</td><td>1. Select Company A and Product A-1 2. Change to Company B</td><td>Product dropdown resets/filters to Company B products only</td><td></td></tr>
+            <tr><td>TC-ANL-063</td><td>Database-driven filter options</td><td>1. Open filter panel on internal tile view</td><td>All filter options loaded from database, not hardcoded</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 8: Module 5 Admin -->
+    <h2 id="s8">8. Module 5: Admin User Flows</h2>
+    <p><strong>Role</strong>: Administrator (login: admin / TestPass123!)<br><strong>Key Rule</strong>: Full system access including all management, delete, and configuration</p>
+    <h3>5.1 Admin Dashboard</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-001</td><td>Access admin dashboard</td><td>1. Login as admin</td><td>Dashboard loads with system statistics</td><td></td></tr>
+            <tr><td>TC-ADM-002</td><td>Statistics cards display</td><td>1. View dashboard</td><td>Cards show: Total Certificates, Active, Expired, Companies, Users, etc.</td><td></td></tr>
+            <tr><td>TC-ADM-003</td><td>Stat card downloads</td><td>1. Click download on a stat card</td><td>Data downloads as CSV</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.2 User Management</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-004</td><td>Access user management</td><td>1. Navigate to Admin &gt; User Management</td><td>User list table loads</td><td></td></tr>
+            <tr><td>TC-ADM-005</td><td>Search users</td><td>1. Type in search box</td><td>Table filters in real-time</td><td></td></tr>
+            <tr><td>TC-ADM-006</td><td>Filter by role</td><td>1. Select role from filter dropdown</td><td>Only users with selected role shown</td><td></td></tr>
+            <tr><td>TC-ADM-007</td><td>Filter by status</td><td>1. Select Active/Inactive filter</td><td>Users filtered by status</td><td></td></tr>
+            <tr><td>TC-ADM-008</td><td>Filter by company</td><td>1. Select company from filter</td><td>Users filtered by company association</td><td></td></tr>
+            <tr><td>TC-ADM-009</td><td>Create new user</td><td>1. Click Add New 2. Fill: Username, Email, Password, Role, Company 3. Save</td><td>User created, appears in table, success toast</td><td></td></tr>
+            <tr><td>TC-ADM-010</td><td>Create user - duplicate email</td><td>1. Try to create user with existing email</td><td>Error: Email must be unique</td><td></td></tr>
+            <tr><td>TC-ADM-011</td><td>Create user - duplicate username</td><td>1. Try to create user with existing username</td><td>Error: Username must be unique</td><td></td></tr>
+            <tr><td>TC-ADM-012</td><td>Edit existing user</td><td>1. Click Edit on a user 2. Change role 3. Save</td><td>User updated, success toast</td><td></td></tr>
+            <tr><td>TC-ADM-013</td><td>Delete user</td><td>1. Click Delete on a user 2. Confirm in modal</td><td>Confirmation modal appears FIRST, then user deleted, success toast</td><td></td></tr>
+            <tr><td>TC-ADM-014</td><td>Cannot delete admin user</td><td>1. Try to delete the admin user</td><td>Operation prevented, error message</td><td></td></tr>
+            <tr><td>TC-ADM-015</td><td>Reset user 2FA</td><td>1. Click Reset 2FA on user with 2FA enabled</td><td>2FA reset for user</td><td></td></tr>
+            <tr><td>TC-ADM-016</td><td>Export users CSV</td><td>1. Click Export</td><td>CSV file downloads with all user data</td><td></td></tr>
+            <tr><td>TC-ADM-017</td><td>Download user import template</td><td>1. Click Template</td><td>CSV template downloads with correct headers</td><td></td></tr>
+            <tr><td>TC-ADM-018</td><td>Import users from CSV</td><td>1. Click Import 2. Upload valid CSV</td><td>Users imported, success notification</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.3 Role Management</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-019</td><td>Access role management</td><td>1. Navigate to Admin &gt; Role Management</td><td>Role list with permission matrix loads</td><td></td></tr>
+            <tr><td>TC-ADM-020</td><td>View role permissions</td><td>1. Click on a role</td><td>Permission checkboxes displayed by category (6 categories, 24 permissions)</td><td></td></tr>
+            <tr><td>TC-ADM-021</td><td>Create custom role</td><td>1. Click Add Role 2. Enter Name/Description 3. Select permissions 4. Save</td><td>Role created with selected permissions</td><td></td></tr>
+            <tr><td>TC-ADM-022</td><td>Edit role permissions</td><td>1. Click Edit on role 2. Change permissions 3. Save</td><td>Permissions updated</td><td></td></tr>
+            <tr><td>TC-ADM-023</td><td>Delete custom role</td><td>1. Click Delete on custom role 2. Confirm</td><td>Role deleted (confirmation modal before, toast after)</td><td></td></tr>
+            <tr><td>TC-ADM-024</td><td>Cannot delete Admin role</td><td>1. Try to delete Admin role</td><td>Operation prevented</td><td></td></tr>
+            <tr><td>TC-ADM-025</td><td>Select All permissions</td><td>1. Edit role 2. Click Select All</td><td>All permissions checked</td><td></td></tr>
+            <tr><td>TC-ADM-026</td><td>Clear All permissions</td><td>1. Edit role 2. Click Clear All</td><td>All permissions unchecked</td><td></td></tr>
+            <tr><td>TC-ADM-027</td><td>Export roles CSV</td><td>1. Click Export</td><td>Roles CSV downloads</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.4 Certificate Type Management</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-028</td><td>Access certificate types</td><td>1. Navigate to Admin &gt; Data Management &gt; Certificate Types</td><td>Certificate type hierarchy loads</td><td></td></tr>
+            <tr><td>TC-ADM-029</td><td>View parent/child hierarchy</td><td>1. View certificate types list</td><td>Parent types shown with associated subcategories</td><td></td></tr>
+            <tr><td>TC-ADM-030</td><td>Create parent cert type</td><td>1. Click Add 2. Enter Name, Description 3. Save</td><td>New parent certification type created</td><td></td></tr>
+            <tr><td>TC-ADM-031</td><td>Create subcategory</td><td>1. Click Add subcategory under a parent 2. Enter Name 3. Save</td><td>Subcategory created under parent</td><td></td></tr>
+            <tr><td>TC-ADM-032</td><td>Edit cert type (Amazon Code)</td><td>1. Edit a cert type 2. Set AmazonCode field 3. Save</td><td>Amazon Code saved for API mapping</td><td></td></tr>
+            <tr><td>TC-ADM-033</td><td>Delete cert type</td><td>1. Delete a cert type with no certificates 2. Confirm</td><td>Type deleted</td><td></td></tr>
+            <tr><td>TC-ADM-034</td><td>Help modal</td><td>1. Click Help button</td><td>Help modal displays hierarchy explanation</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.5 Certificate Field Management</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-035</td><td>Access certificate fields</td><td>1. Navigate to Admin &gt; Certificate Fields</td><td>Custom fields list loads</td><td></td></tr>
+            <tr><td>TC-ADM-036</td><td>Create text field</td><td>1. Add new field: Type=Text, Name, Required/Optional 2. Save</td><td>Text field created</td><td></td></tr>
+            <tr><td>TC-ADM-037</td><td>Create number field</td><td>1. Add new field: Type=Number 2. Save</td><td>Number field created</td><td></td></tr>
+            <tr><td>TC-ADM-038</td><td>Create date field</td><td>1. Add new field: Type=Date 2. Save</td><td>Date field created</td><td></td></tr>
+            <tr><td>TC-ADM-039</td><td>Create dropdown field</td><td>1. Add new field: Type=Select, add options 2. Save</td><td>Dropdown field created with options</td><td></td></tr>
+            <tr><td>TC-ADM-040</td><td>Associate field with cert type</td><td>1. Set certification type association on field</td><td>Field appears when that cert type is selected on Create/Edit</td><td></td></tr>
+            <tr><td>TC-ADM-041</td><td>Edit custom field</td><td>1. Edit field name/type 2. Save</td><td>Field updated</td><td></td></tr>
+            <tr><td>TC-ADM-042</td><td>Delete custom field</td><td>1. Delete field 2. Confirm</td><td>Field deleted (confirmation modal, then toast)</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.6 Tag Management</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-043</td><td>Access tag management</td><td>1. Navigate to Admin &gt; Tags</td><td>Tag list loads</td><td></td></tr>
+            <tr><td>TC-ADM-044</td><td>Filter by tag type</td><td>1. Filter by Internal/External</td><td>Tags filtered by type</td><td></td></tr>
+            <tr><td>TC-ADM-045</td><td>Create external tag</td><td>1. Add new tag: Name, Type=External, Active 2. Save</td><td>External tag created (visible to external users)</td><td></td></tr>
+            <tr><td>TC-ADM-046</td><td>Create internal tag</td><td>1. Add new tag: Name, Type=Internal, Active 2. Save</td><td>Internal tag created (NOT visible to external users)</td><td></td></tr>
+            <tr><td>TC-ADM-047</td><td>Edit tag</td><td>1. Edit tag name/status 2. Save</td><td>Tag updated</td><td></td></tr>
+            <tr><td>TC-ADM-048</td><td>Delete tag</td><td>1. Delete tag 2. Confirm</td><td>Tag deleted (confirmation modal, then toast)</td><td></td></tr>
+            <tr><td>TC-ADM-049</td><td>Export tags CSV</td><td>1. Click Export</td><td>Tags CSV downloads</td><td></td></tr>
+            <tr><td>TC-ADM-050</td><td>Download tag template</td><td>1. Click Template</td><td>Import template CSV downloads</td><td></td></tr>
+            <tr><td>TC-ADM-051</td><td>Import tags CSV</td><td>1. Click Import 2. Upload CSV</td><td>Tags imported</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.7 Partner Management</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-052</td><td>Access partners</td><td>1. Navigate to Admin &gt; Partners</td><td>Partner list loads</td><td></td></tr>
+            <tr><td>TC-ADM-053</td><td>Core partners exist</td><td>1. View list</td><td>Amazon, Novi, Other partners present</td><td></td></tr>
+            <tr><td>TC-ADM-054</td><td>Create partner</td><td>1. Click Add 2. Enter partner details 3. Save</td><td>Partner created</td><td></td></tr>
+            <tr><td>TC-ADM-055</td><td>Edit partner</td><td>1. Edit partner details 2. Save</td><td>Partner updated</td><td></td></tr>
+            <tr><td>TC-ADM-056</td><td>Delete partner</td><td>1. Delete partner 2. Confirm</td><td>Partner deleted</td><td></td></tr>
+            <tr><td>TC-ADM-057</td><td>Export partners CSV</td><td>1. Click Export</td><td>Partners CSV downloads</td><td></td></tr>
+            <tr><td>TC-ADM-058</td><td>No Template/Import buttons</td><td>1. View Partners page</td><td>NO Template button, NO Import button (Export + Add only)</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.8 Product Type Management</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-059</td><td>Access product types</td><td>1. Navigate to Admin &gt; Product Types</td><td>Product type list loads</td><td></td></tr>
+            <tr><td>TC-ADM-060</td><td>Create product type</td><td>1. Add new product type 2. Save</td><td>Product type created</td><td></td></tr>
+            <tr><td>TC-ADM-061</td><td>Edit product type</td><td>1. Edit product type 2. Save</td><td>Product type updated</td><td></td></tr>
+            <tr><td>TC-ADM-062</td><td>Delete product type</td><td>1. Delete product type 2. Confirm</td><td>Product type deleted</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.9 CSF Attributes</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-063</td><td>Access CSF attributes</td><td>1. Navigate to Admin &gt; CSF Attributes</td><td>CSF attribute list loads</td><td></td></tr>
+            <tr><td>TC-ADM-064</td><td>CRUD operations</td><td>1. Create, Read, Update, Delete CSF attributes</td><td>All CRUD operations work</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.10 Pathway Management</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-065</td><td>Access pathways</td><td>1. Navigate to Admin &gt; Pathways</td><td>Pathway list loads</td><td></td></tr>
+            <tr><td>TC-ADM-066</td><td>Create pathway</td><td>1. Add new pathway with cert type association 2. Save</td><td>Pathway created</td><td></td></tr>
+            <tr><td>TC-ADM-067</td><td>Edit pathway</td><td>1. Edit pathway 2. Save</td><td>Pathway updated</td><td></td></tr>
+            <tr><td>TC-ADM-068</td><td>Delete pathway</td><td>1. Delete pathway 2. Confirm</td><td>Pathway deleted</td><td></td></tr>
+            <tr><td>TC-ADM-068a</td><td>Pathway scoped to cert type</td><td>1. Create pathway with Cert Type = "Energy Savings" 2. Go to Create Certificate 3. Select type</td><td>Pathway appears in dropdown for matching type only</td><td><span class="deferred-tag">Deferred</span></td></tr>
+            <tr><td>TC-ADM-068b</td><td>General pathway visible for all types</td><td>1. Create pathway with no cert type scoping 2. Create cert with any type</td><td>General pathway appears regardless of cert type</td><td><span class="deferred-tag">Deferred</span></td></tr>
+            <tr><td>TC-ADM-068c</td><td>Pathway visible to external users</td><td>1. Set pathway on certificate 2. Login as external</td><td>Verify if pathway is shown on external detail view</td><td><span class="pending-tag">Pending</span></td></tr>
+        </tbody>
+    </table>
+    <h3>5.11 Partner API Management</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-069</td><td>Access Partner API page</td><td>1. Navigate to Admin &gt; API Management &gt; Partner API</td><td>API key management loads</td><td></td></tr>
+            <tr><td>TC-ADM-070</td><td>Generate API key</td><td>1. Generate new API key for partner</td><td>Key generated, displayed</td><td></td></tr>
+            <tr><td>TC-ADM-071</td><td>View API usage</td><td>1. Check usage statistics for partner</td><td>Usage stats displayed</td><td></td></tr>
+            <tr><td>TC-ADM-072</td><td>Revoke API key</td><td>1. Revoke existing API key</td><td>Key revoked, no longer functional</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.12 Google Analytics Configuration</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-073</td><td>Access GA settings</td><td>1. Navigate to Admin &gt; Configuration &gt; Google Analytics</td><td>GA settings page loads</td><td></td></tr>
+            <tr><td>TC-ADM-074</td><td>Enable/Disable tracking</td><td>1. Toggle GA tracking on/off 2. Save</td><td>Setting persisted</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.13 Certificate Import (Admin Only)</h3>
+    <div class="callout callout-info"><strong>Note</strong>: Certificate Import requires AdminOnly policy. Analysts and External users cannot access this page.</div>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-075</td><td>Access certificate import</td><td>1. Login as admin 2. Navigate to /CertificateImport/Index</td><td>Import page loads</td><td></td></tr>
+            <tr><td>TC-ADM-076</td><td>Download import template</td><td>1. Click Template button</td><td>CSV template with correct headers including: CERTIFICATE_NUMBER, COMPANY_NAME, PRODUCT_NAME, CERTIFICATION_TYPE, SUBCATEGORY, EFFECTIVE_DATE, EXPIRATION_DATE, STATUS, CERTIFICATION_RESULTS, PATHWAY, PARTNER, LOCATION, COUNTRY</td><td></td></tr>
+            <tr><td>TC-ADM-077</td><td>Upload valid CSV</td><td>1. Upload CSV with valid certificate data</td><td>Preview page shows parsed data</td><td></td></tr>
+            <tr><td>TC-ADM-078</td><td>Preview import data</td><td>1. Review preview table</td><td>Shows what will be created/updated with validation status per row</td><td></td></tr>
+            <tr><td>TC-ADM-079</td><td>Apply import</td><td>1. Click Apply on preview</td><td>Certificates created/updated, success notification with count</td><td></td></tr>
+            <tr><td>TC-ADM-080</td><td>Cancel import</td><td>1. Click Cancel on preview</td><td>No changes made, return to import page</td><td></td></tr>
+            <tr><td>TC-ADM-081</td><td>Upload invalid CSV format</td><td>1. Upload CSV with wrong column names</td><td>Error message about invalid format</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.14 Admin-Specific Certificate Operations</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-082</td><td>Admin can delete certificates</td><td>1. View certificate 2. Click Delete 3. Confirm modal</td><td>Confirmation modal, then certificate deleted, success toast</td><td></td></tr>
+            <tr><td>TC-ADM-083</td><td>Admin sees all 14 statuses</td><td>1. Open Create/Edit certificate 2. Check Status dropdown</td><td>All 14 statuses available</td><td></td></tr>
+            <tr><td>TC-ADM-084</td><td>Delete notification pattern</td><td>1. Click Delete on any entity</td><td>Confirmation modal BEFORE delete, Toast AFTER success (NOT native alert/confirm)</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.15 Delete with Dependencies</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-085</td><td>Delete company with certificates</td><td>1. Try to delete a company that has certificates</td><td>Error or warning: cannot delete</td><td></td></tr>
+            <tr><td>TC-ADM-086</td><td>Delete product with certificates</td><td>1. Try to delete a product that has certificates</td><td>Error or warning: cannot delete</td><td></td></tr>
+            <tr><td>TC-ADM-087</td><td>Delete cert type with certificates</td><td>1. Try to delete a certification type that has certificates</td><td>Error or warning: cannot delete</td><td></td></tr>
+            <tr><td>TC-ADM-088</td><td>Delete tag with assignments</td><td>1. Try to delete a tag assigned to certificates</td><td>Tag deleted or warning about existing assignments</td><td></td></tr>
+            <tr><td>TC-ADM-089</td><td>Delete role with users assigned</td><td>1. Try to delete a role that has users</td><td>Error: cannot delete role with assigned users</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>5.16 Duplicate Prevention</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-ADM-090</td><td>Duplicate tag name prevention</td><td>1. Create tag "TestTag" 2. Try to create another "TestTag"</td><td>Error: Tag name must be unique</td><td></td></tr>
+            <tr><td>TC-ADM-091</td><td>Duplicate company name prevention</td><td>1. Create company "TestCo" 2. Try to create another "TestCo"</td><td>Error or warning about duplicate name</td><td></td></tr>
+            <tr><td>TC-ADM-092</td><td>Duplicate cert type name prevention</td><td>1. Create cert type with existing name</td><td>Error or handled gracefully</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 9: Module 6 Workflow -->
+    <h2 id="s9">9. Module 6: Certificate 14-State Workflow</h2>
+    <h3>6.1 Workflow State Definitions</h3>
+    <table>
+        <thead><tr><th>#</th><th>State</th><th>Display Name</th><th>Description</th><th>Final?</th></tr></thead>
+        <tbody>
+            <tr><td>1</td><td>Draft</td><td>Draft</td><td>Initial state, not yet submitted</td><td>No</td></tr>
+            <tr><td>2</td><td>PendingReview</td><td>Pending Review</td><td>Awaiting initial review</td><td>No</td></tr>
+            <tr><td>3</td><td>UnderReview</td><td>Under Review</td><td>Currently being reviewed</td><td>No</td></tr>
+            <tr><td>4</td><td>Approved</td><td>Approved</td><td>Approved, ready for activation</td><td>No</td></tr>
+            <tr><td>5</td><td>Active</td><td>Active</td><td>Currently active and valid</td><td>No</td></tr>
+            <tr><td>6</td><td>Suspended</td><td>Suspended</td><td>Temporarily suspended</td><td>No</td></tr>
+            <tr><td>7</td><td>Revoked</td><td>Revoked</td><td>Certificate revoked (near-final)</td><td>Near-final</td></tr>
+            <tr><td>8</td><td>Expired</td><td>Expired</td><td>Past expiration date</td><td>No</td></tr>
+            <tr><td>9</td><td>PendingRenewal</td><td>Pending Renewal</td><td>Within 30 days of expiration</td><td>No</td></tr>
+            <tr><td>10</td><td>Renewed</td><td>Renewed</td><td>Renewed, will transition to Active</td><td>No</td></tr>
+            <tr><td>11</td><td>Cancelled</td><td>Cancelled</td><td>Cancelled permanently</td><td><strong>Yes (Final)</strong></td></tr>
+            <tr><td>12</td><td>Archived</td><td>Archived</td><td>Archived permanently</td><td><strong>Yes (Final)</strong></td></tr>
+            <tr><td>13</td><td>OnHold</td><td>On Hold</td><td>Temporarily on hold</td><td>No</td></tr>
+            <tr><td>14</td><td>Rejected</td><td>Rejected</td><td>Review rejected</td><td>No</td></tr>
+        </tbody>
+    </table>
+    <h3>6.2 Valid State Transitions Test Matrix</h3>
+    <table>
+        <thead><tr><th>ID</th><th>From State</th><th>To State</th><th>Valid?</th><th>Role</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-WF-001</td><td>Draft</td><td>Pending Review</td><td>Yes</td><td>Analyst/Admin</td><td>Status changes to Pending Review</td><td></td></tr>
+            <tr><td>TC-WF-002</td><td>Draft</td><td>Cancelled</td><td>Yes</td><td>Admin</td><td>Status changes to Cancelled</td><td></td></tr>
+            <tr><td>TC-WF-003</td><td>Draft</td><td>Active</td><td><strong>NO</strong></td><td>Any</td><td>Active NOT available from Draft</td><td></td></tr>
+            <tr><td>TC-WF-004</td><td>Pending Review</td><td>Under Review</td><td>Yes</td><td>Analyst/Admin</td><td>Status updated</td><td></td></tr>
+            <tr><td>TC-WF-005</td><td>Pending Review</td><td>Draft</td><td>Yes</td><td>Analyst/Admin</td><td>Status reverted</td><td></td></tr>
+            <tr><td>TC-WF-006</td><td>Pending Review</td><td>Cancelled</td><td>Yes</td><td>Admin</td><td>Cancelled</td><td></td></tr>
+            <tr><td>TC-WF-007</td><td>Pending Review</td><td>On Hold</td><td>Yes</td><td>Admin</td><td>Status = On Hold</td><td></td></tr>
+            <tr><td>TC-WF-008</td><td>Under Review</td><td>Approved</td><td>Yes</td><td>Analyst/Admin</td><td>Status = Approved</td><td></td></tr>
+            <tr><td>TC-WF-009</td><td>Under Review</td><td>Pending Review</td><td>Yes</td><td>Analyst/Admin</td><td>Status = Pending Review</td><td></td></tr>
+            <tr><td>TC-WF-010</td><td>Under Review</td><td>Rejected</td><td>Yes</td><td>Admin</td><td>Status = Rejected</td><td></td></tr>
+            <tr><td>TC-WF-011</td><td>Under Review</td><td>On Hold</td><td>Yes</td><td>Admin</td><td>Status = On Hold</td><td></td></tr>
+            <tr><td>TC-WF-012</td><td>Approved</td><td>Active</td><td>Yes</td><td>Analyst/Admin</td><td>Status = Active</td><td></td></tr>
+            <tr><td>TC-WF-013</td><td>Approved</td><td>Under Review</td><td>Yes</td><td>Analyst/Admin</td><td>Status = Under Review</td><td></td></tr>
+            <tr><td>TC-WF-014</td><td>Approved</td><td>On Hold</td><td>Yes</td><td>Admin</td><td>Status = On Hold</td><td></td></tr>
+            <tr><td>TC-WF-015</td><td>Active</td><td>Suspended</td><td>Yes</td><td>Admin</td><td>Status = Suspended</td><td></td></tr>
+            <tr><td>TC-WF-016</td><td>Active</td><td>Expired</td><td>Yes</td><td>Admin/System</td><td>Status = Expired</td><td></td></tr>
+            <tr><td>TC-WF-017</td><td>Active</td><td>Pending Renewal</td><td>Yes</td><td>Admin/System</td><td>Status = Pending Renewal</td><td></td></tr>
+            <tr><td>TC-WF-018</td><td>Active</td><td>Revoked</td><td>Yes</td><td>Admin</td><td>Status = Revoked</td><td></td></tr>
+            <tr><td>TC-WF-019</td><td>Active</td><td>Archived</td><td>Yes</td><td>Admin</td><td>Status = Archived</td><td></td></tr>
+            <tr><td>TC-WF-020</td><td>Suspended</td><td>Active</td><td>Yes</td><td>Admin</td><td>Status = Active</td><td></td></tr>
+            <tr><td>TC-WF-021</td><td>Suspended</td><td>Revoked</td><td>Yes</td><td>Admin</td><td>Status = Revoked</td><td></td></tr>
+            <tr><td>TC-WF-022</td><td>Suspended</td><td>Cancelled</td><td>Yes</td><td>Admin</td><td>Status = Cancelled</td><td></td></tr>
+            <tr><td>TC-WF-023</td><td>Suspended</td><td>Archived</td><td>Yes</td><td>Admin</td><td>Status = Archived</td><td></td></tr>
+            <tr><td>TC-WF-024</td><td>Revoked</td><td>Archived</td><td>Yes</td><td>Admin</td><td>Status = Archived</td><td></td></tr>
+            <tr><td>TC-WF-025</td><td>Revoked</td><td>Active</td><td><strong>NO</strong></td><td>Any</td><td>Active NOT available (near-final)</td><td></td></tr>
+            <tr><td>TC-WF-026</td><td>Expired</td><td>Pending Renewal</td><td>Yes</td><td>Analyst/Admin</td><td>Status = Pending Renewal</td><td></td></tr>
+            <tr><td>TC-WF-027</td><td>Expired</td><td>Archived</td><td>Yes</td><td>Admin</td><td>Status = Archived</td><td></td></tr>
+            <tr><td>TC-WF-028</td><td>Expired</td><td>Active</td><td>Yes</td><td>Admin</td><td>Status = Active</td><td></td></tr>
+            <tr><td>TC-WF-029</td><td>Pending Renewal</td><td>Under Review</td><td>Yes</td><td>Analyst/Admin</td><td>Status = Under Review</td><td></td></tr>
+            <tr><td>TC-WF-030</td><td>Pending Renewal</td><td>Renewed</td><td>Yes</td><td>Analyst/Admin</td><td>Status = Renewed</td><td></td></tr>
+            <tr><td>TC-WF-031</td><td>Pending Renewal</td><td>Expired</td><td>Yes</td><td>Admin/System</td><td>Status = Expired</td><td></td></tr>
+            <tr><td>TC-WF-032</td><td>Pending Renewal</td><td>Cancelled</td><td>Yes</td><td>Admin</td><td>Status = Cancelled</td><td></td></tr>
+            <tr><td>TC-WF-033</td><td>Renewed</td><td>Active</td><td>Yes</td><td>Analyst/Admin</td><td>Status = Active</td><td></td></tr>
+            <tr><td>TC-WF-034</td><td>Cancelled</td><td>ANY</td><td><strong>NO</strong></td><td>Any</td><td>NO transitions available (Final state)</td><td></td></tr>
+            <tr><td>TC-WF-035</td><td>Archived</td><td>ANY</td><td><strong>NO</strong></td><td>Any</td><td>NO transitions available (Final state)</td><td></td></tr>
+            <tr><td>TC-WF-036</td><td>On Hold</td><td>Pending Review</td><td>Yes</td><td>Admin</td><td>Status = Pending Review</td><td></td></tr>
+            <tr><td>TC-WF-037</td><td>On Hold</td><td>Under Review</td><td>Yes</td><td>Admin</td><td>Status = Under Review</td><td></td></tr>
+            <tr><td>TC-WF-038</td><td>On Hold</td><td>Approved</td><td>Yes</td><td>Admin</td><td>Status = Approved</td><td></td></tr>
+            <tr><td>TC-WF-039</td><td>On Hold</td><td>Cancelled</td><td>Yes</td><td>Admin</td><td>Status = Cancelled</td><td></td></tr>
+            <tr><td>TC-WF-040</td><td>Rejected</td><td>Draft</td><td>Yes</td><td>Analyst/Admin</td><td>Status = Draft</td><td></td></tr>
+            <tr><td>TC-WF-041</td><td>Rejected</td><td>Archived</td><td>Yes</td><td>Admin</td><td>Status = Archived</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>6.3 Role-Based Status Access</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-WF-042</td><td>Admin sees all 14 statuses</td><td>1. Login as admin 2. Edit certificate 3. Check status dropdown</td><td>All 14 statuses visible</td><td></td></tr>
+            <tr><td>TC-WF-043</td><td>Analyst limited statuses</td><td>1. Login as analyst 2. Edit certificate 3. Check dropdown</td><td>12 of 14 statuses (all except Rejected and Revoked)</td><td></td></tr>
+            <tr><td>TC-WF-044</td><td>External cannot change status</td><td>1. Login as external 2. Verify no edit access</td><td>Cannot edit certificates at all</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>6.4 Automated Workflow</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-WF-045</td><td>Auto Pending Renewal (30 days)</td><td>1. Create cert with expiration 30 days out 2. Set Active 3. Trigger background job</td><td>Status auto-changes to Pending Renewal</td><td></td></tr>
+            <tr><td>TC-WF-046</td><td>Auto Expired</td><td>1. Create cert with past expiration 2. Set Active 3. Trigger check</td><td>Status auto-changes to Expired</td><td></td></tr>
+            <tr><td>TC-WF-047</td><td>Status history audit trail</td><td>1. Change cert through multiple statuses 2. Check audit log</td><td>Each transition logged with: user, timestamp, from/to status</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 10: Module 7 Partner API -->
+    <h2 id="s10">10. Module 7: Partner API Flows</h2>
+    <p><strong>Tested using</strong> curl, PowerShell, or API testing tools (Postman, etc.)</p>
+    <h3>7.1 API Authentication</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-API-001</td><td>Valid API key auth</td><td>1. Send GET /api/v1/certificates with valid X-API-Key header</td><td>200 OK with certificate data</td><td></td></tr>
+            <tr><td>TC-API-002</td><td>Missing API key</td><td>1. Send GET without X-API-Key</td><td>401 Unauthorized</td><td></td></tr>
+            <tr><td>TC-API-003</td><td>Invalid API key</td><td>1. Send GET with wrong key</td><td>401 Unauthorized</td><td></td></tr>
+            <tr><td>TC-API-004</td><td>Revoked API key</td><td>1. Use a previously revoked API key</td><td>401 Unauthorized</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>7.2 Certificate Endpoints</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-API-005</td><td>List certificates (paginated)</td><td>GET /api/v1/certificates?pageSize=10&amp;pageNumber=1</td><td>JSON with pagination metadata + data array</td><td></td></tr>
+            <tr><td>TC-API-006</td><td>Get by ID</td><td>GET /api/v1/certificates/{id}</td><td>Single certificate JSON</td><td></td></tr>
+            <tr><td>TC-API-007</td><td>Get by certificate number</td><td>GET /api/v1/certificates/number/{number}</td><td>Single certificate by number</td><td></td></tr>
+            <tr><td>TC-API-008</td><td>Include product IDs</td><td>GET /api/v1/certificates?includeProductIds=true</td><td>Response includes productIds array</td><td></td></tr>
+            <tr><td>TC-API-009</td><td>Filter by status</td><td>GET /api/v1/certificates?status=Active</td><td>Only Active certificates returned</td><td></td></tr>
+            <tr><td>TC-API-010</td><td>Filter by company</td><td>GET /api/v1/certificates?companyId={id}</td><td>Only specified company's certs</td><td></td></tr>
+            <tr><td>TC-API-011</td><td>Filter by partner</td><td>GET /api/v1/certificates?partnerId={id}</td><td>Only specified partner's certs</td><td></td></tr>
+            <tr><td>TC-API-012</td><td>Search by product ID</td><td>GET /api/v1/certificates/search/productid?productId={ASIN}&amp;type=ASIN</td><td>Certificates matching product ID</td><td></td></tr>
+            <tr><td>TC-API-013</td><td>Download PDF</td><td>GET /api/v1/certificates/{number}/download</td><td>PDF file returned</td><td></td></tr>
+            <tr><td>TC-API-014</td><td>Non-existent certificate</td><td>GET /api/v1/certificates/999999</td><td>404 Not Found</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>7.3 API Response Format</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-API-015</td><td>Pagination metadata</td><td>1. Request list endpoint</td><td>Response contains: totalCount, pageNumber, pageSize, totalPages, hasPrevious, hasNext</td><td></td></tr>
+            <tr><td>TC-API-016</td><td>Certificate fields</td><td>1. Get single certificate</td><td>Contains: certificateNumber, status, issueDate, expirationDate, company, productName, certificationType, certificationTypeSubcategory, issuer, certificationResults, partner, amazonCode, pathway</td><td></td></tr>
+            <tr><td>TC-API-016a</td><td>Amazon Code in API response</td><td>1. Get certificate whose cert type has AmazonCode set</td><td>Response includes amazonCode field with correct mapping value</td><td></td></tr>
+            <tr><td>TC-API-016b</td><td>Pathway in API response</td><td>1. Get certificate with Pathway set</td><td>Response includes pathway field with selected pathway name</td><td></td></tr>
+            <tr><td>TC-API-016c</td><td>Amazon Code in GS1 JSON-LD response</td><td>1. Get certificate via GS1 JSON-LD endpoint</td><td>amazonCode field present in GS1 formatted response</td><td></td></tr>
+            <tr><td>TC-API-016d</td><td>Pathway in GS1 JSON-LD response</td><td>1. Get certificate via GS1 JSON-LD endpoint</td><td>pathway field present in GS1 formatted response</td><td></td></tr>
+            <tr><td>TC-API-016e</td><td>Amazon Code null when not set</td><td>1. Get certificate whose cert type has no AmazonCode</td><td>amazonCode field is null or omitted (no error)</td><td></td></tr>
+            <tr><td>TC-API-016f</td><td>Pathway null when not set</td><td>1. Get certificate with no Pathway selected</td><td>pathway field is null or omitted (no error)</td><td></td></tr>
+            <tr><td>TC-API-017</td><td>Issuer always "Green Circle Certified"</td><td>1. Check issuer field on any cert</td><td>issuer = "Green Circle Certified" (static value)</td><td></td></tr>
+            <tr><td>TC-API-018</td><td>Product ID format</td><td>1. Get cert with includeProductIds=true</td><td>Each productId has: type, value, status, partner, productName, productSku, description</td><td></td></tr>
+            <tr><td>TC-API-019</td><td>Date format ISO 8601</td><td>1. Check date fields</td><td>Dates in format: YYYY-MM-DDTHH:mm:ssZ</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>7.4 Rate Limiting</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-API-020</td><td>Rate limit enforced</td><td>1. Send rapid requests exceeding rate limit</td><td>429 Too Many Requests after limit exceeded</td><td></td></tr>
+            <tr><td>TC-API-021</td><td>Rate limit headers</td><td>1. Check response headers</td><td>Headers include rate limit info (remaining, reset)</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 11: Module 8 Permissions -->
+    <h2 id="s11">11. Module 8: Cross-Role Permission Matrix Validation</h2>
+    <h3>8.1 Page Access by Role</h3>
+    <table>
+        <thead><tr><th>ID</th><th>URL</th><th>Public</th><th>External</th><th>Analyst</th><th>Admin</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-PERM-001</td><td>/Certificate/CertificateTileView</td><td>Allowed</td><td>Allowed</td><td>Allowed</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-002</td><td>/Certificate/CertificateTileViewExternal</td><td>Denied</td><td>Allowed</td><td>Allowed</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-003</td><td>/Certificate/CertificateTileViewInternal</td><td>Denied</td><td>Denied</td><td>Allowed</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-004</td><td>/Certificate/Create</td><td>Denied</td><td>Denied</td><td>Allowed</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-005</td><td>/Certificate/Edit/{number}</td><td>Denied</td><td>Denied</td><td>Allowed</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-006</td><td>/Dashboard/Index</td><td>Denied</td><td>Denied</td><td>Allowed</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-007</td><td>/Company/Index</td><td>Denied</td><td>Denied</td><td>Allowed</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-008</td><td>/Product/Management</td><td>Denied</td><td>Allowed (Read-only)</td><td>Allowed</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-009</td><td>/Admin/UserManagement</td><td>Denied</td><td>Denied</td><td>Denied</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-010</td><td>/Admin/RoleManagement</td><td>Denied</td><td>Denied</td><td>Denied</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-011</td><td>/Admin/CertificateTypes</td><td>Denied</td><td>Denied</td><td>Denied</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-012</td><td>/Admin/CertificateFields</td><td>Denied</td><td>Denied</td><td>Denied</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-013</td><td>/Admin/Tags</td><td>Denied</td><td>Denied</td><td>Denied</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-014</td><td>/Admin/Partners</td><td>Denied</td><td>Denied</td><td>Denied</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-015</td><td>/Admin/Pathways</td><td>Denied</td><td>Denied</td><td>Denied</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-016</td><td>/Admin/ProductTypes</td><td>Denied</td><td>Denied</td><td>Denied</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-017</td><td>/Admin/PartnerAPI</td><td>Denied</td><td>Denied</td><td>Denied</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-018</td><td>/Admin/GoogleAnalytics</td><td>Denied</td><td>Denied</td><td>Denied</td><td>Allowed</td><td></td></tr>
+            <tr><td>TC-PERM-019</td><td>/CertificateImport/Index</td><td>Denied</td><td>Denied</td><td><strong>Denied</strong></td><td>Allowed</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>8.2 Feature Access by Role</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Feature</th><th>Public</th><th>External</th><th>Analyst</th><th>Admin</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-PERM-020</td><td>View certificates</td><td>Yes (public only)</td><td>Yes (own company)</td><td>Yes (all)</td><td>Yes (all)</td><td></td></tr>
+            <tr><td>TC-PERM-021</td><td>Create certificates</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-022</td><td>Edit certificates</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-023</td><td>Delete certificates</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-024</td><td>Manage workflow</td><td>No</td><td>No</td><td>Yes (limited)</td><td>Yes (full)</td><td></td></tr>
+            <tr><td>TC-PERM-025</td><td>Export data (CSV)</td><td>No</td><td>Yes (own data)</td><td>Yes</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-026</td><td>Import data - Certificate Import</td><td>No</td><td>No</td><td><strong>No (Admin only)</strong></td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-026a</td><td>Import data - Product IDs within cert form</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-027</td><td>View internal tags</td><td>No</td><td>No</td><td>Yes</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-028</td><td>View external tags</td><td>No</td><td>Yes</td><td>Yes</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-029</td><td>Manage users</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-030</td><td>Manage roles</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-031</td><td>Manage companies</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-032</td><td>Manage tags</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-033</td><td>Manage partners</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-034</td><td>API access</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-035</td><td>View products</td><td>No</td><td>Yes (own company)</td><td>Yes</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-036</td><td>Manage products</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td></td></tr>
+            <tr><td>TC-PERM-037</td><td>System settings</td><td>No</td><td>No</td><td>No</td><td>Yes</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>8.3 UI Element Visibility by Role</h3>
+    <table>
+        <thead><tr><th>ID</th><th>UI Element</th><th>Public</th><th>External</th><th>Analyst</th><th>Admin</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-PERM-038</td><td>Navigation: Administration menu</td><td>Hidden</td><td>Hidden</td><td>Hidden</td><td>Visible</td><td></td></tr>
+            <tr><td>TC-PERM-039</td><td>Navigation: Dashboard</td><td>Hidden</td><td>Hidden</td><td>Visible</td><td>Visible</td><td></td></tr>
+            <tr><td>TC-PERM-040</td><td>Navigation: Companies &amp; Products</td><td>Hidden</td><td>Products only</td><td>Both</td><td>Both</td><td></td></tr>
+            <tr><td>TC-PERM-041</td><td>Add Certificate button</td><td>Hidden</td><td>Hidden</td><td>Visible</td><td>Visible</td><td></td></tr>
+            <tr><td>TC-PERM-042</td><td>Edit Certificate button</td><td>Hidden</td><td>Hidden</td><td>Visible</td><td>Visible</td><td></td></tr>
+            <tr><td>TC-PERM-043</td><td>Delete Certificate button</td><td>Hidden</td><td>Hidden</td><td>Hidden</td><td>Visible</td><td></td></tr>
+            <tr><td>TC-PERM-044</td><td>Internal Tags column</td><td>Hidden</td><td>Hidden</td><td>Visible</td><td>Visible</td><td></td></tr>
+            <tr><td>TC-PERM-045</td><td>Product Actions column</td><td>Hidden</td><td>Hidden</td><td>Visible</td><td>Visible</td><td></td></tr>
+            <tr><td>TC-PERM-046</td><td>Import/Export buttons (Admin pages)</td><td>Hidden</td><td>Hidden</td><td>Hidden</td><td>Visible</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 12: Module 9 Export/Import -->
+    <h2 id="s12">12. Module 9: Data Export &amp; Import</h2>
+    <h3>9.1 CSV Export</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-EXP-001</td><td>Export certificates</td><td>1. Navigate to cert view (Analyst+) 2. Click Export</td><td>CSV file downloads with certificate data</td><td></td></tr>
+            <tr><td>TC-EXP-002</td><td>Export users</td><td>1. Admin &gt; User Management 2. Click Export</td><td>CSV downloads with user data</td><td></td></tr>
+            <tr><td>TC-EXP-003</td><td>Export roles</td><td>1. Admin &gt; Role Management 2. Click Export</td><td>CSV downloads with role data</td><td></td></tr>
+            <tr><td>TC-EXP-004</td><td>Export tags</td><td>1. Admin &gt; Tags 2. Click Export</td><td>CSV downloads with tag data</td><td></td></tr>
+            <tr><td>TC-EXP-005</td><td>Export partners</td><td>1. Admin &gt; Partners 2. Click Export</td><td>CSV downloads with partner data</td><td></td></tr>
+            <tr><td>TC-EXP-006</td><td>Export products</td><td>1. Product Management 2. Click Export</td><td>CSV downloads with product data</td><td></td></tr>
+            <tr><td>TC-EXP-007</td><td>Export companies</td><td>1. Company Management 2. Click Export</td><td>CSV downloads with company data</td><td></td></tr>
+            <tr><td>TC-EXP-008</td><td>CSV format only</td><td>1. Check any export</td><td>File is .csv format (NOT .xlsx, .json, or .pdf)</td><td></td></tr>
+            <tr><td>TC-EXP-009</td><td>Export with filters applied</td><td>1. Apply filters 2. Click Export</td><td>Only filtered data exported</td><td></td></tr>
+            <tr><td>TC-EXP-010</td><td>External export own data only</td><td>1. Login as external 2. Export</td><td>Only own company's data in export</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>9.2 CSV Import</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-IMP-001</td><td>Download template - Users</td><td>1. Admin &gt; User Management 2. Click Template</td><td>CSV template with correct column headers</td><td></td></tr>
+            <tr><td>TC-IMP-002</td><td>Download template - Tags</td><td>1. Admin &gt; Tags 2. Click Template</td><td>CSV template downloads</td><td></td></tr>
+            <tr><td>TC-IMP-003</td><td>Download template - Companies</td><td>1. Company page 2. Click Template</td><td>CSV template downloads</td><td></td></tr>
+            <tr><td>TC-IMP-004</td><td>Import valid CSV</td><td>1. Click Import 2. Upload properly formatted CSV</td><td>Data imported successfully</td><td></td></tr>
+            <tr><td>TC-IMP-005</td><td>Import with validation errors</td><td>1. Upload CSV with invalid data</td><td>Error report showing which rows failed and why</td><td></td></tr>
+            <tr><td>TC-IMP-006</td><td>Import duplicate records</td><td>1. Upload CSV with existing data</td><td>Handled gracefully (update or skip with message)</td><td></td></tr>
+            <tr><td>TC-IMP-007</td><td>Partners page - No Import</td><td>1. Go to Partners page</td><td>Import button does NOT exist</td><td></td></tr>
+            <tr><td>TC-IMP-008</td><td>Partners page - No Template</td><td>1. Go to Partners page</td><td>Template button does NOT exist</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 13: Module 10 Edge Cases -->
+    <h2 id="s13">13. Module 10: Edge Cases &amp; Negative Testing</h2>
+    <h3>10.1 Form Validation</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-NEG-001</td><td>Certificate - empty required fields</td><td>1. Create cert with no fields 2. Submit</td><td>Validation errors for all required fields</td><td></td></tr>
+            <tr><td>TC-NEG-002</td><td>Certificate - duplicate number</td><td>1. Create cert with existing number</td><td>Error: Certificate number must be unique</td><td></td></tr>
+            <tr><td>TC-NEG-003</td><td>User - empty email</td><td>1. Create user with no email 2. Submit</td><td>Validation error for email</td><td></td></tr>
+            <tr><td>TC-NEG-004</td><td>User - invalid email format</td><td>1. Create user with "notanemail" 2. Submit</td><td>Validation error for email format</td><td></td></tr>
+            <tr><td>TC-NEG-005</td><td>User - duplicate email</td><td>1. Create user with existing email</td><td>Error: Email must be unique</td><td></td></tr>
+            <tr><td>TC-NEG-006</td><td>Role - empty name</td><td>1. Create role with no name</td><td>Validation error</td><td></td></tr>
+            <tr><td>TC-NEG-007</td><td>Tag - empty name</td><td>1. Create tag with no name</td><td>Validation error</td><td></td></tr>
+            <tr><td>TC-NEG-008</td><td>Company - empty name</td><td>1. Create company with no name</td><td>Validation error</td><td></td></tr>
+            <tr><td>TC-NEG-009</td><td>Product ID - invalid type</td><td>1. Add product ID without selecting type</td><td>Validation error</td><td></td></tr>
+            <tr><td>TC-NEG-010</td><td>Product ID - empty value</td><td>1. Add product ID without value</td><td>Validation error</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>10.2 Notification Pattern Validation</h3>
+    <div class="callout callout-info"><strong>Critical</strong>: NO native browser alert(), confirm(), or prompt() should appear anywhere in the system.</div>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-NEG-011</td><td>Delete cert notification</td><td>1. Delete a certificate</td><td>Confirmation modal BEFORE, toast AFTER</td><td></td></tr>
+            <tr><td>TC-NEG-012</td><td>Delete user notification</td><td>1. Delete a user</td><td>Confirmation modal BEFORE, toast AFTER</td><td></td></tr>
+            <tr><td>TC-NEG-013</td><td>Delete tag notification</td><td>1. Delete a tag</td><td>Confirmation modal BEFORE, toast AFTER</td><td></td></tr>
+            <tr><td>TC-NEG-014</td><td>Delete role notification</td><td>1. Delete a role</td><td>Confirmation modal BEFORE, toast AFTER</td><td></td></tr>
+            <tr><td>TC-NEG-015</td><td>Create success notification</td><td>1. Create any entity</td><td>Toast notification for success (no modal)</td><td></td></tr>
+            <tr><td>TC-NEG-016</td><td>Edit success notification</td><td>1. Edit any entity</td><td>Toast notification for success</td><td></td></tr>
+            <tr><td>TC-NEG-017</td><td>No native alerts anywhere</td><td>1. Use every feature in the system</td><td>NEVER see a native browser alert/confirm/prompt</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>10.3 Data Boundary Testing</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-NEG-018</td><td>Certification Results max length</td><td>1. Enter 1001+ characters in Certification Results</td><td>Truncated or rejected at 1000 chars</td><td></td></tr>
+            <tr><td>TC-NEG-019</td><td>Certificate number format</td><td>1. Verify auto-generated number format</td><td>Format: YY-NNNN (e.g., 24-0366)</td><td></td></tr>
+            <tr><td>TC-NEG-020</td><td>Very long company name</td><td>1. Create company with 255+ character name</td><td>Handled gracefully</td><td></td></tr>
+            <tr><td>TC-NEG-021</td><td>Special characters in fields</td><td>1. Enter &lt;script&gt;alert('xss')&lt;/script&gt; in text fields</td><td>HTML encoded, no script execution (XSS prevention)</td><td></td></tr>
+            <tr><td>TC-NEG-022</td><td>SQL injection attempt</td><td>1. Enter ' OR 1=1 -- in search fields</td><td>No SQL injection, treated as literal text</td><td></td></tr>
+            <tr><td>TC-NEG-023</td><td>Large CSV import</td><td>1. Import CSV with 1000+ rows</td><td>Handled gracefully</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>10.4 Browser &amp; Responsiveness</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-NEG-024</td><td>Minimum font size</td><td>1. Inspect any page text</td><td>All text &gt;= 16px</td><td></td></tr>
+            <tr><td>TC-NEG-025</td><td>Mobile responsive tile view</td><td>1. Resize browser to mobile width</td><td>Tile view adapts, remains usable</td><td></td></tr>
+            <tr><td>TC-NEG-026</td><td>Admin page responsive</td><td>1. Resize admin page to tablet width</td><td>Table scrolls or adapts</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 14a: Module 10b Audit Trail -->
+    <h2 id="s14a">14. Module 10b: Audit Trail &amp; Change History</h2>
+    <p><strong>Purpose:</strong> Verify the audit trail system captures all changes to entities, tracks certificate status transitions, and records user/session context.</p>
+    <h3>10b.1 Field-Level Change Tracking</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-AUDIT-001</td><td>Field changes logged in AuditHistory</td><td>1. Edit a certificate 2. Query AuditHistory table</td><td>Records show EntityType="Certificate", FieldName, OldValue, NewValue</td><td></td></tr>
+            <tr><td>TC-AUDIT-003</td><td>ChangedBy captures username</td><td>1. Login as analyst 2. Edit a certificate 3. Query AuditHistory</td><td>ChangedBy field contains "analyst" username</td><td></td></tr>
+            <tr><td>TC-AUDIT-004</td><td>IP address and User-Agent logged</td><td>1. Make any change 2. Query AuditHistory</td><td>IpAddress and UserAgent fields are populated</td><td></td></tr>
+            <tr><td>TC-AUDIT-006</td><td>Change source tracked</td><td>1. Edit via UI 2. Import via CSV 3. Query AuditHistory</td><td>UI: ChangeSource="UI", Import: ChangeSource="Import"</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>10b.2 Certificate Status Transition History</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-AUDIT-002</td><td>Status transitions logged</td><td>1. Change cert from Draft to Pending Review 2. Query CertificateStatusHistory</td><td>Record with PreviousStatus="Draft", NewStatus="PendingReview", timestamp, ChangedBy</td><td></td></tr>
+            <tr><td>TC-AUDIT-005</td><td>Import batch correlation</td><td>1. Import certificates via CSV 2. Query AuditHistory</td><td>All records from same import share same ImportBatchId</td><td></td></tr>
+            <tr><td>TC-AUDIT-009</td><td>Automated vs manual transition flag</td><td>1. Manually change status 2. Check auto-expiration 3. Query history</td><td>Manual: IsAutomatedTransition=false. Automated: IsAutomatedTransition=true</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>10b.3 Audit Trail UI (GAP - Not Yet Built)</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-AUDIT-007</td><td>Status history on certificate detail page</td><td>1. Open certificate detail page for cert with multiple status changes</td><td>Status history timeline/table visible</td><td><span class="gap-tag">Gap - UI not built</span></td></tr>
+            <tr><td>TC-AUDIT-008</td><td>Admin audit log viewer</td><td>1. Navigate to Admin &gt; Audit Log 2. Search by entity type, date, user</td><td>Searchable/filterable audit log with CSV export</td><td><span class="gap-tag">Gap - UI not built</span></td></tr>
+        </tbody>
+    </table>
+    <p><strong>Module Total:</strong> 9 test cases (7 backend-verifiable, 2 UI gaps)</p>
+
+    <!-- PART B -->
+    <h2 id="partb" style="font-size: 16pt; border-bottom: 3px solid #002B76;">PART B: END-TO-END BUSINESS SCENARIOS</h2>
+    <p>These scenarios simulate real-world business journeys that cross multiple roles, pages, and data dependencies. Each scenario must be executed <strong>in sequence</strong> - steps build on each other.</p>
+
+    <!-- Module 11: E2E Certificate Lifecycle -->
+    <h2 id="s14">Module 11: E2E Scenario 1 - Certificate Full Lifecycle</h2>
+    <p><strong>Business Story</strong>: A new certification is created by an Analyst, reviewed and approved by an Admin, made visible to the public and partners, viewed by an External client, and eventually expires and gets archived.</p>
+    <p><strong>Roles</strong>: Admin, Analyst, External, Public, Partner (API) | <strong>Time</strong>: 30-45 min</p>
+    <h3>Scenario Steps</h3>
+    <table>
+        <thead><tr><th>Step</th><th>ID</th><th>Role</th><th>Action</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>1</td><td>E2E-LC-001</td><td>Analyst</td><td>Login as analyst</td><td>Redirected to internal tile view or dashboard</td><td></td></tr>
+            <tr><td>2</td><td>E2E-LC-002</td><td>Analyst</td><td>Click "Create Certificate"</td><td>Create form loads, cert number auto-generated</td><td></td></tr>
+            <tr><td>3</td><td>E2E-LC-003</td><td>Analyst</td><td>Select Company from dropdown</td><td>Company selected, products may filter</td><td></td></tr>
+            <tr><td>4</td><td>E2E-LC-004</td><td>Analyst</td><td>Select Product from dropdown</td><td>Product selected</td><td></td></tr>
+            <tr><td>5</td><td>E2E-LC-005</td><td>Analyst</td><td>Select Certification Type (parent)</td><td>Subcategory dropdown populates</td><td></td></tr>
+            <tr><td>6</td><td>E2E-LC-006</td><td>Analyst</td><td>Select Subcategory</td><td>Custom fields load dynamically</td><td></td></tr>
+            <tr><td>7</td><td>E2E-LC-007</td><td>Analyst</td><td>Fill custom fields (if any)</td><td>Fields accept valid input</td><td></td></tr>
+            <tr><td>8</td><td>E2E-LC-008</td><td>Analyst</td><td>Set Effective Date = today</td><td>Date accepted</td><td></td></tr>
+            <tr><td>9</td><td>E2E-LC-009</td><td>Analyst</td><td>Set Expiration Date = 1 year from today</td><td>Date accepted (after effective date)</td><td></td></tr>
+            <tr><td>10</td><td>E2E-LC-010</td><td>Analyst</td><td>Set Location and Country</td><td>Fields populated</td><td></td></tr>
+            <tr><td>11</td><td>E2E-LC-011</td><td>Analyst</td><td>Select Partner = "Amazon"</td><td>Partner set</td><td></td></tr>
+            <tr><td>12</td><td>E2E-LC-012</td><td>Analyst</td><td>Enter Certification Results = "95.5% recycled content"</td><td>Text accepted in optional field</td><td></td></tr>
+            <tr><td>13</td><td>E2E-LC-013</td><td>Analyst</td><td>Upload PDF certificate (valid &lt; 10MB)</td><td>File preview generated, success toast</td><td></td></tr>
+            <tr><td>14</td><td>E2E-LC-014</td><td>Analyst</td><td>Add External Tag ("Sustainable")</td><td>Tag badge appears</td><td></td></tr>
+            <tr><td>15</td><td>E2E-LC-015</td><td>Analyst</td><td>Add Internal Tag ("PriorityReview")</td><td>Tag badge appears</td><td></td></tr>
+            <tr><td>16</td><td>E2E-LC-016</td><td>Analyst</td><td>Add Product ID: Type=ASIN, Value=B08X7N9MRQ</td><td>Product ID appears in table</td><td></td></tr>
+            <tr><td>17</td><td>E2E-LC-017</td><td>Analyst</td><td>Add Product ID: Type=UPC, Value=846378985421</td><td>Second product ID in table</td><td></td></tr>
+            <tr><td>18</td><td>E2E-LC-018</td><td>Analyst</td><td>Set Status = "Draft"</td><td>Status set to Draft</td><td></td></tr>
+            <tr><td>19</td><td>E2E-LC-019</td><td>Analyst</td><td>Click Save</td><td>Certificate created, redirected to Details, success toast. <strong>Record Certificate Number.</strong></td><td></td></tr>
+            <tr><td>20</td><td>E2E-LC-020</td><td>Analyst</td><td>Verify Details page shows all entered data</td><td>All fields match entered data</td><td></td></tr>
+            <tr><td>21</td><td>E2E-LC-021</td><td>Analyst</td><td>Verify Certificate Number displayed (NOT database ID)</td><td>Shows YY-NNNN format in heading and URL</td><td></td></tr>
+            <tr><td>22</td><td>E2E-LC-022</td><td>Public</td><td>Open incognito, go to public tile view</td><td>Page loads</td><td></td></tr>
+            <tr><td>23</td><td>E2E-LC-023</td><td>Public</td><td>Search for the new certificate number</td><td>Certificate NOT found (Draft, not visible to public)</td><td></td></tr>
+            <tr><td>24</td><td>E2E-LC-024</td><td>Analyst</td><td>Edit certificate, change Status to "Pending Review"</td><td>Status updated, save successful</td><td></td></tr>
+            <tr><td>25</td><td>E2E-LC-025</td><td>Admin</td><td>Login as admin</td><td>Dashboard loads</td><td></td></tr>
+            <tr><td>26</td><td>E2E-LC-026</td><td>Admin</td><td>Find certificate in internal tile view</td><td>Certificate visible with "Pending Review" status badge</td><td></td></tr>
+            <tr><td>27</td><td>E2E-LC-027</td><td>Admin</td><td>Edit: change Status to "Under Review"</td><td>Status = Under Review</td><td></td></tr>
+            <tr><td>28</td><td>E2E-LC-028</td><td>Admin</td><td>Edit: change Status to "Approved"</td><td>Status = Approved</td><td></td></tr>
+            <tr><td>29</td><td>E2E-LC-029</td><td>Admin</td><td>Edit: change Status to "Active"</td><td>Status = Active. Certificate is now LIVE.</td><td></td></tr>
+            <tr><td>30</td><td>E2E-LC-030</td><td>Public</td><td>Refresh public tile view, search for certificate</td><td>Certificate NOW appears (Active)</td><td></td></tr>
+            <tr><td>31</td><td>E2E-LC-031</td><td>Public</td><td>Click on the certificate tile</td><td>Detail view shows data. External tags visible. Internal tags NOT visible. No Edit/Delete.</td><td></td></tr>
+            <tr><td>32</td><td>E2E-LC-032</td><td>Public</td><td>Click Download PDF</td><td>PDF file downloads successfully</td><td></td></tr>
+            <tr><td>33</td><td>E2E-LC-033</td><td>Public</td><td>Verify Certificate Number in URL (not ID)</td><td>URL shows /Certificate/CertificateSingleView/XX-XXXX</td><td></td></tr>
+            <tr><td>34</td><td>E2E-LC-034</td><td>External</td><td>Login as external user (same company)</td><td>External tile view loads</td><td></td></tr>
+            <tr><td>35</td><td>E2E-LC-035</td><td>External</td><td>Find certificate in external tile view</td><td>Certificate visible. External tags shown. Internal tags NOT shown. No Edit/Delete.</td><td></td></tr>
+            <tr><td>36</td><td>E2E-LC-036</td><td>External</td><td>Click on certificate for details</td><td>Read-only view. Certification Results visible. No Edit/Delete.</td><td></td></tr>
+            <tr><td>37</td><td>E2E-LC-037</td><td>API</td><td>GET /api/v1/certificates?includeProductIds=true</td><td>Certificate appears with certificationResults, productIds</td><td></td></tr>
+            <tr><td>38</td><td>E2E-LC-038</td><td>API</td><td>Search by ASIN</td><td>Certificate returned by ASIN search</td><td></td></tr>
+            <tr><td>39</td><td>E2E-LC-039</td><td>API</td><td>Download PDF via API</td><td>PDF file returned</td><td></td></tr>
+            <tr><td>40</td><td>E2E-LC-040</td><td>Admin</td><td>Edit: change Status to "Suspended"</td><td>Status = Suspended</td><td></td></tr>
+            <tr><td>41</td><td>E2E-LC-041</td><td>Public</td><td>Refresh public tile view, search for certificate</td><td>Certificate NO LONGER visible</td><td></td></tr>
+            <tr><td>42</td><td>E2E-LC-042</td><td>Admin</td><td>Edit: change Status back to "Active"</td><td>Status = Active, certificate reappears</td><td></td></tr>
+            <tr><td>43</td><td>E2E-LC-043</td><td>Admin</td><td>Edit: change Status to "Expired"</td><td>Status = Expired</td><td></td></tr>
+            <tr><td>44</td><td>E2E-LC-044</td><td>Admin</td><td>Edit: change Status to "Archived"</td><td>Status = Archived (FINAL state)</td><td></td></tr>
+            <tr><td>45</td><td>E2E-LC-045</td><td>Admin</td><td>Try to edit Archived certificate status</td><td>No status transitions available. Certificate is permanently archived.</td><td></td></tr>
+            <tr><td>46</td><td>E2E-LC-046</td><td>Public</td><td>Search for archived certificate</td><td>Certificate NOT visible</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>Verification Checklist</h3>
+    <ul style="list-style:none;padding-left:0;">
+        <li><span class="checkbox"></span> Certificate created with all fields populated</li>
+        <li><span class="checkbox"></span> Workflow progressed: Draft &rarr; Pending Review &rarr; Under Review &rarr; Approved &rarr; Active</li>
+        <li><span class="checkbox"></span> Public visibility activated only when Active</li>
+        <li><span class="checkbox"></span> External user saw only external tags, not internal</li>
+        <li><span class="checkbox"></span> Partner API returned certificate with product IDs and certification results</li>
+        <li><span class="checkbox"></span> Suspension hid certificate from public, reactivation restored it</li>
+        <li><span class="checkbox"></span> Archived certificate reached final state with no further transitions</li>
+        <li><span class="checkbox"></span> Certificate number (not ID) used throughout all views and URLs</li>
+    </ul>
+
+    <!-- Module 12: E2E Company Onboarding -->
+    <h2 id="s15">Module 12: E2E Scenario 2 - New Company Onboarding</h2>
+    <p><strong>Business Story</strong>: A new client company is set up. Products are created. An external user is associated. The external user can only see their company's data.</p>
+    <p><strong>Roles</strong>: Admin, External (new user) | <strong>Time</strong>: 20-30 min</p>
+    <h3>Scenario Steps</h3>
+    <table>
+        <thead><tr><th>Step</th><th>ID</th><th>Role</th><th>Action</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>1</td><td>E2E-CO-001</td><td>Admin</td><td>Login as admin</td><td>Dashboard loads</td><td></td></tr>
+            <tr><td>2</td><td>E2E-CO-002</td><td>Admin</td><td>Navigate to Company Management</td><td>Company list loads</td><td></td></tr>
+            <tr><td>3</td><td>E2E-CO-003</td><td>Admin</td><td>Click Add New Company</td><td>Add form/modal opens</td><td></td></tr>
+            <tr><td>4</td><td>E2E-CO-004</td><td>Admin</td><td>Enter: Name="TestCo UAT", Location, Country, Email, Website</td><td>Fields accepted</td><td></td></tr>
+            <tr><td>5</td><td>E2E-CO-005</td><td>Admin</td><td>Save company</td><td>Company created, success toast</td><td></td></tr>
+            <tr><td>6-10</td><td>E2E-CO-006 to 010</td><td>Admin</td><td>Create 2 products under company</td><td>Products created and linked</td><td></td></tr>
+            <tr><td>11-14</td><td>E2E-CO-011 to 014</td><td>Admin</td><td>Create external user linked to company</td><td>User created with External role</td><td></td></tr>
+            <tr><td>15</td><td>E2E-CO-015</td><td>Admin</td><td>Create Active certificate for TestCo UAT</td><td>Certificate created</td><td></td></tr>
+            <tr><td>16</td><td>E2E-CO-016</td><td>Admin</td><td>Create Active certificate for DIFFERENT company</td><td>Second certificate created</td><td></td></tr>
+            <tr><td>17</td><td>E2E-CO-017</td><td>Admin</td><td>Logout</td><td>Session ended</td><td></td></tr>
+            <tr><td>18</td><td>E2E-CO-018</td><td>External</td><td>Login as new external user</td><td>Redirected to External Tile View</td><td></td></tr>
+            <tr><td>19</td><td>E2E-CO-019</td><td>External</td><td>View certificate tile list</td><td>ONLY TestCo UAT certificate visible</td><td></td></tr>
+            <tr><td>20</td><td>E2E-CO-020</td><td>External</td><td>Search for other company's cert</td><td>No results. Cannot see other company data.</td><td></td></tr>
+            <tr><td>21</td><td>E2E-CO-021</td><td>External</td><td>Navigate to Products</td><td>ONLY own company's products visible</td><td></td></tr>
+            <tr><td>22</td><td>E2E-CO-022</td><td>External</td><td>Verify no Actions column</td><td>No Edit/Delete buttons. Read-only.</td><td></td></tr>
+            <tr><td>23</td><td>E2E-CO-023</td><td>External</td><td>Verify no Admin menu</td><td>No Administration menu</td><td></td></tr>
+            <tr><td>24</td><td>E2E-CO-024</td><td>External</td><td>Navigate to /Admin/UserManagement</td><td>Access denied</td><td></td></tr>
+            <tr><td>25</td><td>E2E-CO-025</td><td>External</td><td>Navigate to /Certificate/Create</td><td>Access denied</td><td></td></tr>
+            <tr><td>26</td><td>E2E-CO-026</td><td>External</td><td>Export certificates</td><td>CSV contains ONLY own company certificates</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Module 13: E2E Partner API -->
+    <h2 id="s16">Module 13: E2E Scenario 3 - Partner API Integration</h2>
+    <p><strong>Business Story</strong>: An admin configures a partner, generates an API key, and the partner uses the API to discover certificates, search by product ID, and download PDFs.</p>
+    <p><strong>Roles</strong>: Admin, Partner (API) | <strong>Time</strong>: 20-30 min | <strong>Tool</strong>: curl/PowerShell/Postman</p>
+    <h3>Scenario Steps</h3>
+    <table>
+        <thead><tr><th>Step</th><th>ID</th><th>Role</th><th>Action</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>1</td><td>E2E-API-001</td><td>Admin</td><td>Navigate to Partner API Management</td><td>API management page loads</td><td></td></tr>
+            <tr><td>2</td><td>E2E-API-002</td><td>Admin</td><td>Generate new API key for "Amazon"</td><td>Key generated. <strong>Copy and save.</strong></td><td></td></tr>
+            <tr><td>3</td><td>E2E-API-003</td><td>Partner</td><td>Test auth: GET /api/v1/certificates with X-API-Key</td><td>200 OK with JSON response</td><td></td></tr>
+            <tr><td>4</td><td>E2E-API-004</td><td>Partner</td><td>Test NO auth: GET without key</td><td>401 Unauthorized</td><td></td></tr>
+            <tr><td>5</td><td>E2E-API-005</td><td>Partner</td><td>List page 1: ?pageNumber=1&amp;pageSize=5</td><td>Pagination metadata + data array</td><td></td></tr>
+            <tr><td>6</td><td>E2E-API-006</td><td>Partner</td><td>Verify pagination: check hasNext, request page 2</td><td>Page 2 returns next set</td><td></td></tr>
+            <tr><td>7</td><td>E2E-API-007</td><td>Partner</td><td>Get single cert by number</td><td>Single certificate object with all fields</td><td></td></tr>
+            <tr><td>8</td><td>E2E-API-008</td><td>Partner</td><td>Verify response fields</td><td>All fields present. issuer = "Green Circle Certified"</td><td></td></tr>
+            <tr><td>9</td><td>E2E-API-009</td><td>Partner</td><td>Request with includeProductIds=true</td><td>productIds array populated</td><td></td></tr>
+            <tr><td>10</td><td>E2E-API-010</td><td>Partner</td><td>Search by ASIN</td><td>Certificate(s) with matching ASIN returned</td><td></td></tr>
+            <tr><td>11</td><td>E2E-API-011</td><td>Partner</td><td>Search by UPC</td><td>Certificate(s) with matching UPC returned</td><td></td></tr>
+            <tr><td>12</td><td>E2E-API-012</td><td>Partner</td><td>Filter by status=Active</td><td>Only Active certificates returned</td><td></td></tr>
+            <tr><td>13</td><td>E2E-API-013</td><td>Partner</td><td>Download PDF</td><td>PDF file with correct content-type</td><td></td></tr>
+            <tr><td>14</td><td>E2E-API-014</td><td>Partner</td><td>Request non-existent certificate</td><td>404 Not Found</td><td></td></tr>
+            <tr><td>15</td><td>E2E-API-015</td><td>Partner</td><td>Verify date format</td><td>ISO 8601: YYYY-MM-DDTHH:mm:ssZ</td><td></td></tr>
+            <tr><td>16</td><td>E2E-API-016</td><td>Partner</td><td>Send rapid requests (exceed rate limit)</td><td>429 Too Many Requests</td><td></td></tr>
+            <tr><td>17</td><td>E2E-API-017</td><td>Admin</td><td>Revoke the API key</td><td>Key marked as revoked</td><td></td></tr>
+            <tr><td>18</td><td>E2E-API-018</td><td>Partner</td><td>Attempt request with revoked key</td><td>401 Unauthorized</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Module 14: E2E Admin System Setup -->
+    <h2 id="s17">Module 14: E2E Scenario 4 - Admin System Setup (Day 1)</h2>
+    <p><strong>Business Story</strong>: A brand-new system is configured. Admin sets up all master data, then an Analyst creates a certificate using all the configured data.</p>
+    <p><strong>Roles</strong>: Admin, Analyst | <strong>Time</strong>: 30-40 min</p>
+    <h3>Scenario Steps</h3>
+    <table>
+        <thead><tr><th>Step</th><th>ID</th><th>Role</th><th>Action</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 1: Master Data Setup (Admin)</td></tr>
+            <tr><td>1</td><td>E2E-SETUP-001</td><td>Admin</td><td>Login as admin</td><td>Dashboard loads</td><td></td></tr>
+            <tr><td>2</td><td>E2E-SETUP-002</td><td>Admin</td><td>Create Cert Type: Parent="Environmental Compliance"</td><td>Parent type created</td><td></td></tr>
+            <tr><td>3</td><td>E2E-SETUP-003</td><td>Admin</td><td>Create Subcategory: "Water Conservation Level 1"</td><td>Child type created under parent</td><td></td></tr>
+            <tr><td>4</td><td>E2E-SETUP-004</td><td>Admin</td><td>Create Subcategory: "Water Conservation Level 2"</td><td>Second child type created</td><td></td></tr>
+            <tr><td>5</td><td>E2E-SETUP-005</td><td>Admin</td><td>Set AmazonCode on parent cert type</td><td>AmazonCode saved</td><td></td></tr>
+            <tr><td>6</td><td>E2E-SETUP-006</td><td>Admin</td><td>Create Custom Field: "Testing Lab", Text, Required</td><td>Custom field created and linked</td><td></td></tr>
+            <tr><td>7</td><td>E2E-SETUP-007</td><td>Admin</td><td>Create Custom Field: "Compliance Score", Number, Optional</td><td>Second custom field created</td><td></td></tr>
+            <tr><td>8</td><td>E2E-SETUP-008</td><td>Admin</td><td>Create External Tag: "Water Positive"</td><td>External tag created</td><td></td></tr>
+            <tr><td>9</td><td>E2E-SETUP-009</td><td>Admin</td><td>Create Internal Tag: "FastTrack"</td><td>Internal tag created</td><td></td></tr>
+            <tr><td>10</td><td>E2E-SETUP-010</td><td>Admin</td><td>Create/verify Partner</td><td>Partner created/verified</td><td></td></tr>
+            <tr><td>11</td><td>E2E-SETUP-011</td><td>Admin</td><td>Create Product Type hierarchy</td><td>Three-level hierarchy created</td><td></td></tr>
+            <tr><td>12</td><td>E2E-SETUP-012</td><td>Admin</td><td>Create Company: "AquaTech Solutions"</td><td>Company created</td><td></td></tr>
+            <tr><td>13</td><td>E2E-SETUP-013</td><td>Admin</td><td>Create Product: "AquaFilter Pro"</td><td>Product created and linked</td><td></td></tr>
+            <tr><td>14</td><td>E2E-SETUP-014</td><td>Admin</td><td>Logout</td><td>Session ended</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 2: Certificate Creation Using Setup Data (Analyst)</td></tr>
+            <tr><td>15</td><td>E2E-SETUP-015</td><td>Analyst</td><td>Login as analyst</td><td>Internal view loads</td><td></td></tr>
+            <tr><td>16</td><td>E2E-SETUP-016</td><td>Analyst</td><td>Navigate to Create Certificate</td><td>Form loads</td><td></td></tr>
+            <tr><td>17</td><td>E2E-SETUP-017</td><td>Analyst</td><td>Select Company = "AquaTech Solutions"</td><td>Company available in dropdown</td><td></td></tr>
+            <tr><td>18</td><td>E2E-SETUP-018</td><td>Analyst</td><td>Select Product = "AquaFilter Pro"</td><td>Product available (linked to company)</td><td></td></tr>
+            <tr><td>19</td><td>E2E-SETUP-019</td><td>Analyst</td><td>Select Cert Type = "Environmental Compliance"</td><td>Subcategory dropdown populates</td><td></td></tr>
+            <tr><td>20</td><td>E2E-SETUP-020</td><td>Analyst</td><td>Select Subcategory = "Water Conservation Level 1"</td><td>Custom fields appear: "Testing Lab" + "Compliance Score"</td><td></td></tr>
+            <tr><td>21</td><td>E2E-SETUP-021</td><td>Analyst</td><td>Fill "Testing Lab" = "National Water Testing Institute"</td><td>Required field accepts input</td><td></td></tr>
+            <tr><td>22</td><td>E2E-SETUP-022</td><td>Analyst</td><td>Fill "Compliance Score" = "94.7"</td><td>Optional number field accepts input</td><td></td></tr>
+            <tr><td>23</td><td>E2E-SETUP-023</td><td>Analyst</td><td>Try Save WITHOUT "Testing Lab" (clear it)</td><td>Validation error: "Testing Lab is required"</td><td></td></tr>
+            <tr><td>24</td><td>E2E-SETUP-024</td><td>Analyst</td><td>Refill, Add External Tag "Water Positive"</td><td>Tag from admin setup appears and selected</td><td></td></tr>
+            <tr><td>25</td><td>E2E-SETUP-025</td><td>Analyst</td><td>Add Internal Tag "FastTrack"</td><td>Internal tag available and selected</td><td></td></tr>
+            <tr><td>26</td><td>E2E-SETUP-026</td><td>Analyst</td><td>Set dates, location, partner. Click Save.</td><td>Certificate created with ALL admin-configured data</td><td></td></tr>
+            <tr><td>27</td><td>E2E-SETUP-027</td><td>Analyst</td><td>View Details page</td><td>Verify all data correct</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Module 15: E2E Renewal -->
+    <h2 id="s18">Module 15: E2E Scenario 5 - Certificate Renewal Lifecycle</h2>
+    <p><strong>Business Story</strong>: An active certificate approaches expiration. The system auto-transitions to Pending Renewal. Analyst submits for review, it gets renewed and returns to Active.</p>
+    <p><strong>Roles</strong>: Admin, Analyst, System | <strong>Time</strong>: 20 min</p>
+    <table>
+        <thead><tr><th>Step</th><th>ID</th><th>Role</th><th>Action</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>1</td><td>E2E-REN-001</td><td>Admin</td><td>Create cert Active, Expiration = today + 25 days</td><td>Certificate created as Active</td><td></td></tr>
+            <tr><td>2</td><td>E2E-REN-002</td><td>System</td><td>Trigger expiration check</td><td>Auto-transitions to Pending Renewal (30-day window)</td><td></td></tr>
+            <tr><td>3</td><td>E2E-REN-003</td><td>Analyst</td><td>View in internal tile view</td><td>"Pending Renewal" status badge</td><td></td></tr>
+            <tr><td>4</td><td>E2E-REN-004</td><td>Analyst</td><td>Verify "Expiring Soon" indicator</td><td>Visual indicator showing cert is expiring soon</td><td></td></tr>
+            <tr><td>5</td><td>E2E-REN-005</td><td>Analyst</td><td>Edit: change to "Under Review"</td><td>Status = Under Review</td><td></td></tr>
+            <tr><td>6</td><td>E2E-REN-006</td><td>Admin</td><td>Change status to "Renewed"</td><td>Status = Renewed</td><td></td></tr>
+            <tr><td>7</td><td>E2E-REN-007</td><td>Admin</td><td>Change from Renewed to "Active"</td><td>Status = Active (renewed and active)</td><td></td></tr>
+            <tr><td>8</td><td>E2E-REN-008</td><td>Admin</td><td>Verify expiration date updated</td><td>Expiration date updated for renewed cert</td><td></td></tr>
+            <tr><td>9</td><td>E2E-REN-009</td><td>Public</td><td>Verify certificate visible</td><td>Certificate appears as Active</td><td></td></tr>
+            <tr><td>10</td><td>E2E-REN-010</td><td>Admin</td><td>Check status history</td><td>Full history: Active &rarr; Pending Renewal &rarr; Under Review &rarr; Renewed &rarr; Active</td><td></td></tr>
+        </tbody>
+    </table>
+    <h4>Alternative Path: Expiration Without Renewal</h4>
+    <table>
+        <thead><tr><th>Step</th><th>ID</th><th>Role</th><th>Action</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>11</td><td>E2E-REN-011</td><td>Admin</td><td>Create cert Active, Expiration = yesterday</td><td>Certificate created</td><td></td></tr>
+            <tr><td>12</td><td>E2E-REN-012</td><td>System</td><td>Trigger expiration check</td><td>Auto-transitions to Expired</td><td></td></tr>
+            <tr><td>13</td><td>E2E-REN-013</td><td>Public</td><td>Search for expired certificate</td><td>Certificate NOT visible</td><td></td></tr>
+            <tr><td>14</td><td>E2E-REN-014</td><td>Admin</td><td>Archive expired certificate</td><td>Status = Archived (final state)</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Module 16: E2E Rejection -->
+    <h2 id="s19">Module 16: E2E Scenario 6 - Rejection &amp; Recovery Flow</h2>
+    <p><strong>Business Story</strong>: An Analyst creates a certificate that gets rejected. The Analyst corrects issues and resubmits. Certificate eventually gets approved and activated.</p>
+    <p><strong>Roles</strong>: Analyst, Admin | <strong>Time</strong>: 15-20 min</p>
+    <table>
+        <thead><tr><th>Step</th><th>ID</th><th>Role</th><th>Action</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>1</td><td>E2E-REJ-001</td><td>Analyst</td><td>Create cert with incomplete data (missing PDF)</td><td>Certificate created in Draft</td><td></td></tr>
+            <tr><td>2</td><td>E2E-REJ-002</td><td>Analyst</td><td>Change to Pending Review</td><td>Status = Pending Review</td><td></td></tr>
+            <tr><td>3</td><td>E2E-REJ-003</td><td>Admin</td><td>Review certificate, identify issues</td><td>Admin sees incomplete cert</td><td></td></tr>
+            <tr><td>4</td><td>E2E-REJ-004</td><td>Admin</td><td>Change to Under Review</td><td>Status = Under Review</td><td></td></tr>
+            <tr><td>5</td><td>E2E-REJ-005</td><td>Admin</td><td>Reject: change to "Rejected"</td><td>Status = Rejected</td><td></td></tr>
+            <tr><td>6</td><td>E2E-REJ-006</td><td>Analyst</td><td>View rejected certificate</td><td>"Rejected" status shown</td><td></td></tr>
+            <tr><td>7</td><td>E2E-REJ-007</td><td>Analyst</td><td>Verify available transitions from Rejected</td><td>Can go to: Draft or Archived only</td><td></td></tr>
+            <tr><td>8</td><td>E2E-REJ-008</td><td>Analyst</td><td>Change back to "Draft"</td><td>Status = Draft (restart)</td><td></td></tr>
+            <tr><td>9</td><td>E2E-REJ-009</td><td>Analyst</td><td>Fix: Upload PDF, add missing data</td><td>Certificate now complete</td><td></td></tr>
+            <tr><td>10</td><td>E2E-REJ-010</td><td>Analyst</td><td>Resubmit: change to "Pending Review"</td><td>Status = Pending Review (second attempt)</td><td></td></tr>
+            <tr><td>11</td><td>E2E-REJ-011</td><td>Admin</td><td>Review: Pending Review &rarr; Under Review &rarr; Approved</td><td>Status = Approved</td><td></td></tr>
+            <tr><td>12</td><td>E2E-REJ-012</td><td>Admin</td><td>Activate: Approved &rarr; Active</td><td>Status = Active. Certificate is now live.</td><td></td></tr>
+            <tr><td>13</td><td>E2E-REJ-013</td><td>Public</td><td>Verify certificate in public view</td><td>Certificate visible</td><td></td></tr>
+            <tr><td>14</td><td>E2E-REJ-014</td><td>Admin</td><td>Check full audit trail</td><td>History: Draft &rarr; PendingReview &rarr; UnderReview &rarr; Rejected &rarr; Draft &rarr; PendingReview &rarr; UnderReview &rarr; Approved &rarr; Active</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Module 17: E2E Bulk Operations -->
+    <h2 id="s20">Module 17: E2E Scenario 7 - Bulk Operations Workflow</h2>
+    <p><strong>Business Story</strong>: Admin downloads templates, prepares bulk data, imports via CSV, previews, applies, then exports to verify.</p>
+    <p><strong>Roles</strong>: Admin | <strong>Time</strong>: 25-35 min</p>
+    <table>
+        <thead><tr><th>Step</th><th>ID</th><th>Role</th><th>Action</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 1: Template Download</td></tr>
+            <tr><td>1</td><td>E2E-BULK-001</td><td>Admin</td><td>User Management &rarr; Template</td><td>CSV template downloads</td><td></td></tr>
+            <tr><td>2</td><td>E2E-BULK-002</td><td>Admin</td><td>Tags &rarr; Template</td><td>Tag import template downloads</td><td></td></tr>
+            <tr><td>3</td><td>E2E-BULK-003</td><td>Admin</td><td>Companies &rarr; Template</td><td>Company import template downloads</td><td></td></tr>
+            <tr><td>4</td><td>E2E-BULK-004</td><td>Admin</td><td>Certificate Import &rarr; Template</td><td>Certificate import template downloads</td><td></td></tr>
+            <tr><td>5</td><td>E2E-BULK-005</td><td>Admin</td><td>Verify all templates are CSV format</td><td>All files are .csv format</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 2: Import Companies</td></tr>
+            <tr><td>6</td><td>E2E-BULK-006</td><td>Admin</td><td>Fill template with 3 companies</td><td>Data prepared</td><td></td></tr>
+            <tr><td>7</td><td>E2E-BULK-007</td><td>Admin</td><td>Import companies CSV</td><td>Companies imported, toast notification</td><td></td></tr>
+            <tr><td>8</td><td>E2E-BULK-008</td><td>Admin</td><td>Verify all 3 companies in list</td><td>All 3 visible</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 3: Import Tags</td></tr>
+            <tr><td>9</td><td>E2E-BULK-009</td><td>Admin</td><td>Fill tag template: 2 external + 1 internal</td><td>Tags prepared</td><td></td></tr>
+            <tr><td>10</td><td>E2E-BULK-010</td><td>Admin</td><td>Import tags CSV</td><td>Tags imported</td><td></td></tr>
+            <tr><td>11</td><td>E2E-BULK-011</td><td>Admin</td><td>Filter by type to verify</td><td>Correctly typed tags</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 4: Bulk Certificate Import</td></tr>
+            <tr><td>12</td><td>E2E-BULK-012</td><td>Admin</td><td>Fill cert template with 5 certificates</td><td>CSV prepared</td><td></td></tr>
+            <tr><td>13</td><td>E2E-BULK-013</td><td>Admin</td><td>Upload certificate CSV</td><td>File accepted, redirected to preview</td><td></td></tr>
+            <tr><td>14</td><td>E2E-BULK-014</td><td>Admin</td><td>Review import preview</td><td>Preview shows: X new, Y modified, Z errors</td><td></td></tr>
+            <tr><td>15</td><td>E2E-BULK-015</td><td>Admin</td><td>Verify auto-created entities</td><td>Preview shows auto-creation of missing products</td><td></td></tr>
+            <tr><td>16</td><td>E2E-BULK-016</td><td>Admin</td><td>Click Apply</td><td>Import executed, success notification</td><td></td></tr>
+            <tr><td>17</td><td>E2E-BULK-017</td><td>Admin</td><td>Navigate to Internal Tile View</td><td>All 5 imported certificates visible</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 5: Export &amp; Verify</td></tr>
+            <tr><td>18</td><td>E2E-BULK-018</td><td>Admin</td><td>Export certificates</td><td>CSV downloads</td><td></td></tr>
+            <tr><td>19</td><td>E2E-BULK-019</td><td>Admin</td><td>Verify imported data in CSV</td><td>All 5 certificates present with correct data</td><td></td></tr>
+            <tr><td>20</td><td>E2E-BULK-020</td><td>Admin</td><td>Export companies</td><td>All 3 bulk companies in export</td><td></td></tr>
+            <tr><td>21</td><td>E2E-BULK-021</td><td>Admin</td><td>Export tags</td><td>Bulk-imported tags in export</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 6: Negative Import Testing</td></tr>
+            <tr><td>22</td><td>E2E-BULK-022</td><td>Admin</td><td>Upload CSV with duplicate cert numbers</td><td>Preview shows "Modified" or "Duplicate" status</td><td></td></tr>
+            <tr><td>23</td><td>E2E-BULK-023</td><td>Admin</td><td>Upload CSV with invalid data</td><td>Preview shows error rows with messages</td><td></td></tr>
+            <tr><td>24</td><td>E2E-BULK-024</td><td>Admin</td><td>Cancel import of invalid data</td><td>No changes applied</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Module 18: E2E User Access -->
+    <h2 id="s21">Module 18: E2E Scenario 8 - User Access Lifecycle</h2>
+    <p><strong>Business Story</strong>: Admin creates a new Analyst user. User logs in, works normally, admin changes role, eventually deactivates account.</p>
+    <p><strong>Roles</strong>: Admin, Analyst (new) | <strong>Time</strong>: 20 min</p>
+    <table>
+        <thead><tr><th>Step</th><th>ID</th><th>Role</th><th>Action</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 1: Account Creation</td></tr>
+            <tr><td>1-5</td><td>E2E-USER-001 to 005</td><td>Admin</td><td>Create user: "UAT Analyst", Role=Analyst, Password="Initial123!"</td><td>User created, visible in list</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 2: First Login</td></tr>
+            <tr><td>6</td><td>E2E-USER-006</td><td>New Analyst</td><td>Login with Initial123!</td><td>Login succeeds</td><td></td></tr>
+            <tr><td>7</td><td>E2E-USER-007</td><td>New Analyst</td><td>If force password reset: enter new password</td><td>Password changed</td><td></td></tr>
+            <tr><td>8</td><td>E2E-USER-008</td><td>New Analyst</td><td>If 2FA required: complete setup</td><td>2FA configured</td><td></td></tr>
+            <tr><td>9-10</td><td>E2E-USER-009-010</td><td>New Analyst</td><td>Verify correct landing page and navigation</td><td>Analyst-appropriate view and nav</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 3: Normal Operations</td></tr>
+            <tr><td>11</td><td>E2E-USER-011</td><td>New Analyst</td><td>Create a certificate</td><td>Can create certificates</td><td></td></tr>
+            <tr><td>12</td><td>E2E-USER-012</td><td>New Analyst</td><td>Edit the certificate</td><td>Can edit certificates</td><td></td></tr>
+            <tr><td>13</td><td>E2E-USER-013</td><td>New Analyst</td><td>Try to delete a certificate</td><td>NO delete button visible</td><td></td></tr>
+            <tr><td>14-16</td><td>E2E-USER-014 to 016</td><td>New Analyst</td><td>View Dashboard, access Companies, try Admin pages</td><td>Dashboard works. Companies work. Admin denied.</td><td></td></tr>
+            <tr><td>17</td><td>E2E-USER-017</td><td>New Analyst</td><td>Logout</td><td>Session ended</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 4: Account Modification</td></tr>
+            <tr><td>18-19</td><td>E2E-USER-018-019</td><td>Admin</td><td>Change user role from Analyst to External</td><td>Role changed</td><td></td></tr>
+            <tr><td>20</td><td>E2E-USER-020</td><td>Now External</td><td>Login</td><td>Redirected to External Tile View</td><td></td></tr>
+            <tr><td>21</td><td>E2E-USER-021</td><td>Now External</td><td>Verify navigation reflects External role</td><td>Only Certificates and Products. No Dashboard/Admin.</td><td></td></tr>
+            <tr><td>22</td><td>E2E-USER-022</td><td>Now External</td><td>Try to create certificate</td><td>Access denied</td><td></td></tr>
+            <tr><td>23</td><td>E2E-USER-023</td><td>Now External</td><td>Logout</td><td>Session ended</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Phase 5: Deactivation</td></tr>
+            <tr><td>24-25</td><td>E2E-USER-024-025</td><td>Admin</td><td>Deactivate user</td><td>User deactivated/deleted</td><td></td></tr>
+            <tr><td>26</td><td>E2E-USER-026</td><td>Deactivated</td><td>Try to login</td><td>Login fails with appropriate message</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- Module 19: E2E Search & Discovery -->
+    <h2 id="s22">Module 19: E2E Scenario 9 - Search &amp; Discovery Cross-Role</h2>
+    <p><strong>Business Story</strong>: Same certificates viewed from all 4 perspectives to verify each role sees correct data, filters, and UI elements.</p>
+    <p><strong>Roles</strong>: Public, External, Analyst, Admin | <strong>Time</strong>: 25-30 min</p>
+    <h3>Pre-conditions</h3>
+    <ul>
+        <li>Cert "A": Active, Partner=Amazon, Company=TestCo, ExternalTag="Sustainable", InternalTag="Priority", has ASIN</li>
+        <li>Cert "B": Active, Partner=None, Company=OtherCo, ExternalTag="Verified"</li>
+        <li>Cert "C": Draft, Company=TestCo</li>
+        <li>Cert "D": Archived, Company=TestCo</li>
+        <li>External user associated with "TestCo"</li>
+    </ul>
+    <table>
+        <thead><tr><th>Step</th><th>ID</th><th>Role</th><th>Action</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Public View</td></tr>
+            <tr><td>1</td><td>E2E-SEARCH-001</td><td>Public</td><td>Navigate to public tile view</td><td>Cert A and B visible. C (Draft) and D (Archived) NOT visible.</td><td></td></tr>
+            <tr><td>2</td><td>E2E-SEARCH-002</td><td>Public</td><td>Check filter panel</td><td>External tags shown. NO internal tags.</td><td></td></tr>
+            <tr><td>3</td><td>E2E-SEARCH-003</td><td>Public</td><td>Filter by tag "Sustainable"</td><td>Only Cert A shown</td><td></td></tr>
+            <tr><td>4</td><td>E2E-SEARCH-004</td><td>Public</td><td>Clear filter, search by ASIN</td><td>Cert A found via autocomplete</td><td></td></tr>
+            <tr><td>5</td><td>E2E-SEARCH-005</td><td>Public</td><td>Check Cert A tile details</td><td>No Edit/Delete. No internal tags. Cert Number shown.</td><td></td></tr>
+            <tr><td>6</td><td>E2E-SEARCH-006</td><td>Public</td><td>Copy shareable URL with filter</td><td>URL contains search parameters</td><td></td></tr>
+            <tr><td>7</td><td>E2E-SEARCH-007</td><td>Public</td><td>Open shareable URL in incognito</td><td>Same filtered results displayed</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">External View (TestCo user)</td></tr>
+            <tr><td>8</td><td>E2E-SEARCH-008</td><td>External</td><td>Login as external (TestCo)</td><td>External tile view loads</td><td></td></tr>
+            <tr><td>9</td><td>E2E-SEARCH-009</td><td>External</td><td>View certificate list</td><td>Cert A visible. B, C, D NOT visible.</td><td></td></tr>
+            <tr><td>10</td><td>E2E-SEARCH-010</td><td>External</td><td>Check filter panel</td><td>External tags only. No internal tags.</td><td></td></tr>
+            <tr><td>11</td><td>E2E-SEARCH-011</td><td>External</td><td>Search for Cert B by number</td><td>No results (different company)</td><td></td></tr>
+            <tr><td>12</td><td>E2E-SEARCH-012</td><td>External</td><td>View Cert A details</td><td>External tags visible. Internal tags NOT visible. No Edit/Delete.</td><td></td></tr>
+            <tr><td>13</td><td>E2E-SEARCH-013</td><td>External</td><td>Check Products page</td><td>Only TestCo products. No Actions column.</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Analyst View</td></tr>
+            <tr><td>14</td><td>E2E-SEARCH-014</td><td>Analyst</td><td>Login as analyst</td><td>Internal tile view loads</td><td></td></tr>
+            <tr><td>15</td><td>E2E-SEARCH-015</td><td>Analyst</td><td>View certificate list</td><td>ALL 4 certs visible across all statuses/companies</td><td></td></tr>
+            <tr><td>16</td><td>E2E-SEARCH-016</td><td>Analyst</td><td>Check filter panel</td><td>Both internal AND external tags. All companies/statuses.</td><td></td></tr>
+            <tr><td>17</td><td>E2E-SEARCH-017</td><td>Analyst</td><td>Filter by internal tag "Priority"</td><td>Only Cert A shown</td><td></td></tr>
+            <tr><td>18</td><td>E2E-SEARCH-018</td><td>Analyst</td><td>Filter by status "Draft"</td><td>Only Cert C shown</td><td></td></tr>
+            <tr><td>19</td><td>E2E-SEARCH-019</td><td>Analyst</td><td>View Cert A details</td><td>ALL data visible. Edit button. No Delete button.</td><td></td></tr>
+            <tr><td>20</td><td>E2E-SEARCH-020</td><td>Analyst</td><td>Click Edit on Cert A</td><td>Edit page loads with all data</td><td></td></tr>
+            <tr><td colspan="6" style="background:#e8eaf6;font-weight:600;">Admin View</td></tr>
+            <tr><td>21</td><td>E2E-SEARCH-021</td><td>Admin</td><td>Login as admin</td><td>Dashboard or internal tile view</td><td></td></tr>
+            <tr><td>22</td><td>E2E-SEARCH-022</td><td>Admin</td><td>View certificate list</td><td>ALL 4 certs visible</td><td></td></tr>
+            <tr><td>23</td><td>E2E-SEARCH-023</td><td>Admin</td><td>View Cert A details</td><td>ALL data. Edit AND Delete buttons.</td><td></td></tr>
+            <tr><td>24</td><td>E2E-SEARCH-024</td><td>Admin</td><td>Filter by status "Archived"</td><td>Only Cert D shown</td><td></td></tr>
+            <tr><td>25</td><td>E2E-SEARCH-025</td><td>Admin</td><td>Check status dropdown for Cert C (Draft)</td><td>Valid transitions available</td><td></td></tr>
+            <tr><td>26</td><td>E2E-SEARCH-026</td><td>Admin</td><td>Check status dropdown for Cert D (Archived)</td><td>No transitions (final state)</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>Cross-Role Comparison Summary</h3>
+    <table>
+        <thead><tr><th>Aspect</th><th>Public</th><th>External (TestCo)</th><th>Analyst</th><th>Admin</th></tr></thead>
+        <tbody>
+            <tr><td><strong>Cert A (Active, TestCo)</strong></td><td>Visible</td><td>Visible</td><td>Visible</td><td>Visible</td></tr>
+            <tr><td><strong>Cert B (Active, OtherCo)</strong></td><td>Visible</td><td><strong>NOT visible</strong></td><td>Visible</td><td>Visible</td></tr>
+            <tr><td><strong>Cert C (Draft, TestCo)</strong></td><td><strong>NOT visible</strong></td><td><strong>NOT visible</strong></td><td>Visible</td><td>Visible</td></tr>
+            <tr><td><strong>Cert D (Archived, TestCo)</strong></td><td><strong>NOT visible</strong></td><td><strong>NOT visible</strong></td><td>Visible</td><td>Visible</td></tr>
+            <tr><td><strong>Internal tags shown</strong></td><td>No</td><td>No</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td><strong>External tags shown</strong></td><td>Yes</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td><strong>Edit button</strong></td><td>No</td><td>No</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td><strong>Delete button</strong></td><td>No</td><td>No</td><td>No</td><td>Yes</td></tr>
+            <tr><td><strong>Filter by internal tag</strong></td><td>No</td><td>No</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td><strong>Filter by all companies</strong></td><td>Yes</td><td>No (own only)</td><td>Yes</td><td>Yes</td></tr>
+            <tr><td><strong>Filter by all statuses</strong></td><td>No (Active only)</td><td>No (Active only)</td><td>Yes (all 14)</td><td>Yes (all 14)</td></tr>
+        </tbody>
+    </table>
+
+    <!-- PART B2: ACCESSIBILITY -->
+    <h2 id="partb2" style="font-size: 16pt; border-bottom: 3px solid #002B76;">PART B2: ACCESSIBILITY TESTING</h2>
+
+    <h2 id="s23">Module 20: Accessibility Testing (WCAG 2.1 AA)</h2>
+    <p><strong>Standard</strong>: WCAG 2.1 Level AA | <strong>Tools</strong>: Screen reader, keyboard, browser zoom, contrast analyzer</p>
+    <h3>20.1 Keyboard Navigation</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-A11Y-001</td><td>Tab order - Login page</td><td>1. Navigate to /Account/Login 2. Press Tab repeatedly</td><td>Focus: Username &rarr; Password &rarr; Remember Me &rarr; Sign In &rarr; Forgot Password</td><td></td></tr>
+            <tr><td>TC-A11Y-002</td><td>Tab order - Public tile view</td><td>1. Navigate to public tile view 2. Tab</td><td>Focus: Skip link &rarr; Search &rarr; Filters &rarr; Tiles &rarr; Load more</td><td></td></tr>
+            <tr><td>TC-A11Y-003</td><td>Tab order - Admin pages</td><td>1. Navigate to any Admin page 2. Tab</td><td>Focus: Nav &rarr; Action buttons &rarr; Search &rarr; Filters &rarr; Table &rarr; Pagination</td><td></td></tr>
+            <tr><td>TC-A11Y-004</td><td>Skip navigation link</td><td>1. Press Tab on any page</td><td>First focusable element is "Skip to main content" link</td><td></td></tr>
+            <tr><td>TC-A11Y-005</td><td>Enter/Space activates buttons</td><td>1. Tab to button 2. Press Enter or Space</td><td>Button activates</td><td></td></tr>
+            <tr><td>TC-A11Y-006</td><td>Escape closes modals</td><td>1. Open any modal 2. Press Escape</td><td>Modal closes, focus returns to trigger</td><td></td></tr>
+            <tr><td>TC-A11Y-007</td><td>Arrow keys in dropdowns</td><td>1. Tab to dropdown 2. Use Up/Down arrows</td><td>Options navigate via arrow keys</td><td></td></tr>
+            <tr><td>TC-A11Y-008</td><td>Focus trap in modals</td><td>1. Open modal 2. Tab through all elements</td><td>Focus stays within modal</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>20.2 Screen Reader Compatibility</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-A11Y-009</td><td>Page title announced</td><td>1. Navigate to each page with screen reader</td><td>Screen reader announces page title</td><td></td></tr>
+            <tr><td>TC-A11Y-010</td><td>Heading hierarchy</td><td>1. Use screen reader heading list</td><td>Single H1, logical H2/H3, no skipped levels</td><td></td></tr>
+            <tr><td>TC-A11Y-011</td><td>Form labels on login</td><td>1. Tab to username/password with screen reader</td><td>Fields announced with labels</td><td></td></tr>
+            <tr><td>TC-A11Y-012</td><td>Form labels on certificate create</td><td>1. Tab through Create form with screen reader</td><td>All fields have associated labels</td><td></td></tr>
+            <tr><td>TC-A11Y-013</td><td>Table headers announced</td><td>1. Navigate admin table with screen reader</td><td>Column headers announced</td><td></td></tr>
+            <tr><td>TC-A11Y-014</td><td>Button purposes announced</td><td>1. Focus on action buttons</td><td>Screen reader announces button purpose</td><td></td></tr>
+            <tr><td>TC-A11Y-015</td><td>Status badge alt text</td><td>1. Navigate to certificate tile</td><td>Status badge text announced</td><td></td></tr>
+            <tr><td>TC-A11Y-016</td><td>Image alt text</td><td>1. Navigate to certificate detail with thumbnail</td><td>Image has alt text</td><td></td></tr>
+            <tr><td>TC-A11Y-017</td><td>sr-only labels for search/filter</td><td>1. Focus on search/filter inputs</td><td>Screen reader labels are read</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>20.3 Color Contrast &amp; Visual</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-A11Y-018</td><td>Text contrast ratio</td><td>1. Use contrast checker on body text</td><td>Contrast &gt;= 4.5:1 for normal text, &gt;= 3:1 for large text</td><td></td></tr>
+            <tr><td>TC-A11Y-019</td><td>Button contrast</td><td>1. Check primary button text vs background</td><td>Contrast &gt;= 4.5:1</td><td></td></tr>
+            <tr><td>TC-A11Y-020</td><td>Status badge contrast</td><td>1. Check Active, Draft, Expired badge combos</td><td>All meet &gt;= 4.5:1 contrast</td><td></td></tr>
+            <tr><td>TC-A11Y-021</td><td>Link visibility</td><td>1. Inspect links</td><td>Links distinguishable by more than color alone</td><td></td></tr>
+            <tr><td>TC-A11Y-022</td><td>Focus indicator visible</td><td>1. Tab through elements</td><td>Visible focus ring on every focusable element</td><td></td></tr>
+            <tr><td>TC-A11Y-023</td><td>Information not by color alone</td><td>1. Check validation errors, status indicators</td><td>Errors have icon + text. Statuses have label text.</td><td></td></tr>
+            <tr><td>TC-A11Y-024</td><td>16px minimum font</td><td>1. Inspect all text</td><td>No text smaller than 16px</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>20.4 ARIA Attributes</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-A11Y-025</td><td>aria-label on search inputs</td><td>1. Inspect search inputs</td><td>Each search has aria-label</td><td></td></tr>
+            <tr><td>TC-A11Y-026</td><td>aria-label on filter selects</td><td>1. Inspect filter dropdowns</td><td>Each filter has aria-label</td><td></td></tr>
+            <tr><td>TC-A11Y-027</td><td>aria-expanded on collapsible panels</td><td>1. Inspect filter panel toggle</td><td>aria-expanded="true"/"false"</td><td></td></tr>
+            <tr><td>TC-A11Y-028</td><td>aria-hidden on decorative icons</td><td>1. Inspect Font Awesome icons</td><td>Decorative icons have aria-hidden="true"</td><td></td></tr>
+            <tr><td>TC-A11Y-029</td><td>role="alert" on notifications</td><td>1. Trigger toast 2. Inspect</td><td>Has role="alert" or aria-live="polite"</td><td></td></tr>
+            <tr><td>TC-A11Y-030</td><td>role="dialog" on modals</td><td>1. Open modal 2. Inspect</td><td>Has role="dialog" and aria-labelledby</td><td></td></tr>
+            <tr><td>TC-A11Y-031</td><td>aria-invalid on validation errors</td><td>1. Submit form with errors 2. Inspect</td><td>Field has aria-invalid="true"</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>20.5 Form Accessibility</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-A11Y-032</td><td>Required fields indicated</td><td>1. View cert create form</td><td>Required fields have visual * AND aria-required="true"</td><td></td></tr>
+            <tr><td>TC-A11Y-033</td><td>Error messages linked to fields</td><td>1. Submit with validation errors</td><td>Each error associated with field via aria-describedby</td><td></td></tr>
+            <tr><td>TC-A11Y-034</td><td>Autocomplete accessible</td><td>1. Type in search 2. Use arrow keys</td><td>Suggestions navigable via keyboard. aria-autocomplete present.</td><td></td></tr>
+            <tr><td>TC-A11Y-035</td><td>File upload accessible</td><td>1. Tab to upload zone</td><td>Focusable, activatable via Enter/Space</td><td></td></tr>
+            <tr><td>TC-A11Y-036</td><td>Date picker accessible</td><td>1. Tab to date fields 2. Enter date via keyboard</td><td>Date enterable via keyboard</td><td></td></tr>
+            <tr><td>TC-A11Y-037</td><td>Tag selection accessible</td><td>1. Tab to tag selector 2. Use keyboard</td><td>Tags selectable/removable via keyboard</td><td></td></tr>
+            <tr><td>TC-A11Y-038</td><td>Checkbox filters accessible</td><td>1. Tab to checkboxes 2. Press Space</td><td>Checkboxes toggle via Space</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>20.6 Modal &amp; Dialog Accessibility</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-A11Y-039</td><td>Delete confirmation modal</td><td>1. Click Delete 2. Inspect</td><td>Title, text, labeled buttons. Focus trapped.</td><td></td></tr>
+            <tr><td>TC-A11Y-040</td><td>Help modal accessible</td><td>1. Open Help modal</td><td>Content readable, close accessible, Escape works</td><td></td></tr>
+            <tr><td>TC-A11Y-041</td><td>Modal focus management</td><td>1. Open any modal</td><td>Focus moves to modal. On close, returns to trigger.</td><td></td></tr>
+            <tr><td>TC-A11Y-042</td><td>Toast notification announced</td><td>1. Trigger success action</td><td>Toast announced via aria-live region</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>20.7 Responsive &amp; Zoom Accessibility</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-A11Y-043</td><td>200% zoom usable</td><td>1. Zoom to 200% 2. Navigate tile view</td><td>Content reflows, no horizontal scroll. All functions work.</td><td></td></tr>
+            <tr><td>TC-A11Y-044</td><td>200% zoom admin tables</td><td>1. Zoom to 200% on admin page</td><td>Table scrollable or reformatted. No content cut off.</td><td></td></tr>
+            <tr><td>TC-A11Y-045</td><td>Touch target size (mobile)</td><td>1. View on mobile/responsive</td><td>All interactive elements &gt;= 44x44px</td><td></td></tr>
+            <tr><td>TC-A11Y-046</td><td>Text resizing</td><td>1. Use browser text-only zoom to 200%</td><td>Text resizes without breaking layout</td><td></td></tr>
+        </tbody>
+    </table>
+    <h3>20.8 Data Table Accessibility</h3>
+    <table>
+        <thead><tr><th>ID</th><th>Description</th><th>Steps</th><th>Expected Result</th><th>Status</th></tr></thead>
+        <tbody>
+            <tr><td>TC-A11Y-047</td><td>Admin table has &lt;th&gt; headers</td><td>1. Inspect admin table HTML</td><td>Proper &lt;thead&gt;/&lt;th&gt; elements</td><td></td></tr>
+            <tr><td>TC-A11Y-048</td><td>Table has caption or aria-label</td><td>1. Inspect table element</td><td>Table has &lt;caption&gt; or aria-label</td><td></td></tr>
+            <tr><td>TC-A11Y-049</td><td>Sortable columns announced</td><td>1. If sortable, tab to header</td><td>Screen reader announces sort state</td><td></td></tr>
+            <tr><td>TC-A11Y-050</td><td>Empty table state</td><td>1. Apply filter with no results</td><td>Accessible "No results found" message</td><td></td></tr>
+        </tbody>
+    </table>
+
+    <!-- PART C: TRACEABILITY -->
+    <h2 id="partc" style="font-size: 16pt; border-bottom: 3px solid #002B76;">PART C: TRACEABILITY &amp; REPORTING</h2>
+
+    <h2 id="s24">24. Requirements Traceability Matrix</h2>
+    <h3>Core Requirements Mapping</h3>
+    <table>
+        <thead><tr><th>Requirement</th><th>Description</th><th>Test Cases</th><th>Verified?</th></tr></thead>
+        <tbody>
+            <tr><td>REQ-AUTH-01</td><td>Role-based access control (6 roles)</td><td>TC-PERM-001 to TC-PERM-046</td><td></td></tr>
+            <tr><td>REQ-AUTH-02</td><td>Two-factor authentication</td><td>TC-AUTH-009 to TC-AUTH-012</td><td></td></tr>
+            <tr><td>REQ-AUTH-03</td><td>Session management &amp; timeout</td><td>TC-AUTH-015, TC-AUTH-018</td><td></td></tr>
+            <tr><td>REQ-CERT-01</td><td>Certificate CRUD operations</td><td>TC-ANL-010 to TC-ANL-047</td><td></td></tr>
+            <tr><td>REQ-CERT-02</td><td>14-state workflow</td><td>TC-WF-001 to TC-WF-047</td><td></td></tr>
+            <tr><td>REQ-CERT-03</td><td>Certificate number format (YY-NNNN)</td><td>TC-ANL-011, TC-NEG-019, TC-PUB-017</td><td></td></tr>
+            <tr><td>REQ-CERT-04</td><td>PDF upload with preview</td><td>TC-ANL-021 to TC-ANL-023, TC-ANL-049</td><td></td></tr>
+            <tr><td>REQ-CERT-05</td><td>Product identifier management</td><td>TC-ANL-026 to TC-ANL-030</td><td></td></tr>
+            <tr><td>REQ-CERT-06</td><td>Tag management (internal/external)</td><td>TC-ANL-024/025, TC-ADM-043 to 051</td><td></td></tr>
+            <tr><td>REQ-CERT-07</td><td>Custom fields per cert type</td><td>TC-ANL-017, TC-ADM-035 to 042</td><td></td></tr>
+            <tr><td>REQ-CERT-08</td><td>Certification Results field (optional)</td><td>TC-ANL-031</td><td></td></tr>
+            <tr><td>REQ-CERT-09</td><td>Certificate number displayed (not ID)</td><td>TC-ANL-052, TC-PUB-017</td><td></td></tr>
+            <tr><td>REQ-VIEW-01</td><td>Public tile view with infinite scroll</td><td>TC-PUB-001 to TC-PUB-012</td><td></td></tr>
+            <tr><td>REQ-VIEW-02</td><td>External tile view (company-scoped)</td><td>TC-EXT-001 to TC-EXT-012</td><td></td></tr>
+            <tr><td>REQ-VIEW-03</td><td>Internal tile view (all data)</td><td>TC-ANL-001 to TC-ANL-009</td><td></td></tr>
+            <tr><td>REQ-VIEW-04</td><td>Autocomplete search</td><td>TC-PUB-003, TC-PUB-004</td><td></td></tr>
+            <tr><td>REQ-VIEW-05</td><td>Shareable URLs</td><td>TC-PUB-009, TC-ANL-008</td><td></td></tr>
+            <tr><td>REQ-VIEW-06</td><td>Database-driven filters</td><td>TC-PUB-005 to TC-PUB-008</td><td></td></tr>
+            <tr><td>REQ-EXT-01</td><td>External sees only own company</td><td>TC-EXT-002, TC-EXT-003, TC-EXT-017</td><td></td></tr>
+            <tr><td>REQ-EXT-02</td><td>External cannot see internal tags</td><td>TC-EXT-007, TC-PUB-011</td><td></td></tr>
+            <tr><td>REQ-EXT-03</td><td>External no Add/Edit/Delete</td><td>TC-EXT-004 to 006, TC-EXT-018/019</td><td></td></tr>
+            <tr><td>REQ-ADM-01</td><td>User management (CRUD + import)</td><td>TC-ADM-004 to TC-ADM-018</td><td></td></tr>
+            <tr><td>REQ-ADM-02</td><td>Role management with permissions</td><td>TC-ADM-019 to TC-ADM-027</td><td></td></tr>
+            <tr><td>REQ-ADM-03</td><td>Certificate type hierarchy</td><td>TC-ADM-028 to TC-ADM-034</td><td></td></tr>
+            <tr><td>REQ-ADM-04</td><td>Partner management (core entities)</td><td>TC-ADM-052 to TC-ADM-058</td><td></td></tr>
+            <tr><td>REQ-ADM-05</td><td>Partners - export/add only (no import)</td><td>TC-ADM-058, TC-IMP-007/008</td><td></td></tr>
+            <tr><td>REQ-ADM-06</td><td>Admin role cannot be deleted</td><td>TC-ADM-024</td><td></td></tr>
+            <tr><td>REQ-ADM-07</td><td>Unique emails per user</td><td>TC-ADM-010</td><td></td></tr>
+            <tr><td>REQ-EXP-01</td><td>CSV export only (no Excel/JSON/PDF)</td><td>TC-EXP-008</td><td></td></tr>
+            <tr><td>REQ-IMP-01</td><td>CSV import with templates</td><td>TC-IMP-001 to TC-IMP-006</td><td></td></tr>
+            <tr><td>REQ-API-01</td><td>Partner API with key authentication</td><td>TC-API-001 to TC-API-004</td><td></td></tr>
+            <tr><td>REQ-API-02</td><td>Certificate REST endpoints</td><td>TC-API-005 to TC-API-014</td><td></td></tr>
+            <tr><td>REQ-API-03</td><td>Product ID search via API</td><td>TC-API-012</td><td></td></tr>
+            <tr><td>REQ-API-04</td><td>Rate limiting</td><td>TC-API-020, TC-API-021</td><td></td></tr>
+            <tr><td>REQ-UI-01</td><td>No native alert/confirm/prompt</td><td>TC-NEG-011 to TC-NEG-017</td><td></td></tr>
+            <tr><td>REQ-UI-02</td><td>Delete: confirm modal + toast</td><td>TC-NEG-011 to TC-NEG-014</td><td></td></tr>
+            <tr><td>REQ-UI-03</td><td>16px minimum font size</td><td>TC-NEG-024</td><td></td></tr>
+            <tr><td>REQ-SEC-01</td><td>XSS prevention</td><td>TC-NEG-021</td><td></td></tr>
+            <tr><td>REQ-SEC-02</td><td>SQL injection prevention</td><td>TC-NEG-022</td><td></td></tr>
+            <tr><td>REQ-A11Y-01</td><td>Keyboard navigation</td><td>TC-A11Y-001 to TC-A11Y-008</td><td></td></tr>
+            <tr><td>REQ-A11Y-02</td><td>Screen reader compatibility</td><td>TC-A11Y-009 to TC-A11Y-017</td><td></td></tr>
+            <tr><td>REQ-A11Y-03</td><td>Color contrast &gt;= 4.5:1</td><td>TC-A11Y-018 to TC-A11Y-024</td><td></td></tr>
+            <tr><td>REQ-ADM-08</td><td>Certificate Import Admin-only</td><td>TC-ANL-059, TC-PERM-019, TC-ADM-075 to 081</td><td></td></tr>
+            <tr><td>REQ-ADM-09</td><td>Delete with dependency protection</td><td>TC-ADM-085 to TC-ADM-089</td><td></td></tr>
+            <tr><td>REQ-AMZN-01</td><td>Amazon Code in API responses</td><td>TC-API-016a, TC-API-016c, TC-API-016e</td><td>Built &amp; Deployed</td></tr>
+            <tr><td>REQ-AMZN-02</td><td>Pathway field (admin-managed)</td><td>TC-ADM-065 to TC-ADM-068c</td><td>Built &amp; Deployed</td></tr>
+            <tr><td>REQ-AMZN-03</td><td>Pathway on certificate form</td><td>TC-ANL-031c to TC-ANL-031e</td><td>Built &amp; Deployed</td></tr>
+            <tr><td>REQ-AMZN-04</td><td>Pathway in API responses</td><td>TC-API-016b, TC-API-016d, TC-API-016f</td><td>Built &amp; Deployed</td></tr>
+            <tr><td>REQ-AMZN-05</td><td>Soft validation for Amazon cert results</td><td>TC-ANL-031f</td><td><span class="pending-tag">Pending Q4</span></td></tr>
+            <tr><td>REQ-AUDIT-01</td><td>Field-level change tracking</td><td>TC-AUDIT-001</td><td>Covered</td></tr>
+            <tr><td>REQ-AUDIT-02</td><td>Certificate status transition history</td><td>TC-AUDIT-002</td><td>Covered</td></tr>
+            <tr><td>REQ-AUDIT-03</td><td>User identification on all changes</td><td>TC-AUDIT-003</td><td>Covered</td></tr>
+            <tr><td>REQ-AUDIT-07</td><td>Status history on cert detail page</td><td>TC-AUDIT-007</td><td><span class="gap-tag">Gap - UI</span></td></tr>
+            <tr><td>REQ-AUDIT-08</td><td>Admin audit log viewer</td><td>TC-AUDIT-008</td><td><span class="gap-tag">Gap - UI</span></td></tr>
+        </tbody>
+    </table>
+    <h3>End-to-End Scenario Coverage</h3>
+    <table>
+        <thead><tr><th>Requirement</th><th>E2E Scenario</th><th>Steps</th></tr></thead>
+        <tbody>
+            <tr><td>Full certificate lifecycle</td><td>E2E Scenario 1 (Module 11)</td><td>E2E-LC-001 to E2E-LC-046</td></tr>
+            <tr><td>Company onboarding &amp; data isolation</td><td>E2E Scenario 2 (Module 12)</td><td>E2E-CO-001 to E2E-CO-026</td></tr>
+            <tr><td>Partner API integration</td><td>E2E Scenario 3 (Module 13)</td><td>E2E-API-001 to E2E-API-018</td></tr>
+            <tr><td>Admin system setup feeds into cert creation</td><td>E2E Scenario 4 (Module 14)</td><td>E2E-SETUP-001 to E2E-SETUP-027</td></tr>
+            <tr><td>Automated renewal &amp; expiration</td><td>E2E Scenario 5 (Module 15)</td><td>E2E-REN-001 to E2E-REN-014</td></tr>
+            <tr><td>Rejection, correction, re-approval</td><td>E2E Scenario 6 (Module 16)</td><td>E2E-REJ-001 to E2E-REJ-014</td></tr>
+            <tr><td>Bulk template &rarr; import &rarr; verify &rarr; export</td><td>E2E Scenario 7 (Module 17)</td><td>E2E-BULK-001 to E2E-BULK-024</td></tr>
+            <tr><td>User account lifecycle</td><td>E2E Scenario 8 (Module 18)</td><td>E2E-USER-001 to E2E-USER-026</td></tr>
+            <tr><td>Same data viewed across all 4 roles</td><td>E2E Scenario 9 (Module 19)</td><td>E2E-SEARCH-001 to E2E-SEARCH-026</td></tr>
+        </tbody>
+    </table>
+
+    <!-- Section 25: Defect Template -->
+    <h2 id="s25">25. Defect Reporting Template</h2>
+    <p>When a test fails, log a defect using this template:</p>
+    <pre><code>Defect Report
+
+Defect ID:    DEF-XXX
+Date:         YYYY-MM-DD
+Tester:       [Name]
+Test Case ID: TC-XXX-XXX
+Severity:     Critical / High / Medium / Low
+Priority:     P1 / P2 / P3 / P4
+
+Summary:
+[One-line description of the defect]
+
+Environment:
+- Browser: [Chrome/Firefox/Edge + version]
+- URL: [Environment URL]
+- Role: [Admin/Analyst/External/Public]
+
+Steps to Reproduce:
+1. [Step 1]
+2. [Step 2]
+3. [Step 3]
+
+Expected Result:
+[What should have happened]
+
+Actual Result:
+[What actually happened]
+
+Screenshots/Evidence:
+[Attach screenshots or console errors]
+
+Additional Notes:
+[Any context, workarounds, or related defects]</code></pre>
+
+    <!-- Section 26: Test Execution Summary -->
+    <h2 id="s26">26. Test Execution Summary</h2>
+    <h3>Part A: Feature-Level Testing</h3>
+    <table>
+        <thead><tr><th>Module</th><th>Total Tests</th><th>Pass</th><th>Fail</th><th>Blocked</th><th>Not Run</th><th>% Complete</th></tr></thead>
+        <tbody>
+            <tr><td>1. Authentication</td><td>18</td><td></td><td></td><td></td><td>18</td><td>0%</td></tr>
+            <tr><td>2. Public User</td><td>20</td><td></td><td></td><td></td><td>20</td><td>0%</td></tr>
+            <tr><td>3. External User</td><td>24</td><td></td><td></td><td></td><td>24</td><td>0%</td></tr>
+            <tr><td>4. Analyst User</td><td>69</td><td></td><td></td><td></td><td>69</td><td>0%</td></tr>
+            <tr><td>5. Admin User</td><td>95</td><td></td><td></td><td></td><td>95</td><td>0%</td></tr>
+            <tr><td>6. Workflow (14 States)</td><td>47</td><td></td><td></td><td></td><td>47</td><td>0%</td></tr>
+            <tr><td>7. Partner API</td><td>27</td><td></td><td></td><td></td><td>27</td><td>0%</td></tr>
+            <tr><td>8. Permissions Matrix</td><td>47</td><td></td><td></td><td></td><td>47</td><td>0%</td></tr>
+            <tr><td>9. Export/Import</td><td>18</td><td></td><td></td><td></td><td>18</td><td>0%</td></tr>
+            <tr><td>10. Edge Cases &amp; Negative</td><td>26</td><td></td><td></td><td></td><td>26</td><td>0%</td></tr>
+            <tr><td>10b. Audit Trail</td><td>9</td><td></td><td></td><td></td><td>9</td><td>0%</td></tr>
+            <tr style="font-weight:bold;"><td><strong>Part A Subtotal</strong></td><td><strong>400</strong></td><td></td><td></td><td></td><td><strong>400</strong></td><td><strong>0%</strong></td></tr>
+        </tbody>
+    </table>
+    <h3>Part B: End-to-End Business Scenarios</h3>
+    <table>
+        <thead><tr><th>Module</th><th>Total Steps</th><th>Pass</th><th>Fail</th><th>Blocked</th><th>Not Run</th><th>% Complete</th></tr></thead>
+        <tbody>
+            <tr><td>11. Certificate Full Lifecycle</td><td>46</td><td></td><td></td><td></td><td>46</td><td>0%</td></tr>
+            <tr><td>12. New Company Onboarding</td><td>26</td><td></td><td></td><td></td><td>26</td><td>0%</td></tr>
+            <tr><td>13. Partner API Integration</td><td>18</td><td></td><td></td><td></td><td>18</td><td>0%</td></tr>
+            <tr><td>14. Admin System Setup</td><td>27</td><td></td><td></td><td></td><td>27</td><td>0%</td></tr>
+            <tr><td>15. Certificate Renewal</td><td>14</td><td></td><td></td><td></td><td>14</td><td>0%</td></tr>
+            <tr><td>16. Rejection &amp; Recovery</td><td>14</td><td></td><td></td><td></td><td>14</td><td>0%</td></tr>
+            <tr><td>17. Bulk Operations</td><td>24</td><td></td><td></td><td></td><td>24</td><td>0%</td></tr>
+            <tr><td>18. User Access Lifecycle</td><td>26</td><td></td><td></td><td></td><td>26</td><td>0%</td></tr>
+            <tr><td>19. Search &amp; Discovery Cross-Role</td><td>26</td><td></td><td></td><td></td><td>26</td><td>0%</td></tr>
+            <tr style="font-weight:bold;"><td><strong>Part B Subtotal</strong></td><td><strong>221</strong></td><td></td><td></td><td></td><td><strong>221</strong></td><td><strong>0%</strong></td></tr>
+        </tbody>
+    </table>
+    <h3>Part B2: Accessibility Testing</h3>
+    <table>
+        <thead><tr><th>Module</th><th>Total Tests</th><th>Pass</th><th>Fail</th><th>Blocked</th><th>Not Run</th><th>% Complete</th></tr></thead>
+        <tbody>
+            <tr><td>20. Accessibility (WCAG 2.1 AA)</td><td>50</td><td></td><td></td><td></td><td>50</td><td>0%</td></tr>
+            <tr style="font-weight:bold;"><td><strong>Part B2 Subtotal</strong></td><td><strong>50</strong></td><td></td><td></td><td></td><td><strong>50</strong></td><td><strong>0%</strong></td></tr>
+        </tbody>
+    </table>
+    <h3>Combined Total</h3>
+    <table>
+        <thead><tr><th>Category</th><th>Total</th><th>Pass</th><th>Fail</th><th>Blocked</th><th>Not Run</th><th>% Complete</th></tr></thead>
+        <tbody>
+            <tr><td>Part A: Feature Tests</td><td>400</td><td></td><td></td><td></td><td>400</td><td>0%</td></tr>
+            <tr><td>Part B: E2E Scenarios</td><td>221</td><td></td><td></td><td></td><td>221</td><td>0%</td></tr>
+            <tr><td>Part B2: Accessibility</td><td>50</td><td></td><td></td><td></td><td>50</td><td>0%</td></tr>
+            <tr style="font-weight:bold;"><td><strong>GRAND TOTAL</strong></td><td><strong>671</strong></td><td></td><td></td><td></td><td><strong>671</strong></td><td><strong>0%</strong></td></tr>
+        </tbody>
+    </table>
+
+    <h3>Sign-Off</h3>
+    <table>
+        <thead><tr><th>Role</th><th>Name</th><th>Date</th><th>Signature</th></tr></thead>
+        <tbody>
+               <tr><td>Client Representative</td><td></td><td></td><td></td></tr>
+        </tbody>
+    </table>
+
+    
+    <p style="margin-top:20px; font-style:italic; font-size:9pt; color:#666;">This guide covers the complete GCC Database Solution application. All test cases should be executed per role before UAT sign-off.</p>
+
+    <div class="doc-footer">Generated: February 19, 2026 | GCC Database Solution - PointSolve Technology</div>
+</body>
+</html>

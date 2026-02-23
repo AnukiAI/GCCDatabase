@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - Certificate Import Template Instructions</title>
+    <style>
+@page { size: letter; margin: 0.6in 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 20px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 13pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 24px; margin-bottom: 10px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 16px; margin-bottom: 6px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 12px; margin-bottom: 5px; page-break-after: avoid; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 14px 0; font-size: 8.5pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 7px; font-size: 8.5pt; white-space: nowrap; }
+td { padding: 5px 7px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+ul, ol { margin: 4px 0 10px 0; padding-left: 18px; }
+li { margin-bottom: 3px; font-size: 9.5pt; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; overflow-x: auto; font-size: 8pt; line-height: 1.4; margin: 6px 0 14px 0; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 10px 0; font-size: 9pt; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.callout-warning { border-color: #e65100; background: #fff8f0; }
+.checkbox { display: inline-block; width: 14px; height: 14px; border: 1.5px solid #666; border-radius: 2px; margin-right: 6px; vertical-align: middle; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 16px; margin: 12px 0 20px 0; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 6px; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+@media print { body { padding: 0; } .toc { break-inside: avoid; } h2 { break-after: avoid; } table { font-size: 8pt; } }
+    </style>
+</head>
+<body>
+    <div class="doc-header">
+        <h1>GCC Certificate Import Template - Instructions</h1>
+        <p class="subtitle">GCC Database Solution</p>
+        <div class="doc-meta">
+            <div><strong>Project:</strong> GCC Web Application</div>
+            <div><strong>Date:</strong> February 19, 2026</div>
+            <div><strong>Template Version:</strong> 1.0</div>
+            <div><strong>Last Updated:</strong> January 2026</div>
+        </div>
+    </div>
+
+    <div class="toc">
+        <div class="toc-title">Table of Contents</div>
+        <a href="#overview">Overview</a>
+        <a href="#how-to-use">How to Use This Template</a>
+        <a href="#column-reference">Column Reference</a>
+        <a href="#valid-certification-types">Valid Certification Types</a>
+        <a href="#valid-country-values">Valid Country Values</a>
+        <a href="#valid-partner-values">Valid Partner Values</a>
+        <a href="#common-tags">Common Tags</a>
+        <a href="#examples">Examples</a>
+        <a href="#important-notes">Important Notes</a>
+        <a href="#checklist">Checklist Before Submitting</a>
+        <a href="#need-help">Need Help?</a>
+    </div>
+
+    <h2 id="overview">Overview</h2>
+    <p>This template allows you to import all your certificate data into the GCC Certificate Management System in a single file. The system will automatically create Companies, Products, and other related data from this file.</p>
+
+    <h2 id="how-to-use">How to Use This Template</h2>
+    <ol>
+        <li>Open <code>GCC_Certificate_Import_Template.csv</code> in Excel or Google Sheets</li>
+        <li>Review the sample data rows to understand the format</li>
+        <li>Delete the sample rows and enter your own data</li>
+        <li>Save as CSV (UTF-8 encoding recommended)</li>
+        <li>Send to GCC team for import</li>
+    </ol>
+
+    <h2 id="column-reference">Column Reference</h2>
+
+    <h3>CERTIFICATE INFORMATION (Required)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Format</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>CERTIFICATE_NUMBER</strong></td>
+                <td>YES</td>
+                <td><code>YY-NNNN</code></td>
+                <td>Unique certificate number. Format: 2-digit year, dash, 4-digit sequence. Examples: <code>23-0358</code>, <code>24-1597</code>, <code>25-0001</code></td>
+            </tr>
+            <tr>
+                <td><strong>CERTIFICATION_TYPE</strong></td>
+                <td>YES</td>
+                <td>Text</td>
+                <td>The type of certification issued. Must be one of the valid certification types (see list below)</td>
+            </tr>
+            <tr>
+                <td><strong>EFFECTIVE_DATE</strong></td>
+                <td>YES</td>
+                <td><code>M/D/YYYY</code></td>
+                <td>Date the certificate becomes effective. Examples: <code>6/1/2023</code>, <code>12/15/2024</code></td>
+            </tr>
+            <tr>
+                <td><strong>EXPIRATION_DATE</strong></td>
+                <td>Recommended</td>
+                <td><code>M/D/YYYY</code></td>
+                <td>Date the certificate expires. Leave blank for perpetual/non-expiring certificates</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>COMPANY INFORMATION</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>COMPANY_NAME</strong></td>
+                <td>YES</td>
+                <td>255 chars</td>
+                <td>Legal name of the company holding the certificate. Examples: <code>Sofidel America Corp.</code>, <code>General Mills Inc.</code></td>
+            </tr>
+            <tr>
+                <td><strong>COMPANY_LOCATION</strong></td>
+                <td>No</td>
+                <td>175 chars</td>
+                <td>Company headquarters city/state. Examples: <code>Horsham PA</code>, <code>Minneapolis MN</code></td>
+            </tr>
+            <tr>
+                <td><strong>COMPANY_COUNTRY</strong></td>
+                <td>Recommended</td>
+                <td>100 chars</td>
+                <td>Country where company is located. Use full country names (see Country Values below)</td>
+            </tr>
+            <tr>
+                <td><strong>COMPANY_EMAIL</strong></td>
+                <td>No</td>
+                <td>255 chars</td>
+                <td>Contact email for the company</td>
+            </tr>
+            <tr>
+                <td><strong>COMPANY_WEBSITE</strong></td>
+                <td>No</td>
+                <td>500 chars</td>
+                <td>Company website URL. Include <code>https://</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>PRODUCT INFORMATION</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>PRODUCT_NAME</strong></td>
+                <td>Recommended</td>
+                <td>255 chars</td>
+                <td>Name of the certified product. If unknown, enter <code>Not Specified</code></td>
+            </tr>
+            <tr>
+                <td><strong>PRODUCT_TYPE</strong></td>
+                <td>No</td>
+                <td>255 chars</td>
+                <td>Category/type of product. Examples: <code>Packaging</code>, <code>Building Materials</code>, <code>Consumer Goods</code>, <code>Food</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>CERTIFICATE DETAILS</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Max Length</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>CERTIFICATE_LOCATION</strong></td>
+                <td>No</td>
+                <td>175 chars</td>
+                <td>Manufacturing facility or location where certification applies. Can be different from company location. Examples: <code>Horsham PA</code>, <code>Gyongyos, Hungary and Marktheidenfeld, Germany</code></td>
+            </tr>
+            <tr>
+                <td><strong>CERTIFICATE_COUNTRY</strong></td>
+                <td>Recommended</td>
+                <td>100 chars</td>
+                <td><strong>IMPORTANT FOR FILTERING</strong> - Country where the certified product is manufactured. This appears in the Country filter on the public site</td>
+            </tr>
+            <tr>
+                <td><strong>PARTNER</strong></td>
+                <td>No</td>
+                <td>100 chars</td>
+                <td>Partner program association. Values: <code>Amazon</code>, <code>Novi</code>, <code>None</code>, or leave blank</td>
+            </tr>
+            <tr>
+                <td><strong>CERTIFICATION_RESULTS</strong></td>
+                <td>No</td>
+                <td>1000 chars</td>
+                <td>Optional test results, scores, or metrics. Examples: <code>95% recycled content</code>, <code>30% carbon reduction achieved</code></td>
+            </tr>
+            <tr>
+                <td><strong>TAGS</strong></td>
+                <td>No</td>
+                <td>-</td>
+                <td>Comma-separated tags for filtering. Examples: <code>APR</code>, <code>LEED</code>, <code>Energy Star</code>, <code>APR, LEED</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>PRODUCT IDENTIFIERS (For Amazon/E-commerce)</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>Column</th>
+                <th>Required</th>
+                <th>Format</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>ASIN</strong></td>
+                <td>No</td>
+                <td>10 chars</td>
+                <td>Amazon Standard Identification Number. Starts with <code>B0</code>. Example: <code>B08XYZ1234</code></td>
+            </tr>
+            <tr>
+                <td><strong>UPC</strong></td>
+                <td>No</td>
+                <td>12 digits</td>
+                <td>Universal Product Code (barcode). Example: <code>012345678901</code></td>
+            </tr>
+            <tr>
+                <td><strong>GTIN</strong></td>
+                <td>No</td>
+                <td>14 digits</td>
+                <td>Global Trade Item Number. Example: <code>00012345678905</code></td>
+            </tr>
+            <tr>
+                <td><strong>EAN</strong></td>
+                <td>No</td>
+                <td>13 digits</td>
+                <td>European Article Number. Example: <code>5012345678900</code></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 id="valid-certification-types">Valid Certification Types</h2>
+    <p>Use one of these exact values in the CERTIFICATION_TYPE column:</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Certification Type</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>Recycled Content</code></td>
+                <td>Products containing recycled materials</td>
+            </tr>
+            <tr>
+                <td><code>GreenCircle Audited</code></td>
+                <td>Third-party audited environmental claims</td>
+            </tr>
+            <tr>
+                <td><code>Certified Environmental Facts</code></td>
+                <td>Environmental impact certification</td>
+            </tr>
+            <tr>
+                <td><code>Waste Diversion from Landfill</code></td>
+                <td>Waste reduction/diversion certification</td>
+            </tr>
+            <tr>
+                <td><code>Carbon Footprint Reduction</code></td>
+                <td>Carbon emissions reduction certification</td>
+            </tr>
+            <tr>
+                <td><code>Material Ingredient Reporting</code></td>
+                <td>Material composition transparency</td>
+            </tr>
+            <tr>
+                <td><code>Certified Sustainability Facts</code></td>
+                <td>Comprehensive sustainability certification</td>
+            </tr>
+            <tr>
+                <td><code>LCA Optimized</code></td>
+                <td>Life Cycle Assessment optimized products</td>
+            </tr>
+            <tr>
+                <td><code>Certified Energy Savings</code></td>
+                <td>Energy efficiency certification</td>
+            </tr>
+            <tr>
+                <td><code>Closed Loop Product</code></td>
+                <td>Closed loop/circular economy products</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <div class="callout callout-info">
+        <strong>Note:</strong> If you have a certification type not listed above, please contact the GCC team to add it before import.
+    </div>
+
+    <h2 id="valid-country-values">Valid Country Values</h2>
+    <p>Use consistent country names for proper filtering:</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Correct Value</th>
+                <th>Avoid Using</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>United States</code></td>
+                <td>USA, US, U.S., America</td>
+            </tr>
+            <tr>
+                <td><code>Canada</code></td>
+                <td>CA, CAN</td>
+            </tr>
+            <tr>
+                <td><code>United Kingdom</code></td>
+                <td>UK, U.K., Britain, England</td>
+            </tr>
+            <tr>
+                <td><code>Mexico</code></td>
+                <td>MX, MEX</td>
+            </tr>
+            <tr>
+                <td><code>Germany</code></td>
+                <td>DE</td>
+            </tr>
+            <tr>
+                <td><code>Hungary</code></td>
+                <td>HU</td>
+            </tr>
+            <tr>
+                <td><code>Indonesia</code></td>
+                <td>ID</td>
+            </tr>
+            <tr>
+                <td><code>El Salvador</code></td>
+                <td>SV</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 id="valid-partner-values">Valid Partner Values</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Value</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>Amazon</code></td>
+                <td>Certificate is part of Amazon Climate Pledge Friendly program</td>
+            </tr>
+            <tr>
+                <td><code>Novi</code></td>
+                <td>Certificate is part of Novi Connect program</td>
+            </tr>
+            <tr>
+                <td><code>None</code></td>
+                <td>Not associated with a partner program</td>
+            </tr>
+            <tr>
+                <td><em>(blank)</em></td>
+                <td>Same as None</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h2 id="common-tags">Common Tags</h2>
+    <p>These tags appear in the "Additional" filter on the public site:</p>
+    <table>
+        <thead>
+            <tr>
+                <th>Tag</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><code>APR</code></td>
+                <td>Association of Plastic Recyclers</td>
+            </tr>
+            <tr>
+                <td><code>LEED</code></td>
+                <td>Leadership in Energy and Environmental Design</td>
+            </tr>
+            <tr>
+                <td><code>FSC</code></td>
+                <td>Forest Stewardship Council</td>
+            </tr>
+            <tr>
+                <td><code>Energy Star</code></td>
+                <td>EPA Energy Star Program</td>
+            </tr>
+            <tr>
+                <td><code>SCS</code></td>
+                <td>SCS Global Services</td>
+            </tr>
+            <tr>
+                <td><code>USDA BioPreferred</code></td>
+                <td>USDA BioPreferred Program</td>
+            </tr>
+            <tr>
+                <td><code>Cradle to Cradle</code></td>
+                <td>Cradle to Cradle Certified</td>
+            </tr>
+            <tr>
+                <td><code>Green Seal</code></td>
+                <td>Green Seal Certification</td>
+            </tr>
+        </tbody>
+    </table>
+    <p>To add multiple tags, separate with commas: <code>APR, LEED, Energy Star</code></p>
+
+    <h2 id="examples">Examples</h2>
+
+    <h3>Example 1: Basic Certificate</h3>
+    <pre><code>CERTIFICATE_NUMBER: 23-0358
+COMPANY_NAME: Sofidel America Corp.
+PRODUCT_NAME: Plastic Film Packaging
+CERTIFICATION_TYPE: Recycled Content
+EFFECTIVE_DATE: 6/1/2023
+EXPIRATION_DATE: (leave blank for perpetual)
+CERTIFICATE_COUNTRY: United States</code></pre>
+
+    <h3>Example 2: Certificate with Amazon Integration</h3>
+    <pre><code>CERTIFICATE_NUMBER: 25-0245
+COMPANY_NAME: HID Global
+PRODUCT_NAME: HID Signo readers
+CERTIFICATION_TYPE: Certified Energy Savings
+EFFECTIVE_DATE: 7/1/2025
+EXPIRATION_DATE: 6/30/2026
+CERTIFICATE_COUNTRY: United Kingdom
+PARTNER: Amazon
+ASIN: B0DEF12345
+TAGS: Energy Star</code></pre>
+
+    <h3>Example 3: Certificate with No Product Specified</h3>
+    <pre><code>CERTIFICATE_NUMBER: 23-0923
+COMPANY_NAME: Cox Automotive
+PRODUCT_NAME: Not Specified
+CERTIFICATION_TYPE: Waste Diversion from Landfill
+EFFECTIVE_DATE: 11/1/2023
+EXPIRATION_DATE: 10/31/2026
+CERTIFICATE_COUNTRY: United States
+CERTIFICATION_RESULTS: 92% waste diverted from landfill</code></pre>
+
+    <h2 id="important-notes">Important Notes</h2>
+    <ol>
+        <li><strong>Certificate Numbers Must Be Unique</strong> - Each CERTIFICATE_NUMBER can only appear once</li>
+        <li><strong>Dates</strong> - Use <code>M/D/YYYY</code> format (e.g., <code>6/1/2023</code> not <code>06/01/2023</code> or <code>2023-06-01</code>)</li>
+        <li><strong>Country is Important</strong> - CERTIFICATE_COUNTRY populates the Country filter on the public site. Always fill this in for proper filtering</li>
+        <li><strong>Company Names Must Be Consistent</strong> - If the same company has multiple certificates, use the exact same spelling for COMPANY_NAME each time</li>
+        <li><strong>Product Names</strong> - Use <code>Not Specified</code> if the product name is unknown or not applicable</li>
+        <li><strong>Special Characters</strong> - If a value contains commas, wrap the entire value in double quotes: <code>"Buffalo NY; Cedar Rapids IA"</code></li>
+        <li><strong>Blank Values</strong> - Leave cells blank if data is not available. Do not enter "N/A", "None", or "-"</li>
+    </ol>
+
+    <h2 id="checklist">Checklist Before Submitting</h2>
+    <ul>
+        <li><span class="checkbox"></span>All required fields are filled in (CERTIFICATE_NUMBER, COMPANY_NAME, CERTIFICATION_TYPE, EFFECTIVE_DATE)</li>
+        <li><span class="checkbox"></span>Certificate numbers are in <code>YY-NNNN</code> format</li>
+        <li><span class="checkbox"></span>Dates are in <code>M/D/YYYY</code> format</li>
+        <li><span class="checkbox"></span>Certification types match the valid values list exactly</li>
+        <li><span class="checkbox"></span>Country names are spelled out fully (United States, not USA)</li>
+        <li><span class="checkbox"></span>Company names are consistent across all rows for the same company</li>
+        <li><span class="checkbox"></span>File is saved as CSV format</li>
+    </ul>
+
+    <h2 id="need-help">Need Help?</h2>
+    <p>Contact the GCC team if you have:</p>
+    <ul>
+        <li>A certification type not in the list</li>
+        <li>Questions about how to format your data</li>
+        <li>Large volumes of data (1000+ certificates)</li>
+        <li>Data in a different format that needs conversion</li>
+    </ul>
+
+    <div class="doc-footer">Generated: February 19, 2026 | GCC Database Solution - PointSolve Technology</div>
+</body>
+</html>

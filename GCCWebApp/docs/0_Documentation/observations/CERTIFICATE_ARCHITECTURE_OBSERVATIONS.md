@@ -1,3 +1,82 @@
+## Observation: Comprehensive Gap Analysis (February 19, 2026)
+
+**Session:** Full project gap analysis - requirements vs implementation review
+**Outcome:** Identified remaining gaps after extensive build/test cycles
+
+### Overall Assessment: 93% Complete
+
+### Gaps Identified
+
+**P1 - High Priority:**
+1. **Audit Trail UI Missing** - Backend (CertificateStatusHistory, AuditService) is complete but NO admin UI pages exist. Need: Admin > Audit Log page with search/filter/export + status history timeline on certificate Details view.
+2. **Amazon Scope Items** — ALL RESOLVED Feb 22:
+   - ~~Q3: Should Pathway be visible to external users?~~ — **RESOLVED Feb 22: No. Pathway stays internal + API only.**
+   - ~~Q4: Should Amazon + empty Certification Results show soft validation warning?~~ — **RESOLVED Feb 22: No. Field is optional, no warning needed.**
+   - REQ-AMZN-04: Pathway scoped by cert type — **DEFERRED to Phase 2**
+
+**P2 - Medium Priority:**
+3. ~~**Multi-Partner UI Reverted**~~ — **RESOLVED Feb 22: Single-select. One partner at a time. Multi-partner deferred to Phase 2 if needed.**
+4. **Pathway Not Scoped by Cert Type** - Currently global dropdown, not filtered per certification type.
+
+**P3 - Low Priority / Production Prep:**
+5. **9 TODO comments in production code** - SSL cert config (Program.cs), Swagger prod URL (SwaggerExtensions.cs), saved filters (CertificateService.cs), Amazon SP-API placeholders (AmazonApiService.cs), PDF generation fallback (CertificatesController.cs)
+6. **Production SSL Config** - CookieSecurePolicy set to None (dev mode), needs to be Always for production
+7. **Dynamic PDF Generation** - No auto-generate if cert uploaded without PDF
+8. **"Ways to Improve" Document** - Not created as standalone doc (recommendations scattered across observation files)
+
+### Risk Assessment
+- **Cost Risk: LOW** - Documentation and 702 UAT tests are preventing rework
+- ~~**Biggest Risk:** 3 unanswered client questions~~ — **ALL 3 RESOLVED Feb 22. No blockers remaining.**
+- **Remaining items:** Audit Trail UI and multi-partner UI moved to Phase 2 enhancements
+- **Status: UAT-READY** — No feature work required. Zero open client questions.
+
+### What's Fully Complete (95%+ of core)
+- Certificate CRUD + 14-state workflow (133 tests)
+- External user isolation (25 tests)
+- Partner API - Novi/Amazon (27 tests)
+- CSV Export/Import (18 tests)
+- RBAC with 6 roles (46 tests)
+- Public/Internal/External tile views
+- CertificationResults field (optional, 1000 chars)
+- Pathway dropdown on forms
+- Accessibility WCAG 2.1 AA (50 tests)
+- 702 UAT test cases mapped to 107 requirements
+
+---
+
+## Observation: UAT Requirements Traceability Review (February 19, 2026)
+
+**Session:** Requirements traceability to UAT test cases - comprehensive review
+**Outcome:** Three deliverables generated
+
+### What Was Done
+1. **Reviewed existing COMPREHENSIVE_UAT_GUIDE.md v3.0** (647 tests across 20 modules)
+2. **Cross-referenced** against Scope Change doc (Amazon API, Feb 5 2026), CLAUDE.md, and API-REFERENCE.md
+3. **Identified 7 gaps** in test coverage related to Amazon scope change items
+
+### Gaps Found & Resolved
+- Amazon Code not tested in API responses (added TC-API-016a through TC-API-016f)
+- Pathway dropdown not tested on certificate form (added TC-ANL-031c through TC-ANL-031f)
+- Certification Results not tested for visibility in tile views/exports (added TC-ANL-031a, TC-ANL-031b)
+- Pathway scoping and external visibility not tested (added TC-ADM-068a through TC-ADM-068c)
+- Import template columns not verified (updated TC-ADM-076)
+
+### Deliverables Created
+1. **Updated COMPREHENSIVE_UAT_GUIDE.md** v3.1 - 662 tests (15 new test cases added)
+2. **REQUIREMENTS_TRACEABILITY_MATRIX.md** - Standalone RTM mapping 98 requirements to 693 test cases
+3. **UAT_EXECUTION_CHECKLIST.md** - Printable 171-test priority-ordered checklist for UAT testers
+
+### Key Finding
+- 676 of 693 test cases cover **built features** (fully ready to execute)
+- 17 test cases marked **Pending Feature** for Amazon scope change items
+- 4 client questions still **blocking** Pathway implementation (scope doc Q1-Q4)
+- **ZERO gaps** found in existing feature coverage - all built features have test cases
+
+### Risk Note
+The Amazon scope change items (Pathway, Amazon Code in API) are pending client approval. Test cases are written and waiting. Cost risk: if requirements change after implementation, rework needed. Per CLAUDE.md instruction: always check requirements and ask clarifying questions before building.
+
+---
+
 # Certificate Architecture Deep Analysis - Observations Report
 
 **Date:** December 11, 2025
@@ -704,3 +783,42 @@ The "building features Amazon does not consume" risk from the original document 
 **Updated Totals:** v3.0 = **647 test cases** across 20 modules (Part A: 376, Part B: 221, Part B2: 50 accessibility)
 
 **Risk Note:** The analyst status error could have led to incorrect pass/fail judgments during UAT. The Certificate Import access error would have wasted testing time (analysts would get Access Denied). Both caught through code verification before testing began - validates the importance of code-verified test cases.
+
+### Observation Entry: February 19, 2026 (continued)
+
+#### Amazon Scope Change Correction & Audit Trail Discovery
+
+**Context:** Client clarified that Pathways are already built and populated from the admin page. Q1/Q2 from scope change doc are NOT blockers. Triggered a re-evaluation of all Amazon scope change items.
+
+**Code Verification Findings:**
+1. **Amazon Code in API** - BUILT & DEPLOYED. `CertificatesController.cs` lines 242, 292 (standard JSON) and line 1370 (GS1 JSON-LD).
+2. **Pathway Admin Page** - BUILT & DEPLOYED. `Views/Admin/Pathways.cshtml` exists with full CRUD. 3 seed values in migration.
+3. **Pathway on Certificate Form** - BUILT & DEPLOYED. Both `Create.cshtml` and `Edit.cshtml` have Pathway dropdown. Model has `PathwayId` nullable FK.
+4. **Pathway in API** - BUILT & DEPLOYED. Line 842 (standard JSON) and line 1371 (GS1 JSON-LD).
+5. **Pathway Cert-Type Scoping** - NOT BUILT. Pathway model has no `CertificationTypeId` property. Currently a global dropdown.
+6. **Soft Validation Warning** - NOT BUILT. No Amazon-specific warning logic found.
+7. **Swagger Documentation** - UPDATED with deployment.
+
+**Corrected Status:**
+- Changed 7 items from "Pending Feature" to "Covered" (items 1, 2, 3, 5, 7, 8, 10)
+- Changed 1 item to "Deferred" (item 4 - pathway scoping)
+- 2 items remain "Pending Answer" (items 6 and 9)
+- Coverage updated: 689 of 702 test cases covered (98.1%)
+
+**Audit Trail Discovery:**
+- **Backend is FULLY BUILT** with two-tier system:
+  - `AuditHistory` model: EntityType, EntityId, Action, FieldName, OldValue, NewValue, ChangedBy, IpAddress, UserAgent, ChangeSource, SessionId, ImportBatchId
+  - `CertificateStatusHistory` model: PreviousStatus, NewStatus, Reason, Notes, IsAutomatedTransition, DurationInPreviousStatus
+  - `AuditService.cs`: LogEntityChangeAsync, LogAuditEventAsync, SearchAuditHistoryAsync, GetEntityHistoryAsync
+- **NO ADMIN UI EXISTS** - No views in `Views/Admin/` for viewing audit logs
+- **2 UI Gaps Identified:**
+  1. TC-AUDIT-007: No status history timeline on certificate detail page
+  2. TC-AUDIT-008: No admin audit log viewer page (despite backend SearchAuditHistoryAsync being ready)
+
+**Documents Updated:**
+- REQUIREMENTS_TRACEABILITY_MATRIX.md v1.1 - Amazon corrections + Audit Trail section (12b) with 9 requirements
+- REQUIREMENTS_TRACEABILITY_MATRIX.html - Same updates applied
+- COMPREHENSIVE_UAT_GUIDE.md v3.2 - Module 10b added (9 audit test cases), Amazon markers corrected, 671 total tests
+- Updated totals: 107 requirements, 702 test cases, 696 covered, 2 pending answers, 2 deferred, 2 UI gaps
+
+**Lesson Learned:** Always verify "pending" items against the actual codebase before reporting them as unbuilt. 7 of 10 Amazon items were already deployed - reporting them as "Pending Feature" would have been misleading to stakeholders and wasted time planning work that was already done.

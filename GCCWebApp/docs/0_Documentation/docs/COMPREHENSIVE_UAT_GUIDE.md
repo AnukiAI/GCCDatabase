@@ -1,6 +1,6 @@
 # GCC Database Solution - Comprehensive UAT Testing Guide
 
-**Version:** 3.0
+**Version:** 3.2
 **Date:** February 19, 2026
 **Application:** GCC Web Application (ASP.NET Core 8.0)
 **Environment:** UAT / System Test
@@ -23,6 +23,7 @@
 11. [Module 8: Cross-Role Permission Matrix Validation](#11-module-8-cross-role-permission-matrix-validation)
 12. [Module 9: Data Export & Import](#12-module-9-data-export--import)
 13. [Module 10: Edge Cases & Negative Testing](#13-module-10-edge-cases--negative-testing)
+14. [Module 10b: Audit Trail & Change History](#14-module-10b-audit-trail--change-history)
 
 **Part B: End-to-End Business Scenarios (Modules 11-19)**
 14. [Module 11: E2E Scenario 1 - Certificate Full Lifecycle](#14-module-11-e2e-scenario-1---certificate-full-lifecycle)
@@ -295,6 +296,12 @@ Each test case includes:
 | TC-ANL-029 | Delete product identifier | 1. Click delete on a product ID row 2. Confirm | Product ID removed from table | |
 | TC-ANL-030 | Import product IDs via CSV | 1. Click Import on product ID section 2. Upload CSV | Product IDs populated from CSV | |
 | TC-ANL-031 | Enter Certification Results | 1. Enter text in Certification Results field (optional) | Text accepted (up to 1000 chars) | |
+| TC-ANL-031a | Certification Results visible in tile view | 1. Save certificate with Cert Results 2. Return to internal tile view | Certification Results column visible in tile table with entered value | |
+| TC-ANL-031b | Certification Results in CSV export | 1. Export certificates from tile view 2. Open CSV | Certification Results column present in exported CSV with correct values | |
+| TC-ANL-031c | Pathway dropdown on create form | 1. Select Certification Type that has pathways configured 2. Check Pathway dropdown | Pathway dropdown appears with options scoped to the selected cert type | |
+| TC-ANL-031d | Pathway hidden when no pathways configured | 1. Select Certification Type with NO pathways configured | Pathway dropdown is hidden (not shown) | |
+| TC-ANL-031e | Pathway selection saved | 1. Select Pathway from dropdown 2. Save certificate 3. Re-open edit | Selected Pathway value persists on certificate | |
+| TC-ANL-031f | Soft warning - Amazon cert missing Cert Results | 1. Select Partner = "Amazon" 2. Leave Certification Results empty 3. Save | Warning message displayed (NOT blocking) - analyst can proceed. Certificate saves successfully. | [Pending Answer - Q4] |
 | TC-ANL-032 | Set partner | 1. Select partner (Amazon/Novi/Other/None) | Partner set | |
 | TC-ANL-033 | Set location and country | 1. Enter location and country | Fields populated | |
 | TC-ANL-034 | Analyst available statuses | 1. Check Status dropdown options | Should see 12 of 14 statuses (all except Rejected and Revoked): Draft, Pending Review, Under Review, Approved, Active, Suspended, Expired, Pending Renewal, Renewed, Cancelled, Archived, On Hold | |
@@ -307,7 +314,7 @@ Each test case includes:
 | ID | Description | Steps | Expected Result | Status |
 |----|-------------|-------|-----------------|--------|
 | TC-ANL-038 | Open edit page | 1. From tile view, click Edit on a certificate | Edit page loads with all current data pre-populated | |
-| TC-ANL-039 | All fields pre-populated | 1. Verify all fields on edit page | Company, Product, Type, Subcategory, Dates, Tags, Product IDs, Custom Fields all pre-filled | |
+| TC-ANL-039 | All fields pre-populated | 1. Verify all fields on edit page | Company, Product, Type, Subcategory, Dates, Tags, Product IDs, Custom Fields, Certification Results, Pathway all pre-filled | |
 | TC-ANL-040 | Edit company | 1. Change company dropdown | Company updated | |
 | TC-ANL-041 | Edit certification type | 1. Change certification type | Subcategory and custom fields update | |
 | TC-ANL-042 | Add new tag on edit | 1. Add a tag that wasn't previously assigned | Tag badge appears | |
@@ -479,6 +486,9 @@ Each test case includes:
 | TC-ADM-066 | Create pathway | 1. Add new pathway with cert type association 2. Save | Pathway created | |
 | TC-ADM-067 | Edit pathway | 1. Edit pathway 2. Save | Pathway updated | |
 | TC-ADM-068 | Delete pathway | 1. Delete pathway 2. Confirm | Pathway deleted | |
+| TC-ADM-068a | Pathway scoped to cert type | 1. Create pathway with Cert Type = "Energy Savings" 2. Go to Create Certificate 3. Select "Energy Savings" type | Pathway appears in dropdown. Select different cert type → pathway NOT shown. | [Deferred - global dropdown currently] |
+| TC-ADM-068b | General pathway visible for all types | 1. Create pathway with no cert type scoping (General) 2. Create cert with any type | General pathway appears in dropdown regardless of cert type selected | [Deferred - global dropdown currently] |
+| TC-ADM-068c | Pathway visible to external users | 1. Set pathway on certificate 2. Login as external | Verify if pathway is shown on external detail view (per confirmed requirement) | [Pending Feature - Pending Answer] |
 
 ### 5.11 Partner API Management
 
@@ -503,7 +513,7 @@ Each test case includes:
 | ID | Description | Steps | Expected Result | Status |
 |----|-------------|-------|-----------------|--------|
 | TC-ADM-075 | Access certificate import | 1. Login as admin 2. Navigate to /CertificateImport/Index | Import page loads | |
-| TC-ADM-076 | Download import template | 1. Click Template button | CSV template file downloads with correct column headers | |
+| TC-ADM-076 | Download import template | 1. Click Template button | CSV template file downloads with correct column headers including: CERTIFICATE_NUMBER, COMPANY_NAME, PRODUCT_NAME, CERTIFICATION_TYPE, SUBCATEGORY, EFFECTIVE_DATE, EXPIRATION_DATE, STATUS, CERTIFICATION_RESULTS, PATHWAY, PARTNER, LOCATION, COUNTRY | |
 | TC-ADM-077 | Upload valid CSV | 1. Upload CSV with valid certificate data | Preview page shows parsed data | |
 | TC-ADM-078 | Preview import data | 1. Review preview table | Shows what will be created/updated with validation status per row | |
 | TC-ADM-079 | Apply import | 1. Click Apply on preview | Certificates created/updated, success notification with count | |
@@ -658,7 +668,13 @@ Test each transition by changing status on the Edit page. Verify invalid transit
 | ID | Description | Steps | Expected Result | Status |
 |----|-------------|-------|-----------------|--------|
 | TC-API-015 | Pagination metadata | 1. Request list endpoint | Response contains: totalCount, pageNumber, pageSize, totalPages, hasPrevious, hasNext | |
-| TC-API-016 | Certificate fields | 1. Get single certificate | Response contains: certificateNumber, status, issueDate, expirationDate, company, productName, certificationType, certificationTypeSubcategory, issuer, certificationResults, partner | |
+| TC-API-016 | Certificate fields | 1. Get single certificate | Response contains: certificateNumber, status, issueDate, expirationDate, company, productName, certificationType, certificationTypeSubcategory, issuer, certificationResults, partner, amazonCode, pathway | |
+| TC-API-016a | Amazon Code in API response | 1. Get certificate whose cert type has AmazonCode set | Response includes `amazonCode` field with correct mapping value (e.g., `greencircle_energy_savings`) | |
+| TC-API-016b | Pathway in API response | 1. Get certificate with Pathway set | Response includes `pathway` field with selected pathway name (e.g., "Consumer Behavior") | |
+| TC-API-016c | Amazon Code in GS1 JSON-LD response | 1. Get certificate via GS1 JSON-LD endpoint | `amazonCode` field present in GS1 formatted response | |
+| TC-API-016d | Pathway in GS1 JSON-LD response | 1. Get certificate via GS1 JSON-LD endpoint | `pathway` field present in GS1 formatted response | |
+| TC-API-016e | Amazon Code null when not set | 1. Get certificate whose cert type has no AmazonCode | `amazonCode` field is null or omitted (no error) | |
+| TC-API-016f | Pathway null when not set | 1. Get certificate with no Pathway selected | `pathway` field is null or omitted (no error) | |
 | TC-API-017 | Issuer always "Green Circle Certified" | 1. Check issuer field on any cert | issuer = "Green Circle Certified" (static value) | |
 | TC-API-018 | Product ID format | 1. Get cert with includeProductIds=true | Each productId has: type, value, status, partner, productName, productSku, description | |
 | TC-API-019 | Date format ISO 8601 | 1. Check date fields | Dates in format: YYYY-MM-DDTHH:mm:ssZ | |
@@ -821,6 +837,40 @@ Test each URL directly in the browser. Verify correct access or denial.
 | TC-NEG-024 | Minimum font size | 1. Inspect any page text | All text >= 16px | |
 | TC-NEG-025 | Mobile responsive tile view | 1. Resize browser to mobile width | Tile view adapts, remains usable | |
 | TC-NEG-026 | Admin page responsive | 1. Resize admin page to tablet width | Table scrolls or adapts | |
+
+---
+
+## 14. Module 10b: Audit Trail & Change History
+
+**Purpose:** Verify the audit trail system captures all changes to entities, tracks certificate status transitions, and records user/session context for every modification.
+
+**Backend:** AuditService.cs, AuditHistory model (field-level changes), CertificateStatusHistory model (status transitions)
+
+### 10b.1 Field-Level Change Tracking
+
+| ID | Description | Steps | Expected Result | Status |
+|----|-------------|-------|-----------------|--------|
+| TC-AUDIT-001 | Field changes logged in AuditHistory | 1. Edit a certificate (change company, dates, etc.) 2. Query AuditHistory table for that certificate | AuditHistory records exist showing EntityType="Certificate", FieldName, OldValue, NewValue for each changed field | |
+| TC-AUDIT-003 | ChangedBy captures username | 1. Login as analyst 2. Edit a certificate 3. Query AuditHistory | ChangedBy field contains "analyst" username | |
+| TC-AUDIT-004 | IP address and User-Agent logged | 1. Make any change 2. Query AuditHistory | IpAddress and UserAgent fields are populated with request context | |
+| TC-AUDIT-006 | Change source tracked (UI vs Import) | 1. Edit a cert via UI 2. Import a cert via CSV 3. Query AuditHistory for both | UI change shows ChangeSource="UI", import shows ChangeSource="Import" | |
+
+### 10b.2 Certificate Status Transition History
+
+| ID | Description | Steps | Expected Result | Status |
+|----|-------------|-------|-----------------|--------|
+| TC-AUDIT-002 | Status transitions logged in CertificateStatusHistory | 1. Change cert from Draft → Pending Review 2. Query CertificateStatusHistory | Record exists with PreviousStatus="Draft", NewStatus="PendingReview", timestamp, ChangedBy | |
+| TC-AUDIT-005 | Import batch correlation | 1. Import certificates via CSV 2. Query AuditHistory for imported records | All records from same import share the same ImportBatchId value | |
+| TC-AUDIT-009 | Automated vs manual transition flag | 1. Manually change status 2. Check if auto-expiration triggers 3. Query CertificateStatusHistory | Manual change: IsAutomatedTransition=false. Automated: IsAutomatedTransition=true | |
+
+### 10b.3 Audit Trail UI (**GAP - Not Yet Built**)
+
+| ID | Description | Steps | Expected Result | Status |
+|----|-------------|-------|-----------------|--------|
+| TC-AUDIT-007 | Status history on certificate detail page | 1. Open certificate detail page for a cert with multiple status changes | Status history timeline/table visible showing all transitions with dates and users | **Gap - UI not built** |
+| TC-AUDIT-008 | Admin audit log viewer | 1. Navigate to Admin > Audit Log 2. Search by entity type, date range, user | Searchable/filterable audit log with CSV export capability | **Gap - UI not built** |
+
+**Module Total: 9 test cases (7 backend-verifiable, 2 UI gaps)**
 
 ---
 
@@ -1482,6 +1532,22 @@ These scenarios simulate real-world business journeys that cross multiple roles,
 | REQ-ADM-08 | Certificate Import Admin-only | TC-ANL-059, TC-PERM-019, TC-ADM-075 to TC-ADM-081 | |
 | REQ-ADM-09 | Delete with dependency protection | TC-ADM-085 to TC-ADM-089 | |
 | REQ-ADM-10 | Duplicate entity prevention | TC-ADM-090 to TC-ADM-092 | |
+| REQ-AMZN-01 | Amazon Code exposed in API responses | TC-API-016a, TC-API-016c, TC-API-016e | Built & Deployed |
+| REQ-AMZN-02 | Pathway field (admin-managed dropdown) | TC-ADM-065 to TC-ADM-068c | Built & Deployed (3 seed values) |
+| REQ-AMZN-03 | Pathway on certificate create/edit form | TC-ANL-031c, TC-ANL-031d, TC-ANL-031e | Built & Deployed |
+| REQ-AMZN-04 | Pathway exposed in API responses | TC-API-016b, TC-API-016d, TC-API-016f | Built & Deployed |
+| REQ-AMZN-05 | Soft validation for Amazon cert results | TC-ANL-031f | [Pending Answer - Q4] |
+| REQ-AUDIT-01 | Field-level change tracking for all entities | TC-AUDIT-001 | Covered |
+| REQ-AUDIT-02 | Certificate status transition history | TC-AUDIT-002 | Covered |
+| REQ-AUDIT-03 | User identification on all changes | TC-AUDIT-003 | Covered |
+| REQ-AUDIT-04 | IP address and User-Agent logging | TC-AUDIT-004 | Covered |
+| REQ-AUDIT-05 | Import batch correlation | TC-AUDIT-005 | Covered |
+| REQ-AUDIT-06 | Change source tracking (UI/Import/API) | TC-AUDIT-006 | Covered |
+| REQ-AUDIT-07 | Status history on certificate detail page | TC-AUDIT-007 | **Gap - UI** |
+| REQ-AUDIT-08 | Admin audit log viewer | TC-AUDIT-008 | **Gap - UI** |
+| REQ-AUDIT-09 | Automated vs manual transition flag | TC-AUDIT-009 | Covered |
+| REQ-VIS-01 | Cert Results visible in tile views | TC-ANL-031a | |
+| REQ-VIS-02 | Cert Results visible in CSV export | TC-ANL-031b | |
 
 ### End-to-End Scenario Coverage
 
@@ -1550,14 +1616,15 @@ When a test fails, log a defect using this template:
 | 1. Authentication | 18 | | | | 18 | 0% |
 | 2. Public User | 20 | | | | 20 | 0% |
 | 3. External User | 24 | | | | 24 | 0% |
-| 4. Analyst User | 63 | | | | 63 | 0% |
-| 5. Admin User | 92 | | | | 92 | 0% |
+| 4. Analyst User | 69 | | | | 69 | 0% |
+| 5. Admin User | 95 | | | | 95 | 0% |
 | 6. Workflow (14 States) | 47 | | | | 47 | 0% |
-| 7. Partner API | 21 | | | | 21 | 0% |
+| 7. Partner API | 27 | | | | 27 | 0% |
 | 8. Permissions Matrix | 47 | | | | 47 | 0% |
 | 9. Export/Import | 18 | | | | 18 | 0% |
 | 10. Edge Cases & Negative | 26 | | | | 26 | 0% |
-| **Part A Subtotal** | **376** | | | | **376** | **0%** |
+| 10b. Audit Trail & Change History | 9 | | | | 9 | 0% |
+| **Part A Subtotal** | **400** | | | | **400** | **0%** |
 
 ### Part B: End-to-End Business Scenarios
 
@@ -1585,10 +1652,10 @@ When a test fails, log a defect using this template:
 
 | Category | Total | Pass | Fail | Blocked | Not Run | % Complete |
 |----------|-------|------|------|---------|---------|------------|
-| Part A: Feature Tests | 376 | | | | 376 | 0% |
+| Part A: Feature Tests | 400 | | | | 400 | 0% |
 | Part B: E2E Scenarios | 221 | | | | 221 | 0% |
 | Part B2: Accessibility | 50 | | | | 50 | 0% |
-| **GRAND TOTAL** | **647** | | | | **647** | **0%** |
+| **GRAND TOTAL** | **671** | | | | **671** | **0%** |
 
 ### Sign-Off
 
@@ -1608,6 +1675,8 @@ When a test fails, log a defect using this template:
 | 1.0 | 2026-02-19 | AI-Assisted Generation | Initial feature-level guide - 359 test cases across 10 modules |
 | 2.0 | 2026-02-19 | AI-Assisted Generation | Added 9 end-to-end business scenarios (221 steps), bringing total to 580 test cases/steps across 19 modules |
 | 3.0 | 2026-02-19 | AI-Assisted Generation | Gap fixes: corrected analyst statuses (12 of 14, excludes Rejected/Revoked), moved Certificate Import to Admin-only module, added dependency/duplicate tests, added Draft visibility tests. Added Module 20: Accessibility Testing (50 WCAG 2.1 AA tests). Added test data setup script. Total: 647 tests across 20 modules. |
+| 3.1 | 2026-02-19 | AI-Assisted Generation | Requirements traceability gap analysis: Added 15 test cases for Amazon API scope change items (Amazon Code in API, Pathway field on form, Pathway in API, Pathway scoping, soft validation warning, Cert Results visibility in views/exports). Updated traceability matrix with REQ-AMZN-01 through REQ-AMZN-05 and REQ-VIS-01/02. Pending feature items marked. Total: 662 tests across 20 modules. |
+| 3.2 | 2026-02-19 | AI-Assisted Generation | Amazon scope correction: 7 of 10 Amazon items confirmed built & deployed (Amazon Code in API, Pathway admin/form/API). Updated [Pending Feature] markers to reflect built status. Pathway cert-type scoping marked Deferred (currently global dropdown). Added Module 10b: Audit Trail & Change History (9 test cases covering AuditHistory field tracking, CertificateStatusHistory transitions, import batch correlation, IP/UserAgent logging). Identified 2 UI gaps: no status history on cert detail page, no admin audit log viewer. Added REQ-AUDIT-01 through REQ-AUDIT-09 to traceability matrix. Total: 671 tests across 21 modules. |
 
 ---
 

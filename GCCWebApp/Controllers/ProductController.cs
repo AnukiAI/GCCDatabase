@@ -168,6 +168,7 @@ namespace GCCWebApp.Controllers
                 var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
 
                 var query = _context.Products
+                    .Where(p => !p.IsDeleted)
                     .Include(p => p.Category)
                     .Include(p => p.ProductType)
                     .Include(p => p.Company)
@@ -464,7 +465,8 @@ namespace GCCWebApp.Controllers
 
                 if (isSoftDelete)
                 {
-                    // Soft delete - just mark as inactive
+                    // Soft delete - mark as deleted so it's filtered from queries
+                    product.IsDeleted = true;
                     product.IsActive = false;
                     product.UpdatedAt = DateTime.UtcNow;
                     _context.Products.Update(product);

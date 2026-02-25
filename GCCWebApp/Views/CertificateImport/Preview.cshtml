@@ -316,20 +316,27 @@
 @section Scripts {
     <script>
         // Confirm before applying
-        document.getElementById('applyForm')?.addEventListener('submit', function(e) {
-            const confirmMsg = 'Are you sure you want to apply this import?\n\n' +
-                               '@Model.NewCertificates new certificate(s) will be created\n' +
-                               '@Model.ModifiedCertificates certificate(s) will be updated\n\n' +
-                               'All changes will be logged to audit history.';
+        document.getElementById('applyForm')?.addEventListener('submit', async function(e) {
+            e.preventDefault();
 
-            if (!confirm(confirmMsg)) {
-                e.preventDefault();
-                return false;
+            const confirmed = await AdminCore.showConfirmation({
+                title: 'Apply Import',
+                message: 'Are you sure you want to apply this import?<br><br>' +
+                         '<strong>@Model.NewCertificates</strong> new certificate(s) will be created<br>' +
+                         '<strong>@Model.ModifiedCertificates</strong> certificate(s) will be updated<br><br>' +
+                         'All changes will be logged to audit history.',
+                confirmText: 'Apply',
+                cancelText: 'Cancel',
+                type: 'warning',
+                allowHtml: true
+            });
+
+            if (confirmed) {
+                const submitBtn = document.getElementById('applyBtn');
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
+                this.submit();
             }
-
-            const submitBtn = document.getElementById('applyBtn');
-            submitBtn.disabled = true;
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Applying...';
         });
     </script>
 }

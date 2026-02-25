@@ -158,26 +158,32 @@ function escapeHtml(text) {
 @if (ViewBag.CanDelete ?? false)
 {
     <text>
-    function deleteDocument(documentId) {
-        if (!confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
-            return;
-        }
-        
+    async function deleteDocument(documentId) {
+        const confirmed = await AdminCore.showConfirmation({
+            title: 'Delete Document',
+            message: 'Are you sure you want to delete this document? This action cannot be undone.',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+
+        if (!confirmed) return;
+
         const token = $('input[name="__RequestVerificationToken"]').val();
-        
-        $.post('@Url.Action("Delete", "Document")/' + documentId, { 
-            __RequestVerificationToken: token 
+
+        $.post('@Url.Action("Delete", "Document")/' + documentId, {
+            __RequestVerificationToken: token
         })
         .done(function(response) {
             if (response.success) {
-                toastr.success(response.message || 'Document deleted successfully.');
+                AdminCore.showNotification(response.message || 'Document deleted successfully.', 'success');
                 loadDocuments(); // Reload the documents list
             } else {
-                toastr.error(response.message || 'Failed to delete document.');
+                AdminCore.showNotification(response.message || 'Failed to delete document.', 'error');
             }
         })
         .fail(function() {
-            toastr.error('An error occurred while deleting the document.');
+            AdminCore.showNotification('An error occurred while deleting the document.', 'error');
         });
     }
     </text>

@@ -1053,6 +1053,7 @@
 .product-identifiers-summary {
     font-size: 16px;
     color: var(--text-secondary);
+    white-space: nowrap;
 }
 
 .identifier-count {

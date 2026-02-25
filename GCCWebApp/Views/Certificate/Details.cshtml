@@ -143,16 +143,9 @@
                         </div>
                     }
 
-                    @* ========================================================================
-                       CUSTOM FIELDS SECTION - HIDDEN FOR INITIAL PHASE
-                       ========================================================================
-                       TO RE-ENABLE: Simply remove the comment markers around this section.
-                       The functionality is fully implemented - just uncomment to show.
-                       ======================================================================== *@
-                    @*
                     @if (Model.CustomFieldValues != null && Model.CustomFieldValues.Any())
                     {
-                        @foreach (var section in Model.CustomFieldValues.GroupBy(f => f.Field.Section))
+                        @foreach (var section in Model.CustomFieldValues.GroupBy(f => f.Field.Section ?? "Additional Information"))
                         {
                             <div class="detail-section">
                                 <h3 class="certificate-section-title">@(section.Key)</h3>
@@ -166,7 +159,6 @@
                             </div>
                         }
                     }
-                    *@
 
                     <!-- Tags -->
                     @if (Model.Certificate?.Tags != null && Model.Certificate.Tags.Any())
@@ -315,32 +307,39 @@
             window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
         };
 
-        window.deleteCertificate = function(certificateId) {
+        window.deleteCertificate = async function(certificateId) {
             if (!certificateId) {
                 console.error('Certificate ID is missing');
                 return;
             }
 
-            if (confirm('Are you sure you want to delete this certificate? This action cannot be undone.')) {
-                fetch(`/Certificate/Delete/${certificateId}`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
-                    }
-                })
-                .then(response => {
+            const confirmed = await AdminCore.showConfirmation({
+                title: 'Delete Certificate',
+                message: 'Are you sure you want to delete this certificate? This action cannot be undone.',
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                type: 'danger'
+            });
+
+            if (confirmed) {
+                try {
+                    const response = await fetch(`/Certificate/Delete/${certificateId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                        }
+                    });
                     if (response.ok) {
-                        alert('Certificate deleted successfully');
-                        window.location.href = '/Certificate/CertificateTileViewInternal';
+                        AdminCore.showNotification('Certificate deleted successfully', 'success');
+                        setTimeout(() => { window.location.href = '/Certificate/CertificateTileViewInternal'; }, 1500);
                     } else {
-                        alert('Failed to delete certificate');
+                        AdminCore.showNotification('Failed to delete certificate', 'error');
                     }
-                })
-                .catch(error => {
+                } catch (error) {
                     console.error('Error deleting certificate:', error);
-                    alert('An error occurred while deleting the certificate');
-                });
+                    AdminCore.showNotification('An error occurred while deleting the certificate', 'error');
+                }
             }
         };
     </script>

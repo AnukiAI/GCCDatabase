@@ -886,35 +886,11 @@
     }
 
     function showToast(message, type = 'success') {
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        
-        const iconMap = {
-            success: 'check-circle',
-            error: 'exclamation-circle',
-            warning: 'exclamation-triangle',
-            info: 'info-circle'
-        };
-        
-        toast.innerHTML = `
-            <i class="fas fa-${iconMap[type]}"></i>
-            <span>${message}</span>
-        `;
-        
-        document.body.appendChild(toast);
-        
-        setTimeout(() => {
-            toast.classList.add('show');
-        }, 100);
-        
-        setTimeout(() => {
-            toast.classList.remove('show');
-            setTimeout(() => {
-                if (document.body.contains(toast)) {
-                    document.body.removeChild(toast);
-                }
-            }, 300);
-        }, 3000);
+        if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+            AdminCore.showNotification(message, type);
+        } else {
+            console.warn(`[showToast] ${type}: ${message}`);
+        }
     }
 
     function showError(message) {

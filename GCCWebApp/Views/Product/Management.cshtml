@@ -374,7 +374,7 @@
                 console.log('Done!');
             } catch (error) {
                 console.error('Error at:', error.stack);
-                alert('Error: ' + error.message + '\n\nCheck console for stack trace');
+                AdminCore.showNotification('Error: ' + error.message + '. Check console for details.', 'error');
             }
         });
 
@@ -572,19 +572,6 @@
                 const totalIdentifiers = product.identifiers ?
                     Object.values(product.identifiers).reduce((sum, arr) => sum + arr.length, 0) : 0;
 
-                // Collect all identifiers for the copy button
-                const allIdentifiers = [];
-                if (product.identifiers) {
-                    Object.keys(product.identifiers).forEach(type => {
-                        if (product.identifiers[type] && product.identifiers[type].length > 0) {
-                            product.identifiers[type].forEach(item => {
-                                allIdentifiers.push(`${type.toUpperCase()}: ${item}`);
-                            });
-                        }
-                    });
-                }
-                const allIdentifiersText = allIdentifiers.join(', ').replace(/'/g, "\\'");
-
                 row.innerHTML = `
                     <td data-label="">
                         <span class="expand-indicator" onclick="toggleRowDetails(${product.id})">▶</span>
@@ -611,17 +598,10 @@
                         </span>
                     </td>
                     <td data-label="Identifiers">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <span class="product-identifiers-summary">
-                                <span class="identifier-count">${totalIdentifiers}</span>
-                                identifiers
-                            </span>
-                            ${totalIdentifiers > 0 ? `
-                                <button class="copy-identifiers-btn" onclick="copyToClipboard('${allIdentifiersText}')" title="Copy all identifiers">
-                                    <i class="fas fa-copy"></i>
-                                </button>
-                            ` : ''}
-                        </div>
+                        <span class="product-identifiers-summary">
+                            <span class="identifier-count">${totalIdentifiers}</span>
+                            identifiers
+                        </span>
                     </td>
                     <td class="actions-cell role-element role-analyst-show role-admin-show" data-label="Actions">
                         <div class="action-buttons">
@@ -719,8 +699,12 @@
 
             if (confirmed) {
                 try {
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
                     const response = await fetch(`/Product/DeleteProduct?id=${id}`, {
-                        method: 'DELETE'
+                        method: 'DELETE',
+                        headers: {
+                            'RequestVerificationToken': token
+                        }
                     });
 
                     if (response.ok) {
@@ -832,7 +816,7 @@
                                     errorMsg += `\n... and ${result.data.errors.length - 5} more`;
                                 }
                                 console.warn('Import errors:', result.data.errors);
-                                alert(errorMsg);
+                                AdminCore.showNotification(errorMsg, 'warning');
                             }
 
                             // Reload products
@@ -1324,9 +1308,6 @@
         function createIdentifierSections(identifiers) {
             let sections = '';
 
-            // Note: "Copy All Identifiers" button moved to parent row's Identifiers column
-            // No longer displaying in the expandable detail section
-
             Object.keys(identifiers).forEach(type => {
                 if (identifiers[type] && identifiers[type].length > 0) {
                     const typeLabel = type.toUpperCase();
@@ -1337,13 +1318,6 @@
                             <div class="detail-section-title">${typeLabel} (${items.length})</div>
                             <div class="detail-grid">
                                 ${items.map(item => `<div class="detail-item">${item}</div>`).join('')}
-                            </div>
-                            <div class="copy-section">
-                                <div class="copy-header">
-                                    <span>Copy All ${typeLabel}:</span>
-                                    <button class="copy-btn" onclick="copyToClipboard('${items.join(', ')}')">Copy</button>
-                                </div>
-                                <div class="copy-text">${items.join(', ')}</div>
                             </div>
                         </div>
                     `;
@@ -1372,30 +1346,8 @@
             }
         }
 
-        function copyToClipboard(text) {
-            navigator.clipboard.writeText(text).then(() => {
-                showToast('Copied to clipboard!', 'success');
-            }).catch(err => {
-                console.error('Failed to copy: ', err);
-                showToast('Failed to copy to clipboard', 'error');
-            });
-        }
-
         function showToast(message, type = 'success') {
-            let toast = document.getElementById('product-toast');
-            if (!toast) {
-                toast = document.createElement('div');
-                toast.id = 'product-toast';
-                toast.className = 'product-toast';
-                document.body.appendChild(toast);
-            }
-
-            toast.textContent = message;
-            toast.className = `product-toast ${type} show`;
-
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+            AdminCore.showNotification(message, type);
         }
     </script>
     <!-- Import productManagement.js for import modal functionality -->

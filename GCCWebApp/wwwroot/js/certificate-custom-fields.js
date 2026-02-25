@@ -514,12 +514,10 @@ class CertificateCustomFields {
      * @param {string} type - Message type (success, error, info, warning)
      */
     showMessage(message, type) {
-        // Use AdminCore if available, otherwise console
         if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
             AdminCore.showNotification(message, type);
         } else {
-            console.log(`[${type}] ${message}`);
-            alert(message);
+            console.warn(`[${type}] ${message}`);
         }
     }
 }

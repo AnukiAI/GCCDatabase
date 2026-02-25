@@ -147,7 +147,7 @@
                     const maxSize = 10 * 1024 * 1024; // 10MB
                     
                     if (fileSize > maxSize) {
-                        alert('File size exceeds the maximum limit of 10MB. Please select a smaller file.');
+                        AdminCore.showNotification('File size exceeds the maximum limit of 10MB. Please select a smaller file.', 'warning');
                         $(this).val('');
                         return;
                     }
@@ -163,7 +163,7 @@
                 const fileInput = $('#fileInput')[0];
                 if (!fileInput.files || fileInput.files.length === 0) {
                     e.preventDefault();
-                    alert('Please select a file to upload.');
+                    AdminCore.showNotification('Please select a file to upload.', 'warning');
                     return false;
                 }
                 

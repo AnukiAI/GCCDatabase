@@ -369,47 +369,13 @@ function initializeNavigationHighlighting() {
  * Toast Notification System
  */
 function showToast(message, type = 'info', duration = 3000) {
-    // Remove existing toasts
-    document.querySelectorAll('.toast-notification').forEach(toast => {
-        toast.remove();
-    });
-
-    // Create new toast
-    const toast = document.createElement('div');
-    toast.className = `toast-notification toast-${type}`;
-    toast.style.cssText = `
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        background-color: ${type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--warning)' : 'var(--blue-primary)'};
-        color: white;
-        padding: 12px 20px;
-        border-radius: 6px;
-        box-shadow: var(--shadow);
-        z-index: 10000;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        max-width: 300px;
-        word-wrap: break-word;
-    `;
-    toast.textContent = message;
-
-    document.body.appendChild(toast);
-
-    // Fade in
-    setTimeout(() => {
-        toast.style.opacity = '1';
-    }, 100);
-
-    // Fade out and remove
-    setTimeout(() => {
-        toast.style.opacity = '0';
-        setTimeout(() => {
-            if (toast.parentNode) {
-                toast.parentNode.removeChild(toast);
-            }
-        }, 300);
-    }, duration);
+    // Route through AdminCore for consistent centered modals
+    if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+        AdminCore.showNotification(message, type);
+        return;
+    }
+    // Minimal fallback if AdminCore not available
+    console.warn(`[showToast] ${type}: ${message}`);
 }
 
 /**

@@ -12,6 +12,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="publish-deploy\**" />
+    <Content Remove="publish-deploy\**" />
+    <EmbeddedResource Remove="publish-deploy\**" />
+    <None Remove="publish-deploy\**" />
     <Compile Remove="0_Documentation\**" />
     <Compile Remove="Documentation\**" />
     <Compile Remove="pages\**" />

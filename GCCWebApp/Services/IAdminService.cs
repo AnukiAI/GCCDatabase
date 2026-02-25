@@ -39,8 +39,8 @@ namespace GCCWebApp.Services
         // Certificate Fields
         Task<List<CertificateFieldViewModel>> GetCertificateFieldsAsync();
         Task<CertificateFieldViewModel?> GetCertificateFieldByIdAsync(int id);
-        Task<bool> CreateCertificateFieldAsync(CertificateFieldViewModel model);
-        Task<bool> UpdateCertificateFieldAsync(int id, CertificateFieldViewModel model);
+        Task<(bool Success, string? ErrorMessage)> CreateCertificateFieldAsync(CertificateFieldViewModel model);
+        Task<(bool Success, string? ErrorMessage)> UpdateCertificateFieldAsync(int id, CertificateFieldViewModel model);
         Task<bool> DeleteCertificateFieldAsync(int id);
 
         // CSF Attributes

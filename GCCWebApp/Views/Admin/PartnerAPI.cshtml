@@ -427,11 +427,7 @@
                     const docsUrl = window.location.origin + '/api-docs';
                     navigator.clipboard.writeText(docsUrl).then(function() {
                         // Show success notification
-                        if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
-                            AdminCore.showNotification('API documentation link copied to clipboard!', 'success');
-                        } else {
-                            alert('Copied: ' + docsUrl);
-                        }
+                        AdminCore.showNotification('API documentation link copied to clipboard!', 'success');
                         // Temporarily change button text
                         const originalHTML = copyDocsBtn.innerHTML;
                         copyDocsBtn.innerHTML = '<i class="fas fa-check" aria-hidden="true"></i> Copied!';
@@ -440,8 +436,7 @@
                         }, 2000);
                     }).catch(function(err) {
                         console.error('Failed to copy:', err);
-                        // Fallback - show the URL in a prompt
-                        prompt('Copy this link to share with clients:', docsUrl);
+                        AdminCore.showNotification('Failed to copy link. The URL is: ' + docsUrl, 'info');
                     });
                 });
             }

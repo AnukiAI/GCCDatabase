@@ -2171,38 +2171,6 @@ class ProductManagement {
         return token || '';
     }
 
-    copyAllIdentifiers(identifiers, productName) {
-        try {
-            // Create formatted text with all identifiers
-            let copyText = `Product: ${productName}\n\n`;
-
-            // Group by type
-            const grouped = {};
-            identifiers.forEach(pi => {
-                if (!grouped[pi.identifierType]) {
-                    grouped[pi.identifierType] = [];
-                }
-                grouped[pi.identifierType].push(pi.identifierValue);
-            });
-
-            // Format: Type: value1, value2, value3
-            Object.keys(grouped).forEach(type => {
-                copyText += `${type}: ${grouped[type].join(', ')}\n`;
-            });
-
-            // Copy to clipboard
-            navigator.clipboard.writeText(copyText).then(() => {
-                this.showToast(`Copied ${identifiers.length} identifiers for ${productName}`, 'success');
-            }).catch(err => {
-                console.error('Failed to copy:', err);
-                this.showToast('Failed to copy identifiers. Please try again.', 'error');
-            });
-        } catch (error) {
-            console.error('Error copying identifiers:', error);
-            this.showToast('Error copying identifiers. Please try again.', 'error');
-        }
-    }
-
     // ============================================
     // Import Order Enforcement Functions
     // ============================================

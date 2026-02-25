@@ -192,7 +192,9 @@
         function submitRecoveryCode() {
             var code = document.getElementById('recoveryCodeInput').value.replace('-', '').trim();
             if (code.length !== 8) {
-                alert('Please enter a valid 8-character recovery code.');
+                if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+                    AdminCore.showNotification('Please enter a valid 8-character recovery code.', 'warning');
+                }
                 return;
             }
             document.getElementById('AuthCode').value = code;

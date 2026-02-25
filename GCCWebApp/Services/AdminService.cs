@@ -1073,10 +1073,19 @@ namespace GCCWebApp.Services
             };
         }
 
-        public async Task<bool> CreateCertificateFieldAsync(CertificateFieldViewModel model)
+        public async Task<(bool Success, string? ErrorMessage)> CreateCertificateFieldAsync(CertificateFieldViewModel model)
         {
             try
             {
+                // Check for duplicate field name (case-insensitive)
+                var existingField = await _context.CustomFields
+                    .FirstOrDefaultAsync(cf => cf.Name.ToLower() == model.Name.ToLower());
+
+                if (existingField != null)
+                {
+                    return (false, $"A certificate field named '{model.Name}' already exists");
+                }
+
                 var field = new CustomField
                 {
                     Name = model.Name,
@@ -1088,26 +1097,36 @@ namespace GCCWebApp.Services
                     Options = model.Options,
                     DefaultValue = model.DefaultValue,
                     ValidationRules = model.ValidationRules,
-                    Section = model.Section ?? "Core Certificate Information",
+                    Section = model.Section ?? "Additional Information",
                     CertificateTypeId = 1 // Default to first certificate type for now
                 };
 
                 _context.CustomFields.Add(field);
                 await _context.SaveChangesAsync();
-                return true;
+                return (true, null);
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                _logger.LogError(ex, "Error creating certificate field: {Name}", model.Name);
+                return (false, $"Error creating certificate field: {ex.Message}");
             }
         }
 
-        public async Task<bool> UpdateCertificateFieldAsync(int id, CertificateFieldViewModel model)
+        public async Task<(bool Success, string? ErrorMessage)> UpdateCertificateFieldAsync(int id, CertificateFieldViewModel model)
         {
             try
             {
                 var field = await _context.CustomFields.FirstOrDefaultAsync(cf => cf.Id == id);
-                if (field == null) return false;
+                if (field == null) return (false, "Certificate field not found");
+
+                // Check for duplicate field name (case-insensitive), excluding the current field
+                var existingField = await _context.CustomFields
+                    .FirstOrDefaultAsync(cf => cf.Name.ToLower() == model.Name.ToLower() && cf.Id != id);
+
+                if (existingField != null)
+                {
+                    return (false, $"A certificate field named '{model.Name}' already exists");
+                }
 
                 field.Name = model.Name;
                 field.FieldType = model.FieldType;
@@ -1121,11 +1140,12 @@ namespace GCCWebApp.Services
                 field.Section = model.Section;
 
                 await _context.SaveChangesAsync();
-                return true;
+                return (true, null);
             }
-            catch
+            catch (Exception ex)
             {
-                return false;
+                _logger.LogError(ex, "Error updating certificate field {Id}: {Name}", id, model.Name);
+                return (false, $"Error updating certificate field: {ex.Message}");
             }
         }
 

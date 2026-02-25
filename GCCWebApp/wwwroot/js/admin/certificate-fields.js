@@ -191,7 +191,7 @@ class CertificateFieldsManager {
         const newId = this.fields.length > 0 ? Math.max(...this.fields.map(f => f.id)) + 1 : 1;
         const newField = {
             id: newId,
-            section: 'Core Certificate Information',
+            section: 'Additional Information',
             name: '',
             fieldType: 'text',
             isRequired: false,
@@ -266,17 +266,6 @@ class CertificateFieldsManager {
         console.log('showConfirmation available:', typeof AdminCore !== 'undefined' && typeof AdminCore.showConfirmation === 'function');
 
         try {
-            // Check if AdminCore exists
-            if (typeof AdminCore === 'undefined' || typeof AdminCore.showConfirmation !== 'function') {
-                console.warn('AdminCore.showConfirmation not available, using native confirm');
-                const confirmed = confirm(`Are you sure you want to delete the field "${field.name}"? This action cannot be undone.`);
-                if (confirmed) {
-                    await this.deleteField(id);
-                }
-                return;
-            }
-
-            console.log('Calling AdminCore.showConfirmation...');
             const confirmed = await AdminCore.showConfirmation({
                 title: 'Delete Confirmation',
                 message: `Are you sure you want to delete the field <strong>${field.name}</strong>? This action cannot be undone.`,
@@ -285,18 +274,12 @@ class CertificateFieldsManager {
                 type: 'danger',
                 allowHtml: true
             });
-            console.log('Confirmation result:', confirmed);
 
             if (confirmed) {
                 await this.deleteField(id);
             }
         } catch (error) {
             console.error('Error showing confirmation:', error);
-            // Fallback to native confirm
-            const confirmed = confirm(`Are you sure you want to delete the field "${field.name}"? This action cannot be undone.`);
-            if (confirmed) {
-                await this.deleteField(id);
-            }
         }
     }
 
@@ -391,7 +374,7 @@ class CertificateFieldsManager {
         const visibilityClass = visibility.toLowerCase();
 
         row.innerHTML = `
-            <td style="font-size: 16px; color: #666;">${field.section || 'Core Certificate Information'}</td>
+            <td style="font-size: 16px; color: #666;">${field.section || 'Additional Information'}</td>
             <td>${field.name}</td>
             <td><span class="field-type type-${field.fieldType.toLowerCase().replace(/[-\s]/g, '')}">${this.formatFieldType(field.fieldType)}</span></td>
             <td><span class="required-label required-${requiredLabel.toLowerCase().replace('-', '')}">${requiredLabel}</span></td>
@@ -417,13 +400,9 @@ class CertificateFieldsManager {
         const visibility = field.roleVisibility || 'Public';
 
         const sections = [
-            'Core Certificate Information',
-            'Company Information',
-            'Product Information',
-            'Product Identifiers',
-            'Tagging & Classification',
-            'New Required Fields',
-            'File Management',
+            'Additional Information',
+            'Environmental Metrics',
+            'Testing & Compliance',
             'Record Management'
         ];
         const controlTypes = ['text', 'email', 'phone', 'textarea', 'dropdown', 'multi-select', 'date', 'file', 'number', 'checkbox', 'system-generated'];
@@ -433,7 +412,7 @@ class CertificateFieldsManager {
             <td>
                 <select class="edit-select" required>
                     ${sections.map(section =>
-                        `<option value="${section}" ${section === (field.section || 'Core Certificate Information') ? 'selected' : ''}>${section}</option>`
+                        `<option value="${section}" ${section === (field.section || 'Additional Information') ? 'selected' : ''}>${section}</option>`
                     ).join('')}
                 </select>
             </td>

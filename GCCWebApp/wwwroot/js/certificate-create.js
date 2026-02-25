@@ -80,29 +80,30 @@
                 return;
             }
 
-            // Fallback: Simple toast notification
-            const toast = document.createElement('div');
-            toast.className = `toast toast--${type}`;
-            toast.textContent = message;
-            toast.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                padding: 16px 24px;
-                background: ${type === 'success' ? '#92C83E' : type === 'error' ? '#FF5252' : type === 'warning' ? '#FFC107' : '#002B76'};
-                color: white;
-                border-radius: 4px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                z-index: 10000;
-                animation: slideInRight 0.3s ease;
+            // Fallback: Center-screen modal notification (matches AdminCore modal style)
+            const colors = { success: '#92C83E', error: '#FF5252', warning: '#FFC107', info: '#002B76' };
+            const titles = { success: 'Success', error: 'Error', warning: 'Warning', info: 'Information' };
+            const bgColor = colors[type] || colors.info;
+            const btnTextColor = type === 'warning' ? '#333333' : '#ffffff';
+
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.85); backdrop-filter: blur(3px);
+                z-index: 10000; display: flex; align-items: center;
+                justify-content: center; animation: fadeIn 0.3s ease;
+            `;
+            overlay.innerHTML = `
+                <div style="background: #fff; border-radius: 8px; padding: 30px; max-width: 450px; width: 90%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                    <h2 style="color: ${type === 'error' ? '#FF5252' : '#002B76'}; font-size: 22px; font-weight: 600; margin: 0 0 15px 0;">${titles[type] || 'Information'}</h2>
+                    <p style="color: #333; font-size: 16px; line-height: 1.5; margin: 0 0 25px 0;">${message}</p>
+                    <button style="width: 100%; padding: 12px 30px; border: none; border-radius: 4px; font-size: 16px; font-weight: 500; cursor: pointer; background: ${bgColor}; color: ${btnTextColor};">OK</button>
+                </div>
             `;
 
-            document.body.appendChild(toast);
-
-            setTimeout(() => {
-                toast.style.animation = 'slideOutRight 0.3s ease';
-                setTimeout(() => toast.remove(), 300);
-            }, 5000);
+            overlay.querySelector('button').addEventListener('click', () => overlay.remove());
+            overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+            document.body.appendChild(overlay);
         }
     };
 
@@ -523,10 +524,12 @@
         isSubmitting: false,
         hasChanges: false,
         initialized: false,
+        form: null,
 
         init: function() {
             const form = document.getElementById('certificateCreateForm') || document.getElementById('certificateEditForm');
             if (!form) return;
+            this.form = form;
 
             // Delay initialization to allow other components to finish setup
             // This prevents false positives from initialization-triggered changes
@@ -535,6 +538,7 @@
                 this.originalFormData = new FormData(form);
                 this.originalValues = this.getFormValues(form);
                 this.initialized = true;
+                this.hasChanges = false;
                 console.log('[UnsavedChanges] Initialized - now tracking changes');
             }, 500);
 
@@ -553,7 +557,7 @@
 
             // Warn before leaving if there are unsaved changes
             window.addEventListener('beforeunload', (e) => {
-                if (this.hasChanges && !this.isSubmitting) {
+                if (this.hasActualChanges() && !this.isSubmitting) {
                     e.preventDefault();
                     e.returnValue = 'You have unsaved changes. Are you sure you want to leave?';
                     return e.returnValue;
@@ -563,10 +567,10 @@
             // Also handle clicks on navigation links
             document.querySelectorAll('a[href]:not([target="_blank"])').forEach(link => {
                 link.addEventListener('click', (e) => {
-                    if (this.hasChanges && !this.isSubmitting) {
+                    if (this.hasActualChanges() && !this.isSubmitting) {
                         const href = link.getAttribute('href');
                         // Skip if it's an anchor link or JavaScript
-                        if (href.startsWith('#') || href.startsWith('javascript:')) return;
+                        if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
 
                         e.preventDefault();
                         this.confirmNavigation(href);
@@ -582,6 +586,24 @@
                 values[key] = value;
             }
             return values;
+        },
+
+        // Compare current form values against the baseline to detect real changes
+        hasActualChanges: function() {
+            if (!this.initialized || !this.form || !this.originalValues) return false;
+            if (!this.hasChanges) return false;
+
+            // Do a real comparison of form values vs original baseline
+            const currentValues = this.getFormValues(this.form);
+            const allKeys = new Set([...Object.keys(currentValues), ...Object.keys(this.originalValues)]);
+            for (const key of allKeys) {
+                if ((currentValues[key] || '') !== (this.originalValues[key] || '')) {
+                    return true;
+                }
+            }
+            // Boolean flag was set but values match baseline - reset the flag
+            this.hasChanges = false;
+            return false;
         },
 
         markAsChanged: function() {
@@ -608,12 +630,25 @@
                 }
             } catch (error) {
                 console.error('[UnsavedChanges] Error in confirmNavigation:', error);
+                // If modal fails, allow navigation rather than trapping the user
+                this.hasChanges = false;
+                this.isSubmitting = true;
+                window.location.href = href;
             }
         },
 
         reset: function() {
             this.hasChanges = false;
             this.isSubmitting = false;
+        },
+
+        // Re-capture the baseline form values (call after async initialization completes)
+        rebaseline: function() {
+            if (this.form) {
+                this.originalValues = this.getFormValues(this.form);
+                this.hasChanges = false;
+                console.log('[UnsavedChanges] Rebaselined form values');
+            }
         }
     };
 
@@ -1164,6 +1199,7 @@
         showNotification: ModalSystem.showNotification,
         showConfirmation: ModalSystem.showConfirmation,
         resetUnsavedChanges: UnsavedChanges.reset.bind(UnsavedChanges),
+        rebaselineUnsavedChanges: UnsavedChanges.rebaseline.bind(UnsavedChanges),
         markAsChanged: UnsavedChanges.markAsChanged.bind(UnsavedChanges),
         showLoading: LoadingSpinner.show.bind(LoadingSpinner),
         hideLoading: LoadingSpinner.hide.bind(LoadingSpinner),

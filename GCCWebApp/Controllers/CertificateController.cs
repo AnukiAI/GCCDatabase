@@ -163,6 +163,9 @@ namespace GCCWebApp.Controllers
                     ShowInternalData = false
                 };
 
+                // Load custom field values for external view
+                model.CustomFieldValues = await _certificateFieldService.GetFormattedFieldValuesAsync(certificate.Id);
+
                 return View(model);
             }
             catch (Exception ex)
@@ -211,6 +214,9 @@ namespace GCCWebApp.Controllers
                     CanDelete = CanUserDeleteCertificate(),
                     ShowInternalData = true
                 };
+
+                // Load custom field values for internal view
+                model.CustomFieldValues = await _certificateFieldService.GetFormattedFieldValuesAsync(certificate.Id);
 
                 return View(model);
             }
@@ -261,6 +267,9 @@ namespace GCCWebApp.Controllers
                     CanDelete = CanUserDeleteCertificate(),
                     ShowInternalData = IsInternalUser()
                 };
+
+                // Load custom field values for single view
+                model.CustomFieldValues = await _certificateFieldService.GetFormattedFieldValuesAsync(certificate.Id);
 
                 return View(model);
             }

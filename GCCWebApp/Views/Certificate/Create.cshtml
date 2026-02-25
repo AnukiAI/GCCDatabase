@@ -328,26 +328,16 @@
                 @await Html.PartialAsync("_ProductIdManager", Model.ProductIds)
             </div>
 
-@*
-            ========================================================================
-            CUSTOM FIELDS SECTION - HIDDEN FOR INITIAL PHASE
-            ========================================================================
-            TO RE-ENABLE: Remove the Razor comment markers around this section.
-            The functionality is fully implemented - just uncomment to show.
-            Also ensure certificate-custom-fields.js is included in the Scripts section.
-            ========================================================================
-
             <div class="card-style" style="margin-bottom: 24px;">
                 <div class="form-section-header">
                     <i class="fas fa-sliders-h"></i>
-                    <span>Custom Fields</span>
+                    <span>Additional Fields</span>
                 </div>
 
                 <div id="custom-fields-container" class="mb-4">
-                    <p class="text-muted">Select a certification type to load custom fields.</p>
+                    <p class="text-muted">Select a certification type to load additional fields.</p>
                 </div>
             </div>
-*@
 
             <div class="action-buttons">
                 <button type="submit" name="action" value="save" class="btn btn-primary" aria-label="Save certificate">

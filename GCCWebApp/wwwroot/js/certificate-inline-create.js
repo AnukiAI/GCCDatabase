@@ -53,43 +53,30 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
             return;
         }
 
-        // Fallback: Create inline toast
-        const colors = {
-            success: '#92C83E',
-            error: '#FF5252',
-            warning: '#FFC107',
-            info: '#002B76'
-        };
+        // Fallback: Center-screen modal notification (matches AdminCore modal style)
+        const colors = { success: '#92C83E', error: '#FF5252', warning: '#FFC107', info: '#002B76' };
+        const titles = { success: 'Success', error: 'Error', warning: 'Warning', info: 'Information' };
+        const bgColor = colors[type] || colors.info;
+        const btnTextColor = type === 'warning' ? '#333333' : '#ffffff';
 
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            position: fixed; top: 20px; right: 20px; z-index: 10001;
-            padding: 14px 20px; border-radius: 6px; color: white;
-            background: ${colors[type] || colors.info};
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            font-size: 14px; font-weight: 500; max-width: 350px;
-            animation: slideIn 0.3s ease;
+        const overlay = document.createElement('div');
+        overlay.style.cssText = `
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(3px);
+            z-index: 10001; display: flex; align-items: center;
+            justify-content: center;
         `;
-        toast.textContent = message;
+        overlay.innerHTML = `
+            <div style="background: #fff; border-radius: 8px; padding: 30px; max-width: 450px; width: 90%; text-align: center; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+                <h2 style="color: ${type === 'error' ? '#FF5252' : '#002B76'}; font-size: 22px; font-weight: 600; margin: 0 0 15px 0;">${titles[type] || 'Information'}</h2>
+                <p style="color: #333; font-size: 16px; line-height: 1.5; margin: 0 0 25px 0;">${message}</p>
+                <button style="width: 100%; padding: 12px 30px; border: none; border-radius: 4px; font-size: 16px; font-weight: 500; cursor: pointer; background: ${bgColor}; color: ${btnTextColor};">OK</button>
+            </div>
+        `;
 
-        // Add animation keyframes if not exists
-        if (!document.getElementById('toast-animation-styles')) {
-            const style = document.createElement('style');
-            style.id = 'toast-animation-styles';
-            style.textContent = `
-                @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-                @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
-            `;
-            document.head.appendChild(style);
-        }
-
-        document.body.appendChild(toast);
-
-        // Auto-remove after 4 seconds
-        setTimeout(() => {
-            toast.style.animation = 'slideOut 0.3s ease';
-            setTimeout(() => toast.remove(), 300);
-        }, 4000);
+        overlay.querySelector('button').addEventListener('click', () => overlay.remove());
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+        document.body.appendChild(overlay);
     }
 
     /**
@@ -1421,9 +1408,9 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
             createCustomDropdown(companySelect, 'company', 'Enter company name');
         }
 
-        // Convert Product dropdown to autocomplete with duplicate detection
+        // Convert Product dropdown to custom dropdown (same pattern as Company)
         if (productSelect) {
-            createProductAutocomplete(productSelect);
+            createCustomDropdown(productSelect, 'product', 'Enter product name');
         }
 
         // Convert Subcategory to multi-select dropdown with checkboxes

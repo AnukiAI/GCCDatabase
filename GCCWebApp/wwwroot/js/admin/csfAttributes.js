@@ -479,27 +479,7 @@ function exportCSV() {
 
 // Show toast notification
 function showToast(message, type = 'success') {
-    // Remove existing toasts
-    const existingToasts = document.querySelectorAll('.toast-notification');
-    existingToasts.forEach(toast => toast.remove());
-    
-    // Create toast
-    const toast = document.createElement('div');
-    toast.className = 'toast-notification';
-    if (type === 'error') {
-        toast.classList.add('error');
-    }
-    toast.textContent = message;
-    
-    document.body.appendChild(toast);
-    
-    // Auto hide after 3 seconds
-    setTimeout(() => {
-        toast.classList.add('hide');
-        setTimeout(() => {
-            toast.remove();
-        }, 500);
-    }, 3000);
+    AdminCore.showNotification(message, type);
 }
 
 // Inline editing functions for CSF Attributes

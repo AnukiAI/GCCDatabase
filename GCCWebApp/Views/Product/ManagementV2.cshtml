@@ -797,12 +797,23 @@
         function viewProduct(id) {
             const product = products.find(p => p.id === id);
             if (!product) return;
-            
-            alert(`Product Details:\n\nName: ${product.name}\nCompany: ${product.company}\nCategory: ${product.category}\nType: ${product.type}\nStatus: ${product.status}\nCertificates: ${product.certificates}\n\nDescription: ${product.description || 'N/A'}`);
+
+            AdminCore.showNotification(
+                `Name: ${product.name} | Company: ${product.company} | Category: ${product.category} | Type: ${product.type} | Status: ${product.status} | Certificates: ${product.certificates}`,
+                'info'
+            );
         }
 
         async function deleteProduct(id) {
-            if (confirm('Are you sure you want to delete this product?')) {
+            const confirmed = await AdminCore.showConfirmation({
+                title: 'Delete Product',
+                message: 'Are you sure you want to delete this product?',
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                type: 'danger'
+            });
+
+            if (confirmed) {
                 try {
                     const response = await fetch(`/Product/DeleteProduct?id=${id}`, {
                         method: 'DELETE'
@@ -813,16 +824,16 @@
                         if (result.success) {
                             await loadProducts();
                             populateTable();
-                            showToast(result.message || 'Product deleted successfully');
+                            AdminCore.showNotification(result.message || 'Product deleted successfully', 'success');
                         } else {
-                            showToast(result.message || 'Error deleting product', 'error');
+                            AdminCore.showNotification(result.message || 'Error deleting product', 'error');
                         }
                     } else {
-                        showToast('Error deleting product', 'error');
+                        AdminCore.showNotification('Error deleting product', 'error');
                     }
                 } catch (error) {
                     console.error('Error deleting product:', error);
-                    showToast('Error deleting product', 'error');
+                    AdminCore.showNotification('Error deleting product', 'error');
                 }
             }
         }
@@ -889,20 +900,7 @@
         }
 
         function showToast(message, type = 'success') {
-            let toast = document.getElementById('product-toast');
-            if (!toast) {
-                toast = document.createElement('div');
-                toast.id = 'product-toast';
-                toast.className = 'product-toast';
-                document.body.appendChild(toast);
-            }
-            
-            toast.textContent = message;
-            toast.className = `product-toast ${type} show`;
-            
-            setTimeout(() => {
-                toast.classList.remove('show');
-            }, 3000);
+            AdminCore.showNotification(message, type);
         }
     </script>
 }

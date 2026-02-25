@@ -1018,7 +1018,9 @@ function showAddForm(entityType, parentElement = null) {
         window.productTypeManager.showAddModal(entityType, parentId);
     } else {
         console.error('ProductTypeManager not initialized! Cannot open add modal.');
-        alert('Error: Page not fully loaded. Please refresh and try again.');
+        if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+            AdminCore.showNotification('Error: Page not fully loaded. Please refresh and try again.', 'error');
+        }
     }
 }
 

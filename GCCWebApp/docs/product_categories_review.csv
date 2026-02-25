@@ -1,0 +1,60 @@
+Level,Name,Parent
+1,Chemicals and Raw Materials,
+2,Additives,Chemicals and Raw Materials
+2,Metal Alloys,Chemicals and Raw Materials
+2,Minerals,Chemicals and Raw Materials
+2,Plastics,Chemicals and Raw Materials
+3,HDPE,Plastics
+3,LDPE,Plastics
+3,LLDPE,Plastics
+3,PET,Plastics
+3,PP,Plastics
+3,PVC,Plastics
+1,"Clothing, Apparel, and Fabrics",
+2,Apparel,"Clothing, Apparel, and Fabrics"
+2,Bags and Accessories,"Clothing, Apparel, and Fabrics"
+2,Jewelry,"Clothing, Apparel, and Fabrics"
+1,Construction / Building Products,
+2,Adhesives and Sealants,Construction / Building Products
+2,Ceramics and Tile,Construction / Building Products
+2,Coatings,Construction / Building Products
+2,Concrete and Concrete Materials,Construction / Building Products
+2,"Doors, Door Hardware, and Accessories",Construction / Building Products
+2,Fiberglass Mats,Construction / Building Products
+2,Flooring,Construction / Building Products
+2,Grout and Mortar,Construction / Building Products
+2,HVAC,Construction / Building Products
+2,Insulation,Construction / Building Products
+2,Moisture Control,Construction / Building Products
+2,Plumbing and Accessories,Construction / Building Products
+2,Roofing,Construction / Building Products
+2,Wallcoverings and Interior Wall Finishes,Construction / Building Products
+2,"Windows, Parts, and Accessories",Construction / Building Products
+2,Wiring and Cable,Construction / Building Products
+1,Consumer Products,
+2,Appliances,Consumer Products
+2,Baby Products,Consumer Products
+2,Cleaning Supplies,Consumer Products
+2,Furniture,Consumer Products
+2,Health and Beauty,Consumer Products
+2,Home Goods,Consumer Products
+2,Office Supplies (non-electronic),Consumer Products
+2,Personal Protective Equipment,Consumer Products
+2,Pet Products,Consumer Products
+2,Security,Consumer Products
+1,"Electronics, Computers, and Accessories",
+2,Card Reader,"Electronics, Computers, and Accessories"
+2,Electronic Accessories,"Electronics, Computers, and Accessories"
+2,Microelectronics,"Electronics, Computers, and Accessories"
+2,Printers and Printer Cartridges,"Electronics, Computers, and Accessories"
+1,Food and Beverage,
+2,Animal Products,Food and Beverage
+2,Beverages,Food and Beverage
+2,Food,Food and Beverage
+2,Fragrance and Flavor,Food and Beverage
+1,Healthcare and Pharmaceutical,
+2,Medical Devices,Healthcare and Pharmaceutical
+1,Packaging,
+2,Paper,Packaging
+2,Plastic,Packaging
+2,Other,Packaging

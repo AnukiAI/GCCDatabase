@@ -798,14 +798,14 @@ namespace GCCWebApp.Controllers
 
             try
             {
-                var success = await _adminService.CreateCertificateFieldAsync(model);
+                var (success, errorMessage) = await _adminService.CreateCertificateFieldAsync(model);
                 if (success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "Certificate field created successfully" });
                 }
                 else
                 {
-                    return Json(new ApiResponse<object> { Success = false, Message = "Failed to create certificate field" });
+                    return Json(new ApiResponse<object> { Success = false, Message = errorMessage ?? "Failed to create certificate field" });
                 }
             }
             catch (Exception ex)
@@ -830,14 +830,14 @@ namespace GCCWebApp.Controllers
 
             try
             {
-                var success = await _adminService.UpdateCertificateFieldAsync(id, model);
+                var (success, errorMessage) = await _adminService.UpdateCertificateFieldAsync(id, model);
                 if (success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "Certificate field updated successfully" });
                 }
                 else
                 {
-                    return Json(new ApiResponse<object> { Success = false, Message = "Certificate field not found or update failed" });
+                    return Json(new ApiResponse<object> { Success = false, Message = errorMessage ?? "Certificate field not found or update failed" });
                 }
             }
             catch (Exception ex)

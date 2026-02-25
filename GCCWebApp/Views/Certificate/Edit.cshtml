@@ -62,7 +62,7 @@
                             {
                                 @foreach (var company in ViewBag.Companies)
                                 {
-                                    <option value="@company.Id" selected="@(company.Id == Model.CompanyId)">@company.Name</option>
+                                    <option value="@company.Id">@company.Name</option>
                                 }
                             }
                         </select>
@@ -84,7 +84,7 @@
                             {
                                 @foreach (var certType in ViewBag.ParentCertificationTypes)
                                 {
-                                    <option value="@certType.Id" selected="@(certType.Id == Model.CertificationTypeId)">@certType.Name</option>
+                                    <option value="@certType.Id">@certType.Name</option>
                                 }
                             }
                         </select>
@@ -111,7 +111,7 @@
                             {
                                 @foreach (var product in ViewBag.Products)
                                 {
-                                    <option value="@product.Id" selected="@(product.Id == Model.ProductId)">@product.Name</option>
+                                    <option value="@product.Id">@product.Name</option>
                                 }
                             }
                         </select>
@@ -204,11 +204,11 @@
                         <label asp-for="Country">Country</label>
                         <select asp-for="Country" class="form-control">
                             <option value="">Select country...</option>
-                            <option value="United States" selected="@(Model.Country == "United States")">United States</option>
-                            <option value="Canada" selected="@(Model.Country == "Canada")">Canada</option>
-                            <option value="Mexico" selected="@(Model.Country == "Mexico")">Mexico</option>
-                            <option value="United Kingdom" selected="@(Model.Country == "United Kingdom")">United Kingdom</option>
-                            <option value="Germany" selected="@(Model.Country == "Germany")">Germany</option>
+                            <option value="United States">United States</option>
+                            <option value="Canada">Canada</option>
+                            <option value="Mexico">Mexico</option>
+                            <option value="United Kingdom">United Kingdom</option>
+                            <option value="Germany">Germany</option>
                         </select>
                         <span asp-validation-for="Country" class="text-danger" role="alert"></span>
                     </div>
@@ -354,26 +354,16 @@
                 @await Html.PartialAsync("_ProductIdManager", Model.ProductIds)
             </div>
 
-@*
-            ========================================================================
-            CUSTOM FIELDS SECTION - HIDDEN FOR INITIAL PHASE
-            ========================================================================
-            TO RE-ENABLE: Remove the Razor comment markers around this section.
-            The functionality is fully implemented - just uncomment to show.
-            Also ensure certificate-custom-fields.js is included in the Scripts section.
-            ========================================================================
-
             <div class="card-style" style="margin-bottom: 24px;">
                 <div class="form-section-header">
                     <i class="fas fa-sliders-h"></i>
-                    <span>Custom Fields</span>
+                    <span>Additional Fields</span>
                 </div>
 
                 <div id="custom-fields-container" class="mb-4">
-                    <p class="text-muted">Loading custom fields...</p>
+                    <p class="text-muted">Loading additional fields...</p>
                 </div>
             </div>
-*@
 
             <div class="action-buttons">
                 <button type="submit" name="action" value="save" class="btn btn-primary" aria-label="Save certificate changes" id="saveButton">
@@ -630,6 +620,14 @@
             }
 
             await loadCustomFields();
+
+            // Rebaseline unsaved changes tracking after all async initialization
+            // (product types, custom fields, subcategories, tags all trigger change events)
+            setTimeout(function() {
+                if (window.CertificateCreate && window.CertificateCreate.rebaselineUnsavedChanges) {
+                    window.CertificateCreate.rebaselineUnsavedChanges();
+                }
+            }, 1000);
 
             // Intercept form submission to handle custom fields
             const form = document.getElementById('certificateEditForm');

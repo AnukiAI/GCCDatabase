@@ -17,8 +17,8 @@
         showConfirmation: function(options) {
             return new Promise((resolve) => {
                 const modalHtml = `
-                    <div class="modal-overlay" id="customConfirmModal">
-                        <div class="modal-dialog">
+                    <div class="custom-modal-overlay" id="customConfirmModal">
+                        <div class="custom-modal-dialog">
                             <h2 class="modal-title">${options.title || 'Confirm'}</h2>
                             <p class="modal-message">${options.message}</p>
                             <div class="modal-actions">

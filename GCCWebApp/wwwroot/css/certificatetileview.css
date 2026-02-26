@@ -2221,6 +2221,20 @@ body.table-view-active .tile-view-content {
     color: #fff;
 }
 
+/* Status and Partner labels in tile/card view */
+.certificate-card .status-label,
+.certificate-card .partner-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.certificate-card .partner-badge {
+    font-size: 16px;
+    font-weight: 500;
+    color: #fff;
+}
+
 /* ====================================================
    INTERNAL VIEW SPECIFIC - Edit Button
    ==================================================== */

@@ -414,8 +414,10 @@
                     <div class="company-name">${escapeHtml(cert.companyName)}</div>
                     <div class="status-row">
                         <span class="status-label">Status:</span> ${statusBadge}
-                        ${cert.partner ? `<span class="partner-label">Partner:</span> ${partnerBadge}` : ''}
                     </div>
+                    ${cert.partner ? `<div class="status-row">
+                        <span class="partner-label">Partner:</span> ${partnerBadge}
+                    </div>` : ''}
                 </div>
                 <div class="card-body">
                     <div class="product-info">

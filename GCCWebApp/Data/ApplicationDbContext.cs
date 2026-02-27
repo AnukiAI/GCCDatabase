@@ -110,6 +110,30 @@ namespace GCCWebApp.Data
                     .OnDelete(DeleteBehavior.Restrict)
                     .IsRequired(false);
 
+                // Product Category (optional)
+                entity.HasIndex(e => e.ProductCategoryId);
+                entity.HasOne(e => e.ProductCategory)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductCategoryId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
+
+                // Product Type (optional) - Level 1 ProductType
+                entity.HasIndex(e => e.ProductTypeId);
+                entity.HasOne(e => e.ProductType)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductTypeId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
+
+                // Product Subcategory (optional) - Level 2 child ProductType
+                entity.HasIndex(e => e.ProductSubcategoryId);
+                entity.HasOne(e => e.ProductSubcategory)
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductSubcategoryId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
+
                 // Pathway (optional)
                 entity.HasIndex(e => e.PathwayId);
                 entity.HasOne(e => e.Pathway)

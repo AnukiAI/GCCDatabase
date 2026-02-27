@@ -527,56 +527,104 @@ namespace GCCWebApp.Services
 
         public async Task<List<ProductTypeViewModel>> GetProductTypesAsync()
         {
-            // Get all product types with their categories and children
-            var allProductTypes = await _context.ProductTypes
-                .Include(pt => pt.Category)
-                .Include(pt => pt.Parent)
-                .Include(pt => pt.Children)
-                .Include(pt => pt.Products)
-                .OrderBy(pt => pt.Level)
-                .ThenBy(pt => pt.SortOrder)
+            // Build true 3-level hierarchy: Category → Type → Subcategory
+            // Level 1: ProductCategories table
+            // Level 2: ProductTypes where ParentId IS NULL (top-level types)
+            // Level 3: ProductTypes where ParentId IS NOT NULL (children/subcategories)
+
+            var categories = await _context.ProductCategories
+                .Where(pc => pc.IsActive)
+                .OrderBy(pc => pc.SortOrder)
+                .ThenBy(pc => pc.Name)
                 .ToListAsync();
-            
-            // Return empty list if no data exists (no mock data for production)
-            if (!allProductTypes.Any())
+
+            var allProductTypes = await _context.ProductTypes
+                .Include(pt => pt.Products)
+                .Where(pt => pt.IsActive)
+                .OrderBy(pt => pt.SortOrder)
+                .ThenBy(pt => pt.Name)
+                .ToListAsync();
+
+            if (!categories.Any() && !allProductTypes.Any())
             {
                 return new List<ProductTypeViewModel>();
             }
 
-            // Build hierarchical structure
-            var result = new List<ProductTypeViewModel>();
-            var lookup = new Dictionary<int, ProductTypeViewModel>();
+            // Group types by category
+            var typesByCategory = allProductTypes
+                .Where(pt => pt.ParentId == null)
+                .GroupBy(pt => pt.CategoryId)
+                .ToDictionary(g => g.Key, g => g.ToList());
 
-            // First pass: create all items
-            foreach (var pt in allProductTypes)
+            // Group subcategories by parent type
+            var subcategoriesByType = allProductTypes
+                .Where(pt => pt.ParentId != null)
+                .GroupBy(pt => pt.ParentId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var result = new List<ProductTypeViewModel>();
+
+            foreach (var category in categories)
             {
-                var viewModel = new ProductTypeViewModel
+                var categoryVm = new ProductTypeViewModel
                 {
-                    Id = pt.Id,
-                    Name = pt.Name,
-                    ParentId = pt.ParentId,
-                    Level = pt.Level,
-                    SortOrder = pt.SortOrder,
-                    ParentName = pt.Parent?.Name ?? "",
-                    ProductCount = pt.Products?.Count ?? 0,
+                    Id = category.Id,
+                    Name = category.Name,
+                    ParentId = null,
+                    Level = 1,
+                    SortOrder = category.SortOrder,
+                    ParentName = "",
+                    ProductCount = 0,
                     Children = new List<ProductTypeViewModel>()
                 };
-                lookup[pt.Id] = viewModel;
-            }
 
-            // Second pass: build hierarchy
-            foreach (var pt in allProductTypes)
-            {
-                var viewModel = lookup[pt.Id];
-                if (pt.ParentId.HasValue && lookup.ContainsKey(pt.ParentId.Value))
+                // Add types under this category
+                if (typesByCategory.TryGetValue(category.Id, out var types))
                 {
-                    lookup[pt.ParentId.Value].Children.Add(viewModel);
+                    foreach (var type in types)
+                    {
+                        var typeVm = new ProductTypeViewModel
+                        {
+                            Id = type.Id,
+                            Name = type.Name,
+                            ParentId = category.Id,
+                            Level = 2,
+                            SortOrder = type.SortOrder,
+                            ParentName = category.Name,
+                            ProductCount = type.Products?.Count ?? 0,
+                            Children = new List<ProductTypeViewModel>()
+                        };
+
+                        // Add subcategories under this type
+                        if (subcategoriesByType.TryGetValue(type.Id, out var subcategories))
+                        {
+                            foreach (var sub in subcategories)
+                            {
+                                typeVm.Children.Add(new ProductTypeViewModel
+                                {
+                                    Id = sub.Id,
+                                    Name = sub.Name,
+                                    ParentId = type.Id,
+                                    Level = 3,
+                                    SortOrder = sub.SortOrder,
+                                    ParentName = type.Name,
+                                    ProductCount = sub.Products?.Count ?? 0,
+                                    Children = new List<ProductTypeViewModel>()
+                                });
+                            }
+                        }
+
+                        // Roll up product counts from subcategories
+                        typeVm.ProductCount += typeVm.Children.Sum(c => c.ProductCount);
+
+                        categoryVm.Children.Add(typeVm);
+                    }
                 }
-                else
-                {
-                    // This is a root level item (or category level)
-                    result.Add(viewModel);
-                }
+
+                // Roll up product counts from types
+                categoryVm.ProductCount = categoryVm.Children.Sum(t => t.ProductCount);
+
+                result.Add(categoryVm);
             }
 
             return result;

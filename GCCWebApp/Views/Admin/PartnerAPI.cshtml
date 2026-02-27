@@ -33,9 +33,9 @@
                     <button id="copy-docs-link-btn" class="admin-btn admin-btn--secondary" title="Copy API documentation link for clients" aria-label="Copy API documentation link">
                         <i class="fas fa-book" aria-hidden="true"></i> Copy Docs Link
                     </button>
-                    <a href="/api-docs" target="_blank" class="admin-btn admin-btn--secondary" title="View client API documentation" aria-label="View API documentation">
-                        <i class="fas fa-external-link-alt" aria-hidden="true"></i> View Docs
-                    </a>
+                    <button id="swagger-btn" class="admin-btn admin-btn--secondary" title="View API documentation in Swagger" aria-label="View API documentation in Swagger">
+                        <i class="fas fa-book" aria-hidden="true"></i> API Docs
+                    </button>
                     <button id="generate-key-btn" class="admin-btn admin-btn--primary" title="Generate new API key for a partner" aria-label="Generate new API key for a partner">
                         <i class="fas fa-key" aria-hidden="true"></i> Generate API Key
                     </button>
@@ -420,11 +420,19 @@
                 initializePartnerAPI();
             }
 
+            // Swagger button - open API docs (matches GCC API page)
+            const swaggerBtn = document.getElementById('swagger-btn');
+            if (swaggerBtn) {
+                swaggerBtn.addEventListener('click', function() {
+                    window.open('/swagger', '_blank');
+                });
+            }
+
             // Copy API Docs Link functionality
             const copyDocsBtn = document.getElementById('copy-docs-link-btn');
             if (copyDocsBtn) {
                 copyDocsBtn.addEventListener('click', function() {
-                    const docsUrl = window.location.origin + '/api-docs';
+                    const docsUrl = window.location.origin + '/swagger';
                     navigator.clipboard.writeText(docsUrl).then(function() {
                         // Show success notification
                         AdminCore.showNotification('API documentation link copied to clipboard!', 'success');

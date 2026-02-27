@@ -511,7 +511,16 @@ namespace GCCWebApp.Migrations
                     b.Property<int?>("PathwayId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("ProductCategoryId")
+                        .HasColumnType("int");
+
                     b.Property<int>("ProductId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProductSubcategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ProductTypeId")
                         .HasColumnType("int");
 
                     b.Property<string>("Status")
@@ -551,7 +560,13 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("PathwayId");
 
+                    b.HasIndex("ProductCategoryId");
+
                     b.HasIndex("ProductId");
+
+                    b.HasIndex("ProductSubcategoryId");
+
+                    b.HasIndex("ProductTypeId");
 
                     b.HasIndex("Status");
 
@@ -2186,11 +2201,26 @@ namespace GCCWebApp.Migrations
                         .HasForeignKey("PathwayId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("GCCWebApp.Models.ProductCategory", "ProductCategory")
+                        .WithMany()
+                        .HasForeignKey("ProductCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("GCCWebApp.Models.Product", "Product")
                         .WithMany("Certificates")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.HasOne("GCCWebApp.Models.ProductType", "ProductSubcategory")
+                        .WithMany()
+                        .HasForeignKey("ProductSubcategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("GCCWebApp.Models.ProductType", "ProductType")
+                        .WithMany()
+                        .HasForeignKey("ProductTypeId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("GCCWebApp.Models.User", "UpdatedByUser")
                         .WithMany("UpdatedCertificates")
@@ -2208,6 +2238,12 @@ namespace GCCWebApp.Migrations
                     b.Navigation("Pathway");
 
                     b.Navigation("Product");
+
+                    b.Navigation("ProductCategory");
+
+                    b.Navigation("ProductSubcategory");
+
+                    b.Navigation("ProductType");
 
                     b.Navigation("UpdatedByUser");
                 });

@@ -130,19 +130,31 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="ProductTypeId">Product Type <span class="text-muted" style="font-size: 12px;">(Optional - filters products)</span></label>
-                        <select id="ProductTypeId" name="ProductTypeId" class="form-control">
-                            <option value="">All Product Types</option>
+                        <label for="ProductCategoryId">Product Category <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <select id="ProductCategoryId" name="ProductCategoryId" class="form-control">
+                            <option value="">All Categories</option>
+                            @if (ViewBag.ProductCategories != null)
+                            {
+                                foreach (var cat in ViewBag.ProductCategories)
+                                {
+                                    <option value="@cat.Id">@cat.Name</option>
+                                }
+                            }
                         </select>
-                        <small class="form-text text-muted">Select to filter products by type</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="ProductTypeId">Product Type <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <select id="ProductTypeId" name="ProductTypeId" class="form-control">
+                            <option value="">Select category first...</option>
+                        </select>
                     </div>
 
                     <div class="form-group" id="product-subcategory-group">
                         <label for="ProductSubcategoryId">Product Subcategory <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
                         <select id="ProductSubcategoryId" name="ProductSubcategoryId" class="form-control">
-                            <option value="">Select subcategory...</option>
+                            <option value="">Select type first...</option>
                         </select>
-                        <small class="form-text text-muted">Select to further filter products</small>
                     </div>
 
                     <div class="form-group">
@@ -405,42 +417,43 @@
         var allCertificationTypes = @Html.Raw(Json.Serialize(ViewBag.AllCertificationTypes ?? new List<object>()));
 
         $(document).ready(function() {
-            // ===== Product Type/Subcategory Cascading Dropdowns =====
+            // ===== Product Category/Type/Subcategory 3-Level Cascading Dropdowns =====
 
-            // Load product types on page load
-            async function loadProductTypes() {
-                try {
-                    const response = await fetch('/Certificate/GetProductTypes');
-                    const result = await response.json();
-                    if (result.success && result.data) {
-                        const productTypeSelect = $('#ProductTypeId');
-                        productTypeSelect.html('<option value="">All Product Types</option>');
+            // When product category changes, load types filtered by category
+            $('#ProductCategoryId').change(async function() {
+                const categoryId = $(this).val();
+                const typeSelect = $('#ProductTypeId');
+                const subcategorySelect = $('#ProductSubcategoryId');
 
-                        // Filter to only show parent types (level 0 or no parent)
-                        const parentTypes = result.data.filter(pt => !pt.parentId || pt.level === 0);
-                        parentTypes.forEach(pt => {
-                            productTypeSelect.append(`<option value="${pt.id}">${pt.name}</option>`);
-                        });
+                // Clear dependent dropdowns
+                typeSelect.html('<option value="">Select type...</option>');
+                subcategorySelect.html('<option value="">Select type first...</option>');
+
+                if (categoryId) {
+                    try {
+                        const response = await fetch(`/Certificate/GetProductTypes?categoryId=${categoryId}`);
+                        const result = await response.json();
+                        if (result.success && result.data) {
+                            typeSelect.html('<option value="">All Types</option>');
+                            result.data.forEach(pt => {
+                                typeSelect.append(`<option value="${pt.id}">${pt.name}</option>`);
+                            });
+                        }
+                    } catch (error) {
+                        console.error('Error loading product types:', error);
                     }
-                } catch (error) {
-                    console.error('Error loading product types:', error);
                 }
-            }
+            });
 
-            // Load product types on page load
-            loadProductTypes();
-
-            // When product type changes, load subcategories and filter products
+            // When product type changes, load subcategories (children in ProductTypes table)
             $('#ProductTypeId').change(async function() {
                 const typeId = $(this).val();
                 const subcategorySelect = $('#ProductSubcategoryId');
-                const productSelect = $('#ProductId');
 
                 // Clear subcategory options
                 subcategorySelect.html('<option value="">Select subcategory...</option>');
 
                 if (typeId) {
-                    // Load subcategories for the selected type
                     try {
                         const response = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${typeId}`);
                         const result = await response.json();
@@ -448,61 +461,14 @@
                             result.data.forEach(sub => {
                                 subcategorySelect.append(`<option value="${sub.id}">${sub.name}</option>`);
                             });
-                            // Subcategory options loaded
                         } else {
-                            // No subcategories for this type - keep field visible
+                            subcategorySelect.html('<option value="">No subcategories available</option>');
                         }
                     } catch (error) {
                         console.error('Error loading product subcategories:', error);
                     }
-
-                    // Filter products by type
-                    await filterProducts(typeId, null);
-                } else {
-                    // No type selected - keep subcategory visible but empty
-                    // Show all products
-                    await filterProducts(null, null);
                 }
             });
-
-            // When product subcategory changes, filter products
-            $('#ProductSubcategoryId').change(async function() {
-                const typeId = $('#ProductTypeId').val();
-                const subcategoryId = $(this).val();
-                await filterProducts(typeId, subcategoryId);
-            });
-
-            // Filter products by type and/or subcategory
-            async function filterProducts(typeId, subcategoryId) {
-                const productSelect = $('#ProductId');
-                const currentValue = productSelect.val();
-
-                try {
-                    let url = '/Certificate/GetProductsByType?';
-                    if (typeId) url += `productTypeId=${typeId}&`;
-                    if (subcategoryId) url += `subcategoryId=${subcategoryId}`;
-
-                    const response = await fetch(url);
-                    const result = await response.json();
-
-                    if (result.success && result.data) {
-                        productSelect.html('<option value="">Select a product...</option>');
-                        result.data.forEach(p => {
-                            productSelect.append(`<option value="${p.id}">${p.name}</option>`);
-                        });
-
-                        // Restore selection if still valid
-                        if (currentValue && productSelect.find(`option[value="${currentValue}"]`).length) {
-                            productSelect.val(currentValue);
-                        }
-
-                        // Trigger change event to update custom dropdown UI (from certificate-inline-create.js)
-                        productSelect.trigger('change');
-                    }
-                } catch (error) {
-                    console.error('Error filtering products:', error);
-                }
-            }
 
             // ===== Certification Type Subcategories (Multi-Select with Checkboxes) =====
 

@@ -344,7 +344,7 @@ builder.Services.AddAuthorization(options =>
 // ===== CSRF PROTECTION =====
 builder.Services.AddAntiforgery(options =>
 {
-    options.HeaderName = "X-CSRF-TOKEN";
+    options.HeaderName = "RequestVerificationToken";
     options.Cookie.Name = "__RequestVerificationToken";
     options.Cookie.HttpOnly = true;
     // Use SameAsRequest for container deployments behind reverse proxy

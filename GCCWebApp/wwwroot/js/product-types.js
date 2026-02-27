@@ -174,7 +174,10 @@ class ProductTypeManager {
         // Traverse nested hierarchy to count items
         const countItems = (items, level) => {
             items.forEach(item => {
-                totalProducts += item.productCount || 0;
+                // Only count products at leaf nodes to avoid double-counting rolled-up totals
+                if (!item.children || item.children.length === 0) {
+                    totalProducts += item.productCount || 0;
+                }
                 if (level === 0) {
                     categories++;
                 } else if (level === 1) {

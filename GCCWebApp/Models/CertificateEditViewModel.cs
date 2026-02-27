@@ -96,5 +96,14 @@ namespace GCCWebApp.Models
 
         [Display(Name = "Certification Type Subcategory")]
         public int? CertificationTypeSubcategoryId { get; set; }
+
+        [Display(Name = "Product Category")]
+        public int? ProductCategoryId { get; set; }
+
+        [Display(Name = "Product Type")]
+        public int? ProductTypeId { get; set; }
+
+        [Display(Name = "Product Subcategory")]
+        public int? ProductSubcategoryId { get; set; }
     }
 }

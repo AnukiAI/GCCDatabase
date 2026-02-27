@@ -50,6 +50,24 @@ namespace GCCWebApp.Models
         public int ProductId { get; set; }
 
         /// <summary>
+        /// Product category (e.g., "Plastics", "Paper"). Optional.
+        /// Stored on certificate for independent tracking from Product.
+        /// </summary>
+        public int? ProductCategoryId { get; set; }
+
+        /// <summary>
+        /// Product type - Level 1 (e.g., "HDPE", "LDPE"). Optional.
+        /// References ProductTypes where ParentId IS NULL.
+        /// </summary>
+        public int? ProductTypeId { get; set; }
+
+        /// <summary>
+        /// Product subcategory - Level 2 child of ProductType. Optional.
+        /// References ProductTypes where ParentId IS NOT NULL.
+        /// </summary>
+        public int? ProductSubcategoryId { get; set; }
+
+        /// <summary>
         /// Parent certification type (e.g., "Certified Energy Savings"). Required.
         /// </summary>
         public int CertificationTypeId { get; set; }
@@ -89,6 +107,10 @@ namespace GCCWebApp.Models
         /// All must belong to the selected CertificationType's children.
         /// </summary>
         public ICollection<CertificationType> CertificationTypeSubcategories { get; set; } = new List<CertificationType>();
+
+        public ProductCategory? ProductCategory { get; set; }
+        public ProductType? ProductType { get; set; }
+        public ProductType? ProductSubcategory { get; set; }
 
         public Pathway? Pathway { get; set; }
         public User? CreatedByUser { get; set; }

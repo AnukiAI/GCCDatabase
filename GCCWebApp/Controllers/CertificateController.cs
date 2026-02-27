@@ -81,7 +81,7 @@ namespace GCCWebApp.Controllers
                 };
 
                 // Get companies and products for filter dropdowns
-                ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
+                ViewBag.Companies = (await _unitOfWork.Companies.GetAllAsync()).Where(c => c.IsActive && !c.IsDeleted).OrderBy(c => c.Name).ToList();
                 ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
 
                 return View(model);
@@ -346,9 +346,13 @@ namespace GCCWebApp.Controllers
                 };
 
                 // Load dropdown data
-                ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
+                ViewBag.Companies = (await _unitOfWork.Companies.GetAllAsync()).Where(c => c.IsActive && !c.IsDeleted).OrderBy(c => c.Name).ToList();
                 var allProducts = await _unitOfWork.Products.GetAllAsync();
                 ViewBag.Products = allProducts.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.Name).ToList();
+
+                // Load product categories for dropdown
+                ViewBag.ProductCategories = await _context.ProductCategories
+                    .Where(pc => pc.IsActive).OrderBy(pc => pc.SortOrder).ThenBy(pc => pc.Name).ToListAsync();
 
                 // Load certification types - separate parent types and all types for cascading dropdown
                 var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
@@ -399,7 +403,7 @@ namespace GCCWebApp.Controllers
                 };
 
                 // Load dropdown data
-                ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
+                ViewBag.Companies = (await _unitOfWork.Companies.GetAllAsync()).Where(c => c.IsActive && !c.IsDeleted).OrderBy(c => c.Name).ToList();
                 ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
                 ViewBag.CertificationTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
 
@@ -463,6 +467,9 @@ namespace GCCWebApp.Controllers
                         Ean = model.Ean,
                         CompanyId = model.CompanyId,
                         ProductId = model.ProductId,
+                        ProductCategoryId = model.ProductCategoryId,
+                        ProductTypeId = model.ProductTypeId,
+                        ProductSubcategoryId = model.ProductSubcategoryId,
                         CertificationTypeId = model.CertificationTypeId,
                         CertificationTypeSubcategoryId = model.CertificationTypeSubcategoryId,
                         CreatedBy = GetCurrentUserId(),
@@ -638,9 +645,13 @@ namespace GCCWebApp.Controllers
         /// </summary>
         private async Task ReloadCreateFormDataAsync()
         {
-            ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
+            ViewBag.Companies = (await _unitOfWork.Companies.GetAllAsync()).Where(c => c.IsActive && !c.IsDeleted).OrderBy(c => c.Name).ToList();
             var allProducts = await _unitOfWork.Products.GetAllAsync();
             ViewBag.Products = allProducts.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.Name).ToList();
+
+            // Load product categories for dropdown
+            ViewBag.ProductCategories = await _context.ProductCategories
+                .Where(pc => pc.IsActive).OrderBy(pc => pc.SortOrder).ThenBy(pc => pc.Name).ToListAsync();
 
             // Load certification types - separate parent types and all types for cascading dropdown
             var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
@@ -706,6 +717,9 @@ namespace GCCWebApp.Controllers
                     CertificateImagePath = certificate.CertificateImagePath,
                     CompanyId = certificate.CompanyId,
                     ProductId = certificate.ProductId,
+                    ProductCategoryId = certificate.ProductCategoryId,
+                    ProductTypeId = certificate.ProductTypeId,
+                    ProductSubcategoryId = certificate.ProductSubcategoryId,
                     CertificationTypeId = certificate.CertificationTypeId,
                     CertificationTypeSubcategoryId = certificate.CertificationTypeSubcategoryId,
                     ProductIds = certificate.ProductIds?.ToList() ?? new List<CertificateProductId>(),
@@ -713,9 +727,13 @@ namespace GCCWebApp.Controllers
                 };
 
                 // Load dropdown data
-                ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
+                ViewBag.Companies = (await _unitOfWork.Companies.GetAllAsync()).Where(c => c.IsActive && !c.IsDeleted).OrderBy(c => c.Name).ToList();
                 var allProducts = await _unitOfWork.Products.GetAllAsync();
                 ViewBag.Products = allProducts.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.Name).ToList();
+
+                // Load product categories for dropdown
+                ViewBag.ProductCategories = await _context.ProductCategories
+                    .Where(pc => pc.IsActive).OrderBy(pc => pc.SortOrder).ThenBy(pc => pc.Name).ToListAsync();
 
                 // Load certification types - separate parent types and all types for cascading dropdown
                 var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
@@ -804,6 +822,9 @@ namespace GCCWebApp.Controllers
                     certificate.Ean = model.Ean;
                     certificate.CompanyId = model.CompanyId;
                     certificate.ProductId = model.ProductId;
+                    certificate.ProductCategoryId = model.ProductCategoryId;
+                    certificate.ProductTypeId = model.ProductTypeId;
+                    certificate.ProductSubcategoryId = model.ProductSubcategoryId;
                     certificate.CertificationTypeId = model.CertificationTypeId;
                     certificate.CertificationTypeSubcategoryId = model.CertificationTypeSubcategoryId;
                     certificate.UpdatedBy = GetCurrentUserId();
@@ -1018,9 +1039,13 @@ namespace GCCWebApp.Controllers
         /// </summary>
         private async Task ReloadEditFormDataAsync(int certificateId)
         {
-            ViewBag.Companies = await _unitOfWork.Companies.GetAllAsync();
+            ViewBag.Companies = (await _unitOfWork.Companies.GetAllAsync()).Where(c => c.IsActive && !c.IsDeleted).OrderBy(c => c.Name).ToList();
             var allProducts = await _unitOfWork.Products.GetAllAsync();
             ViewBag.Products = allProducts.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.Name).ToList();
+
+            // Load product categories for dropdown
+            ViewBag.ProductCategories = await _context.ProductCategories
+                .Where(pc => pc.IsActive).OrderBy(pc => pc.SortOrder).ThenBy(pc => pc.Name).ToListAsync();
 
             // Load certification types - separate parent types and all types for cascading dropdown
             var allCertTypes = await _unitOfWork.CertificationTypes.GetAllAsync();
@@ -2053,22 +2078,54 @@ namespace GCCWebApp.Controllers
         #region Product Type/Subcategory Cascading Dropdowns
 
         /// <summary>
-        /// Gets all product types for cascading dropdown
-        /// GET: /Certificate/GetProductTypes
+        /// Gets all product categories for the Level 1 dropdown
+        /// GET: /Certificate/GetProductCategories
         /// </summary>
         [HttpGet]
         [Authorize(Policy = "AnalystOrAdmin")]
-        public async Task<IActionResult> GetProductTypes()
+        public async Task<IActionResult> GetProductCategories()
         {
             try
             {
-                var allProductTypes = await _unitOfWork.ProductTypes.GetAllAsync();
-                var productTypes = allProductTypes
-                    .Where(pt => pt.IsActive)
+                var allCategories = await _context.ProductCategories
+                    .Where(pc => pc.IsActive)
+                    .OrderBy(pc => pc.SortOrder)
+                    .ThenBy(pc => pc.Name)
+                    .Select(pc => new { id = pc.Id, name = pc.Name })
+                    .ToListAsync();
+
+                return Json(new { success = true, data = allCategories });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting product categories");
+                return Json(new { success = false, message = "Error loading product categories" });
+            }
+        }
+
+        /// <summary>
+        /// Gets product types for cascading dropdown, optionally filtered by category
+        /// GET: /Certificate/GetProductTypes?categoryId={id}
+        /// </summary>
+        [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> GetProductTypes(int? categoryId = null)
+        {
+            try
+            {
+                var query = _context.ProductTypes
+                    .Where(pt => pt.IsActive && pt.ParentId == null); // Only top-level types
+
+                if (categoryId.HasValue)
+                {
+                    query = query.Where(pt => pt.CategoryId == categoryId.Value);
+                }
+
+                var productTypes = await query
                     .OrderBy(pt => pt.SortOrder)
                     .ThenBy(pt => pt.Name)
-                    .Select(pt => new { id = pt.Id, name = pt.Name, parentId = pt.ParentId, level = pt.Level })
-                    .ToList();
+                    .Select(pt => new { id = pt.Id, name = pt.Name, categoryId = pt.CategoryId })
+                    .ToListAsync();
 
                 return Json(new { success = true, data = productTypes });
             }
@@ -2080,7 +2137,7 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// Gets product subcategories for a specific product type
+        /// Gets product subcategories (children of a product type) from ProductTypes table
         /// GET: /Certificate/GetProductSubcategories?productTypeId={id}
         /// </summary>
         [HttpGet]
@@ -2089,13 +2146,13 @@ namespace GCCWebApp.Controllers
         {
             try
             {
-                var allSubcategories = await _unitOfWork.ProductSubcategories.GetAllAsync();
-                var subcategories = allSubcategories
-                    .Where(ps => ps.ProductTypeId == productTypeId && ps.IsActive)
-                    .OrderBy(ps => ps.SortOrder)
-                    .ThenBy(ps => ps.Name)
-                    .Select(ps => new { id = ps.Id, name = ps.Name })
-                    .ToList();
+                // Query ProductTypes children (ParentId = productTypeId) instead of empty ProductSubcategories table
+                var subcategories = await _context.ProductTypes
+                    .Where(pt => pt.ParentId == productTypeId && pt.IsActive)
+                    .OrderBy(pt => pt.SortOrder)
+                    .ThenBy(pt => pt.Name)
+                    .Select(pt => new { id = pt.Id, name = pt.Name })
+                    .ToListAsync();
 
                 return Json(new { success = true, data = subcategories });
             }

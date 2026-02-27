@@ -85,6 +85,7 @@ namespace GCCWebApp.Controllers.Api
                         .ThenInclude(p => p.Category)
                     .Include(c => c.Product.ProductType)
                     .Include(c => c.Product.ProductSubcategory)
+                    .Include(c => c.ProductType)
                     .Include(c => c.CertificationType)
                     .Include(c => c.Tags)
                     .Include(c => c.ProductIds)
@@ -189,7 +190,7 @@ namespace GCCWebApp.Controllers.Api
                         CompanyContact = !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? "",
                         ProductName = c.Product.Name,
                         ProductCategory = c.Product.Category.Name,
-                        ProductType = c.Product.ProductType != null ? c.Product.ProductType.Name : "",
+                        ProductType = c.ProductType != null ? c.ProductType.Name : (c.Product.ProductType != null ? c.Product.ProductType.Name : ""),
                         ProductSubcategory = c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : "",
                         c.Location,
                         c.Country,

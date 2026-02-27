@@ -767,6 +767,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 var certificatesQuery = _context.Certificates
                     .Include(c => c.Product)
                         .ThenInclude(p => p.ProductType)
+                    .Include(c => c.ProductType)
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
                     .Include(c => c.Pathway)
@@ -834,7 +835,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     id = cert.Id,
                     certificateNumber = cert.Number,
                     productName = cert.Product?.Name,
-                    productType = cert.Product?.ProductType?.Name,
+                    productType = cert.ProductType?.Name ?? cert.Product?.ProductType?.Name,
                     company = cert.Company?.Name,
                     companyId = cert.CompanyId,
                     partner = cert.Partner,

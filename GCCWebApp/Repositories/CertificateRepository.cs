@@ -117,6 +117,8 @@ namespace GCCWebApp.Repositories
                 .Include(c => c.Partners)
                 .Include(c => c.CustomFieldValues)
                     .ThenInclude(cfv => cfv.Field)
+                .Include(c => c.ProductIds)
+                .Include(c => c.Pathway)
                 .FirstOrDefaultAsync();
         }
 
@@ -199,6 +201,7 @@ namespace GCCWebApp.Repositories
                     .ThenInclude(cfv => cfv.Field)
                 .Include(c => c.CreatedByUser)
                 .Include(c => c.UpdatedByUser)
+                .Include(c => c.ProductIds)
                 .FirstOrDefaultAsync();
         }
 

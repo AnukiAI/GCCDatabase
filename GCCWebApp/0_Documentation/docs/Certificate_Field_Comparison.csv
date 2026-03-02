@@ -1,0 +1,26 @@
+Field,Create/Edit (Analyst + Admin),Internal View (Analyst/Admin),External View (External Role),Public View (Unauthenticated),Details View (Role-gated),Gap Status
+Certificate Number,YES,YES,YES (formatted YY-####),YES (formatted YY-####),YES,OK
+Company,YES,YES,YES,YES,YES,OK
+Certification Type,YES,YES (banner),YES (banner),YES (banner),YES (banner),OK
+Cert Subcategories,YES,MISSING,MISSING,MISSING,via custom fields,GAP - missing from all views
+Product Name,YES,YES,YES,YES,YES,OK
+Product Category,YES,MISSING,hardcoded string mapping,hardcoded string mapping,MISSING,GAP - missing or hardcoded on all views
+Product Type,YES,YES,YES (hardcoded mapping),YES,YES,PARTIAL - external/public use hardcoded mapping
+Product Subcategory,YES,MISSING,hardcoded string mapping,hardcoded string mapping,MISSING,GAP - missing or hardcoded on all views
+Effective Date,YES,YES,YES,YES,YES,OK
+Expiration Date,YES,YES,YES,YES,YES,OK
+Status,YES,YES,NO (removed - external users only see active certs),MISSING,YES,GAP - missing from Public View
+Partner,YES,YES,YES (if set),MISSING,YES (if set),GAP - missing from Public View
+Certification Results,YES,MISSING,NO (correct - not for external),MISSING,YES (internal only),GAP - missing from Internal View
+Pathway,YES,MISSING,MISSING,MISSING,MISSING,GAP - missing from ALL views
+Location,YES,YES,YES,YES,YES,OK
+Country,YES,YES,YES,YES,YES,OK
+External Tags,YES,YES,YES (external only),hardcoded derived tags (not from DB),YES,GAP - Public View shows fake derived tags instead of actual DB tags
+Internal Tags,YES,YES,NO (correct),NO (correct),YES (internal only),OK
+PDF Preview / Download,YES,YES,YES,YES,YES,OK
+Product IDs (ASIN/UPC/GTIN/EAN),YES (Product ID Manager),legacy fields only (not from manager),MISSING,MISSING,MISSING,GAP - Internal uses old legacy fields; all others missing
+Custom Fields (dynamic),YES,MISSING,MISSING,MISSING,YES,GAP - missing from Internal and External and Public views
+Record Info (Created/Updated/By),N/A,YES,NO (correct),NO (correct),NO,OK
+Company Email,N/A,YES,YES,YES (shows Not provided),YES,OK
+Company URL,N/A,YES,YES,YES (shows Not provided),YES,OK
+Company Contact,N/A,NO,YES,YES (shows Available upon request),NO,OK - only on external/public

@@ -1,0 +1,1085 @@
+/* Certificate Create/Edit Form Styles - Matches company-management.css theme */
+/* Updated: 2025-12-03 - Grid layout fix - Widen container for 3-column layout */
+/* Updated: 2026-01-30 - Standardized to match other admin pages for consistent layout */
+
+/* ===== PAGE CONTAINER - Use standard admin page settings ===== */
+/* Page-header hiding is now handled by admin-mockup-override.css for all admin pages */
+/* Container width matches standard admin pages (calc(100% - 40px)) via admin-mockup-override.css */
+
+/* ===== ADMIN BUTTON STYLES (for header buttons) ===== */
+.admin-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-size: 16px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+    min-height: 40px;
+}
+
+.admin-btn--secondary {
+    background-color: #ffffff;
+    color: #002B76;
+    border-color: #e0e0e0;
+}
+
+.admin-btn--secondary:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+}
+
+.admin-button-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+/* ===== FORM CONTAINER - Extends admin-container styles ===== */
+/* Note: Base admin-container width/margin handled by admin-mockup-override.css */
+.form-container {
+    background-color: #ffffff;
+    padding: 32px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Certificate form needs more internal padding for complex layout */
+.admin-container .admin-content form {
+    padding: 0;
+}
+
+.form-header,
+.admin-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.form-header h2,
+.admin-header h2 {
+    color: #002B76;
+    font-size: 24px;
+    font-weight: 500;
+    margin: 0 0 8px 0;
+}
+
+.form-header .text-muted,
+.admin-page-subtitle {
+    color: #6c757d;
+    font-size: 16px;
+}
+
+.form-content,
+.admin-content {
+    background: #ffffff;
+    width: 100%;
+}
+
+.admin-header-content {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.admin-title-section {
+    flex: 1;
+}
+
+.admin-page-title {
+    font-size: 24px;
+    font-weight: 600;
+    color: #002B76;
+    margin: 0;
+    line-height: 1.2;
+}
+
+.admin-actions-section {
+    flex-shrink: 0;
+}
+
+/* ===== FORM SECTION HEADERS ===== */
+.form-section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #002B76;
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    padding: 12px 0 12px 16px;
+    border-bottom: 3px solid #002B76;
+    background: linear-gradient(90deg, rgba(0, 43, 118, 0.05) 0%, transparent 100%);
+}
+
+.form-section-header i {
+    color: #00AEEF;
+    font-size: 22px;
+}
+
+.section-description {
+    color: #6c757d;
+    font-size: 16px;
+    margin-top: -12px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+/* ===== CARD STYLE SECTIONS ===== */
+.card-style {
+    background: #ffffff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.3s ease;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.card-style:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Card sections inside admin-content should be full width */
+.admin-content > .card-style,
+.admin-content > .product-manager,
+.admin-content > .certificate-section,
+.admin-content > .action-buttons {
+    margin-bottom: 24px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Ensure form itself is full width */
+.admin-content > form {
+    width: 100%;
+    max-width: 100%;
+}
+
+/* All direct children of form should be full width */
+.admin-content > form > .certificate-section,
+.admin-content > form > .product-manager,
+.admin-content > form > .card-style,
+.admin-content > form > .action-buttons {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* ===== FORM GRID LAYOUT ===== */
+.form-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 380px !important;
+    gap: 32px !important;
+    margin-bottom: 32px;
+    width: 100%;
+}
+
+.main-form {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 20px 24px !important;
+    align-items: start; /* Align items to top so rows expand properly with dynamic content */
+    background: #ffffff;
+    padding: 32px;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    min-width: 0;
+    box-sizing: border-box;
+}
+
+/* ===== FORM GROUPS ===== */
+.form-group {
+    display: flex;
+    flex-direction: column;
+    min-width: 0; /* Prevent overflow in grid */
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: #002B76;
+    margin-bottom: 8px;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    padding: 12px 16px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    background: #ffffff;
+    font-family: inherit;
+    min-height: 48px;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+/* Custom dropdown chevron for native select elements */
+.form-group select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 320 512' fill='%236c757d'%3E%3Cpath d='M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 10px 10px;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+.form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.form-group input:hover,
+.form-group select:hover,
+.form-group textarea:hover {
+    border-color: #00AEEF;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: #00AEEF;
+    box-shadow: 0 0 0 4px rgba(0, 174, 239, 0.1);
+    background: rgba(0, 174, 239, 0.02);
+}
+
+.form-group input::placeholder {
+    color: #6c757d;
+    font-style: italic;
+}
+
+.form-group .text-danger {
+    color: #FF5252;
+    font-size: 16px;
+    margin-top: 8px;
+}
+
+/* ===== CERTIFICATE SIDEBAR ===== */
+.certificate-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    min-width: 0;
+    width: 100%;
+}
+
+/* ===== SECTION ICON ===== */
+.section-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #00AEEF, #002B76);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+}
+
+.section-icon i {
+    color: #ffffff;
+    font-size: 20px;
+}
+
+/* ===== UPLOAD SECTION ===== */
+.upload-section {
+    text-align: center;
+}
+
+.upload-section h3 {
+    color: #002B76;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.upload-section p {
+    color: #6c757d;
+    font-size: 14px;
+    margin-bottom: 16px;
+    line-height: 1.5;
+}
+
+.upload-placeholder {
+    width: 100%;
+    min-height: 200px;
+    border: 2px dashed #e0e0e0;
+    border-radius: 8px;
+    margin: 0 auto 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #002B76;
+    font-size: 16px;
+    background: rgba(0, 174, 239, 0.03);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 20px;
+}
+
+.upload-placeholder:hover {
+    border-color: #00AEEF;
+    background: rgba(0, 174, 239, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.upload-placeholder:focus {
+    outline: 2px solid #00AEEF;
+    outline-offset: 2px;
+}
+
+/* ===== TAGS SECTION ===== */
+.tags-section h3 {
+    color: #002B76;
+    font-size: 18px;
+    margin-bottom: 20px;
+    margin-top: 0;
+    font-weight: 600;
+}
+
+.tags-group {
+    margin-bottom: 20px;
+}
+
+.tags-group:last-child {
+    margin-bottom: 0;
+}
+
+.tags-group label {
+    font-weight: 500;
+    color: #002B76;
+    margin-bottom: 8px;
+    font-size: 16px;
+    display: block;
+}
+
+.tags-group select {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1.5px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 16px;
+    background: #ffffff;
+    font-family: inherit;
+    min-height: 48px;
+    transition: all 0.3s ease;
+    /* Custom dropdown chevron */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 320 512' fill='%236c757d'%3E%3Cpath d='M137.4 374.6c12.5 12.5 32.8 12.5 45.3 0l128-128c9.2-9.2 11.9-22.9 6.9-34.9s-16.6-19.8-29.6-19.8L32 192c-12.9 0-24.6 7.8-29.6 19.8s-2.2 25.7 6.9 34.9l128 128z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+    background-size: 10px 10px;
+    padding-right: 40px;
+    cursor: pointer;
+}
+
+.tags-group select:hover {
+    border-color: #00AEEF;
+}
+
+.tags-group select:focus {
+    outline: none;
+    border-color: #00AEEF;
+    box-shadow: 0 0 0 4px rgba(0, 174, 239, 0.1);
+}
+
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+    min-height: 32px;
+}
+
+.tag {
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: default;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    line-height: 1.2;
+}
+
+.tag.external {
+    background: #92C83E;
+    color: #002B76;
+    border: 1px solid #92C83E;
+}
+
+.tag.internal {
+    background: #00AEEF;
+    color: #ffffff;
+    border: 1px solid #00AEEF;
+}
+
+.tag.subcategory {
+    background: #6C5CE7;
+    color: #ffffff;
+    border: 1px solid #6C5CE7;
+}
+
+.subcategories-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+    min-height: 24px;
+}
+
+.tag:hover {
+    opacity: 0.9;
+}
+
+.tag-remove {
+    background: none;
+    border: none;
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    font-size: 18px;
+    line-height: 1;
+    font-weight: bold;
+    margin-left: 4px;
+}
+
+.tag-remove:hover {
+    opacity: 0.7;
+}
+
+/* ===== SECTION HEADERS ===== */
+.section-header {
+    color: #002B76;
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 20px;
+    margin-top: 32px;
+    grid-column: 1 / -1;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.section-header:first-child {
+    margin-top: 0;
+}
+
+/* ===== CERTIFICATE SECTION ===== */
+.certificate-section {
+    margin-top: 32px;
+}
+
+/* ===== PDF UPLOAD ===== */
+.pdf-upload {
+    border: 2px dashed #e0e0e0;
+    border-radius: 8px;
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 20px;
+    background: rgba(255, 193, 7, 0.03);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+}
+
+.pdf-upload:hover {
+    border-color: #FFC107;
+    background: rgba(255, 193, 7, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pdf-upload:focus {
+    outline: 2px solid #FFC107;
+    outline-offset: 2px;
+}
+
+.pdf-upload-text {
+    color: #333333;
+    font-size: 16px;
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+#pdfPreviewContainer .preview-item {
+    margin-top: 12px;
+    padding: 16px;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #f8f9fa;
+}
+
+#pdfPreviewContainer .preview-item .file-icon {
+    color: #FFC107;
+    font-size: 20px;
+}
+
+#pdfPreviewContainer .preview-item .file-info {
+    flex-grow: 1;
+}
+
+#pdfPreviewContainer .preview-item .file-name {
+    font-weight: 500;
+    color: #333333;
+}
+
+#pdfPreviewContainer .preview-item .file-size {
+    font-size: 16px;
+    color: #6c757d;
+}
+
+#pdfPreviewContainer .preview-item .remove-btn {
+    background: none;
+    border: none;
+    color: #FF5252;
+    cursor: pointer;
+    font-size: 20px;
+    padding: 0;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+#pdfPreviewContainer .preview-item .remove-btn:hover {
+    background: rgba(255, 82, 82, 0.1);
+}
+
+/* ===== PRODUCT MANAGER SECTION ===== */
+.product-manager {
+    margin-top: 32px;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* Ensure Product ID Manager fits within the page */
+.product-manager .product-id-manager {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Fix Product ID Manager filter row to prevent overflow */
+.product-manager .product-manager-filters .row {
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.product-manager .product-manager-filters .row > [class*="col-"] {
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.product-manager .product-manager-filters .row > [class*="col-"]:first-child {
+    padding-left: 0;
+}
+
+.product-manager .product-manager-filters .row > [class*="col-"]:last-child {
+    padding-right: 0;
+}
+
+/* Ensure table container doesn't overflow */
+.product-manager .product-ids-table-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Make table responsive */
+.product-manager #productIdsTable {
+    width: 100%;
+    table-layout: auto;
+}
+
+/* ===== BUTTON STYLES - Matches company-management.css ===== */
+.btn {
+    background-color: #ffffff;
+    color: #002B76;
+    border: 1px solid #e0e0e0;
+    padding: 12px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    text-decoration: none;
+}
+
+.btn:hover {
+    background-color: #f8f9fa;
+    transform: translateY(-1px);
+}
+
+.btn-primary {
+    background-color: #92C83E;
+    color: #ffffff;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #7AB32E;
+}
+
+.btn-outline {
+    background-color: #ffffff;
+    color: #002B76;
+    border: 1px solid #e0e0e0;
+}
+
+.btn-outline:hover {
+    background-color: #f8f9fa;
+}
+
+.btn-danger {
+    background-color: #FF5252;
+    color: #ffffff;
+    border: none;
+}
+
+.btn-danger:hover {
+    background-color: #e04545;
+}
+
+/* ===== ACTION BUTTONS ===== */
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 32px;
+    padding: 24px;
+    background: rgba(0, 174, 239, 0.03);
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    flex-wrap: wrap;
+}
+
+/* Page header button styling */
+.page-actions .btn,
+.page-actions .btn-outline {
+    background: #ffffff;
+    color: #002B76;
+    border: 1px solid #e0e0e0;
+}
+
+.page-actions .btn:hover,
+.page-actions .btn-outline:hover {
+    background: #f8f9fa;
+    transform: translateY(-1px);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 1024px) {
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 20px;
+    }
+
+    .form-content {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-form {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .form-content {
+        padding: 16px;
+    }
+
+    .form-header {
+        padding: 16px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .action-buttons .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-content {
+        padding: 12px;
+    }
+
+    .certificate-section,
+    .product-manager {
+        padding-top: 20px;
+        margin-top: 20px;
+    }
+}
+
+/* ===== MODAL SYSTEM ===== */
+/* Note: Uses 'custom-modal-' prefix to avoid collision with Bootstrap's .modal-dialog
+   which sets pointer-events: none and breaks button clicks */
+.custom-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.custom-modal-dialog {
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 32px;
+    max-width: 500px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    animation: slideInUp 0.3s ease;
+    pointer-events: auto;
+}
+
+.modal-title {
+    color: #002B76;
+    font-size: 20px;
+    font-weight: 600;
+    margin: 0 0 16px 0;
+}
+
+.modal-message {
+    color: #333333;
+    font-size: 16px;
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.modal-btn {
+    padding: 10px 24px;
+    border-radius: 6px;
+    border: none;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 100px;
+}
+
+.modal-btn--danger {
+    background: #FF5252;
+    color: #ffffff;
+}
+
+.modal-btn--danger:hover {
+    background: #E04848;
+}
+
+.modal-btn--success {
+    background: #92C83E;
+    color: #ffffff;
+}
+
+.modal-btn--success:hover {
+    background: #7AB32E;
+}
+
+.modal-btn--full {
+    width: 100%;
+    justify-content: center;
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideInUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* ===== TOAST NOTIFICATIONS ===== */
+.toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 16px 24px;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 10000;
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.toast--success {
+    background: #92C83E;
+}
+
+.toast--error {
+    background: #FF5252;
+}
+
+.toast--warning {
+    background: #FFC107;
+    color: #333333;
+}
+
+.toast--info {
+    background: #002B76;
+}
+
+/* ===== FORM VALIDATION STYLES ===== */
+/* Bootstrap-style validation for needs-validation forms */
+
+/* Invalid field styling when form has been validated */
+.was-validated .form-group input:invalid,
+.was-validated .form-group select:invalid,
+.was-validated .form-group textarea:invalid,
+.was-validated input:invalid,
+.was-validated select:invalid,
+.was-validated textarea:invalid,
+.form-group.has-error input,
+.form-group.has-error select,
+.form-group.has-error textarea,
+.input-validation-error {
+    border-color: #FF5252 !important;
+    background-color: rgba(255, 82, 82, 0.05);
+    box-shadow: 0 0 0 3px rgba(255, 82, 82, 0.15);
+}
+
+/* Custom dropdown trigger error state */
+.form-group.has-error .custom-dropdown-trigger {
+    border-color: #FF5252 !important;
+    background-color: rgba(255, 82, 82, 0.05);
+}
+
+/* Error label styling */
+.form-group.has-error > label {
+    color: #FF5252;
+}
+
+/* Valid field styling when form has been validated */
+.was-validated .form-group input:valid,
+.was-validated .form-group select:valid,
+.was-validated .form-group textarea:valid,
+.was-validated input:valid,
+.was-validated select:valid,
+.was-validated textarea:valid {
+    border-color: #92C83E !important;
+}
+
+/* ALWAYS show validation messages when they have content */
+.form-group .text-danger:not(:empty),
+.form-group .field-validation-error:not(:empty),
+.form-group .inline-validation-error {
+    display: block !important;
+    color: #FF5252 !important;
+    font-size: 14px;
+    margin-top: 8px;
+    font-weight: 500;
+}
+
+/* Required field asterisk styling - Red asterisk for required fields */
+.form-group label .text-danger,
+.form-group label span.text-danger {
+    color: #FF5252 !important;
+    font-weight: 600;
+    font-size: inherit;
+    margin-left: 2px;
+}
+
+/* Hide empty validation messages */
+.form-group .text-danger:empty,
+.form-group .field-validation-error:empty,
+.field-validation-valid {
+    display: none !important;
+}
+
+/* Custom validation message styling */
+.validation-message,
+.field-validation-error {
+    color: #FF5252;
+    font-size: 14px;
+    margin-top: 6px;
+    display: block;
+    font-weight: 500;
+}
+
+/* Show browser's native validation tooltip replacement */
+.was-validated .form-group:has(input:invalid)::after,
+.was-validated .form-group:has(select:invalid)::after {
+    content: 'This field is required';
+    color: #FF5252;
+    font-size: 13px;
+    margin-top: 6px;
+    display: block;
+}
+
+/* Hide the ::after pseudo-element when asp-validation-for span has content */
+.was-validated .form-group:has(.text-danger:not(:empty))::after {
+    display: none;
+}
+
+/* Shake animation for invalid fields */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+    20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+.was-validated input:invalid,
+.was-validated select:invalid,
+.was-validated textarea:invalid {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* Invalid label styling */
+.was-validated .form-group:has(input:invalid) label,
+.was-validated .form-group:has(select:invalid) label,
+.was-validated .form-group:has(textarea:invalid) label {
+    color: #FF5252;
+}
+
+/* PDF upload zone validation */
+.was-validated #pdfUploadZone:has(~ input:invalid) {
+    border-color: #FF5252 !important;
+    background-color: rgba(255, 82, 82, 0.05);
+}
+
+/* Validation summary styling */
+.alert-danger:empty,
+div[asp-validation-summary]:empty {
+    display: none;
+}
+
+.alert-danger {
+    background-color: rgba(255, 82, 82, 0.1);
+    border: 1px solid #FF5252;
+    border-radius: 6px;
+    padding: 16px;
+    margin-bottom: 20px;
+    color: #FF5252;
+}
+
+.alert-danger ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.alert-danger li {
+    margin-bottom: 4px;
+}
+
+/* ===== THUMBNAIL PREVIEW LOADING SPINNER ===== */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.thumbnail-loading {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.preview-container {
+    transition: all 0.3s ease;
+}
+
+.preview-container img {
+    animation: fadeIn 0.3s ease;
+}

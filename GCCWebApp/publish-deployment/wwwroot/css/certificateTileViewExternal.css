@@ -1,0 +1,376 @@
+/**
+ * Certificate Tile View External - Additional Styles
+ * Complements the main certificatetileview.css
+ * Complements the tile view functionality for External users
+ */
+
+/* External-specific overrides - hide edit functionality but keep everything else identical */
+.btn.btn-add,
+.action-icon.edit,
+.action-btn.edit {
+    display: none !important;
+}
+
+/* Ensure external users see download and view actions */
+.action-icon.download,
+.action-icon.external,
+.action-icon.view,
+.action-btn.download,
+.action-btn.view {
+    display: flex !important;
+}
+
+/* Autocomplete Dropdown */
+.autocomplete-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    max-height: 300px;
+    overflow-y: auto;
+    z-index: 1000;
+    margin-top: -1px;
+}
+
+.autocomplete-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.2s;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+    background: #f8f9fa;
+}
+
+.autocomplete-item .suggestion-label {
+    flex: 1;
+    font-weight: 500;
+}
+
+.autocomplete-item .suggestion-type {
+    color: #666;
+    font-size: 14px;
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 12px;
+}
+
+/* Search bar container needs relative positioning for autocomplete */
+.search-bar {
+    position: relative;
+    margin-bottom: 25px;
+}
+
+/* Loading States */
+.loading-message,
+.no-results-message,
+.error-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.no-results-message i,
+.error-message i {
+    color: #ddd;
+    margin-bottom: 20px;
+}
+
+.no-results-message h3,
+.error-message h3 {
+    font-size: 24px;
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.no-results-message p,
+.error-message p {
+    font-size: 16px;
+    color: #666;
+}
+
+.error-message button {
+    margin-top: 20px;
+    padding: 10px 24px;
+    background: #007bff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.error-message button:hover {
+    background: #0056b3;
+}
+
+/* List View Styles */
+.certificates-grid.list-view {
+    display: block;
+}
+
+.certificates-grid.list-view .certificate-card {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    padding: 16px;
+}
+
+.certificates-grid.list-view .card-header {
+    background: transparent;
+    color: #333;
+    padding: 0;
+    margin-right: 20px;
+    min-width: 200px;
+}
+
+.certificates-grid.list-view .card-body {
+    flex: 1;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.certificates-grid.list-view .card-actions {
+    padding: 0;
+    background: transparent;
+    border: none;
+}
+
+/* Export Button */
+.export-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.export-btn:hover {
+    background: #f8f9fa;
+    border-color: #007bff;
+}
+
+.export-btn i {
+    font-size: 14px;
+}
+
+/* Export Modal */
+.export-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1050;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.export-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    pointer-events: all;
+    cursor: pointer;
+}
+
+.export-modal-content {
+    position: relative;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    min-width: 400px;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    pointer-events: all;
+    z-index: 1051;
+}
+
+.export-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.export-modal-header h3 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #333;
+}
+
+.modal-close {
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.modal-close:hover {
+    color: #000;
+}
+
+.export-modal-body {
+    padding: 24px;
+}
+
+.export-modal-body p {
+    margin-bottom: 20px;
+    font-size: 16px;
+    color: #666;
+}
+
+.export-format-buttons {
+    display: grid;
+    gap: 12px;
+}
+
+.export-format-btn {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    width: 100%;
+}
+
+.export-format-btn:hover {
+    background: #e9ecef;
+    border-color: #007bff;
+}
+
+.export-format-btn i {
+    font-size: 24px;
+    color: #007bff;
+    min-width: 24px;
+}
+
+.export-format-btn span {
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.export-format-btn small {
+    font-size: 14px;
+    color: #666;
+    display: block;
+}
+
+/* Mobile Responsive Improvements */
+@media (max-width: 768px) {
+    .sidebar.expanded {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: white;
+        z-index: 999;
+        overflow-y: auto;
+        padding: 20px;
+    }
+    
+    .mobile-filter-toggle {
+        display: flex !important;
+    }
+    
+    .autocomplete-dropdown {
+        font-size: 14px;
+    }
+    
+    .autocomplete-item {
+        padding: 10px 12px;
+    }
+}
+
+/* Loading Skeleton Animation */
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+.skeleton-card {
+    background: linear-gradient(
+        90deg,
+        #f0f0f0 25%,
+        #e0e0e0 50%,
+        #f0f0f0 75%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
+    height: 300px;
+    border-radius: 8px;
+}
+
+/* Accessibility Improvements */
+.action-icon:focus,
+.view-toggle-btn:focus,
+.sort-dropdown-button:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+.filter-content input[type="checkbox"]:focus + label {
+    text-decoration: underline;
+}
+
+/* Print Styles */
+@media print {
+    .sidebar,
+    .results-header,
+    .card-actions,
+    .mobile-filter-toggle {
+        display: none !important;
+    }
+    
+    .main-content {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+    }
+    
+    .certificate-card {
+        page-break-inside: avoid;
+        border: 1px solid #000;
+        margin-bottom: 10px;
+    }
+}

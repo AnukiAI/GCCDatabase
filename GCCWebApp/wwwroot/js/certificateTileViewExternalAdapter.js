@@ -1,10 +1,10 @@
 /**
  * Certificate Tile View External Adapter
- * Extends the certificateslist.js functionality for External users
+ * Extends the certificate tile view functionality for External users
  * Provides the same functionality as Internal view but restricts editing
  */
 
-// Wait for certificateslist.js to load
+// Wait for page to load
 document.addEventListener('DOMContentLoaded', () => {
     // Check if CertificateList class is available
     if (typeof CertificateList !== 'undefined') {

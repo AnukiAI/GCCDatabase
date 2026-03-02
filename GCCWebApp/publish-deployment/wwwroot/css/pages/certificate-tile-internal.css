@@ -1,0 +1,195 @@
+/* =============================================================================
+   CERTIFICATE TILE VIEW INTERNAL - PAGE-SPECIFIC STYLES
+
+   Extracted from Views/Certificate/CertificateTileViewInternal.cshtml
+   This file contains grid column definitions specific to the Internal view.
+   All shared styles are in certificatetileview.css
+
+   Last Updated: January 2026
+   ============================================================================= */
+
+/* =============================================================================
+   GRID LAYOUT - INTERNAL VIEW (22 COLUMNS)
+   Includes: Internal Tag + Partner columns
+   CSF Attributes column removed per client request
+   ============================================================================= */
+
+.table-grid {
+    display: grid;
+    grid-template-columns:
+        36px      /* 1. Select checkbox */
+        90px      /* 2. Actions (Edit + Download + View) */
+        145px     /* 3. Certificate # */
+        160px     /* 4. Certification Type */
+        120px     /* 5. Status */
+        95px      /* 6. Effective Date */
+        95px      /* 7. Expiration Date */
+        170px     /* 8. Company */
+        170px     /* 9. Company Contact */
+        170px     /* 10. Product Name */
+        130px     /* 11. Product Category */
+        130px     /* 12. Product Type */
+        140px     /* 13. Product Subcategory */
+        100px     /* 14. Location */
+        110px     /* 15. Country */
+        100px     /* 16. External Tag */
+        100px     /* 17. Internal Tag */
+        100px     /* 18. Partner */
+        85px      /* 19. ASIN */
+        85px      /* 20. UPC */
+        85px      /* 21. GTIN */
+        85px;     /* 22. EAN */
+    min-width: max-content;
+    width: 100%;
+}
+
+/* Table container min-width for Internal (22 columns) */
+.table-grid-container {
+    min-width: 2495px;
+    width: max-content;
+}
+
+/* =============================================================================
+   SELECT & ACTIONS COLUMNS - CENTERED LAYOUT
+   ============================================================================= */
+
+/* Select cell - header & body - CENTERED checkbox */
+.table-grid .grid-header-cell.select-cell,
+.table-grid .grid-cell.select-cell {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px !important;
+    text-align: center !important;
+}
+
+/* Actions column - header & body - CENTERED content */
+.table-grid .grid-header-cell.actions-column,
+.table-grid .grid-cell.actions-column {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 8px 6px !important;
+    overflow: visible !important;
+}
+
+/* Actions header text centering - full width span */
+.table-grid .grid-header-cell.actions-column span {
+    display: block !important;
+    text-align: center !important;
+    width: 100% !important;
+    font-weight: 600 !important;
+}
+
+/* Action buttons container - centered within the cell */
+.table-grid .grid-cell.actions-column .action-buttons {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+}
+
+/* Individual action buttons - consistent sizing */
+.table-grid .grid-cell.actions-column .action-btn {
+    padding: 4px !important;
+    min-width: 26px !important;
+    height: 26px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    background: transparent !important;
+    border-radius: 4px !important;
+    color: #666 !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+}
+
+.table-grid .grid-cell.actions-column .action-btn:hover {
+    background: #e3f2fd !important;
+    color: #007bff !important;
+}
+
+.table-grid .grid-cell.actions-column .action-btn i {
+    font-size: 14px !important;
+}
+
+/* =============================================================================
+   CERTIFICATE NUMBER COLUMN - LEFT ALIGNED
+   ============================================================================= */
+
+.table-grid .grid-header-cell[data-sort-column="certificate"],
+.table-grid .grid-cell[data-column="certificateNumber"] {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding-left: 10px !important;
+}
+
+.table-grid .grid-cell[data-column="certificateNumber"] {
+    font-weight: 400 !important;
+    font-family: 'Consolas', 'Courier New', monospace !important;
+}
+
+/* =============================================================================
+   EXPORT OPTIONS - BUTTON STYLING
+   Grey styling to match Admin/Tags page
+   ============================================================================= */
+
+.export-options .btn.btn-outline {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #ddd !important;
+}
+
+.export-options .btn.btn-outline:hover {
+    background-color: #f8f9fa !important;
+    border-color: #999 !important;
+    color: #333 !important;
+}
+
+.export-options .btn.btn-outline i {
+    color: inherit !important;
+}
+
+/* =============================================================================
+   PRODUCT ID COUNT BADGE - CLICKABLE FOR EXCEL-FRIENDLY COPY
+   ============================================================================= */
+
+.id-count-cell {
+    text-align: center !important;
+    justify-content: center !important;
+}
+
+.id-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    padding: 2px 8px;
+    background: #e8f5e1;
+    color: #447638;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.id-count-badge:hover {
+    background: #c5e0a5;
+    color: #2d5a1e;
+}
+
+/* Sort icon styling for table headers */
+.grid-header-cell[data-sort-column] {
+    cursor: pointer;
+    user-select: none;
+}
+
+.grid-header-cell[data-sort-column]:hover {
+    background-color: #e8f5e1;
+}

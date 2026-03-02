@@ -41,9 +41,28 @@
                             <span class="tag-type External">@productType</span>
                         </div>
                         <div class="certificate-field"><strong>Product Type:</strong> <span>@productType</span></div>
+                        @if (Model.Certificate?.ProductCategory != null)
+                        {
+                            <div class="certificate-field"><strong>Product Category:</strong> <span>@Model.Certificate.ProductCategory.Name</span></div>
+                        }
+                        @if (Model.Certificate?.ProductSubcategory != null)
+                        {
+                            <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@Model.Certificate.ProductSubcategory.Name</span></div>
+                        }
                         @if (!string.IsNullOrEmpty(Model.Certificate?.Partner) && Model.Certificate.Partner != "None")
                         {
                             <div class="certificate-field"><strong>Partner:</strong> <span>@Model.Certificate.Partner</span></div>
+                        }
+                        @if (Model.Certificate?.Pathway != null)
+                        {
+                            <div class="certificate-field"><strong>Pathway:</strong> <span>@Model.Certificate.Pathway.Name</span></div>
+                        }
+                        @if (Model.Certificate?.CertificationTypeSubcategories != null && Model.Certificate.CertificationTypeSubcategories.Any())
+                        {
+                            <div class="certificate-field">
+                                <strong>Subcategories:</strong>
+                                <span>@string.Join(", ", Model.Certificate.CertificationTypeSubcategories.Select(s => s.Name))</span>
+                            </div>
                         }
                         <div class="certificate-location">
                             <i class="fas fa-map-marker-alt"></i>
@@ -59,6 +78,15 @@
                             <strong>Expiration Date:</strong> @(Model.Certificate?.ExpirationDate.ToString("M/d/yyyy") ?? "Unknown")
                         </div>
                     </div>
+
+                    @* Certification Results - Admin/Analyst only *@
+                    @if (!string.IsNullOrWhiteSpace(Model.Certificate?.CertificationResults))
+                    {
+                        <div class="detail-section">
+                            <h3 class="certificate-section-title">Certification Results</h3>
+                            <div class="certificate-field">@Model.Certificate.CertificationResults</div>
+                        </div>
+                    }
 
                     <!-- Contact Info -->
                     <div class="detail-section">
@@ -94,23 +122,14 @@
                     <!-- Product Identifiers (Always show for Internal users) -->
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Product Identifiers</h3>
-                        @if (!string.IsNullOrEmpty(Model.Certificate?.Asin))
+                        @if (Model.Certificate?.ProductIds != null && Model.Certificate.ProductIds.Any())
                         {
-                            <div class="certificate-field"><strong>ASIN:</strong> <span>@Model.Certificate.Asin</span></div>
+                            @foreach (var pid in Model.Certificate.ProductIds.OrderBy(p => p.ProductIdType))
+                            {
+                                <div class="certificate-field"><strong>@pid.ProductIdType:</strong> <span>@pid.ProductIdValue</span></div>
+                            }
                         }
-                        @if (!string.IsNullOrEmpty(Model.Certificate?.Upc))
-                        {
-                            <div class="certificate-field"><strong>UPC:</strong> <span>@Model.Certificate.Upc</span></div>
-                        }
-                        @if (!string.IsNullOrEmpty(Model.Certificate?.Gtin))
-                        {
-                            <div class="certificate-field"><strong>GTIN:</strong> <span>@Model.Certificate.Gtin</span></div>
-                        }
-                        @if (!string.IsNullOrEmpty(Model.Certificate?.Ean))
-                        {
-                            <div class="certificate-field"><strong>EAN:</strong> <span>@Model.Certificate.Ean</span></div>
-                        }
-                        @if (string.IsNullOrEmpty(Model.Certificate?.Asin) && string.IsNullOrEmpty(Model.Certificate?.Upc) && string.IsNullOrEmpty(Model.Certificate?.Gtin) && string.IsNullOrEmpty(Model.Certificate?.Ean))
+                        else
                         {
                             <div class="certificate-field"><em>No product identifiers available</em></div>
                         }
@@ -130,6 +149,24 @@
                             <div class="certificate-field"><strong>Last Edited By:</strong> <span>@Model.Certificate.UpdatedByUser.Email</span></div>
                         }
                     </div>
+
+                    @* Custom Fields *@
+                    @if (Model.CustomFieldValues != null && Model.CustomFieldValues.Any())
+                    {
+                        @foreach (var fieldSection in Model.CustomFieldValues.GroupBy(f => f.Field.Section ?? "Additional Information"))
+                        {
+                            <div class="detail-section">
+                                <h3 class="certificate-section-title">@fieldSection.Key</h3>
+                                @foreach (var fieldValue in fieldSection)
+                                {
+                                    @if (!string.IsNullOrWhiteSpace(fieldValue.Value))
+                                    {
+                                        <div class="certificate-field"><strong>@fieldValue.Field.Name:</strong> <span>@fieldValue.DisplayValue</span></div>
+                                    }
+                                }
+                            </div>
+                        }
+                    }
 
                     <!-- Tags (Both Internal and External for Internal users) -->
                     <div class="certificate-tags">

@@ -114,7 +114,6 @@
     <Content Remove="wwwroot\css\main - Copy.css" />
     <Content Remove="wwwroot\js\auth-ui-mockup.js" />
     <Content Remove="wwwroot\js\certificatesexternal.js" />
-    <Content Remove="wwwroot\js\certificateslist.js" />
   </ItemGroup>
 
   <ItemGroup>
@@ -134,7 +133,6 @@
     <None Include="wwwroot\css\main - Copy.css" />
     <None Include="wwwroot\css\main.css" />
     <None Include="wwwroot\css\partners.css" />
-    <None Include="wwwroot\js\certificateslist.js" />
     <None Include="wwwroot\js\certificatesexternal.js" />
     <None Include="wwwroot\js\certificates.js" />
     <None Include="wwwroot\js\auth-ui-mockup.js" />

@@ -56,35 +56,6 @@
         return certificateNumber; // Return as-is if we can't format it
     }
 
-    // Helper methods
-    string GetProductCategoryDisplay()
-    {
-        var type = (productType ?? "").ToLower();
-        if (type.Contains("door") || type.Contains("exit") || type.Contains("lock"))
-            return "Construction / Building Products";
-        if (type.Contains("cable") || type.Contains("copper"))
-            return "Electronics / Telecommunications";
-        if (type.Contains("insulation") || type.Contains("roof"))
-            return "Construction / Building Products";
-        if (type.Contains("paper"))
-            return "Office Supplies";
-        if (type.Contains("plastic") || type.Contains("film"))
-            return "Materials / Components";
-        return "Construction / Building Products";
-    }
-
-    string GetProductSubcategory()
-    {
-        var type = (productType ?? "").ToLower();
-        if (type.Contains("exit")) return "Door Hardware";
-        if (type.Contains("lock")) return "Door Hardware";
-        if (type.Contains("cable")) return "Cables & Wiring";
-        if (type.Contains("insulation")) return "Insulation Materials";
-        if (type.Contains("roof")) return "Roofing Materials";
-        if (type.Contains("paper")) return "Paper Products";
-        if (type.Contains("plastic") || type.Contains("film")) return "Plastic Materials";
-        return "General Hardware";
-    }
 }
 
 <!-- Certificate Details -->
@@ -110,15 +81,19 @@
                     <!-- Certification Details -->
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Certification Details</h3>
-                        <div class="certificate-field">
-                            <strong>Category:</strong>
-                            <span class="tag-type External">@GetProductCategoryDisplay()</span>
-                        </div>
-                        <div class="certificate-field"><strong>Product Type:</strong> <span>@productType</span></div>
-                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@GetProductSubcategory()</span></div>
+                        <div class="certificate-field"><strong>Product Category:</strong> <span>@(Model.Certificate?.ProductCategory?.Name ?? Model.Certificate?.Product?.Category?.Name ?? "—")</span></div>
+                        <div class="certificate-field"><strong>Product Type:</strong> <span>@(Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "—")</span></div>
+                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@(Model.Certificate?.ProductSubcategory?.Name ?? Model.Certificate?.Product?.ProductSubcategory?.Name ?? "—")</span></div>
                         @if (!string.IsNullOrEmpty(partner))
                         {
                             <div class="certificate-field"><strong>Partner:</strong> <span>@partner</span></div>
+                        }
+                        @if (Model.Certificate?.CertificationTypeSubcategories != null && Model.Certificate.CertificationTypeSubcategories.Any())
+                        {
+                            <div class="certificate-field">
+                                <strong>Subcategories:</strong>
+                                <span>@string.Join(", ", Model.Certificate.CertificationTypeSubcategories.Select(s => s.Name))</span>
+                            </div>
                         }
                         <div class="certificate-location">
                             <i class="fas fa-map-marker-alt"></i>
@@ -227,6 +202,17 @@
                             </div>
                         </div>
                     }
+                </div>
+            </div>
+
+            <!-- Verification URL -->
+            @{
+                var verifyUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/Certificate/Verify/{GetFormattedCertificateNumber()}";
+            }
+            <div class="detail-section" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+                <div class="certificate-field">
+                    <strong>Verification URL:</strong>
+                    <a href="@verifyUrl" target="_blank" rel="noopener">@verifyUrl</a>
                 </div>
             </div>
 

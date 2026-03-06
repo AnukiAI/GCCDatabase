@@ -85,7 +85,9 @@ namespace GCCWebApp.Controllers.Api
                         .ThenInclude(p => p.Category)
                     .Include(c => c.Product.ProductType)
                     .Include(c => c.Product.ProductSubcategory)
+                    .Include(c => c.ProductCategory)
                     .Include(c => c.ProductType)
+                    .Include(c => c.ProductSubcategory)
                     .Include(c => c.CertificationType)
                     .Include(c => c.Tags)
                     .Include(c => c.ProductIds)
@@ -121,11 +123,21 @@ namespace GCCWebApp.Controllers.Api
                     query = query.Where(c => types.Contains(c.CertificationType.Name));
                 }
 
-                // Apply product category filter
+                // Apply product category filter - matches all 3 hierarchy levels
+                // Checks both Product's hierarchy and Certificate's direct fields
                 if (!string.IsNullOrWhiteSpace(productCategory))
                 {
                     var categories = productCategory.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                    query = query.Where(c => categories.Contains(c.Product.Category.Name));
+                    query = query.Where(c =>
+                        // Product's hierarchy (Category → ProductType → ProductSubcategory)
+                        categories.Contains(c.Product.Category.Name) ||
+                        (c.Product.ProductType != null && categories.Contains(c.Product.ProductType.Name)) ||
+                        (c.Product.ProductSubcategory != null && categories.Contains(c.Product.ProductSubcategory.Name)) ||
+                        // Certificate's direct fields (if set independently)
+                        (c.ProductCategory != null && categories.Contains(c.ProductCategory.Name)) ||
+                        (c.ProductType != null && categories.Contains(c.ProductType.Name)) ||
+                        (c.ProductSubcategory != null && categories.Contains(c.ProductSubcategory.Name))
+                    );
                 }
 
                 // Apply company filter
@@ -189,9 +201,9 @@ namespace GCCWebApp.Controllers.Api
                         CompanyName = c.Company.Name,
                         CompanyContact = !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? "",
                         ProductName = c.Product.Name,
-                        ProductCategory = c.Product.Category.Name,
+                        ProductCategory = c.ProductCategory != null ? c.ProductCategory.Name : c.Product.Category.Name,
                         ProductType = c.ProductType != null ? c.ProductType.Name : (c.Product.ProductType != null ? c.Product.ProductType.Name : ""),
-                        ProductSubcategory = c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : "",
+                        ProductSubcategory = c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : ""),
                         c.Location,
                         c.Country,
                         ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name)),
@@ -374,35 +386,45 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
-                // Get hierarchical product categories
-                var productCategoriesHierarchy = await _context.Set<ProductCategory>()
+                // Build hierarchy matching Admin page: Category → Type (ParentId=null) → Subcategory (ParentId!=null)
+                var categories = await _context.ProductCategories
                     .Where(pc => pc.IsActive)
-                    .Include(pc => pc.ProductTypes.Where(pt => pt.IsActive))
-                        .ThenInclude(pt => pt.ProductSubcategories.Where(ps => ps.IsActive))
                     .OrderBy(pc => pc.SortOrder).ThenBy(pc => pc.Name)
-                    .Select(pc => new
-                    {
-                        id = pc.Id,
-                        name = pc.Name,
-                        level = 1,
-                        types = pc.ProductTypes
-                            .OrderBy(pt => pt.SortOrder).ThenBy(pt => pt.Name)
-                            .Select(pt => new
-                            {
-                                id = pt.Id,
-                                name = pt.Name,
-                                level = 2,
-                                subcategories = pt.ProductSubcategories
-                                    .OrderBy(ps => ps.SortOrder).ThenBy(ps => ps.Name)
-                                    .Select(ps => new
-                                    {
-                                        id = ps.Id,
-                                        name = ps.Name,
-                                        level = 3
-                                    }).ToList()
-                            }).ToList()
-                    })
                     .ToListAsync();
+
+                var allTypes = await _context.ProductTypes
+                    .Where(pt => pt.IsActive)
+                    .OrderBy(pt => pt.SortOrder).ThenBy(pt => pt.Name)
+                    .ToListAsync();
+
+                var typesByCategory = allTypes.Where(pt => pt.ParentId == null)
+                    .GroupBy(pt => pt.CategoryId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                var childrenByParent = allTypes.Where(pt => pt.ParentId != null)
+                    .GroupBy(pt => pt.ParentId!.Value)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                var productCategoriesHierarchy = categories.Select(pc => new
+                {
+                    id = pc.Id,
+                    name = pc.Name,
+                    level = 1,
+                    types = (typesByCategory.TryGetValue(pc.Id, out var types) ? types : new List<ProductType>())
+                        .Select(pt => new
+                        {
+                            id = pt.Id,
+                            name = pt.Name,
+                            level = 2,
+                            subcategories = (childrenByParent.TryGetValue(pt.Id, out var children) ? children : new List<ProductType>())
+                                .Select(sub => new
+                                {
+                                    id = sub.Id,
+                                    name = sub.Name,
+                                    level = 3
+                                }).ToList()
+                        }).ToList()
+                }).ToList();
 
                 // Get unique certification type IDs from certificates
                 var certTypeIds = await _context.Certificates

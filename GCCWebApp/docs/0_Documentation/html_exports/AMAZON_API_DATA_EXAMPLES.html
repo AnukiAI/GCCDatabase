@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - Amazon API Data Exchange Examples</title>
+    <style>
+@page { size: letter; margin: 0.6in 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 20px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 13pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 28px; margin-bottom: 10px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 16px; margin-bottom: 6px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 12px; margin-bottom: 5px; page-break-after: avoid; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 14px 0; font-size: 8.5pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 7px; font-size: 8.5pt; white-space: nowrap; }
+td { padding: 5px 7px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+ul, ol { margin: 4px 0 10px 0; padding-left: 18px; }
+li { margin-bottom: 3px; font-size: 9.5pt; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; overflow-x: auto; font-size: 8pt; line-height: 1.4; margin: 6px 0 14px 0; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 10px 0; font-size: 9pt; page-break-inside: avoid; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.callout-warning { border-color: #e65100; background: #fff8f0; }
+.callout-success { border-color: #2e7d32; background: #f0f8e8; }
+.tag { display: inline-block; padding: 1px 8px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+.tag-active { background: #e8f5e1; color: #2e7d32; }
+.tag-amazon { background: #fff3e0; color: #e65100; }
+.tag-gs1 { background: #e3f2fd; color: #1565c0; }
+.architecture-diagram { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px; font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 7.5pt; line-height: 1.5; overflow-x: auto; white-space: pre; margin: 10px 0; page-break-inside: avoid; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 16px; margin: 12px 0 20px 0; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 6px; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+.toc .indent { padding-left: 16px; }
+.confidential { background: #fff3e0; border: 2px solid #e65100; padding: 8px 14px; border-radius: 4px; font-size: 9pt; margin: 10px 0; text-align: center; font-weight: 600; color: #e65100; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+.example-label { display: inline-block; background: #002B76; color: #fff; padding: 2px 10px; border-radius: 3px; font-size: 8pt; font-weight: 600; letter-spacing: 0.3px; margin-bottom: 6px; }
+.field-highlight { background: #fffde7; border: 1px solid #f9a825; padding: 1px 4px; border-radius: 2px; font-weight: 600; }
+.flow-step { display: flex; align-items: flex-start; margin: 6px 0; font-size: 9.5pt; }
+.flow-step-num { background: #002B76; color: #fff; border-radius: 50%; width: 22px; height: 22px; min-width: 22px; display: flex; align-items: center; justify-content: center; font-size: 8pt; font-weight: 700; margin-right: 10px; margin-top: 1px; }
+.flow-step-content { flex: 1; }
+.comparison-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+.comparison-box { border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px; page-break-inside: avoid; }
+.comparison-box h4 { margin-top: 0; }
+.json-key { color: #881391; }
+.json-string { color: #0451a5; }
+.json-comment { color: #008000; font-style: italic; }
+@media print { body { padding: 0; } .toc { break-inside: avoid; } h2 { break-after: avoid; } table { font-size: 8pt; } pre { font-size: 7.5pt; } }
+    </style>
+</head>
+<body>
+
+<div class="doc-header">
+    <h1>Amazon API Data Exchange Examples</h1>
+    <p class="subtitle">GCC Database Solution &mdash; Client Deliverable</p>
+    <div class="doc-meta">
+        <div><strong>Version:</strong> 1.0</div>
+        <div><strong>Date:</strong> March 5, 2026</div>
+        <div><strong>Project:</strong> GCC Web Application</div>
+        <div><strong>Classification:</strong> Client Documentation</div>
+        <div><strong>Prepared by:</strong> PointSolve Technology Inc.</div>
+        <div><strong>Audience:</strong> GCC Stakeholders</div>
+    </div>
+</div>
+
+<div class="confidential">CONFIDENTIAL &mdash; For authorized GCC stakeholders only</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+    <div class="toc-title">Table of Contents</div>
+    <a href="#overview">1. Overview &mdash; How the Amazon Integration Works</a>
+    <a href="#process-flow">2. End-to-End Process Flow</a>
+    <a href="#data-fields">3. Data Fields Sent to Amazon</a>
+    <a href="#example1">4. Example 1 &mdash; Single ASIN Certificate</a>
+    <a href="#example2">5. Example 2 &mdash; Multiple ASINs (Product Variants)</a>
+    <a href="#example3">6. Example 3 &mdash; Amazon Searches for a Specific ASIN</a>
+    <a href="#example4">7. Example 4 &mdash; Multiple Certificates (Paginated Response)</a>
+    <a href="#cert-results">8. Certification Results &mdash; What Gets Sent &amp; Why</a>
+    <a href="#api-formats">9. API Response Formats (Standard vs. GS1)</a>
+    <a href="#security">10. Security &amp; Access Control</a>
+    <a href="#endpoints">11. Available API Endpoints</a>
+    <a href="#appendix">Appendix: Field Mapping Reference</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 1: OVERVIEW -->
+<!-- ============================================================ -->
+<h2 id="overview">1. Overview &mdash; How the Amazon Integration Works</h2>
+
+<p>The GCC&ndash;Amazon integration uses a <strong>pull model</strong>: Amazon calls the GCC API to retrieve certification data. GCC does not push data to Amazon. This approach gives GCC full control over what data is available and when.</p>
+
+<div class="callout callout-info">
+    <strong>Key Concept:</strong> Amazon uses a dedicated API key that automatically filters results to only return certificates tagged with <code>Partner = "Amazon"</code>. No other partner data is ever exposed.
+</div>
+
+<h3>Integration Architecture</h3>
+<div class="architecture-diagram">
+&#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;         &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;
+&#9474;         GCC WEB APPLICATION          &#9474;         &#9474;     AMAZON SYSTEMS          &#9474;
+&#9474;                                       &#9474;         &#9474;                              &#9474;
+&#9474;  Analyst creates certificate          &#9474;         &#9474;  Amazon calls GCC API       &#9474;
+&#9474;  &#9484;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9488;  &#9474;         &#9474;  with dedicated API key     &#9474;
+&#9474;  &#9474; Certificate Data           &#9474;  &#9474;  REST   &#9474;                              &#9474;
+&#9474;  &#9474; + ASINs                    &#9474;&#9472;&#9472;&#9474;&#9472;&#9472;&#9472;&#9472;&#9472;&#9654;&#9474;  Receives JSON response     &#9474;
+&#9474;  &#9474; + Certification Results    &#9474;  &#9474;  API    &#9474;  with cert data + ASINs     &#9474;
+&#9474;  &#9474; + Pathway                  &#9474;  &#9474;         &#9474;                              &#9474;
+&#9474;  &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;  &#9474;         &#9474;  Maps ASINs to listings     &#9474;
+&#9474;                                       &#9474;         &#9474;  Awards CPF badge            &#9474;
+&#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;         &#9492;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9472;&#9496;</div>
+
+<h3>Two API Formats Available</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Format</th>
+            <th>Endpoint</th>
+            <th>Best For</th>
+            <th>Recommended</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Standard JSON</strong></td>
+            <td><code>/api/v1/certificates</code></td>
+            <td>General integration, simple tooling</td>
+            <td></td>
+        </tr>
+        <tr>
+            <td><strong>GS1 JSON-LD</strong></td>
+            <td><code>/api/v1/certificates/gs1</code></td>
+            <td>Amazon Climate Pledge Friendly (CPF)</td>
+            <td><span class="tag tag-active">RECOMMENDED</span></td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- SECTION 2: PROCESS FLOW -->
+<!-- ============================================================ -->
+<h2 id="process-flow">2. End-to-End Process Flow</h2>
+
+<div class="flow-step">
+    <div class="flow-step-num">1</div>
+    <div class="flow-step-content">
+        <strong>GCC Analyst Creates Certificate</strong><br>
+        Enters certificate details, selects <code>Partner = "Amazon"</code>, adds ASINs, enters Certification Results, selects Pathway.
+    </div>
+</div>
+<div class="flow-step">
+    <div class="flow-step-num">2</div>
+    <div class="flow-step-content">
+        <strong>Analyst Adds Product Identifiers (ASINs)</strong><br>
+        One or more ASINs are linked to the certificate. Each ASIN represents a product variant (e.g., 6-pack, 12-pack, 24-pack).
+    </div>
+</div>
+<div class="flow-step">
+    <div class="flow-step-num">3</div>
+    <div class="flow-step-content">
+        <strong>Certificate Moves to &ldquo;Active&rdquo; Status</strong><br>
+        Certificate progresses through GCC&rsquo;s 14-state workflow until published. Only Active certificates are visible via API.
+    </div>
+</div>
+<div class="flow-step">
+    <div class="flow-step-num">4</div>
+    <div class="flow-step-content">
+        <strong>Amazon Calls the GCC API</strong><br>
+        Amazon sends a <code>GET</code> request with their dedicated API key. GCC automatically filters to Amazon-only certificates and returns JSON.
+    </div>
+</div>
+<div class="flow-step">
+    <div class="flow-step-num">5</div>
+    <div class="flow-step-content">
+        <strong>Amazon Processes the Response</strong><br>
+        Amazon maps ASINs to product listings, checks Certification Results against CPF thresholds, and awards the Climate Pledge Friendly badge if eligible.
+    </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 3: DATA FIELDS -->
+<!-- ============================================================ -->
+<h2 id="data-fields">3. Data Fields Sent to Amazon</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Field</th>
+            <th>Description</th>
+            <th>Example Value</th>
+            <th>Required</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>certificateNumber</strong></td>
+            <td>Unique GCC certificate identifier</td>
+            <td><code>24-0366</code></td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td><strong>status</strong></td>
+            <td>Certificate status</td>
+            <td><code>Active</code></td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td><strong>issueDate</strong></td>
+            <td>Date certificate was issued</td>
+            <td><code>2024-01-15</code></td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td><strong>expirationDate</strong></td>
+            <td>Date certificate expires</td>
+            <td><code>2025-01-15</code></td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td><strong>company</strong></td>
+            <td>Certified company / brand name</td>
+            <td><code>EcoProduct Co</code></td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td><strong>productName</strong></td>
+            <td>Certified product name</td>
+            <td><code>Recycled Paper Towels</code></td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td><strong>certificationType</strong></td>
+            <td>Certification standard used</td>
+            <td><code>UL 2809</code></td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td><strong>certificationTypeSubcategory</strong></td>
+            <td>Specific level or subcategory</td>
+            <td><code>Level 2</code></td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td><strong>amazonCode</strong></td>
+            <td>Amazon&rsquo;s standardized certification identifier</td>
+            <td><code>greencircle_energy_savings</code></td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td><strong>certificationResults</strong></td>
+            <td>Test score, percentage, or threshold achieved</td>
+            <td><code>95.5% recycled content verified</code></td>
+            <td>No*</td>
+        </tr>
+        <tr>
+            <td><strong>pathway</strong></td>
+            <td>Certification pathway context</td>
+            <td><code>Energy usage reduction</code></td>
+            <td>No*</td>
+        </tr>
+        <tr>
+            <td><strong>productIds</strong></td>
+            <td>Array of ASINs, UPCs, GTINs linked to this cert</td>
+            <td><em>(see examples below)</em></td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td><strong>country</strong></td>
+            <td>Country of certification</td>
+            <td><code>United States</code></td>
+            <td>No</td>
+        </tr>
+        <tr>
+            <td><strong>issuer</strong></td>
+            <td>Certifying body</td>
+            <td><code>Green Circle Certified</code></td>
+            <td>Yes</td>
+        </tr>
+        <tr>
+            <td><strong>pdfDownloadUrl</strong></td>
+            <td>Link to download the certificate PDF</td>
+            <td><code>/api/v1/certificates/24-0366/download</code></td>
+            <td>Yes</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="callout callout-warning">
+    <strong>*Certification Results &amp; Pathway</strong> are optional fields in the GCC system, but Amazon has indicated they may require Certification Results to verify that thresholds are met for Climate Pledge Friendly eligibility. The field is available for analysts to populate when needed.
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 4: EXAMPLE 1 - SINGLE ASIN -->
+<!-- ============================================================ -->
+<h2 id="example1">4. Example 1 &mdash; Single ASIN Certificate</h2>
+
+<p><span class="example-label">SCENARIO</span></p>
+<p>A company has <strong>one product</strong> (one ASIN) certified for energy savings under a Supplier Energy Plan (SEP).</p>
+
+<h3>What the GCC Analyst Enters</h3>
+<table>
+    <thead>
+        <tr><th>Field</th><th>Value Entered</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Certificate Number</td><td><code>24-0366</code></td></tr>
+        <tr><td>Company</td><td>EcoProduct Co</td></tr>
+        <tr><td>Product</td><td>Energy-Efficient LED Bulb</td></tr>
+        <tr><td>Certification Type</td><td>SEP (Supplier Energy Plan)</td></tr>
+        <tr><td>Partner</td><td><span class="tag tag-amazon">Amazon</span></td></tr>
+        <tr><td>Certification Results</td><td><span class="field-highlight">32% energy savings verified against 2019 baseline</span></td></tr>
+        <tr><td>Pathway</td><td>Energy usage reduction</td></tr>
+        <tr><td>ASIN</td><td><code>B08XQRT456</code></td></tr>
+        <tr><td>Effective Date</td><td>2024-01-15</td></tr>
+        <tr><td>Expiration Date</td><td>2025-01-15</td></tr>
+    </tbody>
+</table>
+
+<h3>What Amazon Receives &mdash; GS1 JSON-LD Format <span class="tag tag-gs1">RECOMMENDED</span></h3>
+
+<pre><code>{
+  "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+  "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+  "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
+  "type": "CertificationReport",
+  "issueDate": "2024-01-15",
+  "issuer": "Green Circle Certified",
+  "products": [
+    {
+      "id": "https://id.gs1.org/01/00012345678901",
+      "type": "Product",
+      "gtin": "00012345678901",
+      "name": "Energy-Efficient LED Bulb",
+      "additionalTradeItemId": [
+        { "type": "ASIN", "value": "B08XQRT456" }
+      ],
+      "certificationInfo": {
+        "type": "CertificationDetails",
+        "agency": "Green Circle Certified",
+        "agencyURL": "https://www.greencirclecertified.com",
+        "program": "SEP",
+        "certificateId": "24-0366",
+        "status": "ACTIVE",
+        <span class="json-comment">// &#11015; This is the Certification Results field</span>
+        "value": "<strong>32% energy savings verified against 2019 baseline</strong>",
+        "startDate": "2024-01-15",
+        "endDate": "2025-01-15",
+        "targetCountries": ["United States"],
+        "amazonCode": "greencircle_energy_savings",
+        "pathway": "Energy usage reduction"
+      }
+    }
+  ]
+}</code></pre>
+
+<h3>What Amazon Receives &mdash; Standard JSON Format</h3>
+
+<pre><code>{
+  "success": true,
+  "pagination": {
+    "totalCount": 1,
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  },
+  "data": [
+    {
+      "certificateNumber": "24-0366",
+      "status": "Active",
+      "issueDate": "2024-01-15T00:00:00Z",
+      "expirationDate": "2025-01-15T00:00:00Z",
+      "country": "United States",
+      "partner": "Amazon",
+      <span class="json-comment">// &#11015; Certification Results &mdash; the test score / threshold</span>
+      "certificationResults": "<strong>32% energy savings verified against 2019 baseline</strong>",
+      "pathway": "Energy usage reduction",
+      "company": "EcoProduct Co",
+      "productName": "Energy-Efficient LED Bulb",
+      "certificationType": "SEP",
+      "amazonCode": "greencircle_energy_savings",
+      "issuer": "Green Circle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B08XQRT456",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Energy-Efficient LED Bulb",
+          "productSku": "LED-BULB-001"
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/24-0366/download"
+    }
+  ]
+}</code></pre>
+
+<div class="callout callout-success">
+    <strong>Single ASIN Summary:</strong> One certificate &rarr; one product &rarr; one ASIN. Amazon receives the full certification details and maps ASIN <code>B08XQRT456</code> to its product listing. The <code>certificationResults</code> value of &ldquo;32% energy savings&rdquo; confirms the product meets the CPF threshold (&ge;25%).
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 5: EXAMPLE 2 - MULTIPLE ASINS -->
+<!-- ============================================================ -->
+<h2 id="example2">5. Example 2 &mdash; Multiple ASINs (Product Variants)</h2>
+
+<p><span class="example-label">SCENARIO</span></p>
+<p>A paper towel company has <strong>three product sizes</strong>, each with its own ASIN, all covered under <strong>one certificate</strong> for recycled content.</p>
+
+<h3>What the GCC Analyst Enters</h3>
+<table>
+    <thead>
+        <tr><th>Field</th><th>Value Entered</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Certificate Number</td><td><code>24-0512</code></td></tr>
+        <tr><td>Company</td><td>CleanGreen Industries</td></tr>
+        <tr><td>Product</td><td>Recycled Paper Towels</td></tr>
+        <tr><td>Certification Type</td><td>UL 2809</td></tr>
+        <tr><td>Subcategory</td><td>Level 2</td></tr>
+        <tr><td>Partner</td><td><span class="tag tag-amazon">Amazon</span></td></tr>
+        <tr><td>Certification Results</td><td><span class="field-highlight">95.5% post-consumer recycled content verified</span></td></tr>
+        <tr><td>Effective Date</td><td>2024-03-01</td></tr>
+        <tr><td>Expiration Date</td><td>2025-03-01</td></tr>
+    </tbody>
+</table>
+
+<h4>Product Identifiers Added</h4>
+<table>
+    <thead>
+        <tr><th>Type</th><th>Value</th><th>Product Name</th><th>SKU</th><th>Partner</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>ASIN</td><td><code>B08XQRT456</code></td><td>Recycled Paper Towels &ndash; 6 Pack</td><td>RPT-6PK</td><td>Amazon</td></tr>
+        <tr><td>ASIN</td><td><code>B08XQRT789</code></td><td>Recycled Paper Towels &ndash; 12 Pack</td><td>RPT-12PK</td><td>Amazon</td></tr>
+        <tr><td>ASIN</td><td><code>B08XQRT999</code></td><td>Recycled Paper Towels &ndash; 24 Pack Bulk</td><td>RPT-24PK</td><td>Amazon</td></tr>
+        <tr><td>UPC</td><td><code>012345678901</code></td><td>Recycled Paper Towels</td><td>&mdash;</td><td>Amazon</td></tr>
+        <tr><td>GTIN</td><td><code>00012345678901</code></td><td>Recycled Paper Towels</td><td>&mdash;</td><td>Amazon</td></tr>
+    </tbody>
+</table>
+
+<h3>What Amazon Receives &mdash; GS1 JSON-LD Format <span class="tag tag-gs1">RECOMMENDED</span></h3>
+
+<pre><code>{
+  "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+  "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+  "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0512",
+  "type": "CertificationReport",
+  "issueDate": "2024-03-01",
+  "issuer": "Green Circle Certified",
+  "products": [
+    {
+      "id": "https://id.gs1.org/01/00012345678901",
+      "type": "Product",
+      "gtin": "00012345678901",
+      "name": "Recycled Paper Towels",
+      "additionalTradeItemId": [
+        { "type": "ASIN", "value": "B08XQRT456" },
+        { "type": "ASIN", "value": "B08XQRT789" },
+        { "type": "ASIN", "value": "B08XQRT999" },
+        { "type": "SKU",  "value": "RPT-6PK" }
+      ],
+      "certificationInfo": {
+        "type": "CertificationDetails",
+        "agency": "Green Circle Certified",
+        "agencyURL": "https://www.greencirclecertified.com",
+        "program": "UL 2809",
+        "certificateId": "24-0512",
+        "standard": "Level 2",
+        "status": "ACTIVE",
+        "value": "<strong>95.5% post-consumer recycled content verified</strong>",
+        "startDate": "2024-03-01",
+        "endDate": "2025-03-01",
+        "targetCountries": ["United States"],
+        "amazonCode": "greencircle_recycled_content"
+      }
+    }
+  ]
+}</code></pre>
+
+<h3>What Amazon Receives &mdash; Standard JSON Format</h3>
+
+<pre><code>{
+  "success": true,
+  "pagination": {
+    "totalCount": 1,
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalPages": 1
+  },
+  "data": [
+    {
+      "certificateNumber": "24-0512",
+      "status": "Active",
+      "issueDate": "2024-03-01T00:00:00Z",
+      "expirationDate": "2025-03-01T00:00:00Z",
+      "country": "United States",
+      "partner": "Amazon",
+      "certificationResults": "<strong>95.5% post-consumer recycled content verified</strong>",
+      "company": "CleanGreen Industries",
+      "productName": "Recycled Paper Towels",
+      "certificationType": "UL 2809",
+      "certificationTypeSubcategory": "Level 2",
+      "amazonCode": "greencircle_recycled_content",
+      "issuer": "Green Circle Certified",
+      <span class="json-comment">// &#11015; All 5 product identifiers returned together</span>
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "<strong>B08XQRT456</strong>",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Recycled Paper Towels - 6 Pack",
+          "productSku": "RPT-6PK"
+        },
+        {
+          "type": "ASIN",
+          "value": "<strong>B08XQRT789</strong>",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Recycled Paper Towels - 12 Pack",
+          "productSku": "RPT-12PK"
+        },
+        {
+          "type": "ASIN",
+          "value": "<strong>B08XQRT999</strong>",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Recycled Paper Towels - 24 Pack Bulk",
+          "productSku": "RPT-24PK"
+        },
+        {
+          "type": "UPC",
+          "value": "012345678901",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Recycled Paper Towels"
+        },
+        {
+          "type": "GTIN",
+          "value": "00012345678901",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Recycled Paper Towels"
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/24-0512/download"
+    }
+  ]
+}</code></pre>
+
+<div class="callout callout-success">
+    <strong>Multiple ASIN Summary:</strong> One certificate &rarr; one product &rarr; <strong>three ASINs</strong> (6-pack, 12-pack, 24-pack) plus UPC and GTIN. Amazon maps all three ASINs to their respective product listings under a single certification. All three product variants receive the CPF badge.
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 6: EXAMPLE 3 - ASIN SEARCH -->
+<!-- ============================================================ -->
+<h2 id="example3">6. Example 3 &mdash; Amazon Searches for a Specific ASIN</h2>
+
+<p><span class="example-label">SCENARIO</span></p>
+<p>Amazon wants to verify whether ASIN <code>B08XQRT789</code> (the 12-pack) has a valid certification.</p>
+
+<h3>API Request</h3>
+<pre><code>GET /api/v1/certificates/search/productid?productId=B08XQRT789&amp;type=ASIN
+Header: X-API-Key: gcc_partner_amazon_abc123xyz</code></pre>
+
+<h3>API Response</h3>
+<pre><code>{
+  "success": true,
+  "data": {
+    "certificateNumber": "24-0512",
+    "status": "Active",
+    "issueDate": "2024-03-01T00:00:00Z",
+    "expirationDate": "2025-03-01T00:00:00Z",
+    "certificationResults": "95.5% post-consumer recycled content verified",
+    "company": "CleanGreen Industries",
+    "productName": "Recycled Paper Towels",
+    "certificationType": "UL 2809",
+    "certificationTypeSubcategory": "Level 2",
+    "amazonCode": "greencircle_recycled_content",
+    "issuer": "Green Circle Certified",
+    <span class="json-comment">// &#11015; Returns ALL ASINs for this certificate, not just the searched one</span>
+    "productIds": [
+      {
+        "type": "ASIN",
+        "value": "B08XQRT456",
+        "status": "Active",
+        "productName": "Recycled Paper Towels - 6 Pack"
+      },
+      {
+        "type": "ASIN",
+        "value": "<strong>B08XQRT789</strong>",
+        "status": "Active",
+        "productName": "Recycled Paper Towels - 12 Pack",
+        <span class="json-comment">// &#11015; Flags which ASIN matched the search</span>
+        "<strong>isMatchedId</strong>": true
+      },
+      {
+        "type": "ASIN",
+        "value": "B08XQRT999",
+        "status": "Active",
+        "productName": "Recycled Paper Towels - 24 Pack Bulk"
+      }
+    ],
+    "pdfDownloadUrl": "/api/v1/certificates/24-0512/download"
+  }
+}</code></pre>
+
+<div class="callout callout-info">
+    <strong>Key Behavior:</strong> Searching for one ASIN returns the <em>entire certificate</em> with <em>all</em> associated product identifiers. The <code>isMatchedId: true</code> flag indicates which identifier matched the search query. This allows Amazon to discover related product variants under the same certification.
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 7: EXAMPLE 4 - MULTIPLE CERTS -->
+<!-- ============================================================ -->
+<h2 id="example4">7. Example 4 &mdash; Multiple Certificates (Paginated Response)</h2>
+
+<p><span class="example-label">SCENARIO</span></p>
+<p>Amazon retrieves all active GCC certificates. The system has 150 Amazon-partner certificates.</p>
+
+<h3>API Request (Page 1)</h3>
+<pre><code>GET /api/v1/certificates?includeProductIds=true&amp;pageSize=100&amp;pageNumber=1
+Header: X-API-Key: gcc_partner_amazon_abc123xyz</code></pre>
+
+<h3>API Response (Abbreviated)</h3>
+<pre><code>{
+  "success": true,
+  "pagination": {
+    "totalCount": 150,
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalPages": 2,
+    "hasNext": true,
+    "hasPrevious": false
+  },
+  "data": [
+    {
+      "certificateNumber": "24-0366",
+      "status": "Active",
+      "certificationResults": "32% energy savings verified against 2019 baseline",
+      "certificationType": "SEP",
+      "amazonCode": "greencircle_energy_savings",
+      "productIds": [
+        { "type": "ASIN", "value": "B08XQRT456" }
+      ]
+      <span class="json-comment">// ... remaining fields</span>
+    },
+    {
+      "certificateNumber": "24-0512",
+      "status": "Active",
+      "certificationResults": "95.5% post-consumer recycled content verified",
+      "certificationType": "UL 2809",
+      "amazonCode": "greencircle_recycled_content",
+      "productIds": [
+        { "type": "ASIN", "value": "B08XQRT456" },
+        { "type": "ASIN", "value": "B08XQRT789" },
+        { "type": "ASIN", "value": "B08XQRT999" }
+      ]
+      <span class="json-comment">// ... remaining fields</span>
+    },
+    <span class="json-comment">// ... up to 100 certificates per page</span>
+  ]
+}</code></pre>
+
+<h3>API Request (Page 2)</h3>
+<pre><code>GET /api/v1/certificates?includeProductIds=true&amp;pageSize=100&amp;pageNumber=2
+Header: X-API-Key: gcc_partner_amazon_abc123xyz</code></pre>
+
+<div class="callout callout-info">
+    <strong>Pagination:</strong> Maximum 100 certificates per page. Amazon uses <code>hasNext</code> to determine if more pages exist. This ensures efficient data transfer even with thousands of certificates.
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 8: CERTIFICATION RESULTS -->
+<!-- ============================================================ -->
+<h2 id="cert-results">8. Certification Results &mdash; What Gets Sent &amp; Why</h2>
+
+<p>The <strong>Certification Results</strong> field is a free-text field (up to 1,000 characters) where the GCC analyst enters the specific test outcome, score, or threshold achieved. Amazon has indicated they may require this field to verify Climate Pledge Friendly eligibility.</p>
+
+<h3>Realistic Examples by Certification Type</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Certification Type</th>
+            <th>Certification Results Value</th>
+            <th>How Amazon Uses It</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>SEP</strong> (Energy Plan)</td>
+            <td><code>32% energy savings verified against 2019 baseline</code></td>
+            <td>Checks &ge;25% threshold for CPF eligibility</td>
+        </tr>
+        <tr>
+            <td><strong>UL 2809</strong> (Recycled Content)</td>
+            <td><code>95.5% post-consumer recycled content verified</code></td>
+            <td>Displays recycled % to customers</td>
+        </tr>
+        <tr>
+            <td><strong>Carbon Neutral</strong></td>
+            <td><code>Net zero carbon emissions achieved - 1,250 tonnes offset</code></td>
+            <td>CPF Carbon Neutral badge</td>
+        </tr>
+        <tr>
+            <td><strong>Water Reduction</strong></td>
+            <td><code>47% water usage reduction per unit vs industry average</code></td>
+            <td>CPF Water Conservation badge</td>
+        </tr>
+        <tr>
+            <td><strong>Renewable Energy</strong></td>
+            <td><code>100% renewable electricity sourced for manufacturing</code></td>
+            <td>CPF Renewable Energy badge</td>
+        </tr>
+        <tr>
+            <td><strong>Forest Stewardship</strong></td>
+            <td><code>FSC Chain of Custody certified - 100% FSC inputs</code></td>
+            <td>CPF Sustainably Sourced badge</td>
+        </tr>
+        <tr>
+            <td><strong>Biodegradable</strong></td>
+            <td><code>ASTM D6400 compostable - 90% biodegradation in 180 days</code></td>
+            <td>CPF Biodegradable badge</td>
+        </tr>
+        <tr>
+            <td><strong>Low VOC</strong></td>
+            <td><code>VOC emissions: 0.12 mg/m3 (below CDPH limit of 0.5 mg/m3)</code></td>
+            <td>CPF Clean Air badge</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>Where It Appears in the API Response</h3>
+
+<div class="comparison-grid">
+    <div class="comparison-box">
+        <h4>Standard JSON</h4>
+        <pre><code>{
+  "certificationResults": "32% energy savings...",
+  "pathway": "Energy usage reduction"
+}</code></pre>
+    </div>
+    <div class="comparison-box">
+        <h4>GS1 JSON-LD</h4>
+        <pre><code>"certificationInfo": {
+  "value": "32% energy savings...",
+  "pathway": "Energy usage reduction"
+}</code></pre>
+    </div>
+</div>
+
+<h3>Available Pathways</h3>
+<table>
+    <thead>
+        <tr><th>Pathway Name</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Energy usage reduction</td><td>Certified reduction in energy consumption</td></tr>
+        <tr><td>Onsite fossil fuel usage reduction</td><td>Reduced reliance on fossil fuels at production facilities</td></tr>
+        <tr><td>Renewable electricity usage</td><td>Use of renewable electricity sources in production</td></tr>
+    </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- SECTION 9: API FORMATS -->
+<!-- ============================================================ -->
+<h2 id="api-formats">9. API Response Formats (Standard vs. GS1)</h2>
+
+<h3>Side-by-Side Comparison</h3>
+
+<table>
+    <thead>
+        <tr><th>Feature</th><th>Standard JSON</th><th>GS1 JSON-LD</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Endpoint</td><td><code>/api/v1/certificates</code></td><td><code>/api/v1/certificates/gs1</code></td></tr>
+        <tr><td>Format</td><td>Flat JSON</td><td>JSON-LD (linked data)</td></tr>
+        <tr><td>Schema Validation</td><td>No</td><td>Yes (GS1 schema)</td></tr>
+        <tr><td>GTIN Handling</td><td>As-is in productIds array</td><td>14-digit padded, primary ID</td></tr>
+        <tr><td>ASIN Location</td><td><code>productIds[].value</code></td><td><code>additionalTradeItemId[].value</code></td></tr>
+        <tr><td>Cert Results Location</td><td><code>certificationResults</code></td><td><code>certificationInfo.value</code></td></tr>
+        <tr><td>Status Values</td><td><code>Active</code>, <code>Expired</code>, etc.</td><td><code>ACTIVE</code>, <code>INACTIVE</code></td></tr>
+        <tr><td>Date Format</td><td>ISO 8601 with time</td><td>ISO 8601 date only</td></tr>
+        <tr><td>Amazon CPF</td><td>Supported</td><td><span class="tag tag-active">RECOMMENDED</span></td></tr>
+        <tr><td>Pagination</td><td>Yes (max 100/page)</td><td>Yes (max 100/page)</td></tr>
+    </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- SECTION 10: SECURITY -->
+<!-- ============================================================ -->
+<h2 id="security">10. Security &amp; Access Control</h2>
+
+<table>
+    <thead>
+        <tr><th>Control</th><th>Details</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><strong>Authentication</strong></td>
+            <td>API key sent via <code>X-API-Key</code> header on every request</td>
+        </tr>
+        <tr>
+            <td><strong>Partner Filtering</strong></td>
+            <td>Amazon&rsquo;s API key is bound to <code>Partner = "Amazon"</code>. Only Amazon-tagged certificates are returned. No other partner data is ever exposed.</td>
+        </tr>
+        <tr>
+            <td><strong>Status Filtering</strong></td>
+            <td>Only <code>Active</code> certificates appear in API results. Draft, suspended, revoked, and expired certificates are excluded.</td>
+        </tr>
+        <tr>
+            <td><strong>Rate Limiting</strong></td>
+            <td>Configurable per API key to prevent abuse</td>
+        </tr>
+        <tr>
+            <td><strong>HTTPS</strong></td>
+            <td>All API communication encrypted via TLS/HTTPS</td>
+        </tr>
+        <tr>
+            <td><strong>Key Management</strong></td>
+            <td>API keys are generated and managed by GCC administrators. Keys can be revoked at any time.</td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="callout callout-info">
+    <strong>What Amazon Cannot Access:</strong> Internal notes, workflow history, draft certificates, other partner data (Novi, etc.), internal user information, or any data not tagged with <code>Partner = "Amazon"</code>.
+</div>
+
+<!-- ============================================================ -->
+<!-- SECTION 11: ENDPOINTS -->
+<!-- ============================================================ -->
+<h2 id="endpoints">11. Available API Endpoints</h2>
+
+<table>
+    <thead>
+        <tr><th>Method</th><th>Endpoint</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/api/v1/certificates</code></td>
+            <td>List all certificates (Standard JSON). Add <code>?includeProductIds=true</code> for ASINs.</td>
+        </tr>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/api/v1/certificates/gs1</code></td>
+            <td>List all certificates (GS1 JSON-LD format) <span class="tag tag-active">RECOMMENDED</span></td>
+        </tr>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/api/v1/certificates/gs1/{certNumber}</code></td>
+            <td>Get a single certificate by number (GS1 format)</td>
+        </tr>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/api/v1/certificates/number/{certNumber}</code></td>
+            <td>Get a single certificate by number (Standard format)</td>
+        </tr>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/api/v1/certificates/search/productid</code></td>
+            <td>Search by ASIN, UPC, or GTIN. Params: <code>productId</code>, <code>type</code></td>
+        </tr>
+        <tr>
+            <td><code>GET</code></td>
+            <td><code>/api/v1/certificates/{certNumber}/download</code></td>
+            <td>Download the certificate PDF document</td>
+        </tr>
+    </tbody>
+</table>
+
+<h3>Query Parameters (List Endpoints)</h3>
+<table>
+    <thead>
+        <tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><code>pageNumber</code></td><td>integer</td><td>1</td><td>Page number for pagination</td></tr>
+        <tr><td><code>pageSize</code></td><td>integer</td><td>100</td><td>Records per page (max 100)</td></tr>
+        <tr><td><code>searchTerm</code></td><td>string</td><td>&mdash;</td><td>Search across certificate fields</td></tr>
+        <tr><td><code>sortBy</code></td><td>string</td><td>&mdash;</td><td>Sort field: <code>certificatenumber</code>, <code>issuedate</code>, <code>expirationdate</code>, <code>productname</code>, <code>companyname</code></td></tr>
+        <tr><td><code>includeProductIds</code></td><td>boolean</td><td>false</td><td>Include ASINs/UPCs/GTINs in response (Standard JSON only)</td></tr>
+    </tbody>
+</table>
+
+<!-- ============================================================ -->
+<!-- APPENDIX: FIELD MAPPING -->
+<!-- ============================================================ -->
+<h2 id="appendix">Appendix: Field Mapping Reference</h2>
+
+<h3>A. GCC Database &rarr; API Response Mapping</h3>
+<table>
+    <thead>
+        <tr><th>GCC Database Field</th><th>Standard JSON</th><th>GS1 JSON-LD</th></tr>
+    </thead>
+    <tbody>
+        <tr><td>Certificate.Number</td><td><code>certificateNumber</code></td><td><code>products[].certificationInfo.certificateId</code></td></tr>
+        <tr><td>Certificate.Status</td><td><code>status</code></td><td><code>certificationInfo.status</code> (ACTIVE/INACTIVE)</td></tr>
+        <tr><td>Certificate.EffectiveDate</td><td><code>issueDate</code></td><td><code>issueDate</code> + <code>certificationInfo.startDate</code></td></tr>
+        <tr><td>Certificate.ExpirationDate</td><td><code>expirationDate</code></td><td><code>certificationInfo.endDate</code></td></tr>
+        <tr><td>Certificate.CertificationResults</td><td><code>certificationResults</code></td><td><code>certificationInfo.value</code></td></tr>
+        <tr><td>Pathway.Name</td><td><code>pathway</code></td><td><code>certificationInfo.pathway</code></td></tr>
+        <tr><td>CertificationType.Name</td><td><code>certificationType</code></td><td><code>certificationInfo.program</code></td></tr>
+        <tr><td>CertificationType.AmazonCode</td><td><code>amazonCode</code></td><td><code>certificationInfo.amazonCode</code></td></tr>
+        <tr><td>CertificationTypeSubcategory.Name</td><td><code>certificationTypeSubcategory</code></td><td><code>certificationInfo.standard</code></td></tr>
+        <tr><td>Company.Name</td><td><code>company</code></td><td><em>(not included)</em></td></tr>
+        <tr><td>Product.Name</td><td><code>productName</code></td><td><code>products[].name</code></td></tr>
+        <tr><td>CertificateProductId.ProductIdValue (ASIN)</td><td><code>productIds[].value</code></td><td><code>additionalTradeItemId[].value</code></td></tr>
+        <tr><td>CertificateProductId.ProductIdValue (GTIN)</td><td><code>productIds[].value</code></td><td><code>products[].gtin</code></td></tr>
+    </tbody>
+</table>
+
+<h3>B. Supported Product Identifier Types</h3>
+<table>
+    <thead>
+        <tr><th>Type</th><th>Description</th><th>Example Value</th><th>Notes</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><strong>ASIN</strong></td><td>Amazon Standard Identification Number</td><td><code>B08XQRT456</code></td><td>Primary identifier for Amazon</td></tr>
+        <tr><td><strong>UPC</strong></td><td>Universal Product Code</td><td><code>012345678901</code></td><td>12-digit barcode</td></tr>
+        <tr><td><strong>GTIN</strong></td><td>Global Trade Item Number</td><td><code>00012345678901</code></td><td>14-digit, padded. Used as primary ID in GS1 format.</td></tr>
+        <tr><td><strong>EAN</strong></td><td>European Article Number</td><td><code>4006381333931</code></td><td>13-digit international barcode</td></tr>
+        <tr><td><strong>ISBN</strong></td><td>International Standard Book Number</td><td><code>978-0-13-468599-1</code></td><td>For book/publication products</td></tr>
+        <tr><td><strong>SKU</strong></td><td>Stock Keeping Unit</td><td><code>RPT-12PK-ECO</code></td><td>Company-specific product code</td></tr>
+        <tr><td><strong>MPN</strong></td><td>Manufacturer Part Number</td><td><code>MPN-12345</code></td><td>Manufacturer&rsquo;s own identifier</td></tr>
+    </tbody>
+</table>
+
+<h3>C. Certificate Status Values</h3>
+<table>
+    <thead>
+        <tr><th>GCC Status</th><th>Visible to Amazon?</th><th>GS1 Mapping</th></tr>
+    </thead>
+    <tbody>
+        <tr><td><span class="tag tag-active">Active</span></td><td>Yes</td><td><code>ACTIVE</code></td></tr>
+        <tr><td>Draft</td><td>No</td><td>&mdash;</td></tr>
+        <tr><td>Expired</td><td>No</td><td>&mdash;</td></tr>
+        <tr><td>Suspended</td><td>No</td><td>&mdash;</td></tr>
+        <tr><td>Revoked</td><td>No</td><td>&mdash;</td></tr>
+    </tbody>
+</table>
+
+<!-- FOOTER -->
+<div class="doc-footer">
+    <p>GCC Database Solution &mdash; Amazon API Data Exchange Examples &mdash; v1.0 &mdash; March 2026</p>
+    <p>&copy; 2026 Green Circle Certified / PointSolve Technology Inc. All rights reserved.</p>
+</div>
+
+</body>
+</html>

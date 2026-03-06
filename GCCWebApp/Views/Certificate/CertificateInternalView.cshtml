@@ -36,19 +36,9 @@
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Certification Details</h3>
                         <div class="certificate-field"><strong>Status:</strong> <span class="status-@(Model.Certificate?.Status?.ToLower())">@(Model.Certificate?.Status ?? "Unknown")</span></div>
-                        <div class="certificate-field">
-                            <strong>Category:</strong>
-                            <span class="tag-type External">@productType</span>
-                        </div>
-                        <div class="certificate-field"><strong>Product Type:</strong> <span>@productType</span></div>
-                        @if (Model.Certificate?.ProductCategory != null)
-                        {
-                            <div class="certificate-field"><strong>Product Category:</strong> <span>@Model.Certificate.ProductCategory.Name</span></div>
-                        }
-                        @if (Model.Certificate?.ProductSubcategory != null)
-                        {
-                            <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@Model.Certificate.ProductSubcategory.Name</span></div>
-                        }
+                        <div class="certificate-field"><strong>Product Category:</strong> <span>@(Model.Certificate?.ProductCategory?.Name ?? Model.Certificate?.Product?.Category?.Name ?? "—")</span></div>
+                        <div class="certificate-field"><strong>Product Type:</strong> <span>@(Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "—")</span></div>
+                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@(Model.Certificate?.ProductSubcategory?.Name ?? Model.Certificate?.Product?.ProductSubcategory?.Name ?? "—")</span></div>
                         @if (!string.IsNullOrEmpty(Model.Certificate?.Partner) && Model.Certificate.Partner != "None")
                         {
                             <div class="certificate-field"><strong>Partner:</strong> <span>@Model.Certificate.Partner</span></div>
@@ -229,6 +219,17 @@
                             </div>
                         </div>
                     }
+                </div>
+            </div>
+
+            <!-- Verification URL -->
+            @{
+                var verifyUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/Certificate/Verify/{certificateNumber}";
+            }
+            <div class="detail-section" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+                <div class="certificate-field">
+                    <strong>Verification URL:</strong>
+                    <a href="@verifyUrl" target="_blank" rel="noopener">@verifyUrl</a>
                 </div>
             </div>
 

@@ -107,7 +107,9 @@ namespace GCCWebApp.Repositories
             return await _dbSet
                 .Where(c => c.Number == certificateNumber)
                 .Include(c => c.Company)
-                .Include(c => c.Product)
+                .Include(c => c.Product).ThenInclude(p => p.Category)
+                .Include(c => c.Product).ThenInclude(p => p.ProductType)
+                .Include(c => c.Product).ThenInclude(p => p.ProductSubcategory)
                 .Include(c => c.CertificationType)
                 .Include(c => c.CertificationTypeSubcategories)
                 .Include(c => c.ProductCategory)
@@ -282,6 +284,19 @@ namespace GCCWebApp.Repositories
             if (filter.CompanyIds != null && filter.CompanyIds.Any())
                 query = query.Where(c => filter.CompanyIds.Contains(c.CompanyId));
 
+            // Filter by product categories/types/subcategories (matches all 3 hierarchy levels)
+            // Checks both Product's hierarchy and Certificate's direct fields
+            if (filter.ProductCategories != null && filter.ProductCategories.Any())
+                query = query.Where(c =>
+                    // Product's hierarchy
+                    filter.ProductCategories.Contains(c.Product.Category.Name) ||
+                    (c.Product.ProductType != null && filter.ProductCategories.Contains(c.Product.ProductType.Name)) ||
+                    (c.Product.ProductSubcategory != null && filter.ProductCategories.Contains(c.Product.ProductSubcategory.Name)) ||
+                    // Certificate's direct fields
+                    (c.ProductCategory != null && filter.ProductCategories.Contains(c.ProductCategory.Name)) ||
+                    (c.ProductType != null && filter.ProductCategories.Contains(c.ProductType.Name)) ||
+                    (c.ProductSubcategory != null && filter.ProductCategories.Contains(c.ProductSubcategory.Name)));
+
             var totalCount = await query.CountAsync();
 
             // Apply sorting
@@ -299,6 +314,12 @@ namespace GCCWebApp.Repositories
             var certificates = await query
                 .Include(c => c.Company)
                 .Include(c => c.Product)
+                    .ThenInclude(p => p.Category)
+                .Include(c => c.Product.ProductType)
+                .Include(c => c.Product.ProductSubcategory)
+                .Include(c => c.ProductCategory)
+                .Include(c => c.ProductType)
+                .Include(c => c.ProductSubcategory)
                 .Include(c => c.CertificationType)
                 .Include(c => c.Tags)
                 .Include(c => c.Partners)

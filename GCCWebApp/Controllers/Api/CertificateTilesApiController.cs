@@ -181,7 +181,9 @@ namespace GCCWebApp.Controllers.Api
                     certificationType = c.CertificationType?.Name ?? "Unknown",
                     companyName = c.Company?.Name ?? "Unknown",
                     productName = c.Product?.Name ?? "Unknown",
-                    productType = c.Product?.Description,
+                    productCategory = c.ProductCategory != null ? c.ProductCategory.Name : (c.Product?.Category?.Name ?? ""),
+                    productType = c.ProductType != null ? c.ProductType.Name : (c.Product?.ProductType != null ? c.Product.ProductType.Name : ""),
+                    productSubcategory = c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product?.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : ""),
                     effectiveDate = c.EffectiveDate.ToString("yyyy-MM-dd"),
                     expirationDate = c.ExpirationDate.ToString("yyyy-MM-dd"),
                     location = c.Location,
@@ -270,40 +272,45 @@ namespace GCCWebApp.Controllers.Api
                     }
                 }
 
-                // Get hierarchical product categories (Level 1 -> Level 2 -> Level 3)
-                var activeCategoryIds = await baseQuery
-                    .Select(c => c.Product.CategoryId)
-                    .Distinct()
+                // Build hierarchy matching Admin page: Category → Type (ParentId=null) → Subcategory (ParentId!=null)
+                var categories = await _context.Set<ProductCategory>()
+                    .Where(pc => pc.IsActive)
+                    .OrderBy(pc => pc.SortOrder).ThenBy(pc => pc.Name)
                     .ToListAsync();
 
-                var productCategoriesHierarchy = await _context.Set<ProductCategory>()
-                    .Where(pc => pc.IsActive && activeCategoryIds.Contains(pc.Id))
-                    .Include(pc => pc.ProductTypes.Where(pt => pt.IsActive))
-                        .ThenInclude(pt => pt.ProductSubcategories.Where(ps => ps.IsActive))
-                    .OrderBy(pc => pc.SortOrder).ThenBy(pc => pc.Name)
-                    .Select(pc => new
-                    {
-                        id = pc.Id,
-                        name = pc.Name,
-                        level = 1,
-                        types = pc.ProductTypes
-                            .OrderBy(pt => pt.SortOrder).ThenBy(pt => pt.Name)
-                            .Select(pt => new
-                            {
-                                id = pt.Id,
-                                name = pt.Name,
-                                level = 2,
-                                subcategories = pt.ProductSubcategories
-                                    .OrderBy(ps => ps.SortOrder).ThenBy(ps => ps.Name)
-                                    .Select(ps => new
-                                    {
-                                        id = ps.Id,
-                                        name = ps.Name,
-                                        level = 3
-                                    }).ToList()
-                            }).ToList()
-                    })
+                var allTypes = await _context.Set<ProductType>()
+                    .Where(pt => pt.IsActive)
+                    .OrderBy(pt => pt.SortOrder).ThenBy(pt => pt.Name)
                     .ToListAsync();
+
+                var typesByCategory = allTypes.Where(pt => pt.ParentId == null)
+                    .GroupBy(pt => pt.CategoryId)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                var childrenByParent = allTypes.Where(pt => pt.ParentId != null)
+                    .GroupBy(pt => pt.ParentId!.Value)
+                    .ToDictionary(g => g.Key, g => g.ToList());
+
+                var productCategoriesHierarchy = categories.Select(pc => new
+                {
+                    id = pc.Id,
+                    name = pc.Name,
+                    level = 1,
+                    types = (typesByCategory.TryGetValue(pc.Id, out var types) ? types : new List<ProductType>())
+                        .Select(pt => new
+                        {
+                            id = pt.Id,
+                            name = pt.Name,
+                            level = 2,
+                            subcategories = (childrenByParent.TryGetValue(pt.Id, out var children) ? children : new List<ProductType>())
+                                .Select(sub => new
+                                {
+                                    id = sub.Id,
+                                    name = sub.Name,
+                                    level = 3
+                                }).ToList()
+                        }).ToList()
+                }).ToList();
 
                 var filters = new
                 {

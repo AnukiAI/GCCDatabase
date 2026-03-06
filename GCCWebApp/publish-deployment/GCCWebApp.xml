@@ -1363,6 +1363,11 @@
             GET: /Certificate/CertificateSingleView/24-0366
             </summary>
         </member>
+        <member name="M:GCCWebApp.Controllers.CertificateController.Verify(System.String)">
+            <summary>
+            Public verification URL redirect - maps /Certificate/Verify/24-1605 to CertificateSingleView
+            </summary>
+        </member>
         <member name="M:GCCWebApp.Controllers.CertificateController.Details(System.String)">
             <summary>
             Get certificate details by certificate number

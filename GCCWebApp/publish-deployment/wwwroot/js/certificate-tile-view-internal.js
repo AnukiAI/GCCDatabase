@@ -1455,19 +1455,19 @@
         const eanCount = countIds(ean);
 
         return `
-            <div class="grid-row" data-cert-id="${cert.id}" role="row">
+            <div class="grid-row" data-cert-id="${cert.id}" data-cert-number="${escapeHtml(certNumber)}" role="row" style="cursor: pointer;" onclick="viewCertificateDetails('${certNumber}')">
                 <div class="grid-cell select-cell" role="gridcell">
-                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" aria-label="Select certificate ${escapeHtml(certNumber)}">
+                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" aria-label="Select certificate ${escapeHtml(certNumber)}" onclick="event.stopPropagation()">
                 </div>
                 <div class="grid-cell actions-column" role="gridcell">
                     <div class="action-buttons">
-                        <button class="action-btn edit-btn" onclick="editCertificate('${certNumber}')" title="Edit Certificate" aria-label="Edit certificate ${escapeHtml(certNumber)}">
+                        <button class="action-btn edit-btn" onclick="event.stopPropagation(); editCertificate('${certNumber}')" title="Edit Certificate" aria-label="Edit certificate ${escapeHtml(certNumber)}">
                             <i class="fas fa-edit" aria-hidden="true"></i>
                         </button>
-                        <button class="action-btn download-btn" onclick="downloadCertificate('${certNumber}')" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(certNumber)}">
+                        <button class="action-btn download-btn" onclick="event.stopPropagation(); downloadCertificate('${certNumber}')" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(certNumber)}">
                             <i class="fas fa-download" aria-hidden="true"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="viewCertificateDetails('${certNumber}')" title="View Details" aria-label="View details for certificate ${escapeHtml(certNumber)}">
+                        <button class="action-btn view-btn" onclick="event.stopPropagation(); viewCertificateDetails('${certNumber}')" title="View Details" aria-label="View details for certificate ${escapeHtml(certNumber)}">
                             <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                         </button>
                     </div>

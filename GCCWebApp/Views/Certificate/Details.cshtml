@@ -80,10 +80,19 @@
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Certification Details</h3>
                         <div class="certificate-field"><strong>Status:</strong> <span class="status-@status.ToLower()">@status</span></div>
-                        <div class="certificate-field"><strong>Product Type:</strong> <span>@productType</span></div>
+                        <div class="certificate-field"><strong>Product Category:</strong> <span>@(Model.Certificate?.ProductCategory?.Name ?? Model.Certificate?.Product?.Category?.Name ?? "—")</span></div>
+                        <div class="certificate-field"><strong>Product Type:</strong> <span>@(Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "—")</span></div>
+                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@(Model.Certificate?.ProductSubcategory?.Name ?? Model.Certificate?.Product?.ProductSubcategory?.Name ?? "—")</span></div>
                         @if (!string.IsNullOrEmpty(Model.Certificate?.Partner) && Model.Certificate.Partner != "None")
                         {
                             <div class="certificate-field"><strong>Partner:</strong> <span>@Model.Certificate.Partner</span></div>
+                        }
+                        @if (Model.Certificate?.CertificationTypeSubcategories != null && Model.Certificate.CertificationTypeSubcategories.Any())
+                        {
+                            <div class="certificate-field">
+                                <strong>Subcategories:</strong>
+                                <span>@string.Join(", ", Model.Certificate.CertificationTypeSubcategories.Select(s => s.Name))</span>
+                            </div>
                         }
                         <div class="certificate-location">
                             <i class="fas fa-map-marker-alt"></i>
@@ -223,6 +232,18 @@
 
                 </div>
             </div>
+
+            <!-- Verification URL - only for authenticated users -->
+            @if (User.Identity?.IsAuthenticated == true)
+            {
+                var verifyUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/Certificate/Verify/{certificateNumber}";
+                <div class="detail-section" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #dee2e6;">
+                    <div class="certificate-field">
+                        <strong>Verification URL:</strong>
+                        <a href="@verifyUrl" target="_blank" rel="noopener">@verifyUrl</a>
+                    </div>
+                </div>
+            }
 
             <!-- Edit/Delete Actions at end of card-body, right-aligned -->
             @if (Model.CanEdit || Model.CanDelete)

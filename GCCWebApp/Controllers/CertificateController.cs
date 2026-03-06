@@ -281,6 +281,18 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
+        /// Public verification URL redirect - maps /Certificate/Verify/24-1605 to CertificateSingleView
+        /// </summary>
+        [AllowAnonymous]
+        public IActionResult Verify(string id)
+        {
+            if (string.IsNullOrWhiteSpace(id))
+                return BadRequest("Certificate number is required");
+
+            return RedirectToAction("CertificateSingleView", new { id });
+        }
+
+        /// <summary>
         /// Get certificate details by certificate number
         /// GET: /Certificate/Details/24-0366
         /// External users can view certificate details (read-only)

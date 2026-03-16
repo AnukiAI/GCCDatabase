@@ -35,6 +35,7 @@
         setupInfiniteScroll();
         setupUrlParameters();
         initializeAutocomplete();
+        initStickyTable();
     }
 
     // Load filter options from API
@@ -561,7 +562,7 @@
 
     // Setup table column sort click handlers
     function setupTableColumnSort() {
-        document.querySelectorAll('.grid-header-cell[data-sort-column]').forEach(header => {
+        document.querySelectorAll('.sticky-header-cell[data-sort-column]').forEach(header => {
             header.style.cursor = 'pointer';
             header.addEventListener('click', () => {
                 const column = header.dataset.sortColumn;
@@ -603,7 +604,7 @@
                 const finalSort = newDir === 'desc' ? (reverseSortMap[sortValue] || sortValue) : sortValue;
 
                 // Update sort icon
-                document.querySelectorAll('.grid-header-cell .sort-icon').forEach(icon => {
+                document.querySelectorAll('.sticky-header-cell .sort-icon').forEach(icon => {
                     icon.textContent = '▼';
                 });
                 const sortIcon = header.querySelector('.sort-icon');
@@ -1360,6 +1361,19 @@
         document.querySelectorAll('.row-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', updateBulkActionsBar);
         });
+
+        // Sync scroll sizes after content is rendered
+        requestAnimationFrame(syncScrollSizes);
+
+        // Update table results count
+        const tableResultsCount = document.getElementById('tableResultsCount');
+        if (tableResultsCount) {
+            const count = state.totalCount || state.certificates.length;
+            tableResultsCount.innerHTML = `Showing <strong>${count}</strong> certificates`;
+        }
+
+        // Re-apply column visibility from localStorage
+        applyColumnVisibility();
     }
 
     // Update Download Selected button state
@@ -1418,14 +1432,13 @@
         gridBody.innerHTML = certificates.map(cert => createTableRow(cert)).join('');
     }
 
-    // Create table row HTML for a certificate
+    // Create table row HTML for a certificate (flex-based for sticky header layout)
     function createTableRow(cert) {
         const effectiveDate = cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A';
         const expirationDate = cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A';
         const location = formatLocation(cert.location, cert.country);
         const statusBadge = getStatusBadge(cert.status);
 
-        // Build cell values for tooltips
         const certNumber = cert.certificateNumber || '';
         const certType = cert.certificationType || '';
         const company = cert.companyName || '';
@@ -1442,24 +1455,22 @@
         const gtin = cert.gtin || '';
         const ean = cert.ean || '';
 
-        // Helper function to count product IDs (comma-separated values)
         const countIds = (val) => {
             if (!val || typeof val !== 'string' || val.trim() === '') return 0;
             return val.split(',').map(s => s.trim()).filter(s => s.length > 0).length;
         };
 
-        // Get counts for product ID columns
         const asinCount = countIds(asin);
         const upcCount = countIds(upc);
         const gtinCount = countIds(gtin);
         const eanCount = countIds(ean);
 
         return `
-            <div class="grid-row" data-cert-id="${cert.id}" data-cert-number="${escapeHtml(certNumber)}" role="row" style="cursor: pointer;" onclick="viewCertificateDetails('${certNumber}')">
-                <div class="grid-cell select-cell" role="gridcell">
+            <div class="table-body-row" data-cert-id="${cert.id}" data-cert-number="${escapeHtml(certNumber)}" role="row" onclick="viewCertificateDetails('${certNumber}')">
+                <div class="table-body-cell tc-select" role="gridcell">
                     <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" aria-label="Select certificate ${escapeHtml(certNumber)}" onclick="event.stopPropagation()">
                 </div>
-                <div class="grid-cell actions-column" role="gridcell">
+                <div class="table-body-cell tc-actions" role="gridcell">
                     <div class="action-buttons">
                         <button class="action-btn edit-btn" onclick="event.stopPropagation(); editCertificate('${certNumber}')" title="Edit Certificate" aria-label="Edit certificate ${escapeHtml(certNumber)}">
                             <i class="fas fa-edit" aria-hidden="true"></i>
@@ -1472,28 +1483,237 @@
                         </button>
                     </div>
                 </div>
-                <div class="grid-cell" data-column="certificateNumber" title="${escapeHtml(certNumber)}" role="gridcell">${escapeHtml(certNumber)}</div>
-                <div class="grid-cell" data-column="certificationType" title="${escapeHtml(certType)}" role="gridcell">${escapeHtml(certType)}</div>
-                <div class="grid-cell" data-column="status" role="gridcell">${statusBadge}</div>
-                <div class="grid-cell" data-column="effectiveDate" role="gridcell">${effectiveDate}</div>
-                <div class="grid-cell" data-column="expirationDate" role="gridcell">${expirationDate}</div>
-                <div class="grid-cell" data-column="company" title="${escapeHtml(company)}" role="gridcell">${escapeHtml(company)}</div>
-                <div class="grid-cell" data-column="companyContact" title="${escapeHtml(contact)}" role="gridcell">${escapeHtml(contact)}</div>
-                <div class="grid-cell" data-column="productName" title="${escapeHtml(product)}" role="gridcell">${escapeHtml(product)}</div>
-                <div class="grid-cell" data-column="productCategory" title="${escapeHtml(category)}" role="gridcell">${escapeHtml(category)}</div>
-                <div class="grid-cell" data-column="productType" title="${escapeHtml(type)}" role="gridcell">${escapeHtml(type)}</div>
-                <div class="grid-cell" data-column="productSubcategory" title="${escapeHtml(subcategory)}" role="gridcell">${escapeHtml(subcategory)}</div>
-                <div class="grid-cell" data-column="location" title="${location}" role="gridcell">${location}</div>
-                <div class="grid-cell" data-column="country" title="${escapeHtml(country)}" role="gridcell">${escapeHtml(country)}</div>
-                <div class="grid-cell" data-column="externalTag" title="${escapeHtml(extTags)}" role="gridcell">${escapeHtml(extTags)}</div>
-                <div class="grid-cell" data-column="internalTag" title="${escapeHtml(intTags)}" role="gridcell">${escapeHtml(intTags)}</div>
-                <div class="grid-cell" data-column="partner" title="${escapeHtml(cert.partner || '')}" role="gridcell">${escapeHtml(cert.partner || '')}</div>
-                <div class="grid-cell id-count-cell" data-column="asin" data-ids="${escapeHtml(asin)}" title="Click to copy ASINs" role="gridcell">${asinCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(asin)}', 'ASIN')">${asinCount}</span>` : ''}</div>
-                <div class="grid-cell id-count-cell" data-column="upc" data-ids="${escapeHtml(upc)}" title="Click to copy UPCs" role="gridcell">${upcCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(upc)}', 'UPC')">${upcCount}</span>` : ''}</div>
-                <div class="grid-cell id-count-cell" data-column="gtin" data-ids="${escapeHtml(gtin)}" title="Click to copy GTINs" role="gridcell">${gtinCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(gtin)}', 'GTIN')">${gtinCount}</span>` : ''}</div>
-                <div class="grid-cell id-count-cell" data-column="ean" data-ids="${escapeHtml(ean)}" title="Click to copy EANs" role="gridcell">${eanCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(ean)}', 'EAN')">${eanCount}</span>` : ''}</div>
+                <div class="table-body-cell tc-cert" title="${escapeHtml(certNumber)}" role="gridcell">${escapeHtml(certNumber)}</div>
+                <div class="table-body-cell tc-type" title="${escapeHtml(certType)}" role="gridcell">${escapeHtml(certType)}</div>
+                <div class="table-body-cell tc-status" role="gridcell">${statusBadge}</div>
+                <div class="table-body-cell tc-eff" role="gridcell">${effectiveDate}</div>
+                <div class="table-body-cell tc-exp" role="gridcell">${expirationDate}</div>
+                <div class="table-body-cell tc-company" title="${escapeHtml(company)}" role="gridcell">${escapeHtml(company)}</div>
+                <div class="table-body-cell tc-contact" title="${escapeHtml(contact)}" role="gridcell">${escapeHtml(contact)}</div>
+                <div class="table-body-cell tc-product" title="${escapeHtml(product)}" role="gridcell">${escapeHtml(product)}</div>
+                <div class="table-body-cell tc-prodcat" title="${escapeHtml(category)}" role="gridcell">${escapeHtml(category)}</div>
+                <div class="table-body-cell tc-prodtype" title="${escapeHtml(type)}" role="gridcell">${escapeHtml(type)}</div>
+                <div class="table-body-cell tc-prodsub" title="${escapeHtml(subcategory)}" role="gridcell">${escapeHtml(subcategory)}</div>
+                <div class="table-body-cell tc-location" title="${location}" role="gridcell">${location}</div>
+                <div class="table-body-cell tc-country" title="${escapeHtml(country)}" role="gridcell">${escapeHtml(country)}</div>
+                <div class="table-body-cell tc-exttag" title="${escapeHtml(extTags)}" role="gridcell">${escapeHtml(extTags)}</div>
+                <div class="table-body-cell tc-inttag" title="${escapeHtml(intTags)}" role="gridcell">${escapeHtml(intTags)}</div>
+                <div class="table-body-cell tc-partner" title="${escapeHtml(cert.partner || '')}" role="gridcell">${escapeHtml(cert.partner || '')}</div>
+                <div class="table-body-cell tc-asin" data-ids="${escapeHtml(asin)}" title="Click to copy ASINs" role="gridcell">${asinCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(asin)}', 'ASIN')">${asinCount}</span>` : ''}</div>
+                <div class="table-body-cell tc-upc" data-ids="${escapeHtml(upc)}" title="Click to copy UPCs" role="gridcell">${upcCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(upc)}', 'UPC')">${upcCount}</span>` : ''}</div>
+                <div class="table-body-cell tc-gtin" data-ids="${escapeHtml(gtin)}" title="Click to copy GTINs" role="gridcell">${gtinCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(gtin)}', 'GTIN')">${gtinCount}</span>` : ''}</div>
+                <div class="table-body-cell tc-ean" data-ids="${escapeHtml(ean)}" title="Click to copy EANs" role="gridcell">${eanCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(ean)}', 'EAN')">${eanCount}</span>` : ''}</div>
             </div>
         `;
+    }
+
+    // ================================================================
+    // STICKY TABLE: Scroll sync, sticky shadow, column toggle
+    // ================================================================
+
+    const STORAGE_KEY = 'gcc-cert-columns-internal';
+
+    // All toggleable column keys (Select and Actions are locked)
+    const COLUMN_KEYS = [
+        'cert', 'type', 'status', 'eff', 'exp',
+        'company', 'contact', 'product', 'prodcat', 'prodtype', 'prodsub',
+        'location', 'country', 'exttag', 'inttag', 'partner',
+        'asin', 'upc', 'gtin', 'ean'
+    ];
+
+    function initStickyTable() {
+        const stickyBlock = document.getElementById('stickyTableBlock');
+        const scrollbarRow = document.getElementById('stickyScrollbar');
+        const headerRow = document.getElementById('stickyHeaderRow');
+        const bodyWrap = document.getElementById('tableBodyWrap');
+        const scrollbarSizer = document.querySelector('#stickyScrollbar .scrollbar-sizer');
+
+        if (!stickyBlock || !scrollbarRow || !headerRow || !bodyWrap || !scrollbarSizer) return;
+
+        // 3-way scroll sync
+        let syncing = false;
+
+        scrollbarRow.addEventListener('scroll', function () {
+            if (syncing) return;
+            syncing = true;
+            headerRow.scrollLeft = scrollbarRow.scrollLeft;
+            bodyWrap.scrollLeft = scrollbarRow.scrollLeft;
+            syncing = false;
+        });
+
+        bodyWrap.addEventListener('scroll', function () {
+            if (syncing) return;
+            syncing = true;
+            scrollbarRow.scrollLeft = bodyWrap.scrollLeft;
+            headerRow.scrollLeft = bodyWrap.scrollLeft;
+            syncing = false;
+        });
+
+        // Sticky shadow detection
+        window.addEventListener('scroll', function () {
+            stickyBlock.classList.toggle('stuck', stickyBlock.getBoundingClientRect().top <= 0);
+        }, { passive: true });
+
+        // Sync sizes on window resize
+        window.addEventListener('resize', syncScrollSizes);
+
+        // Column toggle dropdown
+        setupColumnToggle();
+
+        // Load saved column visibility
+        loadColumnVisibility();
+    }
+
+    function syncScrollSizes() {
+        const bodyInner = document.getElementById('gridBody');
+        const scrollbarSizer = document.querySelector('#stickyScrollbar .scrollbar-sizer');
+        const headerInner = document.querySelector('#stickyHeaderRow .sticky-header-inner');
+
+        if (!bodyInner || !scrollbarSizer) return;
+
+        const w = bodyInner.scrollWidth;
+        scrollbarSizer.style.width = w + 'px';
+        if (headerInner) {
+            headerInner.style.minWidth = w + 'px';
+        }
+    }
+
+    // --- Column Toggle ---
+
+    function setupColumnToggle() {
+        const toggleBtn = document.getElementById('colToggleBtn');
+        const dropdown = document.getElementById('colToggleDropdown');
+        const resetBtn = document.getElementById('colResetBtn');
+
+        if (!toggleBtn || !dropdown) return;
+
+        // Toggle dropdown open/close
+        toggleBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            dropdown.classList.toggle('open');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function (e) {
+            if (!e.target.closest('.col-toggle-wrap')) {
+                dropdown.classList.remove('open');
+            }
+        });
+
+        // Reset all columns to visible
+        if (resetBtn) {
+            resetBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                resetAllColumns();
+            });
+        }
+
+        // Toggle switch change handlers
+        dropdown.querySelectorAll('.ct-switch input[type="checkbox"]').forEach(function (cb) {
+            cb.addEventListener('change', function () {
+                const colKey = this.dataset.col;
+                if (colKey) {
+                    toggleColumn(colKey, this.checked);
+                }
+            });
+        });
+    }
+
+    function toggleColumn(key, show) {
+        // key is the full class name e.g. "tc-cert"
+        document.querySelectorAll('.' + key).forEach(function (el) {
+            el.classList.toggle('col-hidden', !show);
+        });
+        updateColumnCount();
+        saveColumnVisibility();
+        requestAnimationFrame(syncScrollSizes);
+    }
+
+    function updateColumnCount() {
+        const badge = document.getElementById('colCount');
+        if (!badge) return;
+        let n = 0;
+        const dropdown = document.getElementById('colToggleDropdown');
+        if (dropdown) {
+            dropdown.querySelectorAll('.ct-row:not(.ct-locked) input[type="checkbox"]').forEach(function (cb) {
+                if (cb.checked) n++;
+            });
+        }
+        badge.textContent = n;
+    }
+
+    function resetAllColumns() {
+        const dropdown = document.getElementById('colToggleDropdown');
+        if (dropdown) {
+            dropdown.querySelectorAll('.ct-row:not(.ct-locked) input[type="checkbox"]').forEach(function (cb) {
+                cb.checked = true;
+            });
+        }
+        document.querySelectorAll('.col-hidden').forEach(function (el) {
+            el.classList.remove('col-hidden');
+        });
+        updateColumnCount();
+        saveColumnVisibility();
+        requestAnimationFrame(syncScrollSizes);
+    }
+
+    function saveColumnVisibility() {
+        const hidden = [];
+        const dropdown = document.getElementById('colToggleDropdown');
+        if (dropdown) {
+            dropdown.querySelectorAll('.ct-row:not(.ct-locked) input[type="checkbox"]').forEach(function (cb) {
+                if (!cb.checked && cb.dataset.col) {
+                    hidden.push(cb.dataset.col);
+                }
+            });
+        }
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(hidden));
+        } catch (e) {
+            // localStorage not available
+        }
+    }
+
+    function loadColumnVisibility() {
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) return;
+            const hidden = JSON.parse(saved);
+            if (!Array.isArray(hidden) || hidden.length === 0) return;
+
+            const dropdown = document.getElementById('colToggleDropdown');
+            hidden.forEach(function (key) {
+                // Uncheck the toggle switch
+                if (dropdown) {
+                    const cb = dropdown.querySelector(`input[data-col="${key}"]`);
+                    if (cb) cb.checked = false;
+                }
+                // Hide the column cells (key is full class e.g. "tc-cert")
+                document.querySelectorAll('.' + key).forEach(function (el) {
+                    el.classList.add('col-hidden');
+                });
+            });
+            updateColumnCount();
+        } catch (e) {
+            // Invalid data or localStorage not available
+        }
+    }
+
+    function applyColumnVisibility() {
+        // Re-apply hidden columns to newly rendered rows
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) return;
+            const hidden = JSON.parse(saved);
+            if (!Array.isArray(hidden)) return;
+            hidden.forEach(function (key) {
+                document.querySelectorAll('.' + key).forEach(function (el) {
+                    el.classList.add('col-hidden');
+                });
+            });
+        } catch (e) {
+            // Ignore
+        }
     }
 
     function showToast(message, type = 'success') {

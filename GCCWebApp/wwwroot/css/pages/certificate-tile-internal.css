@@ -19,33 +19,33 @@
     grid-template-columns:
         36px      /* 1. Select checkbox */
         90px      /* 2. Actions (Edit + Download + View) */
-        145px     /* 3. Certificate # */
-        160px     /* 4. Certification Type */
-        120px     /* 5. Status */
-        95px      /* 6. Effective Date */
-        95px      /* 7. Expiration Date */
+        140px     /* 3. Certificate # */
+        175px     /* 4. Certification Type */
+        110px     /* 5. Status */
+        130px     /* 6. Effective Date */
+        135px     /* 7. Expiration Date */
         170px     /* 8. Company */
-        170px     /* 9. Company Contact */
-        170px     /* 10. Product Name */
-        130px     /* 11. Product Category */
+        150px     /* 9. Company Contact */
+        220px     /* 10. Product Name */
+        200px     /* 11. Product Category */
         130px     /* 12. Product Type */
         140px     /* 13. Product Subcategory */
         100px     /* 14. Location */
-        110px     /* 15. Country */
-        100px     /* 16. External Tag */
-        100px     /* 17. Internal Tag */
+        100px     /* 15. Country */
+        120px     /* 16. External Tag */
+        115px     /* 17. Internal Tag */
         100px     /* 18. Partner */
-        85px      /* 19. ASIN */
-        85px      /* 20. UPC */
-        85px      /* 21. GTIN */
-        85px;     /* 22. EAN */
+        80px      /* 19. ASIN */
+        75px      /* 20. UPC */
+        75px      /* 21. GTIN */
+        75px;     /* 22. EAN */
     min-width: max-content;
     width: 100%;
 }
 
 /* Table container min-width for Internal (22 columns) */
 .table-grid-container {
-    min-width: 2495px;
+    min-width: 2616px;
     width: max-content;
 }
 
@@ -193,3 +193,32 @@
 .grid-header-cell[data-sort-column]:hover {
     background-color: #e8f5e1;
 }
+
+/* =============================================================================
+   STICKY TABLE COLUMN WIDTHS - INTERNAL VIEW (22 COLUMNS)
+   Used by sticky-header-cell and table-body-cell via .tc-* classes
+   ============================================================================= */
+
+.tc-cert     { width: 140px; min-width: 140px; }
+.tc-type     { width: 175px; min-width: 175px; }
+.tc-status   { width: 110px; min-width: 110px; }
+.tc-eff      { width: 130px; min-width: 130px; }
+.tc-exp      { width: 135px; min-width: 135px; }
+.tc-company  { width: 170px; min-width: 170px; }
+.tc-contact  { width: 150px; min-width: 150px; }
+.tc-product  { width: 220px; min-width: 220px; }
+.tc-prodcat  { width: 200px; min-width: 200px; }
+.tc-prodtype { width: 130px; min-width: 130px; }
+.tc-prodsub  { width: 140px; min-width: 140px; }
+.tc-location { width: 100px; min-width: 100px; }
+.tc-country  { width: 100px; min-width: 100px; }
+.tc-exttag   { width: 120px; min-width: 120px; }
+.tc-inttag   { width: 115px; min-width: 115px; }
+.tc-partner  { width: 100px; min-width: 100px; }
+.tc-asin     { width: 80px;  min-width: 80px;  }
+.tc-upc      { width: 75px;  min-width: 75px;  }
+.tc-gtin     { width: 75px;  min-width: 75px;  }
+.tc-ean      { width: 75px;  min-width: 75px;  }
+
+/* Internal actions column is wider (Edit + Download + View) */
+.tc-actions  { width: 90px;  min-width: 90px;  }

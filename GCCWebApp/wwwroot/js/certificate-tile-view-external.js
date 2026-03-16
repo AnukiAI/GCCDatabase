@@ -35,6 +35,7 @@
         setupInfiniteScroll();
         setupUrlParameters();
         initializeAutocomplete();
+        initStickyTable();
     }
 
     // Load filter options from API
@@ -336,62 +337,156 @@
         animateCards();
     }
 
-    // Render certificates in table format
+    // Render certificates in table format (flex-based rows into #gridBody)
     function renderCertificatesTable() {
-        const grid = document.getElementById('certificatesGrid');
-        if (!grid) return;
+        const gridBody = document.getElementById('gridBody');
+        if (!gridBody) return;
 
-        const tableHtml = `
-            <div class="table-container">
-                <table class="certificates-table">
-                    <thead>
-                        <tr>
-                            <th>Certificate #</th>
-                            <th>Company</th>
-                            <th>Product</th>
-                            <th>Type</th>
-                            <th>Effective Date</th>
-                            <th>Expiration Date</th>
-                            <th>Location</th>
-                            <th>Partner</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${state.certificates.map(cert => createCertificateTableRow(cert)).join('')}
-                    </tbody>
-                </table>
-            </div>
-        `;
-        
-        grid.innerHTML = tableHtml;
+        if (!state.certificates || state.certificates.length === 0) {
+            gridBody.innerHTML = '<div class="no-results">No certificates found</div>';
+            return;
+        }
+
+        gridBody.innerHTML = state.certificates.map(cert => createCertificateTableRow(cert)).join('');
+
+        // Sync scroll sizes after rendering
+        requestAnimationFrame(syncScrollSizes);
+
+        // Update table results count
+        const tableResultsCount = document.getElementById('tableResultsCount');
+        if (tableResultsCount) {
+            const count = state.totalCount || state.certificates.length;
+            tableResultsCount.innerHTML = `Showing <strong>${count}</strong> certificates`;
+        }
+
+        // Setup select all and row checkbox handlers
+        setupSelectAllHandler();
+        document.querySelectorAll('.row-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', updateBulkActionsBar);
+        });
     }
 
-    // Create certificate table row
+    // Create certificate table row (flex-based for sticky header layout)
     function createCertificateTableRow(cert) {
-        const partnerBadge = cert.partner ? `<span class="partner-badge external">${escapeHtml(cert.partner)}</span>` : '';
+        const effectiveDate = cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A';
+        const expirationDate = cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A';
         const location = formatLocation(cert.location, cert.country);
+        const statusBadge = getStatusBadge(cert.status);
+
+        const certNumber = cert.certificateNumber || '';
+        const certType = cert.certificationType || '';
+        const company = cert.companyName || '';
+        const contact = cert.companyContact || '';
+        const product = cert.productName || '';
+        const category = cert.productCategory || '';
+        const type = cert.productType || '';
+        const subcategory = cert.productSubcategory || '';
+        const country = cert.country || '';
+        const extTags = cert.externalTags || '';
+        const asin = cert.asin || '';
+        const upc = cert.upc || '';
+        const gtin = cert.gtin || '';
+        const ean = cert.ean || '';
+
+        const countIds = (val) => {
+            if (!val || typeof val !== 'string' || val.trim() === '') return 0;
+            return val.split(',').map(s => s.trim()).filter(s => s.length > 0).length;
+        };
+
+        const asinCount = countIds(asin);
+        const upcCount = countIds(upc);
+        const gtinCount = countIds(gtin);
+        const eanCount = countIds(ean);
 
         return `
-            <tr class="certificate-row" data-id="${cert.id}" onclick="viewCertificateDetails('${cert.certificateNumber}')">
-                <td class="cert-number">${escapeHtml(cert.certificateNumber)}</td>
-                <td class="company-name">${escapeHtml(cert.companyName)}</td>
-                <td class="product-name">${escapeHtml(cert.productName)}</td>
-                <td class="cert-type">${escapeHtml(cert.certificationType)}</td>
-                <td class="effective-date">${formatDate(cert.effectiveDate)}</td>
-                <td class="expiration-date">${formatDate(cert.expirationDate)}</td>
-                <td class="location">${location}</td>
-                <td class="partner">${partnerBadge}</td>
-                <td class="actions">
-                    <button class="btn-icon" title="View Details" aria-label="View details for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); viewCertificateDetails('${cert.certificateNumber}')">
-                        <i class="fas fa-eye" aria-hidden="true"></i>
-                    </button>
-                    <button class="btn-icon" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(cert.certificateNumber)}" onclick="event.stopPropagation(); downloadCertificate('${cert.certificateNumber}')">
-                        <i class="fas fa-download" aria-hidden="true"></i>
-                    </button>
-                </td>
-            </tr>
+            <div class="table-body-row" data-cert-id="${cert.id}" data-cert-number="${escapeHtml(certNumber)}" role="row" onclick="viewCertificateDetails('${certNumber}')">
+                <div class="table-body-cell tc-select" role="gridcell">
+                    <input type="checkbox" class="row-checkbox" data-cert-id="${cert.id}" aria-label="Select certificate ${escapeHtml(certNumber)}" onclick="event.stopPropagation()">
+                </div>
+                <div class="table-body-cell tc-actions" role="gridcell">
+                    <div class="action-buttons">
+                        <button class="action-btn download-btn" onclick="event.stopPropagation(); downloadCertificate('${certNumber}')" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(certNumber)}">
+                            <i class="fas fa-download" aria-hidden="true"></i>
+                        </button>
+                        <button class="action-btn view-btn" onclick="event.stopPropagation(); viewCertificateDetails('${certNumber}')" title="View Details" aria-label="View details for certificate ${escapeHtml(certNumber)}">
+                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="table-body-cell tc-cert" title="${escapeHtml(certNumber)}" role="gridcell">${escapeHtml(certNumber)}</div>
+                <div class="table-body-cell tc-type" title="${escapeHtml(certType)}" role="gridcell">${escapeHtml(certType)}</div>
+                <div class="table-body-cell tc-status" role="gridcell">${statusBadge}</div>
+                <div class="table-body-cell tc-eff" role="gridcell">${effectiveDate}</div>
+                <div class="table-body-cell tc-exp" role="gridcell">${expirationDate}</div>
+                <div class="table-body-cell tc-company" title="${escapeHtml(company)}" role="gridcell">${escapeHtml(company)}</div>
+                <div class="table-body-cell tc-contact" title="${escapeHtml(contact)}" role="gridcell">${escapeHtml(contact)}</div>
+                <div class="table-body-cell tc-product" title="${escapeHtml(product)}" role="gridcell">${escapeHtml(product)}</div>
+                <div class="table-body-cell tc-prodcat" title="${escapeHtml(category)}" role="gridcell">${escapeHtml(category)}</div>
+                <div class="table-body-cell tc-prodtype" title="${escapeHtml(type)}" role="gridcell">${escapeHtml(type)}</div>
+                <div class="table-body-cell tc-prodsub" title="${escapeHtml(subcategory)}" role="gridcell">${escapeHtml(subcategory)}</div>
+                <div class="table-body-cell tc-location" title="${location}" role="gridcell">${location}</div>
+                <div class="table-body-cell tc-country" title="${escapeHtml(country)}" role="gridcell">${escapeHtml(country)}</div>
+                <div class="table-body-cell tc-exttag" title="${escapeHtml(extTags)}" role="gridcell">${escapeHtml(extTags)}</div>
+                <div class="table-body-cell tc-partner" title="${escapeHtml(cert.partner || '')}" role="gridcell">${escapeHtml(cert.partner || '')}</div>
+                <div class="table-body-cell tc-asin" data-ids="${escapeHtml(asin)}" title="Click to copy ASINs" role="gridcell">${asinCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(asin)}', 'ASIN')">${asinCount}</span>` : ''}</div>
+                <div class="table-body-cell tc-upc" data-ids="${escapeHtml(upc)}" title="Click to copy UPCs" role="gridcell">${upcCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(upc)}', 'UPC')">${upcCount}</span>` : ''}</div>
+                <div class="table-body-cell tc-gtin" data-ids="${escapeHtml(gtin)}" title="Click to copy GTINs" role="gridcell">${gtinCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(gtin)}', 'GTIN')">${gtinCount}</span>` : ''}</div>
+                <div class="table-body-cell tc-ean" data-ids="${escapeHtml(ean)}" title="Click to copy EANs" role="gridcell">${eanCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(ean)}', 'EAN')">${eanCount}</span>` : ''}</div>
+            </div>
         `;
+    }
+
+    // Setup select all handler for table view
+    function setupSelectAllHandler() {
+        const selectAllCheckbox = document.getElementById('selectAll');
+        if (selectAllCheckbox) {
+            selectAllCheckbox.addEventListener('change', function () {
+                const checkboxes = document.querySelectorAll('.row-checkbox');
+                checkboxes.forEach(cb => { cb.checked = selectAllCheckbox.checked; });
+                updateBulkActionsBar();
+            });
+        }
+    }
+
+    // Update bulk actions bar based on selection
+    function updateBulkActionsBar() {
+        const selectedCheckboxes = document.querySelectorAll('.row-checkbox:checked');
+        const bulkActionsBar = document.getElementById('bulkActionsBar');
+        const selectedCount = document.getElementById('selectedCount');
+
+        if (bulkActionsBar && selectedCount) {
+            if (selectedCheckboxes.length > 0) {
+                bulkActionsBar.style.display = 'flex';
+                selectedCount.textContent = `${selectedCheckboxes.length} certificate${selectedCheckboxes.length !== 1 ? 's' : ''} selected`;
+            } else {
+                bulkActionsBar.style.display = 'none';
+            }
+        }
+
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const allCheckboxes = document.querySelectorAll('.row-checkbox');
+        if (selectAllCheckbox && allCheckboxes.length > 0) {
+            selectAllCheckbox.checked = selectedCheckboxes.length === allCheckboxes.length;
+            selectAllCheckbox.indeterminate = selectedCheckboxes.length > 0 && selectedCheckboxes.length < allCheckboxes.length;
+        }
+    }
+
+    // Copy product IDs to clipboard
+    function copyIdsToClipboard(idsString, idType) {
+        if (!idsString) return;
+        const ids = idsString.split(',').map(s => s.trim()).filter(s => s.length > 0);
+        const excelText = ids.join('\n');
+        navigator.clipboard.writeText(excelText).then(() => {
+            showToast(`${ids.length} ${idType}(s) copied - paste into Excel column`, 'success');
+        }).catch(() => {
+            const textarea = document.createElement('textarea');
+            textarea.value = excelText;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast(`${ids.length} ${idType}(s) copied - paste into Excel column`, 'success');
+        });
     }
 
     // Setup event listeners
@@ -820,6 +915,19 @@
         return parts.join(', ') || 'N/A';
     }
 
+    function getStatusBadge(status) {
+        const statusClasses = {
+            'Active': 'status-active',
+            'Valid': 'status-valid',
+            'Expired': 'status-expired',
+            'Pending': 'status-pending',
+            'Revoked': 'status-revoked',
+            'Draft': 'status-draft'
+        };
+        const cssClass = statusClasses[status] || 'status-default';
+        return `<span class="status-badge ${cssClass}">${escapeHtml(status)}</span>`;
+    }
+
     function showLoadingIndicator() {
         const grid = document.getElementById('certificatesGrid');
         if (!grid) return;
@@ -868,21 +976,137 @@
         });
         document.querySelector(`[data-view="${viewType}"]`).classList.add('active');
 
-        // Get the certificates grid container
-        const gridContainer = document.getElementById('certificatesGrid');
-        if (!gridContainer) return;
+        const tileView = document.getElementById('certificatesGrid');
+        const tableView = document.getElementById('tableView');
 
-        if (viewType === 'table') {
-            // Switch to table view
-            gridContainer.classList.add('table-view');
-            gridContainer.classList.remove('tile-view');
-            renderCertificatesTable();
+        if (viewType === 'list') {
+            // Show table view, hide tiles
+            if (tileView) tileView.classList.add('hidden-for-table');
+            if (tableView) {
+                tableView.style.display = 'block';
+                renderCertificatesTable();
+            }
+            document.body.classList.add('table-view-active');
         } else {
-            // Switch to tile view (default)
-            gridContainer.classList.remove('table-view');
-            gridContainer.classList.add('tile-view');
+            // Show tile view, hide table
+            if (tableView) tableView.style.display = 'none';
+            if (tileView) tileView.classList.remove('hidden-for-table');
+            document.body.classList.remove('table-view-active');
             renderCertificatesTiles();
         }
+    }
+
+    // ================================================================
+    // STICKY TABLE: Scroll sync + sticky shadow (no column toggle for external)
+    // ================================================================
+
+    function initStickyTable() {
+        const stickyBlock = document.getElementById('stickyTableBlock');
+        const scrollbarRow = document.getElementById('stickyScrollbar');
+        const headerRow = document.getElementById('stickyHeaderRow');
+        const bodyWrap = document.getElementById('tableBodyWrap');
+        const scrollbarSizer = document.querySelector('#stickyScrollbar .scrollbar-sizer');
+
+        if (!stickyBlock || !scrollbarRow || !headerRow || !bodyWrap || !scrollbarSizer) return;
+
+        // 3-way scroll sync
+        let syncing = false;
+
+        scrollbarRow.addEventListener('scroll', function () {
+            if (syncing) return;
+            syncing = true;
+            headerRow.scrollLeft = scrollbarRow.scrollLeft;
+            bodyWrap.scrollLeft = scrollbarRow.scrollLeft;
+            syncing = false;
+        });
+
+        bodyWrap.addEventListener('scroll', function () {
+            if (syncing) return;
+            syncing = true;
+            scrollbarRow.scrollLeft = bodyWrap.scrollLeft;
+            headerRow.scrollLeft = bodyWrap.scrollLeft;
+            syncing = false;
+        });
+
+        // Sticky shadow detection
+        window.addEventListener('scroll', function () {
+            stickyBlock.classList.toggle('stuck', stickyBlock.getBoundingClientRect().top <= 0);
+        }, { passive: true });
+
+        // Sync sizes on window resize
+        window.addEventListener('resize', syncScrollSizes);
+
+        // Setup sort headers
+        setupTableColumnSort();
+    }
+
+    function syncScrollSizes() {
+        const bodyInner = document.getElementById('gridBody');
+        const scrollbarSizer = document.querySelector('#stickyScrollbar .scrollbar-sizer');
+        const headerInner = document.querySelector('#stickyHeaderRow .sticky-header-inner');
+
+        if (!bodyInner || !scrollbarSizer) return;
+
+        const w = bodyInner.scrollWidth;
+        scrollbarSizer.style.width = w + 'px';
+        if (headerInner) {
+            headerInner.style.minWidth = w + 'px';
+        }
+    }
+
+    // Setup table column sort click handlers for external view
+    function setupTableColumnSort() {
+        document.querySelectorAll('.sticky-header-cell[data-sort-column]').forEach(header => {
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', () => {
+                const column = header.dataset.sortColumn;
+                const sortMap = {
+                    'certificate': 'cert-number-newest',
+                    'certificationType': 'cert-type',
+                    'status': 'status',
+                    'effectiveDate': 'newest',
+                    'expirationDate': 'expiring',
+                    'company': 'company-az',
+                    'productName': 'product-az',
+                    'productCategory': 'product-type',
+                    'productType': 'product-type',
+                    'location': 'location-az',
+                    'country': 'country',
+                    'partner': 'partner'
+                };
+
+                const sortValue = sortMap[column] || 'newest';
+
+                const currentDir = header.dataset.sortDir || 'asc';
+                const newDir = currentDir === 'asc' ? 'desc' : 'asc';
+                header.dataset.sortDir = newDir;
+
+                const reverseSortMap = {
+                    'cert-number-newest': 'cert-number-oldest',
+                    'cert-type': 'cert-type-za',
+                    'newest': 'oldest-effective',
+                    'expiring': 'longest-validity',
+                    'company-az': 'company-za',
+                    'product-az': 'product-za',
+                    'location-az': 'location-za',
+                    'country': 'country-za'
+                };
+
+                const finalSort = newDir === 'desc' ? (reverseSortMap[sortValue] || sortValue) : sortValue;
+
+                // Update sort icons
+                document.querySelectorAll('.sticky-header-cell .sort-icon').forEach(icon => {
+                    icon.textContent = '\u25BC';
+                });
+                const sortIcon = header.querySelector('.sort-icon');
+                if (sortIcon) {
+                    sortIcon.textContent = newDir === 'asc' ? '\u25B2' : '\u25BC';
+                }
+
+                state.filters.sortBy = finalSort;
+                loadInitialCertificates();
+            });
+        });
     }
 
     function showToast(message, type = 'success') {
@@ -898,6 +1122,8 @@
     }
 
     // Export functions for global access
+    window.copyIdsToClipboard = copyIdsToClipboard;
+
     window.certificateTileViewExternal = {
         viewCertificate: viewCertificate,
         downloadCertificate: downloadCertificate,

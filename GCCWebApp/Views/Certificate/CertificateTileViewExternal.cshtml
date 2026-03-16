@@ -309,7 +309,7 @@
 
         <!-- TABLE VIEW CONTAINER -->
         <div id="tableView" class="view-container" style="display: none;">
-            <!-- Bulk Actions Bar - Compact Selection Info Only -->
+            <!-- Bulk Actions Bar -->
             <div class="bulk-actions-bar" style="display: none;" id="bulkActionsBar" role="region" aria-label="Bulk actions">
                 <div class="bulk-actions-left">
                     <span class="selected-count" id="selectedCount" aria-live="polite" aria-atomic="true">0 certificates selected</span>
@@ -317,106 +317,53 @@
                 </div>
             </div>
 
-            <!-- Table Grid Container -->
-            <div class="table-scroll-wrapper">
-                <div class="table-grid-container">
-                    <div class="table-grid" id="certificateGrid" role="table" aria-label="Certificates data table" aria-describedby="tableDescription">
-                        <div id="tableDescription" class="admin-sr-only">
-                            Table showing certificate information including number, type, status, dates, company, and product details. Use arrow keys to navigate cells.
-                        </div>
-
-                        <!-- HEADER ROW -->
-                        <div class="grid-header" role="rowgroup">
-                            <div class="grid-header-cell select-cell" role="columnheader">
-                                <input type="checkbox" id="selectAll" title="Select all visible rows" aria-label="Select all certificates">
-                            </div>
-                            <div class="grid-header-cell actions-column" role="columnheader">
-                                <span>Actions</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="certificate" role="columnheader">
-                                Certificate #
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="certificationType" role="columnheader">
-                                Certification Type
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="status" role="columnheader">
-                                Status
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="effectiveDate" role="columnheader">
-                                Effective Date
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="expirationDate" role="columnheader">
-                                Expiration Date
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="company" role="columnheader">
-                                Company
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="companyContact" role="columnheader">
-                                Company Contact Email/URL
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="productName" role="columnheader">
-                                Product Name
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="productCategory" role="columnheader">
-                                Product Category
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="productType" role="columnheader">
-                                Product Type
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="productSubcategory" role="columnheader">
-                                Product Type Subcategory
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="location" role="columnheader">
-                                Location
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="country" role="columnheader">
-                                Country
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="externalTag" role="columnheader">
-                                External Tag
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <!-- Internal Tag column omitted for External users -->
-                            <div class="grid-header-cell" data-sort-column="partner" role="columnheader">
-                                Partner
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="asin" role="columnheader">
-                                ASIN
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="upc" role="columnheader">
-                                UPC
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="gtin" role="columnheader">
-                                GTIN
-                                <span class="sort-icon">▼</span>
-                            </div>
-                            <div class="grid-header-cell" data-sort-column="ean" role="columnheader">
-                                EAN
-                                <span class="sort-icon">▼</span>
-                            </div>
-                        </div>
-
-                        <!-- BODY CONTAINER -->
-                        <div class="grid-body" id="gridBody" role="rowgroup">
-                            <!-- Grid rows will be populated here - equivalent to tableBody -->
-                        </div>
+            <!-- STICKY BLOCK: Toolbar + Scrollbar + Headers (no column toggle for external) -->
+            <div class="sticky-table-block" id="stickyTableBlock">
+                <!-- Toolbar Row -->
+                <div class="table-toolbar-row">
+                    <div class="table-toolbar-left">
+                        <span id="tableResultsCount">Showing <strong>0</strong> certificates</span>
                     </div>
+                </div>
+
+                <!-- Sticky Scrollbar -->
+                <div class="sticky-scrollbar-row" id="stickyScrollbar">
+                    <div class="scrollbar-sizer" id="scrollbarSizer"></div>
+                </div>
+
+                <!-- Sticky Column Headers -->
+                <div class="sticky-header-row" id="stickyHeaderRow">
+                    <div class="sticky-header-inner" id="stickyHeaderInner">
+                        <div class="sticky-header-cell tc-select"><input type="checkbox" id="selectAll" title="Select all visible rows" aria-label="Select all certificates"></div>
+                        <div class="sticky-header-cell tc-actions">Actions</div>
+                        <div class="sticky-header-cell tc-cert" data-sort-column="certificate">Certificate # <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-type" data-sort-column="certificationType">Certification Type <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-status" data-sort-column="status">Status <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-eff" data-sort-column="effectiveDate">Effective Date <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-exp" data-sort-column="expirationDate">Expiration Date <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-company" data-sort-column="company">Company <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-contact" data-sort-column="companyContact">Contact <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-product" data-sort-column="productName">Product Name <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-prodcat" data-sort-column="productCategory">Product Category <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-prodtype" data-sort-column="productType">Product Type <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-prodsub" data-sort-column="productSubcategory">Subcategory <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-location" data-sort-column="location">Location <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-country" data-sort-column="country">Country <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-exttag" data-sort-column="externalTag">External Tag <span class="sort-icon">▼</span></div>
+                        <!-- Internal Tag column omitted for External users -->
+                        <div class="sticky-header-cell tc-partner" data-sort-column="partner">Partner <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-asin" data-sort-column="asin">ASIN <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-upc" data-sort-column="upc">UPC <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-gtin" data-sort-column="gtin">GTIN <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-ean" data-sort-column="ean">EAN <span class="sort-icon">▼</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Table Body (scrollable, native bottom scrollbar hidden) -->
+            <div class="table-body-wrap" id="tableBodyWrap">
+                <div class="table-body-inner" id="gridBody" role="table" aria-label="Certificates data table">
+                    <!-- Rows rendered by JS -->
                 </div>
             </div>
         </div>

@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sticky Scrollbar + Sticky Headers - Certificate Table</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #1a5276;
+            --primary-light: #2980b9;
+            --primary-hover: #154360;
+            --success: #27ae60;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --white: #ffffff;
+            --gray-50: #f8f9fa;
+            --gray-100: #f0f0f0;
+            --gray-200: #e0e0e0;
+            --gray-300: #ccc;
+            --gray-500: #6c757d;
+            --gray-700: #495057;
+            --gray-900: #212529;
+            --border-color: #e0e0e0;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 25px rgba(0,0,0,0.15);
+            --radius: 6px;
+            --font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: var(--font-family); font-size: 16px; color: var(--gray-900); background: var(--gray-50); line-height: 1.5; }
+
+        /* Page Header (scrolls away) */
+        .page-header-bar { background: var(--primary); color: var(--white); padding: 16px 24px; }
+        .page-header-bar h1 { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+        .page-header-bar p { font-size: 14px; opacity: 0.85; }
+
+        .demo-note { background: #fff8e1; border: 1px solid #ffe082; border-radius: var(--radius); padding: 10px 14px; font-size: 13px; color: #795548; margin: 16px 24px; }
+        .demo-note i { color: var(--warning); margin-right: 6px; }
+
+        .feature-callout { display: flex; gap: 16px; margin: 0 24px 16px; flex-wrap: wrap; }
+        .callout-card { flex: 1; min-width: 180px; background: var(--white); border: 1px solid var(--border-color); border-radius: var(--radius); padding: 12px 16px; }
+        .callout-card h4 { font-size: 13px; font-weight: 700; color: var(--primary); margin-bottom: 4px; }
+        .callout-card p { font-size: 12px; color: var(--gray-500); }
+
+        /* Buttons */
+        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1px solid var(--border-color); border-radius: var(--radius); background: var(--white); color: var(--gray-700); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+        .btn:hover { background: var(--gray-50); border-color: var(--gray-300); }
+        .btn-primary { background: var(--primary); color: var(--white); border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-hover); }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .badge-primary { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px; font-size: 11px; font-weight: 600; background: var(--primary-light); color: var(--white); }
+
+        /* ============================================================
+           SINGLE STICKY WRAPPER
+           Contains: Toolbar + Scrollbar + Header
+           This is the ONLY sticky element - avoids cascading sticky bugs
+           ============================================================ */
+        .sticky-top-block {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            margin: 0 24px;
+            background: var(--white);
+            border: 1px solid var(--border-color);
+            border-bottom: none;
+            box-shadow: none;
+            transition: box-shadow 0.2s;
+        }
+        .sticky-top-block.stuck {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        /* --- Toolbar row --- */
+        .toolbar-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 16px; gap: 12px; flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--white);
+        }
+        .toolbar-left { display: flex; align-items: center; gap: 10px; }
+        .toolbar-right { display: flex; align-items: center; gap: 10px; }
+
+        /* --- Scrollbar row --- */
+        .scrollbar-row {
+            overflow-x: auto;
+            overflow-y: hidden;
+            background: var(--gray-100);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .scrollbar-row::-webkit-scrollbar { height: 12px; }
+        .scrollbar-row::-webkit-scrollbar-track { background: var(--gray-100); }
+        .scrollbar-row::-webkit-scrollbar-thumb { background: var(--gray-300); border-radius: 6px; border: 2px solid var(--gray-100); }
+        .scrollbar-row::-webkit-scrollbar-thumb:hover { background: var(--gray-500); }
+        .scrollbar-row { scrollbar-width: thin; scrollbar-color: var(--gray-300) var(--gray-100); }
+        .scrollbar-sizer { height: 1px; }
+
+        /* --- Header row --- */
+        .header-row {
+            overflow: hidden;
+            background: var(--gray-50);
+            border-bottom: 2px solid var(--primary-light);
+        }
+        .header-inner {
+            display: flex;
+            width: max-content;
+            min-width: 100%;
+        }
+        .header-cell {
+            padding: 10px 12px;
+            font-weight: 600; font-size: 12px; color: var(--gray-700);
+            white-space: nowrap; cursor: pointer; flex-shrink: 0;
+            user-select: none; display: flex; align-items: center; gap: 4px;
+            transition: background 0.15s;
+        }
+        .header-cell:hover { background: var(--gray-200); }
+        .header-cell .sort-icon { color: var(--gray-300); font-size: 10px; }
+
+        /* Column widths (shared between header and body) */
+        .col-select   { width: 36px;  min-width: 36px;  text-align: center; justify-content: center; }
+        .col-actions  { width: 90px;  min-width: 90px;  text-align: center; justify-content: center; }
+        .col-cert     { width: 120px; min-width: 120px; }
+        .col-type     { width: 140px; min-width: 140px; }
+        .col-status   { width: 100px; min-width: 100px; }
+        .col-eff      { width: 100px; min-width: 100px; }
+        .col-exp      { width: 100px; min-width: 100px; }
+        .col-company  { width: 170px; min-width: 170px; }
+        .col-contact  { width: 180px; min-width: 180px; }
+        .col-product  { width: 160px; min-width: 160px; }
+        .col-prodcat  { width: 120px; min-width: 120px; }
+        .col-prodtype { width: 120px; min-width: 120px; }
+        .col-prodsub  { width: 130px; min-width: 130px; }
+        .col-location { width: 100px; min-width: 100px; }
+        .col-country  { width: 90px;  min-width: 90px;  }
+        .col-exttag   { width: 100px; min-width: 100px; }
+        .col-inttag   { width: 100px; min-width: 100px; }
+        .col-partner  { width: 100px; min-width: 100px; }
+        .col-asin     { width: 70px;  min-width: 70px;  }
+        .col-upc      { width: 70px;  min-width: 70px;  }
+        .col-gtin     { width: 70px;  min-width: 70px;  }
+        .col-ean      { width: 70px;  min-width: 70px;  }
+
+        /* ============================================================
+           TABLE BODY
+           ============================================================ */
+        .table-body-wrap {
+            margin: 0 24px 40px;
+            border: 1px solid var(--border-color);
+            border-top: none;
+            border-radius: 0 0 var(--radius) var(--radius);
+            background: var(--white);
+            overflow-x: auto;
+        }
+        /* Hide native scrollbar on body - sticky one is the primary */
+        .table-body-wrap::-webkit-scrollbar { height: 0; }
+        .table-body-wrap { scrollbar-width: none; }
+
+        .body-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; }
+        .body-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--gray-100);
+            white-space: nowrap; color: var(--gray-700);
+        }
+        .body-table tr:hover td { background: #f0f7ff; }
+        .body-table tr:nth-child(even) td { background: var(--gray-50); }
+        .body-table tr:nth-child(even):hover td { background: #f0f7ff; }
+
+        /* Cell styles */
+        .status-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+        .status-active { background: #e8f5e9; color: #2e7d32; }
+        .status-pending { background: #fff3e0; color: #e65100; }
+        .status-expired { background: #fce4ec; color: #c62828; }
+        .status-review { background: #e3f2fd; color: #1565c0; }
+        .id-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 24px; height: 22px; padding: 0 6px; border-radius: 4px; font-size: 11px; font-weight: 600; background: #e3f2fd; color: var(--primary); cursor: pointer; }
+        .col-hidden { display: none !important; }
+
+        /* ============================================================
+           COLUMN PICKER DROPDOWN
+           ============================================================ */
+        .dropdown-wrap { position: relative; }
+        .col-dropdown {
+            display: none; position: absolute; top: 100%; right: 0; margin-top: 4px;
+            background: var(--white); border: 1px solid var(--border-color); border-radius: var(--radius);
+            box-shadow: var(--shadow-lg); width: 300px; max-height: 450px; overflow-y: auto; z-index: 200;
+        }
+        .col-dropdown.open { display: block; }
+        .col-dropdown .dd-header {
+            padding: 10px 14px; font-size: 13px; font-weight: 700; color: var(--gray-700);
+            border-bottom: 1px solid var(--border-color);
+            display: flex; justify-content: space-between; align-items: center;
+            position: sticky; top: 0; background: var(--white); z-index: 1;
+        }
+        .col-dropdown .dd-header a { font-size: 12px; color: var(--primary-light); text-decoration: none; font-weight: 500; cursor: pointer; }
+        .toggle-divider { padding: 6px 14px 4px; font-size: 11px; font-weight: 700; color: var(--gray-500); text-transform: uppercase; letter-spacing: 0.5px; background: var(--gray-50); border-bottom: 1px solid var(--border-color); }
+        .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 7px 14px; border-bottom: 1px solid var(--gray-100); }
+        .toggle-row:hover { background: var(--gray-50); }
+        .toggle-row.disabled { opacity: 0.5; pointer-events: none; }
+        .toggle-label { font-size: 13px; color: var(--gray-700); display: flex; align-items: center; gap: 8px; }
+        .toggle-label .col-icon { width: 20px; text-align: center; color: var(--gray-500); font-size: 12px; }
+        .toggle-switch { position: relative; width: 36px; height: 20px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--gray-200); border-radius: 10px; transition: 0.2s; }
+        .toggle-slider:before { content: ""; position: absolute; height: 16px; width: 16px; left: 2px; bottom: 2px; background: var(--white); border-radius: 50%; transition: 0.2s; box-shadow: 0 1px 2px rgba(0,0,0,0.2); }
+        .toggle-switch input:checked + .toggle-slider { background: var(--primary-light); }
+        .toggle-switch input:checked + .toggle-slider:before { transform: translateX(16px); }
+    </style>
+</head>
+<body>
+
+<div class="page-header-bar">
+    <h1>Sticky Scrollbar + Sticky Headers Demo</h1>
+    <p>One sticky block: Toolbar + Horizontal Scrollbar + Column Headers. All pin to the top together as you scroll down through 30 rows.</p>
+</div>
+
+<div class="demo-note">
+    <i class="fas fa-info-circle"></i>
+    <strong>Try it:</strong> Scroll down - the toolbar, scrollbar, and headers all stick to the top as a single unit. Use the scrollbar to pan left/right. Toggle columns with the "Columns" button.
+</div>
+<div class="feature-callout">
+    <div class="callout-card">
+        <h4><i class="fas fa-arrows-left-right"></i> Sticky Scrollbar</h4>
+        <p>Always reachable at the top. No scrolling to the bottom to find it.</p>
+    </div>
+    <div class="callout-card">
+        <h4><i class="fas fa-thumbtack"></i> Sticky Headers</h4>
+        <p>Column names always visible. Never lose context.</p>
+    </div>
+    <div class="callout-card">
+        <h4><i class="fas fa-sliders-h"></i> Column Toggle</h4>
+        <p>Toggle switches to show/hide columns. Header and body stay synced.</p>
+    </div>
+    <div class="callout-card">
+        <h4><i class="fas fa-sync-alt"></i> Synced Scroll</h4>
+        <p>Scrollbar, header, and body move together horizontally.</p>
+    </div>
+</div>
+
+<!-- ============================================================
+     SINGLE STICKY BLOCK: Toolbar + Scrollbar + Headers
+     ============================================================ -->
+<div class="sticky-top-block" id="stickyBlock">
+
+    <!-- Toolbar -->
+    <div class="toolbar-row">
+        <div class="toolbar-left">
+            <button class="btn btn-sm"><i class="fas fa-check-square"></i> Select All</button>
+            <button class="btn btn-sm btn-primary"><i class="fas fa-file-csv"></i> Export CSV</button>
+            <span style="font-size:13px; color:var(--gray-500);">Showing <strong>30</strong> certificates</span>
+        </div>
+        <div class="toolbar-right">
+            <button class="btn btn-sm"><i class="fas fa-plus"></i> Add Certificate</button>
+            <div class="dropdown-wrap">
+                <button class="btn btn-sm" onclick="toggleDropdown()">
+                    <i class="fas fa-sliders-h"></i> Columns <span class="badge-primary" id="colCount">20</span>
+                </button>
+                <div class="col-dropdown" id="colDropdown">
+                    <div class="dd-header">
+                        <span>Column Settings</span>
+                        <a href="#" onclick="resetAllCols(); return false;">Show All</a>
+                    </div>
+                    <div class="toggle-divider">Core Fields</div>
+                    <div class="toggle-row disabled"><span class="toggle-label"><span class="col-icon"><i class="fas fa-check-square"></i></span> Select</span><label class="toggle-switch"><input type="checkbox" checked disabled><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row disabled"><span class="toggle-label"><span class="col-icon"><i class="fas fa-ellipsis-h"></i></span> Actions</span><label class="toggle-switch"><input type="checkbox" checked disabled><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-hashtag"></i></span> Certificate #</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('cert', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-certificate"></i></span> Cert Type</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('type', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-circle-check"></i></span> Status</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('status', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-calendar"></i></span> Effective Date</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('eff', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-calendar-xmark"></i></span> Expiration Date</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('exp', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-divider">Company & Product</div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-building"></i></span> Company</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('company', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-envelope"></i></span> Contact</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('contact', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-box"></i></span> Product</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('product', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-folder"></i></span> Category</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('prodcat', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-tag"></i></span> Prod Type</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('prodtype', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-tags"></i></span> Subcategory</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('prodsub', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-divider">Location & Tags</div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-map-pin"></i></span> Location</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('location', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-globe"></i></span> Country</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('country', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-tag"></i></span> Ext Tag</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('exttag', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-lock"></i></span> Int Tag</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('inttag', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-handshake"></i></span> Partner</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('partner', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-divider">Product IDs</div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-barcode"></i></span> ASIN</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('asin', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-barcode"></i></span> UPC</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('upc', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-barcode"></i></span> GTIN</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('gtin', this.checked)"><span class="toggle-slider"></span></label></div>
+                    <div class="toggle-row"><span class="toggle-label"><span class="col-icon"><i class="fas fa-barcode"></i></span> EAN</span><label class="toggle-switch"><input type="checkbox" checked onchange="toggleCol('ean', this.checked)"><span class="toggle-slider"></span></label></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scrollbar -->
+    <div class="scrollbar-row" id="scrollbarRow">
+        <div class="scrollbar-sizer" id="scrollbarSizer"></div>
+    </div>
+
+    <!-- Column Headers -->
+    <div class="header-row" id="headerRow">
+        <div class="header-inner" id="headerInner">
+            <div class="header-cell col-select"><input type="checkbox" id="selectAll"></div>
+            <div class="header-cell col-actions">Actions</div>
+            <div class="header-cell col-cert">Cert # <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-type">Type <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-status">Status <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-eff">Effective <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-exp">Expiration <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-company">Company <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-contact">Contact <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-product">Product <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-prodcat">Category <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-prodtype">Prod Type <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-prodsub">Subcategory <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-location">Location <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-country">Country <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-exttag">Ext Tag <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-inttag">Int Tag <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-partner">Partner <i class="fas fa-sort sort-icon"></i></div>
+            <div class="header-cell col-asin">ASIN</div>
+            <div class="header-cell col-upc">UPC</div>
+            <div class="header-cell col-gtin">GTIN</div>
+            <div class="header-cell col-ean">EAN</div>
+        </div>
+    </div>
+</div>
+
+<!-- ============================================================
+     TABLE BODY (scrollable, bottom scrollbar hidden)
+     ============================================================ -->
+<div class="table-body-wrap" id="tableBodyWrap">
+    <table class="body-table" id="bodyTable">
+        <tbody id="tableBody"></tbody>
+    </table>
+</div>
+
+<script>
+    // ---- GENERATE 30 ROWS ----
+    var companies = ['Green Valley Farms', "Nature's Best LLC", 'Tropical Imports Co', "Baker's Delight", 'Sunrise Organics', 'Pacific Health Co', 'Mountain Pure Inc', 'Golden Harvest', 'Coastal Naturals', 'Prairie Fields Co'];
+    var contacts = ['info@greenvalley.com', 'certs@naturesbest.com', 'admin@tropical.com', 'hello@bakers.com', 'cert@sunrise.com', 'team@pacific.com', 'verify@mountain.com', 'qa@golden.com', 'certs@coastal.com', 'admin@prairie.com'];
+    var products = ['Organic Hemp Oil', 'Almond Butter', 'Dark Chocolate Bar', 'Bread Mix', 'Green Tea Extract', 'Protein Powder', 'Coconut Oil', 'Quinoa Flour', 'Honey Blend', 'Oat Milk'];
+    var certTypes = ['Organic', 'Non-GMO', 'Fair Trade', 'Gluten Free', 'Vegan', 'Kosher'];
+    var statuses = [
+        { label: 'Active', cls: 'status-active' },
+        { label: 'Pending', cls: 'status-pending' },
+        { label: 'Expired', cls: 'status-expired' },
+        { label: 'In Review', cls: 'status-review' }
+    ];
+    var categories = ['Health', 'Food', 'Beverage', 'Personal Care'];
+    var prodTypes = ['Supplements', 'Spreads', 'Confectionery', 'Bakery', 'Extracts', 'Powders'];
+    var subCats = ['Oils', 'Nut Butters', 'Chocolate', 'Mixes', 'Tinctures', 'Blends'];
+    var locations = ['Colorado', 'California', 'Oregon', 'Texas', 'Washington', 'New York', 'Florida', 'Vermont'];
+    var extTags = ['Premium', 'Verified', 'New', 'Standard', '\u2014'];
+    var intTags = ['Priority', 'Standard', 'Review', 'Archive', 'Urgent'];
+    var partners = ['Amazon', 'Novi', 'Other'];
+
+    function rand(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+    function randInt(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+
+    var tbody = document.getElementById('tableBody');
+    for (var i = 0; i < 30; i++) {
+        var s = rand(statuses);
+        var mo = String(randInt(1, 12)).padStart(2, '0');
+        var dy = String(randInt(1, 28)).padStart(2, '0');
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td class="col-select"><input type="checkbox"></td>' +
+            '<td class="col-actions"><i class="fas fa-edit" style="color:var(--primary-light);cursor:pointer;margin-right:4px"></i><i class="fas fa-download" style="color:var(--gray-500);cursor:pointer;margin-right:4px"></i><i class="fas fa-eye" style="color:var(--gray-500);cursor:pointer"></i></td>' +
+            '<td class="col-cert">24-' + (1605 - i) + '</td>' +
+            '<td class="col-type">' + rand(certTypes) + '</td>' +
+            '<td class="col-status"><span class="status-badge ' + s.cls + '">' + s.label + '</span></td>' +
+            '<td class="col-eff">' + mo + '/' + dy + '/2024</td>' +
+            '<td class="col-exp">' + mo + '/' + dy + '/2025</td>' +
+            '<td class="col-company">' + rand(companies) + '</td>' +
+            '<td class="col-contact">' + rand(contacts) + '</td>' +
+            '<td class="col-product">' + rand(products) + '</td>' +
+            '<td class="col-prodcat">' + rand(categories) + '</td>' +
+            '<td class="col-prodtype">' + rand(prodTypes) + '</td>' +
+            '<td class="col-prodsub">' + rand(subCats) + '</td>' +
+            '<td class="col-location">' + rand(locations) + '</td>' +
+            '<td class="col-country">USA</td>' +
+            '<td class="col-exttag">' + rand(extTags) + '</td>' +
+            '<td class="col-inttag">' + rand(intTags) + '</td>' +
+            '<td class="col-partner">' + rand(partners) + '</td>' +
+            '<td class="col-asin"><span class="id-badge">' + randInt(0, 8) + '</span></td>' +
+            '<td class="col-upc"><span class="id-badge">' + randInt(0, 5) + '</span></td>' +
+            '<td class="col-gtin"><span class="id-badge">' + randInt(0, 3) + '</span></td>' +
+            '<td class="col-ean"><span class="id-badge">' + randInt(0, 2) + '</span></td>';
+        tbody.appendChild(tr);
+    }
+
+    // ---- SCROLL SYNC (3-way: scrollbar <-> header <-> body) ----
+    var scrollbarRow = document.getElementById('scrollbarRow');
+    var headerRow = document.getElementById('headerRow');
+    var tableBodyWrap = document.getElementById('tableBodyWrap');
+    var scrollbarSizer = document.getElementById('scrollbarSizer');
+    var bodyTable = document.getElementById('bodyTable');
+    var syncing = false;
+
+    function syncSizes() {
+        var w = bodyTable.scrollWidth;
+        scrollbarSizer.style.width = w + 'px';
+        document.getElementById('headerInner').style.minWidth = w + 'px';
+    }
+
+    scrollbarRow.addEventListener('scroll', function () {
+        if (syncing) return;
+        syncing = true;
+        headerRow.scrollLeft = scrollbarRow.scrollLeft;
+        tableBodyWrap.scrollLeft = scrollbarRow.scrollLeft;
+        syncing = false;
+    });
+
+    tableBodyWrap.addEventListener('scroll', function () {
+        if (syncing) return;
+        syncing = true;
+        scrollbarRow.scrollLeft = tableBodyWrap.scrollLeft;
+        headerRow.scrollLeft = tableBodyWrap.scrollLeft;
+        syncing = false;
+    });
+
+    syncSizes();
+    window.addEventListener('resize', syncSizes);
+
+    // ---- STICKY SHADOW ----
+    var stickyBlock = document.getElementById('stickyBlock');
+    window.addEventListener('scroll', function () {
+        stickyBlock.classList.toggle('stuck', stickyBlock.getBoundingClientRect().top <= 0);
+    }, { passive: true });
+
+    // ---- COLUMN TOGGLE ----
+    function toggleCol(key, show) {
+        document.querySelectorAll('.col-' + key).forEach(function (el) {
+            el.classList.toggle('col-hidden', !show);
+        });
+        updateCount();
+        requestAnimationFrame(syncSizes);
+    }
+
+    function updateCount() {
+        var n = 0;
+        document.querySelectorAll('#colDropdown .toggle-row:not(.disabled) input[type="checkbox"]').forEach(function (cb) {
+            if (cb.checked) n++;
+        });
+        document.getElementById('colCount').textContent = n;
+    }
+
+    function resetAllCols() {
+        document.querySelectorAll('#colDropdown .toggle-row:not(.disabled) input[type="checkbox"]').forEach(function (cb) { cb.checked = true; });
+        document.querySelectorAll('.col-hidden').forEach(function (el) { el.classList.remove('col-hidden'); });
+        updateCount();
+        requestAnimationFrame(syncSizes);
+    }
+
+    // ---- DROPDOWN ----
+    function toggleDropdown() {
+        document.getElementById('colDropdown').classList.toggle('open');
+    }
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('.dropdown-wrap')) {
+            document.getElementById('colDropdown').classList.remove('open');
+        }
+    });
+</script>
+
+</body>
+</html>

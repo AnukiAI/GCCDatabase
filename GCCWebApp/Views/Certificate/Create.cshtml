@@ -314,8 +314,10 @@
                 </div>
                 <div class="form-group">
                     <label for="certificatePdf">Upload PDF Certificate <span class="text-danger" aria-label="required">*</span></label>
-                    <div class="pdf-upload" id="pdfUploadZone" role="button" tabindex="0" aria-label="Upload PDF certificate. Press Enter or Space to browse files, or drag and drop a PDF file here. Maximum file size 10MB." onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificatePdf').click();}">
-                        <i class="fas fa-file-pdf" style="font-size: 48px; color: #FFC107; margin-bottom: 12px;" aria-hidden="true"></i>
+                    <div class="pdf-upload-zone" id="pdfUploadZone" role="button" tabindex="0" aria-label="Upload PDF certificate. Press Enter or Space to browse files, or drag and drop a PDF file here. Maximum file size 10MB." onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificatePdf').click();}">
+                        <div class="pdf-upload-placeholder">
+                            <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                        </div>
                         <div class="pdf-upload-text">Drag and drop PDF here or click to select</div>
                         <small style="color: #6c757d; font-size: 16px;">Maximum file size: 10MB</small>
                     </div>

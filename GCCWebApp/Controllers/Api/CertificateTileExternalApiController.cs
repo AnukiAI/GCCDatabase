@@ -201,7 +201,7 @@ namespace GCCWebApp.Controllers.Api
                 }
 
                 // Filter to only show active/valid certificates for external partners
-                query = query.Where(c => c.Status == "active" || c.Status == "expiring_soon" || c.Status == "renewal_in_progress");
+                query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow));
 
                 // Apply sorting
                 query = ApplySorting(query, sortBy);
@@ -321,7 +321,7 @@ namespace GCCWebApp.Controllers.Api
                 }
 
                 // Only show active certificates in autocomplete
-                baseQuery = baseQuery.Where(c => c.Status == "active" || c.Status == "expiring_soon" || c.Status == "renewal_in_progress");
+                baseQuery = baseQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow));
 
                 // Search certificate numbers
                 var certNumbers = await baseQuery
@@ -345,7 +345,7 @@ namespace GCCWebApp.Controllers.Api
                                    (userRole != "Partner" && userRole != "External") ||
                                    (userRole == "Partner" && userPartnerNames2.Contains(cert.Partner ?? "None")) ||
                                    (userRole == "External" && userCompanyIds2.Contains(cert.CompanyId)) &&
-                                   (cert.Status == "active" || cert.Status == "expiring_soon" || cert.Status == "renewal_in_progress")))
+                                   CertificateStatusHelper.PublicStatuses.Contains(cert.Status) && (cert.ExpirationDate == null || cert.ExpirationDate >= DateTime.UtcNow)))
                     .Select(c => new {
                         value = c.Name,
                         label = c.Name,
@@ -362,7 +362,7 @@ namespace GCCWebApp.Controllers.Api
                                    (userRole != "Partner" && userRole != "External") ||
                                    (userRole == "Partner" && userPartnerNames2.Contains(cert.Partner ?? "None")) ||
                                    (userRole == "External" && userCompanyIds2.Contains(cert.CompanyId)) &&
-                                   (cert.Status == "active" || cert.Status == "expiring_soon" || cert.Status == "renewal_in_progress")))
+                                   CertificateStatusHelper.PublicStatuses.Contains(cert.Status) && (cert.ExpirationDate == null || cert.ExpirationDate >= DateTime.UtcNow)))
                     .Select(p => new {
                         value = p.Name,
                         label = p.Name,
@@ -445,7 +445,7 @@ namespace GCCWebApp.Controllers.Api
                 }
 
                 // Filter to active certificates only
-                baseQuery = baseQuery.Where(c => c.Status == "active" || c.Status == "expiring_soon" || c.Status == "renewal_in_progress");
+                baseQuery = baseQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow));
 
                 // Build hierarchy matching Admin page: Category → Type (ParentId=null) → Subcategory (ParentId!=null)
                 var prodCategories = await _context.Set<ProductCategory>()
@@ -626,7 +626,7 @@ namespace GCCWebApp.Controllers.Api
                 }
 
                 // Only allow download of active certificates for external users
-                if (certificate.Status != "active" && certificate.Status != "expiring_soon" && certificate.Status != "renewal_in_progress")
+                if (!CertificateStatusHelper.IsPubliclyVisible(certificate.Status) || (certificate.ExpirationDate != null && certificate.ExpirationDate < DateTime.UtcNow))
                 {
                     return BadRequest(new { error = "Certificate is not available for download" });
                 }

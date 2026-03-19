@@ -189,22 +189,20 @@ namespace GCCWebApp.Controllers
             
             return new
             {
-                labels = new[] { "Active", "Expired", "Expiring Soon" },
+                labels = new[] { "Active", "Expired" },
                 datasets = new[]
                 {
                     new
                     {
-                        data = new[] 
-                        { 
-                            stats.GetValueOrDefault("Active", 0), 
-                            stats.GetValueOrDefault("Expired", 0), 
-                            stats.GetValueOrDefault("ExpiringSoon", 0) 
+                        data = new[]
+                        {
+                            stats.GetValueOrDefault("Active", 0),
+                            stats.GetValueOrDefault("Expired", 0)
                         },
-                        backgroundColor = new[] 
-                        { 
-                            "rgba(75, 192, 192, 0.6)", 
-                            "rgba(255, 99, 132, 0.6)", 
-                            "rgba(255, 205, 86, 0.6)" 
+                        backgroundColor = new[]
+                        {
+                            "rgba(75, 192, 192, 0.6)",
+                            "rgba(255, 99, 132, 0.6)"
                         }
                     }
                 }

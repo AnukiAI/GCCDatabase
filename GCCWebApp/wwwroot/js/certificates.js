@@ -163,9 +163,6 @@ document.addEventListener('DOMContentLoaded', function () {
             case 'Newest Effective Date':
                 sortedData.sort((a, b) => new Date(b.effectiveDate) - new Date(a.effectiveDate));
                 break;
-            case 'Expiring Soon':
-                sortedData.sort((a, b) => new Date(a.expirationDate) - new Date(b.expirationDate));
-                break;
             case 'Product Name A-Z':
                 sortedData.sort((a, b) => a.productName.localeCompare(b.productName));
                 break;

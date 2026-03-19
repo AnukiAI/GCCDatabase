@@ -3,8 +3,8 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<link rel="stylesheet" href="~/css/certificatetileview.css" />
-<link rel="stylesheet" href="~/css/pages/certificate-tile-internal.css" />
+<link rel="stylesheet" href="~/css/certificatetileview.css?v=20260316" />
+<link rel="stylesheet" href="~/css/pages/certificate-tile-internal.css?v=20260316" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <!-- Main Container -->
 <div class="main-container" style="width: 100%;">
@@ -121,6 +121,8 @@
     </aside>
     <!-- Main Content Area -->
     <div class="tile-view-content">
+        <!-- Active filter tags -->
+        <div class="active-filter-tags" id="activeFilterTags" aria-label="Active filters" role="list"></div>
         <div class="results-header">
             <div class="results-count" id="resultsCount">15 Results</div>
 
@@ -142,10 +144,6 @@
                         <div class="sort-option" data-sort="oldest-effective" role="option">
                             <i class="fas fa-calendar-minus" aria-hidden="true"></i>
                             Oldest Effective Date
-                        </div>
-                        <div class="sort-option" data-sort="expiring" role="option">
-                            <i class="fas fa-clock" aria-hidden="true"></i>
-                            Expiring Soon
                         </div>
                         <div class="sort-option" data-sort="longest-validity" role="option">
                             <i class="fas fa-hourglass-end" aria-hidden="true"></i>
@@ -421,7 +419,7 @@
         </div>
 
 
-        <script src="~/js/certificate-tile-view-internal.js"></script>
+        <script src="~/js/certificate-tile-view-internal.js?v=20260316"></script>
         <!-- Inline script block removed for CSP compliance -->
         @* All script content moved to external files for CSP compliance *@
     </div>

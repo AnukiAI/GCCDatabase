@@ -131,7 +131,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Company)
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
-                            .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > DateTime.UtcNow)
+                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > DateTime.UtcNow)
                             .OrderByDescending(c => c.EffectiveDate)
                             .ToListAsync();
                         reportTitle = "Current Active Certificates";
@@ -143,7 +143,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Company)
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
-                            .Where(c => c.Status.ToLower() == "active" &&
+                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
                                        c.ExpirationDate > DateTime.UtcNow &&
                                        c.ExpirationDate <= thirtyDaysFromNow)
                             .OrderBy(c => c.ExpirationDate)
@@ -157,7 +157,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Company)
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
-                            .Where(c => c.Status.ToLower() == "active" &&
+                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
                                        c.ExpirationDate > DateTime.UtcNow &&
                                        c.ExpirationDate <= threeMonthsFromNow)
                             .OrderBy(c => c.ExpirationDate)
@@ -258,7 +258,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now)
                         .OrderBy(c => c.Number)
                         .ToListAsync();
                     _logger.LogInformation("total-active-certs query returned {Count} certificates", activeCerts.Count);
@@ -269,7 +269,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now && c.Company != null)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now && c.Company != null)
                         .OrderBy(c => c.Company!.Name)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
@@ -280,7 +280,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now && c.CertificationType != null)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now && c.CertificationType != null)
                         .OrderBy(c => c.CertificationType!.Name)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
@@ -291,7 +291,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now && c.Product != null)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now && c.Product != null)
                         .OrderBy(c => c.Product!.Name)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
@@ -303,7 +303,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Product)
                         .ThenInclude(p => p!.Category)
                         .Include(c => c.CertificationType)
-                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now && c.Product != null && c.Product.Category != null)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now && c.Product != null && c.Product.Category != null)
                         .OrderBy(c => c.Product!.Category!.Name)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
@@ -314,7 +314,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate > now && c.Product != null)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now && c.Product != null)
                         .OrderBy(c => c.Product!.Name)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
@@ -341,7 +341,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate >= startOfMonth && c.ExpirationDate <= endOfMonth)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate >= startOfMonth && c.ExpirationDate <= endOfMonth)
                         .OrderBy(c => c.ExpirationDate)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
@@ -366,7 +366,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => c.Status.ToLower() == "active" && c.ExpirationDate >= nextMonthStart && c.ExpirationDate <= nextMonthEnd)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate >= nextMonthStart && c.ExpirationDate <= nextMonthEnd)
                         .OrderBy(c => c.ExpirationDate)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
@@ -422,8 +422,7 @@ namespace GCCWebApp.Controllers
                         return new[]
                         {
                             new { Name = "Active", Count = stats.GetValueOrDefault("Active", 0) },
-                            new { Name = "Expired", Count = stats.GetValueOrDefault("Expired", 0) },
-                            new { Name = "Expiring Soon", Count = stats.GetValueOrDefault("ExpiringSoon", 0) }
+                            new { Name = "Expired", Count = stats.GetValueOrDefault("Expired", 0) }
                         };
 
                     case "product-types":
@@ -751,7 +750,7 @@ namespace GCCWebApp.Controllers
 
                 // Create certificates with proper relationships
                 var certificates = new List<Certificate>();
-                var statuses = new[] { "active", "active", "active", "active", "active", "draft", "pending", "expired", "suspended" }; // Mostly active
+                var statuses = new[] { "Client Approved - Paid", "Client Approved - Paid", "Client Approved - Paid", "Client Approved - Paid", "Republished", "Draft", "Client Approved - Not Paid", "Expired", "Hold" };
                 for (int i = 1; i <= 50; i++)
                 {
                     var company = companies[random.Next(companies.Count)];

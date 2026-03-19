@@ -130,7 +130,6 @@
 
 .table-grid .grid-cell[data-column="certificateNumber"] {
     font-weight: 400 !important;
-    font-family: 'Consolas', 'Courier New', monospace !important;
 }
 
 /* =============================================================================
@@ -168,13 +167,13 @@
     align-items: center;
     justify-content: center;
     min-width: 28px;
-    height: 24px;
+    height: 28px;
     padding: 2px 8px;
     background: #e8f5e1;
     color: #447638;
     border-radius: 12px;
     font-weight: 600;
-    font-size: 13px;
+    font-size: 16px;
     cursor: pointer;
     transition: background-color 0.2s ease;
 }

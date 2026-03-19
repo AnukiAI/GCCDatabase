@@ -59,7 +59,7 @@ namespace GCCWebApp.Models
         public DateTime ExpirationDate { get; set; }
         public string Location { get; set; } = string.Empty;
         public string Country { get; set; } = string.Empty;
-        public string Status { get; set; } = "active";
+        public string Status { get; set; } = "Draft";
         public string Partner { get; set; } = "None";
         public string? Asin { get; set; }
         public string? Upc { get; set; }
@@ -75,12 +75,16 @@ namespace GCCWebApp.Models
         public bool IsExpiringSoon => ExpirationDate <= DateTime.Now.AddDays(30);
         public bool IsExpired => ExpirationDate < DateTime.Now;
 
-        public string StatusClass => Status.ToLower() switch
+        public string StatusClass => Status switch
         {
-            "active" => "badge-success",
-            "expired" => "badge-danger",
-            "pending" => "badge-warning",
-            "suspended" => "badge-secondary",
+            "Client Approved - Paid" => "badge-success",
+            "Republished" => "badge-success",
+            "Client Approved - Not Paid" => "badge-warning",
+            "Client Approved - Confidential" => "badge-warning",
+            "Hold" => "badge-warning",
+            "Expired" => "badge-danger",
+            "Expired - No Annual Verification" => "badge-danger",
+            "Draft" => "badge-secondary",
             _ => "badge-primary"
         };
     }

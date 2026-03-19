@@ -348,8 +348,10 @@
                 }
                 <div class="form-group">
                     <label for="certificatePdf">@(string.IsNullOrEmpty(Model.CertificateImagePath) ? "Upload PDF Certificate" : "Replace PDF Certificate (optional)")</label>
-                    <div class="pdf-upload" id="pdfUploadZone" role="button" tabindex="0" aria-label="Upload PDF certificate file. You can drag and drop a file here or press Enter to select a file." onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificatePdf').click();}">
-                        <i class="fas fa-file-pdf" style="font-size: 48px; color: var(--warning); margin-bottom: 12px;"></i>
+                    <div class="pdf-upload-zone" id="pdfUploadZone" role="button" tabindex="0" aria-label="Upload PDF certificate file. You can drag and drop a file here or press Enter to select a file." onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('certificatePdf').click();}">
+                        <div class="pdf-upload-placeholder">
+                            <i class="fas fa-file-pdf" aria-hidden="true"></i>
+                        </div>
                         <div class="pdf-upload-text">Drag and drop PDF here or click to select</div>
                         <small style="color: var(--text-secondary); font-size: 13px;">Maximum file size: 10MB. @(string.IsNullOrEmpty(Model.CertificateImagePath) ? "" : "Leave empty to keep existing PDF.")</small>
                     </div>

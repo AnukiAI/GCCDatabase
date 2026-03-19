@@ -924,7 +924,7 @@
             }
 
             // Reset PDF zone
-            const pdfZone = formGroup.querySelector('.pdf-upload, #pdfUploadZone');
+            const pdfZone = formGroup.querySelector('.pdf-upload-zone, #pdfUploadZone');
             if (pdfZone) {
                 pdfZone.style.borderColor = '';
                 pdfZone.style.backgroundColor = '';

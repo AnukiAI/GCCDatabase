@@ -485,6 +485,7 @@ class CertificateTileViewExternal {
         this.closeAutocomplete();
         await this.service.search(searchTerm);
         await this.loadCertificates();
+        this.renderActiveFilterTags();
     }
 
     /**
@@ -576,6 +577,7 @@ class CertificateTileViewExternal {
         // Apply filters and reload
         await this.service.applyFilters(filters);
         await this.loadCertificates();
+        this.renderActiveFilterTags(filters);
     }
 
     /**
@@ -816,10 +818,14 @@ class CertificateTileViewExternal {
      */
     getStatusBadge(status) {
         const statusMap = {
-            'Active': 'badge-success',
+            'Client Approved - Paid': 'badge-success',
+            'Republished': 'badge-success',
+            'Client Approved - Not Paid': 'badge-warning',
+            'Client Approved - Confidential': 'badge-warning',
+            'Draft': 'badge-secondary',
+            'Hold': 'badge-warning',
             'Expired': 'badge-danger',
-            'Pending': 'badge-warning',
-            'Draft': 'badge-secondary'
+            'Expired - No Annual Verification': 'badge-danger'
         };
         const badgeClass = statusMap[status] || 'badge-secondary';
         return `<span class="badge ${badgeClass}">${this.escapeHtml(status || 'Unknown')}</span>`;
@@ -963,6 +969,141 @@ class CertificateTileViewExternal {
         // Reset service and reload
         this.service.clearFilters();
         await this.loadCertificates();
+        this.renderActiveFilterTags({});
+    }
+
+    /**
+     * Render active filter tags above results
+     */
+    renderActiveFilterTags(filters) {
+        const container = document.getElementById('activeFilterTags');
+        if (!container) return;
+
+        // If no filters passed, collect from current checkboxes
+        if (!filters) {
+            filters = {
+                certType: [],
+                productCategory: [],
+                company: [],
+                country: [],
+                tags: [],
+                partner: []
+            };
+            document.querySelectorAll('#cert-type-content input:checked').forEach(cb => {
+                const v = cb.getAttribute('data-certType') || cb.getAttribute('data-type');
+                if (v) filters.certType.push(v);
+            });
+            document.querySelectorAll('#product-cat-content input:checked').forEach(cb => {
+                const v = cb.getAttribute('data-productCategory') || cb.getAttribute('data-category');
+                if (v) filters.productCategory.push(v);
+            });
+            document.querySelectorAll('#company-content input:checked').forEach(cb => {
+                const v = cb.getAttribute('data-company');
+                if (v) filters.company.push(v);
+            });
+            document.querySelectorAll('#countries-content input:checked').forEach(cb => {
+                const v = cb.getAttribute('data-country');
+                if (v) filters.country.push(v);
+            });
+            document.querySelectorAll('#additional-content input:checked').forEach(cb => {
+                const v = cb.getAttribute('data-tags');
+                if (v) filters.tags.push(v);
+            });
+            document.querySelectorAll('#partner-content input:checked').forEach(cb => {
+                const v = cb.getAttribute('data-partner');
+                if (v) filters.partner.push(v);
+            });
+        }
+
+        const escHtml = (str) => {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        };
+
+        const labelMap = {
+            certType: 'Type',
+            productCategory: 'Category',
+            company: 'Company',
+            country: 'Country',
+            tags: 'Tag',
+            partner: 'Partner'
+        };
+
+        // Data attribute names for unchecking
+        const attrMap = {
+            certType: ['data-certType', 'data-type'],
+            productCategory: ['data-productCategory', 'data-category'],
+            company: ['data-company'],
+            country: ['data-country'],
+            tags: ['data-tags'],
+            partner: ['data-partner']
+        };
+
+        const sectionMap = {
+            certType: '#cert-type-content',
+            productCategory: '#product-cat-content',
+            company: '#company-content',
+            country: '#countries-content',
+            tags: '#additional-content',
+            partner: '#partner-content'
+        };
+
+        let html = '';
+
+        // Search tag
+        const searchInput = document.querySelector('.search-input');
+        const searchTerm = searchInput ? searchInput.value.trim() : '';
+        if (searchTerm) {
+            html += `<span class="filter-tag" role="listitem">
+                <span class="filter-tag-label">Search:</span> ${escHtml(searchTerm)}
+                <button class="filter-tag-remove" data-filter-action="search" aria-label="Remove search filter" title="Remove">&times;</button>
+            </span>`;
+        }
+
+        // Checkbox filter tags
+        for (const [key, label] of Object.entries(labelMap)) {
+            const values = filters[key];
+            if (values && values.length > 0) {
+                values.forEach(val => {
+                    html += `<span class="filter-tag" role="listitem">
+                        <span class="filter-tag-label">${label}:</span> ${escHtml(val)}
+                        <button class="filter-tag-remove" data-filter-action="checkbox" data-filter-key="${key}" data-filter-value="${escHtml(val)}" aria-label="Remove ${label}: ${escHtml(val)} filter" title="Remove">&times;</button>
+                    </span>`;
+                });
+            }
+        }
+
+        container.innerHTML = html;
+
+        // Attach removal listeners
+        container.querySelectorAll('.filter-tag-remove').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const action = btn.dataset.filterAction;
+
+                if (action === 'search') {
+                    if (searchInput) searchInput.value = '';
+                    await this.performSearch('');
+                } else {
+                    const key = btn.dataset.filterKey;
+                    const val = btn.dataset.filterValue;
+                    const section = sectionMap[key];
+                    const attrs = attrMap[key];
+                    if (section && attrs) {
+                        document.querySelectorAll(`${section} input:checked`).forEach(cb => {
+                            for (const attr of attrs) {
+                                if (cb.getAttribute(attr) === val) {
+                                    cb.checked = false;
+                                    break;
+                                }
+                            }
+                        });
+                    }
+                    await this.handleFilterChange();
+                }
+            });
+        });
     }
 
     /**

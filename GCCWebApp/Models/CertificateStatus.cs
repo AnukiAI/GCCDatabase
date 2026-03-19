@@ -4,81 +4,74 @@ namespace GCCWebApp.Models
 {
     /// <summary>
     /// Enumeration of certificate lifecycle status values
-    /// Aligned with DATA_VALIDATION_RULES.md - 14 documented states
+    /// 8 client-defined states per GCC requirements
     /// </summary>
     public enum CertificateStatus
     {
         [Description("Draft")]
         Draft = 0,
 
-        [Description("Pending Review")]
-        PendingReview = 1,
+        [Description("Client Approved - Not Paid")]
+        ClientApprovedNotPaid = 1,
 
-        [Description("Under Review")]
-        UnderReview = 2,
+        [Description("Client Approved - Confidential")]
+        ClientApprovedConfidential = 2,
 
-        [Description("Approved")]
-        Approved = 3,
+        [Description("Client Approved - Paid")]
+        ClientApprovedPaid = 3,
 
-        [Description("Active")]
-        Active = 4,
-
-        [Description("Suspended")]
-        Suspended = 5,
-
-        [Description("Revoked")]
-        Revoked = 6,
+        [Description("Hold")]
+        Hold = 4,
 
         [Description("Expired")]
-        Expired = 7,
+        Expired = 5,
 
-        [Description("Pending Renewal")]
-        PendingRenewal = 8,
+        [Description("Republished")]
+        Republished = 6,
 
-        [Description("Renewed")]
-        Renewed = 9,
-
-        [Description("Cancelled")]
-        Cancelled = 10,
-
-        [Description("Archived")]
-        Archived = 11,
-
-        [Description("On Hold")]
-        OnHold = 12,
-
-        [Description("Rejected")]
-        Rejected = 13
+        [Description("Expired - No Annual Verification")]
+        ExpiredNoAnnualVerification = 7
     }
 
     /// <summary>
     /// Static class for certificate status management and workflow rules
-    /// Database-driven status values aligned with DATA_VALIDATION_RULES.md
     /// </summary>
     public static class CertificateStatusHelper
     {
+        // Status string constants used throughout the application
+        public const string StatusDraft = "Draft";
+        public const string StatusClientApprovedNotPaid = "Client Approved - Not Paid";
+        public const string StatusClientApprovedConfidential = "Client Approved - Confidential";
+        public const string StatusClientApprovedPaid = "Client Approved - Paid";
+        public const string StatusHold = "Hold";
+        public const string StatusExpired = "Expired";
+        public const string StatusRepublished = "Republished";
+        public const string StatusExpiredNoAnnualVerification = "Expired - No Annual Verification";
+
+        /// <summary>
+        /// Statuses visible on the public (anonymous) view
+        /// </summary>
+        public static readonly string[] PublicStatuses = new[]
+        {
+            StatusClientApprovedPaid,
+            StatusRepublished
+        };
+
         /// <summary>
         /// Gets all available status values with their display names
-        /// These are the 14 documented states from DATA_VALIDATION_RULES.md
         /// </summary>
         public static Dictionary<string, string> GetAllStatuses()
         {
             return new Dictionary<string, string>
             {
-                { "Draft", "Draft" },
-                { "PendingReview", "Pending Review" },
-                { "UnderReview", "Under Review" },
-                { "Approved", "Approved" },
-                { "Active", "Active" },
-                { "Suspended", "Suspended" },
-                { "Revoked", "Revoked" },
-                { "Expired", "Expired" },
-                { "PendingRenewal", "Pending Renewal" },
-                { "Renewed", "Renewed" },
-                { "Cancelled", "Cancelled" },
-                { "Archived", "Archived" },
-                { "OnHold", "On Hold" },
-                { "Rejected", "Rejected" }
+                { StatusDraft, "Draft" },
+                { StatusClientApprovedNotPaid, "Client Approved - Not Paid" },
+                { StatusClientApprovedConfidential, "Client Approved - Confidential" },
+                { StatusClientApprovedPaid, "Client Approved - Paid" },
+                { StatusHold, "Hold" },
+                { StatusExpired, "Expired" },
+                { StatusRepublished, "Republished" },
+                { StatusExpiredNoAnnualVerification, "Expired - No Annual Verification" }
             };
         }
 
@@ -89,8 +82,7 @@ namespace GCCWebApp.Models
         {
             return new Dictionary<string, string>
             {
-                { "Draft", "Draft" },
-                { "PendingReview", "Pending Review" }
+                { StatusDraft, "Draft" }
             };
         }
 
@@ -103,37 +95,28 @@ namespace GCCWebApp.Models
 
             return role?.ToLower() switch
             {
-                "admin" => allStatuses, // Admins can set any status
-                "analyst" => allStatuses.Where(s =>
-                    s.Key != "Rejected" && s.Key != "Revoked").ToDictionary(k => k.Key, v => v.Value),
-                "external" => GetCreationStatuses(), // External users can only create drafts
+                "admin" => allStatuses,
+                "analyst" => allStatuses,
+                "external" => GetCreationStatuses(),
                 _ => GetCreationStatuses()
             };
         }
 
         /// <summary>
         /// Determines if a status transition is valid based on business rules
-        /// Workflow: Draft → PendingReview → UnderReview → Approved → Active
         /// </summary>
         public static bool IsValidTransition(string fromStatus, string toStatus)
         {
-            // Define valid status transitions based on business workflow
             var validTransitions = new Dictionary<string, string[]>
             {
-                { "Draft", new[] { "PendingReview", "Cancelled" } },
-                { "PendingReview", new[] { "UnderReview", "Draft", "Cancelled", "OnHold" } },
-                { "UnderReview", new[] { "Approved", "PendingReview", "Rejected", "OnHold" } },
-                { "Approved", new[] { "Active", "UnderReview", "OnHold" } },
-                { "Active", new[] { "Suspended", "Expired", "PendingRenewal", "Revoked", "Archived" } },
-                { "Suspended", new[] { "Active", "Revoked", "Cancelled", "Archived" } },
-                { "Revoked", new[] { "Archived" } }, // Near-final state
-                { "Expired", new[] { "PendingRenewal", "Archived", "Active" } },
-                { "PendingRenewal", new[] { "UnderReview", "Renewed", "Expired", "Cancelled" } },
-                { "Renewed", new[] { "Active" } }, // Transitions back to active
-                { "Cancelled", new string[] { } }, // Final state - no transitions allowed
-                { "Archived", new string[] { } }, // Final state - no transitions allowed
-                { "OnHold", new[] { "PendingReview", "UnderReview", "Approved", "Cancelled" } },
-                { "Rejected", new[] { "Draft", "Archived" } } // Can restart or archive
+                { StatusDraft, new[] { StatusClientApprovedNotPaid, StatusClientApprovedConfidential, StatusClientApprovedPaid, StatusHold } },
+                { StatusClientApprovedNotPaid, new[] { StatusClientApprovedPaid, StatusClientApprovedConfidential, StatusHold, StatusExpired } },
+                { StatusClientApprovedConfidential, new[] { StatusClientApprovedPaid, StatusHold, StatusExpired } },
+                { StatusClientApprovedPaid, new[] { StatusHold, StatusExpired, StatusRepublished, StatusExpiredNoAnnualVerification } },
+                { StatusHold, new[] { StatusDraft, StatusClientApprovedNotPaid, StatusClientApprovedConfidential, StatusClientApprovedPaid } },
+                { StatusExpired, new[] { StatusRepublished, StatusDraft } },
+                { StatusRepublished, new[] { StatusExpired, StatusExpiredNoAnnualVerification, StatusHold } },
+                { StatusExpiredNoAnnualVerification, new[] { StatusDraft } }
             };
 
             return validTransitions.ContainsKey(fromStatus) &&
@@ -150,11 +133,19 @@ namespace GCCWebApp.Models
         }
 
         /// <summary>
+        /// Checks if a status is visible on the public view
+        /// </summary>
+        public static bool IsPubliclyVisible(string status)
+        {
+            return status == StatusClientApprovedPaid || status == StatusRepublished;
+        }
+
+        /// <summary>
         /// Checks if a status represents an active/valid certificate
         /// </summary>
         public static bool IsActiveStatus(string status)
         {
-            return status == "Active" || status == "PendingRenewal" || status == "Renewed";
+            return status == StatusClientApprovedPaid || status == StatusRepublished;
         }
 
         /// <summary>
@@ -162,7 +153,7 @@ namespace GCCWebApp.Models
         /// </summary>
         public static bool IsFinalStatus(string status)
         {
-            return status == "Archived" || status == "Cancelled";
+            return status == StatusExpiredNoAnnualVerification;
         }
 
         /// <summary>
@@ -170,7 +161,7 @@ namespace GCCWebApp.Models
         /// </summary>
         public static bool IsNegativeStatus(string status)
         {
-            return status == "Rejected" || status == "Revoked" || status == "Cancelled";
+            return status == StatusExpired || status == StatusExpiredNoAnnualVerification;
         }
 
         /// <summary>
@@ -178,8 +169,7 @@ namespace GCCWebApp.Models
         /// </summary>
         public static bool NeedsAttention(string status)
         {
-            return status == "PendingReview" || status == "UnderReview" ||
-                   status == "OnHold" || status == "PendingRenewal" || status == "Expired";
+            return status == StatusClientApprovedNotPaid || status == StatusHold || status == StatusExpired;
         }
     }
 }

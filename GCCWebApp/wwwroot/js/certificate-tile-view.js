@@ -561,6 +561,7 @@
             }
         }
 
+        renderActiveFilterTags();
         loadInitialCertificates();
         updateUrl();
     }
@@ -625,7 +626,8 @@
             // Debounced search execution
             state.debounceTimer = setTimeout(() => {
                 state.filters.search = term;
-                updateUrl(); // Update URL before loading to preserve state
+                renderActiveFilterTags();
+                updateUrl();
                 loadInitialCertificates();
             }, 300);
         });
@@ -751,6 +753,8 @@
             state.filters.sortBy = params.get('sort');
             updateSortLabel(state.filters.sortBy);
         }
+
+        renderActiveFilterTags();
     }
 
     // Update URL with current filters
@@ -800,7 +804,6 @@
         const sortLabels = {
             'newest': 'Newest Effective Date',
             'oldest-effective': 'Oldest Effective Date',
-            'expiring': 'Expiring Soon',
             'company-az': 'Company A-Z',
             'product-az': 'Product Name A-Z'
         };
@@ -827,9 +830,81 @@
         document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
         document.getElementById('sortLabel').textContent = 'Default';
         
+        renderActiveFilterTags();
         loadInitialCertificates();
         updateUrl();
         showToast('All filters cleared', 'info');
+    }
+
+    // Render active filter tags above results
+    function renderActiveFilterTags() {
+        const container = document.getElementById('activeFilterTags');
+        if (!container) return;
+
+        const labelMap = {
+            certType: 'Type',
+            productCategory: 'Category',
+            company: 'Company',
+            country: 'Country',
+            tags: 'Tag'
+        };
+
+        const nameMap = {
+            certType: 'cert-type',
+            productCategory: 'product-cat',
+            company: 'company',
+            country: 'countries',
+            tags: 'cert-tags'
+        };
+
+        let html = '';
+
+        if (state.filters.search) {
+            html += `<span class="filter-tag" role="listitem">
+                <span class="filter-tag-label">Search:</span> ${escapeHtml(state.filters.search)}
+                <button class="filter-tag-remove" data-filter-type="search" aria-label="Remove search filter" title="Remove">&times;</button>
+            </span>`;
+        }
+
+        for (const [key, label] of Object.entries(labelMap)) {
+            const values = state.filters[key];
+            if (values && values.length > 0) {
+                values.forEach(val => {
+                    html += `<span class="filter-tag" role="listitem">
+                        <span class="filter-tag-label">${label}:</span> ${escapeHtml(val)}
+                        <button class="filter-tag-remove" data-filter-type="${key}" data-filter-value="${escapeHtml(val)}" aria-label="Remove ${label}: ${escapeHtml(val)} filter" title="Remove">&times;</button>
+                    </span>`;
+                });
+            }
+        }
+
+        container.innerHTML = html;
+
+        container.querySelectorAll('.filter-tag-remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const type = btn.dataset.filterType;
+                const value = btn.dataset.filterValue;
+
+                if (type === 'search') {
+                    state.filters.search = '';
+                    document.querySelector('.search-input').value = '';
+                } else {
+                    const idx = state.filters[type].indexOf(value);
+                    if (idx > -1) state.filters[type].splice(idx, 1);
+                    const cbName = nameMap[type];
+                    if (cbName) {
+                        document.querySelectorAll(`input[name="${cbName}"]`).forEach(cb => {
+                            if (cb.value === value) cb.checked = false;
+                        });
+                    }
+                }
+
+                renderActiveFilterTags();
+                loadInitialCertificates();
+                updateUrl();
+            });
+        });
     }
 
     // Toggle sort dropdown

@@ -55,7 +55,7 @@ namespace GCCWebApp.Repositories
         public async Task<IEnumerable<Certificate>> GetActiveCertificatesAsync()
         {
             return await _dbSet
-                .Where(c => c.Status == "active" && c.ExpirationDate > DateTime.UtcNow)
+                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > DateTime.UtcNow)
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -65,7 +65,7 @@ namespace GCCWebApp.Repositories
         public async Task<IEnumerable<Certificate>> GetExpiringCertificatesAsync(DateTime beforeDate)
         {
             return await _dbSet
-                .Where(c => c.Status == "active" && c.ExpirationDate <= beforeDate && c.ExpirationDate > DateTime.UtcNow)
+                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate <= beforeDate && c.ExpirationDate > DateTime.UtcNow)
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -249,6 +249,12 @@ namespace GCCWebApp.Repositories
             if (!string.IsNullOrEmpty(filter.Status))
                 query = query.Where(c => c.Status == filter.Status);
 
+            if (filter.Statuses != null && filter.Statuses.Any())
+                query = query.Where(c => filter.Statuses.Contains(c.Status));
+
+            if (filter.ExcludeExpiredByDate)
+                query = query.Where(c => c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow);
+
             if (!string.IsNullOrEmpty(filter.Location))
                 query = query.Where(c => c.Location != null && c.Location.ToLower().Contains(filter.Location.ToLower()));
 
@@ -344,7 +350,7 @@ namespace GCCWebApp.Repositories
         {
             var targetDate = DateTime.UtcNow.AddDays(days);
             return await _dbSet
-                .Where(c => c.Status == "active" && c.ExpirationDate <= targetDate && c.ExpirationDate > DateTime.UtcNow)
+                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate <= targetDate && c.ExpirationDate > DateTime.UtcNow)
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -391,22 +397,20 @@ namespace GCCWebApp.Repositories
             // Total certificates
             stats["Total"] = await _dbSet.CountAsync();
 
-            // Active certificates
-            stats["Active"] = await _dbSet.CountAsync(c => c.Status == "active");
+            // Active certificates (publicly visible: Client Approved - Paid or Republished, not expired)
+            var publicStatuses = CertificateStatusHelper.PublicStatuses;
+            stats["Active"] = await _dbSet.CountAsync(c =>
+                publicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now));
 
-            // Expired certificates
-            stats["Expired"] = await _dbSet.CountAsync(c => c.ExpirationDate < now);
-
-            // Expiring soon (within 30 days)
-            var thirtyDaysFromNow = now.AddDays(30);
-            stats["ExpiringSoon"] = await _dbSet.CountAsync(c => 
-                c.Status == "active" && 
-                c.ExpirationDate > now && 
-                c.ExpirationDate <= thirtyDaysFromNow);
+            // Expired certificates (status is Expired or expiration date has passed)
+            stats["Expired"] = await _dbSet.CountAsync(c =>
+                c.Status == CertificateStatusHelper.StatusExpired ||
+                c.Status == CertificateStatusHelper.StatusExpiredNoAnnualVerification ||
+                (c.ExpirationDate != null && c.ExpirationDate < now));
 
             // Products with active certificates
             stats["ActiveProducts"] = await _dbSet
-                .Where(c => c.Status == "active")
+                .Where(c => publicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now))
                 .Select(c => c.Product.Id)
                 .Distinct()
                 .CountAsync();
@@ -426,20 +430,20 @@ namespace GCCWebApp.Repositories
                 c.CreatedAt >= startOfLastMonth && c.CreatedAt <= endOfLastMonth);
 
             // Expiring this month
-            stats["ExpiringThisMonth"] = await _dbSet.CountAsync(c => 
-                c.Status == "active" && 
-                c.ExpirationDate >= startOfMonth && 
+            stats["ExpiringThisMonth"] = await _dbSet.CountAsync(c =>
+                publicStatuses.Contains(c.Status) &&
+                c.ExpirationDate >= startOfMonth &&
                 c.ExpirationDate < startOfNextMonth);
 
             // Expired last month
-            stats["ExpiredLastMonth"] = await _dbSet.CountAsync(c => 
-                c.ExpirationDate >= startOfLastMonth && 
+            stats["ExpiredLastMonth"] = await _dbSet.CountAsync(c =>
+                c.ExpirationDate >= startOfLastMonth &&
                 c.ExpirationDate <= endOfLastMonth);
 
             // Expiring next month
-            stats["ExpiringNextMonth"] = await _dbSet.CountAsync(c => 
-                c.Status == "active" && 
-                c.ExpirationDate >= startOfNextMonth && 
+            stats["ExpiringNextMonth"] = await _dbSet.CountAsync(c =>
+                publicStatuses.Contains(c.Status) &&
+                c.ExpirationDate >= startOfNextMonth &&
                 c.ExpirationDate <= endOfNextMonth);
 
             // Published this year
@@ -468,7 +472,7 @@ namespace GCCWebApp.Repositories
         {
             var results = await _dbSet
                 .Include(c => c.CertificationType)
-                .Where(c => c.Status == "active" && c.CertificationType != null)
+                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.CertificationType != null)
                 .GroupBy(c => c.CertificationType.Name)
                 .OrderByDescending(g => g.Count())
                 .Select(g => new { Name = g.Key, Count = g.Count() })
@@ -481,7 +485,7 @@ namespace GCCWebApp.Repositories
         {
             var results = await _dbSet
                 .Include(c => c.Company)
-                .Where(c => c.Status == "active" && c.Company != null)
+                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.Company != null)
                 .GroupBy(c => c.Company.Name)
                 .OrderByDescending(g => g.Count())
                 .Take(topCount)
@@ -496,7 +500,7 @@ namespace GCCWebApp.Repositories
             var results = await _dbSet
                 .Include(c => c.Product)
                     .ThenInclude(p => p.ProductType)
-                .Where(c => c.Status == "active" && c.Product != null && c.Product.ProductType != null)
+                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.Product != null && c.Product.ProductType != null)
                 .GroupBy(c => c.Product!.ProductType!.Name)
                 .OrderByDescending(g => g.Count())
                 .Take(topCount)

@@ -99,7 +99,8 @@ namespace GCCWebApp.Controllers.Api
                 var filter = new CertificateSearchFilter
                 {
                     SearchTerm = finalSearchTerm,
-                    Status = "active", // Only show active certificates for public view
+                    Statuses = CertificateStatusHelper.PublicStatuses.ToList(),
+                    ExcludeExpiredByDate = true, // Only show non-expired certs on public view
                     SortBy = MapSortBy(finalSort),
                     SortDescending = finalSort == "newest" || finalSort == "cert-number-newest",
                     Page = Math.Max(1, (actualOffset / actualLimit) + 1),
@@ -244,7 +245,7 @@ namespace GCCWebApp.Controllers.Api
             {
                 // Base query for active certificates (public view shows only active/expiring/renewal certificates)
                 var baseQuery = _context.Certificates
-                    .Where(c => c.Status == "active" || c.Status == "expiring_soon" || c.Status == "renewal_in_progress");
+                    .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow));
 
                 // Get unique certification type IDs from active certificates
                 var certTypeIds = await baseQuery
@@ -399,7 +400,7 @@ namespace GCCWebApp.Controllers.Api
 
                 // Search certificate numbers
                 var certificates = await _certificateRepository.FindAsync(c => 
-                    c.Status == "active" && c.Number.Contains(term));
+                    CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow) && c.Number.Contains(term));
                 
                 suggestions.AddRange(certificates.Take(5).Select(c => new
                 {
@@ -543,11 +544,6 @@ namespace GCCWebApp.Controllers.Api
         private string? GetCertificateTags(Certificate certificate)
         {
             var tags = new List<string>();
-            
-            if (certificate.ExpirationDate < DateTime.UtcNow.AddDays(30))
-            {
-                tags.Add("Expiring Soon");
-            }
             
             if (!string.IsNullOrEmpty(certificate.Partner) && certificate.Partner != "None")
             {

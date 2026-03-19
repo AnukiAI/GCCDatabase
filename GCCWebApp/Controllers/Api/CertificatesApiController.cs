@@ -635,7 +635,7 @@ namespace GCCWebApp.Controllers.Api
             return new Certificate
             {
                 Number = request.CertificateNumber ?? string.Empty,
-                Status = request.Status ?? "active",
+                Status = request.Status ?? CertificateStatusHelper.StatusDraft,
                 EffectiveDate = request.EffectiveDate,
                 ExpirationDate = request.ExpirationDate,
                 Location = request.Location,
@@ -657,7 +657,7 @@ namespace GCCWebApp.Controllers.Api
             return new Certificate
             {
                 Number = request.CertificateNumber ?? string.Empty,
-                Status = request.Status ?? "active",
+                Status = request.Status ?? CertificateStatusHelper.StatusDraft,
                 EffectiveDate = request.EffectiveDate,
                 ExpirationDate = request.ExpirationDate,
                 Location = request.Location,

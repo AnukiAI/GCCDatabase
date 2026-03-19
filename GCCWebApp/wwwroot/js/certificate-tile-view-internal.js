@@ -466,12 +466,14 @@
     // Get status badge HTML
     function getStatusBadge(status) {
         const statusClasses = {
-            'Active': 'status-active',
-            'Valid': 'status-valid',
+            'Client Approved - Paid': 'status-active',
+            'Republished': 'status-active',
+            'Client Approved - Not Paid': 'status-pending',
+            'Client Approved - Confidential': 'status-pending',
+            'Draft': 'status-draft',
+            'Hold': 'status-revoked',
             'Expired': 'status-expired',
-            'Pending': 'status-pending',
-            'Revoked': 'status-revoked',
-            'Draft': 'status-draft'
+            'Expired - No Annual Verification': 'status-expired'
         };
         
         const cssClass = statusClasses[status] || 'status-default';
@@ -654,6 +656,7 @@
             }
         }
 
+        renderActiveFilterTags();
         loadInitialCertificates();
         updateUrl();
     }
@@ -719,6 +722,7 @@
             // Debounced search execution
             state.debounceTimer = setTimeout(() => {
                 state.filters.search = term;
+                renderActiveFilterTags();
                 loadInitialCertificates();
                 updateUrl();
             }, 300);
@@ -831,6 +835,7 @@
         }
         
         // ... other URL parameter handling similar to public view
+        renderActiveFilterTags();
     }
 
     // Update URL with current filters
@@ -869,15 +874,94 @@
             partner: [],
             sortBy: 'newest'
         };
-        
+
         // Clear UI
         document.querySelector('.search-input').value = '';
         document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
         document.getElementById('sortLabel').textContent = 'Newest Effective Date';
-        
+
+        renderActiveFilterTags();
         loadInitialCertificates();
         updateUrl();
         showToast('All filters cleared', 'info');
+    }
+
+    // Render active filter tags above results
+    function renderActiveFilterTags() {
+        const container = document.getElementById('activeFilterTags');
+        console.log('[FilterTags] renderActiveFilterTags called, container:', container, 'filters:', JSON.stringify(state.filters));
+        if (!container) return;
+
+        const labelMap = {
+            certType: 'Type',
+            productCategory: 'Category',
+            company: 'Company',
+            country: 'Country',
+            tags: 'Tag',
+            status: 'Status',
+            partner: 'Partner'
+        };
+
+        // Reverse map: filter state key -> checkbox name attribute
+        const nameMap = {
+            certType: 'cert-type',
+            productCategory: 'product-cat',
+            company: 'company',
+            country: 'countries',
+            tags: 'additional',
+            status: 'status',
+            partner: 'partner'
+        };
+
+        let html = '';
+
+        // Search tag
+        if (state.filters.search) {
+            html += `<span class="filter-tag" role="listitem">
+                <span class="filter-tag-label">Search:</span> ${escapeHtml(state.filters.search)}
+                <button class="filter-tag-remove" data-filter-type="search" aria-label="Remove search filter" title="Remove">&times;</button>
+            </span>`;
+        }
+
+        // Checkbox-based filter tags
+        for (const [key, label] of Object.entries(labelMap)) {
+            const values = state.filters[key];
+            if (values && values.length > 0) {
+                values.forEach(val => {
+                    html += `<span class="filter-tag" role="listitem">
+                        <span class="filter-tag-label">${label}:</span> ${escapeHtml(val)}
+                        <button class="filter-tag-remove" data-filter-type="${key}" data-filter-value="${escapeHtml(val)}" aria-label="Remove ${label}: ${escapeHtml(val)} filter" title="Remove">&times;</button>
+                    </span>`;
+                });
+            }
+        }
+
+        container.innerHTML = html;
+
+        // Attach removal listeners
+        container.querySelectorAll('.filter-tag-remove').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const type = btn.dataset.filterType;
+                const value = btn.dataset.filterValue;
+
+                if (type === 'search') {
+                    state.filters.search = '';
+                    document.querySelector('.search-input').value = '';
+                } else {
+                    const idx = state.filters[type].indexOf(value);
+                    if (idx > -1) state.filters[type].splice(idx, 1);
+                    // Uncheck the corresponding checkbox
+                    const cbName = nameMap[type];
+                    const cb = document.querySelector(`input[name="${cbName}"][value="${CSS.escape(value)}"]`);
+                    if (cb) cb.checked = false;
+                }
+
+                renderActiveFilterTags();
+                loadInitialCertificates();
+                updateUrl();
+            });
+        });
     }
 
     // Toggle sort dropdown

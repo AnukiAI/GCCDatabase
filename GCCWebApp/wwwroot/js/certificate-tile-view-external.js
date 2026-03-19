@@ -784,7 +784,6 @@
         const sortLabels = {
             'newest': 'Newest Effective Date',
             'oldest-effective': 'Oldest Effective Date',
-            'expiring': 'Expiring Soon',
             'company-az': 'Company A-Z',
             'product-az': 'Product Name A-Z',
             'partner': 'Partner A-Z'

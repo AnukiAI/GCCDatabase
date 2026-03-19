@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using GCCWebApp.Models;
 
 namespace GreenCircleCertified.Models
 {
@@ -24,7 +25,6 @@ namespace GreenCircleCertified.Models
             {
                 new SortOption { Value = "default", Text = "Default", Icon = "fas fa-sort" },
                 new SortOption { Value = "newest", Text = "Newest Effective Date", Icon = "fas fa-calendar-plus" },
-                new SortOption { Value = "expiring", Text = "Expiring Soon", Icon = "fas fa-clock" },
                 new SortOption { Value = "product-az", Text = "Product Name A-Z", Icon = "fas fa-sort-alpha-down" },
                 new SortOption { Value = "company-az", Text = "Company A-Z", Icon = "fas fa-building" },
                 new SortOption { Value = "status", Text = "Status", Icon = "fas fa-check-circle" },
@@ -88,12 +88,18 @@ namespace GreenCircleCertified.Models
         public bool IsExpiringSoon => ExpirationDate <= DateTime.Now.AddDays(30);
         public bool IsExpired => ExpirationDate < DateTime.Now;
 
+        public string StatusText => CertificateStatusHelper.GetDisplayName(Status.ToString());
+
         public string StatusClass => Status switch
         {
-            CertificateStatus.Active => "badge-success",
+            CertificateStatus.ClientApprovedPaid => "badge-success",
+            CertificateStatus.Republished => "badge-success",
+            CertificateStatus.ClientApprovedNotPaid => "badge-warning",
+            CertificateStatus.ClientApprovedConfidential => "badge-warning",
+            CertificateStatus.Hold => "badge-warning",
             CertificateStatus.Expired => "badge-danger",
-            CertificateStatus.Pending => "badge-warning",
-            CertificateStatus.Suspended => "badge-secondary",
+            CertificateStatus.ExpiredNoAnnualVerification => "badge-danger",
+            CertificateStatus.Draft => "badge-secondary",
             _ => "badge-primary"
         };
     }
@@ -204,27 +210,6 @@ namespace GreenCircleCertified.Models
         public int Level { get; set; } = 1; // For hierarchical filters
         public List<FilterOption> Children { get; set; } = new List<FilterOption>();
         public bool HasChildren => Children.Any();
-    }
-
-    /// <summary>
-    /// Certificate status enumeration
-    /// </summary>
-    public enum CertificateStatus
-    {
-        [Display(Name = "Active")]
-        Active = 1,
-
-        [Display(Name = "Expired")]
-        Expired = 2,
-
-        [Display(Name = "Pending")]
-        Pending = 3,
-
-        [Display(Name = "Suspended")]
-        Suspended = 4,
-
-        [Display(Name = "Under Review")]
-        UnderReview = 5
     }
 
     /// <summary>

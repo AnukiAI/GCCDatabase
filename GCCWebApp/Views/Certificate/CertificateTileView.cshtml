@@ -2,7 +2,7 @@
     ViewData["Title"] = "Certificates";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-<link rel="stylesheet" href="~/css/certificatetileview.css" />
+<link rel="stylesheet" href="~/css/certificatetileview.css?v=20260316" />
 
 <!-- Main Container -->
 <div class="main-container">
@@ -112,6 +112,8 @@
     <div class="tile-view-content">
         <!-- Screen reader announcements for dynamic updates -->
         <div class="sr-only" aria-live="polite" aria-atomic="true" id="searchAnnouncement"></div>
+        <!-- Active filter tags -->
+        <div class="active-filter-tags" id="activeFilterTags" aria-label="Active filters" role="list"></div>
 
         <div class="results-header">
             <div class="results-count" id="resultsCount" aria-live="polite" aria-atomic="true">15 Results</div>
@@ -133,10 +135,6 @@
                         <div class="sort-option" data-sort="oldest-effective" role="option">
                             <i class="fas fa-calendar-minus" aria-hidden="true"></i>
                             Oldest Effective Date
-                        </div>
-                        <div class="sort-option" data-sort="expiring" role="option">
-                            <i class="fas fa-clock" aria-hidden="true"></i>
-                            Expiring Soon
                         </div>
                         <div class="sort-option" data-sort="longest-validity" role="option">
                             <i class="fas fa-hourglass-end" aria-hidden="true"></i>
@@ -270,4 +268,4 @@
     </div>
 </div>
 
-<script src="~/js/certificate-tile-view.js"></script>
+<script src="~/js/certificate-tile-view.js?v=20260316"></script>

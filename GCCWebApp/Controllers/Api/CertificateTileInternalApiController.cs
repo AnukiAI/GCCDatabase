@@ -476,10 +476,7 @@ namespace GCCWebApp.Controllers.Api
                         .Select(c => new {
                             id = c.Id,
                             name = c.Name,
-                            certificateCount = c.Certificates.Count(cert =>
-                                cert.Status == "active" ||
-                                cert.Status == "expiring_soon" ||
-                                cert.Status == "renewal_in_progress")
+                            certificateCount = c.Certificates.Count()
                         })
                         .Where(c => c.certificateCount > 0)
                         .OrderBy(c => c.name)
@@ -487,7 +484,6 @@ namespace GCCWebApp.Controllers.Api
                         .ToListAsync(),
 
                     countries = await _context.Certificates
-                        .Where(c => c.Status == "active" || c.Status == "expiring_soon" || c.Status == "renewal_in_progress")
                         .Where(c => !string.IsNullOrEmpty(c.Country))
                         .Select(c => c.Country!)
                         .Distinct()

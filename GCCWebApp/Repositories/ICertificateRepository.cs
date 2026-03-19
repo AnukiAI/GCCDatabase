@@ -44,6 +44,8 @@ namespace GCCWebApp.Repositories
         public int? ProductId { get; set; }
         public int? CertificationTypeId { get; set; }
         public string? Status { get; set; }
+        public List<string>? Statuses { get; set; }
+        public bool ExcludeExpiredByDate { get; set; }
         public string? Partner { get; set; }
         public string? Location { get; set; }
         public string? Country { get; set; }

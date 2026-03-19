@@ -411,7 +411,7 @@ namespace GCCWebApp.Controllers
                     // Set default dates to current year
                     EffectiveDate = DateTime.Today,
                     ExpirationDate = DateTime.Today.AddYears(2), // Default 2-year validity
-                    Status = "active" // Default status
+                    Status = CertificateStatusHelper.StatusDraft // Default status
                 };
 
                 // Load dropdown data

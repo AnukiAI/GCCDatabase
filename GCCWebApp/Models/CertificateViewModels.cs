@@ -79,13 +79,9 @@ namespace GCCWebApp.Models
         {
             "Client Approved - Paid" => "badge-success",
             "Republished" => "badge-success",
-            "Client Approved - Not Paid" => "badge-warning",
-            "Client Approved - Confidential" => "badge-warning",
-            "Hold" => "badge-warning",
             "Expired" => "badge-danger",
             "Expired - No Annual Verification" => "badge-danger",
-            "Draft" => "badge-secondary",
-            _ => "badge-primary"
+            _ => "badge-secondary"
         };
     }
 

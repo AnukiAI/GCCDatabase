@@ -468,10 +468,10 @@
         const statusClasses = {
             'Client Approved - Paid': 'status-active',
             'Republished': 'status-active',
-            'Client Approved - Not Paid': 'status-pending',
-            'Client Approved - Confidential': 'status-pending',
+            'Client Approved - Not Paid': 'status-draft',
+            'Client Approved - Confidential': 'status-draft',
             'Draft': 'status-draft',
-            'Hold': 'status-revoked',
+            'Hold': 'status-draft',
             'Expired': 'status-expired',
             'Expired - No Annual Verification': 'status-expired'
         };

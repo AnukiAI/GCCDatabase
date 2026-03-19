@@ -209,8 +209,8 @@ namespace GCCWebApp.Services
         private void ValidateCertificateBusinessRules(Certificate certificate, ValidationResult result)
         {
             // Status validation
-            var validStatuses = new[] { "active", "expired", "pending", "suspended", "revoked" };
-            if (!validStatuses.Contains(certificate.Status.ToLower()))
+            var validStatuses = CertificateStatusHelper.GetAllStatuses().Keys;
+            if (!validStatuses.Contains(certificate.Status))
             {
                 result.AddError($"Status must be one of: {string.Join(", ", validStatuses)}");
             }

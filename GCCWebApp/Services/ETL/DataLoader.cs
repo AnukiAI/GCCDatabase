@@ -336,10 +336,9 @@ namespace GCCWebApp.Services.ETL
                     comp.Name AS CompanyName,
                     p.Name AS ProductName,
                     ct.Name AS CertificationType,
-                    CASE 
+                    CASE
                         WHEN c.ExpirationDate < GETDATE() THEN 'Expired'
-                        WHEN c.ExpirationDate <= DATEADD(day, 30, GETDATE()) THEN 'Expiring Soon'
-                        ELSE 'Active'
+                        ELSE c.Status
                     END AS ExpirationStatus,
                     DATEDIFF(day, GETDATE(), c.ExpirationDate) AS DaysUntilExpiration
                 FROM Certificates c
@@ -361,9 +360,8 @@ namespace GCCWebApp.Services.ETL
                     c.Country,
                     c.IsActive,
                     COUNT(cert.Id) AS TotalCertificates,
-                    COUNT(CASE WHEN cert.Status = 'active' THEN 1 END) AS ActiveCertificates,
-                    COUNT(CASE WHEN cert.ExpirationDate < GETDATE() THEN 1 END) AS ExpiredCertificates,
-                    COUNT(CASE WHEN cert.ExpirationDate <= DATEADD(day, 30, GETDATE()) THEN 1 END) AS ExpiringSoonCertificates
+                    COUNT(CASE WHEN cert.Status IN ('Client Approved - Paid', 'Republished') AND cert.ExpirationDate >= GETDATE() THEN 1 END) AS ActiveCertificates,
+                    COUNT(CASE WHEN cert.Status IN ('Expired', 'Expired - No Annual Verification') OR cert.ExpirationDate < GETDATE() THEN 1 END) AS ExpiredCertificates
                 FROM Companies c
                 LEFT JOIN Certificates cert ON c.Id = cert.CompanyId
                 GROUP BY c.Id, c.Name, c.Country, c.IsActive

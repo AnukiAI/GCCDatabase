@@ -565,7 +565,7 @@ namespace GCCWebApp.Services.Import
                     // Certificate fields
                     CertificateNumber = GetFieldWithMapping(csv, CertificateNumberColumns),
                     CertificationType = GetFieldWithMapping(csv, CertificationTypeColumns),
-                    Status = string.IsNullOrWhiteSpace(status) ? "active" : status,
+                    Status = string.IsNullOrWhiteSpace(status) ? CertificateStatusHelper.StatusDraft : status,
                     EffectiveDate = GetFieldWithMapping(csv, EffectiveDateColumns),
                     ExpirationDate = GetFieldWithMapping(csv, ExpirationDateColumns),
                     Location = GetFieldWithMapping(csv, CertificateLocationColumns),
@@ -615,7 +615,7 @@ namespace GCCWebApp.Services.Import
                 CompanyName = csvRow.CompanyName,
                 ProductName = csvRow.ProductName,
                 CertificationType = csvRow.CertificationType,
-                Status = string.IsNullOrWhiteSpace(csvRow.Status) ? "active" : csvRow.Status,
+                Status = string.IsNullOrWhiteSpace(csvRow.Status) ? CertificateStatusHelper.StatusDraft : csvRow.Status,
                 Location = csvRow.Location,
                 Country = csvRow.Country,
                 Asin = csvRow.Asin,

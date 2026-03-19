@@ -16,7 +16,7 @@ namespace GCCWebApp.Models
 
         [Display(Name = "Status")]
         [Required]
-        public string Status { get; set; } = "active";
+        public string Status { get; set; } = "Draft";
 
         [Display(Name = "Partner Program")]
         [MaxLength(100)]

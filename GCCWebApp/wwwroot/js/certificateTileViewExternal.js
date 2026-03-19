@@ -820,10 +820,10 @@ class CertificateTileViewExternal {
         const statusMap = {
             'Client Approved - Paid': 'badge-success',
             'Republished': 'badge-success',
-            'Client Approved - Not Paid': 'badge-warning',
-            'Client Approved - Confidential': 'badge-warning',
+            'Client Approved - Not Paid': 'badge-secondary',
+            'Client Approved - Confidential': 'badge-secondary',
             'Draft': 'badge-secondary',
-            'Hold': 'badge-warning',
+            'Hold': 'badge-secondary',
             'Expired': 'badge-danger',
             'Expired - No Annual Verification': 'badge-danger'
         };

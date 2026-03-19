@@ -433,16 +433,16 @@ namespace GCCWebApp.Services
                         c.ExpirationDate,
                         c.Country,
                         CertificationTypeName = c.CertificationType.Name,
-                        ExpiringSoon = c.ExpirationDate <= expiringSoonDate && c.Status == "active"
+                        IsPublic = CertificateStatusHelper.PublicStatuses.Contains(c.Status)
                     })
                     .ToListAsync();
 
                 // Calculate all statistics in memory from single query result
                 var totalCertificates = certificates.Count;
-                var activeCertificates = certificates.Count(c => c.Status == "active");
-                var expiredCertificates = certificates.Count(c => c.Status == "expired");
-                var pendingCertificates = certificates.Count(c => c.Status == "pending");
-                var expiringSoonCertificates = certificates.Count(c => c.ExpiringSoon);
+                var activeCertificates = certificates.Count(c => c.IsPublic && c.ExpirationDate >= DateTime.Now);
+                var expiredCertificates = certificates.Count(c => c.Status == CertificateStatusHelper.StatusExpired || c.Status == CertificateStatusHelper.StatusExpiredNoAnnualVerification);
+                var pendingCertificates = certificates.Count(c => c.Status == CertificateStatusHelper.StatusClientApprovedNotPaid || c.Status == CertificateStatusHelper.StatusDraft);
+                var expiringSoonCertificates = 0; // Removed per client request
 
                 var certificatesByType = certificates
                     .Where(c => !string.IsNullOrEmpty(c.CertificationTypeName))

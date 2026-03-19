@@ -94,13 +94,9 @@ namespace GreenCircleCertified.Models
         {
             CertificateStatus.ClientApprovedPaid => "badge-success",
             CertificateStatus.Republished => "badge-success",
-            CertificateStatus.ClientApprovedNotPaid => "badge-warning",
-            CertificateStatus.ClientApprovedConfidential => "badge-warning",
-            CertificateStatus.Hold => "badge-warning",
             CertificateStatus.Expired => "badge-danger",
             CertificateStatus.ExpiredNoAnnualVerification => "badge-danger",
-            CertificateStatus.Draft => "badge-secondary",
-            _ => "badge-primary"
+            _ => "badge-secondary"
         };
     }
 

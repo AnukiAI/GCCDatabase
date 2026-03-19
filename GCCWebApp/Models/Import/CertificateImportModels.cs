@@ -56,7 +56,7 @@ namespace GCCWebApp.Models.Import
         public string CompanyName { get; set; } = string.Empty;
         public string ProductName { get; set; } = string.Empty;
         public string CertificationType { get; set; } = string.Empty;
-        public string Status { get; set; } = "active";
+        public string Status { get; set; } = "Draft";
         public DateTime? EffectiveDate { get; set; }
         public DateTime? ExpirationDate { get; set; }
         public string? Location { get; set; }

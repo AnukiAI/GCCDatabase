@@ -75,7 +75,7 @@ namespace GCCWebApp.Controllers.Api
             [FromQuery] string? company = null,
             [FromQuery] string? country = null,
             [FromQuery] string? tags = null,
-            [FromQuery] string? sort = "newest",
+            [FromQuery] string? sort = null,
             [FromQuery] string? sortBy = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
@@ -89,7 +89,7 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
-                var finalSort = sort ?? sortBy ?? "newest";
+                var finalSort = sortBy ?? sort ?? "cert-number-newest";
                 var finalSearchTerm = searchTerm ?? search;
 
                 // Support both page-based and offset-based pagination for backwards compatibility
@@ -102,7 +102,7 @@ namespace GCCWebApp.Controllers.Api
                     Statuses = CertificateStatusHelper.PublicStatuses.ToList(),
                     ExcludeExpiredByDate = true, // Only show non-expired certs on public view
                     SortBy = MapSortBy(finalSort),
-                    SortDescending = finalSort == "newest" || finalSort == "cert-number-newest",
+                    SortDescending = finalSort == "cert-number-newest" || finalSort == "company-za" || finalSort == "product-za" || finalSort == "cert-type-za" || finalSort == "location-za" || finalSort == "country-za",
                     Page = Math.Max(1, (actualOffset / actualLimit) + 1),
                     PageSize = actualLimit
                 };
@@ -500,7 +500,7 @@ namespace GCCWebApp.Controllers.Api
                 if (!string.IsNullOrEmpty(request.Country))
                     queryParams.Add($"country={Uri.EscapeDataString(request.Country)}");
                 
-                if (!string.IsNullOrEmpty(request.SortBy) && request.SortBy != "newest")
+                if (!string.IsNullOrEmpty(request.SortBy) && request.SortBy != "cert-number-newest")
                     queryParams.Add($"sort={Uri.EscapeDataString(request.SortBy)}");
 
                 var queryString = queryParams.Any() ? "?" + string.Join("&", queryParams) : "";
@@ -525,19 +525,20 @@ namespace GCCWebApp.Controllers.Api
                 "newest" => "EffectiveDate",
                 "oldest-effective" => "EffectiveDate",
                 "expiring" => "ExpirationDate",
-                "company-az" => "Company.Name",
-                "company-za" => "Company.Name",
-                "product-az" => "Product.Name",
-                "product-za" => "Product.Name",
+                "company-az" => "Company",
+                "company-za" => "Company",
+                "product-az" => "Product",
+                "product-za" => "Product",
                 "cert-number-newest" => "Number",
                 "cert-number-oldest" => "Number",
-                "cert-type" => "CertificationType.Name",
-                "cert-type-za" => "CertificationType.Name",
+                "cert-type" => "CertType",
+                "cert-type-za" => "CertType",
                 "location-az" => "Location",
                 "location-za" => "Location",
                 "country" => "Country",
                 "country-za" => "Country",
-                _ => "EffectiveDate"
+                "product-type" => "ProductType",
+                _ => "Number"
             };
         }
 

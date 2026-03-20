@@ -535,6 +535,7 @@ html body.table-view-active #tableView {
     padding-left: 60px !important;
 }
 
+
 /* ===== LAYOUT CONSISTENCY FIX ===== */
 /* Remove .page-container padding when .main-container is present to match admin page layout */
 body:has(.main-container) .page-container {
@@ -611,6 +612,11 @@ body:has(.main-container) .page-header {
     flex: 1;
     display: flex;
     flex-direction: column;
+}
+
+/* Tags spacing within card */
+.certificate-card .certificate-tags {
+    margin-bottom: 8px;
 }
 
 /* Card Actions - Download and View Details Icons */
@@ -694,6 +700,8 @@ body:has(.main-container) .page-header {
     margin-bottom: 8px;
     color: var(--blue-dark);
     line-height: 1.3;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 /* Certificate selection checkbox removed */
@@ -1066,13 +1074,13 @@ body:has(.main-container) .page-header {
         font-size: 12px;
     }
     
-    .company-name,
-    .location {
+    .certificates-table .company-name,
+    .certificates-table .location {
         max-width: 120px;
     }
 
     /* Product name should take full width on all screen sizes */
-    .product-name {
+    .certificates-table .product-name {
         max-width: 100% !important;
         width: 100% !important;
     }
@@ -1491,6 +1499,7 @@ body:has(.main-container) .page-header {
 .filter-item.filter-level-3 {
     padding-left: 40px;
 }
+
 
 /* Loading indicator styles for lazy loading */
 .loading-indicator {
@@ -2673,4 +2682,90 @@ body.table-view-active .tile-view-content {
 }
 .ct-switch input:checked + .ct-slider { background: #2980b9; }
 .ct-switch input:checked + .ct-slider:before { transform: translateX(16px); }
+
+/* ====================================================
+   MOBILE / TABLET RESPONSIVE - SIDEBAR & FILTERS
+   ==================================================== */
+
+/* Mobile filter toggle button - hidden on desktop */
+.mobile-filter-toggle {
+    display: none;
+    width: 100%;
+    padding: 12px 16px;
+    background: var(--blue-primary, #00AEEF);
+    color: var(--white, #fff);
+    border: none;
+    border-radius: var(--border-radius-sm, 4px);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 15px;
+    transition: background 0.2s ease;
+}
+
+.mobile-filter-toggle:hover {
+    background: var(--blue-dark, #002876);
+}
+
+.mobile-filter-toggle i {
+    transition: transform 0.3s ease;
+}
+
+.mobile-filter-toggle.open i {
+    transform: rotate(180deg);
+}
+
+/* Tablet breakpoint (1024px and below) */
+@media (max-width: 1024px) {
+    .main-container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        padding: 15px;
+    }
+
+    .mobile-filter-toggle {
+        display: flex;
+    }
+
+    /* Hide filter content by default on tablet/mobile */
+    .sidebar .search-bar,
+    .sidebar .filters-header,
+    .sidebar .filter-panel {
+        display: none;
+    }
+
+    /* Show filter content when sidebar has 'mobile-open' class */
+    .sidebar.mobile-open .search-bar,
+    .sidebar.mobile-open .filters-header,
+    .sidebar.mobile-open .filter-panel {
+        display: block;
+    }
+
+    .sidebar.mobile-open .filters-header {
+        display: flex;
+    }
+}
+
+/* Mobile breakpoint (768px and below) */
+@media (max-width: 768px) {
+    .sidebar {
+        padding: 10px;
+    }
+
+    .mobile-filter-toggle {
+        padding: 10px 14px;
+        font-size: 15px;
+    }
+
+    .sort-dropdown-content {
+        min-width: 200px;
+    }
+}
 

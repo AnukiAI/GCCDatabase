@@ -384,6 +384,11 @@ th,
     font-weight: 500;
 }
 
+a.sign-in-link {
+    text-decoration: none;
+    color: inherit;
+}
+
 .user-dropdown {
     position: absolute;
     top: 45px;
@@ -2007,9 +2012,10 @@ body.theme-option4 .certificate-single-card .card-body {
 
 .certificate-download-action {
     display: flex;
-    justify-content: flex-end; /* Right-align the icons */
-    gap: 10px; /* Space between icons */
-    margin-top: 12px; /* Increased from 10px */
+    justify-content: center;
+    gap: 10px;
+    margin-top: 12px;
+    max-width: 350px; /* Match the certificate preview box width */
 }
 
 .certificate-download-action .action-icon {

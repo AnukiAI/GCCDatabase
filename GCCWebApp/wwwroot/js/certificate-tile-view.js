@@ -12,7 +12,8 @@
             company: [],
             country: [],
             tags: [],
-            sortBy: 'newest'
+            additional: [],
+            sortBy: 'cert-number-newest'
         },
         loadedCount: 0,
         batchSize: 20,
@@ -31,11 +32,11 @@
     };
 
     function initialize() {
+        setupUrlParameters(); // Must be first so filters are set before loading certificates
         loadFilterOptions();
         loadInitialCertificates();
         setupEventListeners();
         setupInfiniteScroll();
-        setupUrlParameters();
         initializeAutocomplete();
     }
 
@@ -281,6 +282,10 @@
             params.append('tags', state.filters.tags.join(','));
         }
 
+        if (state.filters.additional.length > 0) {
+            params.append('additional', state.filters.additional.join(','));
+        }
+
         params.append('sortBy', state.filters.sortBy);
         params.append('offset', state.loadedCount);
         params.append('limit', state.batchSize);
@@ -411,6 +416,22 @@
     function setupEventListeners() {
         // Search input handled in initializeAutocomplete()
         // Do not set up conflicting listeners here
+
+        // Mobile filter toggle
+        const mobileFilterToggle = document.getElementById('mobileFilterToggle');
+        if (mobileFilterToggle) {
+            mobileFilterToggle.addEventListener('click', () => {
+                const sidebar = document.querySelector('.sidebar');
+                sidebar.classList.toggle('mobile-open');
+                mobileFilterToggle.classList.toggle('open');
+                const span = mobileFilterToggle.querySelector('span');
+                if (sidebar.classList.contains('mobile-open')) {
+                    span.textContent = 'Hide Filters & Search';
+                } else {
+                    span.textContent = 'Show Filters & Search';
+                }
+            });
+        }
 
         // Clear filters button
         const clearFiltersBtn = document.querySelector('.clear-filters');
@@ -544,7 +565,8 @@
             'product-cat': 'productCategory',
             'company': 'company',
             'countries': 'country',
-            'cert-tags': 'tags'
+            'cert-tags': 'tags',
+            'additional': 'additional'
         };
 
         const filterKey = filterMap[filterName];
@@ -749,6 +771,11 @@
             updateCheckboxes('countries', state.filters.country);
         }
         
+        if (params.has('additional')) {
+            state.filters.additional = params.get('additional').split(',');
+            updateCheckboxes('additional', state.filters.additional);
+        }
+
         if (params.has('sort')) {
             state.filters.sortBy = params.get('sort');
             updateSortLabel(state.filters.sortBy);
@@ -781,10 +808,14 @@
             params.set('country', state.filters.country.join(','));
         }
         
-        if (state.filters.sortBy !== 'newest') {
+        if (state.filters.additional.length > 0) {
+            params.set('additional', state.filters.additional.join(','));
+        }
+
+        if (state.filters.sortBy !== 'cert-number-newest') {
             params.set('sort', state.filters.sortBy);
         }
-        
+
         const newUrl = params.toString() 
             ? `${window.location.pathname}?${params.toString()}`
             : window.location.pathname;
@@ -802,12 +833,21 @@
     // Update sort label
     function updateSortLabel(sortValue) {
         const sortLabels = {
-            'newest': 'Newest Effective Date',
-            'oldest-effective': 'Oldest Effective Date',
+            'cert-number-newest': 'Certificate Number (Newest)',
+            'cert-number-oldest': 'Certificate Number (Oldest)',
+            'cert-type': 'Certification Type A-Z',
+            'cert-type-za': 'Certification Type Z-A',
             'company-az': 'Company A-Z',
-            'product-az': 'Product Name A-Z'
+            'company-za': 'Company Z-A',
+            'product-az': 'Product Name A-Z',
+            'product-za': 'Product Name Z-A',
+            'product-type': 'Product Type A-Z',
+            'location-az': 'Location A-Z',
+            'location-za': 'Location Z-A',
+            'country': 'Country A-Z',
+            'country-za': 'Country Z-A'
         };
-        
+
         const label = sortLabels[sortValue] || 'Default';
         const sortLabel = document.getElementById('sortLabel');
         if (sortLabel) sortLabel.textContent = label;
@@ -822,9 +862,10 @@
             company: [],
             country: [],
             tags: [],
-            sortBy: 'newest'
+            additional: [],
+            sortBy: 'cert-number-newest'
         };
-        
+
         // Clear UI
         document.querySelector('.search-input').value = '';
         document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
@@ -833,7 +874,6 @@
         renderActiveFilterTags();
         loadInitialCertificates();
         updateUrl();
-        showToast('All filters cleared', 'info');
     }
 
     // Render active filter tags above results
@@ -846,7 +886,8 @@
             productCategory: 'Category',
             company: 'Company',
             country: 'Country',
-            tags: 'Tag'
+            tags: 'Tag',
+            additional: 'Filter'
         };
 
         const nameMap = {
@@ -854,7 +895,8 @@
             productCategory: 'product-cat',
             company: 'company',
             country: 'countries',
-            tags: 'cert-tags'
+            tags: 'cert-tags',
+            additional: 'additional'
         };
 
         let html = '';
@@ -923,7 +965,6 @@
         
         loadInitialCertificates();
         updateUrl();
-        showToast(`Sorted by ${label}`, 'info');
     }
 
     // Toggle filter panel

@@ -530,6 +530,10 @@ builder.Services.AddScoped<GCCWebApp.Services.ETL.IDataLoader, GCCWebApp.Service
 builder.Services.AddScoped<GCCWebApp.Services.ETL.IETLMonitor, GCCWebApp.Services.ETL.ETLMonitor>();
 builder.Services.AddHostedService<GCCWebApp.Services.ETL.ETLSchedulerService>();
 
+// ===== CERTIFICATE EXPIRATION SERVICE =====
+// Registered as scoped — triggered on login or page load, throttled to once per 24 hours
+builder.Services.AddScoped<GCCWebApp.Services.ICertificateExpirationService, GCCWebApp.Services.CertificateExpirationService>();
+
 // ===== BASIC SERVICES =====
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddMemoryCache();

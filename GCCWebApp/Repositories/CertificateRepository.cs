@@ -311,10 +311,16 @@ namespace GCCWebApp.Repositories
                 "number" => filter.SortDescending ? query.OrderByDescending(c => c.Number) : query.OrderBy(c => c.Number),
                 "company" => filter.SortDescending ? query.OrderByDescending(c => c.Company.Name) : query.OrderBy(c => c.Company.Name),
                 "product" => filter.SortDescending ? query.OrderByDescending(c => c.Product.Name) : query.OrderBy(c => c.Product.Name),
+                "certtype" => filter.SortDescending ? query.OrderByDescending(c => c.CertificationType.Name) : query.OrderBy(c => c.CertificationType.Name),
+                "location" => filter.SortDescending ? query.OrderByDescending(c => c.Location) : query.OrderBy(c => c.Location),
+                "country" => filter.SortDescending ? query.OrderByDescending(c => c.Country) : query.OrderBy(c => c.Country),
+                "producttype" => filter.SortDescending
+                    ? query.OrderByDescending(c => c.Product.ProductType != null ? c.Product.ProductType.Name : "")
+                    : query.OrderBy(c => c.Product.ProductType != null ? c.Product.ProductType.Name : ""),
                 "effectivedate" => filter.SortDescending ? query.OrderByDescending(c => c.EffectiveDate) : query.OrderBy(c => c.EffectiveDate),
                 "expirationdate" => filter.SortDescending ? query.OrderByDescending(c => c.ExpirationDate) : query.OrderBy(c => c.ExpirationDate),
                 "status" => filter.SortDescending ? query.OrderByDescending(c => c.Status) : query.OrderBy(c => c.Status),
-                _ => filter.SortDescending ? query.OrderByDescending(c => c.CreatedAt) : query.OrderBy(c => c.CreatedAt)
+                _ => filter.SortDescending ? query.OrderByDescending(c => c.Number) : query.OrderBy(c => c.Number)
             };
 
             var certificates = await query

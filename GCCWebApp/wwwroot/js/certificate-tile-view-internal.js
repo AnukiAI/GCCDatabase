@@ -883,7 +883,6 @@
         renderActiveFilterTags();
         loadInitialCertificates();
         updateUrl();
-        showToast('All filters cleared', 'info');
     }
 
     // Render active filter tags above results
@@ -1017,7 +1016,6 @@
 
         loadInitialCertificates();
         updateUrl();
-        showToast(`Sorted by ${label}`, 'info');
     }
 
     // Update results count

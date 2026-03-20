@@ -10,7 +10,7 @@
     var certificationType = Model.Certificate?.CertificationType?.Name ?? "Certified Environmental Facts";
     var company = Model.Certificate?.Company?.Name ?? "Unknown Company";
     var productName = Model.Certificate?.Product?.Name ?? "Unknown Product";
-    var productType = Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "General Product";
+    var productType = Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "—";
     var location = Model.Certificate?.Location ?? "Unknown Location";
     var country = Model.Certificate?.Country ?? "Unknown Country";
     var effectiveDate = Model.Certificate?.EffectiveDate.ToString("M/d/yyyy") ?? "Unknown";
@@ -124,7 +124,7 @@
                                 }
                                 else
                                 {
-                                    <text>Available upon request</text>
+                                    <text>—</text>
                                 }
                             </span>
                         </div>
@@ -137,7 +137,7 @@
                                 }
                                 else
                                 {
-                                    <text>Not provided</text>
+                                    <text>—</text>
                                 }
                             </span>
                         </div>

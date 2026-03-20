@@ -927,7 +927,9 @@ namespace GCCWebApp.Controllers
             var authProperties = new AuthenticationProperties
             {
                 IsPersistent = rememberMe,
-                ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30)
+                ExpiresUtc = rememberMe
+                    ? DateTimeOffset.UtcNow.AddDays(14)
+                    : DateTimeOffset.UtcNow.AddMinutes(30)
             };
 
             await HttpContext.SignInAsync(

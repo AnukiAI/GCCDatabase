@@ -371,6 +371,7 @@ namespace GCCWebApp.Controllers
                     product.Sku = model.Sku;
                     product.CategoryId = model.CategoryId;
                     product.ProductTypeId = model.ProductTypeId;
+                    product.ProductSubcategoryId = model.ProductSubcategoryId;
                     product.CompanyId = model.CompanyId;
                     product.IsActive = model.IsActive;
                     product.UpdatedAt = DateTime.UtcNow;
@@ -388,6 +389,7 @@ namespace GCCWebApp.Controllers
                         Sku = model.Sku,
                         CategoryId = model.CategoryId,
                         ProductTypeId = model.ProductTypeId,
+                        ProductSubcategoryId = model.ProductSubcategoryId,
                         CompanyId = model.CompanyId,
                         IsActive = model.IsActive,
                         CreatedAt = DateTime.UtcNow,
@@ -920,6 +922,7 @@ namespace GCCWebApp.Controllers
         public string? Sku { get; set; }
         public int CategoryId { get; set; }
         public int? ProductTypeId { get; set; }
+        public int? ProductSubcategoryId { get; set; }
         public int? CompanyId { get; set; }
         public bool IsActive { get; set; } = true;
     }

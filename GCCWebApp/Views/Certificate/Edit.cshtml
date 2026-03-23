@@ -107,14 +107,9 @@
                         <label asp-for="ProductId">Product Name <span class="text-danger" aria-label="required">*</span></label>
                         <select asp-for="ProductId" class="form-control" required aria-required="true">
                             <option value="">Select a product...</option>
-                            @if (ViewBag.Products != null)
-                            {
-                                @foreach (var product in ViewBag.Products)
-                                {
-                                    <option value="@product.Id">@product.Name</option>
-                                }
-                            }
+                            @* Products loaded dynamically based on company selection *@
                         </select>
+                        <small id="productHelpText" class="form-text text-muted">Products filtered by selected company</small>
                         <span asp-validation-for="ProductId" class="text-danger" role="alert"></span>
                     </div>
 
@@ -453,9 +448,110 @@
         // Store all certification types for subcategory filtering
         var allCertificationTypes = @Html.Raw(Json.Serialize(ViewBag.AllCertificationTypes ?? new List<object>()));
 
+        // Store product data for auto-fill when product is selected
+        var companyProducts = [];
+
         $(document).ready(async function() {
             const certificateId = @Model.Id;
             const typeId = @Model.CertificationTypeId;
+            const savedProductId = '@(Model.ProductId > 0 ? Model.ProductId.ToString() : "")';
+            const savedCompanyId = '@(Model.CompanyId > 0 ? Model.CompanyId.ToString() : "")';
+
+            // ===== Company → Product Cascading Dropdown (REQ-CERT-10) =====
+
+            // Load products for a company and optionally pre-select a product
+            async function loadProductsForCompany(companyId, preselectProductId) {
+                const productSelect = $('#ProductId');
+                const helpText = $('#productHelpText');
+                productSelect.html('<option value="">Select a product...</option>');
+                // Clear autocomplete input if present
+                const productEl = document.getElementById('ProductId');
+                if (productEl && productEl.autocompleteInput) {
+                    productEl.autocompleteInput.value = '';
+                }
+                companyProducts = [];
+
+                if (!companyId) {
+                    helpText.text('Select a company to see its products');
+                    return;
+                }
+
+                helpText.text('Loading products...');
+                try {
+                    const response = await fetch(`/Certificate/GetProductsByCompany?companyId=${companyId}`);
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        companyProducts = result.data;
+                        if (result.data.length > 0) {
+                            result.data.forEach(p => {
+                                const selected = preselectProductId && p.id.toString() === preselectProductId ? ' selected' : '';
+                                productSelect.append(`<option value="${p.id}"${selected}>${p.name}</option>`);
+                            });
+                            helpText.text(`${result.data.length} product(s) found`);
+                        } else {
+                            helpText.text('No products found for this company. Use "Add New" below.');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error loading products by company:', error);
+                    helpText.text('Error loading products');
+                }
+            }
+
+            // Initial load: populate products for the saved company with saved product pre-selected
+            if (savedCompanyId) {
+                await loadProductsForCompany(savedCompanyId, savedProductId);
+            }
+
+            // When company changes, reload products and reset category/type/subcategory
+            $('#CompanyId').change(async function() {
+                const companyId = $(this).val();
+                $('#ProductCategoryId').val('');
+                $('#ProductTypeId').html('<option value="">Select category first...</option>');
+                $('#ProductSubcategoryId').html('<option value="">Select type first...</option>');
+                await loadProductsForCompany(companyId);
+            });
+
+            // When product changes, auto-fill category/type/subcategory
+            $('#ProductId').change(async function() {
+                const productId = parseInt($(this).val());
+                if (!productId) return;
+
+                const product = companyProducts.find(p => p.id === productId);
+                if (!product) return;
+
+                if (product.categoryId) {
+                    $('#ProductCategoryId').val(product.categoryId);
+                    try {
+                        const response = await fetch(`/Certificate/GetProductTypes?categoryId=${product.categoryId}`);
+                        const result = await response.json();
+                        if (result.success && result.data) {
+                            const typeSelect = $('#ProductTypeId');
+                            typeSelect.html('<option value="">All Types</option>');
+                            result.data.forEach(pt => {
+                                typeSelect.append(`<option value="${pt.id}">${pt.name}</option>`);
+                            });
+                            if (product.productTypeId) {
+                                typeSelect.val(product.productTypeId);
+                                const subResponse = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${product.productTypeId}`);
+                                const subResult = await subResponse.json();
+                                if (subResult.success && subResult.data && subResult.data.length > 0) {
+                                    const subSelect = $('#ProductSubcategoryId');
+                                    subSelect.html('<option value="">Select subcategory...</option>');
+                                    subResult.data.forEach(sub => {
+                                        subSelect.append(`<option value="${sub.id}">${sub.name}</option>`);
+                                    });
+                                    if (product.productSubcategoryId) {
+                                        subSelect.val(product.productSubcategoryId);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error auto-filling product hierarchy:', error);
+                    }
+                }
+            });
 
             // ===== Product Category/Type/Subcategory 3-Level Cascading Dropdowns =====
 
@@ -567,7 +663,9 @@
                 subcategorySelect.html('<option value="">Select subcategory...</option>');
 
                 if (typeId) {
-                    const subcategories = allCertificationTypes.filter(ct => ct.parentId === typeId);
+                    const subcategories = allCertificationTypes
+                        .filter(ct => ct.parentId === typeId)
+                        .sort((a, b) => a.name.localeCompare(b.name));
 
                     if (subcategories.length > 0) {
                         subcategories.forEach(sub => {
@@ -607,7 +705,9 @@
                 }
 
                 if (newTypeId) {
-                    const subcategories = allCertificationTypes.filter(ct => ct.parentId === newTypeId);
+                    const subcategories = allCertificationTypes
+                        .filter(ct => ct.parentId === newTypeId)
+                        .sort((a, b) => a.name.localeCompare(b.name));
 
                     if (subcategories.length > 0) {
                         subcategories.forEach(sub => {

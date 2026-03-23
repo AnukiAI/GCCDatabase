@@ -235,12 +235,24 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
             }
         }
 
+        // Build category options from the existing page dropdown if available
+        let categoryOptions = '<option value="">Select category...</option>';
+        const pageCategorySelect = document.getElementById('ProductCategoryId');
+        if (pageCategorySelect) {
+            for (let i = 0; i < pageCategorySelect.options.length; i++) {
+                const opt = pageCategorySelect.options[i];
+                if (opt.value) {
+                    categoryOptions += `<option value="${opt.value}">${opt.textContent}</option>`;
+                }
+            }
+        }
+
         const modalHtml = `
             <div id="quickAddProductModal" class="admin-modal" style="display: flex; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 10000; align-items: center; justify-content: center;">
                 <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0, 0, 0, 0.85); z-index: 9998; backdrop-filter: blur(3px);"></div>
-                <div class="admin-modal-container" style="position: relative; z-index: 9999; max-width: 500px; width: 90%; background-color: white; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);">
+                <div class="admin-modal-container" style="position: relative; z-index: 9999; max-width: 550px; width: 90%; background-color: white; border-radius: 8px; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5); max-height: 90vh; overflow-y: auto;">
                     <div class="admin-modal-header" style="background-color: #f8f9fa; border-bottom: 2px solid #e9ecef; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center;">
-                        <h3 class="admin-modal-title" style="color: #002B76; font-weight: 600; margin: 0; font-size: 18px;">Quick Add Product</h3>
+                        <h3 class="admin-modal-title" style="color: #002B76; font-weight: 600; margin: 0; font-size: 18px;">Add New Product</h3>
                         <button type="button" class="admin-modal-close" onclick="CertificateInlineCreate.closeModal('quickAddProductModal')" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6c757d; line-height: 1;">&times;</button>
                     </div>
                     <div class="admin-modal-body" style="background-color: white; padding: 24px;">
@@ -254,6 +266,24 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
                                 ${companyOptions}
                             </select>
                             <small style="color: #6c757d; font-size: 12px; margin-top: 4px; display: block;">Product will be associated with this company</small>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label for="quickProductCategory" style="font-weight: 600; margin-bottom: 8px; display: block; color: #333;">Product Category <span class="text-danger">*</span></label>
+                            <select id="quickProductCategory" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;" required>
+                                ${categoryOptions}
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label for="quickProductType" style="font-weight: 600; margin-bottom: 8px; display: block; color: #333;">Product Type</label>
+                            <select id="quickProductType" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                                <option value="">Select category first...</option>
+                            </select>
+                        </div>
+                        <div class="form-group" style="margin-bottom: 16px;">
+                            <label for="quickProductSubcategory" style="font-weight: 600; margin-bottom: 8px; display: block; color: #333;">Product Subcategory</label>
+                            <select id="quickProductSubcategory" class="form-control" style="width: 100%; padding: 10px 12px; border: 1px solid #ced4da; border-radius: 4px; font-size: 14px;">
+                                <option value="">Select type first...</option>
+                            </select>
                         </div>
                         <div class="form-group" style="margin-bottom: 0;">
                             <label for="quickProductDescription" style="font-weight: 600; margin-bottom: 8px; display: block; color: #333;">Description</label>
@@ -276,6 +306,9 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
         // Add modal to page
         document.body.insertAdjacentHTML('beforeend', modalHtml);
 
+        // Set up cascading dropdowns within the modal
+        CertificateInlineCreate.setupModalCascade();
+
         // Focus the name input
         setTimeout(() => {
             document.getElementById('quickProductName').focus();
@@ -291,16 +324,74 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
     };
 
     /**
+     * Set up cascading category → type → subcategory dropdowns within the Add Product modal
+     */
+    CertificateInlineCreate.setupModalCascade = function() {
+        const categorySelect = document.getElementById('quickProductCategory');
+        const typeSelect = document.getElementById('quickProductType');
+        const subcategorySelect = document.getElementById('quickProductSubcategory');
+
+        if (!categorySelect || !typeSelect || !subcategorySelect) return;
+
+        // Category → Type cascade
+        categorySelect.addEventListener('change', async function() {
+            const categoryId = this.value;
+            typeSelect.innerHTML = '<option value="">Select type...</option>';
+            subcategorySelect.innerHTML = '<option value="">Select type first...</option>';
+
+            if (categoryId) {
+                try {
+                    const response = await fetch(`/Certificate/GetProductTypes?categoryId=${categoryId}`);
+                    const result = await response.json();
+                    if (result.success && result.data) {
+                        result.data.forEach(pt => {
+                            typeSelect.innerHTML += `<option value="${pt.id}">${pt.name}</option>`;
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading product types in modal:', error);
+                }
+            }
+        });
+
+        // Type → Subcategory cascade
+        typeSelect.addEventListener('change', async function() {
+            const typeId = this.value;
+            subcategorySelect.innerHTML = '<option value="">Select subcategory...</option>';
+
+            if (typeId) {
+                try {
+                    const response = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${typeId}`);
+                    const result = await response.json();
+                    if (result.success && result.data && result.data.length > 0) {
+                        result.data.forEach(sub => {
+                            subcategorySelect.innerHTML += `<option value="${sub.id}">${sub.name}</option>`;
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading product subcategories in modal:', error);
+                }
+            }
+        });
+    };
+
+    /**
      * Save Quick Add Product
      */
     CertificateInlineCreate.saveQuickProduct = async function() {
         const nameInput = document.getElementById('quickProductName');
         const companyInput = document.getElementById('quickProductCompany');
+        const categoryInput = document.getElementById('quickProductCategory');
+        const typeInput = document.getElementById('quickProductType');
+        const subcategoryInput = document.getElementById('quickProductSubcategory');
         const descriptionInput = document.getElementById('quickProductDescription');
         const errorDiv = document.getElementById('quickProductError');
 
         const name = nameInput.value.trim();
         const companyId = companyInput.value;
+        const categoryId = categoryInput ? categoryInput.value : '';
+        const typeId = typeInput ? typeInput.value : '';
+        const subcategoryId = subcategoryInput ? subcategoryInput.value : '';
         const description = descriptionInput.value.trim();
 
         // Validate
@@ -318,6 +409,13 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
             return;
         }
 
+        if (!categoryId) {
+            errorDiv.textContent = 'Please select a product category';
+            errorDiv.style.display = 'block';
+            categoryInput.focus();
+            return;
+        }
+
         errorDiv.style.display = 'none';
 
         try {
@@ -331,6 +429,9 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
                     Id: 0,
                     Name: name,
                     CompanyId: parseInt(companyId),
+                    CategoryId: parseInt(categoryId),
+                    ProductTypeId: typeId ? parseInt(typeId) : null,
+                    ProductSubcategoryId: subcategoryId ? parseInt(subcategoryId) : null,
                     Description: description || null,
                     IsActive: true
                 })
@@ -339,35 +440,74 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
             const result = await response.json();
 
             if (result.success && result.data) {
-                // Add new product to dropdown at the end and select it
+                // Add new product to the product dropdown and select it
                 const productSelect = document.getElementById('ProductId');
                 if (productSelect) {
                     const option = document.createElement('option');
                     option.value = result.data.id;
                     option.textContent = result.data.name;
-
-                    // Append to end of dropdown
                     productSelect.appendChild(option);
-
-                    // Select the new option and update stored previous value
                     productSelect.value = result.data.id;
                     productSelect.dataset.previousValue = result.data.id;
 
-                    // Update autocomplete input if using autocomplete
                     if (productSelect.autocompleteInput) {
                         productSelect.autocompleteInput.value = result.data.name;
                     }
-
-                    // Trigger change event
-                    productSelect.dispatchEvent(new Event('change'));
                 }
 
-                // Also update the company dropdown if different
-                const companySelect = document.getElementById('CompanyId');
-                if (companySelect && companySelect.value !== companyId) {
-                    companySelect.value = companyId;
-                    companySelect.dataset.previousValue = companyId;
-                    companySelect.dispatchEvent(new Event('change'));
+                // Set company on the main form if different (without triggering change to avoid reloading products)
+                const mainCompanySelect = document.getElementById('CompanyId');
+                if (mainCompanySelect && mainCompanySelect.value !== companyId) {
+                    mainCompanySelect.value = companyId;
+                    mainCompanySelect.dataset.previousValue = companyId;
+                }
+
+                // Auto-fill category/type/subcategory on the main form from the modal selections
+                const pageCategorySelect = document.getElementById('ProductCategoryId');
+                const pageTypeSelect = document.getElementById('ProductTypeId');
+                const pageSubcategorySelect = document.getElementById('ProductSubcategoryId');
+
+                if (pageCategorySelect && categoryId) {
+                    pageCategorySelect.value = categoryId;
+                    // Load types for this category, then set type and subcategory
+                    try {
+                        const typeResponse = await fetch(`/Certificate/GetProductTypes?categoryId=${categoryId}`);
+                        const typeResult = await typeResponse.json();
+                        if (typeResult.success && typeResult.data && pageTypeSelect) {
+                            pageTypeSelect.innerHTML = '<option value="">All Types</option>';
+                            typeResult.data.forEach(pt => {
+                                pageTypeSelect.innerHTML += `<option value="${pt.id}">${pt.name}</option>`;
+                            });
+                            if (typeId) {
+                                pageTypeSelect.value = typeId;
+                                // Load subcategories
+                                const subResponse = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${typeId}`);
+                                const subResult = await subResponse.json();
+                                if (subResult.success && subResult.data && subResult.data.length > 0 && pageSubcategorySelect) {
+                                    pageSubcategorySelect.innerHTML = '<option value="">Select subcategory...</option>';
+                                    subResult.data.forEach(sub => {
+                                        pageSubcategorySelect.innerHTML += `<option value="${sub.id}">${sub.name}</option>`;
+                                    });
+                                    if (subcategoryId) {
+                                        pageSubcategorySelect.value = subcategoryId;
+                                    }
+                                }
+                            }
+                        }
+                    } catch (err) {
+                        console.warn('Error auto-filling page dropdowns after product creation:', err);
+                    }
+                }
+
+                // Also add product to companyProducts cache (if available on page)
+                if (typeof companyProducts !== 'undefined') {
+                    companyProducts.push({
+                        id: result.data.id,
+                        name: result.data.name,
+                        categoryId: categoryId ? parseInt(categoryId) : null,
+                        productTypeId: typeId ? parseInt(typeId) : null,
+                        productSubcategoryId: subcategoryId ? parseInt(subcategoryId) : null
+                    });
                 }
 
                 // Close modal

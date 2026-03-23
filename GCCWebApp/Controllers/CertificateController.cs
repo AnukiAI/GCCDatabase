@@ -2212,6 +2212,41 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
+        /// Gets products filtered by company, with category/type/subcategory data for auto-fill
+        /// GET: /Certificate/GetProductsByCompany?companyId={id}
+        /// </summary>
+        [HttpGet]
+        [Authorize(Policy = "AnalystOrAdmin")]
+        public async Task<IActionResult> GetProductsByCompany(int companyId)
+        {
+            try
+            {
+                var products = await _context.Products
+                    .Where(p => p.CompanyId == companyId && p.IsActive && !p.IsDeleted)
+                    .OrderBy(p => p.Name)
+                    .Select(p => new
+                    {
+                        id = p.Id,
+                        name = p.Name,
+                        categoryId = p.CategoryId,
+                        categoryName = p.Category != null ? p.Category.Name : null,
+                        productTypeId = p.ProductTypeId,
+                        productTypeName = p.ProductType != null ? p.ProductType.Name : null,
+                        productSubcategoryId = p.ProductSubcategoryId,
+                        productSubcategoryName = p.ProductSubcategory != null ? p.ProductSubcategory.Name : null
+                    })
+                    .ToListAsync();
+
+                return Json(new { success = true, data = products });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting products for company {CompanyId}", companyId);
+                return Json(new { success = false, message = "Error loading products" });
+            }
+        }
+
+        /// <summary>
         /// Search products by name for autocomplete
         /// GET: /Certificate/SearchProducts?query={term}
         /// </summary>

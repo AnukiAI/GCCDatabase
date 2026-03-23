@@ -117,15 +117,9 @@
                     <div class="form-group">
                         <label asp-for="ProductId">Product Name <span class="text-danger" aria-label="required">*</span></label>
                         <select asp-for="ProductId" class="form-control" required aria-required="true">
-                            <option value="">Select a product...</option>
-                            @if (ViewBag.Products != null)
-                            {
-                                @foreach (var product in ViewBag.Products)
-                                {
-                                    <option value="@product.Id">@product.Name</option>
-                                }
-                            }
+                            <option value="">Select a company first...</option>
                         </select>
+                        <small id="productHelpText" class="form-text text-muted">Select a company to see its products</small>
                         <span asp-validation-for="ProductId" class="text-danger" role="alert"></span>
                     </div>
 
@@ -418,7 +412,102 @@
         // Store all certification types for subcategory filtering
         var allCertificationTypes = @Html.Raw(Json.Serialize(ViewBag.AllCertificationTypes ?? new List<object>()));
 
+        // Store product data for auto-fill when product is selected
+        var companyProducts = [];
+
         $(document).ready(function() {
+            // ===== Company → Product Cascading Dropdown (REQ-CERT-10) =====
+
+            // When company changes, load that company's products
+            $('#CompanyId').change(async function() {
+                const companyId = $(this).val();
+                const productSelect = $('#ProductId');
+                const helpText = $('#productHelpText');
+
+                // Reset product and dependent dropdowns
+                productSelect.html('<option value="">Select a product...</option>');
+                // Clear autocomplete input if present
+                const productEl = document.getElementById('ProductId');
+                if (productEl && productEl.autocompleteInput) {
+                    productEl.autocompleteInput.value = '';
+                }
+                $('#ProductCategoryId').val('');
+                $('#ProductTypeId').html('<option value="">Select category first...</option>');
+                $('#ProductSubcategoryId').html('<option value="">Select type first...</option>');
+                companyProducts = [];
+
+                if (companyId) {
+                    helpText.text('Loading products...');
+                    try {
+                        const response = await fetch(`/Certificate/GetProductsByCompany?companyId=${companyId}`);
+                        const result = await response.json();
+                        if (result.success && result.data) {
+                            companyProducts = result.data;
+                            if (result.data.length > 0) {
+                                result.data.forEach(p => {
+                                    productSelect.append(`<option value="${p.id}">${p.name}</option>`);
+                                });
+                                helpText.text(`${result.data.length} product(s) found`);
+                            } else {
+                                helpText.text('No products found for this company. Use "Add New" below.');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error loading products by company:', error);
+                        helpText.text('Error loading products');
+                    }
+                } else {
+                    helpText.text('Select a company to see its products');
+                }
+            });
+
+            // When product changes, auto-fill category/type/subcategory
+            $('#ProductId').change(async function() {
+                const productId = parseInt($(this).val());
+                if (!productId) return;
+
+                // Find the product in our cached data
+                const product = companyProducts.find(p => p.id === productId);
+                if (!product) return;
+
+                // Auto-fill Product Category
+                if (product.categoryId) {
+                    $('#ProductCategoryId').val(product.categoryId);
+                    // Trigger category change to load types
+                    try {
+                        const response = await fetch(`/Certificate/GetProductTypes?categoryId=${product.categoryId}`);
+                        const result = await response.json();
+                        if (result.success && result.data) {
+                            const typeSelect = $('#ProductTypeId');
+                            typeSelect.html('<option value="">All Types</option>');
+                            result.data.forEach(pt => {
+                                typeSelect.append(`<option value="${pt.id}">${pt.name}</option>`);
+                            });
+                            // Auto-fill Product Type
+                            if (product.productTypeId) {
+                                typeSelect.val(product.productTypeId);
+                                // Load subcategories for this type
+                                const subResponse = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${product.productTypeId}`);
+                                const subResult = await subResponse.json();
+                                if (subResult.success && subResult.data && subResult.data.length > 0) {
+                                    const subSelect = $('#ProductSubcategoryId');
+                                    subSelect.html('<option value="">Select subcategory...</option>');
+                                    subResult.data.forEach(sub => {
+                                        subSelect.append(`<option value="${sub.id}">${sub.name}</option>`);
+                                    });
+                                    // Auto-fill Product Subcategory
+                                    if (product.productSubcategoryId) {
+                                        subSelect.val(product.productSubcategoryId);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Error auto-filling product hierarchy:', error);
+                    }
+                }
+            });
+
             // ===== Product Category/Type/Subcategory 3-Level Cascading Dropdowns =====
 
             // When product category changes, load types filtered by category
@@ -488,8 +577,10 @@
                 }
 
                 if (typeId) {
-                    // Filter subcategories for the selected parent type
-                    const subcategories = allCertificationTypes.filter(ct => ct.parentId === parseInt(typeId));
+                    // Filter subcategories for the selected parent type, sorted alphabetically
+                    const subcategories = allCertificationTypes
+                        .filter(ct => ct.parentId === parseInt(typeId))
+                        .sort((a, b) => a.name.localeCompare(b.name));
 
                     if (subcategories.length > 0) {
                         // Add subcategory options
@@ -505,7 +596,11 @@
 
                     // Load custom fields for the selected type (only if container exists)
                     if (typeof certificateCustomFields !== 'undefined' && document.getElementById('custom-fields-container')) {
-                        certificateCustomFields.loadFieldsForType(typeId);
+                        try {
+                            certificateCustomFields.loadFieldsForType(typeId);
+                        } catch (err) {
+                            console.warn('Custom fields load error (non-blocking):', err);
+                        }
                     }
                 } else {
                     // Custom fields container may be hidden for initial phase

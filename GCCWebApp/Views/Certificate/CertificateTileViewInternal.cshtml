@@ -3,8 +3,8 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<link rel="stylesheet" href="~/css/certificatetileview.css?v=20260316" />
-<link rel="stylesheet" href="~/css/pages/certificate-tile-internal.css?v=20260316" />
+<link rel="stylesheet" href="~/css/certificatetileview.css?v=20260324b" />
+<link rel="stylesheet" href="~/css/pages/certificate-tile-internal.css?v=20260324b" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <!-- Main Container -->
 <div class="main-container" style="width: 100%;">
@@ -314,6 +314,10 @@
             <div class="loading-text">Loading more certificates...</div>
         </div>
 
+        <!-- PAGINATION CONTROLS -->
+        <div id="paginationControls" class="pagination-nav" role="navigation" aria-label="Certificate pages">
+        </div>
+
         <!-- Skip to footer link for infinite scroll accessibility -->
         <a href="#footer" class="skip-to-footer admin-sr-only" tabindex="0">Skip to footer</a>
 
@@ -355,7 +359,6 @@
                                 <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-calendar-xmark"></i></span> Expiration Date</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-exp"><span class="ct-slider"></span></label></div>
                                 <div class="ct-divider">Company & Product</div>
                                 <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-building"></i></span> Company</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-company"><span class="ct-slider"></span></label></div>
-                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-envelope"></i></span> Contact</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-contact"><span class="ct-slider"></span></label></div>
                                 <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-box"></i></span> Product</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-product"><span class="ct-slider"></span></label></div>
                                 <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-folder"></i></span> Category</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-prodcat"><span class="ct-slider"></span></label></div>
                                 <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-tag"></i></span> Prod Type</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-prodtype"><span class="ct-slider"></span></label></div>
@@ -371,6 +374,8 @@
                                 <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-barcode"></i></span> UPC</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-upc"><span class="ct-slider"></span></label></div>
                                 <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-barcode"></i></span> GTIN</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-gtin"><span class="ct-slider"></span></label></div>
                                 <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-barcode"></i></span> EAN</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-ean"><span class="ct-slider"></span></label></div>
+                                <div class="ct-divider">Contact</div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-envelope"></i></span> Company Contact</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-contact"><span class="ct-slider"></span></label></div>
                             </div>
                         </div>
                     </div>
@@ -392,7 +397,6 @@
                         <div class="sticky-header-cell tc-eff" data-sort-column="effectiveDate">Effective Date <span class="sort-icon">▼</span></div>
                         <div class="sticky-header-cell tc-exp" data-sort-column="expirationDate">Expiration Date <span class="sort-icon">▼</span></div>
                         <div class="sticky-header-cell tc-company" data-sort-column="company">Company <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-contact" data-sort-column="companyContact">Contact <span class="sort-icon">▼</span></div>
                         <div class="sticky-header-cell tc-product" data-sort-column="productName">Product Name <span class="sort-icon">▼</span></div>
                         <div class="sticky-header-cell tc-prodcat" data-sort-column="productCategory">Product Category <span class="sort-icon">▼</span></div>
                         <div class="sticky-header-cell tc-prodtype" data-sort-column="productType">Product Type <span class="sort-icon">▼</span></div>
@@ -406,6 +410,7 @@
                         <div class="sticky-header-cell tc-upc" data-sort-column="upc">UPC <span class="sort-icon">▼</span></div>
                         <div class="sticky-header-cell tc-gtin" data-sort-column="gtin">GTIN <span class="sort-icon">▼</span></div>
                         <div class="sticky-header-cell tc-ean" data-sort-column="ean">EAN <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-contact" data-sort-column="companyContact">Company Contact Email/URL <span class="sort-icon">▼</span></div>
                     </div>
                 </div>
             </div>
@@ -419,7 +424,7 @@
         </div>
 
 
-        <script src="~/js/certificate-tile-view-internal.js?v=20260316"></script>
+        <script src="~/js/certificate-tile-view-internal.js?v=20260324"></script>
         <!-- Inline script block removed for CSP compliance -->
         @* All script content moved to external files for CSP compliance *@
     </div>

@@ -15,9 +15,9 @@
 
 @section Breadcrumbs {
     <span class="role-element role-admin-show">
-        <a href="#">Administration</a>
+        <a href="@Url.Action("Index", "Admin")">Administration</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
-        <a href="#">User Management</a>
+        <span class="current">User Management</span>
     </span>
 }
 
@@ -266,7 +266,7 @@
                         <div id="user-companies-container" class="admin-checkbox-list" aria-describedby="company-help" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 120px; overflow-y: auto;">
                             <!-- Company checkboxes will be populated by JavaScript -->
                         </div>
-                        <span class="admin-form-help" id="company-help" style="display: block; margin-top: 8px; font-size: 11px; color: #888;">Select all companies this user should have access to</span>
+                        <span class="admin-form-help" id="company-help" style="display: block; margin-top: 8px; font-size: 11px; color: #888;">Select the companies associated with this user</span>
                     </div>
                 </div>
 

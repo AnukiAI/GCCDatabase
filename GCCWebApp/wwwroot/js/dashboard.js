@@ -147,6 +147,16 @@ async function showExpiringCerts(months) {
         });
 
         if (response.ok) {
+            // Verify response is actually CSV, not a login page redirect
+            const contentType = response.headers.get('Content-Type') || '';
+            if (!contentType.includes('text/csv') && !contentType.includes('application/vnd.openxmlformats') && !contentType.includes('application/octet-stream')) {
+                console.error('Unexpected content type:', contentType);
+                if (window.GreenCircle?.showToast) {
+                    window.GreenCircle.showToast('Session expired. Please login and try again.', 'error');
+                }
+                return;
+            }
+
             const blob = await response.blob();
 
             const url = window.URL.createObjectURL(blob);
@@ -196,6 +206,16 @@ async function showActiveCerts() {
         });
 
         if (response.ok) {
+            // Verify response is actually CSV, not a login page redirect
+            const contentType = response.headers.get('Content-Type') || '';
+            if (!contentType.includes('text/csv') && !contentType.includes('application/vnd.openxmlformats') && !contentType.includes('application/octet-stream')) {
+                console.error('Unexpected content type:', contentType);
+                if (window.GreenCircle?.showToast) {
+                    window.GreenCircle.showToast('Session expired. Please login and try again.', 'error');
+                }
+                return;
+            }
+
             const blob = await response.blob();
 
             const url = window.URL.createObjectURL(blob);

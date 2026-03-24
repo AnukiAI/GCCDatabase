@@ -330,9 +330,13 @@ class RoleManagement {
         // Normalize selectedPermissions to handle various formats
         const normalizedSelected = selectedPermissions || [];
 
+        // Permissions hidden from UI but kept in database for future use
+        const hiddenPermissions = ['data.audit'];
+
         // Group permissions by category
         const permissionsByCategory = {};
         this.permissions.forEach(perm => {
+            if (hiddenPermissions.includes(perm.name)) return;
             const category = perm.category || 'Other';
             if (!permissionsByCategory[category]) {
                 permissionsByCategory[category] = [];

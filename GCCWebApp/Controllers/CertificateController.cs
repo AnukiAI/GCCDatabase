@@ -630,6 +630,19 @@ namespace GCCWebApp.Controllers
                         }
                     }
 
+                    // Update company email/website if provided
+                    if (model.CompanyEmail != null || model.CompanyWebsite != null)
+                    {
+                        var company = await _context.Companies.FindAsync(model.CompanyId);
+                        if (company != null)
+                        {
+                            if (model.CompanyEmail != null) company.Email = string.IsNullOrWhiteSpace(model.CompanyEmail) ? null : model.CompanyEmail;
+                            if (model.CompanyWebsite != null) company.Website = string.IsNullOrWhiteSpace(model.CompanyWebsite) ? null : model.CompanyWebsite;
+                            company.UpdatedAt = DateTime.UtcNow;
+                            await _context.SaveChangesAsync();
+                        }
+                    }
+
                     _logger.LogInformation("Certificate {Number} created by user {UserId}", certificate.Number, GetCurrentUserId());
 
                     // Handle "Save & Add Another" action
@@ -738,7 +751,9 @@ namespace GCCWebApp.Controllers
                     CertificationTypeId = certificate.CertificationTypeId,
                     CertificationTypeSubcategoryId = certificate.CertificationTypeSubcategoryId,
                     ProductIds = certificate.ProductIds?.ToList() ?? new List<CertificateProductId>(),
-                    CustomFieldValues = await _certificateFieldService.GetFieldValuesForCertificateAsync(certificate.Id) ?? new Dictionary<int, string>()
+                    CustomFieldValues = await _certificateFieldService.GetFieldValuesForCertificateAsync(certificate.Id) ?? new Dictionary<int, string>(),
+                    CompanyEmail = certificate.Company?.Email,
+                    CompanyWebsite = certificate.Company?.Website
                 };
 
                 // Load dropdown data
@@ -1037,6 +1052,19 @@ namespace GCCWebApp.Controllers
 
                     await _certificateRepository.UpdateAsync(certificate);
                     await _unitOfWork.CompleteAsync();
+
+                    // Update company email/website if provided
+                    if (model.CompanyEmail != null || model.CompanyWebsite != null)
+                    {
+                        var companyToUpdate = await _context.Companies.FindAsync(model.CompanyId);
+                        if (companyToUpdate != null)
+                        {
+                            if (model.CompanyEmail != null) companyToUpdate.Email = string.IsNullOrWhiteSpace(model.CompanyEmail) ? null : model.CompanyEmail;
+                            if (model.CompanyWebsite != null) companyToUpdate.Website = string.IsNullOrWhiteSpace(model.CompanyWebsite) ? null : model.CompanyWebsite;
+                            companyToUpdate.UpdatedAt = DateTime.UtcNow;
+                            await _context.SaveChangesAsync();
+                        }
+                    }
 
                     _logger.LogInformation("Certificate {Number} updated by user {UserId}", certificate.Number, GetCurrentUserId());
 
@@ -2233,6 +2261,9 @@ namespace GCCWebApp.Controllers
         {
             try
             {
+                // Get company details for email/website pre-population
+                var company = await _context.Companies.FindAsync(companyId);
+
                 var products = await _context.Products
                     .Where(p => p.CompanyId == companyId && p.IsActive && !p.IsDeleted)
                     .OrderBy(p => p.Name)
@@ -2249,7 +2280,7 @@ namespace GCCWebApp.Controllers
                     })
                     .ToListAsync();
 
-                return Json(new { success = true, data = products });
+                return Json(new { success = true, data = products, companyEmail = company?.Email ?? "", companyWebsite = company?.Website ?? "" });
             }
             catch (Exception ex)
             {

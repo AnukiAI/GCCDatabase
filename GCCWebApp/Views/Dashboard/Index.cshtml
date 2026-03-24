@@ -68,7 +68,7 @@
                 <i class="fas fa-tags"></i>
             </div>
             <div class="stat-content">
-                <div class="stat-value">@Model.TotalProducts.ToString("N0")</div>
+                <div class="stat-value">@Model.Statistics.GetValueOrDefault("ProductTypesWithActiveCerts", 0).ToString("N0")</div>
                 <div class="stat-title"># Product Types with Active Certs</div>
             </div>
             <button class="stat-download-icon" data-stat-type="product-types-with-active-certs" title="Download Data" aria-label="Download Product Types data">
@@ -279,9 +279,21 @@
                 <tbody>
                     @if (Model.Statistics.Any())
                     {
-                        <tr><td>Active</td><td>@Model.ActiveCertificates.ToString("N0")</td></tr>
-                        <tr><td>Expired</td><td>@Model.ExpiredCertificates.ToString("N0")</td></tr>
-                        @* TODO: Add detailed status breakdown to model and controller *@
+                        var statusOrder = new (string Label, string Key)[] {
+                            ("Draft", "Status_Draft"),
+                            ("Client Approved - Not Paid", "Status_Client Approved - Not Paid"),
+                            ("Client Approved - Confidential", "Status_Client Approved - Confidential"),
+                            ("Client Approved - Paid", "Status_Client Approved - Paid"),
+                            ("Hold", "Status_Hold"),
+                            ("Expired", "Status_Expired"),
+                            ("Republished", "Status_Republished"),
+                            ("Expired - No Annual Verification", "Status_Expired - No Annual Verification")
+                        };
+                        @foreach (var item in statusOrder)
+                        {
+                            var count = Model.Statistics.GetValueOrDefault(item.Key, 0);
+                            <tr><td>@item.Label</td><td>@count.ToString("N0")</td></tr>
+                        }
                     }
                     else
                     {
@@ -352,13 +364,13 @@
                 <tbody>
                     @if (Model.IsInternal)
                     {
-                        @if (Model.CertificationTypeBreakdown.Any())
+                        @if (Model.ProductCategoryBreakdown.Any())
                         {
-                            @foreach (var certType in Model.CertificationTypeBreakdown.Take(5))
+                            @foreach (var category in Model.ProductCategoryBreakdown)
                             {
                                 <tr>
-                                    <td>@certType.Name</td>
-                                    <td>@certType.Count.ToString("N0")</td>
+                                    <td>@category.Name</td>
+                                    <td>@category.Count.ToString("N0")</td>
                                 </tr>
                             }
                         }

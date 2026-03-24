@@ -434,25 +434,33 @@
     margin-bottom: 0;
 }
 
+/* Admin content needs horizontal scroll for wide tables */
+.admin-content {
+    overflow-x: auto;
+}
+
 /* Products Table */
 #product-table {
     width: 100%;
     border-collapse: collapse;
     background: white;
+    min-width: 1100px;
 }
 
 #product-table th {
     background: #f8f9fa;
     color: var(--text-color);
     font-weight: 600;
-    padding: 16px;
+    padding: 12px 10px;
     text-align: left;
     border-bottom: 2px solid #dee2e6;
     cursor: pointer;
     transition: background-color 0.3s ease;
-    font-size: 16px;
+    font-size: 14px;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    position: relative;
 }
 
 #product-table th:hover {
@@ -460,11 +468,13 @@
 }
 
 #product-table th .sort-icon {
-    margin-left: 8px;
-    font-size: 16px;
+    display: inline-block;
+    margin-left: 4px;
+    font-size: 10px;
     color: #6c757d;
-    opacity: 0.7;
+    opacity: 0.5;
     transition: opacity 0.3s ease;
+    vertical-align: middle;
 }
 
 #product-table th.active-sort {
@@ -478,10 +488,12 @@
 }
 
 #product-table td {
-    padding: 16px;
+    padding: 10px 10px;
     border-bottom: 1px solid #f0f0f0;
     font-size: 16px;
     vertical-align: middle;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 #product-table tbody tr {
@@ -1537,4 +1549,50 @@
     .notification.hide {
         transform: translateY(-100%);
     }
+}
+
+/* Pagination Controls */
+.pagination-controls {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pagination-btn {
+    min-width: 36px;
+    height: 36px;
+    padding: 4px 10px;
+    border: 1px solid #dee2e6;
+    background: white;
+    color: #495057;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.pagination-btn:hover:not(.disabled):not(.active) {
+    background: #e9ecef;
+    border-color: #adb5bd;
+}
+
+.pagination-btn.active {
+    background: var(--blue-dark, #002B76);
+    color: white;
+    border-color: var(--blue-dark, #002B76);
+}
+
+.pagination-btn.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.pagination-ellipsis {
+    padding: 0 6px;
+    color: #6c757d;
+    font-size: 14px;
 }

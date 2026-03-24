@@ -16,7 +16,7 @@
     <span class="role-element role-analyst-show role-admin-show">
         <a href="/">Home</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
-        <a href="#">Administration</a>
+        <a href="@Url.Action("Index", "Admin")">Administration</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <a asp-controller="Certificate" asp-action="CertificateTileViewInternal">Certificate Management</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
@@ -78,6 +78,20 @@
                             }
                         </select>
                         <span asp-validation-for="CompanyId" class="text-danger" role="alert"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="CompanyEmail">Company Email <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <input asp-for="CompanyEmail" type="email" placeholder="Auto-populated from company" maxlength="255" />
+                        <span asp-validation-for="CompanyEmail" class="text-danger" role="alert"></span>
+                        <small class="form-text text-muted">Pre-filled from company record. Changes here update the company.</small>
+                    </div>
+
+                    <div class="form-group">
+                        <label asp-for="CompanyWebsite">Company URL <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <input asp-for="CompanyWebsite" type="url" placeholder="Auto-populated from company" maxlength="500" />
+                        <span asp-validation-for="CompanyWebsite" class="text-danger" role="alert"></span>
+                        <small class="form-text text-muted">Pre-filled from company record. Changes here update the company.</small>
                     </div>
 
                     <div class="form-group">
@@ -201,7 +215,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label asp-for="PathwayId">Pathway <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
+                        <label asp-for="PathwayId">Pathway (for Amazon CPF applicable certs) <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
                         <select asp-for="PathwayId" class="form-control">
                             <option value="">Select pathway...</option>
                             @if (ViewBag.Pathways != null)
@@ -455,6 +469,9 @@
                             } else {
                                 helpText.text('No products found for this company. Use "Add New" below.');
                             }
+                            // Auto-populate company email/website
+                            $('#CompanyEmail').val(result.companyEmail || '');
+                            $('#CompanyWebsite').val(result.companyWebsite || '');
                         }
                     } catch (error) {
                         console.error('Error loading products by company:', error);
@@ -462,6 +479,9 @@
                     }
                 } else {
                     helpText.text('Select a company to see its products');
+                    // Clear company email/website when no company selected
+                    $('#CompanyEmail').val('');
+                    $('#CompanyWebsite').val('');
                 }
             });
 

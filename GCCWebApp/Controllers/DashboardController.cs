@@ -88,12 +88,14 @@ namespace GCCWebApp.Controllers
                 var recentCerts = await _certificateRepository.GetPagedCertificatesAsync(1, 5);
                 model.RecentCertificates = recentCerts.certificates;
                 model.ExpiringCertificates = await _certificateRepository.GetCertificatesExpiringInDaysAsync(30);
-                model.TotalCompanies = await _unitOfWork.Companies.CountAsync();
-                model.TotalProducts = await _unitOfWork.Products.CountAsync();
-                model.TotalCertificationTypes = await _unitOfWork.CertificationTypes.CountAsync();
+                // Use filtered counts from statistics (only companies/types/products with active certs)
+                model.TotalCompanies = model.Statistics.GetValueOrDefault("CompaniesWithActiveCerts", 0);
+                model.TotalProducts = model.Statistics.GetValueOrDefault("ActiveProducts", 0);
+                model.TotalCertificationTypes = model.Statistics.GetValueOrDefault("CertTypesWithActiveCerts", 0);
                 model.CertificationTypeBreakdown = await _certificateRepository.GetCertificationTypeStatisticsAsync();
                 model.TopCompaniesBreakdown = await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
                 model.ProductTypeBreakdown = await _certificateRepository.GetProductTypeStatisticsAsync(10);
+                model.ProductCategoryBreakdown = await _certificateRepository.GetProductCategoryStatisticsAsync(5);
             });
         }
 
@@ -282,7 +284,7 @@ namespace GCCWebApp.Controllers
                 }
 
                 var stats = await _certificateRepository.GetCertificateStatisticsAsync();
-                var data = await GetStatData(type, stats);
+                var data = GetStatData(type, stats);
                 
                 if (data == null)
                 {
@@ -332,7 +334,7 @@ namespace GCCWebApp.Controllers
             }
         }
 
-        private async Task<object?> GetStatData(string type, Dictionary<string, int> stats)
+        private object? GetStatData(string type, Dictionary<string, int> stats)
         {
             switch (type)
             {
@@ -340,16 +342,13 @@ namespace GCCWebApp.Controllers
                     return new { Value = stats.GetValueOrDefault("Active", 0), Description = "Total Active Certificates" };
 
                 case "companies-with-active-certs":
-                    var totalCompanies = await _unitOfWork.Companies.CountAsync();
-                    return new { Value = totalCompanies, Description = "Companies with Active Certificates" };
+                    return new { Value = stats.GetValueOrDefault("CompaniesWithActiveCerts", 0), Description = "Companies with Active Certificates" };
 
                 case "product-categories-with-active-certs":
-                    var totalCertTypes = await _unitOfWork.CertificationTypes.CountAsync();
-                    return new { Value = totalCertTypes, Description = "Product Categories with Active Certificates" };
+                    return new { Value = stats.GetValueOrDefault("CertTypesWithActiveCerts", 0), Description = "Certification Types with Active Certificates" };
 
                 case "product-types-with-active-certs":
-                    var totalProducts = await _unitOfWork.Products.CountAsync();
-                    return new { Value = totalProducts, Description = "Product Types with Active Certificates" };
+                    return new { Value = stats.GetValueOrDefault("ProductTypesWithActiveCerts", 0), Description = "Product Types with Active Certificates" };
 
                 case "product-subcategories-with-active-certs":
                     return new { Value = stats.GetValueOrDefault("ProductSubcategories", 0), Description = "Product Subcategories with Active Certificates" };

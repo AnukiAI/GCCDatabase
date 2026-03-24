@@ -186,26 +186,24 @@
                                     : $"/{imagePath}";
                         }
                     }
-                    <!-- Consistent square preview container -->
-                    <div class="certificate-preview-box" style="width: 350px; height: 350px; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; background: #f8f9fa; display: flex; align-items: center; justify-content: center; cursor: pointer; position: relative;">
+                    <!-- Consistent preview container (US-016: uses CSS class instead of inline styles) -->
+                    <div class="certificate-preview-box">
                         @if (hasValidSnapshot)
                         {
                             <img src="@certificateImageSrc" alt="Certificate @certificateNumber"
-                                 style="max-width: 100%; max-height: 100%; object-fit: contain;"
                                  onclick="openImageZoom('@certificateImageSrc')" />
                             <!-- Magnifying Glass Icon overlay -->
-                            <div class="zoom-icon-overlay" onclick="openImageZoom('@certificateImageSrc')" title="Click to zoom"
-                                 style="position: absolute; bottom: 8px; right: 8px; background: rgba(0,0,0,0.6); color: white; padding: 6px 10px; border-radius: 4px; font-size: 12px;">
+                            <div class="zoom-icon-overlay" onclick="openImageZoom('@certificateImageSrc')" title="Click to zoom">
                                 <i class="fas fa-search-plus"></i>
                             </div>
                         }
                         else
                         {
                             <!-- Certificate Unavailable placeholder -->
-                            <div style="text-align: center; padding: 20px;">
-                                <i class="fas fa-file-pdf" style="font-size: 48px; color: #adb5bd; margin-bottom: 12px; display: block;"></i>
-                                <p style="font-size: 14px; font-weight: 600; color: #6c757d; margin: 0 0 4px 0;">Certificate Unavailable</p>
-                                <small style="color: #adb5bd; font-size: 11px;">Preview not generated</small>
+                            <div class="preview-placeholder">
+                                <i class="fas fa-file-pdf"></i>
+                                <p>Certificate Unavailable</p>
+                                <small>Preview not generated</small>
                             </div>
                         }
                     </div>

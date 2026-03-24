@@ -139,8 +139,11 @@ namespace GCCWebApp.Controllers
                     case "access_denied":
                         ViewBag.Error = "Access was denied. Please contact your administrator for access.";
                         break;
+                    case "session_expired":
+                        ViewBag.Error = "Your session has expired due to inactivity. Please log in again.";
+                        break;
                     default:
-                        ViewBag.Error = "Authentication failed. Please try again.";
+                        ViewBag.Error = error.Contains("session") ? error : "Authentication failed. Please try again.";
                         break;
                 }
             }
@@ -254,8 +257,30 @@ namespace GCCWebApp.Controllers
                 _logger.LogInformation("LogoutPost called but user is not authenticated");
                 return RedirectToAction("CertificateTileView", "Certificate");
             }
-            
+
             return await PerformLogout();
+        }
+
+        /// <summary>
+        /// Handle GET requests to LogoutPost (e.g. browser navigating directly to the URL).
+        /// Redirects to the GET Logout endpoint instead of returning an error.
+        /// </summary>
+        [HttpGet]
+        [AllowAnonymous]
+        [Route("Account/LogoutPost")]
+        public IActionResult LogoutPostGet()
+        {
+            return RedirectToAction("Logout");
+        }
+
+        /// <summary>
+        /// Session expired handler — redirects to login with a message
+        /// </summary>
+        [HttpGet]
+        [AllowAnonymous]
+        public IActionResult SessionExpired()
+        {
+            return RedirectToAction("Login", new { error = "session_expired" });
         }
 
         private async Task<IActionResult> PerformLogout()

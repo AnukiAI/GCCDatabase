@@ -224,6 +224,7 @@ namespace GCCWebApp.Controllers
                         CompanyName = p.Company != null ? p.Company.Name : "",
                         CategoryName = p.Category != null ? p.Category.Name : "",
                         ProductTypeName = p.ProductType != null ? p.ProductType.Name : "",
+                        ProductSubcategoryName = p.ProductSubcategory != null ? p.ProductSubcategory.Name : "",
                         p.IsActive,
                         CertificateCount = p.Certificates.Count(),
                         p.CreatedAt,
@@ -247,6 +248,7 @@ namespace GCCWebApp.Controllers
                     CompanyName = p.CompanyName,
                     CategoryName = p.CategoryName,
                     ProductTypeName = p.ProductTypeName,
+                    ProductSubcategoryName = p.ProductSubcategoryName,
                     Status = p.IsActive ? "Active" : "Inactive",
                     CertificateCount = p.CertificateCount,
                     CreatedAt = p.CreatedAt,
@@ -907,6 +909,7 @@ namespace GCCWebApp.Controllers
         public string CompanyName { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
         public string ProductTypeName { get; set; } = string.Empty;
+        public string ProductSubcategoryName { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
         public int CertificateCount { get; set; }
         public DateTime CreatedAt { get; set; }

@@ -131,7 +131,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Company)
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
-                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > DateTime.UtcNow)
+                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow))
                             .OrderByDescending(c => c.EffectiveDate)
                             .ToListAsync();
                         reportTitle = "Current Active Certificates";
@@ -144,7 +144,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
                             .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
-                                       c.ExpirationDate > DateTime.UtcNow &&
+                                       (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow) &&
                                        c.ExpirationDate <= thirtyDaysFromNow)
                             .OrderBy(c => c.ExpirationDate)
                             .ToListAsync();
@@ -158,7 +158,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
                             .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
-                                       c.ExpirationDate > DateTime.UtcNow &&
+                                       (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow) &&
                                        c.ExpirationDate <= threeMonthsFromNow)
                             .OrderBy(c => c.ExpirationDate)
                             .ToListAsync();
@@ -253,12 +253,12 @@ namespace GCCWebApp.Controllers
             switch (type)
             {
                 case "total-active-certs":
-                    _logger.LogInformation("Querying total-active-certs: Status='active', ExpirationDate > {Now}", now);
+                    _logger.LogInformation("Querying total-active-certs: Status='active', ExpirationDate >= {Now}", now);
                     var activeCerts = await _context.Certificates
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now))
                         .OrderBy(c => c.Number)
                         .ToListAsync();
                     _logger.LogInformation("total-active-certs query returned {Count} certificates", activeCerts.Count);
@@ -269,7 +269,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now && c.Company != null)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now) && c.Company != null)
                         .OrderBy(c => c.Company!.Name)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
@@ -280,7 +280,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now && c.CertificationType != null)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now) && c.CertificationType != null)
                         .OrderBy(c => c.CertificationType!.Name)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
@@ -291,7 +291,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now && c.Product != null)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now) && c.Product != null)
                         .OrderBy(c => c.Product!.Name)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
@@ -303,7 +303,7 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Product)
                         .ThenInclude(p => p!.Category)
                         .Include(c => c.CertificationType)
-                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now && c.Product != null && c.Product.Category != null)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now) && c.Product != null && c.Product.Category != null)
                         .OrderBy(c => c.Product!.Category!.Name)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
@@ -314,21 +314,22 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > now && c.Product != null)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now) && c.Product != null)
                         .OrderBy(c => c.Product!.Name)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
                     return new { Certificates = productCerts, Description = "Products with Active Certificates" };
 
                 case "certs-published-last-month":
-                    _logger.LogInformation("Querying certs-published-last-month: CreatedAt between {Start} and {End}",
+                    _logger.LogInformation("Querying certs-published-last-month: EffectiveDate between {Start} and {End}",
                         startOfLastMonth, endOfLastMonth);
                     var publishedLastMonth = await _context.Certificates
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => c.CreatedAt >= startOfLastMonth && c.CreatedAt <= endOfLastMonth)
-                        .OrderByDescending(c => c.CreatedAt)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
+                                   c.EffectiveDate >= startOfLastMonth && c.EffectiveDate <= endOfLastMonth)
+                        .OrderByDescending(c => c.EffectiveDate)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
                     _logger.LogInformation("certs-published-last-month query returned {Count} certificates", publishedLastMonth.Count);
@@ -377,8 +378,9 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => c.CreatedAt >= startOfYear)
-                        .OrderByDescending(c => c.CreatedAt)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
+                                   c.EffectiveDate >= startOfYear)
+                        .OrderByDescending(c => c.EffectiveDate)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
                     return new { Certificates = publishedThisYear, Description = "Certificates Published This Year" };
@@ -388,8 +390,9 @@ namespace GCCWebApp.Controllers
                         .Include(c => c.Company)
                         .Include(c => c.Product)
                         .Include(c => c.CertificationType)
-                        .Where(c => c.CreatedAt >= startOfLastYear && c.CreatedAt <= endOfLastYear)
-                        .OrderByDescending(c => c.CreatedAt)
+                        .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
+                                   c.EffectiveDate >= startOfLastYear && c.EffectiveDate <= endOfLastYear)
+                        .OrderByDescending(c => c.EffectiveDate)
                         .ThenBy(c => c.Number)
                         .ToListAsync();
                     return new { Certificates = publishedLastYear, Description = "Certificates Published Last Year" };
@@ -558,8 +561,10 @@ namespace GCCWebApp.Controllers
                     worksheet.Cell(row, 3).Value = cert.Company?.Name ?? "";
                     worksheet.Cell(row, 4).Value = cert.Product?.Name ?? "";
                     worksheet.Cell(row, 5).Value = cert.CertificationType?.Name ?? "";
-                    worksheet.Cell(row, 6).Value = cert.EffectiveDate.ToString("yyyy-MM-dd");
-                    worksheet.Cell(row, 7).Value = cert.ExpirationDate.ToString("yyyy-MM-dd");
+                    worksheet.Cell(row, 6).Value = cert.EffectiveDate;
+                    worksheet.Cell(row, 6).Style.DateFormat.Format = "yyyy-MM-dd";
+                    worksheet.Cell(row, 7).Value = cert.ExpirationDate;
+                    worksheet.Cell(row, 7).Style.DateFormat.Format = "yyyy-MM-dd";
                     worksheet.Cell(row, 8).Value = cert.Location ?? "";
                     worksheet.Cell(row, 9).Value = cert.Country ?? "";
                     row++;
@@ -855,8 +860,10 @@ namespace GCCWebApp.Controllers
                     worksheet.Cell(row, 3).Value = cert.Company?.Name ?? "";
                     worksheet.Cell(row, 4).Value = cert.Product?.Name ?? "";
                     worksheet.Cell(row, 5).Value = cert.CertificationType?.Name ?? "";
-                    worksheet.Cell(row, 6).Value = cert.EffectiveDate.ToString("yyyy-MM-dd");
-                    worksheet.Cell(row, 7).Value = cert.ExpirationDate.ToString("yyyy-MM-dd");
+                    worksheet.Cell(row, 6).Value = cert.EffectiveDate;
+                    worksheet.Cell(row, 6).Style.DateFormat.Format = "yyyy-MM-dd";
+                    worksheet.Cell(row, 7).Value = cert.ExpirationDate;
+                    worksheet.Cell(row, 7).Style.DateFormat.Format = "yyyy-MM-dd";
                     worksheet.Cell(row, 8).Value = cert.Location ?? "";
                     worksheet.Cell(row, 9).Value = cert.Country ?? "";
                     row++;

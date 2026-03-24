@@ -528,32 +528,9 @@ class ProductManagement {
     
     downloadImportTemplate() {
         try {
-            // Create template data with example row
-            // Template matches ProductViewModel structure used by the backend API
-            const templateData = [
-                {
-                    Name: 'Sample Product',
-                    Description: 'Optional product description',
-                    ProductType: 'Building Materials',
-                    Company: 'Acme Corporation',
-                    Status: 'Active'
-                }
-            ];
-
-            // Create CSV content with headers and example row
+            // Create CSV content with headers only (no sample data)
             const headers = ['Name', 'Description', 'ProductType', 'Company', 'Status'];
-            const csvContent = [
-                headers.join(','),
-                ...templateData.map(row =>
-                    headers.map(header => {
-                        const value = row[header] || '';
-                        // Escape quotes and wrap in quotes if contains comma
-                        return value.includes(',') || value.includes('"')
-                            ? `"${value.replace(/"/g, '""')}"`
-                            : value;
-                    }).join(',')
-                )
-            ].join('\n');
+            const csvContent = headers.join(',');
 
             // Download file
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

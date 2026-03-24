@@ -189,13 +189,9 @@ class UserManagement {
             if (companyGroup) companyGroup.style.display = 'none';
             if (partnerGroup) partnerGroup.style.display = 'block';
             if (partnerSelect) partnerSelect.required = true;
-        } else if (role === 'External') {
-            // External users see only their company's certificates
-            if (companyGroup) companyGroup.style.display = 'block';
-            if (partnerGroup) partnerGroup.style.display = 'none';
         } else {
-            // Admin, Analyst, API Integration, Public - no data association needed
-            if (companyGroup) companyGroup.style.display = 'none';
+            // All non-Partner roles: show Company, hide Partner
+            if (companyGroup) companyGroup.style.display = 'block';
             if (partnerGroup) partnerGroup.style.display = 'none';
         }
     }
@@ -507,10 +503,10 @@ class UserManagement {
             partnerSelect.value = '';
         }
 
-        // Reset role-based field visibility (hide both until role is selected)
+        // Reset role-based field visibility (show company by default, hide partner)
         const companyGroup = document.getElementById('company-group');
         const partnerGroup = document.getElementById('partner-group');
-        if (companyGroup) companyGroup.style.display = 'none';
+        if (companyGroup) companyGroup.style.display = 'block';
         if (partnerGroup) partnerGroup.style.display = 'none';
 
         this.showModal();
@@ -721,10 +717,11 @@ class UserManagement {
                 this.renderUsers();
                 this.updateUserCount();
             } else {
-                this.showNotification('Failed to save user: ' + (result.message || 'Unknown error'), 'error');
+                let errorMsg = result.message || 'Unknown error';
                 if (result.errors && result.errors.length > 0) {
-                    console.error('Validation errors:', result.errors);
+                    errorMsg += ': ' + result.errors.join(', ');
                 }
+                this.showNotification('Failed to save user: ' + errorMsg, 'error');
             }
         } catch (error) {
             console.error('Error saving user:', error);
@@ -825,33 +822,9 @@ class UserManagement {
     
     downloadImportTemplate() {
         try {
-            // Create template data with example row
-            const templateData = [
-                {
-                    Name: 'John Doe',
-                    Email: 'john.doe@example.com',
-                    Company: 'Company ID or Name',
-                    Role: 'Admin',
-                    Status: 'active',
-                    Password: 'TempPassword123!',
-                    RequirePasswordReset: 'true'
-                }
-            ];
-
-            // Create CSV content
+            // Create CSV content with headers only (no sample data)
             const headers = ['Name', 'Email', 'Company', 'Role', 'Status', 'Password', 'RequirePasswordReset'];
-            const csvContent = [
-                headers.join(','),
-                ...templateData.map(row =>
-                    headers.map(header => {
-                        const value = row[header] || '';
-                        // Escape quotes and wrap in quotes if contains comma
-                        return value.includes(',') || value.includes('"')
-                            ? `"${value.replace(/"/g, '""')}"`
-                            : value;
-                    }).join(',')
-                )
-            ].join('\n');
+            const csvContent = headers.join(',');
 
             // Download file
             const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -1357,13 +1330,17 @@ class UserManagement {
         for (const row of rowsToProcess) {
             try {
                 let response;
+                // Resolve company name/ID from CSV to actual company IDs
+                const companyIds = this.resolveCompanyIds(row.data.company);
+
                 const userData = {
                     name: row.data.name,
                     email: row.data.email,
                     role: row.data.role,
                     status: row.data.status,
                     password: row.data.password || 'TempPassword123!',
-                    requirePasswordReset: row.data.requirePasswordReset || !row.data.password
+                    requirePasswordReset: row.data.requirePasswordReset || !row.data.password,
+                    companyIds: companyIds
                 };
 
                 if (row.action === 'create') {
@@ -1410,11 +1387,11 @@ class UserManagement {
         if (errorCount === 0) {
             this.showNotification(`Import complete: ${successCount} users processed successfully${keptMessage}`, 'success');
         } else if (successCount > 0) {
-            this.showNotification(`Import partial: ${successCount} succeeded, ${errorCount} failed${keptMessage}`, 'warning');
-            console.error('Import errors:', errors);
+            const errorDetail = errors.slice(0, 3).join(' | ');
+            this.showNotification(`Import partial: ${successCount} succeeded, ${errorCount} failed${keptMessage}. ${errorDetail}`, 'warning');
         } else {
-            this.showNotification(`Import failed: ${errorCount} errors occurred`, 'error');
-            console.error('Import errors:', errors);
+            const errorDetail = errors.slice(0, 3).join(' | ');
+            this.showNotification(`Import failed: ${errorCount} errors. ${errorDetail}`, 'error');
         }
     }
 
@@ -1444,6 +1421,29 @@ class UserManagement {
         return result;
     }
     
+    resolveCompanyIds(companyValue) {
+        if (!companyValue || !companyValue.trim()) return [];
+
+        // Support semicolon-separated multiple companies
+        const parts = companyValue.split(';').map(p => p.trim()).filter(p => p);
+        const ids = [];
+
+        for (const part of parts) {
+            // Try as numeric ID first
+            const asNum = parseInt(part);
+            if (!isNaN(asNum) && this.companies.some(c => c.id === asNum)) {
+                ids.push(asNum);
+                continue;
+            }
+            // Match by name (case-insensitive)
+            const match = this.companies.find(c => c.name?.toLowerCase() === part.toLowerCase());
+            if (match) {
+                ids.push(match.id);
+            }
+        }
+        return ids;
+    }
+
     showLoading(show, message = 'Loading...') {
         let loader = document.getElementById('loading-overlay');
         if (!loader) {

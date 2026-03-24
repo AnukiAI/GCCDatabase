@@ -51,7 +51,7 @@ namespace GCCWebApp.Data
                 new Permission { Name = "Create Certificates", Codename = "certificate.create", Category = "Certificates", Description = "Add new certificates" },
                 new Permission { Name = "Edit Certificates", Codename = "certificate.edit", Category = "Certificates", Description = "Modify existing certificates" },
                 new Permission { Name = "Delete Certificates", Codename = "certificate.delete", Category = "Certificates", Description = "Remove certificates" },
-                new Permission { Name = "Manage Workflow", Codename = "certificate.workflow", Category = "Certificates", Description = "Approve/reject submissions" },
+                new Permission { Name = "Manage Workflow", Codename = "certificate.workflow", Category = "Certificates", Description = "Manage certificate workflow state transitions" },
 
                 // Data Module
                 new Permission { Name = "Export Data", Codename = "data.export", Category = "Data", Description = "Download CSV exports" },
@@ -63,7 +63,7 @@ namespace GCCWebApp.Data
                 new Permission { Name = "Manage Users", Codename = "admin.users", Category = "Administration", Description = "Create/edit user accounts" },
                 new Permission { Name = "Manage Roles", Codename = "admin.roles", Category = "Administration", Description = "Configure role permissions" },
                 new Permission { Name = "Manage Companies", Codename = "admin.companies", Category = "Administration", Description = "Partner/client companies" },
-                new Permission { Name = "Manage Tags", Codename = "admin.tags", Category = "Administration", Description = "Internal classification tags" },
+                new Permission { Name = "Manage Tags", Codename = "admin.tags", Category = "Administration", Description = "Classification tags (internal and external)" },
                 new Permission { Name = "Manage Partners", Codename = "admin.partners", Category = "Administration", Description = "API keys & partner access" },
 
                 // API Access Module

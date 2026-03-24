@@ -349,16 +349,16 @@ namespace GCCWebApp.Services
         {
             try
             {
-                var response = await GetCertificatesAsync(request);
-                if (!response.Success || !response.Certificates.Any())
+                var exportRows = await GetCertificatesForExportAsync(request);
+                if (!exportRows.Any())
                     return null;
 
                 return format.ToLower() switch
                 {
-                    "csv" => GenerateCsvExport(response.Certificates),
-                    "excel" => GenerateExcelExport(response.Certificates),
-                    "pdf" => GeneratePdfExport(response.Certificates),
-                    _ => GenerateCsvExport(response.Certificates)
+                    "csv" => GenerateCsvExport(exportRows),
+                    "excel" => GenerateExcelExport(exportRows),
+                    "pdf" => GeneratePdfExportFromRows(exportRows),
+                    _ => GenerateCsvExport(exportRows)
                 };
             }
             catch (Exception ex)
@@ -375,40 +375,16 @@ namespace GCCWebApp.Services
                 if (certificateIds == null || !certificateIds.Any())
                     return null;
 
-                // Get all certificates first using the existing method with large page size
-                var request = new CertificateListRequest
-                {
-                    Page = 1,
-                    PageSize = 10000,
-                    Sort = "",
-                    UserRole = "Public", // Get all certificates
-                    Filters = new CertificateSearchFilters
-                    {
-                        SearchTerm = "",
-                        CertificationTypes = new List<string>(),
-                        Countries = new List<string>(),
-                        Statuses = new List<string>()
-                    }
-                };
-
-                var response = await GetCertificatesAsync(request);
-                if (!response.Success || !response.Certificates.Any())
-                    return null;
-
-                // Filter to only the requested certificate IDs or numbers
-                var filteredCertificates = response.Certificates
-                    .Where(c => certificateIds.Contains(c.Id.ToString()) || certificateIds.Contains(c.CertificateNumber))
-                    .ToList();
-
-                if (!filteredCertificates.Any())
+                var exportRows = await GetCertificatesForExportByIdsAsync(certificateIds);
+                if (!exportRows.Any())
                     return null;
 
                 return format.ToLower() switch
                 {
-                    "csv" => GenerateCsvExport(filteredCertificates),
-                    "excel" => GenerateExcelExport(filteredCertificates),
-                    "pdf" => GeneratePdfExport(filteredCertificates),
-                    _ => GenerateCsvExport(filteredCertificates)
+                    "csv" => GenerateCsvExport(exportRows),
+                    "excel" => GenerateExcelExport(exportRows),
+                    "pdf" => GeneratePdfExportFromRows(exportRows),
+                    _ => GenerateCsvExport(exportRows)
                 };
             }
             catch (Exception ex)
@@ -416,6 +392,151 @@ namespace GCCWebApp.Services
                 _logger.LogError(ex, "Error exporting certificates by IDs to {Format}", format);
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Internal export row with all certificate fields for comprehensive export.
+        /// </summary>
+        private class CertificateExportRow
+        {
+            public int Id { get; set; }
+            public string CertificateNumber { get; set; } = "";
+            public string CertificationType { get; set; } = "";
+            public string CertificationSubcategories { get; set; } = "";
+            public string Status { get; set; } = "";
+            public string CompanyName { get; set; } = "";
+            public string CompanyContactEmail { get; set; } = "";
+            public string CompanyContactUrl { get; set; } = "";
+            public string ProductName { get; set; } = "";
+            public string ProductCategory { get; set; } = "";
+            public string ProductType { get; set; } = "";
+            public string ProductSubcategory { get; set; } = "";
+            public string Partner { get; set; } = "";
+            public string Pathway { get; set; } = "";
+            public string CertificationResults { get; set; } = "";
+            public DateTime EffectiveDate { get; set; }
+            public DateTime ExpirationDate { get; set; }
+            public string Location { get; set; } = "";
+            public string Country { get; set; } = "";
+            public string ExternalTags { get; set; } = "";
+            public string InternalTags { get; set; } = "";
+            public string Asin { get; set; } = "";
+            public string Upc { get; set; } = "";
+            public string Gtin { get; set; } = "";
+            public string Ean { get; set; } = "";
+        }
+
+        /// <summary>
+        /// Queries certificates with all navigation properties for comprehensive export.
+        /// </summary>
+        private async Task<List<CertificateExportRow>> GetCertificatesForExportAsync(CertificateListRequest request)
+        {
+            var query = BuildExportQuery();
+
+            // Apply filters
+            if (!string.IsNullOrWhiteSpace(request.Filters.SearchTerm))
+            {
+                var searchTerm = request.Filters.SearchTerm.ToLower();
+                query = query.Where(c =>
+                    c.Company.Name.ToLower().Contains(searchTerm) ||
+                    c.Product.Name.ToLower().Contains(searchTerm) ||
+                    c.Number.ToLower().Contains(searchTerm) ||
+                    c.Tags.Any(t => t.Name.ToLower().Contains(searchTerm)));
+            }
+            if (request.Filters.CertificationTypes.Any())
+                query = query.Where(c => request.Filters.CertificationTypes.Contains(c.CertificationType.Name));
+            if (request.Filters.Countries.Any())
+                query = query.Where(c => request.Filters.Countries.Contains(c.Country ?? ""));
+            if (request.Filters.Statuses.Any())
+                query = query.Where(c => request.Filters.Statuses.Contains(c.Status));
+
+            return await ProjectToExportRows(query);
+        }
+
+        /// <summary>
+        /// Queries certificates by IDs/numbers with all fields for export.
+        /// </summary>
+        private async Task<List<CertificateExportRow>> GetCertificatesForExportByIdsAsync(List<string> certificateIds)
+        {
+            var query = BuildExportQuery()
+                .Where(c => certificateIds.Contains(c.Id.ToString()) || certificateIds.Contains(c.Number));
+
+            return await ProjectToExportRows(query);
+        }
+
+        private IQueryable<Certificate> BuildExportQuery()
+        {
+            return _context.Certificates
+                .Include(c => c.Company)
+                .Include(c => c.Product).ThenInclude(p => p.Category)
+                .Include(c => c.Product).ThenInclude(p => p.ProductType)
+                .Include(c => c.Product).ThenInclude(p => p.ProductSubcategory)
+                .Include(c => c.CertificationType)
+                .Include(c => c.CertificationTypeSubcategories)
+                .Include(c => c.ProductCategory)
+                .Include(c => c.ProductType)
+                .Include(c => c.ProductSubcategory)
+                .Include(c => c.Pathway)
+                .Include(c => c.Tags)
+                .Include(c => c.ProductIds)
+                .AsQueryable();
+        }
+
+        private async Task<List<CertificateExportRow>> ProjectToExportRows(IQueryable<Certificate> query)
+        {
+            var certs = await query.OrderBy(c => c.Id).ToListAsync();
+
+            return certs.Select(c => new CertificateExportRow
+            {
+                Id = c.Id,
+                CertificateNumber = c.Number,
+                CertificationType = c.CertificationType?.Name ?? "",
+                CertificationSubcategories = c.CertificationTypeSubcategories != null && c.CertificationTypeSubcategories.Any()
+                    ? string.Join(", ", c.CertificationTypeSubcategories.Select(s => s.Name))
+                    : "",
+                Status = c.Status,
+                CompanyName = c.Company?.Name ?? "",
+                CompanyContactEmail = c.Company?.Email ?? "",
+                CompanyContactUrl = c.Company?.Website ?? "",
+                ProductName = c.Product?.Name ?? "",
+                ProductCategory = c.ProductCategory?.Name ?? (c.Product?.Category?.Name ?? ""),
+                ProductType = c.ProductType?.Name ?? (c.Product?.ProductType?.Name ?? ""),
+                ProductSubcategory = c.ProductSubcategory?.Name ?? (c.Product?.ProductSubcategory?.Name ?? ""),
+                Partner = c.Partner ?? "None",
+                Pathway = c.Pathway?.Name ?? "",
+                CertificationResults = c.CertificationResults ?? "",
+                EffectiveDate = c.EffectiveDate,
+                ExpirationDate = c.ExpirationDate,
+                Location = c.Location ?? "",
+                Country = c.Country ?? "",
+                ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name)),
+                InternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name)),
+                Asin = GetProductIdValues(c, "ASIN"),
+                Upc = GetProductIdValues(c, "UPC"),
+                Gtin = GetProductIdValues(c, "GTIN"),
+                Ean = GetProductIdValues(c, "EAN")
+            }).ToList();
+        }
+
+        private static string GetProductIdValues(Certificate c, string type)
+        {
+            var fromCollection = c.ProductIds?
+                .Where(pid => pid.ProductIdType == type && pid.IsActive)
+                .Select(pid => pid.ProductIdValue)
+                .ToList();
+
+            if (fromCollection != null && fromCollection.Any())
+                return string.Join(", ", fromCollection);
+
+            // Fallback to legacy fields
+            return type switch
+            {
+                "ASIN" => c.Asin ?? "",
+                "UPC" => c.Upc ?? "",
+                "GTIN" => c.Gtin ?? "",
+                "EAN" => c.Ean ?? "",
+                _ => ""
+            };
         }
 
         public async Task<CertificateStatistics> GetCertificateStatisticsAsync(string userRole)
@@ -848,7 +969,7 @@ namespace GCCWebApp.Services
                 .Text(value).FontSize(12);
         }
 
-        private byte[] GenerateCsvExport(List<CertificateCardModel> certificates)
+        private byte[] GenerateCsvExport(List<CertificateExportRow> certificates)
         {
             try
             {
@@ -858,8 +979,8 @@ namespace GCCWebApp.Services
                 var certIds = certificates.Select(c => c.Id).ToList();
                 var (customFieldNames, customFieldValueMap) = GetCustomFieldDataForExport(certIds);
 
-                // CSV Header with comprehensive fields including partner and product IDs + custom fields
-                csv.Append("\"Certificate Number\",\"Company Name\",\"Product Name\",\"Product Category\",\"Certification Type\",\"Status\",\"Partner Program\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"");
+                // CSV Header — all certificate fields + admin custom fields
+                csv.Append("\"Certificate Number\",\"Certification Type\",\"Certification Subcategories\",\"Status\",\"Company Name\",\"Company Contact Email\",\"Company Contact URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Product Subcategory\",\"Partner Program\",\"Pathway\",\"Certification Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tags\",\"Internal Tags\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"");
                 foreach (var fieldName in customFieldNames)
                 {
                     csv.Append($",\"{EscapeCsvField(fieldName)}\"");
@@ -869,9 +990,9 @@ namespace GCCWebApp.Services
                 // CSV Data with proper escaping
                 foreach (var cert in certificates)
                 {
-                    csv.Append($"\"{EscapeCsvField(cert.CertificateNumber)}\",\"{EscapeCsvField(cert.CompanyName)}\",\"{EscapeCsvField(cert.ProductName)}\",\"{EscapeCsvField(cert.ProductCategory)}\",\"{EscapeCsvField(cert.CertificationType)}\",\"{EscapeCsvField(cert.Status)}\",\"{EscapeCsvField(cert.Partner ?? "None")}\",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",\"{EscapeCsvField(cert.Location)}\",\"{EscapeCsvField(cert.Country)}\",\"{EscapeCsvField(cert.Asin ?? "")}\",\"{EscapeCsvField(cert.Upc ?? "")}\",\"{EscapeCsvField(cert.Gtin ?? "")}\",\"{EscapeCsvField(cert.Ean ?? "")}\"");
+                    csv.Append($"\"{EscapeCsvField(cert.CertificateNumber)}\",\"{EscapeCsvField(cert.CertificationType)}\",\"{EscapeCsvField(cert.CertificationSubcategories)}\",\"{EscapeCsvField(cert.Status)}\",\"{EscapeCsvField(cert.CompanyName)}\",\"{EscapeCsvField(cert.CompanyContactEmail)}\",\"{EscapeCsvField(cert.CompanyContactUrl)}\",\"{EscapeCsvField(cert.ProductName)}\",\"{EscapeCsvField(cert.ProductCategory)}\",\"{EscapeCsvField(cert.ProductType)}\",\"{EscapeCsvField(cert.ProductSubcategory)}\",\"{EscapeCsvField(cert.Partner)}\",\"{EscapeCsvField(cert.Pathway)}\",\"{EscapeCsvField(cert.CertificationResults)}\",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",\"{EscapeCsvField(cert.Location)}\",\"{EscapeCsvField(cert.Country)}\",\"{EscapeCsvField(cert.ExternalTags)}\",\"{EscapeCsvField(cert.InternalTags)}\",\"{EscapeCsvField(cert.Asin)}\",\"{EscapeCsvField(cert.Upc)}\",\"{EscapeCsvField(cert.Gtin)}\",\"{EscapeCsvField(cert.Ean)}\"");
 
-                    // Append custom field values
+                    // Append custom field values (admin-added fields)
                     customFieldValueMap.TryGetValue(cert.Id, out var certFieldValues);
                     foreach (var fieldName in customFieldNames)
                     {
@@ -944,7 +1065,7 @@ namespace GCCWebApp.Services
             }
         }
 
-        private byte[] GenerateExcelExport(List<CertificateCardModel> certificates)
+        private byte[] GenerateExcelExport(List<CertificateExportRow> certificates)
         {
             try
             {
@@ -955,12 +1076,16 @@ namespace GCCWebApp.Services
                 var certIds = certificates.Select(c => c.Id).ToList();
                 var (customFieldNames, customFieldValueMap) = GetCustomFieldDataForExport(certIds);
 
-                // Add headers (base + custom fields)
+                // Add headers — all certificate fields + admin custom fields
                 var headers = new List<string>
                 {
-                    "Certificate Number", "Company Name", "Product Name", "Product Category",
-                    "Certification Type", "Status", "Partner Program", "Effective Date",
-                    "Expiration Date", "Location", "Country", "ASIN", "UPC", "GTIN", "EAN"
+                    "Certificate Number", "Certification Type", "Certification Subcategories", "Status",
+                    "Company Name", "Company Contact Email", "Company Contact URL",
+                    "Product Name", "Product Category", "Product Type", "Product Subcategory",
+                    "Partner Program", "Pathway", "Certification Results",
+                    "Effective Date", "Expiration Date", "Location", "Country",
+                    "External Tags", "Internal Tags",
+                    "ASIN", "UPC", "GTIN", "EAN"
                 };
                 headers.AddRange(customFieldNames);
 
@@ -975,28 +1100,42 @@ namespace GCCWebApp.Services
                 int row = 2;
                 foreach (var cert in certificates)
                 {
-                    worksheet.Cell(row, 1).Value = cert.CertificateNumber;
-                    worksheet.Cell(row, 2).Value = cert.CompanyName;
-                    worksheet.Cell(row, 3).Value = cert.ProductName;
-                    worksheet.Cell(row, 4).Value = cert.ProductCategory ?? "";
-                    worksheet.Cell(row, 5).Value = cert.CertificationType;
-                    worksheet.Cell(row, 6).Value = cert.Status;
-                    worksheet.Cell(row, 7).Value = cert.Partner ?? "None";
-                    worksheet.Cell(row, 8).Value = cert.EffectiveDate.ToString("yyyy-MM-dd");
-                    worksheet.Cell(row, 9).Value = cert.ExpirationDate.ToString("yyyy-MM-dd");
-                    worksheet.Cell(row, 10).Value = cert.Location ?? "";
-                    worksheet.Cell(row, 11).Value = cert.Country ?? "";
-                    worksheet.Cell(row, 12).Value = cert.Asin ?? "";
-                    worksheet.Cell(row, 13).Value = cert.Upc ?? "";
-                    worksheet.Cell(row, 14).Value = cert.Gtin ?? "";
-                    worksheet.Cell(row, 15).Value = cert.Ean ?? "";
+                    int col = 1;
+                    worksheet.Cell(row, col++).Value = cert.CertificateNumber;
+                    worksheet.Cell(row, col++).Value = cert.CertificationType;
+                    worksheet.Cell(row, col++).Value = cert.CertificationSubcategories;
+                    worksheet.Cell(row, col++).Value = cert.Status;
+                    worksheet.Cell(row, col++).Value = cert.CompanyName;
+                    worksheet.Cell(row, col++).Value = cert.CompanyContactEmail;
+                    worksheet.Cell(row, col++).Value = cert.CompanyContactUrl;
+                    worksheet.Cell(row, col++).Value = cert.ProductName;
+                    worksheet.Cell(row, col++).Value = cert.ProductCategory;
+                    worksheet.Cell(row, col++).Value = cert.ProductType;
+                    worksheet.Cell(row, col++).Value = cert.ProductSubcategory;
+                    worksheet.Cell(row, col++).Value = cert.Partner;
+                    worksheet.Cell(row, col++).Value = cert.Pathway;
+                    worksheet.Cell(row, col++).Value = cert.CertificationResults;
+                    var effCell = worksheet.Cell(row, col++);
+                    effCell.Value = cert.EffectiveDate;
+                    effCell.Style.DateFormat.Format = "yyyy-MM-dd";
+                    var expCell = worksheet.Cell(row, col++);
+                    expCell.Value = cert.ExpirationDate;
+                    expCell.Style.DateFormat.Format = "yyyy-MM-dd";
+                    worksheet.Cell(row, col++).Value = cert.Location;
+                    worksheet.Cell(row, col++).Value = cert.Country;
+                    worksheet.Cell(row, col++).Value = cert.ExternalTags;
+                    worksheet.Cell(row, col++).Value = cert.InternalTags;
+                    worksheet.Cell(row, col++).Value = cert.Asin;
+                    worksheet.Cell(row, col++).Value = cert.Upc;
+                    worksheet.Cell(row, col++).Value = cert.Gtin;
+                    worksheet.Cell(row, col++).Value = cert.Ean;
 
-                    // Append custom field values
+                    // Append custom field values (admin-added fields)
                     customFieldValueMap.TryGetValue(cert.Id, out var certFieldValues);
                     for (int i = 0; i < customFieldNames.Count; i++)
                     {
                         var value = certFieldValues != null && certFieldValues.TryGetValue(customFieldNames[i], out var v) ? v : "";
-                        worksheet.Cell(row, 16 + i).Value = value;
+                        worksheet.Cell(row, col + i).Value = value;
                     }
                     row++;
                 }
@@ -1017,13 +1156,13 @@ namespace GCCWebApp.Services
             }
         }
 
-        private byte[] GeneratePdfExport(List<CertificateCardModel> certificates)
+        private byte[] GeneratePdfExportFromRows(List<CertificateExportRow> certificates)
         {
             try
             {
                 // Initialize QuestPDF settings
                 QuestPDF.Settings.License = LicenseType.Community;
-                
+
                 // Generate professional PDF using QuestPDF
                 var document = Document.Create(container =>
                 {
@@ -1032,7 +1171,7 @@ namespace GCCWebApp.Services
                         page.Size(PageSizes.A4);
                         page.Margin(2, Unit.Centimetre);
                         page.PageColor(Colors.White);
-                        
+
                         // Header
                         page.Header().Height(80).Background(Colors.Green.Medium).Padding(20).Row(row =>
                         {
@@ -1050,7 +1189,7 @@ namespace GCCWebApp.Services
                         {
                             column.Item().PaddingBottom(10).Text($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}")
                                 .FontSize(12).FontColor(Colors.Grey.Darken2);
-                            
+
                             column.Item().PaddingBottom(10).Text($"Total Certificates: {certificates.Count}")
                                 .FontSize(14).Bold();
 
@@ -1060,7 +1199,7 @@ namespace GCCWebApp.Services
                                 table.ColumnsDefinition(columns =>
                                 {
                                     columns.RelativeColumn(2); // Certificate Number
-                                    columns.RelativeColumn(3); // Company Name  
+                                    columns.RelativeColumn(3); // Company Name
                                     columns.RelativeColumn(2); // Product Name
                                     columns.RelativeColumn(1); // Status
                                     columns.RelativeColumn(2); // Valid Period
@@ -1120,14 +1259,14 @@ namespace GCCWebApp.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error generating PDF export with QuestPDF");
-                
+
                 // Fallback to text-based "PDF" if QuestPDF fails
                 var fallbackContent = new StringBuilder();
                 fallbackContent.AppendLine("Green Circle Certified - Certificate Export Report");
                 fallbackContent.AppendLine($"Generated: {DateTime.Now:yyyy-MM-dd HH:mm}");
                 fallbackContent.AppendLine("=" + new string('=', 60));
                 fallbackContent.AppendLine();
-                
+
                 foreach (var cert in certificates.Take(50))
                 {
                     fallbackContent.AppendLine($"Certificate: {cert.CertificateNumber}");
@@ -1137,7 +1276,7 @@ namespace GCCWebApp.Services
                     fallbackContent.AppendLine($"Valid: {cert.EffectiveDate:yyyy-MM-dd} to {cert.ExpirationDate:yyyy-MM-dd}");
                     fallbackContent.AppendLine(new string('-', 40));
                 }
-                
+
                 return System.Text.Encoding.UTF8.GetBytes(fallbackContent.ToString());
             }
         }

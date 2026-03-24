@@ -102,8 +102,16 @@ namespace GCCWebApp.Services
             };
         }
 
-        public async Task<bool> CreateUserAsync(CreateUserViewModel model, int userId, string username)
+        public async Task<(bool Success, string ErrorMessage)> CreateUserAsync(CreateUserViewModel model, int userId, string username)
         {
+            // Check for duplicate email before attempting insert
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == model.Email.ToLower());
+            if (existingUser != null)
+            {
+                return (false, $"A user with email '{model.Email}' already exists");
+            }
+
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
@@ -181,13 +189,13 @@ namespace GCCWebApp.Services
                 }
 
                 await transaction.CommitAsync();
-                return true;
+                return (true, string.Empty);
             }
             catch (Exception ex)
             {
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "Failed to create user with email {Email}", model.Email);
-                return false;
+                return (false, ex.Message);
             }
         }
 

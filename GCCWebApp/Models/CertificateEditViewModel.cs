@@ -86,6 +86,15 @@ namespace GCCWebApp.Models
         [Display(Name = "Company")]
         public int CompanyId { get; set; }
 
+        [Display(Name = "Company Email")]
+        [EmailAddress]
+        [MaxLength(255)]
+        public string? CompanyEmail { get; set; }
+
+        [Display(Name = "Company URL")]
+        [MaxLength(500)]
+        public string? CompanyWebsite { get; set; }
+
         [Required]
         [Display(Name = "Product")]
         public int ProductId { get; set; }

@@ -28,7 +28,8 @@ namespace GCCWebApp.Repositories
         Task<IEnumerable<(string Name, int Count)>> GetCertificationTypeStatisticsAsync();
         Task<IEnumerable<(string Name, int Count)>> GetTopCompaniesByActiveCertCountAsync(int topCount = 10);
         Task<IEnumerable<(string Name, int Count)>> GetProductTypeStatisticsAsync(int topCount = 10);
-        
+        Task<IEnumerable<(string Name, int Count)>> GetProductCategoryStatisticsAsync(int topCount = 5);
+
         // Additional methods for API
         Task<IEnumerable<string>> GetDistinctCountriesAsync();
         new Task<IEnumerable<Certificate>> FindAsync(System.Linq.Expressions.Expression<Func<Certificate, bool>> predicate);

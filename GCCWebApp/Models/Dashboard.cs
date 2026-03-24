@@ -23,6 +23,7 @@ namespace GCCWebApp.Models
         public IEnumerable<(string Name, int Count)> CertificationTypeBreakdown { get; set; } = new List<(string, int)>();
         public IEnumerable<(string Name, int Count)> TopCompaniesBreakdown { get; set; } = new List<(string, int)>();
         public IEnumerable<(string Name, int Count)> ProductTypeBreakdown { get; set; } = new List<(string, int)>();
+        public IEnumerable<(string Name, int Count)> ProductCategoryBreakdown { get; set; } = new List<(string, int)>();
 
         // Computed Properties
         public int TotalCertificates => Statistics.GetValueOrDefault("Total", 0);

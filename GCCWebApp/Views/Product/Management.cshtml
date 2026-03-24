@@ -15,11 +15,11 @@
 
 @section Breadcrumbs {
     <span class="role-element role-analyst-show role-admin-show">
-        <a href="#">Companies & Products</a>
+        <span>Companies & Products</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <a href="@Url.Action("Index", "Product")">Products</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
-        <a href="#">Product Management</a>
+        <span class="current">Product Management</span>
     </span>
 }
 
@@ -103,13 +103,15 @@
                 <thead class="admin-table-header">
                     <tr>
                         <th style="width: 40px;"></th>
-                        <th data-sort="name" class="admin-table-th--sortable">Product Name <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="company" class="admin-table-th--sortable" style="width: 15%;">Company <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="category" class="admin-table-th--sortable" style="width: 15%;">Category <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="status" class="admin-table-th--sortable" style="width: 150px; min-width: 150px;">Status <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="certificates" class="admin-table-th--sortable" style="width: 100px;">Certificates <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="identifiers" class="admin-table-th--sortable" style="width: 110px;">Identifiers <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th class="actions-col role-element role-analyst-show role-admin-show" style="width: 120px; min-width: 120px;">Actions</th>
+                        <th data-sort="name" class="admin-table-th--sortable" style="min-width: 160px;">Product Name <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="company" class="admin-table-th--sortable" style="min-width: 130px;">Company <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="category" class="admin-table-th--sortable" style="min-width: 130px;">Category <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="productType" class="admin-table-th--sortable" style="min-width: 130px;">Product Type <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="subcategory" class="admin-table-th--sortable" style="min-width: 130px;">Subcategory <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="status" class="admin-table-th--sortable" style="width: 120px; min-width: 120px;">Status <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="certificates" class="admin-table-th--sortable" style="width: 100px; min-width: 100px;">Certs <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="identifiers" class="admin-table-th--sortable" style="width: 90px; min-width: 90px;">IDs <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th class="actions-col role-element role-analyst-show role-admin-show" style="width: 100px; min-width: 100px;">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="admin-table-body">
@@ -118,8 +120,11 @@
             </table>
         </div>
 
-        <div class="admin-footer-info">
+        <div class="admin-footer-info" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
             <span id="product-count" class="admin-count-display">Showing 0 of 0 products</span>
+            <div id="pagination-controls" class="pagination-controls" style="display: flex; align-items: center; gap: 4px;">
+                <!-- Populated by JavaScript -->
+            </div>
         </div>
     </div>
 </div>
@@ -322,6 +327,10 @@
         let sortColumn = 'name';
         let sortDirection = 'asc';
         let currentEditingId = null;
+
+        // Pagination variables
+        const PAGE_SIZE = 50;
+        let currentPage = 1;
 
         // Search suggestions
         let searchSuggestionsData = {
@@ -534,6 +543,7 @@
                                     (product.companyName && product.companyName.toLowerCase().includes(searchTerm)) ||
                                     (product.categoryName && product.categoryName.toLowerCase().includes(searchTerm)) ||
                                     (product.productTypeName && product.productTypeName.toLowerCase().includes(searchTerm)) ||
+                                    (product.productSubcategoryName && product.productSubcategoryName.toLowerCase().includes(searchTerm)) ||
                                     (product.sku && product.sku.toLowerCase().includes(searchTerm)) ||
                                     (product.model && product.model.toLowerCase().includes(searchTerm));
                 const matchesCategory = categoryFilterValue === 'all' || product.categoryName === categoryFilterValue;
@@ -550,9 +560,18 @@
 
             // Sort filtered products
             filteredProducts.sort((a, b) => {
-                const aValue = a[sortColumn] || '';
-                const bValue = b[sortColumn] || '';
-                
+                let aValue, bValue;
+                if (sortColumn === 'productType') {
+                    aValue = a.productTypeName || '';
+                    bValue = b.productTypeName || '';
+                } else if (sortColumn === 'subcategory') {
+                    aValue = a.productSubcategoryName || '';
+                    bValue = b.productSubcategoryName || '';
+                } else {
+                    aValue = a[sortColumn] || '';
+                    bValue = b[sortColumn] || '';
+                }
+
                 if (sortDirection === 'asc') {
                     return aValue.toString().localeCompare(bValue.toString());
                 } else {
@@ -560,15 +579,22 @@
                 }
             });
 
+            // Pagination
+            const totalFiltered = filteredProducts.length;
+            const totalPages = Math.ceil(totalFiltered / PAGE_SIZE);
+            if (currentPage > totalPages) currentPage = totalPages || 1;
+            const startIndex = (currentPage - 1) * PAGE_SIZE;
+            const pagedProducts = filteredProducts.slice(startIndex, startIndex + PAGE_SIZE);
+
             // Populate table
             productTableBody.innerHTML = '';
-            
-            filteredProducts.forEach(product => {
+
+            pagedProducts.forEach(product => {
                 // Main row
                 const row = document.createElement('tr');
                 row.className = 'main-row expandable-row';
                 row.setAttribute('data-product-id', product.id);
-                
+
                 const totalIdentifiers = product.identifiers ?
                     Object.values(product.identifiers).reduce((sum, arr) => sum + arr.length, 0) : 0;
 
@@ -583,24 +609,20 @@
                         </div>
                     </td>
                     <td data-label="Company">${product.companyName || ''}</td>
-                    <td data-label="Category">
-                        <div class="category-info">
-                            <div class="category-name">${product.categoryName || ''}</div>
-                            <div class="product-type">${product.productTypeName || ''}</div>
-                        </div>
-                    </td>
+                    <td data-label="Category">${product.categoryName || ''}</td>
+                    <td data-label="Product Type">${product.productTypeName || ''}</td>
+                    <td data-label="Subcategory">${product.productSubcategoryName || ''}</td>
                     <td data-label="Status">
                         <span class="status-badge status-${product.status.toLowerCase()}">${product.status}</span>
                     </td>
-                    <td data-label="Certificates">
+                    <td data-label="Certs">
                         <span class="certificate-count">
                             <i class="fas fa-certificate"></i> ${product.certificateCount || 0}
                         </span>
                     </td>
-                    <td data-label="Identifiers">
+                    <td data-label="IDs">
                         <span class="product-identifiers-summary">
                             <span class="identifier-count">${totalIdentifiers}</span>
-                            identifiers
                         </span>
                     </td>
                     <td class="actions-cell role-element role-analyst-show role-admin-show" data-label="Actions">
@@ -621,7 +643,7 @@
                 detailRow.className = 'detail-row';
                 detailRow.setAttribute('data-product-id', product.id);
                 detailRow.innerHTML = `
-                    <td colspan="8" class="detail-cell">
+                    <td colspan="10" class="detail-cell">
                         <div class="detail-content">
                             ${createIdentifierSections(product.identifiers || {})}
                         </div>
@@ -630,8 +652,76 @@
                 productTableBody.appendChild(detailRow);
             });
 
-            // Update count
-            productCountElement.textContent = `Showing ${filteredProducts.length} of ${products.length} products`;
+            // Update count with pagination info
+            const showingStart = totalFiltered > 0 ? startIndex + 1 : 0;
+            const showingEnd = Math.min(startIndex + PAGE_SIZE, totalFiltered);
+            productCountElement.textContent = `Showing ${showingStart}-${showingEnd} of ${totalFiltered} products`;
+
+            // Render pagination controls
+            renderPagination(totalPages, totalFiltered);
+        }
+
+        function renderPagination(totalPages, totalFiltered) {
+            const container = document.getElementById('pagination-controls');
+            if (!container) return;
+
+            if (totalPages <= 1) {
+                container.innerHTML = '';
+                return;
+            }
+
+            let html = '';
+
+            // Previous button
+            html += `<button class="pagination-btn${currentPage === 1 ? ' disabled' : ''}"
+                        onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-left"></i>
+                    </button>`;
+
+            // Page numbers with ellipsis
+            const maxVisible = 7;
+            let startPage = 1;
+            let endPage = totalPages;
+
+            if (totalPages > maxVisible) {
+                const half = Math.floor(maxVisible / 2);
+                startPage = Math.max(1, currentPage - half);
+                endPage = Math.min(totalPages, startPage + maxVisible - 1);
+                if (endPage - startPage < maxVisible - 1) {
+                    startPage = Math.max(1, endPage - maxVisible + 1);
+                }
+            }
+
+            if (startPage > 1) {
+                html += `<button class="pagination-btn" onclick="goToPage(1)">1</button>`;
+                if (startPage > 2) html += `<span class="pagination-ellipsis">...</span>`;
+            }
+
+            for (let i = startPage; i <= endPage; i++) {
+                html += `<button class="pagination-btn${i === currentPage ? ' active' : ''}"
+                            onclick="goToPage(${i})">${i}</button>`;
+            }
+
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) html += `<span class="pagination-ellipsis">...</span>`;
+                html += `<button class="pagination-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+            }
+
+            // Next button
+            html += `<button class="pagination-btn${currentPage === totalPages ? ' disabled' : ''}"
+                        onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+                        <i class="fas fa-chevron-right"></i>
+                    </button>`;
+
+            container.innerHTML = html;
+        }
+
+        function goToPage(page) {
+            currentPage = page;
+            populateTable();
+            // Scroll to top of table
+            const tableEl = document.getElementById('product-table');
+            if (tableEl) tableEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
         function initializeSortableHeaders() {
@@ -840,7 +930,7 @@
 
         function exportProducts() {
             // Each identifier gets its own row, product info repeated
-            const headers = ['Name', 'Company', 'Category', 'Status', 'Identifier Type', 'Identifier Value'];
+            const headers = ['Name', 'Company', 'Category', 'Product Type', 'Subcategory', 'Status', 'Identifier Type', 'Identifier Value'];
             const rows = [];
 
             products.forEach(p => {
@@ -849,6 +939,8 @@
                     p.name || '',
                     p.companyName || p.company || '',
                     p.categoryName || p.category || '',
+                    p.productTypeName || '',
+                    p.productSubcategoryName || '',
                     p.status || (p.isActive ? 'Active' : 'Inactive')
                 ];
 
@@ -917,6 +1009,7 @@
             // Debounce the table population for better performance
             clearTimeout(window.searchTimeout);
             window.searchTimeout = setTimeout(() => {
+                currentPage = 1;
                 populateTable();
             }, 300);
         }
@@ -1024,6 +1117,7 @@
         }
         
         function handleFilterChange() {
+            currentPage = 1;
             populateTable();
             updateActiveFiltersDisplay();
         }

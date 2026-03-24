@@ -212,6 +212,7 @@
                     console.log('DEBUG - id value:', data.certificates[0].id);
                 }
 
+                const newCertCount = data.certificates.length;
                 if (append) {
                     state.certificates = [...state.certificates, ...data.certificates];
                 } else {
@@ -224,7 +225,8 @@
                 state.totalCount = data.totalCount;
                 state.totalPages = data.totalPages;
                 state.hasMore = data.hasMore;
-                
+                state._lastNewCount = newCertCount;
+
                 renderCertificates(append);
                 updateResultsCount();
             }
@@ -293,7 +295,10 @@
             populateTableView();
         } else {
             if (append) {
-                const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
+                // Only render NEW certificates (from the latest page), not all certificates
+                const newCount = state._lastNewCount || 0;
+                const newCerts = state.certificates.slice(state.certificates.length - newCount);
+                const html = newCerts.map(cert => createCertificateCard(cert)).join('');
                 grid.insertAdjacentHTML('beforeend', html);
             } else {
                 renderCertificatesTiles();
@@ -467,6 +472,7 @@
     // Get status badge HTML
     function getStatusBadge(status) {
         const statusClasses = {
+            'Active': 'status-active',
             'Client Approved - Paid': 'status-active',
             'Republished': 'status-active',
             'Client Approved - Not Paid': 'status-draft',
@@ -476,7 +482,7 @@
             'Expired': 'status-expired',
             'Expired - No Annual Verification': 'status-expired'
         };
-        
+
         const cssClass = statusClasses[status] || 'status-default';
         return `<span class="status-badge ${cssClass}">${escapeHtml(status)}</span>`;
     }
@@ -1054,6 +1060,102 @@
         if (resultsCount) {
             resultsCount.textContent = `${state.totalCount} Result${state.totalCount !== 1 ? 's' : ''}`;
         }
+        renderPagination();
+    }
+
+    // Render pagination controls
+    function renderPagination() {
+        const container = document.getElementById('paginationControls');
+        if (!container) return;
+
+        const totalPages = state.totalPages || 1;
+        const currentPage = state.currentPage;
+
+        // Don't show pagination if only one page
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        // Calculate which page numbers to show
+        const pages = [];
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+
+        let html = '<div class="pagination-controls">';
+
+        // Previous button
+        html += `<button class="pagination-btn ${currentPage <= 1 ? 'disabled' : ''}"
+                    data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}
+                    aria-label="Previous page">
+                    <i class="fas fa-chevron-left"></i>
+                 </button>`;
+
+        // First page + ellipsis
+        if (startPage > 1) {
+            html += `<button class="pagination-btn" data-page="1">1</button>`;
+            if (startPage > 2) {
+                html += `<span class="pagination-ellipsis">...</span>`;
+            }
+        }
+
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}"
+                        data-page="${i}" ${i === currentPage ? 'aria-current="page"' : ''}>
+                        ${i}
+                     </button>`;
+        }
+
+        // Last page + ellipsis
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                html += `<span class="pagination-ellipsis">...</span>`;
+            }
+            html += `<button class="pagination-btn" data-page="${totalPages}">${totalPages}</button>`;
+        }
+
+        // Next button
+        html += `<button class="pagination-btn ${currentPage >= totalPages ? 'disabled' : ''}"
+                    data-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}
+                    aria-label="Next page">
+                    <i class="fas fa-chevron-right"></i>
+                 </button>`;
+
+        html += '</div>';
+
+        // Page info
+        const startItem = (currentPage - 1) * state.pageSize + 1;
+        const endItem = Math.min(currentPage * state.pageSize, state.totalCount);
+        html += `<div class="pagination-info">Showing ${startItem}-${endItem} of ${state.totalCount}</div>`;
+
+        container.innerHTML = html;
+
+        // Attach click handlers
+        container.querySelectorAll('.pagination-btn:not(.disabled)').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const page = parseInt(btn.dataset.page);
+                if (page && page !== state.currentPage) {
+                    goToPage(page);
+                }
+            });
+        });
+    }
+
+    // Navigate to a specific page
+    function goToPage(page) {
+        state.currentPage = page;
+        state.certificates = [];
+        loadCertificates(false);
+        // Scroll to top of results
+        const grid = document.getElementById('certificatesGrid');
+        if (grid) {
+            grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 
     // Certificate actions - uses certificate NUMBER (not ID) per requirement
@@ -1082,6 +1184,7 @@
     }
 
     window.viewCertificate = viewCertificate;
+    window.viewCertificateNewTab = viewCertificate;
     window.editCertificate = editCertificate;
 
     // Download certificate - uses the main CertificateController endpoint which handles
@@ -1590,7 +1693,7 @@
                         <button class="action-btn download-btn" onclick="event.stopPropagation(); downloadCertificate('${certNumber}')" title="Download PDF" aria-label="Download PDF for certificate ${escapeHtml(certNumber)}">
                             <i class="fas fa-download" aria-hidden="true"></i>
                         </button>
-                        <button class="action-btn view-btn" onclick="event.stopPropagation(); viewCertificateDetails('${certNumber}')" title="View Details" aria-label="View details for certificate ${escapeHtml(certNumber)}">
+                        <button class="action-btn view-btn" onclick="event.stopPropagation(); viewCertificateNewTab('${certNumber}')" title="Open in New Tab" aria-label="Open certificate ${escapeHtml(certNumber)} in new tab">
                             <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                         </button>
                     </div>
@@ -1601,7 +1704,6 @@
                 <div class="table-body-cell tc-eff" role="gridcell">${effectiveDate}</div>
                 <div class="table-body-cell tc-exp" role="gridcell">${expirationDate}</div>
                 <div class="table-body-cell tc-company" title="${escapeHtml(company)}" role="gridcell">${escapeHtml(company)}</div>
-                <div class="table-body-cell tc-contact" title="${escapeHtml(contact)}" role="gridcell">${escapeHtml(contact)}</div>
                 <div class="table-body-cell tc-product" title="${escapeHtml(product)}" role="gridcell">${escapeHtml(product)}</div>
                 <div class="table-body-cell tc-prodcat" title="${escapeHtml(category)}" role="gridcell">${escapeHtml(category)}</div>
                 <div class="table-body-cell tc-prodtype" title="${escapeHtml(type)}" role="gridcell">${escapeHtml(type)}</div>
@@ -1615,6 +1717,7 @@
                 <div class="table-body-cell tc-upc" data-ids="${escapeHtml(upc)}" title="Click to copy UPCs" role="gridcell">${upcCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(upc)}', 'UPC')">${upcCount}</span>` : ''}</div>
                 <div class="table-body-cell tc-gtin" data-ids="${escapeHtml(gtin)}" title="Click to copy GTINs" role="gridcell">${gtinCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(gtin)}', 'GTIN')">${gtinCount}</span>` : ''}</div>
                 <div class="table-body-cell tc-ean" data-ids="${escapeHtml(ean)}" title="Click to copy EANs" role="gridcell">${eanCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(ean)}', 'EAN')">${eanCount}</span>` : ''}</div>
+                <div class="table-body-cell tc-contact" title="${escapeHtml(contact)}" role="gridcell">${escapeHtml(contact)}</div>
             </div>
         `;
     }
@@ -1628,9 +1731,9 @@
     // All toggleable column keys (Select and Actions are locked)
     const COLUMN_KEYS = [
         'cert', 'type', 'status', 'eff', 'exp',
-        'company', 'contact', 'product', 'prodcat', 'prodtype', 'prodsub',
+        'company', 'product', 'prodcat', 'prodtype', 'prodsub',
         'location', 'country', 'exttag', 'inttag', 'partner',
-        'asin', 'upc', 'gtin', 'ean'
+        'asin', 'upc', 'gtin', 'ean', 'contact'
     ];
 
     function initStickyTable() {
@@ -1665,6 +1768,18 @@
         window.addEventListener('scroll', function () {
             stickyBlock.classList.toggle('stuck', stickyBlock.getBoundingClientRect().top <= 0);
         }, { passive: true });
+
+        // Horizontal mouse wheel scrolling on table body
+        // Converts vertical scroll to horizontal when cursor is over the table
+        bodyWrap.addEventListener('wheel', function (e) {
+            // Only intercept if there's horizontal overflow and the scroll is vertical
+            if (bodyWrap.scrollWidth > bodyWrap.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaX === 0) {
+                e.preventDefault();
+                bodyWrap.scrollLeft += e.deltaY;
+                scrollbarRow.scrollLeft = bodyWrap.scrollLeft;
+                headerRow.scrollLeft = bodyWrap.scrollLeft;
+            }
+        });
 
         // Sync sizes on window resize
         window.addEventListener('resize', syncScrollSizes);

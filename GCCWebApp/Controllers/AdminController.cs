@@ -85,14 +85,14 @@ namespace GCCWebApp.Controllers
             {
                 var currentUserId = GetCurrentUserId() ?? 0;
                 var currentUsername = User.Identity?.Name ?? "System";
-                var success = await _adminService.CreateUserAsync(model, currentUserId, currentUsername);
+                var (success, errorMessage) = await _adminService.CreateUserAsync(model, currentUserId, currentUsername);
                 if (success)
                 {
                     return Json(new ApiResponse<object> { Success = true, Message = "User created successfully" });
                 }
                 else
                 {
-                    return Json(new ApiResponse<object> { Success = false, Message = "Failed to create user" });
+                    return Json(new ApiResponse<object> { Success = false, Message = errorMessage ?? "Failed to create user" });
                 }
             }
             catch (Exception ex)
@@ -228,14 +228,14 @@ namespace GCCWebApp.Controllers
                                 continue;
                             }
 
-                            var success = await _adminService.CreateUserAsync(model, userId, currentUsername);
+                            var (success, errorMsg) = await _adminService.CreateUserAsync(model, userId, currentUsername);
                             if (success)
                             {
                                 successCount++;
                             }
                             else
                             {
-                                errors.Add($"Line {lineNumber}: Failed to create user (email may already exist)");
+                                errors.Add($"Line {lineNumber}: {errorMsg ?? "Failed to create user"}");
                                 errorCount++;
                             }
                         }

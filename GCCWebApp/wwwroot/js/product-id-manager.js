@@ -245,6 +245,20 @@ class ProductIdManager {
     }
 
     async showEditModal(productIdId) {
+        // For temp items (negative IDs on Create page), load from memory
+        if (productIdId < 0) {
+            const productId = this.productIds.find(p => p.id === productIdId);
+            if (productId) {
+                this.populateForm(productId);
+                document.getElementById('productIdModalLabel').textContent = 'Edit Product ID';
+                const modal = new bootstrap.Modal(document.getElementById('productIdModal'));
+                modal.show();
+            } else {
+                this.showError('Product ID not found');
+            }
+            return;
+        }
+
         try {
             const response = await fetch(`/api/productids/${productIdId}`);
             if (response.ok) {
@@ -295,12 +309,18 @@ class ProductIdManager {
             return;
         }
 
-        const formData = new FormData(e.target);
-        const productId = Object.fromEntries(formData.entries());
-
-        // Convert string IDs to numbers
-        productId.Id = parseInt(productId.Id);
-        productId.CertificateId = parseInt(productId.CertificateId);
+        // Collect form data from individual fields (form is a div, not a <form>)
+        const productId = {
+            Id: parseInt(document.getElementById('productIdId').value) || 0,
+            CertificateId: parseInt(document.getElementById('certificateId').value) || this.certificateId,
+            ProductIdType: document.getElementById('productIdType').value,
+            ProductIdValue: document.getElementById('productIdValue').value.trim(),
+            Status: document.getElementById('productIdStatus').value || 'Active',
+            Partner: document.getElementById('productIdPartner').value || '',
+            ProductName: document.getElementById('productName').value.trim(),
+            ProductSku: document.getElementById('productSku').value.trim(),
+            Description: document.getElementById('productDescription').value.trim()
+        };
 
         // For new certificates (Create page), store in memory instead of API
         if (!this.certificateId || this.certificateId === 0) {
@@ -691,8 +711,15 @@ class ProductIdManager {
             });
 
             const type = productId.type || '';
-            const value = productId.value || productId.productid || '';
+            let value = productId.value || productId.productid || '';
+
+            // Fix scientific notation from Excel (e.g., 1.23E+12 → 123000000000)
+            value = this.fixScientificNotation(value);
+
             if (!type && !value) continue;
+
+            // Also fix scientific notation on SKU field
+            const sku = this.fixScientificNotation(productId.productsku || productId.sku || '');
 
             parsedProductIds.push({
                 rowNumber: i,
@@ -701,7 +728,7 @@ class ProductIdManager {
                 status: productId.status || 'Active',
                 partner: productId.partner || '',
                 productName: productId.productname || '',
-                productSku: productId.productsku || productId.sku || '',
+                productSku: sku,
                 description: productId.description || ''
             });
         }
@@ -713,6 +740,29 @@ class ProductIdManager {
 
         // Compare with existing and build preview
         await this.buildImportPreview(parsedProductIds);
+    }
+
+    /**
+     * Converts scientific notation strings back to full integers.
+     * Excel often converts long numeric IDs (UPCs, GTINs, SKUs) to scientific notation
+     * like "1.23456E+11" when saving to CSV. This restores the original number.
+     */
+    fixScientificNotation(value) {
+        if (!value || typeof value !== 'string') return value;
+        const trimmed = value.trim();
+        // Match patterns like 1.23E+12, 1.23456E+11, 1E+10, etc.
+        if (/^[\d.]+[eE][+\-]?\d+$/.test(trimmed)) {
+            try {
+                const num = Number(trimmed);
+                if (!isNaN(num) && isFinite(num)) {
+                    // Convert to fixed-point string (no decimals for product IDs)
+                    return num.toFixed(0);
+                }
+            } catch {
+                // Fall through to return original value
+            }
+        }
+        return value;
     }
 
     parseCSVLine(line) {
@@ -1066,9 +1116,7 @@ class ProductIdManager {
     }
 
     downloadSample() {
-        const csvContent = "Type,Value,Status,Partner,ProductName,ProductSku,Description\n" +
-                          "ASIN,B08N5WRWNW,Active,Amazon,Sample Product,SKU123,Sample description\n" +
-                          "UPC,123456789012,Active,None,Another Product,SKU456,Another description";
+        const csvContent = "Type,Value,Status,Partner,ProductName,ProductSku,Description";
 
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);

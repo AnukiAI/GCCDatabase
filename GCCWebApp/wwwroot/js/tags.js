@@ -542,29 +542,9 @@ async function loadTags() {
 // Function to download import template
 function downloadImportTemplate() {
     try {
-        // Create template data with example row
-        const templateData = [
-            {
-                Name: 'Sustainable',
-                TagType: 'external',
-                Description: 'Products with sustainability features'
-            }
-        ];
-
-        // Create CSV content
+        // Create CSV content with headers only (no sample data)
         const headers = ['Name', 'TagType', 'Description'];
-        const csvContent = [
-            headers.join(','),
-            ...templateData.map(row =>
-                headers.map(header => {
-                    const value = row[header] || '';
-                    // Escape quotes and wrap in quotes if contains comma
-                    return value.includes(',') || value.includes('"')
-                        ? `"${value.replace(/"/g, '""')}"`
-                        : value;
-                }).join(',')
-            )
-        ].join('\n');
+        const csvContent = headers.join(',');
 
         // Download file
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

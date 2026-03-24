@@ -8,6 +8,7 @@ class UserManagement {
         this.partners = [];
         this.currentSort = { field: 'name', direction: 'asc' };
         this.currentEditingId = null;
+        this.pagination = null;
 
         this.init();
     }
@@ -272,7 +273,7 @@ class UserManagement {
     renderUsers() {
         const tbody = document.querySelector('#user-table tbody');
         if (!tbody) return;
-        
+
         if (this.filteredUsers.length === 0) {
             tbody.innerHTML = `
                 <tr>
@@ -287,10 +288,29 @@ class UserManagement {
             `;
             return;
         }
-        
-        tbody.innerHTML = this.filteredUsers.map(user => this.createUserRow(user)).join('');
-        
-        // Bind action button events
+
+        // Use pagination if available
+        if (typeof AdminPagination !== 'undefined') {
+            if (!this.pagination) {
+                this.pagination = new AdminPagination({
+                    containerId: 'user-pagination',
+                    pageSize: 25,
+                    onPageChange: (pageData) => {
+                        this.renderPage(pageData);
+                    }
+                });
+            }
+            this.pagination.setData(this.filteredUsers);
+        } else {
+            tbody.innerHTML = this.filteredUsers.map(user => this.createUserRow(user)).join('');
+            this.bindActionEvents();
+        }
+    }
+
+    renderPage(pageData) {
+        const tbody = document.querySelector('#user-table tbody');
+        if (!tbody) return;
+        tbody.innerHTML = pageData.map(user => this.createUserRow(user)).join('');
         this.bindActionEvents();
     }
     

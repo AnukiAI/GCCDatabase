@@ -465,16 +465,53 @@ namespace GCCWebApp.Services
                 var thumbnailFileName = $"{certificateNumber}_thumb_{DateTime.UtcNow:yyyyMMdd_HHmmss}.png";
                 var thumbnailPath = Path.Combine(_imagesPath, thumbnailFileName);
 
-                // Read PDF and extract first page as image
-                using (var docReader = DocLib.Instance.GetDocReader(fullPdfPath, new PageDimensions(1240, 1754))) // A4 at 150 DPI
+                // First pass: detect actual PDF page aspect ratio using a small render
+                int renderWidth, renderHeight;
+                using (var detectReader = DocLib.Instance.GetDocReader(fullPdfPath, new PageDimensions(100, 100)))
                 {
-                    var pageCount = docReader.GetPageCount();
+                    var pageCount = detectReader.GetPageCount();
                     if (pageCount == 0)
                     {
                         _logger.LogWarning("PDF has no pages: {PdfPath}", fullPdfPath);
                         return null;
                     }
+                    using (var detectPage = detectReader.GetPageReader(0))
+                    {
+                        var pageW = detectPage.GetPageWidth();
+                        var pageH = detectPage.GetPageHeight();
+                        _logger.LogInformation("PDF page detected dimensions: {W}x{H} for {Path}", pageW, pageH, pdfFilePath);
 
+                        // Scale to ~150 DPI equivalent while preserving aspect ratio
+                        // Use 1200px on the longer side, minimum 100px on shorter side
+                        if (pageW >= pageH && pageH > 0)
+                        {
+                            // Landscape
+                            renderWidth = 1200;
+                            renderHeight = Math.Max(100, (int)(1200.0 * pageH / pageW));
+                        }
+                        else if (pageW > 0)
+                        {
+                            // Portrait
+                            renderHeight = 1200;
+                            renderWidth = Math.Max(100, (int)(1200.0 * pageW / pageH));
+                        }
+                        else
+                        {
+                            // Fallback to A4 portrait if detection fails
+                            renderWidth = 1240;
+                            renderHeight = 1754;
+                        }
+                    }
+                }
+
+                _logger.LogInformation("Rendering PDF thumbnail at {W}x{H} for certificate {Cert}", renderWidth, renderHeight, certificateNumber);
+
+                // Second pass: render at correct aspect ratio
+                // Docnet requires dimOne <= dimTwo, so always pass smaller first
+                var dimSmall = Math.Min(renderWidth, renderHeight);
+                var dimLarge = Math.Max(renderWidth, renderHeight);
+                using (var docReader = DocLib.Instance.GetDocReader(fullPdfPath, new PageDimensions(dimSmall, dimLarge)))
+                {
                     // Get first page
                     using (var pageReader = docReader.GetPageReader(0))
                     {
@@ -500,13 +537,13 @@ namespace GCCWebApp.Services
                         // Create image from raw bytes
                         using (var image = Image.LoadPixelData<Rgba32>(rawBytes, width, height))
                         {
-                            // Resize to thumbnail size (max 600px width)
-                            if (image.Width > 600)
+                            // Resize to thumbnail size (max 600px on longest side)
+                            if (image.Width > 600 || image.Height > 600)
                             {
                                 var resizeOptions = new ResizeOptions
                                 {
-                                    Size = new Size(600, 0), // 0 = auto calculate height to maintain aspect ratio
-                                    Mode = ResizeMode.Max
+                                    Size = new Size(600, 600),
+                                    Mode = ResizeMode.Max // Scales to fit within 600x600 preserving aspect ratio
                                 };
                                 image.Mutate(x => x.Resize(resizeOptions));
                             }

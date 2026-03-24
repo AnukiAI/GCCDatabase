@@ -116,7 +116,7 @@
                     <div class="form-group">
                         <label for="ProductCategoryId">Product Category <span class="text-muted" style="font-size: 12px;">(Optional)</span></label>
                         <select id="ProductCategoryId" name="ProductCategoryId" class="form-control">
-                            <option value="">All Categories</option>
+                            <option value="">Select a category...</option>
                             @if (ViewBag.ProductCategories != null)
                             {
                                 foreach (var cat in ViewBag.ProductCategories)
@@ -179,9 +179,13 @@
                         <label asp-for="Partner">Partner</label>
                         <select asp-for="Partner" class="form-control">
                             <option value="None">None</option>
-                            <option value="Amazon">Amazon</option>
-                            <option value="Novi">Novi</option>
-                            <option value="Other">Other</option>
+                            @if (ViewBag.Partners != null)
+                            {
+                                foreach (var partner in ViewBag.Partners)
+                                {
+                                    <option value="@partner.Name" selected="@(Model.Partner == partner.Name ? "selected" : null)">@partner.Name</option>
+                                }
+                            }
                         </select>
                         <span asp-validation-for="Partner" class="text-danger" role="alert"></span>
                     </div>
@@ -483,10 +487,16 @@
                     if (result.success && result.data) {
                         companyProducts = result.data;
                         if (result.data.length > 0) {
+                            // Build all options at once to avoid multiple MutationObserver triggers
+                            let optionsHtml = '<option value="">Select a product...</option>';
                             result.data.forEach(p => {
-                                const selected = preselectProductId && p.id.toString() === preselectProductId ? ' selected' : '';
-                                productSelect.append(`<option value="${p.id}"${selected}>${p.name}</option>`);
+                                optionsHtml += `<option value="${p.id}">${p.name}</option>`;
                             });
+                            productSelect.html(optionsHtml);
+                            // Explicitly set value after all options are in the DOM
+                            if (preselectProductId) {
+                                productSelect.val(preselectProductId);
+                            }
                             helpText.text(`${result.data.length} product(s) found`);
                         } else {
                             helpText.text('No products found for this company. Use "Add New" below.');
@@ -527,7 +537,7 @@
                         const result = await response.json();
                         if (result.success && result.data) {
                             const typeSelect = $('#ProductTypeId');
-                            typeSelect.html('<option value="">All Types</option>');
+                            typeSelect.html('<option value="">Select a type...</option>');
                             result.data.forEach(pt => {
                                 typeSelect.append(`<option value="${pt.id}">${pt.name}</option>`);
                             });
@@ -569,7 +579,7 @@
                         const result = await response.json();
                         if (result.success && result.data) {
                             const typeSelect = $('#ProductTypeId');
-                            typeSelect.html('<option value="">All Types</option>');
+                            typeSelect.html('<option value="">Select a type...</option>');
                             result.data.forEach(pt => {
                                 const selected = pt.id.toString() === savedTypeId ? ' selected' : '';
                                 typeSelect.append(`<option value="${pt.id}"${selected}>${pt.name}</option>`);
@@ -618,7 +628,7 @@
                         const response = await fetch(`/Certificate/GetProductTypes?categoryId=${categoryId}`);
                         const result = await response.json();
                         if (result.success && result.data) {
-                            typeSelect.html('<option value="">All Types</option>');
+                            typeSelect.html('<option value="">Select a type...</option>');
                             result.data.forEach(pt => {
                                 typeSelect.append(`<option value="${pt.id}">${pt.name}</option>`);
                             });

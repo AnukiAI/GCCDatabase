@@ -61,7 +61,7 @@ class CertificateCustomFields {
     }
 
     /**
-     * Renders all custom fields grouped by section
+     * Renders all custom fields in a flat list under Additional Fields
      */
     renderFields() {
         const container = document.getElementById(this.containerId);
@@ -76,28 +76,12 @@ class CertificateCustomFields {
             return;
         }
 
-        // Group fields by section
-        const sections = {};
-        this.fields.forEach(field => {
-            const section = field.section || 'Additional Information';
-            if (!sections[section]) {
-                sections[section] = [];
-            }
-            sections[section].push(field);
-        });
-
-        // Render each section
-        let html = '';
-        Object.keys(sections).forEach(sectionName => {
-            html += `
-                <div class="custom-field-section">
-                    <h4 class="section-header">${sectionName}</h4>
-                    <div class="custom-fields-grid">
-                        ${sections[sectionName].map(field => this.renderField(field)).join('')}
-                    </div>
-                </div>
-            `;
-        });
+        // Render all fields flat (no section grouping)
+        const html = `
+            <div class="custom-fields-grid">
+                ${this.fields.map(field => this.renderField(field)).join('')}
+            </div>
+        `;
 
         container.innerHTML = html;
 

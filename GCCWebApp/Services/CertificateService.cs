@@ -853,16 +853,34 @@ namespace GCCWebApp.Services
             try
             {
                 var csv = new StringBuilder();
-                
-                // CSV Header with comprehensive fields including partner and product IDs
-                csv.AppendLine("\"Certificate Number\",\"Company Name\",\"Product Name\",\"Product Category\",\"Certification Type\",\"Status\",\"Partner Program\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"");
-                
+
+                // Get custom fields and values for all exported certificates
+                var certIds = certificates.Select(c => c.Id).ToList();
+                var (customFieldNames, customFieldValueMap) = GetCustomFieldDataForExport(certIds);
+
+                // CSV Header with comprehensive fields including partner and product IDs + custom fields
+                csv.Append("\"Certificate Number\",\"Company Name\",\"Product Name\",\"Product Category\",\"Certification Type\",\"Status\",\"Partner Program\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"");
+                foreach (var fieldName in customFieldNames)
+                {
+                    csv.Append($",\"{EscapeCsvField(fieldName)}\"");
+                }
+                csv.AppendLine();
+
                 // CSV Data with proper escaping
                 foreach (var cert in certificates)
                 {
-                    csv.AppendLine($"\"{EscapeCsvField(cert.CertificateNumber)}\",\"{EscapeCsvField(cert.CompanyName)}\",\"{EscapeCsvField(cert.ProductName)}\",\"{EscapeCsvField(cert.ProductCategory)}\",\"{EscapeCsvField(cert.CertificationType)}\",\"{EscapeCsvField(cert.Status)}\",\"{EscapeCsvField(cert.Partner ?? "None")}\",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",\"{EscapeCsvField(cert.Location)}\",\"{EscapeCsvField(cert.Country)}\",\"{EscapeCsvField(cert.Asin ?? "")}\",\"{EscapeCsvField(cert.Upc ?? "")}\",\"{EscapeCsvField(cert.Gtin ?? "")}\",\"{EscapeCsvField(cert.Ean ?? "")}\"");
+                    csv.Append($"\"{EscapeCsvField(cert.CertificateNumber)}\",\"{EscapeCsvField(cert.CompanyName)}\",\"{EscapeCsvField(cert.ProductName)}\",\"{EscapeCsvField(cert.ProductCategory)}\",\"{EscapeCsvField(cert.CertificationType)}\",\"{EscapeCsvField(cert.Status)}\",\"{EscapeCsvField(cert.Partner ?? "None")}\",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",\"{EscapeCsvField(cert.Location)}\",\"{EscapeCsvField(cert.Country)}\",\"{EscapeCsvField(cert.Asin ?? "")}\",\"{EscapeCsvField(cert.Upc ?? "")}\",\"{EscapeCsvField(cert.Gtin ?? "")}\",\"{EscapeCsvField(cert.Ean ?? "")}\"");
+
+                    // Append custom field values
+                    customFieldValueMap.TryGetValue(cert.Id, out var certFieldValues);
+                    foreach (var fieldName in customFieldNames)
+                    {
+                        var value = certFieldValues != null && certFieldValues.TryGetValue(fieldName, out var v) ? v : "";
+                        csv.Append($",\"{EscapeCsvField(value)}\"");
+                    }
+                    csv.AppendLine();
                 }
-                
+
                 return System.Text.Encoding.UTF8.GetBytes(csv.ToString());
             }
             catch (Exception ex)
@@ -876,9 +894,54 @@ namespace GCCWebApp.Services
         {
             if (string.IsNullOrEmpty(field))
                 return "";
-            
+
             // Escape quotes by doubling them
             return field.Replace("\"", "\"\"");
+        }
+
+        /// <summary>
+        /// Gets all custom field names and their values for the given certificate IDs.
+        /// Returns ordered field names and a map of certificateId -> (fieldName -> value).
+        /// </summary>
+        private (List<string> FieldNames, Dictionary<int, Dictionary<string, string>> ValueMap) GetCustomFieldDataForExport(List<int> certificateIds)
+        {
+            try
+            {
+                // Get all custom field values for these certificates, joined with field names
+                var fieldValues = _context.CustomFieldValues
+                    .Where(cfv => certificateIds.Contains(cfv.CertificateId))
+                    .Include(cfv => cfv.Field)
+                    .Select(cfv => new
+                    {
+                        cfv.CertificateId,
+                        FieldName = cfv.Field.Name,
+                        cfv.Field.SortOrder,
+                        Value = cfv.TextValue ?? ""
+                    })
+                    .ToList();
+
+                // Get distinct field names in sort order
+                var fieldNames = fieldValues
+                    .GroupBy(fv => fv.FieldName)
+                    .OrderBy(g => g.Min(fv => fv.SortOrder))
+                    .Select(g => g.Key)
+                    .ToList();
+
+                // Build map: certificateId -> { fieldName -> value }
+                var valueMap = fieldValues
+                    .GroupBy(fv => fv.CertificateId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.ToDictionary(fv => fv.FieldName, fv => fv.Value)
+                    );
+
+                return (fieldNames, valueMap);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error loading custom field data for export");
+                return (new List<string>(), new Dictionary<int, Dictionary<string, string>>());
+            }
         }
 
         private byte[] GenerateExcelExport(List<CertificateCardModel> certificates)
@@ -888,15 +951,20 @@ namespace GCCWebApp.Services
                 using var workbook = new ClosedXML.Excel.XLWorkbook();
                 var worksheet = workbook.Worksheets.Add("Certificates");
 
-                // Add headers
-                var headers = new[]
+                // Get custom fields and values for all exported certificates
+                var certIds = certificates.Select(c => c.Id).ToList();
+                var (customFieldNames, customFieldValueMap) = GetCustomFieldDataForExport(certIds);
+
+                // Add headers (base + custom fields)
+                var headers = new List<string>
                 {
                     "Certificate Number", "Company Name", "Product Name", "Product Category",
                     "Certification Type", "Status", "Partner Program", "Effective Date",
                     "Expiration Date", "Location", "Country", "ASIN", "UPC", "GTIN", "EAN"
                 };
+                headers.AddRange(customFieldNames);
 
-                for (int i = 0; i < headers.Length; i++)
+                for (int i = 0; i < headers.Count; i++)
                 {
                     worksheet.Cell(1, i + 1).Value = headers[i];
                     worksheet.Cell(1, i + 1).Style.Font.Bold = true;
@@ -922,6 +990,14 @@ namespace GCCWebApp.Services
                     worksheet.Cell(row, 13).Value = cert.Upc ?? "";
                     worksheet.Cell(row, 14).Value = cert.Gtin ?? "";
                     worksheet.Cell(row, 15).Value = cert.Ean ?? "";
+
+                    // Append custom field values
+                    customFieldValueMap.TryGetValue(cert.Id, out var certFieldValues);
+                    for (int i = 0; i < customFieldNames.Count; i++)
+                    {
+                        var value = certFieldValues != null && certFieldValues.TryGetValue(customFieldNames[i], out var v) ? v : "";
+                        worksheet.Cell(row, 16 + i).Value = value;
+                    }
                     row++;
                 }
 

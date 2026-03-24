@@ -689,22 +689,23 @@ namespace GCCWebApp.Services
                 }
                 else
                 {
-                    // For root-level items (categories), get or create a default ProductCategory
-                    var defaultCategory = await _context.ProductCategories.FirstOrDefaultAsync();
-                    if (defaultCategory == null)
+                    // For root-level items (categories), create a matching ProductCategory
+                    var matchingCategory = await _context.ProductCategories
+                        .FirstOrDefaultAsync(pc => pc.Name.ToLower() == model.Name.ToLower());
+
+                    if (matchingCategory == null)
                     {
-                        // Create a default category if none exists
-                        defaultCategory = new ProductCategory
+                        matchingCategory = new ProductCategory
                         {
-                            Name = "Default",
-                            Description = "Default product category",
+                            Name = model.Name,
+                            Description = model.Description,
                             IsActive = true,
-                            SortOrder = 0
+                            SortOrder = model.SortOrder
                         };
-                        _context.ProductCategories.Add(defaultCategory);
+                        _context.ProductCategories.Add(matchingCategory);
                         await _context.SaveChangesAsync();
                     }
-                    categoryId = defaultCategory.Id;
+                    categoryId = matchingCategory.Id;
                 }
 
                 var productType = new ProductType
@@ -792,12 +793,32 @@ namespace GCCWebApp.Services
                     else
                     {
                         productType.Level = 0;
-                        // For root-level items, get or create a default ProductCategory
-                        var defaultCategory = await _context.ProductCategories.FirstOrDefaultAsync();
-                        if (defaultCategory != null)
+                        // For root-level items, create a matching ProductCategory
+                        var matchingCategory = await _context.ProductCategories
+                            .FirstOrDefaultAsync(pc => pc.Name.ToLower() == model.Name.ToLower());
+                        if (matchingCategory == null)
                         {
-                            productType.CategoryId = defaultCategory.Id;
+                            matchingCategory = new ProductCategory
+                            {
+                                Name = model.Name,
+                                IsActive = true,
+                                SortOrder = model.SortOrder
+                            };
+                            _context.ProductCategories.Add(matchingCategory);
+                            await _context.SaveChangesAsync();
                         }
+                        productType.CategoryId = matchingCategory.Id;
+                    }
+                }
+
+                // If this is a root-level category being renamed, keep its ProductCategory in sync
+                if (!productType.ParentId.HasValue && productType.Name != model.Name)
+                {
+                    var linkedCategory = await _context.ProductCategories
+                        .FirstOrDefaultAsync(pc => pc.Id == productType.CategoryId);
+                    if (linkedCategory != null)
+                    {
+                        linkedCategory.Name = model.Name;
                     }
                 }
 
@@ -1070,9 +1091,18 @@ namespace GCCWebApp.Services
                 var certType = await _context.CertificationTypes.FirstOrDefaultAsync(ct => ct.Id == id);
                 if (certType == null) return false;
 
+                // Prevent deletion if certificates are assigned to this type
+                var hasCertificates = await _context.Certificates.AnyAsync(c => c.CertificationTypeId == id);
+                if (hasCertificates)
+                    throw new InvalidOperationException("Cannot delete a certificate type that has certificates assigned to it.");
+
                 _context.CertificationTypes.Remove(certType);
                 await _context.SaveChangesAsync();
                 return true;
+            }
+            catch (InvalidOperationException)
+            {
+                throw; // Re-throw validation errors so controller can return the message
             }
             catch
             {

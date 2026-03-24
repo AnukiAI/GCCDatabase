@@ -56,10 +56,10 @@ BEGIN
     INSERT INTO dbo.Partners (Name, Description, Website, Email, ContactInfo, IsActive, IsDeleted, SortOrder, CreatedAt, UpdatedAt)
     VALUES (
         'Novi',
-        'Novi Connect - Clean beauty and ingredient verification platform',
+        'Novi Connect is an AI shopping optimization platform',
         'https://noviconnect.com',
         'support@noviconnect.com',
-        'Novi Clean Beauty Standards',
+        'Novi AI Shopping Optimization',
         1, -- IsActive
         0, -- IsDeleted
         2, -- SortOrder
@@ -71,6 +71,29 @@ END
 ELSE
 BEGIN
     PRINT '  - Partner "Novi" already exists';
+END
+
+-- Seed Wayfair
+IF NOT EXISTS (SELECT 1 FROM dbo.Partners WHERE Name = 'Wayfair')
+BEGIN
+    INSERT INTO dbo.Partners (Name, Description, Website, Email, ContactInfo, IsActive, IsDeleted, SortOrder, CreatedAt, UpdatedAt)
+    VALUES (
+        'Wayfair',
+        'Online furniture and home goods retailer focused on sustainable product offerings',
+        'https://www.wayfair.com',
+        'partner@wayfair.com',
+        'Wayfair Sustainable Products',
+        1, -- IsActive
+        0, -- IsDeleted
+        3, -- SortOrder
+        GETUTCDATE(),
+        GETUTCDATE()
+    );
+    PRINT '  ✓ Inserted Partner: Wayfair';
+END
+ELSE
+BEGIN
+    PRINT '  - Partner "Wayfair" already exists';
 END
 
 -- Seed Other
@@ -85,7 +108,7 @@ BEGIN
         '',
         1, -- IsActive
         0, -- IsDeleted
-        3, -- SortOrder
+        4, -- SortOrder
         GETUTCDATE(),
         GETUTCDATE()
     );

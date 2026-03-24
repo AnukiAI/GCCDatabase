@@ -15,20 +15,30 @@ async function downloadStat(statType) {
         });
 
         if (response.ok) {
-            // Get the Excel/CSV content
+            // Verify response is actually CSV, not a login page redirect
+            const contentType = response.headers.get('Content-Type') || '';
+            if (!contentType.includes('text/csv') && !contentType.includes('application/octet-stream')) {
+                console.error('Unexpected content type:', contentType);
+                if (window.GreenCircle?.showToast) {
+                    window.GreenCircle.showToast('Session expired. Please login and try again.', 'error');
+                }
+                return;
+            }
+
+            // Get the CSV content
             const blob = await response.blob();
-            
+
             // Create download link
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
             link.download = `${statType}-${new Date().toISOString().split('T')[0]}.csv`;
             link.style.display = 'none';
-            
+
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            
+
             // Clean up the blob URL
             window.URL.revokeObjectURL(url);
 
@@ -69,6 +79,16 @@ async function downloadTable(tableType) {
         });
 
         if (response.ok) {
+            // Verify response is actually CSV, not a login page redirect
+            const contentType = response.headers.get('Content-Type') || '';
+            if (!contentType.includes('text/csv') && !contentType.includes('application/octet-stream')) {
+                console.error('Unexpected content type:', contentType);
+                if (window.GreenCircle?.showToast) {
+                    window.GreenCircle.showToast('Session expired. Please login and try again.', 'error');
+                }
+                return;
+            }
+
             const blob = await response.blob();
 
             const url = window.URL.createObjectURL(blob);

@@ -383,6 +383,9 @@ namespace GCCWebApp.Controllers
                 // Load pathways
                 ViewBag.Pathways = await _context.Pathways.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync();
 
+                // Load partners from database
+                ViewBag.Partners = await _context.Partners.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync();
+
                 return View(model);
             }
             catch (Exception ex)
@@ -764,6 +767,9 @@ namespace GCCWebApp.Controllers
                 // Load pathways
                 ViewBag.Pathways = await _context.Pathways.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync();
 
+                // Load partners from database
+                ViewBag.Partners = await _context.Partners.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync();
+
                 // Load existing tags for this certificate
                 var existingTags = certificate.Tags?.ToList() ?? new List<Tag>();
                 ViewBag.ExistingExternalTags = existingTags.Where(t => t.TagType == "external").Select(t => new { t.Id, t.Name }).ToList();
@@ -861,6 +867,12 @@ namespace GCCWebApp.Controllers
                     }
 
                     // Handle PDF certificate upload
+                    _logger.LogInformation("Edit POST - certificatePdf is {Status}, certificateImage is {ImgStatus}",
+                        certificatePdf != null ? $"present ({certificatePdf.Length} bytes, name={certificatePdf.FileName})" : "NULL",
+                        certificateImage != null ? $"present ({certificateImage.Length} bytes)" : "NULL");
+                    _logger.LogInformation("Edit POST - Current CertificateFile={File}, CertificateImagePath={Image}",
+                        certificate.CertificateFile, certificate.CertificateImagePath);
+
                     if (certificatePdf != null && certificatePdf.Length > 0)
                     {
                         var uploadResult = await _fileUploadService.UploadCertificateAsync(certificatePdf, model.Number);

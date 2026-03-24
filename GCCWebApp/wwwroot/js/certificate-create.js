@@ -526,10 +526,17 @@
         initialized: false,
         form: null,
 
+        storageKey: null,
+        autoSaveInterval: null,
+
         init: function() {
             const form = document.getElementById('certificateCreateForm') || document.getElementById('certificateEditForm');
             if (!form) return;
             this.form = form;
+            this.storageKey = 'gcc_form_backup_' + (form.id || 'cert') + '_' + window.location.pathname;
+
+            // Check for recovered data before initializing
+            this.checkForRecovery();
 
             // Delay initialization to allow other components to finish setup
             // This prevents false positives from initialization-triggered changes
@@ -550,10 +557,18 @@
                 if (this.initialized) this.markAsChanged();
             });
 
-            // Track form submission
+            // Track form submission — clear backup on successful submit
             form.addEventListener('submit', () => {
                 this.isSubmitting = true;
+                this.clearBackup();
             });
+
+            // Auto-save form data to localStorage every 30 seconds
+            this.autoSaveInterval = setInterval(() => {
+                if (this.initialized && this.hasChanges) {
+                    this.saveToLocalStorage();
+                }
+            }, 30000);
 
             // Warn before leaving if there are unsaved changes
             window.addEventListener('beforeunload', (e) => {
@@ -649,6 +664,115 @@
                 this.hasChanges = false;
                 console.log('[UnsavedChanges] Rebaselined form values');
             }
+        },
+
+        // Save current form data to localStorage
+        saveToLocalStorage: function() {
+            if (!this.form || !this.storageKey) return;
+            try {
+                const data = {
+                    values: this.getFormValues(this.form),
+                    timestamp: Date.now(),
+                    url: window.location.href
+                };
+                localStorage.setItem(this.storageKey, JSON.stringify(data));
+                console.log('[UnsavedChanges] Auto-saved form data to localStorage');
+            } catch (e) {
+                console.warn('[UnsavedChanges] Failed to save to localStorage:', e);
+            }
+        },
+
+        // Clear localStorage backup
+        clearBackup: function() {
+            if (this.storageKey) {
+                localStorage.removeItem(this.storageKey);
+                console.log('[UnsavedChanges] Cleared localStorage backup');
+            }
+            if (this.autoSaveInterval) {
+                clearInterval(this.autoSaveInterval);
+            }
+        },
+
+        // Check for recovered data on page load
+        checkForRecovery: function() {
+            if (!this.storageKey || !this.form) return;
+            try {
+                const saved = localStorage.getItem(this.storageKey);
+                if (!saved) return;
+
+                const data = JSON.parse(saved);
+                // Only offer recovery if data is less than 2 hours old
+                const twoHours = 2 * 60 * 60 * 1000;
+                if (Date.now() - data.timestamp > twoHours) {
+                    localStorage.removeItem(this.storageKey);
+                    return;
+                }
+
+                // Check if there's actually different data to restore
+                const currentValues = this.getFormValues(this.form);
+                let hasDifferences = false;
+                for (const key of Object.keys(data.values)) {
+                    // Skip anti-forgery tokens and file inputs
+                    if (key === '__RequestVerificationToken' || key === 'CertificateFile' || key === 'ThumbnailFile') continue;
+                    if ((data.values[key] || '') !== (currentValues[key] || '')) {
+                        hasDifferences = true;
+                        break;
+                    }
+                }
+
+                if (!hasDifferences) {
+                    localStorage.removeItem(this.storageKey);
+                    return;
+                }
+
+                const savedTime = new Date(data.timestamp);
+                const timeStr = savedTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                // Show recovery prompt
+                if (typeof AdminCore !== 'undefined' && AdminCore.showNotification) {
+                    const recoveryBanner = document.createElement('div');
+                    recoveryBanner.className = 'form-recovery-banner';
+                    recoveryBanner.innerHTML = `
+                        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 6px; padding: 12px 16px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+                            <span style="font-size: 14px;"><i class="fas fa-exclamation-triangle" style="color: #856404; margin-right: 8px;"></i>Unsaved form data recovered from ${timeStr}. Would you like to restore it?</span>
+                            <span>
+                                <button type="button" class="btn btn-sm btn-warning" id="restoreFormData" style="margin-right: 8px;">Restore</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" id="discardFormData">Discard</button>
+                            </span>
+                        </div>`;
+                    this.form.parentNode.insertBefore(recoveryBanner, this.form);
+
+                    document.getElementById('restoreFormData').addEventListener('click', () => {
+                        this.restoreFromLocalStorage(data.values);
+                        recoveryBanner.remove();
+                        AdminCore.showNotification('Form data restored successfully.', 'success');
+                    });
+
+                    document.getElementById('discardFormData').addEventListener('click', () => {
+                        localStorage.removeItem(this.storageKey);
+                        recoveryBanner.remove();
+                    });
+                }
+            } catch (e) {
+                console.warn('[UnsavedChanges] Error checking for recovery:', e);
+            }
+        },
+
+        // Restore form values from saved data
+        restoreFromLocalStorage: function(values) {
+            if (!this.form || !values) return;
+            for (const [key, value] of Object.entries(values)) {
+                // Skip tokens and file inputs
+                if (key === '__RequestVerificationToken' || key === 'CertificateFile' || key === 'ThumbnailFile') continue;
+                const input = this.form.querySelector(`[name="${key}"]`);
+                if (input && input.type !== 'file') {
+                    input.value = value;
+                    // Trigger change event for cascading dropdowns
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            }
+            this.markAsChanged();
+            console.log('[UnsavedChanges] Restored form data from localStorage');
         }
     };
 

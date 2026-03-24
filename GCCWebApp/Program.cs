@@ -255,7 +255,11 @@ else
             {
                 OnRedirectToLogin = context =>
                 {
-                    if (context.Request.Path.StartsWithSegments("/api"))
+                    // Return 401 for API, Export, and Dashboard AJAX requests instead of redirecting to login page
+                    if (context.Request.Path.StartsWithSegments("/api") ||
+                        context.Request.Headers["X-Requested-With"] == "XMLHttpRequest" ||
+                        context.Request.Path.StartsWithSegments("/Export") ||
+                        context.Request.Path.StartsWithSegments("/Dashboard/Download"))
                     {
                         context.Response.StatusCode = StatusCodes.Status401Unauthorized;
                         context.Response.ContentType = "application/json";
@@ -266,7 +270,10 @@ else
                 },
                 OnRedirectToAccessDenied = context =>
                 {
-                    if (context.Request.Path.StartsWithSegments("/api"))
+                    if (context.Request.Path.StartsWithSegments("/api") ||
+                        context.Request.Headers["X-Requested-With"] == "XMLHttpRequest" ||
+                        context.Request.Path.StartsWithSegments("/Export") ||
+                        context.Request.Path.StartsWithSegments("/Dashboard/Download"))
                     {
                         context.Response.StatusCode = StatusCodes.Status403Forbidden;
                         context.Response.ContentType = "application/json";
@@ -709,7 +716,7 @@ app.MapGet("/api-docs", async (HttpContext context) =>
 <body>
     <div class=""topbar"">
         <h1>Green Circle Certified - Partner API</h1>
-        <p>API Documentation for Amazon, Novi, and other integration partners</p>
+        <p>API Documentation for Amazon, Novi, Wayfair, and other integration partners</p>
     </div>
     <redoc spec-url='/api-docs/openapi.json'
            hide-download-button=""true""

@@ -24,11 +24,15 @@ SELECT 'Amazon', 'Global e-commerce marketplace specializing in certified sustai
 WHERE NOT EXISTS (SELECT 1 FROM Partners WHERE Name = 'Amazon');
 
 INSERT INTO Partners (Name, Description, Website, SortOrder, IsActive)
-SELECT 'Novi', 'Novi Connect - Clean beauty and ingredient verification platform', 'https://noviconnect.com', 2, 1
+SELECT 'Novi', 'Novi Connect is an AI shopping optimization platform', 'https://noviconnect.com', 2, 1
 WHERE NOT EXISTS (SELECT 1 FROM Partners WHERE Name = 'Novi');
 
 INSERT INTO Partners (Name, Description, Website, SortOrder, IsActive)
-SELECT 'Other', 'Other retail partners and general partner category', '', 3, 1
+SELECT 'Wayfair', 'Online furniture and home goods retailer focused on sustainable product offerings', 'https://www.wayfair.com', 3, 1
+WHERE NOT EXISTS (SELECT 1 FROM Partners WHERE Name = 'Wayfair');
+
+INSERT INTO Partners (Name, Description, Website, SortOrder, IsActive)
+SELECT 'Other', 'Other retail partners and general partner category', '', 4, 1
 WHERE NOT EXISTS (SELECT 1 FROM Partners WHERE Name = 'Other');
 
 -- Check if data was inserted

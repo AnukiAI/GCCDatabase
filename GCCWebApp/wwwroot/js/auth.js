@@ -90,10 +90,16 @@ document.addEventListener('DOMContentLoaded', function() {
         // Logout at timeout
         sessionTimeout = setTimeout(() => {
             if (document.querySelector('#logoutForm')) {
-                AdminCore.showNotification('Your session has expired. You will be logged out.', 'warning', { duration: 0 });
+                // Save any unsaved form data before logout
+                if (typeof UnsavedChanges !== 'undefined' && UnsavedChanges.initialized && UnsavedChanges.hasChanges) {
+                    UnsavedChanges.saveToLocalStorage();
+                    AdminCore.showNotification('Your session has expired. Form data has been saved and can be restored when you log back in.', 'warning', { duration: 0 });
+                } else {
+                    AdminCore.showNotification('Your session has expired. You will be logged out.', 'warning', { duration: 0 });
+                }
                 setTimeout(() => {
                     document.getElementById('logoutForm').submit();
-                }, 2000); // Give user time to see the message
+                }, 3000); // Give user time to see the message
             }
         }, SESSION_TIMEOUT);
     }

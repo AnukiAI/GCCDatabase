@@ -651,6 +651,13 @@ class CertificateTypeManager {
             return;
         }
 
+        // Check if item has certificates tied to it
+        const totalCerts = this.calculateCertificateCount(item);
+        if (totalCerts > 0) {
+            this.showNotification(`Cannot delete "${item.name}" because it has ${totalCerts} certificate(s) assigned to it. Please reassign or remove the certificates first.`, 'error');
+            return;
+        }
+
         const confirmed = await AdminCore.showConfirmation({
             title: 'Delete Confirmation',
             message: `Are you sure you want to delete <strong>${item.name}</strong>? This action cannot be undone.`,
@@ -701,15 +708,10 @@ class CertificateTypeManager {
             ? this.flatData.filter(d => d.parentId == parentId)
             : [];
 
-        // Build compact info hint
-        const infoHintContent = isSubcategory
-            ? `Subcategories organize products within a certification type (e.g., "Baby Products" under "Made Safe").`
-            : `Certificate Types are certification programs (e.g., "Made Safe", "EWG Verified").`;
-
         // Build collapsible examples
         const examplesContent = isSubcategory
-            ? `Baby Products, Household Cleaners, Personal Care, Pet Products`
-            : `Made Safe, EWG Verified, USDA Organic, Cradle to Cradle`;
+            ? `Attributes under multi-attribute label`
+            : `Recycled Content, Certified Energy Savings, etc.`;
 
         // Build context bar for subcategories (compact)
         const contextBar = isSubcategory && parentName ? `
@@ -762,7 +764,7 @@ class CertificateTypeManager {
                                 </label>
                                 <input type="text" class="form-control" id="name" name="name"
                                        value="${item?.name || ''}" required
-                                       placeholder="${isSubcategory ? 'e.g., Baby Products, Household Cleaners' : 'e.g., Made Safe, EWG Verified'}"
+                                       placeholder="${isSubcategory ? 'e.g., Attributes under multi-attribute label' : 'e.g., Recycled Content, Certified Energy Savings'}"
                                        style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #ced4da; border-radius: 0.25rem; font-size: 16px;">
                                 <div style="font-size: 12px; color: #6c757d; margin-top: 4px;">
                                     Examples: ${examplesContent}
@@ -770,11 +772,6 @@ class CertificateTypeManager {
                                 ${existingSubcategoriesList}
                             </div>
 
-                            <!-- Info Hint - compact -->
-                            <div style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #e8f4fd; border-radius: 4px; font-size: 12px; color: #0c5460;">
-                                <i class="fas fa-info-circle" style="color: #17a2b8;"></i>
-                                <span>${infoHintContent}</span>
-                            </div>
                         </form>
                     </div>
                     <div class="modal-footer" style="padding: 1rem; border-top: 2px solid #e9ecef; background-color: #f8f9fa; display: flex; justify-content: flex-end; gap: 0.75rem;">

@@ -585,30 +585,27 @@ class ProductTypeManager {
 
         // Build compact info hint content based on entity type
         const infoHintContent = {
-            category: `Categories are the top level of product organization (e.g., "Personal Care", "Household").`,
-            type: `Types are product groups within a category (e.g., "Skincare" under "Personal Care").`,
-            subcategory: `Subcategories are the most specific level where products are assigned (e.g., "Moisturizers" under "Skincare").`
+            category: `Categories are the top level of the product hierarchy.`,
+            type: `Types are groupings within a category.`,
+            subcategory: `Subcategories are the most specific level where products are assigned.`
         }[entityType];
 
-        // Build inline examples based on entity type
-        const examplesContent = {
-            category: `Personal Care, Household, Baby Products, Food & Beverage, Pet Products`,
-            type: `Skincare, Hair Care, Body Care, Oral Care, Cosmetics`,
-            subcategory: `Moisturizers, Cleansers, Serums, Sunscreen, Face Masks`
-        }[entityType];
+        // Build dynamic examples from actual loaded data
+        const dynamicExamples = this.getDynamicExamples(entityType);
+        const examplesContent = dynamicExamples || '';
 
         // Build placeholder text based on entity type
         const placeholderText = {
-            category: 'e.g., Personal Care, Household, Baby Products',
-            type: 'e.g., Skincare, Hair Care, Cleaning Products',
-            subcategory: 'e.g., Moisturizers, Shampoos, All-Purpose Cleaners'
+            category: 'Enter category name',
+            type: 'Enter type name',
+            subcategory: 'Enter subcategory name'
         }[entityType];
 
         // Build field description based on entity type
         const fieldDescription = {
-            category: 'Enter a broad product grouping name. This will be the top level in the product hierarchy.',
-            type: 'Enter the product type name. This groups related subcategories together.',
-            subcategory: 'Enter the specific product subcategory. Products will be assigned to this level.'
+            category: 'This will be the top level in the product hierarchy.',
+            type: 'This groups related subcategories together within a category.',
+            subcategory: 'Products will be assigned at this level.'
         }[entityType];
 
         // Build compact context bar for types and subcategories (one line)
@@ -700,10 +697,10 @@ class ProductTypeManager {
                                     ${fieldDescription}
                                     ${existingSiblingsList ? ' | ' + existingSiblingsList : ''}
                                 </div>
-                                <!-- Inline Examples -->
+                                ${examplesContent ? `<!-- Existing items -->
                                 <div style="font-size: 13px; color: #92C83E; margin-top: 4px;">
-                                    <strong>Examples:</strong> ${examplesContent}
-                                </div>
+                                    <strong>Existing:</strong> ${examplesContent}
+                                </div>` : ''}
                             </div>
 
                             <div class="form-group" style="margin-bottom: 1.25rem;">
@@ -804,6 +801,27 @@ class ProductTypeManager {
     getChildrenOf(parentId) {
         const parent = this.findItemById(parentId);
         return parent && parent.children ? parent.children : [];
+    }
+
+    // Build dynamic examples from actual hierarchy data
+    getDynamicExamples(entityType) {
+        if (!this.hierarchyData || this.hierarchyData.length === 0) return '';
+        let names = [];
+        if (entityType === 'category') {
+            names = this.hierarchyData.map(c => c.name);
+        } else if (entityType === 'type') {
+            this.hierarchyData.forEach(cat => {
+                if (cat.children) cat.children.forEach(t => names.push(t.name));
+            });
+        } else if (entityType === 'subcategory') {
+            this.hierarchyData.forEach(cat => {
+                if (cat.children) cat.children.forEach(type => {
+                    if (type.children) type.children.forEach(sub => names.push(sub.name));
+                });
+            });
+        }
+        if (names.length === 0) return '';
+        return names.slice(0, 5).join(', ');
     }
 
     getParentOptions(entityType, excludeId = null) {

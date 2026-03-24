@@ -6,6 +6,7 @@ class ProductManagement {
         this.currentSort = { field: 'name', direction: 'asc' };
         this.currentEditingId = null;
         this.addingNew = false;
+        this.pagination = null;
 
         // Import preview state
         this.importPreviewData = [];
@@ -93,11 +94,11 @@ class ProductManagement {
     renderProducts() {
         const tbody = document.getElementById('products-table-body');
         if (!tbody) return;
-        
+
         // Clear existing rows except add-row
         const existingRows = tbody.querySelectorAll('tr:not(#add-row)');
         existingRows.forEach(row => row.remove());
-        
+
         if (this.filteredProducts.length === 0) {
             // Show no data message
             const noDataRow = document.createElement('tr');
@@ -113,8 +114,35 @@ class ProductManagement {
             tbody.appendChild(noDataRow);
             return;
         }
-        
-        this.filteredProducts.forEach(product => {
+
+        // Use pagination if available
+        let productsToRender = this.filteredProducts;
+        if (typeof AdminPagination !== 'undefined') {
+            if (!this.pagination) {
+                this.pagination = new AdminPagination({
+                    containerId: 'product-pagination',
+                    pageSize: 25,
+                    onPageChange: (pageData) => {
+                        this.renderProductRows(pageData);
+                    }
+                });
+            }
+            this.pagination.setData(this.filteredProducts);
+            return; // pagination callback handles rendering
+        }
+
+        this.renderProductRows(productsToRender);
+    }
+
+    renderProductRows(products) {
+        const tbody = document.getElementById('products-table-body');
+        if (!tbody) return;
+
+        // Clear existing rows except add-row
+        const existingRows = tbody.querySelectorAll('tr:not(#add-row)');
+        existingRows.forEach(row => row.remove());
+
+        products.forEach(product => {
             const row = document.createElement('tr');
             row.setAttribute('data-id', product.id);
 

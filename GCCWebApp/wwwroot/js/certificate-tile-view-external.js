@@ -28,12 +28,13 @@
     // Initialize on DOM ready
     document.addEventListener('DOMContentLoaded', initialize);
 
-    function initialize() {
-        loadFilterOptions();
+    async function initialize() {
+        setupUrlParameters(); // Parse URL params into state.filters first
+        await loadFilterOptions(); // Wait for filter checkboxes to be created
+        restoreFilterCheckboxes(); // Now apply state.filters to the populated checkboxes
         loadInitialCertificates();
         setupEventListeners();
         setupInfiniteScroll();
-        setupUrlParameters();
         initializeAutocomplete();
         initStickyTable();
     }
@@ -491,6 +492,22 @@
 
     // Setup event listeners
     function setupEventListeners() {
+        // Mobile filter toggle
+        const mobileFilterToggle = document.getElementById('mobileFilterToggle');
+        if (mobileFilterToggle) {
+            mobileFilterToggle.addEventListener('click', () => {
+                const sidebar = document.querySelector('.sidebar');
+                sidebar.classList.toggle('mobile-open');
+                mobileFilterToggle.classList.toggle('open');
+                const span = mobileFilterToggle.querySelector('span');
+                if (sidebar.classList.contains('mobile-open')) {
+                    span.textContent = 'Hide Filters & Search';
+                } else {
+                    span.textContent = 'Show Filters & Search';
+                }
+            });
+        }
+
         // Clear filters button
         const clearFiltersBtn = document.querySelector('.clear-filters');
         if (clearFiltersBtn) {
@@ -714,42 +731,59 @@
     // Setup URL parameters
     function setupUrlParameters() {
         const params = new URLSearchParams(window.location.search);
-        
+
         if (params.has('search')) {
             state.filters.search = params.get('search');
             const searchInput = document.querySelector('.search-input');
             if (searchInput) searchInput.value = state.filters.search;
         }
-        
+
         if (params.has('partner')) {
             state.filters.partner = params.get('partner').split(',');
-            updateCheckboxes('partner', state.filters.partner);
         }
-        
+
         if (params.has('certType')) {
             state.filters.certType = params.get('certType').split(',');
-            updateCheckboxes('cert-type', state.filters.certType);
         }
-        
+
         if (params.has('category')) {
             state.filters.productCategory = params.get('category').split(',');
-            updateCheckboxes('product-cat', state.filters.productCategory);
         }
-        
+
         if (params.has('company')) {
             state.filters.company = params.get('company').split(',');
-            updateCheckboxes('company', state.filters.company);
         }
-        
+
         if (params.has('country')) {
             state.filters.country = params.get('country').split(',');
-            updateCheckboxes('countries', state.filters.country);
         }
-        
+
         if (params.has('sort')) {
             state.filters.sortBy = params.get('sort');
+        }
+    }
+
+    // Restore checkbox states and UI after filter options have been populated
+    function restoreFilterCheckboxes() {
+        if (state.filters.partner && state.filters.partner.length > 0) {
+            updateCheckboxes('partner', state.filters.partner);
+        }
+        if (state.filters.certType.length > 0) {
+            updateCheckboxes('cert-type', state.filters.certType);
+        }
+        if (state.filters.productCategory.length > 0) {
+            updateCheckboxes('product-cat', state.filters.productCategory);
+        }
+        if (state.filters.company.length > 0) {
+            updateCheckboxes('company', state.filters.company);
+        }
+        if (state.filters.country.length > 0) {
+            updateCheckboxes('countries', state.filters.country);
+        }
+        if (state.filters.sortBy !== 'newest') {
             updateSortLabel(state.filters.sortBy);
         }
+        renderActiveFilterTags();
     }
 
     // Update URL with current filters

@@ -27,6 +27,7 @@ namespace GCCWebApp.Controllers
         private readonly IEmailService _emailService;
         private readonly ApplicationDbContext _context;
         private readonly IAuditService _auditService;
+        private readonly ICertificateExpirationService _certificateExpirationService;
 
         public AccountController(
             ILogger<AccountController> logger,
@@ -35,7 +36,8 @@ namespace GCCWebApp.Controllers
             IEnhancedTwoFactorService twoFactorService,
             IEmailService emailService,
             ApplicationDbContext context,
-            IAuditService auditService)
+            IAuditService auditService,
+            ICertificateExpirationService certificateExpirationService)
         {
             _logger = logger;
             _azureAdB2COptions = azureAdB2COptions?.Value;
@@ -44,6 +46,7 @@ namespace GCCWebApp.Controllers
             _emailService = emailService;
             _context = context;
             _auditService = auditService;
+            _certificateExpirationService = certificateExpirationService;
 
             // Check if Azure AD B2C is properly configured
             _isAzureAdB2CConfigured = _azureAdB2COptions != null &&
@@ -943,6 +946,16 @@ namespace GCCWebApp.Controllers
             HttpContext.Session.SetString("UserEmail", email);
             HttpContext.Session.SetString("UserName", email);
             HttpContext.Session.SetString("UserRole", role);
+
+            // Expire overdue certificates (throttled to once per 24 hours, safe to call every login)
+            try
+            {
+                await _certificateExpirationService.CheckAndExpireAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Certificate expiration check failed during login");
+            }
         }
 
         private IActionResult RedirectToLocal(string? returnUrl)

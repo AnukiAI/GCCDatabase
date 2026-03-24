@@ -24,11 +24,15 @@ IF NOT EXISTS (SELECT 1 FROM Partners WHERE Name = 'Amazon')
 
 IF NOT EXISTS (SELECT 1 FROM Partners WHERE Name = 'Novi')
     INSERT INTO Partners (Id, Name, Description, Website, Email, IsActive, IsDeleted, SortOrder, CreatedAt, UpdatedAt)
-    VALUES (2, 'Novi', 'Novi Connect partner', 'https://www.noviconnect.com', 'partner@noviconnect.com', 1, 0, 2, GETUTCDATE(), GETUTCDATE());
+    VALUES (2, 'Novi', 'Novi Connect is an AI shopping optimization platform', 'https://www.noviconnect.com', 'partner@noviconnect.com', 1, 0, 2, GETUTCDATE(), GETUTCDATE());
+
+IF NOT EXISTS (SELECT 1 FROM Partners WHERE Name = 'Wayfair')
+    INSERT INTO Partners (Id, Name, Description, Website, Email, IsActive, IsDeleted, SortOrder, CreatedAt, UpdatedAt)
+    VALUES (3, 'Wayfair', 'Online furniture and home goods retailer focused on sustainable product offerings', 'https://www.wayfair.com', 'partner@wayfair.com', 1, 0, 3, GETUTCDATE(), GETUTCDATE());
 
 IF NOT EXISTS (SELECT 1 FROM Partners WHERE Name = 'Other')
     INSERT INTO Partners (Id, Name, Description, Website, Email, IsActive, IsDeleted, SortOrder, CreatedAt, UpdatedAt)
-    VALUES (3, 'Other', 'Other partners', NULL, NULL, 1, 0, 3, GETUTCDATE(), GETUTCDATE());
+    VALUES (4, 'Other', 'Other partners', NULL, NULL, 1, 0, 4, GETUTCDATE(), GETUTCDATE());
 
 SET IDENTITY_INSERT Partners OFF;
 PRINT '  Partners created: Amazon, Novi, Other';

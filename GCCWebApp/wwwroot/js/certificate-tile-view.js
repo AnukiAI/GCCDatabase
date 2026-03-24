@@ -31,9 +31,10 @@
         retryDelay: 1000 // Start with 1 second
     };
 
-    function initialize() {
-        setupUrlParameters(); // Must be first so filters are set before loading certificates
-        loadFilterOptions();
+    async function initialize() {
+        setupUrlParameters(); // Parse URL params into state.filters first
+        await loadFilterOptions(); // Wait for filter checkboxes to be created
+        restoreFilterCheckboxes(); // Now apply state.filters to the populated checkboxes
         loadInitialCertificates();
         setupEventListeners();
         setupInfiniteScroll();
@@ -744,43 +745,58 @@
     // Setup URL parameters
     function setupUrlParameters() {
         const params = new URLSearchParams(window.location.search);
-        
+
         if (params.has('search')) {
             state.filters.search = params.get('search');
             const searchInput = document.querySelector('.search-input');
             if (searchInput) searchInput.value = state.filters.search;
         }
-        
+
         if (params.has('certType')) {
             state.filters.certType = params.get('certType').split(',');
-            updateCheckboxes('cert-type', state.filters.certType);
         }
-        
+
         if (params.has('category')) {
             state.filters.productCategory = params.get('category').split(',');
-            updateCheckboxes('product-cat', state.filters.productCategory);
         }
-        
+
         if (params.has('company')) {
             state.filters.company = params.get('company').split(',');
-            updateCheckboxes('company', state.filters.company);
         }
-        
+
         if (params.has('country')) {
             state.filters.country = params.get('country').split(',');
-            updateCheckboxes('countries', state.filters.country);
         }
-        
+
         if (params.has('additional')) {
             state.filters.additional = params.get('additional').split(',');
-            updateCheckboxes('additional', state.filters.additional);
         }
 
         if (params.has('sort')) {
             state.filters.sortBy = params.get('sort');
+        }
+    }
+
+    // Restore checkbox states and UI after filter options have been populated
+    function restoreFilterCheckboxes() {
+        if (state.filters.certType.length > 0) {
+            updateCheckboxes('cert-type', state.filters.certType);
+        }
+        if (state.filters.productCategory.length > 0) {
+            updateCheckboxes('product-cat', state.filters.productCategory);
+        }
+        if (state.filters.company.length > 0) {
+            updateCheckboxes('company', state.filters.company);
+        }
+        if (state.filters.country.length > 0) {
+            updateCheckboxes('countries', state.filters.country);
+        }
+        if (state.filters.additional.length > 0) {
+            updateCheckboxes('additional', state.filters.additional);
+        }
+        if (state.filters.sortBy !== 'cert-number-newest') {
             updateSortLabel(state.filters.sortBy);
         }
-
         renderActiveFilterTags();
     }
 
@@ -970,15 +986,14 @@
     // Toggle filter panel
     function toggleFilter(filterId) {
         const content = document.getElementById(filterId + '-content');
+        if (!content) return;
         const header = content.previousElementSibling;
-        const icon = header.querySelector('i');
-        
-        if (content.style.display === 'none') {
-            content.style.display = 'block';
-            icon.className = 'fas fa-chevron-up';
-        } else {
-            content.style.display = 'none';
-            icon.className = 'fas fa-chevron-down';
+        const icon = header ? header.querySelector('i') : null;
+
+        // Use CSS class toggle instead of inline styles to avoid conflicts with media queries
+        const isCollapsed = content.classList.toggle('filter-collapsed');
+        if (icon) {
+            icon.className = isCollapsed ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
         }
     }
 

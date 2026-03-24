@@ -5,7 +5,7 @@ namespace GCCWebApp.Models
 {
     /// <summary>
     /// Partner-specific API key for accessing GCC API endpoints
-    /// Tracks usage and permissions for external partners (Amazon, Wayfair, etc.)
+    /// Tracks usage and permissions for external partners (Amazon, Novi, Wayfair, etc.)
     /// </summary>
     public class PartnerApiKey
     {

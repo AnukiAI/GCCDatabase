@@ -2079,9 +2079,7 @@
 .certificate-preview-box {
     width: 100%;
     max-width: 350px;
-    aspect-ratio: 1 / 1;          /* Maintains square shape */
-    min-height: 200px;
-    max-height: 350px;
+    max-height: 450px;
     border: 1px solid #dee2e6;
     border-radius: 8px;
     overflow: hidden;
@@ -2091,7 +2089,8 @@
     justify-content: center;
     cursor: pointer;
     position: relative;
-    margin: 0 auto;               /* Center the box */
+    min-height: 200px;
+    margin: 0 auto;
 }
 
 .certificate-preview-box img {
@@ -2144,16 +2143,12 @@
 /* Responsive adjustments for preview box */
 @media (max-width: 768px) {
     .certificate-preview-box {
-        max-width: 280px;
         min-height: 150px;
-        max-height: 280px;
     }
 }
 
 @media (max-width: 576px) {
     .certificate-preview-box {
-        max-width: 100%;
-        min-height: 200px;
-        max-height: 300px;
+        min-height: 150px;
     }
 }

@@ -439,6 +439,11 @@ html body.table-view-active #tableView {
     scrollbar-color: #999 #f0f0f0;
 }
 
+/* Class-based collapse for filter panels (avoids inline style vs media query conflicts) */
+.filter-content.filter-collapsed {
+    display: none !important;
+}
+
 /* Webkit scrollbar styling for filter content */
 .filter-content::-webkit-scrollbar {
     width: 8px;

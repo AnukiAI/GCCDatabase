@@ -474,7 +474,7 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
                         const typeResponse = await fetch(`/Certificate/GetProductTypes?categoryId=${categoryId}`);
                         const typeResult = await typeResponse.json();
                         if (typeResult.success && typeResult.data && pageTypeSelect) {
-                            pageTypeSelect.innerHTML = '<option value="">All Types</option>';
+                            pageTypeSelect.innerHTML = '<option value="">Select a type...</option>';
                             typeResult.data.forEach(pt => {
                                 pageTypeSelect.innerHTML += `<option value="${pt.id}">${pt.name}</option>`;
                             });
@@ -665,6 +665,18 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
         wrapper.appendChild(trigger);
         wrapper.appendChild(panel);
         wrapper.appendChild(selectElement);
+
+        // Auto-refresh when options are dynamically added/removed (e.g., company→product cascade)
+        const observer = new MutationObserver(() => {
+            buildOptions();
+            updateTrigger();
+        });
+        observer.observe(selectElement, { childList: true });
+
+        // Also refresh on programmatic value changes via 'change' event from jQuery .val().trigger('change')
+        selectElement.addEventListener('change', () => {
+            updateTrigger();
+        });
 
         // Handle validation - show inline error on trigger if select is invalid
         selectElement.addEventListener('invalid', (e) => {

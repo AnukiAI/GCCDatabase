@@ -1033,6 +1033,7 @@ class ProductIdManager {
 
         let successCount = 0;
         let errorCount = 0;
+        const errorMessages = [];
 
         for (const row of selectedRows) {
             try {
@@ -1067,11 +1068,19 @@ class ProductIdManager {
                     successCount++;
                 } else {
                     errorCount++;
-                    const errorText = await response.text();
-                    console.error(`Failed to import row ${row.rowNumber}:`, errorText);
+                    let errorMsg = '';
+                    try {
+                        const errorData = await response.json();
+                        errorMsg = errorData.message || errorData.Message || '';
+                    } catch {
+                        errorMsg = await response.text();
+                    }
+                    errorMessages.push(`Row ${row.rowNumber} (${row.data.productIdValue}): ${errorMsg || 'Unknown error'}`);
+                    console.error(`Failed to import row ${row.rowNumber}:`, errorMsg);
                 }
             } catch (error) {
                 errorCount++;
+                errorMessages.push(`Row ${row.rowNumber} (${row.data.productIdValue}): ${error.message || 'Network error'}`);
                 console.error(`Error importing row ${row.rowNumber}:`, error);
             }
         }
@@ -1081,9 +1090,13 @@ class ProductIdManager {
 
         if (successCount > 0) {
             await this.loadProductIds();
-            this.showSuccess(`Successfully imported ${successCount} product ID(s)${errorCount > 0 ? ` (${errorCount} failed)` : ''}`);
+            if (errorCount > 0) {
+                this.showSuccess(`Imported ${successCount} product ID(s). ${errorCount} failed: ${errorMessages.join('; ')}`);
+            } else {
+                this.showSuccess(`Successfully imported ${successCount} product ID(s)`);
+            }
         } else {
-            this.showError(`Import failed: ${errorCount} error(s)`);
+            this.showError(`Import failed: ${errorMessages.join('; ')}`);
         }
     }
 

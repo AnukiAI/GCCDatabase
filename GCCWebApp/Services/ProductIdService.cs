@@ -20,7 +20,7 @@ namespace GCCWebApp.Services
         Task<byte[]> ExportToCsvAsync(int certificateId);
         Task<byte[]> ExportToExcelAsync(int certificateId);
         Task<List<string>> GetValidationErrorsAsync(ProductIdImportItem item);
-        Task<bool> CheckDuplicateAsync(string type, string value, int? excludeId = null);
+        Task<bool> CheckDuplicateAsync(string type, string value, int? excludeId = null, int? certificateId = null);
         Dictionary<string, string> GetProductIdTypeDescriptions();
         string FormatProductId(string type, string value);
         Task<int> GetProductIdCountByCertificateAsync(int certificateId);
@@ -80,10 +80,10 @@ namespace GCCWebApp.Services
                     throw new ArgumentException($"Invalid {productId.ProductIdType} format: {productId.ProductIdValue}");
                 }
 
-                // Check for duplicates
-                if (await CheckDuplicateAsync(productId.ProductIdType, productId.ProductIdValue))
+                // Check for duplicates within the same certificate
+                if (await CheckDuplicateAsync(productId.ProductIdType, productId.ProductIdValue, certificateId: productId.CertificateId))
                 {
-                    throw new InvalidOperationException($"Product ID {productId.ProductIdValue} already exists");
+                    throw new InvalidOperationException($"Product ID {productId.ProductIdValue} already exists on this certificate");
                 }
 
                 // Set audit fields
@@ -133,10 +133,10 @@ namespace GCCWebApp.Services
                         throw new ArgumentException($"Invalid {productId.ProductIdType} format: {productId.ProductIdValue}");
                     }
 
-                    // Check for duplicates (excluding current record)
-                    if (await CheckDuplicateAsync(productId.ProductIdType, productId.ProductIdValue, productId.Id))
+                    // Check for duplicates within the same certificate (excluding current record)
+                    if (await CheckDuplicateAsync(productId.ProductIdType, productId.ProductIdValue, productId.Id, productId.CertificateId))
                     {
-                        throw new InvalidOperationException($"Product ID {productId.ProductIdValue} already exists");
+                        throw new InvalidOperationException($"Product ID {productId.ProductIdValue} already exists on this certificate");
                     }
                 }
 
@@ -383,7 +383,7 @@ namespace GCCWebApp.Services
             return errors;
         }
 
-        public async Task<bool> CheckDuplicateAsync(string type, string value, int? excludeId = null)
+        public async Task<bool> CheckDuplicateAsync(string type, string value, int? excludeId = null, int? certificateId = null)
         {
             var query = _context.CertificateProductIds
                 .Where(p => p.ProductIdType == type.ToUpper() && p.ProductIdValue == value.Trim());
@@ -391,6 +391,12 @@ namespace GCCWebApp.Services
             if (excludeId.HasValue)
             {
                 query = query.Where(p => p.Id != excludeId.Value);
+            }
+
+            // Scope duplicate check to the same certificate
+            if (certificateId.HasValue)
+            {
+                query = query.Where(p => p.CertificateId == certificateId.Value);
             }
 
             return await query.AnyAsync();

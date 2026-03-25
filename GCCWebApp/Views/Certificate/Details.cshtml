@@ -233,13 +233,13 @@
                 </div>
             </div>
 
-            <!-- Verification URL - only for authenticated users -->
+            <!-- Database Listing URL - only for authenticated users -->
             @if (User.Identity?.IsAuthenticated == true)
             {
                 var verifyUrl = $"{Context.Request.Scheme}://{Context.Request.Host}/Certificate/Verify/{certificateNumber}";
                 <div class="detail-section" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #dee2e6;">
                     <div class="certificate-field">
-                        <strong>Verification URL:</strong>
+                        <strong>Database Listing URL:</strong>
                         <a href="@verifyUrl" target="_blank" rel="noopener">@verifyUrl</a>
                     </div>
                 </div>

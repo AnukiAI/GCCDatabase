@@ -345,6 +345,11 @@ namespace GCCWebApp.Controllers
                 return Json(new ApiResponse<object> { Success = false, Message = "Invalid data provided" });
             }
 
+            if (!model.CompanyId.HasValue || model.CompanyId.Value <= 0)
+            {
+                return Json(new ApiResponse<object> { Success = false, Message = "Company is required. Please select a company." });
+            }
+
             try
             {
                 Product product;
@@ -464,22 +469,20 @@ namespace GCCWebApp.Controllers
                     .FirstOrDefaultAsync(p => p.Id == id);
 
                 // Check if product has certificates before deleting
-                var hasCertificates = await _context.Certificates.AnyAsync(c => c.ProductId == id);
-                var isSoftDelete = hasCertificates;
+                var certificateCount = await _context.Certificates.CountAsync(c => c.ProductId == id);
 
-                if (isSoftDelete)
+                if (certificateCount > 0)
                 {
-                    // Soft delete - mark as deleted so it's filtered from queries
-                    product.IsDeleted = true;
-                    product.IsActive = false;
-                    product.UpdatedAt = DateTime.UtcNow;
-                    _context.Products.Update(product);
+                    // Block deletion — product is tied to certificates
+                    return Json(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = $"Cannot delete \"{productName}\" because it is associated with {certificateCount} certificate{(certificateCount != 1 ? "s" : "")}. Remove the certificate associations first before deleting this product."
+                    });
                 }
-                else
-                {
-                    // Hard delete if no certificates
-                    _context.Products.Remove(product);
-                }
+
+                // Hard delete — no certificates reference this product
+                _context.Products.Remove(product);
 
                 await _context.SaveChangesAsync();
 
@@ -488,29 +491,25 @@ namespace GCCWebApp.Controllers
                 {
                     var userId = GetCurrentUserId();
                     var username = GetCurrentUsername();
-                    var deleteReason = isSoftDelete
-                        ? "Soft delete - Product has certificates and cannot be permanently removed"
-                        : "Hard delete - Product has no certificates";
 
                     await _auditService.LogEntityChangeAsync(
                         id.ToString(),
                         productName,
                         "DELETE",
                         oldProduct,
-                        null, // Entity is deleted/deactivated, no new state
+                        null,
                         userId,
                         username,
-                        deleteReason,
+                        "Hard delete - Product has no certificates",
                         "Web UI"
                     );
                 }
                 catch (Exception auditEx)
                 {
-                    // Log audit failure but don't fail the operation
                     Console.WriteLine($"Failed to log audit history: {auditEx.Message}");
                 }
 
-                return Json(new ApiResponse<object> { Success = true, Message = "Product deleted successfully" });
+                return Json(new ApiResponse<object> { Success = true, Message = $"\"{productName}\" has been deleted successfully." });
             }
             catch (Exception ex)
             {
@@ -678,21 +677,20 @@ namespace GCCWebApp.Controllers
                         {
                             var values = ParseCsvLine(line);
 
-                            if (values.Length < 4) // Minimum required fields
+                            if (values.Length < 2) // Minimum: Name and Company
                             {
-                                errors.Add($"Line {lineNumber}: Insufficient fields");
+                                errors.Add($"Line {lineNumber}: Insufficient fields (Name and Company are required)");
                                 errorCount++;
                                 continue;
                             }
 
-                            // CSV Format: Name, Company, Category, Status, SKU, Model, Description
+                            // CSV Format: Name, Company, Description, Category, Product Type, Subcategory
                             var productName = values[0];
                             var companyName = values.Length > 1 ? values[1] : "";
-                            var categoryName = values.Length > 2 ? values[2] : "";
-                            var status = values.Length > 3 ? values[3] : "Active";
-                            var sku = values.Length > 4 ? values[4] : null;
-                            var model = values.Length > 5 ? values[5] : null;
-                            var description = values.Length > 6 ? values[6] : null;
+                            var description = values.Length > 2 ? values[2] : null;
+                            var categoryName = values.Length > 3 ? values[3] : "";
+                            var productTypeName = values.Length > 4 ? values[4] : "";
+                            var subcategoryName = values.Length > 5 ? values[5] : "";
 
                             if (string.IsNullOrWhiteSpace(productName))
                             {
@@ -746,16 +744,32 @@ namespace GCCWebApp.Controllers
                                 continue;
                             }
 
+                            // Find product type
+                            int? productTypeId = null;
+                            if (!string.IsNullOrWhiteSpace(productTypeName))
+                            {
+                                var productType = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Name == productTypeName);
+                                if (productType != null) productTypeId = productType.Id;
+                            }
+
+                            // Find subcategory
+                            int? productSubcategoryId = null;
+                            if (!string.IsNullOrWhiteSpace(subcategoryName))
+                            {
+                                var subcategory = await _context.ProductSubcategories.FirstOrDefaultAsync(ps => ps.Name == subcategoryName);
+                                if (subcategory != null) productSubcategoryId = subcategory.Id;
+                            }
+
                             // Create product
                             var product = new Product
                             {
                                 Name = productName,
                                 Description = description,
-                                Model = model,
-                                Sku = sku,
                                 CategoryId = category?.Id ?? 0,
+                                ProductTypeId = productTypeId,
+                                ProductSubcategoryId = productSubcategoryId,
                                 CompanyId = company?.Id,
-                                IsActive = status.Equals("Active", StringComparison.OrdinalIgnoreCase),
+                                IsActive = true,
                                 CreatedAt = DateTime.UtcNow,
                                 UpdatedAt = DateTime.UtcNow
                             };
@@ -840,9 +854,9 @@ namespace GCCWebApp.Controllers
         [HttpGet]
         public IActionResult DownloadProductImportTemplate()
         {
-            var csv = "Name,Company,Category,Status,SKU,Model,Description\n" +
-                      "Sample Product,Acme Corporation,Building Materials,Active,SKU001,MODEL-X,Sample product description\n" +
-                      "Another Product,Globex Industries,Electronics / Electrical,Active,SKU002,MODEL-Y,Another product description";
+            // Headers only — no sample data rows (QC #102/#103)
+            // Fields match the Add New Product modal
+            var csv = "Name,Company,Description,Category,Product Type,Subcategory";
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
             return File(bytes, "text/csv", "product_import_template.csv");

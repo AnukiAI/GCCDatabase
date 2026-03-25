@@ -266,32 +266,13 @@
                     </div>
                 </div>
 
-                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                    <div class="form-group">
-                        <label for="product-subcategory" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Subcategory</label>
-                        <select id="product-subcategory" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
-                            <option value="">Select Subcategory</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label for="product-status" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Status *</label>
-                        <select id="product-status" required style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </select>
-                    </div>
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label for="product-subcategory" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Subcategory</label>
+                    <select id="product-subcategory" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                        <option value="">Select Subcategory</option>
+                    </select>
                 </div>
 
-                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
-                    <div class="form-group">
-                        <label for="product-sku" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">SKU</label>
-                        <input type="text" id="product-sku" placeholder="Product SKU" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
-                    </div>
-                    <div class="form-group">
-                        <label for="product-model" style="display: block; font-weight: 500; margin-bottom: 6px; color: #333;">Model Number</label>
-                        <input type="text" id="product-model" placeholder="Model number" style="width: 100%; padding: 10px 12px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
-                    </div>
-                </div>
             </form>
         </div>
 
@@ -483,6 +464,38 @@
             });
         }
 
+        function populateTypeDropdown(categoryId) {
+            const typeSelect = document.getElementById('product-type');
+            if (!typeSelect) return;
+            typeSelect.innerHTML = '<option value="">Select Type</option>';
+            if (!categoryId) return;
+            // productTypes already loaded with categoryId
+            const filtered = productTypes.filter(t => t.categoryId === categoryId);
+            filtered.forEach(t => {
+                typeSelect.add(new Option(t.name, t.id));
+            });
+        }
+
+        async function populateSubcategoryDropdown(typeId) {
+            const subSelect = document.getElementById('product-subcategory');
+            if (!subSelect) return;
+            subSelect.innerHTML = '<option value="">Select Subcategory</option>';
+            if (!typeId) return;
+            try {
+                const response = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${typeId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.success && data.data) {
+                        data.data.forEach(s => {
+                            subSelect.add(new Option(s.name, s.id));
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading subcategories:', error);
+            }
+        }
+
         function initializeEventListeners() {
             // Search and filter events (with null checks)
             if (searchInput) {
@@ -510,6 +523,25 @@
                 });
             }
             if (exportBtn) exportBtn.addEventListener('click', exportProducts);
+
+            // Modal cascade dropdowns: Category → Type → Subcategory
+            const categorySelect = document.getElementById('product-category');
+            const typeSelect = document.getElementById('product-type');
+            if (categorySelect) {
+                categorySelect.addEventListener('change', () => {
+                    const categoryId = parseInt(categorySelect.value);
+                    populateTypeDropdown(categoryId);
+                    // Reset subcategory when category changes
+                    const subSelect = document.getElementById('product-subcategory');
+                    if (subSelect) subSelect.innerHTML = '<option value="">Select Subcategory</option>';
+                });
+            }
+            if (typeSelect) {
+                typeSelect.addEventListener('change', () => {
+                    const typeId = parseInt(typeSelect.value);
+                    populateSubcategoryDropdown(typeId);
+                });
+            }
 
             // Modal events (with null checks)
             if (modalClose) modalClose.addEventListener('click', closeModal);
@@ -558,18 +590,30 @@
             
             updateActiveFiltersDisplay();
 
-            // Sort filtered products
+            // Sort filtered products - map data-sort attribute to actual property names
             filteredProducts.sort((a, b) => {
                 let aValue, bValue;
-                if (sortColumn === 'productType') {
-                    aValue = a.productTypeName || '';
-                    bValue = b.productTypeName || '';
-                } else if (sortColumn === 'subcategory') {
-                    aValue = a.productSubcategoryName || '';
-                    bValue = b.productSubcategoryName || '';
+                const sortMap = {
+                    'name': 'name',
+                    'company': 'companyName',
+                    'category': 'categoryName',
+                    'productType': 'productTypeName',
+                    'subcategory': 'productSubcategoryName',
+                    'status': 'status'
+                };
+
+                if (sortColumn === 'certificates') {
+                    aValue = a.certificateCount || 0;
+                    bValue = b.certificateCount || 0;
+                    return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
+                } else if (sortColumn === 'identifiers') {
+                    aValue = a.identifiers ? Object.values(a.identifiers).reduce((sum, arr) => sum + arr.length, 0) : 0;
+                    bValue = b.identifiers ? Object.values(b.identifiers).reduce((sum, arr) => sum + arr.length, 0) : 0;
+                    return sortDirection === 'asc' ? aValue - bValue : bValue - aValue;
                 } else {
-                    aValue = a[sortColumn] || '';
-                    bValue = b[sortColumn] || '';
+                    const prop = sortMap[sortColumn] || sortColumn;
+                    aValue = a[prop] || '';
+                    bValue = b[prop] || '';
                 }
 
                 if (sortDirection === 'asc') {
@@ -736,12 +780,16 @@
                         sortDirection = 'asc';
                     }
                     
-                    headers.forEach(h => h.classList.remove('active-sort'));
+                    headers.forEach(h => {
+                        h.classList.remove('active-sort');
+                        const icon = h.querySelector('.sort-icon');
+                        if (icon) icon.textContent = '▼';
+                    });
                     header.classList.add('active-sort');
-                    
+
                     const sortIcon = header.querySelector('.sort-icon');
                     sortIcon.textContent = sortDirection === 'asc' ? '▲' : '▼';
-                    
+
                     populateTable();
                 });
             });
@@ -764,9 +812,6 @@
             document.getElementById('product-id').value = product.id;
             document.getElementById('product-name').value = product.name;
             document.getElementById('product-description').value = product.description || '';
-            document.getElementById('product-status').value = product.status.toLowerCase();
-            document.getElementById('product-sku').value = product.sku || '';
-            document.getElementById('product-model').value = product.model || '';
 
             productModal.style.display = 'flex';
             productModal.style.alignItems = 'center';
@@ -804,38 +849,68 @@
                             populateTable();
                             AdminCore.showNotification(result.message || 'Product deleted successfully', 'success');
                         } else {
-                            AdminCore.showNotification(result.message || 'Error deleting product', 'error');
+                            // Show error in modal notification so it's clearly visible
+                            AdminCore.showConfirmation({
+                                title: 'Cannot Delete Product',
+                                message: result.message || 'This product could not be deleted.',
+                                confirmText: 'OK',
+                                cancelText: null,
+                                type: 'warning',
+                                allowHtml: true
+                            });
                         }
                     } else {
-                        AdminCore.showNotification('Error deleting product', 'error');
+                        AdminCore.showConfirmation({
+                            title: 'Delete Failed',
+                            message: 'An unexpected error occurred while trying to delete this product. Please try again.',
+                            confirmText: 'OK',
+                            cancelText: null,
+                            type: 'danger',
+                            allowHtml: true
+                        });
                     }
                 } catch (error) {
                     console.error('Error deleting product:', error);
-                    AdminCore.showNotification('Error deleting product', 'error');
+                    AdminCore.showConfirmation({
+                        title: 'Delete Failed',
+                        message: 'A network error occurred while trying to delete this product. Please check your connection and try again.',
+                        confirmText: 'OK',
+                        cancelText: null,
+                        type: 'danger',
+                        allowHtml: true
+                    });
                 }
             }
         }
 
         async function saveProduct(e) {
             e.preventDefault();
-            
+
+            const companyVal = document.getElementById('product-company').value;
+            if (!companyVal) {
+                AdminCore.showNotification('Company is required. Please select a company.', 'error');
+                document.getElementById('product-company').focus();
+                return;
+            }
+
             const formData = {
                 id: parseInt(document.getElementById('product-id').value) || 0,
                 name: document.getElementById('product-name').value,
                 description: document.getElementById('product-description').value,
                 categoryId: parseInt(document.getElementById('product-category').value) || 0,
                 productTypeId: parseInt(document.getElementById('product-type').value) || null,
-                companyId: parseInt(document.getElementById('product-company').value) || null,
-                isActive: document.getElementById('product-status').value === 'active',
-                model: document.getElementById('product-model').value,
-                sku: document.getElementById('product-sku').value
+                productSubcategoryId: parseInt(document.getElementById('product-subcategory').value) || null,
+                companyId: parseInt(companyVal),
+                isActive: true
             };
 
             try {
+                const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
                 const response = await fetch('/Product/SaveProduct', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'RequestVerificationToken': token
                     },
                     body: JSON.stringify(formData)
                 });
@@ -1173,10 +1248,8 @@
             
             activeFiltersContainer.style.display = 'flex';
             activeFiltersContainer.innerHTML = `
-                <span class="active-filters-label">Active filters:</span>
                 ${filters.map(filter => `
                     <div class="filter-tag">
-                        <span class="filter-tag-type">${filter.type}:</span>
                         <span class="filter-tag-value">${filter.value}</span>
                         <button class="filter-tag-remove" onclick="removeFilter('${filter.type.toLowerCase()}')" title="Remove filter">
                             <i class="fas fa-times"></i>

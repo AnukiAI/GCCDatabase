@@ -252,6 +252,7 @@ th,
 .header {
     background-color: var(--white);
     box-shadow: var(--shadow);
+    position: relative;
     z-index: 1000;
 }
 
@@ -450,6 +451,7 @@ a.sign-in-link {
     background-color: var(--white);
     border-bottom: 1px solid var(--border-color);
     position: relative;
+    z-index: 1000;
 }
 
 .main-nav {

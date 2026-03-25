@@ -64,7 +64,7 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 CertificationTypeId = 1,
                 EffectiveDate = DateTime.UtcNow.AddDays(-30),
                 ExpirationDate = DateTime.UtcNow.AddDays(30),
-                Status = "Active",
+                Status = "Client Approved - Paid",
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -112,7 +112,8 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 CreatedBy = "Test System",
                 Scopes = "read,write",
                 AllowedIPs = null, // Allow all IPs for testing
-                AllowedOrigins = "*"
+                AllowedOrigins = null,
+                RequireTLS = false
             };
 
             var wayfairApiKey = new ApiKey
@@ -126,7 +127,8 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 CreatedBy = "Test System",
                 Scopes = "read,write",
                 AllowedIPs = null, // Allow all IPs for testing
-                AllowedOrigins = "*"
+                AllowedOrigins = null,
+                RequireTLS = false
             };
 
             var generalApiKey = new ApiKey
@@ -140,7 +142,8 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 CreatedBy = "Test System",
                 Scopes = "read,write",
                 AllowedIPs = null, // Allow all IPs for testing
-                AllowedOrigins = "*"
+                AllowedOrigins = null,
+                RequireTLS = false
             };
 
             // Add valid_test_key for integration tests that use this key
@@ -155,7 +158,8 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 CreatedBy = "Test System",
                 Scopes = "read,write",
                 AllowedIPs = null, // Allow all IPs for testing
-                AllowedOrigins = "*"
+                AllowedOrigins = null,
+                RequireTLS = false
             };
 
             // Add integration_test_key for workflow integration tests
@@ -170,7 +174,8 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 CreatedBy = "Test System",
                 Scopes = "read,write",
                 AllowedIPs = null, // Allow all IPs for testing
-                AllowedOrigins = "*"
+                AllowedOrigins = null,
+                RequireTLS = false
             };
 
             // Add rate_limit_test_key for rate limiting tests
@@ -185,7 +190,8 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 CreatedBy = "Test System",
                 Scopes = "read,write",
                 AllowedIPs = null, // Allow all IPs for testing
-                AllowedOrigins = "*"
+                AllowedOrigins = null,
+                RequireTLS = false
             };
 
             context.Roles.AddRange(adminRole, analystRole, externalRole);
@@ -308,7 +314,7 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 CertificationResults = "95.5% recycled content verified",
                 EffectiveDate = DateTime.UtcNow.AddDays(-60),
                 ExpirationDate = DateTime.UtcNow.AddDays(305),
-                Status = "Active",
+                Status = "Client Approved - Paid",
                 Location = "Philadelphia, PA",
                 Country = "USA",
                 CreatedAt = DateTime.UtcNow
@@ -324,7 +330,7 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 CertificationResults = "22% energy reduction",
                 EffectiveDate = DateTime.UtcNow.AddDays(-30),
                 ExpirationDate = DateTime.UtcNow.AddDays(335),
-                Status = "Active",
+                Status = "Client Approved - Paid",
                 Location = "Chicago, IL",
                 Country = "USA",
                 CreatedAt = DateTime.UtcNow
@@ -342,7 +348,7 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 CertificationResults = "80% recycled content",
                 EffectiveDate = DateTime.UtcNow.AddDays(-45),
                 ExpirationDate = DateTime.UtcNow.AddDays(320),
-                Status = "Active",
+                Status = "Client Approved - Paid",
                 Location = "Portland, OR",
                 Country = "USA",
                 CreatedAt = DateTime.UtcNow
@@ -358,7 +364,7 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 Partner = "Other",
                 EffectiveDate = DateTime.UtcNow.AddDays(-20),
                 ExpirationDate = DateTime.UtcNow.AddDays(345),
-                Status = "Active",
+                Status = "Client Approved - Paid",
                 Location = "Austin, TX",
                 Country = "USA",
                 CreatedAt = DateTime.UtcNow
@@ -374,7 +380,7 @@ namespace GCCWebApp.Api.Tests.TestUtilities
                 Partner = "None",
                 EffectiveDate = DateTime.UtcNow.AddDays(-10),
                 ExpirationDate = DateTime.UtcNow.AddDays(355),
-                Status = "Active",
+                Status = "Client Approved - Paid",
                 Location = "Denver, CO",
                 Country = "USA",
                 CreatedAt = DateTime.UtcNow

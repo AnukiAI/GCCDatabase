@@ -254,6 +254,20 @@ namespace GCCWebApp.Controllers
                     return NotFound($"Certificate {id} not found");
                 }
 
+                // Block anonymous users from viewing non-public certificates via direct URL
+                // Public view should only show "Client Approved - Paid" or "Republished" with valid expiration
+                if (User.Identity?.IsAuthenticated != true)
+                {
+                    var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
+                    var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < DateTime.UtcNow;
+
+                    if (!isPublicStatus || isExpired)
+                    {
+                        _logger.LogWarning("Anonymous access denied for non-public certificate: {CertificateNumber}, Status: {Status}", id, certificate.Status);
+                        return NotFound($"Certificate {id} not found");
+                    }
+                }
+
                 _logger.LogInformation("Certificate found: {CertificateNumber}, Company: {CompanyName}, Product: {ProductName}",
                     certificate.Number, certificate.Company?.Name ?? "N/A", certificate.Product?.Name ?? "N/A");
 

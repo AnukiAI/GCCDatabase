@@ -73,25 +73,25 @@ namespace GCCWebApp.Api.Tests.Integration
             _context.Products.AddRange(amazonProd, noviProd, noPartnerProd);
             _context.SaveChanges();
 
-            // Certificates - Amazon company (3 active, 1 draft)
+            // Certificates - Amazon company (3 publicly visible, 1 draft)
             _context.Certificates.AddRange(
-                new Certificate { Number = "EXT-AMZ-001", Status = "active", Partner = "Amazon", CompanyId = _amazonCoId, ProductId = amazonProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-60), ExpirationDate = DateTime.UtcNow.AddDays(300), Country = "United States", CreatedAt = DateTime.UtcNow },
-                new Certificate { Number = "EXT-AMZ-002", Status = "active", Partner = "Amazon", CompanyId = _amazonCoId, ProductId = amazonProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-30), ExpirationDate = DateTime.UtcNow.AddDays(330), Country = "United States", CreatedAt = DateTime.UtcNow },
-                new Certificate { Number = "EXT-AMZ-003", Status = "active", Partner = "Amazon", CompanyId = _amazonCoId, ProductId = amazonProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-10), ExpirationDate = DateTime.UtcNow.AddDays(350), Country = "United States", CreatedAt = DateTime.UtcNow },
-                new Certificate { Number = "EXT-AMZ-DRAFT", Status = "draft", Partner = "Amazon", CompanyId = _amazonCoId, ProductId = amazonProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-10), ExpirationDate = DateTime.UtcNow.AddDays(350), Country = "United States", CreatedAt = DateTime.UtcNow }
+                new Certificate { Number = "EXT-AMZ-001", Status = "Client Approved - Paid", Partner = "Amazon", CompanyId = _amazonCoId, ProductId = amazonProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-60), ExpirationDate = DateTime.UtcNow.AddDays(300), Country = "United States", CreatedAt = DateTime.UtcNow },
+                new Certificate { Number = "EXT-AMZ-002", Status = "Client Approved - Paid", Partner = "Amazon", CompanyId = _amazonCoId, ProductId = amazonProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-30), ExpirationDate = DateTime.UtcNow.AddDays(330), Country = "United States", CreatedAt = DateTime.UtcNow },
+                new Certificate { Number = "EXT-AMZ-003", Status = "Client Approved - Paid", Partner = "Amazon", CompanyId = _amazonCoId, ProductId = amazonProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-10), ExpirationDate = DateTime.UtcNow.AddDays(350), Country = "United States", CreatedAt = DateTime.UtcNow },
+                new Certificate { Number = "EXT-AMZ-DRAFT", Status = "Draft", Partner = "Amazon", CompanyId = _amazonCoId, ProductId = amazonProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-10), ExpirationDate = DateTime.UtcNow.AddDays(350), Country = "United States", CreatedAt = DateTime.UtcNow }
             );
 
-            // Certificates - Novi company (2 active, 1 expired)
+            // Certificates - Novi company (2 publicly visible, 1 expired)
             _context.Certificates.AddRange(
-                new Certificate { Number = "EXT-NOVI-001", Status = "active", Partner = "Novi", CompanyId = _noviCoId, ProductId = noviProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-45), ExpirationDate = DateTime.UtcNow.AddDays(315), Country = "United States", CreatedAt = DateTime.UtcNow },
-                new Certificate { Number = "EXT-NOVI-002", Status = "active", Partner = "Novi", CompanyId = _noviCoId, ProductId = noviProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-20), ExpirationDate = DateTime.UtcNow.AddDays(340), Country = "United States", CreatedAt = DateTime.UtcNow },
-                new Certificate { Number = "EXT-NOVI-EXPIRED", Status = "expired", Partner = "Novi", CompanyId = _noviCoId, ProductId = noviProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-365), ExpirationDate = DateTime.UtcNow.AddDays(-1), Country = "United States", CreatedAt = DateTime.UtcNow }
+                new Certificate { Number = "EXT-NOVI-001", Status = "Client Approved - Paid", Partner = "Novi", CompanyId = _noviCoId, ProductId = noviProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-45), ExpirationDate = DateTime.UtcNow.AddDays(315), Country = "United States", CreatedAt = DateTime.UtcNow },
+                new Certificate { Number = "EXT-NOVI-002", Status = "Client Approved - Paid", Partner = "Novi", CompanyId = _noviCoId, ProductId = noviProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-20), ExpirationDate = DateTime.UtcNow.AddDays(340), Country = "United States", CreatedAt = DateTime.UtcNow },
+                new Certificate { Number = "EXT-NOVI-EXPIRED", Status = "Expired", Partner = "Novi", CompanyId = _noviCoId, ProductId = noviProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-365), ExpirationDate = DateTime.UtcNow.AddDays(-1), Country = "United States", CreatedAt = DateTime.UtcNow }
             );
 
-            // Certificates - No partner company (2 active)
+            // Certificates - No partner company (2 publicly visible)
             _context.Certificates.AddRange(
-                new Certificate { Number = "EXT-NP-001", Status = "active", Partner = "None", CompanyId = _noPartnerCoId, ProductId = noPartnerProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-50), ExpirationDate = DateTime.UtcNow.AddDays(310), Country = "United States", CreatedAt = DateTime.UtcNow },
-                new Certificate { Number = "EXT-NP-002", Status = "active", Partner = null, CompanyId = _noPartnerCoId, ProductId = noPartnerProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-30), ExpirationDate = DateTime.UtcNow.AddDays(330), Country = "United States", CreatedAt = DateTime.UtcNow }
+                new Certificate { Number = "EXT-NP-001", Status = "Client Approved - Paid", Partner = "None", CompanyId = _noPartnerCoId, ProductId = noPartnerProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-50), ExpirationDate = DateTime.UtcNow.AddDays(310), Country = "United States", CreatedAt = DateTime.UtcNow },
+                new Certificate { Number = "EXT-NP-002", Status = "Client Approved - Paid", Partner = null, CompanyId = _noPartnerCoId, ProductId = noPartnerProd.Id, CertificationTypeId = 1, EffectiveDate = DateTime.UtcNow.AddDays(-30), ExpirationDate = DateTime.UtcNow.AddDays(330), Country = "United States", CreatedAt = DateTime.UtcNow }
             );
             _context.SaveChanges();
 

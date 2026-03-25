@@ -1,7 +1,7 @@
 # GCC Project Tracking Dashboard
 
 **Project:** GCC Database Solution
-**Last Updated:** 2026-03-23
+**Last Updated:** 2026-03-25
 **Prepared By:** Anuki Consulting
 
 ---
@@ -11,15 +11,15 @@
 | Metric | Value |
 |--------|-------|
 | Total Defects | 96 |
-| New (backfilled, untriaged) | 49 |
-| Open Defects | 23 |
-| Fixed (Pending Verification) | 20 |
-| Closed (Verified) | 4 |
-| Defect Close Rate | 25% (fixed + closed of total) |
+| New (backfilled, untriaged) | 36 |
+| Open Defects | 15 |
+| Fixed (Pending Verification) | 34 |
+| Closed (Verified) | 14 |
+| Defect Close Rate | 50% (fixed + closed of total) |
 | Open Issues | 2 |
 | Change Requests (Total) | 4 |
 | Change Requests (In-Progress) | 1 |
-| Total Effort Logged | 32.5 hrs |
+| Total Effort Logged | 44.5 hrs |
 
 ---
 
@@ -28,20 +28,20 @@
 ```
 Full QC Log (3/13/2026):   121 line items (20 Amanda/Dan Nov '25 + 101 Carly Mar '26)
 Tracked in register:       96 defects (47 original + 49 backfilled 3/23)
-Fixed/Closed to date:      24
-New (untriaged):           49
-Remaining open:            23
+Fixed/Closed to date:      48 (14 fixed on 3/24)
+New (untriaged):           36
+Remaining open:            15
 
 New (untriaged) by Priority:
-  High:     21   ████████████████████████████████████████████████████████████████████████████████████
-  Medium:   19   ██████████████████████████████████████████████████████████████████████████████
-  Low:       9   ████████████████████████████████████
+  High:     15   ████████████████████████████████████████████████████████████
+  Medium:   16   ████████████████████████████████████████████████████████████████
+  Low:       5   ████████████████████
 
 Open (previously triaged) by Priority:
-  Critical:  0   (all 5 critical fixed this session)
+  Critical:  0   (all 5 critical fixed 3/23)
   High:      4   ████████████████
-  Medium:   12   ████████████████████████████████████████████████
-  Low:       7   ████████████████████████████
+  Medium:    8   ████████████████████████████████
+  Low:       3   ████████████
 ```
 
 ---
@@ -82,6 +82,7 @@ Open (previously triaged) by Priority:
 
 | Date | Key Activity | Items |
 |------|-------------|-------|
+| 2026-03-24 | **14 defects fixed (QC Sprint 1).** Product Mgmt: pagination, sort arrows, text wrapping, sorting, cascading dropdowns, export subcategory, remove Status/SKU/Model. Admin: breadcrumbs (19 views), role descriptions, Add User Company field, user template/import. Product Types: blue box descriptions, help examples. Deployed v2.0.0. | DEF-035, DEF-039, DEF-042, DEF-043, DEF-075, DEF-078–082, DEF-089–092 |
 | 2026-03-23 | **6 critical defects fixed.** Backfilled 49 missing QC log items (DEF-048–DEF-096) as New status. Plus cascading dropdowns, Remember Me, placeholders. | DEF-002–009, DEF-031, DEF-044–045, DEF-048–096, CR-002 |
 | 2026-03-19 | 8-state status overhaul, batch QC fixes, password reset, checkbox | CR-003, DEF-001, DEF-008–DEF-018, DEF-021, DEF-034, DEF-046, DEF-047 |
 
@@ -91,17 +92,17 @@ Open (previously triaged) by Priority:
 
 | Tracker | File | Items |
 |---------|------|-------|
-| Defect Register | [defect-register.md](defect-register.md) | 96 items (49 new, 23 open, 6 fixed, 14 closed, 4 verified) |
+| Defect Register | [defect-register.md](defect-register.md) | 96 items (36 new, 15 open, 20 fixed, 14 closed) |
 | Issue Register | [issue-register.md](issue-register.md) | 2 items |
 | Change Request Register | [change-request-register.md](change-request-register.md) | 4 items |
-| Progress Log | [progress-log.md](progress-log.md) | 3 date entries |
-| Effort Log | [effort-log.md](effort-log.md) | 32.5 hrs logged |
+| Progress Log | [progress-log.md](progress-log.md) | 4 date entries |
+| Effort Log | [effort-log.md](effort-log.md) | 44.5 hrs logged |
 
 ---
 
-## New Items — Backfilled from QC Log (49 items, pending triage)
+## New Items — Backfilled from QC Log (36 remaining, pending triage)
 
-### High Priority (21)
+### High Priority (15)
 
 | ID | QC Row | Page | Description |
 |----|--------|------|-------------|
@@ -116,18 +117,12 @@ Open (previously triaged) by Priority:
 | DEF-069 | R76 | Login | Auto-logout shows error page |
 | DEF-070 | R78 | Dashboard export | Export count mismatch |
 | DEF-071 | R82 | Cert export | Missing many fields |
-| DEF-075 | R91 | Cert listing | Horizontal scroll UX |
-| DEF-078 | R95 | Product Mgmt | Pagination needed |
-| DEF-080 | R98 | Product Mgmt | Type/Subcategory not in Add popup |
-| DEF-081 | R99 | Product export | Missing Subcategory |
 | DEF-084 | R103 | Product Mgmt | Delete not working |
 | DEF-085 | R104 | Product IDs | Import only adding 1 of 2 |
 | DEF-087 | R107 | Product export | Includes sample data |
 | DEF-088 | R108 | Product Template | Missing fields |
-| DEF-090 | R111 | Admin - User | Add User popup missing Company |
-| DEF-092 | R114 | Admin - User | CSV import not working |
 
-### Medium Priority (19)
+### Medium Priority (16)
 
 | ID | QC Row | Page | Description |
 |----|--------|------|-------------|
@@ -142,16 +137,12 @@ Open (previously triaged) by Priority:
 | DEF-067 | R74 | Dashboard | "No product type data available" |
 | DEF-068 | R75 | Dashboard | Showing cert types as product categories |
 | DEF-072 | R84 | Product IDs | Search not working |
-| DEF-079 | R97 | Product Mgmt | Remove Status/SKU/Model from Add popup |
-| DEF-082 | R100 | Product Mgmt | Sorting not working all columns |
 | DEF-083 | R102 | Product Mgmt | Company required validation missing |
-| DEF-089 | R110 | Admin - Role | Clarify Workflow/Audit/Tag descriptions |
-| DEF-091 | R113 | Admin - User | Template remove sample data |
 | DEF-094 | R123 | Cert Fields | Section headers confusion |
 | DEF-095 | R124 | Cert Fields | Custom fields auto-add to exports? |
 | DEF-096 | R125 | Tags | Template remove sample data |
 
-### Low Priority (9)
+### Low Priority (5)
 
 | ID | QC Row | Page | Description |
 |----|--------|------|-------------|
@@ -191,9 +182,23 @@ Open (previously triaged) by Priority:
 | DEF-021 | Expiring Soon tag removal | 2026-03-19 |
 | DEF-031 | Remember Me inconsistent | 2026-03-23 |
 | DEF-034 | Status types update | 2026-03-19 |
+| DEF-035 | Breadcrumbs broken links (19 views) | 2026-03-24 |
+| DEF-039 | Sort arrows overlapping column names | 2026-03-24 |
+| DEF-042 | Help text/example updates in admin | 2026-03-24 |
+| DEF-043 | Blue box descriptions in admin popups | 2026-03-24 |
 | DEF-044 | Email/URL placeholders | 2026-03-23 |
 | DEF-046 | Password reset enforcement | 2026-03-19 |
 | DEF-047 | User Mgmt checkbox | 2026-03-19 |
+| DEF-075 | Horizontal scroll UX in Product Mgmt | 2026-03-24 |
+| DEF-078 | Product Mgmt pagination (50/page) | 2026-03-24 |
+| DEF-079 | Remove Status/SKU/Model from Add Product | 2026-03-24 |
+| DEF-080 | Product Type/Subcategory in Add Product | 2026-03-24 |
+| DEF-081 | Product export includes Subcategory | 2026-03-24 |
+| DEF-082 | Product Mgmt sorting all columns | 2026-03-24 |
+| DEF-089 | Role permission descriptions clarified | 2026-03-24 |
+| DEF-090 | Add User Company field for all roles | 2026-03-24 |
+| DEF-091 | User template sample data removed | 2026-03-24 |
+| DEF-092 | User CSV import with error messages | 2026-03-24 |
 
 ---
 

@@ -295,6 +295,15 @@ th,
     flex-wrap: wrap;
 }
 
+a.logo-area:focus {
+    outline: none;
+}
+
+a.logo-area:focus-visible {
+    outline: 2px solid var(--primary-color, #002B76);
+    outline-offset: 2px;
+}
+
 .logo-text-group {
     display: flex;
     flex-direction: column;
@@ -1227,7 +1236,7 @@ input, select, button, .form-input, .form-select {
         font-size: 16px;
     }
 
-.sidebar.expanded .mobile-filter-toggle i {
+.sidebar.mobile-open .mobile-filter-toggle i {
     transform: rotate(180deg);
 }
 
@@ -2890,6 +2899,11 @@ footer {
 
 /* ===== MOBILE & TABLET NAVIGATION BREAKPOINT ===== */
 @media (max-width: 1024px) {
+    /* Hide nav bar entirely for anonymous users on mobile/tablet — no nav items to show */
+    .nav-wrapper.nav-anon {
+        display: none;
+    }
+
     /* Navigation becomes mobile/tablet */
     .mobile-toggle {
         display: block;
@@ -3096,34 +3110,33 @@ footer {
         width: 100%;
         border-right: none;
         border-bottom: 1px solid var(--border-color);
-        max-height: 60px;
-        overflow: hidden;
-        transition: max-height 0.3s ease;
     }
 
-        .sidebar.expanded {
-            max-height: 100vh;
-            overflow-y: auto;
-        }
+    .sidebar.mobile-open {
+        overflow-y: auto;
+    }
 
     .mobile-filter-toggle {
         display: flex !important;
     }
 
     /* Hide filter content by default on tablet/mobile */
-    .sidebar:not(.expanded) .search-bar,
-    .sidebar:not(.expanded) .filters-header,
-    .sidebar:not(.expanded) .filter-panel {
+    .sidebar:not(.mobile-open) .search-bar,
+    .sidebar:not(.mobile-open) .filters-header,
+    .sidebar:not(.mobile-open) .filter-panel {
         display: none;
     }
 
-    /* Show when expanded on tablet/mobile */
-    .sidebar.expanded .search-bar,
-    .sidebar.expanded .filters-header,
-    .sidebar.expanded .filter-panel {
-        /*display: block;*/
-        display: flex; /* Keep it as flex to maintain the layout */
+    /* Show when mobile-open on tablet/mobile */
+    .sidebar.mobile-open .search-bar,
+    .sidebar.mobile-open .filters-header,
+    .sidebar.mobile-open .filter-panel {
+        display: block;
         padding: 10px 15px;
+    }
+
+    .sidebar.mobile-open .filters-header {
+        display: flex;
     }
 
     body.theme-option4 .certificates-grid {
@@ -3333,16 +3346,12 @@ footer {
     /* MOBILE FILTER SYSTEM */
     .sidebar {
         padding: 0;
-        max-height: 60px;
-        overflow: hidden;
-        transition: max-height 0.3s ease;
         border-bottom: 1px solid var(--border-color);
     }
 
-        .sidebar.expanded {
-            max-height: 100vh;
-            overflow-y: auto;
-        }
+    .sidebar.mobile-open {
+        overflow-y: auto;
+    }
 
     /* Mobile filter toggle - ALWAYS VISIBLE */
     .mobile-filter-toggle {
@@ -3350,28 +3359,32 @@ footer {
     }
 
     /* Hide filter content by default */
-    .sidebar:not(.expanded) .search-bar,
-    .sidebar:not(.expanded) .filters-header,
-    .sidebar:not(.expanded) .filter-panel,
-    .sidebar:not(.expanded) .filter-content {
+    .sidebar:not(.mobile-open) .search-bar,
+    .sidebar:not(.mobile-open) .filters-header,
+    .sidebar:not(.mobile-open) .filter-panel,
+    .sidebar:not(.mobile-open) .filter-content {
         display: none;
     }
 
-    /* Show when expanded */
-    .sidebar.expanded .search-bar,
-    .sidebar.expanded .filters-header,
-    .sidebar.expanded .filter-panel {
-        display: flex; /* Keep it as flex to maintain the layout */
+    /* Show when mobile-open */
+    .sidebar.mobile-open .search-bar,
+    .sidebar.mobile-open .filters-header,
+    .sidebar.mobile-open .filter-panel {
+        display: block;
         padding: 10px 15px;
     }
 
-    .sidebar.expanded .filter-content {
+    .sidebar.mobile-open .filters-header {
+        display: flex;
+    }
+
+    .sidebar.mobile-open .filter-content {
         display: block;
         max-height: 200px;
         overflow-y: auto;
     }
 
-    .sidebar.expanded .search-bar {
+    .sidebar.mobile-open .search-bar {
         padding: 15px;
         border-bottom: 1px solid var(--border-color);
     }

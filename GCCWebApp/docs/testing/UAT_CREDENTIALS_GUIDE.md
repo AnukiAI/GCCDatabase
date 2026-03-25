@@ -43,6 +43,36 @@ The production database (https://gccwebapp.com) maintains **TWO sets of test acc
 
 **Login method:** Use USERNAME (not email)
 
+### 3. External Visibility Test Credentials (For Company-Scoped Testing)
+
+**Purpose:** Testing data isolation — each external user is associated with a different company/partner to verify they only see their own data.
+
+**Setup script:** `docs/database/scripts/SETUP_EXTERNAL_TEST_USERS.sql` (idempotent, safe to re-run)
+
+| Username | Password | Email | Company | Partner |
+|----------|----------|-------|---------|---------|
+| ext-amazon | TestPass123! | ext-amazon@test.com | ExtTest-AmazonCo | Amazon |
+| ext-novi | TestPass123! | ext-novi@test.com | ExtTest-NoviCo | Novi |
+| ext-nopartner | TestPass123! | ext-nopartner@test.com | ExtTest-NoPartnerCo | None |
+| ext-none | TestPass123! | ext-none@test.com | *(no company)* | None |
+
+**Login method:** Use USERNAME (not email)
+
+**When to use:**
+- Verifying external users only see their own company's certificates
+- Testing partner-specific filtering (Amazon vs Novi vs no partner)
+- Confirming users with no company association see zero data
+- Validating internal tags are hidden from external users
+
+**Expected test results:**
+
+| Username | Active Certs Visible | Draft/Expired Visible | Cert Numbers |
+|----------|---------------------|----------------------|--------------|
+| ext-amazon | 3 | No (1 draft hidden) | EXT-AMZ-001, 002, 003 |
+| ext-novi | 2 | No (1 expired hidden) | EXT-NOVI-001, 002 |
+| ext-nopartner | 2 | No | EXT-NP-001, 002 |
+| ext-none | 0 | No | *(none — no company)* |
+
 ## Implementation
 
 ### Adding UAT Users to Production

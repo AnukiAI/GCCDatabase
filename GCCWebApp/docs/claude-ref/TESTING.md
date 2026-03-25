@@ -31,6 +31,27 @@
 
 **Note**: Emails must be unique. Admin uses swest@anukiconsulting.com for 2FA.
 
+### External Visibility Test Users (Login with USERNAME)
+**All use Password: `TestPass123!`**
+**Setup script:** `docs/database/scripts/SETUP_EXTERNAL_TEST_USERS.sql`
+
+These users test company-scoped data isolation — each is associated with a different company/partner combination.
+
+| Username | Company | Partner | Expected Certs | Test Scenario |
+|----------|---------|---------|---------------|---------------|
+| ext-amazon | ExtTest-AmazonCo | Amazon | 3 active + 1 draft | Amazon partner external user |
+| ext-novi | ExtTest-NoviCo | Novi | 2 active + 1 expired | Novi partner external user |
+| ext-nopartner | ExtTest-NoPartnerCo | None | 2 active | External user, no partner association |
+| ext-none | *(no company)* | None | 0 | External user with no company — should see nothing |
+
+**What to verify with these accounts:**
+- `ext-amazon` sees ONLY ExtTest-AmazonCo certificates (EXT-AMZ-001, 002, 003; NOT the draft)
+- `ext-novi` sees ONLY ExtTest-NoviCo certificates (EXT-NOVI-001, 002; NOT the expired)
+- `ext-nopartner` sees ONLY ExtTest-NoPartnerCo certificates (EXT-NP-001, 002)
+- `ext-none` sees NO certificates (no company association)
+- No external user can see another company's data
+- Internal tags are hidden from all external users
+
 ## Test Coverage
 
 | Component | Project | Tests | Pass Rate |

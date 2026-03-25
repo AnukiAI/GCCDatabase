@@ -2,7 +2,7 @@
 
 **Project:** GCC Database Solution
 **Created:** 2026-03-23
-**Last Updated:** 2026-03-23
+**Last Updated:** 2026-03-25
 
 ## Status Definitions
 
@@ -32,10 +32,10 @@
 | Priority | New | Open | In-Progress | Fixed | Verified | Closed | Won't-Fix | Total |
 |----------|-----|------|-------------|-------|----------|--------|-----------|-------|
 | Critical | 0 | 0 | 0 | 5 | 0 | 8 | 0 | 13 |
-| High | 21 | 4 | 0 | 0 | 0 | 3 | 0 | 28 |
-| Medium | 19 | 12 | 0 | 1 | 0 | 3 | 0 | 35 |
-| Low | 9 | 7 | 0 | 0 | 0 | 0 | 0 | 16 |
-| **Total** | **49** | **23** | **0** | **6** | **0** | **14** | **0** | **92** |
+| High | 15 | 4 | 0 | 6 | 0 | 3 | 0 | 28 |
+| Medium | 16 | 8 | 0 | 5 | 0 | 3 | 0 | 32 |
+| Low | 5 | 3 | 0 | 4 | 0 | 0 | 0 | 12 |
+| **Total** | **36** | **15** | **0** | **20** | **0** | **14** | **0** | **85** |
 
 > Update this summary table whenever defect statuses change.
 
@@ -665,13 +665,13 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | Medium |
-| Status | Open |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | — |
-| Resolution | — |
-| Resolved Date | — |
-| Verified By | — |
-| Git Ref | — |
+| Resolution | All `href="#"` breadcrumb links fixed across 19 views. "Administration" links to Admin Dashboard. Category labels changed to non-clickable `<span>`. Current page items changed to `<span class="current">`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -737,13 +737,13 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | Low |
-| Status | Open |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | — |
-| Resolution | — |
-| Resolved Date | — |
-| Verified By | — |
-| Git Ref | — |
+| Resolution | Reduced sort icon size from 16px to 10px, added `white-space: nowrap` on `<th>`, reduced header padding. Added `min-width` on all columns. Files: `product-management.css`, `Management.cshtml`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -791,13 +791,13 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | Low |
-| Status | Open |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | — |
-| Resolution | — |
-| Resolved Date | — |
-| Verified By | — |
-| Git Ref | — |
+| Resolution | Updated Help modal in Product Types to remove all hardcoded fake examples. Hierarchy levels now use generic labels. Product assignment example uses generic flow. File: `ProductTypes.cshtml`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -809,13 +809,13 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | Low |
-| Status | Open |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | — |
-| Resolution | — |
-| Resolved Date | — |
-| Verified By | — |
-| Git Ref | — |
+| Resolution | Changed info hint text and field descriptions in Add/Edit modals to generic language. Removed fake examples. Inline examples now dynamically pulled from actual loaded hierarchy data, labeled "Existing". File: `product-types.js`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -1337,11 +1337,15 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-12 |
 | Priority | High |
-| Status | New |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | — |
 | QC Log Row | R91 |
 | Description | Need to find a better way to scroll horizontally in list — UX is hard. Referenced Wrike as example where you can scroll in table with mouse vs having to use scroll bar specifically. |
+| Resolution | Added `word-wrap: break-word` and `overflow-wrap` on `<td>`. Added horizontal scroll (`overflow-x: auto`) on table container with `min-width: 1100px`. File: `product-management.css`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -1385,11 +1389,15 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | High |
-| Status | New |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | DEF-005 |
 | QC Log Row | R95 |
 | Description | Product Management page will get very long with lots of data. Need to stop at 50 and go to different page with page numbers at bottom. |
+| Resolution | Added page-number pagination at 50 rows per page. Previous/Next arrows, numbered buttons with ellipsis, resets to page 1 on filter/search. Files: `Management.cshtml`, `product-management.css`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -1401,11 +1409,15 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | Medium |
-| Status | New |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | — |
 | QC Log Row | R97 |
 | Description | Add New Product popup should not have Status, SKU, or Model Number fields. Remove them. |
+| Resolution | Removed Status dropdown, SKU input, and Model Number input from modal completely. `saveProduct` sends `isActive: true` directly; `sku` and `model` omitted. File: `Management.cshtml`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -1417,11 +1429,15 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | High |
-| Status | New |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | — |
 | QC Log Row | R98 |
 | Description | No options are appearing for Product Type and Product Subcategory in the Add New Product popup on Product Management page. |
+| Resolution | Added cascade logic: Category selection filters Product Type dropdown (client-side from preloaded data). Product Type selection fetches Subcategory options via `/Certificate/GetProductSubcategories` API. `productSubcategoryId` now included in save payload. File: `Management.cshtml`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -1433,11 +1449,15 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | High |
-| Status | New |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | — |
 | QC Log Row | R99 |
 | Description | Product export should include all fields available at product level — currently missing Subcategory. |
+| Resolution | Export CSV headers and data rows now include Product Type and Subcategory columns. File: `Management.cshtml`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -1449,11 +1469,15 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | Medium |
-| Status | New |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | — |
 | QC Log Row | R100 |
 | Description | Sorting ascending/descending not working for Company and Category columns (or only works 1 time and won't toggle). Certificates and Identifiers columns do not sort at all. |
+| Resolution | Root cause: `data-sort` attribute values didn't match JS property names. Added `sortMap` to translate. Added numeric sorting for Certificates and Identifiers columns. Fixed sort icon reset on column change. File: `Management.cshtml`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -1561,11 +1585,15 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | Medium |
-| Status | New |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | — |
 | QC Log Row | R110 |
 | Description | What is "Manage Workflow" option — what access is this? Where do you see Audit Logs? Update "Manage Tags" description to "Classification tags (internal and external)". |
+| Resolution | Updated "Manage Workflow" description to "Manage certificate workflow state transitions". Updated "Manage Tags" to "Classification tags (internal and external)". Note: Manage Workflow permission exists in seed data but is NOT enforced by any controller. Audit Logs page does not exist — permission is placeholder. File: `SeedData.cs`. SQL UPDATE needed for live DB. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -1577,11 +1605,15 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | High |
-| Status | New |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | — |
 | QC Log Row | R111 |
 | Description | "Add New User" popup is missing Company field (field exists in export but not in creation form). |
+| Resolution | Company field was conditionally hidden, only shown for External role. Fixed to show for all roles except Partner. Help text updated. Files: `userManagement.js`, `UserManagement.cshtml`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -1593,11 +1625,15 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | Medium |
-| Status | New |
-| Assigned To | Unassigned |
+| Status | Fixed |
+| Assigned To | Claude |
 | Related CR/ISS | DEF-041 |
 | QC Log Row | R113 |
 | Description | Remove sample data from User Management Template export. |
+| Resolution | Template CSV now outputs headers only with no sample "John Doe" row. File: `userManagement.js`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 
@@ -1609,11 +1645,15 @@
 | Reported By | Carly |
 | Reported Date | 2026-03-13 |
 | Priority | High |
-| Status | New |
-| Assigned To | Unassigned |
-| Related CR/ISS | — |
+| Status | Fixed |
+| Assigned To | Claude |
+| Related CR/ISS | DEF-090, DEF-091 |
 | QC Log Row | R114 |
 | Description | Tried to import user through CSV file and got failure notice. Import functionality not working. |
+| Resolution | Root cause same as DEF-090/DEF-091 — `CreateUserAsync` caught all exceptions and returned `false`. Changed return type to `(bool Success, string ErrorMessage)` tuple, added duplicate email check. Import error messages now include actual failure reason. Files: `AdminService.cs`, `IAdminService.cs`, `AdminController.cs`. |
+| Resolved Date | 2026-03-24 |
+| Verified By | Pending |
+| Git Ref | `786dc55` |
 
 ---
 

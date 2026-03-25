@@ -717,21 +717,48 @@
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
+
+/* Tablet (1024px and below) — stack form grid to single column */
 @media (max-width: 1024px) {
     .form-grid {
-        grid-template-columns: 1fr;
-        gap: 20px;
+        grid-template-columns: 1fr !important;
+        gap: 20px !important;
+    }
+
+    .main-form {
+        grid-template-columns: 1fr 1fr !important;
+        padding: 24px !important;
     }
 
     .form-content {
         padding: 20px;
     }
+
+    .admin-header-content {
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .admin-page-title {
+        font-size: 22px;
+    }
+
+    .admin-page-subtitle {
+        font-size: 14px;
+    }
 }
 
+/* Mobile (768px and below) — single column everything */
 @media (max-width: 768px) {
     .main-form {
-        grid-template-columns: 1fr;
-        gap: 16px;
+        grid-template-columns: 1fr !important;
+        gap: 16px !important;
+        padding: 16px !important;
+    }
+
+    .form-group.full-width {
+        grid-column: 1 !important;
     }
 
     .form-content {
@@ -742,6 +769,11 @@
         padding: 16px;
     }
 
+    .form-section-header {
+        font-size: 16px;
+        padding: 10px 16px;
+    }
+
     .action-buttons {
         flex-direction: column;
     }
@@ -750,17 +782,66 @@
         width: 100%;
         justify-content: center;
     }
+
+    .admin-container {
+        padding: 0 10px;
+    }
+
+    .admin-btn {
+        font-size: 14px;
+        padding: 8px 14px;
+    }
+
+    /* PDF upload zone — full width */
+    .pdf-upload-zone {
+        min-height: 150px;
+    }
+
+    /* Product ID Manager table — horizontal scroll */
+    .product-manager .table-responsive,
+    .product-manager .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Custom dropdown — prevent overflow */
+    .custom-dropdown-options {
+        max-height: 200px;
+    }
+
+    /* Subcategory checkboxes — single column */
+    .subcategory-list {
+        grid-template-columns: 1fr !important;
+    }
 }
 
+/* Small mobile (480px and below) */
 @media (max-width: 480px) {
     .form-content {
         padding: 12px;
     }
 
+    .main-form {
+        padding: 12px !important;
+    }
+
     .certificate-section,
     .product-manager {
-        padding-top: 20px;
-        margin-top: 20px;
+        padding-top: 16px;
+        margin-top: 16px;
+    }
+
+    .admin-page-title {
+        font-size: 18px;
+    }
+
+    .admin-actions-section {
+        width: 100%;
+    }
+
+    .admin-btn {
+        width: 100%;
+        justify-content: center;
     }
 }
 

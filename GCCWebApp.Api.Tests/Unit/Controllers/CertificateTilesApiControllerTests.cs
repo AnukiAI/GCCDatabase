@@ -195,7 +195,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             result.Should().BeOfType<OkObjectResult>();
             _certificateRepositoryMock.Verify(r =>
                 r.GetAdvancedFilteredCertificatesAsync(It.Is<CertificateSearchFilter>(f =>
-                    f.SortBy == "Company.Name" && f.SortDescending == false)), Times.Once);
+                    f.SortBy == "Company" && f.SortDescending == false)), Times.Once);
         }
 
         [Fact]
@@ -349,7 +349,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
                     CertificationTypeId = 1,
                     EffectiveDate = DateTime.UtcNow.AddDays(-30),
                     ExpirationDate = DateTime.UtcNow.AddDays(330),
-                    Status = "active",
+                    Status = "Client Approved - Paid",
                     Location = "Test Location",
                     Country = "US",
                     Company = new Company { Id = 1, Name = $"Test Company {i}" },

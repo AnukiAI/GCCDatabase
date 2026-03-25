@@ -114,9 +114,10 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             var now = DateTime.UtcNow;
 
             // Certificates - various statuses, companies, partners
+            // PublicStatuses = "Client Approved - Paid" and "Republished"
             var cert1 = new Certificate
             {
-                Number = "25-0001", Status = "active", CompanyId = _company1.Id, ProductId = product1.Id,
+                Number = "25-0001", Status = "Client Approved - Paid", CompanyId = _company1.Id, ProductId = product1.Id,
                 CertificationTypeId = certType1.Id, EffectiveDate = now.AddDays(-60),
                 ExpirationDate = now.AddDays(300), Location = "Philadelphia", Country = "USA",
                 Partner = "Amazon", CreatedAt = now.AddDays(-60),
@@ -124,7 +125,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             };
             var cert2 = new Certificate
             {
-                Number = "25-0002", Status = "active", CompanyId = _company2.Id, ProductId = product2.Id,
+                Number = "25-0002", Status = "Client Approved - Paid", CompanyId = _company2.Id, ProductId = product2.Id,
                 CertificationTypeId = certType2.Id, EffectiveDate = now.AddDays(-30),
                 ExpirationDate = now.AddDays(200), Location = "Toronto", Country = "Canada",
                 Partner = "Novi", CreatedAt = now.AddDays(-30),
@@ -132,7 +133,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             };
             var cert3 = new Certificate
             {
-                Number = "25-0003", Status = "active", CompanyId = _company1.Id, ProductId = product1.Id,
+                Number = "25-0003", Status = "Client Approved - Paid", CompanyId = _company1.Id, ProductId = product1.Id,
                 CertificationTypeId = certType1.Id, EffectiveDate = now.AddDays(-90),
                 ExpirationDate = now.AddDays(15), Location = "Denver", Country = "USA",
                 Partner = "Amazon", CreatedAt = now.AddDays(-90)
@@ -140,7 +141,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             // Expired cert (should never appear for external users)
             var cert4 = new Certificate
             {
-                Number = "25-0004", Status = "expired", CompanyId = _company1.Id, ProductId = product1.Id,
+                Number = "25-0004", Status = "Expired", CompanyId = _company1.Id, ProductId = product1.Id,
                 CertificationTypeId = certType1.Id, EffectiveDate = now.AddDays(-400),
                 ExpirationDate = now.AddDays(-10), Location = "Austin", Country = "USA",
                 Partner = "Amazon", CreatedAt = now.AddDays(-400)
@@ -148,15 +149,15 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             // Draft cert (should not appear for external users)
             var cert5 = new Certificate
             {
-                Number = "25-0005", Status = "draft", CompanyId = _company1.Id, ProductId = product1.Id,
+                Number = "25-0005", Status = "Draft", CompanyId = _company1.Id, ProductId = product1.Id,
                 CertificationTypeId = certType1.Id, EffectiveDate = now.AddDays(-10),
                 ExpirationDate = now.AddDays(350), Location = "Chicago", Country = "USA",
                 Partner = "Amazon", CreatedAt = now.AddDays(-10)
             };
-            // Cert with "expiring_soon" status (should appear)
+            // Cert with "Republished" status (should appear - it's a public status)
             var cert6 = new Certificate
             {
-                Number = "25-0006", Status = "expiring_soon", CompanyId = _company2.Id, ProductId = product2.Id,
+                Number = "25-0006", Status = "Republished", CompanyId = _company2.Id, ProductId = product2.Id,
                 CertificationTypeId = certType2.Id, EffectiveDate = now.AddDays(-300),
                 ExpirationDate = now.AddDays(10), Location = "Portland", Country = "USA",
                 Partner = "Novi", CreatedAt = now.AddDays(-300)
@@ -164,7 +165,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             // Cert with no partner
             var cert7 = new Certificate
             {
-                Number = "25-0007", Status = "active", CompanyId = company3.Id, ProductId = product3.Id,
+                Number = "25-0007", Status = "Client Approved - Paid", CompanyId = company3.Id, ProductId = product3.Id,
                 CertificationTypeId = certType1.Id, EffectiveDate = now.AddDays(-20),
                 ExpirationDate = now.AddDays(340), Location = "Austin", Country = "USA",
                 Partner = "None", CreatedAt = now.AddDays(-20)
@@ -208,7 +209,8 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
         private static JsonElement GetResponseData(IActionResult result)
         {
             var okResult = (OkObjectResult)result;
-            var json = JsonSerializer.Serialize(okResult.Value);
+            var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+            var json = JsonSerializer.Serialize(okResult.Value, options);
             return JsonDocument.Parse(json).RootElement;
         }
 
@@ -234,7 +236,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             var result = await _controller.GetCertificateTiles();
 
             var data = GetResponseData(result);
-            // Admin sees all active/expiring_soon/renewal_in_progress certs (not expired/draft)
+            // Admin sees all publicly visible certs (Client Approved - Paid, Republished) that are not date-expired
             var totalCount = data.GetProperty("totalCount").GetInt32();
             totalCount.Should().Be(5); // cert1,2,3,6,7 (not cert4=expired, cert5=draft)
         }
@@ -250,13 +252,13 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             var certNumbers = GetCertNumbers(data);
 
             // External user (external@green.com) is assigned to company1 (GreenCorp)
-            // Should see only active certs from company1: cert1 (25-0001), cert3 (25-0003)
-            // Should NOT see cert4 (expired) or cert5 (draft) even though they're from company1
+            // Should see only publicly visible certs from company1: cert1 (25-0001), cert3 (25-0003)
+            // Should NOT see cert4 (Expired) or cert5 (Draft) even though they're from company1
             certNumbers.Should().Contain("25-0001");
             certNumbers.Should().Contain("25-0003");
             certNumbers.Should().NotContain("25-0002"); // company2
-            certNumbers.Should().NotContain("25-0004"); // expired
-            certNumbers.Should().NotContain("25-0005"); // draft
+            certNumbers.Should().NotContain("25-0004"); // Expired
+            certNumbers.Should().NotContain("25-0005"); // Draft
             certNumbers.Should().NotContain("25-0007"); // company3
         }
 
@@ -270,12 +272,12 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             var data = GetResponseData(result);
             var certNumbers = GetCertNumbers(data);
 
-            // Partner user with Amazon partner sees only Amazon-tagged active certs
+            // Partner user with Amazon partner sees only Amazon-tagged publicly visible certs
             certNumbers.Should().Contain("25-0001");
             certNumbers.Should().Contain("25-0003");
             certNumbers.Should().NotContain("25-0002"); // Novi partner
-            certNumbers.Should().NotContain("25-0004"); // expired
-            certNumbers.Should().NotContain("25-0005"); // draft
+            certNumbers.Should().NotContain("25-0004"); // Expired
+            certNumbers.Should().NotContain("25-0005"); // Draft
             certNumbers.Should().NotContain("25-0006"); // Novi partner
             certNumbers.Should().NotContain("25-0007"); // None partner
         }
@@ -315,7 +317,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             var result = await _controller.GetCertificateTiles();
 
             var certNumbers = GetCertNumbers(GetResponseData(result));
-            certNumbers.Should().NotContain("25-0004"); // expired
+            certNumbers.Should().NotContain("25-0004"); // Expired
         }
 
         [Fact]
@@ -326,18 +328,18 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             var result = await _controller.GetCertificateTiles();
 
             var certNumbers = GetCertNumbers(GetResponseData(result));
-            certNumbers.Should().NotContain("25-0005"); // draft
+            certNumbers.Should().NotContain("25-0005"); // Draft
         }
 
         [Fact]
-        public async Task GetCertificateTiles_IncludesExpiringSoonCerts()
+        public async Task GetCertificateTiles_IncludesRepublishedCerts()
         {
             SetUserClaims("Admin", "admin@test.com");
 
             var result = await _controller.GetCertificateTiles();
 
             var certNumbers = GetCertNumbers(GetResponseData(result));
-            certNumbers.Should().Contain("25-0006"); // expiring_soon
+            certNumbers.Should().Contain("25-0006"); // Republished (publicly visible status)
         }
 
         // ========================================================
@@ -366,8 +368,8 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
 
             var data = GetResponseData(result);
             var certNumbers = GetCertNumbers(data);
-            // GreenCorp is company1, has cert1 (active), cert3 (active)
-            // cert4 (expired) and cert5 (draft) are excluded by status filter
+            // GreenCorp is company1, has cert1 (Client Approved - Paid), cert3 (Client Approved - Paid)
+            // cert4 (Expired) and cert5 (Draft) are excluded by status filter
             certNumbers.Should().Contain("25-0001");
             certNumbers.Should().Contain("25-0003");
         }
@@ -397,7 +399,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
 
             var data = GetResponseData(result);
             var certNumbers = GetCertNumbers(data);
-            // SFI certs: cert2 (active), cert6 (expiring_soon)
+            // SFI certs: cert2 (Client Approved - Paid), cert6 (Republished)
             certNumbers.Should().Contain("25-0002");
             certNumbers.Should().Contain("25-0006");
             certNumbers.Should().NotContain("25-0001"); // FSC
@@ -739,7 +741,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
         public async Task DownloadCertificate_ExpiredCert_ReturnsBadRequest()
         {
             SetUserClaims("Admin", "admin@test.com");
-            var expiredCert = await _context.Certificates.FirstAsync(c => c.Status == "expired");
+            var expiredCert = await _context.Certificates.FirstAsync(c => c.Status == "Expired");
 
             var result = await _controller.DownloadCertificate(expiredCert.Id);
 
@@ -750,7 +752,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
         public async Task DownloadCertificate_DraftCert_ReturnsBadRequest()
         {
             SetUserClaims("Admin", "admin@test.com");
-            var draftCert = await _context.Certificates.FirstAsync(c => c.Status == "draft");
+            var draftCert = await _context.Certificates.FirstAsync(c => c.Status == "Draft");
 
             var result = await _controller.DownloadCertificate(draftCert.Id);
 
@@ -951,7 +953,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             var result = await _controller.GetCertificateTiles();
 
             var data = GetResponseData(result);
-            // Analyst (like Admin) sees all active/expiring_soon/renewal_in_progress certs
+            // Analyst (like Admin) sees all publicly visible certs (Client Approved - Paid, Republished)
             data.GetProperty("totalCount").GetInt32().Should().Be(5);
         }
     }

@@ -506,17 +506,21 @@ html body.table-view-active #tableView {
         position: relative; /* Ensure checkbox stays in place */
     }
 
-    /* Focus indicator for filter checkboxes (WCAG 2.1 AA compliance) */
-    .filter-item input[type="checkbox"]:focus,
+    /* Focus indicator for filter checkboxes — keyboard only (WCAG 2.1 AA compliance) */
+    .filter-item input[type="checkbox"]:focus {
+        outline: none;
+    }
     .filter-item input[type="checkbox"]:focus-visible {
         outline: 2px solid #007bff;
         outline-offset: 2px;
     }
 
-    /* Focus indicator for table checkboxes (WCAG 2.1 AA compliance) */
+    /* Focus indicator for table checkboxes — keyboard only (WCAG 2.1 AA compliance) */
     .row-checkbox:focus,
+    #selectAll:focus {
+        outline: none;
+    }
     .row-checkbox:focus-visible,
-    #selectAll:focus,
     #selectAll:focus-visible {
         outline: 2px solid #007bff;
         outline-offset: 2px;

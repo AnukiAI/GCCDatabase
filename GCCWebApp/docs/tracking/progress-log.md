@@ -2,9 +2,32 @@
 
 **Project:** GCC Database Solution
 **Created:** 2026-03-23
-**Last Updated:** 2026-03-23
+**Last Updated:** 2026-03-25
 
 > Entries are reverse-chronological (newest first). Each entry records what was done, which tracked items were addressed, and the outcome.
+
+---
+
+## 2026-03-24
+
+| Activity | Items Addressed | Outcome | Performed By |
+|----------|-----------------|---------|--------------|
+| Fixed Product Mgmt sort arrows overlapping | DEF-039 | Reduced icon size to 10px, added `white-space: nowrap`, `min-width` on columns. Files: `product-management.css`, `Management.cshtml` | Claude |
+| Fixed Product Mgmt text wrapping/horizontal scroll | DEF-075 | Added `word-wrap`, `overflow-wrap`, horizontal scroll with `min-width: 1100px`. File: `product-management.css` | Claude |
+| Added Product Mgmt pagination | DEF-078 | 50 rows per page, numbered buttons with ellipsis, resets on filter/search. Files: `Management.cshtml`, `product-management.css` | Claude |
+| Added Product Type/Subcategory columns | DEF-080 | Added `ProductSubcategoryName` to API response and view model. Two new sortable columns. Files: `ProductController.cs`, `Management.cshtml` | Claude |
+| Removed Status/SKU/Model from Add Product | DEF-079 | Removed 3 fields completely from modal. `isActive: true` sent directly. File: `Management.cshtml` | Claude |
+| Fixed Product Type/Subcategory cascade in Add Product | DEF-080 | Category→Type client-side filter, Type→Subcategory via API fetch. File: `Management.cshtml` | Claude |
+| Fixed Product export to include Subcategory | DEF-081 | Added Product Type and Subcategory columns to CSV export. File: `Management.cshtml` | Claude |
+| Fixed Product Mgmt sorting all columns | DEF-082 | Added `sortMap` for property name translation. Numeric sort for Certificates/Identifiers. File: `Management.cshtml` | Claude |
+| Fixed breadcrumbs across 19 views | DEF-035 | All `href="#"` links fixed. Admin→Dashboard, categories→non-clickable `<span>`, current page→`<span class="current">`. 19 .cshtml files | Claude |
+| Updated role permission descriptions | DEF-089 | "Manage Workflow" and "Manage Tags" descriptions updated in `SeedData.cs`. SQL UPDATE needed for live DB | Claude |
+| Fixed Add User missing Company field | DEF-090 | Company field now shows for all roles except Partner. Files: `userManagement.js`, `UserManagement.cshtml` | Claude |
+| Fixed user creation error messages | DEF-092 | Changed `CreateUserAsync` to return `(bool, string)` tuple with actual error messages. Added duplicate email check. Files: `AdminService.cs`, `IAdminService.cs`, `AdminController.cs` | Claude |
+| Removed sample data from User template | DEF-091 | Template CSV now headers-only, no "John Doe" row. File: `userManagement.js` | Claude |
+| Updated Product Types blue box descriptions | DEF-043 | Generic language, dynamic inline examples from actual data. File: `product-types.js` | Claude |
+| Updated Product Types help modal | DEF-042 | Removed hardcoded examples, generic labels. File: `ProductTypes.cshtml` | Claude |
+| Deployed v2.0.0 to production | — | 26 code changes, 7 SQL scripts, 4 EF Core migrations. Package: GCCWebApp-Deployment-20260324.zip | Claude |
 
 ---
 

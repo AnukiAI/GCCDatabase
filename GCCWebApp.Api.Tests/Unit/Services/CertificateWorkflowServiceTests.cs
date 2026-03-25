@@ -89,58 +89,55 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 .ReturnsAsync((Certificate?)null);
 
             // Act
-            var result = await _service.CanTransitionToStatusAsync(999, "PendingReview", "Admin");
+            var result = await _service.CanTransitionToStatusAsync(999, "Client Approved - Not Paid", "Admin");
 
             // Assert
             result.Should().BeFalse();
         }
 
         [Theory]
-        [InlineData("Draft", "PendingReview", "Admin", true)]
-        [InlineData("Draft", "Cancelled", "Admin", true)]
-        [InlineData("Draft", "Active", "Admin", false)] // Invalid transition
-        [InlineData("PendingReview", "UnderReview", "Admin", true)]
-        [InlineData("PendingReview", "Draft", "Admin", true)]
-        [InlineData("PendingReview", "Cancelled", "Admin", true)]
-        [InlineData("PendingReview", "OnHold", "Admin", true)]
-        [InlineData("UnderReview", "Approved", "Admin", true)]
-        [InlineData("UnderReview", "PendingReview", "Admin", true)]
-        [InlineData("UnderReview", "Rejected", "Admin", true)]
-        [InlineData("UnderReview", "OnHold", "Admin", true)]
-        [InlineData("Approved", "Active", "Admin", true)]
-        [InlineData("Approved", "UnderReview", "Admin", true)]
-        [InlineData("Approved", "OnHold", "Admin", true)]
-        [InlineData("Active", "Suspended", "Admin", true)]
-        [InlineData("Active", "Expired", "Admin", true)]
-        [InlineData("Active", "PendingRenewal", "Admin", true)]
-        [InlineData("Active", "Revoked", "Admin", true)]
-        [InlineData("Active", "Archived", "Admin", true)]
-        [InlineData("Suspended", "Active", "Admin", true)]
-        [InlineData("Suspended", "Revoked", "Admin", true)]
-        [InlineData("Suspended", "Cancelled", "Admin", true)]
-        [InlineData("Suspended", "Archived", "Admin", true)]
-        [InlineData("Revoked", "Archived", "Admin", true)]
-        [InlineData("Revoked", "Active", "Admin", false)] // Invalid transition
-        [InlineData("Expired", "PendingRenewal", "Admin", true)]
-        [InlineData("Expired", "Archived", "Admin", true)]
-        [InlineData("Expired", "Active", "Admin", true)]
-        [InlineData("PendingRenewal", "UnderReview", "Admin", true)]
-        [InlineData("PendingRenewal", "Renewed", "Admin", true)]
-        [InlineData("PendingRenewal", "Expired", "Admin", true)]
-        [InlineData("PendingRenewal", "Cancelled", "Admin", true)]
-        [InlineData("Renewed", "Active", "Admin", true)]
-        [InlineData("Renewed", "Archived", "Admin", false)] // Invalid transition
-        [InlineData("Cancelled", "Draft", "Admin", false)] // Final state
-        [InlineData("Cancelled", "Active", "Admin", false)] // Final state
-        [InlineData("Archived", "Draft", "Admin", false)] // Final state
-        [InlineData("Archived", "Active", "Admin", false)] // Final state
-        [InlineData("OnHold", "PendingReview", "Admin", true)]
-        [InlineData("OnHold", "UnderReview", "Admin", true)]
-        [InlineData("OnHold", "Approved", "Admin", true)]
-        [InlineData("OnHold", "Cancelled", "Admin", true)]
-        [InlineData("Rejected", "Draft", "Admin", true)]
-        [InlineData("Rejected", "Archived", "Admin", true)]
-        [InlineData("Rejected", "Active", "Admin", false)] // Invalid transition
+        // Draft transitions
+        [InlineData("Draft", "Client Approved - Not Paid", "Admin", true)]
+        [InlineData("Draft", "Client Approved - Confidential", "Admin", true)]
+        [InlineData("Draft", "Client Approved - Paid", "Admin", true)]
+        [InlineData("Draft", "Hold", "Admin", true)]
+        [InlineData("Draft", "Expired", "Admin", false)] // Invalid transition
+        [InlineData("Draft", "Republished", "Admin", false)] // Invalid transition
+        // Client Approved - Not Paid transitions
+        [InlineData("Client Approved - Not Paid", "Client Approved - Paid", "Admin", true)]
+        [InlineData("Client Approved - Not Paid", "Client Approved - Confidential", "Admin", true)]
+        [InlineData("Client Approved - Not Paid", "Hold", "Admin", true)]
+        [InlineData("Client Approved - Not Paid", "Expired", "Admin", true)]
+        [InlineData("Client Approved - Not Paid", "Draft", "Admin", false)] // Invalid transition
+        // Client Approved - Confidential transitions
+        [InlineData("Client Approved - Confidential", "Client Approved - Paid", "Admin", true)]
+        [InlineData("Client Approved - Confidential", "Hold", "Admin", true)]
+        [InlineData("Client Approved - Confidential", "Expired", "Admin", true)]
+        [InlineData("Client Approved - Confidential", "Draft", "Admin", false)] // Invalid transition
+        // Client Approved - Paid transitions
+        [InlineData("Client Approved - Paid", "Hold", "Admin", true)]
+        [InlineData("Client Approved - Paid", "Expired", "Admin", true)]
+        [InlineData("Client Approved - Paid", "Republished", "Admin", true)]
+        [InlineData("Client Approved - Paid", "Expired - No Annual Verification", "Admin", true)]
+        [InlineData("Client Approved - Paid", "Draft", "Admin", false)] // Invalid transition
+        // Hold transitions
+        [InlineData("Hold", "Draft", "Admin", true)]
+        [InlineData("Hold", "Client Approved - Not Paid", "Admin", true)]
+        [InlineData("Hold", "Client Approved - Confidential", "Admin", true)]
+        [InlineData("Hold", "Client Approved - Paid", "Admin", true)]
+        [InlineData("Hold", "Expired", "Admin", false)] // Invalid transition
+        // Expired transitions
+        [InlineData("Expired", "Republished", "Admin", true)]
+        [InlineData("Expired", "Draft", "Admin", true)]
+        [InlineData("Expired", "Client Approved - Paid", "Admin", false)] // Invalid transition
+        // Republished transitions
+        [InlineData("Republished", "Expired", "Admin", true)]
+        [InlineData("Republished", "Expired - No Annual Verification", "Admin", true)]
+        [InlineData("Republished", "Hold", "Admin", true)]
+        [InlineData("Republished", "Draft", "Admin", false)] // Invalid transition
+        // Expired - No Annual Verification (only final state)
+        [InlineData("Expired - No Annual Verification", "Draft", "Admin", true)]
+        [InlineData("Expired - No Annual Verification", "Expired", "Admin", false)] // Only Draft allowed
         public async Task CanTransitionToStatusAsync_AdminRole_ValidatesTransition(
             string fromStatus, string toStatus, string role, bool expected)
         {
@@ -156,10 +153,10 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         }
 
         [Theory]
-        [InlineData("UnderReview", "Rejected", "Analyst", false)] // Analyst cannot set Rejected
-        [InlineData("Active", "Revoked", "Analyst", false)] // Analyst cannot set Revoked
-        [InlineData("UnderReview", "Approved", "Analyst", true)] // Analyst can approve
-        [InlineData("Draft", "PendingReview", "Analyst", true)] // Analyst can submit for review
+        [InlineData("Draft", "Client Approved - Not Paid", "Analyst", true)] // Analyst has all statuses
+        [InlineData("Draft", "Hold", "Analyst", true)] // Analyst can put on hold
+        [InlineData("Client Approved - Paid", "Republished", "Analyst", true)] // Analyst can republish
+        [InlineData("Client Approved - Paid", "Expired", "Analyst", true)] // Analyst can expire
         public async Task CanTransitionToStatusAsync_AnalystRole_EnforcesRoleRestrictions(
             string fromStatus, string toStatus, string role, bool expected)
         {
@@ -175,10 +172,10 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         }
 
         [Theory]
-        [InlineData("Draft", "PendingReview", "External", true)] // External can submit for review
-        [InlineData("Draft", "Cancelled", "External", false)] // External cannot cancel (not in creation statuses)
-        [InlineData("Active", "Suspended", "External", false)] // External has no access to Active transitions
-        [InlineData("UnderReview", "Approved", "External", false)] // External cannot approve
+        [InlineData("Draft", "Client Approved - Not Paid", "External", false)] // External only has Draft status, can't transition to non-Draft
+        [InlineData("Draft", "Hold", "External", false)] // External cannot put on hold (Hold not in creation statuses)
+        [InlineData("Client Approved - Paid", "Expired", "External", false)] // External has no access beyond Draft
+        [InlineData("Expired", "Draft", "External", true)] // External CAN transition to Draft (Draft is in their allowed statuses and Expired→Draft is valid)
         public async Task CanTransitionToStatusAsync_ExternalRole_LimitedToCreationStatuses(
             string fromStatus, string toStatus, string role, bool expected)
         {
@@ -205,7 +202,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 .ReturnsAsync((Certificate?)null);
 
             // Act
-            var (success, errorMessage) = await _service.TransitionCertificateStatusAsync(999, "PendingReview", 1);
+            var (success, errorMessage) = await _service.TransitionCertificateStatusAsync(999, "Client Approved - Not Paid", 1);
 
             // Assert
             success.Should().BeFalse();
@@ -215,18 +212,18 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         [Fact]
         public async Task TransitionCertificateStatusAsync_InvalidTransition_ReturnsFailure()
         {
-            // Arrange - Draft cannot go directly to Active
+            // Arrange - Draft cannot go directly to Expired
             var cert = CreateTestCertificate(1, "Draft");
             _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
 
             // Act
-            var (success, errorMessage) = await _service.TransitionCertificateStatusAsync(1, "Active", 1);
+            var (success, errorMessage) = await _service.TransitionCertificateStatusAsync(1, "Expired", 1);
 
             // Assert
             success.Should().BeFalse();
             errorMessage.Should().Contain("Invalid status transition");
             errorMessage.Should().Contain("Draft");
-            errorMessage.Should().Contain("Active");
+            errorMessage.Should().Contain("Expired");
         }
 
         [Fact]
@@ -240,12 +237,12 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             _unitOfWorkMock.Setup(u => u.CompleteAsync()).ReturnsAsync(1);
 
             // Act
-            var (success, errorMessage) = await _service.TransitionCertificateStatusAsync(1, "PendingReview", 1);
+            var (success, errorMessage) = await _service.TransitionCertificateStatusAsync(1, "Client Approved - Not Paid", 1);
 
             // Assert
             success.Should().BeTrue();
             errorMessage.Should().Be("Status updated successfully");
-            cert.Status.Should().Be("PendingReview");
+            cert.Status.Should().Be("Client Approved - Not Paid");
             cert.UpdatedBy.Should().Be(1);
         }
 
@@ -260,11 +257,11 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             _unitOfWorkMock.Setup(u => u.CompleteAsync()).ReturnsAsync(1);
 
             // Act
-            await _service.TransitionCertificateStatusAsync(1, "PendingReview", 1);
+            await _service.TransitionCertificateStatusAsync(1, "Client Approved - Not Paid", 1);
 
             // Assert
             _certificateRepoMock.Verify(r => r.UpdateAsync(It.Is<Certificate>(
-                c => c.Status == "PendingReview")), Times.Once);
+                c => c.Status == "Client Approved - Not Paid")), Times.Once);
             _unitOfWorkMock.Verify(u => u.CompleteAsync(), Times.Once);
         }
 
@@ -279,14 +276,14 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             _unitOfWorkMock.Setup(u => u.CompleteAsync()).ReturnsAsync(1);
 
             // Act
-            await _service.TransitionCertificateStatusAsync(1, "PendingReview", 1);
+            await _service.TransitionCertificateStatusAsync(1, "Client Approved - Not Paid", 1);
 
             // Assert - Verify audit history was logged to the database
             var historyEntry = await _context.CertificateStatusHistory
                 .FirstOrDefaultAsync(h => h.CertificateId == 1);
             historyEntry.Should().NotBeNull();
             historyEntry!.PreviousStatus.Should().Be("Draft");
-            historyEntry.NewStatus.Should().Be("PendingReview");
+            historyEntry.NewStatus.Should().Be("Client Approved - Not Paid");
             historyEntry.ChangedBy.Should().Be(1);
             historyEntry.IsAutomatedTransition.Should().BeFalse();
             historyEntry.ChangeSource.Should().Be("Manual");
@@ -303,7 +300,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             _unitOfWorkMock.Setup(u => u.CompleteAsync()).ReturnsAsync(1);
 
             // Act - userId 1 matches the seeded "testadmin" user
-            await _service.TransitionCertificateStatusAsync(1, "PendingReview", 1);
+            await _service.TransitionCertificateStatusAsync(1, "Client Approved - Not Paid", 1);
 
             // Assert
             var historyEntry = await _context.CertificateStatusHistory
@@ -322,7 +319,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 .ThrowsAsync(new Exception("Database error"));
 
             // Act
-            var (success, errorMessage) = await _service.TransitionCertificateStatusAsync(1, "PendingReview", 1);
+            var (success, errorMessage) = await _service.TransitionCertificateStatusAsync(1, "Client Approved - Not Paid", 1);
 
             // Assert
             success.Should().BeFalse();
@@ -330,10 +327,34 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         }
 
         [Fact]
-        public async Task TransitionCertificateStatusAsync_FromCancelledState_AlwaysFails()
+        public async Task TransitionCertificateStatusAsync_FromExpiredNoAnnualVerification_OnlyDraftAllowed()
         {
-            // Arrange - Cancelled is a final state with no valid transitions
-            var cert = CreateTestCertificate(1, "Cancelled");
+            // Arrange - "Expired - No Annual Verification" can only transition to Draft
+            var cert = CreateTestCertificate(1, "Expired - No Annual Verification");
+            _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
+            _certificateRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Certificate>()))
+                .ReturnsAsync((Certificate c) => c);
+            _unitOfWorkMock.Setup(u => u.CompleteAsync()).ReturnsAsync(1);
+
+            // Act & Assert - Only Draft should succeed
+            var allStatuses = CertificateStatusHelper.GetAllStatuses().Keys;
+            foreach (var targetStatus in allStatuses)
+            {
+                // Reset cert status for each attempt
+                cert.Status = "Expired - No Annual Verification";
+                var (success, _) = await _service.TransitionCertificateStatusAsync(1, targetStatus, 1);
+                if (targetStatus == "Draft")
+                    success.Should().BeTrue($"Expired - No Annual Verification should transition to Draft");
+                else
+                    success.Should().BeFalse($"Expired - No Annual Verification should not transition to {targetStatus}");
+            }
+        }
+
+        [Fact]
+        public async Task TransitionCertificateStatusAsync_FromUnknownStatus_AlwaysFails()
+        {
+            // Arrange - An unknown/invalid status has no valid transitions
+            var cert = CreateTestCertificate(1, "InvalidStatus");
             _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
 
             // Act & Assert - Try every possible target status
@@ -341,37 +362,21 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             foreach (var targetStatus in allStatuses)
             {
                 var (success, _) = await _service.TransitionCertificateStatusAsync(1, targetStatus, 1);
-                success.Should().BeFalse($"Cancelled should not transition to {targetStatus}");
+                success.Should().BeFalse($"Unknown status should not transition to {targetStatus}");
             }
         }
 
         [Fact]
-        public async Task TransitionCertificateStatusAsync_FromArchivedState_AlwaysFails()
+        public async Task TransitionCertificateStatusAsync_FullHappyPath_DraftToClientApprovedPaid()
         {
-            // Arrange - Archived is a final state with no valid transitions
-            var cert = CreateTestCertificate(1, "Archived");
-            _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
-
-            // Act & Assert - Try every possible target status
-            var allStatuses = CertificateStatusHelper.GetAllStatuses().Keys;
-            foreach (var targetStatus in allStatuses)
-            {
-                var (success, _) = await _service.TransitionCertificateStatusAsync(1, targetStatus, 1);
-                success.Should().BeFalse($"Archived should not transition to {targetStatus}");
-            }
-        }
-
-        [Fact]
-        public async Task TransitionCertificateStatusAsync_FullHappyPath_DraftToActive()
-        {
-            // Arrange - Walk the full happy path: Draft → PendingReview → UnderReview → Approved → Active
+            // Arrange - Walk the full happy path: Draft → Client Approved - Not Paid → Client Approved - Paid
             var cert = CreateTestCertificate(1, "Draft");
             _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
             _certificateRepoMock.Setup(r => r.UpdateAsync(It.IsAny<Certificate>()))
                 .ReturnsAsync((Certificate c) => c);
             _unitOfWorkMock.Setup(u => u.CompleteAsync()).ReturnsAsync(1);
 
-            var transitions = new[] { "PendingReview", "UnderReview", "Approved", "Active" };
+            var transitions = new[] { "Client Approved - Not Paid", "Client Approved - Paid" };
 
             foreach (var targetStatus in transitions)
             {
@@ -383,10 +388,10 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 cert.Status.Should().Be(targetStatus);
             }
 
-            // Verify all 4 audit entries were created
+            // Verify all 2 audit entries were created
             var historyCount = await _context.CertificateStatusHistory
                 .CountAsync(h => h.CertificateId == 1);
-            historyCount.Should().Be(4);
+            historyCount.Should().Be(2);
         }
 
         #endregion
@@ -408,7 +413,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         }
 
         [Fact]
-        public async Task GetAvailableStatusesForCertificateAsync_DraftCert_AdminRole_ReturnsPendingReviewAndCancelled()
+        public async Task GetAvailableStatusesForCertificateAsync_DraftCert_AdminRole_ReturnsValidTransitions()
         {
             // Arrange
             var cert = CreateTestCertificate(1, "Draft");
@@ -417,70 +422,85 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             // Act
             var result = await _service.GetAvailableStatusesForCertificateAsync(1, "Admin");
 
-            // Assert
-            result.Should().Contain("PendingReview");
-            result.Should().Contain("Cancelled");
-            result.Should().HaveCount(2);
+            // Assert - Draft can go to: Client Approved - Not Paid, Client Approved - Confidential, Client Approved - Paid, Hold
+            result.Should().Contain("Client Approved - Not Paid");
+            result.Should().Contain("Client Approved - Confidential");
+            result.Should().Contain("Client Approved - Paid");
+            result.Should().Contain("Hold");
+            result.Should().HaveCount(4);
         }
 
         [Fact]
-        public async Task GetAvailableStatusesForCertificateAsync_ActiveCert_AdminRole_ReturnsAllValidTransitions()
+        public async Task GetAvailableStatusesForCertificateAsync_ClientApprovedPaidCert_AdminRole_ReturnsAllValidTransitions()
         {
             // Arrange
-            var cert = CreateTestCertificate(1, "Active");
+            var cert = CreateTestCertificate(1, "Client Approved - Paid");
             _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
 
             // Act
             var result = await _service.GetAvailableStatusesForCertificateAsync(1, "Admin");
 
-            // Assert
-            result.Should().Contain("Suspended");
+            // Assert - Client Approved - Paid can go to: Hold, Expired, Republished, Expired - No Annual Verification
+            result.Should().Contain("Hold");
             result.Should().Contain("Expired");
-            result.Should().Contain("PendingRenewal");
-            result.Should().Contain("Revoked");
-            result.Should().Contain("Archived");
-            result.Should().HaveCount(5);
+            result.Should().Contain("Republished");
+            result.Should().Contain("Expired - No Annual Verification");
+            result.Should().HaveCount(4);
         }
 
         [Fact]
-        public async Task GetAvailableStatusesForCertificateAsync_ActiveCert_AnalystRole_ExcludesRevoked()
+        public async Task GetAvailableStatusesForCertificateAsync_ClientApprovedPaidCert_AnalystRole_SameAsAdmin()
         {
-            // Arrange - Analyst cannot set Revoked status
-            var cert = CreateTestCertificate(1, "Active");
+            // Arrange - Analyst has same statuses as Admin in 8-state system
+            var cert = CreateTestCertificate(1, "Client Approved - Paid");
             _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
 
             // Act
             var result = await _service.GetAvailableStatusesForCertificateAsync(1, "Analyst");
 
-            // Assert
-            result.Should().Contain("Suspended");
+            // Assert - Analyst has all statuses, same transitions as Admin
+            result.Should().Contain("Hold");
             result.Should().Contain("Expired");
-            result.Should().Contain("PendingRenewal");
-            result.Should().Contain("Archived");
-            result.Should().NotContain("Revoked"); // Analyst restriction
+            result.Should().Contain("Republished");
+            result.Should().Contain("Expired - No Annual Verification");
+            result.Should().HaveCount(4);
         }
 
         [Fact]
-        public async Task GetAvailableStatusesForCertificateAsync_DraftCert_ExternalRole_OnlyPendingReview()
+        public async Task GetAvailableStatusesForCertificateAsync_DraftCert_ExternalRole_ReturnsEmpty()
         {
-            // Arrange - External users can only access Draft and PendingReview statuses
+            // Arrange - External users only have "Draft" in their role statuses.
+            // From Draft, valid transitions are to non-Draft statuses, none of which are in External's allowed list.
             var cert = CreateTestCertificate(1, "Draft");
             _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
 
             // Act
             var result = await _service.GetAvailableStatusesForCertificateAsync(1, "External");
 
+            // Assert - No valid transitions because External can only target "Draft" and Draft→Draft is not a valid transition
+            result.Should().BeEmpty();
+        }
+
+        [Fact]
+        public async Task GetAvailableStatusesForCertificateAsync_ExpiredNoAnnualVerificationCert_AdminRole_OnlyDraft()
+        {
+            // Arrange - "Expired - No Annual Verification" can only transition to Draft
+            var cert = CreateTestCertificate(1, "Expired - No Annual Verification");
+            _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
+
+            // Act
+            var result = await _service.GetAvailableStatusesForCertificateAsync(1, "Admin");
+
             // Assert
-            result.Should().Contain("PendingReview");
-            result.Should().NotContain("Cancelled"); // External can't cancel
+            result.Should().Contain("Draft");
             result.Should().HaveCount(1);
         }
 
         [Fact]
-        public async Task GetAvailableStatusesForCertificateAsync_CancelledCert_AnyRole_ReturnsEmpty()
+        public async Task GetAvailableStatusesForCertificateAsync_UnknownStatus_AnyRole_ReturnsEmpty()
         {
-            // Arrange - Cancelled is a final state
-            var cert = CreateTestCertificate(1, "Cancelled");
+            // Arrange - An unknown status has no valid transitions
+            var cert = CreateTestCertificate(1, "NonExistentStatus");
             _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
 
             // Act
@@ -491,34 +511,21 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         }
 
         [Fact]
-        public async Task GetAvailableStatusesForCertificateAsync_ArchivedCert_AnyRole_ReturnsEmpty()
+        public async Task GetAvailableStatusesForCertificateAsync_HoldCert_AnalystRole_ReturnsValidTransitions()
         {
-            // Arrange - Archived is a final state
-            var cert = CreateTestCertificate(1, "Archived");
-            _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
-
-            // Act
-            var result = await _service.GetAvailableStatusesForCertificateAsync(1, "Admin");
-
-            // Assert
-            result.Should().BeEmpty();
-        }
-
-        [Fact]
-        public async Task GetAvailableStatusesForCertificateAsync_UnderReviewCert_AnalystRole_ExcludesRejected()
-        {
-            // Arrange - Analyst cannot reject
-            var cert = CreateTestCertificate(1, "UnderReview");
+            // Arrange - Hold can transition to Draft, Client Approved - Not Paid, Confidential, Paid
+            var cert = CreateTestCertificate(1, "Hold");
             _certificateRepoMock.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(cert);
 
             // Act
             var result = await _service.GetAvailableStatusesForCertificateAsync(1, "Analyst");
 
             // Assert
-            result.Should().Contain("Approved");
-            result.Should().Contain("PendingReview");
-            result.Should().Contain("OnHold");
-            result.Should().NotContain("Rejected"); // Analyst restriction
+            result.Should().Contain("Draft");
+            result.Should().Contain("Client Approved - Not Paid");
+            result.Should().Contain("Client Approved - Confidential");
+            result.Should().Contain("Client Approved - Paid");
+            result.Should().HaveCount(4);
         }
 
         #endregion
@@ -711,34 +718,28 @@ namespace GCCWebApp.Api.Tests.Unit.Services
     }
 
     /// <summary>
-    /// Tests for CertificateStatusHelper static methods — the 14-state workflow rules
+    /// Tests for CertificateStatusHelper static methods — the 8-state workflow per GCC client requirements
     /// </summary>
     public class CertificateStatusHelperTests
     {
         #region GetAllStatuses Tests
 
         [Fact]
-        public void GetAllStatuses_Returns14Statuses()
+        public void GetAllStatuses_Returns8Statuses()
         {
             var statuses = CertificateStatusHelper.GetAllStatuses();
-            statuses.Should().HaveCount(14);
+            statuses.Should().HaveCount(8);
         }
 
         [Theory]
         [InlineData("Draft", "Draft")]
-        [InlineData("PendingReview", "Pending Review")]
-        [InlineData("UnderReview", "Under Review")]
-        [InlineData("Approved", "Approved")]
-        [InlineData("Active", "Active")]
-        [InlineData("Suspended", "Suspended")]
-        [InlineData("Revoked", "Revoked")]
+        [InlineData("Client Approved - Not Paid", "Client Approved - Not Paid")]
+        [InlineData("Client Approved - Confidential", "Client Approved - Confidential")]
+        [InlineData("Client Approved - Paid", "Client Approved - Paid")]
+        [InlineData("Hold", "Hold")]
         [InlineData("Expired", "Expired")]
-        [InlineData("PendingRenewal", "Pending Renewal")]
-        [InlineData("Renewed", "Renewed")]
-        [InlineData("Cancelled", "Cancelled")]
-        [InlineData("Archived", "Archived")]
-        [InlineData("OnHold", "On Hold")]
-        [InlineData("Rejected", "Rejected")]
+        [InlineData("Republished", "Republished")]
+        [InlineData("Expired - No Annual Verification", "Expired - No Annual Verification")]
         public void GetAllStatuses_ContainsStatusWithCorrectDisplayName(string key, string expectedDisplayName)
         {
             var statuses = CertificateStatusHelper.GetAllStatuses();
@@ -751,12 +752,11 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         #region GetCreationStatuses Tests
 
         [Fact]
-        public void GetCreationStatuses_ReturnsOnlyDraftAndPendingReview()
+        public void GetCreationStatuses_ReturnsOnlyDraft()
         {
             var statuses = CertificateStatusHelper.GetCreationStatuses();
-            statuses.Should().HaveCount(2);
+            statuses.Should().HaveCount(1);
             statuses.Should().ContainKey("Draft");
-            statuses.Should().ContainKey("PendingReview");
         }
 
         #endregion
@@ -764,44 +764,40 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         #region GetStatusesForRole Tests
 
         [Fact]
-        public void GetStatusesForRole_Admin_ReturnsAll14Statuses()
+        public void GetStatusesForRole_Admin_ReturnsAll8Statuses()
         {
             var statuses = CertificateStatusHelper.GetStatusesForRole("Admin");
-            statuses.Should().HaveCount(14);
+            statuses.Should().HaveCount(8);
         }
 
         [Fact]
-        public void GetStatusesForRole_Analyst_Excludes_RejectedAndRevoked()
+        public void GetStatusesForRole_Analyst_ReturnsAll8Statuses()
         {
             var statuses = CertificateStatusHelper.GetStatusesForRole("Analyst");
-            statuses.Should().HaveCount(12);
-            statuses.Should().NotContainKey("Rejected");
-            statuses.Should().NotContainKey("Revoked");
+            statuses.Should().HaveCount(8);
         }
 
         [Fact]
         public void GetStatusesForRole_External_OnlyCreationStatuses()
         {
             var statuses = CertificateStatusHelper.GetStatusesForRole("External");
-            statuses.Should().HaveCount(2);
+            statuses.Should().HaveCount(1);
             statuses.Should().ContainKey("Draft");
-            statuses.Should().ContainKey("PendingReview");
         }
 
         [Fact]
         public void GetStatusesForRole_UnknownRole_ReturnsCreationStatuses()
         {
             var statuses = CertificateStatusHelper.GetStatusesForRole("SomeRandomRole");
-            statuses.Should().HaveCount(2);
+            statuses.Should().HaveCount(1);
             statuses.Should().ContainKey("Draft");
-            statuses.Should().ContainKey("PendingReview");
         }
 
         [Fact]
         public void GetStatusesForRole_NullRole_ReturnsCreationStatuses()
         {
             var statuses = CertificateStatusHelper.GetStatusesForRole(null!);
-            statuses.Should().HaveCount(2);
+            statuses.Should().HaveCount(1);
         }
 
         [Fact]
@@ -811,9 +807,9 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var AdminStatuses = CertificateStatusHelper.GetStatusesForRole("Admin");
             var ADMINStatuses = CertificateStatusHelper.GetStatusesForRole("ADMIN");
 
-            adminStatuses.Should().HaveCount(14);
-            AdminStatuses.Should().HaveCount(14);
-            ADMINStatuses.Should().HaveCount(14);
+            adminStatuses.Should().HaveCount(8);
+            AdminStatuses.Should().HaveCount(8);
+            ADMINStatuses.Should().HaveCount(8);
         }
 
         #endregion
@@ -822,89 +818,54 @@ namespace GCCWebApp.Api.Tests.Unit.Services
 
         [Theory]
         // Draft transitions
-        [InlineData("Draft", "PendingReview", true)]
-        [InlineData("Draft", "Cancelled", true)]
-        [InlineData("Draft", "Active", false)]
-        [InlineData("Draft", "Approved", false)]
-        [InlineData("Draft", "UnderReview", false)]
-        // PendingReview transitions
-        [InlineData("PendingReview", "UnderReview", true)]
-        [InlineData("PendingReview", "Draft", true)]
-        [InlineData("PendingReview", "Cancelled", true)]
-        [InlineData("PendingReview", "OnHold", true)]
-        [InlineData("PendingReview", "Active", false)]
-        [InlineData("PendingReview", "Approved", false)]
-        // UnderReview transitions
-        [InlineData("UnderReview", "Approved", true)]
-        [InlineData("UnderReview", "PendingReview", true)]
-        [InlineData("UnderReview", "Rejected", true)]
-        [InlineData("UnderReview", "OnHold", true)]
-        [InlineData("UnderReview", "Active", false)]
-        [InlineData("UnderReview", "Draft", false)]
-        // Approved transitions
-        [InlineData("Approved", "Active", true)]
-        [InlineData("Approved", "UnderReview", true)]
-        [InlineData("Approved", "OnHold", true)]
-        [InlineData("Approved", "Draft", false)]
-        [InlineData("Approved", "Cancelled", false)]
-        // Active transitions
-        [InlineData("Active", "Suspended", true)]
-        [InlineData("Active", "Expired", true)]
-        [InlineData("Active", "PendingRenewal", true)]
-        [InlineData("Active", "Revoked", true)]
-        [InlineData("Active", "Archived", true)]
-        [InlineData("Active", "Draft", false)]
-        [InlineData("Active", "Approved", false)]
-        // Suspended transitions
-        [InlineData("Suspended", "Active", true)]
-        [InlineData("Suspended", "Revoked", true)]
-        [InlineData("Suspended", "Cancelled", true)]
-        [InlineData("Suspended", "Archived", true)]
-        [InlineData("Suspended", "Draft", false)]
-        [InlineData("Suspended", "Approved", false)]
-        // Revoked transitions
-        [InlineData("Revoked", "Archived", true)]
-        [InlineData("Revoked", "Active", false)]
-        [InlineData("Revoked", "Draft", false)]
-        [InlineData("Revoked", "Cancelled", false)]
+        [InlineData("Draft", "Client Approved - Not Paid", true)]
+        [InlineData("Draft", "Client Approved - Confidential", true)]
+        [InlineData("Draft", "Client Approved - Paid", true)]
+        [InlineData("Draft", "Hold", true)]
+        [InlineData("Draft", "Expired", false)]
+        [InlineData("Draft", "Republished", false)]
+        // Client Approved - Not Paid transitions
+        [InlineData("Client Approved - Not Paid", "Client Approved - Paid", true)]
+        [InlineData("Client Approved - Not Paid", "Client Approved - Confidential", true)]
+        [InlineData("Client Approved - Not Paid", "Hold", true)]
+        [InlineData("Client Approved - Not Paid", "Expired", true)]
+        [InlineData("Client Approved - Not Paid", "Draft", false)]
+        [InlineData("Client Approved - Not Paid", "Republished", false)]
+        // Client Approved - Confidential transitions
+        [InlineData("Client Approved - Confidential", "Client Approved - Paid", true)]
+        [InlineData("Client Approved - Confidential", "Hold", true)]
+        [InlineData("Client Approved - Confidential", "Expired", true)]
+        [InlineData("Client Approved - Confidential", "Draft", false)]
+        [InlineData("Client Approved - Confidential", "Republished", false)]
+        // Client Approved - Paid transitions
+        [InlineData("Client Approved - Paid", "Hold", true)]
+        [InlineData("Client Approved - Paid", "Expired", true)]
+        [InlineData("Client Approved - Paid", "Republished", true)]
+        [InlineData("Client Approved - Paid", "Expired - No Annual Verification", true)]
+        [InlineData("Client Approved - Paid", "Draft", false)]
+        [InlineData("Client Approved - Paid", "Client Approved - Not Paid", false)]
+        // Hold transitions
+        [InlineData("Hold", "Draft", true)]
+        [InlineData("Hold", "Client Approved - Not Paid", true)]
+        [InlineData("Hold", "Client Approved - Confidential", true)]
+        [InlineData("Hold", "Client Approved - Paid", true)]
+        [InlineData("Hold", "Expired", false)]
+        [InlineData("Hold", "Republished", false)]
         // Expired transitions
-        [InlineData("Expired", "PendingRenewal", true)]
-        [InlineData("Expired", "Archived", true)]
-        [InlineData("Expired", "Active", true)]
-        [InlineData("Expired", "Draft", false)]
-        [InlineData("Expired", "Approved", false)]
-        // PendingRenewal transitions
-        [InlineData("PendingRenewal", "UnderReview", true)]
-        [InlineData("PendingRenewal", "Renewed", true)]
-        [InlineData("PendingRenewal", "Expired", true)]
-        [InlineData("PendingRenewal", "Cancelled", true)]
-        [InlineData("PendingRenewal", "Active", false)]
-        [InlineData("PendingRenewal", "Draft", false)]
-        // Renewed transitions
-        [InlineData("Renewed", "Active", true)]
-        [InlineData("Renewed", "Draft", false)]
-        [InlineData("Renewed", "Archived", false)]
-        [InlineData("Renewed", "Cancelled", false)]
-        // Cancelled transitions (final state)
-        [InlineData("Cancelled", "Draft", false)]
-        [InlineData("Cancelled", "Active", false)]
-        [InlineData("Cancelled", "Archived", false)]
-        // Archived transitions (final state)
-        [InlineData("Archived", "Draft", false)]
-        [InlineData("Archived", "Active", false)]
-        [InlineData("Archived", "Cancelled", false)]
-        // OnHold transitions
-        [InlineData("OnHold", "PendingReview", true)]
-        [InlineData("OnHold", "UnderReview", true)]
-        [InlineData("OnHold", "Approved", true)]
-        [InlineData("OnHold", "Cancelled", true)]
-        [InlineData("OnHold", "Active", false)]
-        [InlineData("OnHold", "Draft", false)]
-        // Rejected transitions
-        [InlineData("Rejected", "Draft", true)]
-        [InlineData("Rejected", "Archived", true)]
-        [InlineData("Rejected", "Active", false)]
-        [InlineData("Rejected", "Approved", false)]
+        [InlineData("Expired", "Republished", true)]
+        [InlineData("Expired", "Draft", true)]
+        [InlineData("Expired", "Client Approved - Paid", false)]
+        [InlineData("Expired", "Hold", false)]
+        // Republished transitions
+        [InlineData("Republished", "Expired", true)]
+        [InlineData("Republished", "Expired - No Annual Verification", true)]
+        [InlineData("Republished", "Hold", true)]
+        [InlineData("Republished", "Draft", false)]
+        [InlineData("Republished", "Client Approved - Paid", false)]
+        // Expired - No Annual Verification transitions
+        [InlineData("Expired - No Annual Verification", "Draft", true)]
+        [InlineData("Expired - No Annual Verification", "Expired", false)]
+        [InlineData("Expired - No Annual Verification", "Republished", false)]
         public void IsValidTransition_ReturnsExpectedResult(string from, string to, bool expected)
         {
             CertificateStatusHelper.IsValidTransition(from, to).Should().Be(expected,
@@ -914,7 +875,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         [Fact]
         public void IsValidTransition_UnknownFromStatus_ReturnsFalse()
         {
-            CertificateStatusHelper.IsValidTransition("InvalidStatus", "Active").Should().BeFalse();
+            CertificateStatusHelper.IsValidTransition("InvalidStatus", "Draft").Should().BeFalse();
         }
 
         [Fact]
@@ -935,10 +896,11 @@ namespace GCCWebApp.Api.Tests.Unit.Services
 
         [Theory]
         [InlineData("Draft", "Draft")]
-        [InlineData("PendingReview", "Pending Review")]
-        [InlineData("UnderReview", "Under Review")]
-        [InlineData("PendingRenewal", "Pending Renewal")]
-        [InlineData("OnHold", "On Hold")]
+        [InlineData("Client Approved - Not Paid", "Client Approved - Not Paid")]
+        [InlineData("Client Approved - Paid", "Client Approved - Paid")]
+        [InlineData("Hold", "Hold")]
+        [InlineData("Expired", "Expired")]
+        [InlineData("Republished", "Republished")]
         public void GetDisplayName_ReturnsHumanReadableName(string statusValue, string expectedDisplay)
         {
             CertificateStatusHelper.GetDisplayName(statusValue).Should().Be(expectedDisplay);
@@ -955,14 +917,13 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         #region IsActiveStatus Tests
 
         [Theory]
-        [InlineData("Active", true)]
-        [InlineData("PendingRenewal", true)]
-        [InlineData("Renewed", true)]
+        [InlineData("Client Approved - Paid", true)]
+        [InlineData("Republished", true)]
         [InlineData("Draft", false)]
         [InlineData("Expired", false)]
-        [InlineData("Suspended", false)]
-        [InlineData("Archived", false)]
-        [InlineData("Cancelled", false)]
+        [InlineData("Hold", false)]
+        [InlineData("Client Approved - Not Paid", false)]
+        [InlineData("Expired - No Annual Verification", false)]
         public void IsActiveStatus_ReturnsExpectedResult(string status, bool expected)
         {
             CertificateStatusHelper.IsActiveStatus(status).Should().Be(expected);
@@ -973,12 +934,12 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         #region IsFinalStatus Tests
 
         [Theory]
-        [InlineData("Archived", true)]
-        [InlineData("Cancelled", true)]
-        [InlineData("Active", false)]
-        [InlineData("Revoked", false)]
-        [InlineData("Rejected", false)]
+        [InlineData("Expired - No Annual Verification", true)]
         [InlineData("Draft", false)]
+        [InlineData("Client Approved - Paid", false)]
+        [InlineData("Expired", false)]
+        [InlineData("Hold", false)]
+        [InlineData("Republished", false)]
         public void IsFinalStatus_ReturnsExpectedResult(string status, bool expected)
         {
             CertificateStatusHelper.IsFinalStatus(status).Should().Be(expected);
@@ -989,12 +950,12 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         #region IsNegativeStatus Tests
 
         [Theory]
-        [InlineData("Rejected", true)]
-        [InlineData("Revoked", true)]
-        [InlineData("Cancelled", true)]
-        [InlineData("Active", false)]
+        [InlineData("Expired", true)]
+        [InlineData("Expired - No Annual Verification", true)]
         [InlineData("Draft", false)]
-        [InlineData("Expired", false)]
+        [InlineData("Client Approved - Paid", false)]
+        [InlineData("Hold", false)]
+        [InlineData("Republished", false)]
         public void IsNegativeStatus_ReturnsExpectedResult(string status, bool expected)
         {
             CertificateStatusHelper.IsNegativeStatus(status).Should().Be(expected);
@@ -1005,15 +966,13 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         #region NeedsAttention Tests
 
         [Theory]
-        [InlineData("PendingReview", true)]
-        [InlineData("UnderReview", true)]
-        [InlineData("OnHold", true)]
-        [InlineData("PendingRenewal", true)]
+        [InlineData("Client Approved - Not Paid", true)]
+        [InlineData("Hold", true)]
         [InlineData("Expired", true)]
-        [InlineData("Active", false)]
         [InlineData("Draft", false)]
-        [InlineData("Archived", false)]
-        [InlineData("Cancelled", false)]
+        [InlineData("Client Approved - Paid", false)]
+        [InlineData("Republished", false)]
+        [InlineData("Expired - No Annual Verification", false)]
         public void NeedsAttention_ReturnsExpectedResult(string status, bool expected)
         {
             CertificateStatusHelper.NeedsAttention(status).Should().Be(expected);
@@ -1044,7 +1003,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         public void AllStatuses_HaveTransitionRules()
         {
             // Every status should be a valid 'from' status in the transition map
-            // (even if it has no valid transitions, like Cancelled/Archived)
+            // (even if it has no valid transitions, like Expired - No Annual Verification)
             var allStatuses = CertificateStatusHelper.GetAllStatuses().Keys;
 
             foreach (var status in allStatuses)
@@ -1064,31 +1023,29 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         }
 
         [Fact]
-        public void HappyPath_DraftToActive_IsReachable()
+        public void HappyPath_DraftToApprovedPaid_IsReachable()
         {
-            // Verify the primary workflow path works end-to-end
-            CertificateStatusHelper.IsValidTransition("Draft", "PendingReview").Should().BeTrue();
-            CertificateStatusHelper.IsValidTransition("PendingReview", "UnderReview").Should().BeTrue();
-            CertificateStatusHelper.IsValidTransition("UnderReview", "Approved").Should().BeTrue();
-            CertificateStatusHelper.IsValidTransition("Approved", "Active").Should().BeTrue();
+            // Verify the primary workflow path: Draft → Client Approved - Not Paid → Client Approved - Paid
+            CertificateStatusHelper.IsValidTransition("Draft", "Client Approved - Not Paid").Should().BeTrue();
+            CertificateStatusHelper.IsValidTransition("Client Approved - Not Paid", "Client Approved - Paid").Should().BeTrue();
         }
 
         [Fact]
-        public void RenewalPath_ActiveToRenewedToActive_IsReachable()
+        public void HoldPath_CanReturnToAnyApprovalState()
         {
-            // Verify the renewal workflow works
-            CertificateStatusHelper.IsValidTransition("Active", "PendingRenewal").Should().BeTrue();
-            CertificateStatusHelper.IsValidTransition("PendingRenewal", "Renewed").Should().BeTrue();
-            CertificateStatusHelper.IsValidTransition("Renewed", "Active").Should().BeTrue();
+            // Verify Hold can return to Draft or any Client Approved state
+            CertificateStatusHelper.IsValidTransition("Hold", "Draft").Should().BeTrue();
+            CertificateStatusHelper.IsValidTransition("Hold", "Client Approved - Not Paid").Should().BeTrue();
+            CertificateStatusHelper.IsValidTransition("Hold", "Client Approved - Confidential").Should().BeTrue();
+            CertificateStatusHelper.IsValidTransition("Hold", "Client Approved - Paid").Should().BeTrue();
         }
 
         [Fact]
-        public void RejectionPath_CanReturnToDraft()
+        public void ExpiredPath_CanRepublishOrRestartAsDraft()
         {
-            // Verify rejected certificates can restart the process
-            CertificateStatusHelper.IsValidTransition("UnderReview", "Rejected").Should().BeTrue();
-            CertificateStatusHelper.IsValidTransition("Rejected", "Draft").Should().BeTrue();
-            CertificateStatusHelper.IsValidTransition("Draft", "PendingReview").Should().BeTrue();
+            // Verify expired certificates can be republished or restarted
+            CertificateStatusHelper.IsValidTransition("Expired", "Republished").Should().BeTrue();
+            CertificateStatusHelper.IsValidTransition("Expired", "Draft").Should().BeTrue();
         }
 
         #endregion

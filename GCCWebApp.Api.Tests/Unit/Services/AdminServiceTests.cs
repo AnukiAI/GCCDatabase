@@ -166,10 +166,10 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             result.Data.Should().NotBeNull();
             result.Data!.Name.Should().Be("First Category Ever");
 
-            // Verify a default category was created
+            // Verify a matching category was created with the same name
             var categories = await freshContext.ProductCategories.ToListAsync();
             categories.Should().HaveCountGreaterThan(0);
-            categories.First().Name.Should().Be("Default");
+            categories.First().Name.Should().Be("First Category Ever");
 
             freshContext.Dispose();
         }

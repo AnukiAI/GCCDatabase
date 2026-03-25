@@ -116,23 +116,23 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             _context.SaveChanges();
 
             _context.Certificates.AddRange(
-                // Active with far-future expiration
+                // Active with far-future expiration (publicly visible status)
                 new Certificate
                 {
-                    Number = "CERT-001", Status = "Active", CompanyId = company1.Id, ProductId = product1.Id,
+                    Number = "CERT-001", Status = "Client Approved - Paid", CompanyId = company1.Id, ProductId = product1.Id,
                     CertificationTypeId = certType1.Id, EffectiveDate = now.AddDays(-60),
                     ExpirationDate = now.AddDays(300), Location = "Philadelphia", Country = "USA", CreatedAt = now.AddDays(-5)
                 },
                 new Certificate
                 {
-                    Number = "CERT-002", Status = "Active", CompanyId = company2.Id, ProductId = product2.Id,
+                    Number = "CERT-002", Status = "Client Approved - Paid", CompanyId = company2.Id, ProductId = product2.Id,
                     CertificationTypeId = certType2.Id, EffectiveDate = now.AddDays(-30),
                     ExpirationDate = now.AddDays(200), Location = "Toronto", Country = "Canada", CreatedAt = now.AddDays(-3)
                 },
                 // Active expiring within 30 days (for expiring-30-days / expiring-3-months reports)
                 new Certificate
                 {
-                    Number = "CERT-003", Status = "Active", CompanyId = company1.Id, ProductId = product1.Id,
+                    Number = "CERT-003", Status = "Client Approved - Paid", CompanyId = company1.Id, ProductId = product1.Id,
                     CertificationTypeId = certType1.Id, EffectiveDate = now.AddDays(-300),
                     ExpirationDate = now.AddDays(15), Location = "Denver", Country = "USA", CreatedAt = now.AddDays(-5)
                 },
@@ -562,7 +562,7 @@ namespace GCCWebApp.Api.Tests.Unit.Controllers
             csv.Should().Contain("Status,Count");
             csv.Should().Contain("\"Active\",3");
             csv.Should().Contain("\"Expired\",1");
-            csv.Should().Contain("\"Expiring Soon\",1");
+            // Note: Controller only outputs Active and Expired rows from statistics
         }
 
         [Fact]

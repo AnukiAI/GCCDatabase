@@ -113,7 +113,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var cert = new Certificate
             {
                 Id = 1, Number = "25-0001", CompanyId = 1, ProductId = 1,
-                CertificationTypeId = 1, Status = "Active",
+                CertificationTypeId = 1, Status = "Client Approved - Paid",
                 EffectiveDate = new DateTime(2025, 1, 1),
                 ExpirationDate = new DateTime(2026, 1, 1),
                 Location = "Philadelphia PA", Country = "USA",
@@ -171,7 +171,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         private static string[] StdRow(
             string certNum = "25-9999", string company = "Test Company",
             string product = "Test Product", string certType = "UL 2809",
-            string status = "Active", string effDate = "2025-01-01",
+            string status = "Client Approved - Paid", string effDate = "2025-01-01",
             string expDate = "2026-01-01", string location = "NYC",
             string country = "USA", string partner = "Amazon")
         {
@@ -181,7 +181,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
 
         private CertificateImportPreviewResult CreatePreviewWithNewRow(
             string certNum, int companyId = 1, int productId = 1,
-            int certTypeId = 1, string status = "Active",
+            int certTypeId = 1, string status = "Client Approved - Paid",
             string partner = "Amazon",
             string? certResults = null,
             List<int>? tagIds = null,
@@ -711,7 +711,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
 
             var result = await _service.PreviewImportAsync(file, 1, "admin");
 
-            result.NewRows[0].Status.Should().Be("active");
+            result.NewRows[0].Status.Should().Be("Draft");
         }
 
         [Fact]
@@ -869,7 +869,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var csv = BuildCsv(ExtHeaders, new[]
             {
                 "25-0001", "Test Company", "Test Product", "UL 2809",
-                "Active", "2025-01-01", "2026-01-01", "Philadelphia PA",
+                "Client Approved - Paid", "2025-01-01", "2026-01-01", "Philadelphia PA",
                 "USA", "Amazon", "", "", "", "", "", "New results", "",
                 "", "", "", ""
             });
@@ -1003,7 +1003,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 .FirstOrDefault(c => c.Number == "25-5000");
             cert.Should().NotBeNull();
             cert!.CompanyId.Should().Be(1);
-            cert.Status.Should().Be("Active");
+            cert.Status.Should().Be("Client Approved - Paid");
         }
 
         [Fact]
@@ -1232,7 +1232,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                         ProductId = 1,
                         CertificationType = "UL 2809",
                         CertificationTypeId = 1,
-                        Status = "Active",
+                        Status = "Client Approved - Paid",
                         Location = "Updated City",
                         Country = "USA",
                         Partner = "Amazon",

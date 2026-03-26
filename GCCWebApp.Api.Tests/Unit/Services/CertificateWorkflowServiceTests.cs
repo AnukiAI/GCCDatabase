@@ -983,8 +983,10 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         #region Workflow Consistency Tests
 
         [Fact]
-        public void FinalStatuses_HaveNoOutboundTransitions()
+        public void FinalStatuses_OnlyAllowTransitionBackToDraft()
         {
+            // In the 8-state system, the "final" status (Expired - No Annual Verification)
+            // can only transition back to Draft for reprocessing
             var finalStatuses = CertificateStatusHelper.GetAllStatuses().Keys
                 .Where(CertificateStatusHelper.IsFinalStatus);
 
@@ -993,8 +995,16 @@ namespace GCCWebApp.Api.Tests.Unit.Services
                 var allTargets = CertificateStatusHelper.GetAllStatuses().Keys;
                 foreach (var target in allTargets)
                 {
-                    CertificateStatusHelper.IsValidTransition(finalStatus, target).Should().BeFalse(
-                        $"Final status '{finalStatus}' should not allow transition to '{target}'");
+                    if (target == "Draft")
+                    {
+                        CertificateStatusHelper.IsValidTransition(finalStatus, target).Should().BeTrue(
+                            $"Final status '{finalStatus}' should allow transition back to Draft");
+                    }
+                    else
+                    {
+                        CertificateStatusHelper.IsValidTransition(finalStatus, target).Should().BeFalse(
+                            $"Final status '{finalStatus}' should not allow transition to '{target}'");
+                    }
                 }
             }
         }

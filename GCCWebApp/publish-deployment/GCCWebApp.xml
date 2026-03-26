@@ -34,6 +34,17 @@
             Initiate sign-out process (POST version for form submission)
             </summary>
         </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.LogoutPostGet">
+            <summary>
+            Handle GET requests to LogoutPost (e.g. browser navigating directly to the URL).
+            Redirects to the GET Logout endpoint instead of returning an error.
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Controllers.AccountController.SessionExpired">
+            <summary>
+            Session expired handler — redirects to login with a message
+            </summary>
+        </member>
         <member name="M:GCCWebApp.Controllers.AccountController.SignedOut">
             <summary>
             Handle post-signout redirect
@@ -1514,6 +1525,12 @@
             </summary>
         </member>
         <!-- Badly formed XML comment ignored for member "M:GCCWebApp.Controllers.CertificateController.GetProductsByType(System.Nullable{System.Int32},System.Nullable{System.Int32})" -->
+        <member name="M:GCCWebApp.Controllers.CertificateController.GetProductsByCompany(System.Int32)">
+            <summary>
+            Gets products filtered by company, with category/type/subcategory data for auto-fill
+            GET: /Certificate/GetProductsByCompany?companyId={id}
+            </summary>
+        </member>
         <member name="M:GCCWebApp.Controllers.CertificateController.SearchProducts(System.String)">
             <summary>
             Search products by name for autocomplete
@@ -2486,19 +2503,22 @@
         <member name="T:GCCWebApp.Models.CertificateStatus">
             <summary>
             Enumeration of certificate lifecycle status values
-            Aligned with DATA_VALIDATION_RULES.md - 14 documented states
+            8 client-defined states per GCC requirements
             </summary>
         </member>
         <member name="T:GCCWebApp.Models.CertificateStatusHelper">
             <summary>
             Static class for certificate status management and workflow rules
-            Database-driven status values aligned with DATA_VALIDATION_RULES.md
+            </summary>
+        </member>
+        <member name="F:GCCWebApp.Models.CertificateStatusHelper.PublicStatuses">
+            <summary>
+            Statuses visible on the public (anonymous) view
             </summary>
         </member>
         <member name="M:GCCWebApp.Models.CertificateStatusHelper.GetAllStatuses">
             <summary>
             Gets all available status values with their display names
-            These are the 14 documented states from DATA_VALIDATION_RULES.md
             </summary>
         </member>
         <member name="M:GCCWebApp.Models.CertificateStatusHelper.GetCreationStatuses">
@@ -2514,12 +2534,16 @@
         <member name="M:GCCWebApp.Models.CertificateStatusHelper.IsValidTransition(System.String,System.String)">
             <summary>
             Determines if a status transition is valid based on business rules
-            Workflow: Draft → PendingReview → UnderReview → Approved → Active
             </summary>
         </member>
         <member name="M:GCCWebApp.Models.CertificateStatusHelper.GetDisplayName(System.String)">
             <summary>
             Gets the display name for a status value
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Models.CertificateStatusHelper.IsPubliclyVisible(System.String)">
+            <summary>
+            Checks if a status is visible on the public view
             </summary>
         </member>
         <member name="M:GCCWebApp.Models.CertificateStatusHelper.IsActiveStatus(System.String)">
@@ -2995,7 +3019,7 @@
         <member name="T:GCCWebApp.Models.PartnerApiKey">
             <summary>
             Partner-specific API key for accessing GCC API endpoints
-            Tracks usage and permissions for external partners (Amazon, Wayfair, etc.)
+            Tracks usage and permissions for external partners (Amazon, Novi, Wayfair, etc.)
             </summary>
         </member>
         <member name="P:GCCWebApp.Models.PartnerApiKey.PartnerId">
@@ -3234,11 +3258,45 @@
             Summary of a user's audit activity
             </summary>
         </member>
+        <member name="M:GCCWebApp.Services.ICertificateExpirationService.CheckAndExpireAsync">
+            <summary>
+            Checks and expires overdue certificates. Throttled to run at most once per day.
+            Safe to call on every login — skips if already ran today.
+            </summary>
+        </member>
+        <member name="T:GCCWebApp.Services.CertificateExpirationService">
+            <summary>
+            Service that automatically expires certificates whose expiration date has passed.
+            Triggered on user login, throttled to run at most once per 24 hours.
+            Logs all changes to both CertificateStatusHistory and AuditHistory tables.
+            </summary>
+        </member>
         <member name="M:GCCWebApp.Services.CertificateFieldService.GetFieldsForRoleAsync(System.String)">
             <summary>
             Get custom fields filtered by user role visibility
             </summary>
             <param name="userRole">User role: Public, External, Analyst, Admin</param>
+        </member>
+        <member name="T:GCCWebApp.Services.CertificateService.CertificateExportRow">
+            <summary>
+            Internal export row with all certificate fields for comprehensive export.
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateService.GetCertificatesForExportAsync(GCCWebApp.Models.CertificateListRequest)">
+            <summary>
+            Queries certificates with all navigation properties for comprehensive export.
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateService.GetCertificatesForExportByIdsAsync(System.Collections.Generic.List{System.String})">
+            <summary>
+            Queries certificates by IDs/numbers with all fields for export.
+            </summary>
+        </member>
+        <member name="M:GCCWebApp.Services.CertificateService.GetCustomFieldDataForExport(System.Collections.Generic.List{System.Int32})">
+            <summary>
+            Gets all custom field names and their values for the given certificate IDs.
+            Returns ordered field names and a map of certificateId -> (fieldName -> value).
+            </summary>
         </member>
         <member name="M:GCCWebApp.Services.CertificateService.SearchCertificatesAsync(GCCWebApp.Models.CertificateListRequest)">
             <summary>
@@ -3523,11 +3581,6 @@
         <member name="T:GreenCircleCertified.Models.FilterOption">
             <summary>
             Filter option model for building dynamic filter UI
-            </summary>
-        </member>
-        <member name="T:GreenCircleCertified.Models.CertificateStatus">
-            <summary>
-            Certificate status enumeration
             </summary>
         </member>
         <member name="T:GreenCircleCertified.Models.UserRole">

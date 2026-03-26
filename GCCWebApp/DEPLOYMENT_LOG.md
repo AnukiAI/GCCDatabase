@@ -4,6 +4,36 @@ Track all deployments to production/test servers including code changes and data
 
 ---
 
+## Deployment 2026-03-25 (v2.0.1) — QC Validation Fixes
+
+**Package**: `GCCWebApp-Deployment-20260325.zip` (~115 MB)
+**Target**: AccuWebHosting / Plesk (https://gccwebapp.com)
+
+### Database Changes Required: NO
+
+No new SQL scripts. This is a code-only deployment (CSS, JS, and Controller fixes found during QC validation testing).
+
+### Code Changes
+
+| Issue | Area | Fix |
+|-------|------|-----|
+| NEW-001 (Critical) | Public view - direct URL | Anonymous users could access non-public certs via direct URL (`/Certificate/CertificateSingleView/26-0003`). Added status + expiration guard. Returns 404 for non-public certs. File: `CertificateController.cs` |
+| NEW-002 | Public view - UI | Blue focus border on checkboxes/logo on mouse click. Changed `:focus` to `:focus-visible` (keyboard only). Files: `main.css`, `certificatetileview.css` |
+| NEW-003 (High) | Public view - mobile/tablet | "Show Filters & Search" not displaying. Root cause: `main.css` used `.sidebar.expanded` but JS toggles `.sidebar.mobile-open`. Fixed class mismatch + removed `max-height: 60px` constraint. File: `main.css` |
+| NEW-004 | Public view - mobile/tablet | Empty nav bar showing for anonymous users on mobile. Added `nav-anon` class, hidden at <=1024px. Files: `_Layout.cshtml`, `main.css` |
+| QC #50 | Create cert - mobile | Form layout distorted on mobile. Base grid styles used `!important` blocking responsive overrides. Added proper responsive breakpoints for 1024px, 768px, 480px. File: `certificate-create.css` |
+
+### Deployment Steps
+
+1. **Stop application** on Plesk
+2. **Backup current files** on server
+3. **Extract zip** to application root (overwrite all files)
+4. **Verify `appsettings.Production.json`** — ensure connection string and settings preserved
+5. **Start application** on Plesk
+6. **Verify** — test direct URL access to Draft cert while not logged in (should 404), test mobile filter toggle, test Create cert page on mobile
+
+---
+
 ## Deployment 2026-03-24 (v2.0.0) — QC Sprint 1
 
 **Package**: `GCCWebApp-Deployment-20260324.zip` (~64 MB)

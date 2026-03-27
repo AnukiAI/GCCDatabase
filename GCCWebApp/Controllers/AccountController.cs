@@ -169,11 +169,12 @@ namespace GCCWebApp.Controllers
             }
 
             // Simple authentication logic for testing
-            var userRole = ValidateUser(model.Email, model.Password);
+            var (userRole, loginError) = ValidateUserDetailed(model.Email, model.Password);
 
             if (string.IsNullOrEmpty(userRole))
             {
-                ModelState.AddModelError("", "Invalid email or password.");
+                _logger.LogWarning("Login failed for {Email}: {Reason}", model.Email, loginError);
+                ModelState.AddModelError("", $"Login failed: {loginError}");
                 return View(model);
             }
 
@@ -391,7 +392,7 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// Handle forgot password form submission (fallback)
+        /// Handle forgot password form submission - generates token and sends reset email
         /// </summary>
         [AllowAnonymous]
         [HttpPost]
@@ -403,16 +404,161 @@ namespace GCCWebApp.Controllers
                 return View(model);
             }
 
-            // In a real application, you would send a password reset email
-            _logger.LogInformation($"Password reset requested for {model.Email}");
-            
-            // For demo purposes, just show a success message
-            ViewBag.Message = "If an account with that email address exists, you will receive a password reset link.";
-            
-            // Add await for async completion
-            await Task.CompletedTask;
-            
+            // Always show the same confirmation to prevent email enumeration
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == model.Email && !u.IsDeleted);
+
+            if (user != null)
+            {
+                // Generate a secure random token
+                var tokenBytes = System.Security.Cryptography.RandomNumberGenerator.GetBytes(32);
+                var rawToken = Convert.ToBase64String(tokenBytes);
+
+                // Store hashed token in DB (don't store raw token)
+                using var sha256 = System.Security.Cryptography.SHA256.Create();
+                var hashedToken = Convert.ToBase64String(sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(rawToken)));
+
+                user.PasswordResetToken = hashedToken;
+                user.PasswordResetTokenExpiry = DateTime.UtcNow.AddHours(1);
+                await _context.SaveChangesAsync();
+
+                // Build the reset link with the RAW token (not the hash)
+                var urlEncodedToken = System.Net.WebUtility.UrlEncode(rawToken);
+                var resetLink = $"{Request.Scheme}://{Request.Host}/Account/ResetPasswordWithToken?token={urlEncodedToken}&email={System.Net.WebUtility.UrlEncode(user.Email)}";
+
+                var emailBody = $@"
+                    <html>
+                    <body style='font-family: Arial, sans-serif; color: #333;'>
+                        <div style='max-width: 600px; margin: 0 auto; padding: 20px;'>
+                            <div style='text-align: center; margin-bottom: 30px;'>
+                                <h1 style='color: #4a7c23;'>GreenCircle Certified Database</h1>
+                            </div>
+                            <h2>Password Reset Request</h2>
+                            <p>Hello {user.FullName ?? user.Username},</p>
+                            <p>We received a request to reset your password. Click the button below to set a new password:</p>
+                            <div style='text-align: center; margin: 30px 0;'>
+                                <a href='{resetLink}' style='background-color: #4a7c23; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-size: 16px;'>Reset Password</a>
+                            </div>
+                            <p>Or copy and paste this link into your browser:</p>
+                            <p style='word-break: break-all; color: #666; font-size: 14px;'>{resetLink}</p>
+                            <p><strong>This link expires in 1 hour.</strong></p>
+                            <p>If you did not request a password reset, please ignore this email. Your password will remain unchanged.</p>
+                            <hr style='border: none; border-top: 1px solid #eee; margin: 30px 0;' />
+                            <p style='color: #999; font-size: 12px;'>This is an automated message from the GCC Database System. Please do not reply to this email.</p>
+                        </div>
+                    </body>
+                    </html>";
+
+                try
+                {
+                    await _emailService.SendEmailAsync(user.Email, "Password Reset - GCC Database", emailBody);
+                    _logger.LogInformation("Password reset email sent to {Email}", user.Email);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send password reset email to {Email}", user.Email);
+                    // Don't reveal the error to the user - still show confirmation
+                }
+            }
+            else
+            {
+                _logger.LogInformation("Password reset requested for non-existent email: {Email}", model.Email);
+            }
+
             return View("ForgotPasswordConfirmation");
+        }
+
+        /// <summary>
+        /// Display reset password form after clicking email link
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet]
+        public async Task<IActionResult> ResetPasswordWithToken(string token, string email)
+        {
+            if (string.IsNullOrEmpty(token) || string.IsNullOrEmpty(email))
+            {
+                ViewBag.Error = "Invalid password reset link.";
+                return View("ResetPassword");
+            }
+
+            // Validate the token
+            var decodedToken = System.Net.WebUtility.UrlDecode(token);
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var hashedToken = Convert.ToBase64String(sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(decodedToken)));
+
+            var user = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Email == email &&
+                !u.IsDeleted &&
+                u.PasswordResetToken == hashedToken &&
+                u.PasswordResetTokenExpiry > DateTime.UtcNow);
+
+            if (user == null)
+            {
+                ViewBag.Error = "This password reset link is invalid or has expired. Please request a new one.";
+                return View("ResetPassword");
+            }
+
+            ViewBag.Token = token;
+            ViewBag.Email = email;
+            return View("ResetPassword");
+        }
+
+        /// <summary>
+        /// Handle password reset form submission (from email link)
+        /// </summary>
+        [AllowAnonymous]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ResetPasswordWithToken(ResetPasswordViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.Token = model.Token;
+                ViewBag.Email = model.Email;
+                ViewBag.Error = "Please correct the errors below.";
+                return View("ResetPassword");
+            }
+
+            if (model.Password != model.ConfirmPassword)
+            {
+                ViewBag.Token = model.Token;
+                ViewBag.Email = model.Email;
+                ViewBag.Error = "Passwords do not match.";
+                return View("ResetPassword");
+            }
+
+            // Validate token
+            var decodedToken = System.Net.WebUtility.UrlDecode(model.Token);
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var hashedToken = Convert.ToBase64String(sha256.ComputeHash(System.Text.Encoding.UTF8.GetBytes(decodedToken)));
+
+            var user = await _context.Users.FirstOrDefaultAsync(u =>
+                u.Email == model.Email &&
+                !u.IsDeleted &&
+                u.PasswordResetToken == hashedToken &&
+                u.PasswordResetTokenExpiry > DateTime.UtcNow);
+
+            if (user == null)
+            {
+                ViewBag.Error = "This password reset link is invalid or has expired. Please request a new one.";
+                return View("ResetPassword");
+            }
+
+            // Update the password
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password);
+            user.PasswordResetToken = null;
+            user.PasswordResetTokenExpiry = null;
+            user.RequirePasswordReset = false;
+            user.RequirePasswordChange = false;
+            user.MustChangePassword = false;
+            user.PasswordChangedAt = DateTime.UtcNow;
+            user.FailedLoginAttempts = 0;
+            user.LockedUntil = null;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Password successfully reset for {Email}", model.Email);
+
+            return View("PasswordResetSuccess");
         }
 
         /// <summary>
@@ -849,6 +995,12 @@ namespace GCCWebApp.Controllers
 
         private string ValidateUser(string email, string password)
         {
+            var (role, _) = ValidateUserDetailed(email, password);
+            return role;
+        }
+
+        private (string Role, string Error) ValidateUserDetailed(string email, string password)
+        {
             try
             {
                 // Query database for user by email OR username
@@ -860,7 +1012,7 @@ namespace GCCWebApp.Controllers
                 if (user == null)
                 {
                     _logger.LogWarning("Login attempt failed: User not found for email/username: {Email}", email);
-                    return string.Empty;
+                    return (string.Empty, "User not found");
                 }
 
                 // Check if user is active
@@ -868,14 +1020,24 @@ namespace GCCWebApp.Controllers
                 {
                     _logger.LogWarning("Login attempt failed: User {Email} is not active (IsActive={IsActive}, IsDeleted={IsDeleted}, Status={Status})",
                         email, user.IsActive, user.IsDeleted, user.Status);
-                    return string.Empty;
+                    return (string.Empty, $"Account inactive (IsActive={user.IsActive}, IsDeleted={user.IsDeleted}, Status={user.Status})");
                 }
 
                 // Verify password using BCrypt
-                if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+                try
                 {
-                    _logger.LogWarning("Login attempt failed: Invalid password for user: {Email}", email);
-                    return string.Empty;
+                    if (!BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+                    {
+                        _logger.LogWarning("Login attempt failed: Invalid password for user: {Email} (hash prefix: {HashPrefix})",
+                            email, user.PasswordHash?.Substring(0, Math.Min(20, user.PasswordHash?.Length ?? 0)));
+                        return (string.Empty, "Invalid password");
+                    }
+                }
+                catch (Exception bcryptEx)
+                {
+                    _logger.LogError(bcryptEx, "BCrypt verification threw exception for user {Email}, hash length={Len}",
+                        email, user.PasswordHash?.Length);
+                    return (string.Empty, $"Password verification error: {bcryptEx.Message}");
                 }
 
                 // Get user's primary role
@@ -887,12 +1049,12 @@ namespace GCCWebApp.Controllers
                 user.LastLoginAt = DateTime.UtcNow;
                 _context.SaveChanges();
 
-                return role;
+                return (role, string.Empty);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error validating user {Email}", email);
-                return string.Empty;
+                return (string.Empty, $"Database error: {ex.Message}");
             }
         }
 

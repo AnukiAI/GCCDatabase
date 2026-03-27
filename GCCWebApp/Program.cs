@@ -676,7 +676,7 @@ app.UseSwaggerConfiguration(apiVersionDescriptionProvider);
 // ===== REDOC CONFIGURATION (Client-Friendly Documentation) =====
 // ReDoc provides clean, read-only API documentation for partners
 
-// Public endpoint to serve the OpenAPI spec (allows anonymous access for ReDoc)
+// Authenticated endpoint to serve the OpenAPI spec for ReDoc
 app.MapGet("/api-docs/openapi.json", (HttpContext context, Swashbuckle.AspNetCore.Swagger.ISwaggerProvider swaggerProvider) =>
 {
     try
@@ -695,7 +695,7 @@ app.MapGet("/api-docs/openapi.json", (HttpContext context, Swashbuckle.AspNetCor
     }
 })
 .WithName("OpenApiSpec")
-.AllowAnonymous();
+.RequireAuthorization();
 
 app.MapGet("/api-docs", async (HttpContext context) =>
 {
@@ -732,7 +732,7 @@ app.MapGet("/api-docs", async (HttpContext context) =>
     await context.Response.WriteAsync(html);
 })
 .WithName("ApiDocs")
-.AllowAnonymous();
+.RequireAuthorization();
 
 // ===== DEDICATED PARTNER API DOCUMENTATION ROUTE =====
 // Route for partners to access their specific API documentation

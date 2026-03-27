@@ -1,0 +1,160 @@
+/* =============================================================================
+   CERTIFICATE TILE VIEW EXTERNAL - PAGE-SPECIFIC STYLES
+
+   Extracted from Views/Certificate/CertificateTileViewExternal.cshtml
+   This file contains grid column definitions specific to the External view.
+   All shared styles are in certificatetileview.css
+
+   Last Updated: January 2026
+   ============================================================================= */
+
+/* =============================================================================
+   GRID LAYOUT - EXTERNAL VIEW (21 COLUMNS)
+   Does NOT include: Internal Tag column (only visible to internal users)
+   CSF Attributes column removed per client request
+   ============================================================================= */
+
+.table-grid {
+    display: grid;
+    grid-template-columns:
+        36px      /* 1. Select checkbox */
+        80px      /* 2. Actions (Download + View) */
+        140px     /* 3. Certificate # */
+        175px     /* 4. Certification Type */
+        110px     /* 5. Status */
+        130px     /* 6. Effective Date */
+        135px     /* 7. Expiration Date */
+        170px     /* 8. Company */
+        150px     /* 9. Company Contact */
+        220px     /* 10. Product Name */
+        200px     /* 11. Product Category */
+        130px     /* 12. Product Type */
+        140px     /* 13. Product Subcategory */
+        100px     /* 14. Location */
+        100px     /* 15. Country */
+        120px     /* 16. External Tag */
+        100px     /* 17. Partner */
+        80px      /* 18. ASIN */
+        75px      /* 19. UPC */
+        75px      /* 20. GTIN */
+        75px;     /* 21. EAN */
+    min-width: max-content;
+    width: 100%;
+}
+
+/* Table container min-width for External (21 columns) */
+.table-grid-container {
+    min-width: 2491px;
+    width: max-content;
+}
+
+/* =============================================================================
+   SELECT & ACTIONS COLUMNS - CENTERED LAYOUT
+   ============================================================================= */
+
+/* Select cell - header & body - CENTERED checkbox */
+.table-grid .grid-header-cell.select-cell,
+.table-grid .grid-cell.select-cell {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px !important;
+    text-align: center !important;
+}
+
+/* Actions column - header & body - CENTERED content */
+.table-grid .grid-header-cell.actions-column,
+.table-grid .grid-cell.actions-column {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    padding: 8px 6px !important;
+    overflow: visible !important;
+}
+
+/* Actions header text centering - full width span */
+.table-grid .grid-header-cell.actions-column span {
+    display: block !important;
+    text-align: center !important;
+    width: 100% !important;
+    font-weight: 600 !important;
+}
+
+/* Action buttons container - centered within the cell */
+.table-grid .grid-cell.actions-column .action-buttons {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+}
+
+/* Individual action buttons - consistent sizing */
+.table-grid .grid-cell.actions-column .action-btn {
+    padding: 4px !important;
+    min-width: 26px !important;
+    height: 26px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border: none !important;
+    background: transparent !important;
+    border-radius: 4px !important;
+    color: #666 !important;
+    cursor: pointer !important;
+    flex-shrink: 0 !important;
+}
+
+.table-grid .grid-cell.actions-column .action-btn:hover {
+    background: #e3f2fd !important;
+    color: #007bff !important;
+}
+
+.table-grid .grid-cell.actions-column .action-btn i {
+    font-size: 14px !important;
+}
+
+/* =============================================================================
+   CERTIFICATE NUMBER COLUMN - LEFT ALIGNED, NOT BOLD
+   ============================================================================= */
+
+.table-grid .grid-header-cell[data-sort-column="certificate"],
+.table-grid .grid-cell[data-column="certificateNumber"] {
+    justify-content: flex-start !important;
+    text-align: left !important;
+    padding-left: 10px !important;
+}
+
+.table-grid .grid-cell[data-column="certificateNumber"] {
+    font-weight: 400 !important;
+}
+
+/* =============================================================================
+   STICKY TABLE COLUMN WIDTHS - EXTERNAL VIEW (21 COLUMNS)
+   No Internal Tag column. Actions column narrower (no Edit button).
+   ============================================================================= */
+
+.tc-cert     { width: 140px; min-width: 140px; }
+.tc-type     { width: 175px; min-width: 175px; }
+.tc-status   { width: 110px; min-width: 110px; }
+.tc-eff      { width: 130px; min-width: 130px; }
+.tc-exp      { width: 135px; min-width: 135px; }
+.tc-company  { width: 170px; min-width: 170px; }
+.tc-contact  { width: 150px; min-width: 150px; }
+.tc-product  { width: 220px; min-width: 220px; }
+.tc-prodcat  { width: 200px; min-width: 200px; }
+.tc-prodtype { width: 130px; min-width: 130px; }
+.tc-prodsub  { width: 140px; min-width: 140px; }
+.tc-location { width: 100px; min-width: 100px; }
+.tc-country  { width: 100px; min-width: 100px; }
+.tc-exttag   { width: 120px; min-width: 120px; }
+.tc-partner  { width: 100px; min-width: 100px; }
+.tc-asin     { width: 80px;  min-width: 80px;  }
+.tc-upc      { width: 75px;  min-width: 75px;  }
+.tc-gtin     { width: 75px;  min-width: 75px;  }
+.tc-ean      { width: 75px;  min-width: 75px;  }
+
+/* External actions column is narrower (Download + View only) */
+.tc-actions  { width: 80px;  min-width: 80px;  }

@@ -292,7 +292,19 @@
 
         // Use tracked view state instead of CSS class check
         if (state.currentView === 'list') {
-            populateTableView();
+            if (append) {
+                // Append only new rows to the table
+                const newCount = state._lastNewCount || 0;
+                const newCerts = state.certificates.slice(state.certificates.length - newCount);
+                renderTableRows(newCerts);
+                // Update table results count
+                const tableResultsCount = document.getElementById('tableResultsCount');
+                if (tableResultsCount) {
+                    tableResultsCount.innerHTML = `Showing <strong>${state.certificates.length}</strong> of ${state.totalCount} certificates`;
+                }
+            } else {
+                populateTableView();
+            }
         } else {
             if (append) {
                 // Only render NEW certificates (from the latest page), not all certificates
@@ -1060,103 +1072,8 @@
         if (resultsCount) {
             resultsCount.textContent = `${state.totalCount} Result${state.totalCount !== 1 ? 's' : ''}`;
         }
-        renderPagination();
     }
 
-    // Render pagination controls
-    function renderPagination() {
-        const container = document.getElementById('paginationControls');
-        if (!container) return;
-
-        const totalPages = state.totalPages || 1;
-        const currentPage = state.currentPage;
-
-        // Don't show pagination if only one page
-        if (totalPages <= 1) {
-            container.innerHTML = '';
-            return;
-        }
-
-        // Calculate which page numbers to show
-        const pages = [];
-        const maxVisible = 5;
-        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
-        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-        if (endPage - startPage < maxVisible - 1) {
-            startPage = Math.max(1, endPage - maxVisible + 1);
-        }
-
-        let html = '<div class="pagination-controls">';
-
-        // Previous button
-        html += `<button class="pagination-btn ${currentPage <= 1 ? 'disabled' : ''}"
-                    data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}
-                    aria-label="Previous page">
-                    <i class="fas fa-chevron-left"></i>
-                 </button>`;
-
-        // First page + ellipsis
-        if (startPage > 1) {
-            html += `<button class="pagination-btn" data-page="1">1</button>`;
-            if (startPage > 2) {
-                html += `<span class="pagination-ellipsis">...</span>`;
-            }
-        }
-
-        // Page numbers
-        for (let i = startPage; i <= endPage; i++) {
-            html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}"
-                        data-page="${i}" ${i === currentPage ? 'aria-current="page"' : ''}>
-                        ${i}
-                     </button>`;
-        }
-
-        // Last page + ellipsis
-        if (endPage < totalPages) {
-            if (endPage < totalPages - 1) {
-                html += `<span class="pagination-ellipsis">...</span>`;
-            }
-            html += `<button class="pagination-btn" data-page="${totalPages}">${totalPages}</button>`;
-        }
-
-        // Next button
-        html += `<button class="pagination-btn ${currentPage >= totalPages ? 'disabled' : ''}"
-                    data-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}
-                    aria-label="Next page">
-                    <i class="fas fa-chevron-right"></i>
-                 </button>`;
-
-        html += '</div>';
-
-        // Page info
-        const startItem = (currentPage - 1) * state.pageSize + 1;
-        const endItem = Math.min(currentPage * state.pageSize, state.totalCount);
-        html += `<div class="pagination-info">Showing ${startItem}-${endItem} of ${state.totalCount}</div>`;
-
-        container.innerHTML = html;
-
-        // Attach click handlers
-        container.querySelectorAll('.pagination-btn:not(.disabled)').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const page = parseInt(btn.dataset.page);
-                if (page && page !== state.currentPage) {
-                    goToPage(page);
-                }
-            });
-        });
-    }
-
-    // Navigate to a specific page
-    function goToPage(page) {
-        state.currentPage = page;
-        state.certificates = [];
-        loadCertificates(false);
-        // Scroll to top of results
-        const grid = document.getElementById('certificatesGrid');
-        if (grid) {
-            grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-    }
 
     // Certificate actions - uses certificate NUMBER (not ID) per requirement
     window.viewCertificateDetails = function(certificateNumber) {

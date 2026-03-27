@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution - Role Management User Guide</title>
+    <style>
+@page { size: letter; margin: 0.6in 0.65in; }
+* { box-sizing: border-box; }
+body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.45; color: #1a1a1a; max-width: 8.5in; margin: 0 auto; padding: 30px 40px; background: #fff; }
+.doc-header { border-bottom: 3px solid #002B76; padding-bottom: 14px; margin-bottom: 20px; }
+.doc-header h1 { font-size: 20pt; color: #002B76; margin: 0 0 4px 0; font-weight: 700; }
+.doc-header .subtitle { font-size: 11pt; color: #555; margin: 0; }
+.doc-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 3px 24px; font-size: 9.5pt; color: #444; margin-top: 10px; }
+.doc-meta strong { color: #002B76; }
+h2 { font-size: 13pt; color: #002B76; border-bottom: 1.5px solid #ddd; padding-bottom: 5px; margin-top: 28px; margin-bottom: 10px; page-break-after: avoid; }
+h3 { font-size: 11pt; color: #333; margin-top: 16px; margin-bottom: 6px; page-break-after: avoid; }
+h4 { font-size: 10pt; color: #002B76; margin-top: 12px; margin-bottom: 5px; page-break-after: avoid; }
+p { margin: 0 0 8px 0; }
+table { width: 100%; border-collapse: collapse; margin: 6px 0 14px 0; font-size: 8.5pt; page-break-inside: auto; }
+thead { display: table-header-group; }
+tr { page-break-inside: avoid; }
+th { background: #002B76; color: #fff; font-weight: 600; text-align: left; padding: 6px 7px; font-size: 8.5pt; white-space: nowrap; }
+td { padding: 5px 7px; border-bottom: 1px solid #e0e0e0; vertical-align: top; }
+tr:nth-child(even) td { background: #f8f9fa; }
+ul, ol { margin: 4px 0 10px 0; padding-left: 18px; }
+li { margin-bottom: 3px; font-size: 9.5pt; }
+code { font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8.5pt; background: #f0f0f0; padding: 1px 4px; border-radius: 2px; }
+pre { background: #f5f5f5; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; overflow-x: auto; font-size: 8pt; line-height: 1.4; margin: 6px 0 14px 0; page-break-inside: avoid; }
+pre code { background: none; padding: 0; }
+.callout { padding: 10px 14px; border-left: 4px solid; margin: 10px 0; font-size: 9pt; border-radius: 0 4px 4px 0; }
+.callout-info { border-color: #002B76; background: #f0f4ff; }
+.callout-warning { border-color: #e65100; background: #fff8f0; }
+.callout-success { border-color: #2e7d32; background: #f0f8e8; }
+.callout-danger { border-color: #c62828; background: #fff5f5; }
+.toc { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 12px 16px; margin: 12px 0 20px 0; }
+.toc-title { font-size: 10pt; font-weight: 700; color: #002B76; margin-bottom: 6px; }
+.toc a { text-decoration: none; color: #002B76; font-size: 9pt; display: block; padding: 2px 0; }
+.toc a:hover { text-decoration: underline; }
+.toc .toc-sub { padding-left: 14px; font-size: 8.5pt; }
+.step-box { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 6px; padding: 14px 16px; margin: 10px 0; page-break-inside: avoid; }
+.step-box h4 { margin-top: 0; color: #002B76; font-size: 10pt; }
+.step-num { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 50%; background: #002B76; color: #fff; font-size: 8pt; font-weight: 700; margin-right: 6px; flex-shrink: 0; }
+.step-row { display: flex; align-items: flex-start; margin-bottom: 8px; }
+.step-row p { margin: 0; flex: 1; }
+.badge { display: inline-block; padding: 2px 8px; border-radius: 3px; font-size: 7.5pt; font-weight: 600; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+.badge-admin { background: #002B76; color: #fff; }
+.badge-analyst { background: #1565c0; color: #fff; }
+.badge-external { background: #2e7d32; color: #fff; }
+.badge-partner { background: #6a1b9a; color: #fff; }
+.badge-public { background: #78909c; color: #fff; }
+.badge-custom { background: #e65100; color: #fff; }
+.badge-system { background: #455a64; color: #fff; }
+.badge-yes { background: #e8f5e1; color: #2e7d32; }
+.badge-no { background: #ffebee; color: #c62828; }
+.badge-partial { background: #fff3e0; color: #e65100; }
+.perm-cat { font-weight: 600; color: #002B76; }
+.icon-ref { color: #555; font-style: italic; font-size: 8.5pt; }
+.field-table td:first-child { font-weight: 600; white-space: nowrap; width: 140px; }
+.ui-path { background: #f0f4ff; padding: 2px 6px; border-radius: 3px; font-size: 8.5pt; color: #002B76; font-weight: 600; }
+.kbd { display: inline-block; background: #f0f0f0; border: 1px solid #ccc; border-radius: 3px; padding: 1px 5px; font-family: 'Cascadia Code', monospace; font-size: 7.5pt; box-shadow: 0 1px 0 #999; }
+.confidential { background: #f0f4ff; border: 2px solid #002B76; padding: 8px 14px; border-radius: 4px; font-size: 9pt; margin: 10px 0; text-align: center; font-weight: 600; color: #002B76; }
+.doc-footer { margin-top: 30px; padding-top: 12px; border-top: 1px solid #ddd; font-size: 8pt; color: #888; text-align: center; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 10px 0; }
+.two-col > div { background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 4px; padding: 10px 12px; }
+.flow-diagram { background: #f9f9f9; border: 1px solid #e0e0e0; border-radius: 4px; padding: 14px; font-family: 'Cascadia Code', 'Consolas', monospace; font-size: 8pt; line-height: 1.6; overflow-x: auto; white-space: pre; margin: 10px 0; page-break-inside: avoid; }
+@media print { body { padding: 0; } .toc { break-inside: avoid; } h2 { break-after: avoid; } h3 { break-after: avoid; } table { font-size: 8pt; } }
+    </style>
+</head>
+<body>
+
+<div class="doc-header">
+    <h1>Role Management User Guide</h1>
+    <p class="subtitle">GCC Database Solution &mdash; Administrative Operations Manual</p>
+    <div class="doc-meta">
+        <div><strong>Version:</strong> 2.0</div>
+        <div><strong>Date:</strong> March 26, 2026</div>
+        <div><strong>Audience:</strong> System Administrators</div>
+        <div><strong>Classification:</strong> Internal Use Only</div>
+        <div><strong>Application:</strong> GCC Web Application</div>
+        <div><strong>Prepared by:</strong> Anuki Consulting</div>
+    </div>
+</div>
+
+<div class="confidential">INTERNAL DOCUMENT &mdash; For authorized GCC Database administrators only</div>
+
+<!-- TABLE OF CONTENTS -->
+<div class="toc">
+    <div class="toc-title">Table of Contents</div>
+    <a href="#overview">1. Overview</a>
+    <a class="toc-sub" href="#what-is-rbac">1.1 What Is Role-Based Access Control?</a>
+    <a class="toc-sub" href="#access-requirements">1.2 Access Requirements</a>
+    <a href="#system-roles">2. System Roles</a>
+    <a class="toc-sub" href="#role-admin">2.1 Administrator</a>
+    <a class="toc-sub" href="#role-analyst">2.2 Analyst</a>
+    <a class="toc-sub" href="#role-external">2.3 External Client</a>
+    <a class="toc-sub" href="#role-public">2.4 Public</a>
+    <a href="#custom-roles">3. Custom Roles</a>
+    <a href="#permissions">4. Permission Reference</a>
+    <a class="toc-sub" href="#perm-certificates">4.1 Certificates</a>
+    <a class="toc-sub" href="#perm-data">4.2 Data</a>
+    <a class="toc-sub" href="#perm-admin">4.3 Administration</a>
+    <a class="toc-sub" href="#perm-api">4.4 API Access</a>
+    <a class="toc-sub" href="#perm-products">4.5 Products</a>
+    <a class="toc-sub" href="#perm-system">4.6 System</a>
+    <a href="#permission-matrix">5. Permission Matrix</a>
+    <a href="#procedures">6. Step-by-Step Procedures</a>
+    <a class="toc-sub" href="#proc-navigate">6.1 Navigating to Role Management</a>
+    <a class="toc-sub" href="#proc-view">6.2 Viewing Roles</a>
+    <a class="toc-sub" href="#proc-create">6.3 Creating a New Role</a>
+    <a class="toc-sub" href="#proc-edit">6.4 Editing a Role</a>
+    <a class="toc-sub" href="#proc-delete">6.5 Deleting a Role</a>
+    <a class="toc-sub" href="#proc-export">6.6 Exporting Roles</a>
+    <a class="toc-sub" href="#proc-search">6.7 Searching &amp; Sorting</a>
+    <a href="#ui-reference">7. User Interface Reference</a>
+    <a href="#role-assignment">8. Assigning Roles to Users</a>
+    <a href="#authorization">9. Authorization &amp; Access Policies</a>
+    <a href="#scenarios">10. Common Scenarios</a>
+    <a href="#best-practices">11. Best Practices</a>
+    <a href="#troubleshooting">12. Troubleshooting</a>
+    <a href="#faq">13. Frequently Asked Questions</a>
+    <a href="#glossary">14. Glossary</a>
+</div>
+
+<!-- ======================= SECTION 1 ======================= -->
+<h2 id="overview">1. Overview</h2>
+
+<h3 id="what-is-rbac">1.1 What Is Role-Based Access Control?</h3>
+<p>The GCC Database Solution uses <strong>Role-Based Access Control (RBAC)</strong> to manage what each user can see and do within the application. Instead of assigning individual permissions to each user, permissions are grouped into <strong>roles</strong>, and roles are assigned to users.</p>
+
+<p>This approach provides:</p>
+<ul>
+    <li><strong>Simplified administration</strong> &mdash; Manage access for groups of users, not individuals</li>
+    <li><strong>Consistent security</strong> &mdash; All users in the same role have identical access</li>
+    <li><strong>Audit trail</strong> &mdash; Easy to review who has access to what</li>
+    <li><strong>Scalability</strong> &mdash; Add new users quickly by assigning an existing role</li>
+</ul>
+
+<div class="flow-diagram">
+User  ──&gt;  Role  ──&gt;  Permissions  ──&gt;  System Features
+                                          │
+  ┌───────────────────────────────────────┘
+  │
+  ├── View Certificates
+  ├── Create Certificates
+  ├── Export Data
+  ├── Manage Users
+  └── ... (23 total permissions)
+</div>
+
+<p>The system includes <strong>23 permissions</strong> organized into <strong>6 categories</strong>, with <strong>4 built-in system roles</strong> and support for unlimited custom roles.</p>
+
+<h3 id="access-requirements">1.2 Access Requirements</h3>
+<div class="callout callout-info"><strong>Who can manage roles?</strong> Only users with the <strong>Admin</strong> role can access Role Management. The page is located under <span class="ui-path">Administration &gt; Role Management</span>.</div>
+
+<table class="field-table">
+    <thead><tr><th>Requirement</th><th>Details</th></tr></thead>
+    <tbody>
+        <tr><td>Required Role</td><td>Administrator</td></tr>
+        <tr><td>Required Permission</td><td><code>admin.roles</code> (Manage Roles)</td></tr>
+        <tr><td>URL</td><td><code>/Admin/RoleManagement</code></td></tr>
+        <tr><td>Navigation</td><td>Administration &gt; Role Management</td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 2 ======================= -->
+<h2 id="system-roles">2. System Roles</h2>
+
+<p>The GCC Database ships with four <strong>system roles</strong>. These roles are protected and cannot be renamed or deleted, though their descriptions and permissions can be modified.</p>
+
+<h3 id="role-admin">2.1 Administrator <span class="badge badge-admin">SYSTEM</span></h3>
+<p><strong>Full system access and control.</strong> Administrators have unrestricted access to all features, settings, and data within the application.</p>
+
+<table class="field-table">
+    <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+    <tbody>
+        <tr><td>Permissions</td><td>All 23 permissions (full access)</td></tr>
+        <tr><td>Can be deleted?</td><td>No &mdash; protected system role</td></tr>
+        <tr><td>Can be renamed?</td><td>No &mdash; name is immutable</td></tr>
+        <tr><td>Landing page</td><td>Internal Certificate Tile View</td></tr>
+    </tbody>
+</table>
+
+<p><strong>Typical users:</strong> System administrators, IT staff, senior management</p>
+
+<div class="callout callout-danger"><strong>Security Note:</strong> The Admin role grants complete system access including user management, data deletion, and system configuration. Assign this role only to trusted personnel who require full administrative control.</div>
+
+<h3 id="role-analyst">2.2 Analyst <span class="badge badge-analyst">SYSTEM</span></h3>
+<p><strong>Certificate management and daily operations.</strong> Analysts can create, edit, and manage certificates through the workflow process but cannot delete certificates or access administrative functions.</p>
+
+<table class="field-table">
+    <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+    <tbody>
+        <tr><td>Permissions</td><td>8 permissions (certificates, data, products view)</td></tr>
+        <tr><td>Can be deleted?</td><td>No &mdash; protected system role</td></tr>
+        <tr><td>Can be renamed?</td><td>No &mdash; name is immutable</td></tr>
+        <tr><td>Landing page</td><td>Internal Certificate Tile View</td></tr>
+    </tbody>
+</table>
+
+<p><strong>Included permissions:</strong></p>
+<ul>
+    <li><code>certificate.view</code>, <code>certificate.create</code>, <code>certificate.edit</code>, <code>certificate.workflow</code></li>
+    <li><code>data.export</code>, <code>data.import</code>, <code>data.reports</code></li>
+    <li><code>products.view</code></li>
+</ul>
+
+<p><strong>Not included:</strong> Certificate deletion, all administration, API access, system settings</p>
+<p><strong>Typical users:</strong> Certification analysts, QA staff, certificate reviewers</p>
+
+<h3 id="role-external">2.3 External Client <span class="badge badge-external">SYSTEM</span></h3>
+<p><strong>Company-scoped read access.</strong> External users can only view certificates and products associated with their assigned company. They cannot see other companies' data.</p>
+
+<table class="field-table">
+    <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+    <tbody>
+        <tr><td>Permissions</td><td>4 permissions (view, export, reports, products)</td></tr>
+        <tr><td>Can be deleted?</td><td>No &mdash; protected system role</td></tr>
+        <tr><td>Can be renamed?</td><td>No &mdash; name is immutable</td></tr>
+        <tr><td>Landing page</td><td>External Certificate Tile View</td></tr>
+        <tr><td>Data scope</td><td>Own company/partner data only</td></tr>
+    </tbody>
+</table>
+
+<p><strong>Included permissions:</strong></p>
+<ul>
+    <li><code>certificate.view</code> (own company only)</li>
+    <li><code>data.export</code> (own data only), <code>data.reports</code></li>
+    <li><code>products.view</code> (own company only)</li>
+</ul>
+
+<div class="callout callout-warning"><strong>Important:</strong> External users are restricted to data associated with their company or partner. They cannot view internal tags, cannot add/edit certificates, and do not see the Actions column on Product Management.</div>
+
+<p><strong>Typical users:</strong> Client company representatives, brand managers, external compliance officers</p>
+
+<h3 id="role-public">2.4 Public <span class="badge badge-public">SYSTEM</span></h3>
+<p><strong>Minimal read-only access.</strong> Public users can only view publicly available certificates through the public tile view.</p>
+
+<table class="field-table">
+    <thead><tr><th>Attribute</th><th>Value</th></tr></thead>
+    <tbody>
+        <tr><td>Permissions</td><td>1 permission (certificate view only)</td></tr>
+        <tr><td>Can be deleted?</td><td>No &mdash; protected system role</td></tr>
+        <tr><td>Landing page</td><td>Public Certificate Tile View</td></tr>
+    </tbody>
+</table>
+
+<p><strong>Included permissions:</strong> <code>certificate.view</code> only</p>
+<p><strong>Typical users:</strong> General public, unauthenticated visitors (when logged in)</p>
+
+<!-- ======================= SECTION 3 ======================= -->
+<h2 id="custom-roles">3. Custom Roles</h2>
+
+<p>Administrators can create <strong>custom roles</strong> to address specific access requirements that system roles do not cover. Custom roles offer full flexibility over permission assignment.</p>
+
+<div class="two-col">
+    <div>
+        <h4>Custom roles CAN:</h4>
+        <ul>
+            <li>Be created with any name (up to 50 characters)</li>
+            <li>Have any combination of the 23 permissions</li>
+            <li>Be renamed after creation</li>
+            <li>Be deleted when no longer needed</li>
+            <li>Have their permissions modified at any time</li>
+        </ul>
+    </div>
+    <div>
+        <h4>Common custom role examples:</h4>
+        <ul>
+            <li><strong>Partner</strong> &mdash; API read access + certificate view for integration partners (Amazon, Novi)</li>
+            <li><strong>API Integration</strong> &mdash; API read/write for automated services</li>
+            <li><strong>Report Viewer</strong> &mdash; Data export and reports only</li>
+            <li><strong>Senior Analyst</strong> &mdash; Analyst + certificate delete</li>
+        </ul>
+    </div>
+</div>
+
+<!-- ======================= SECTION 4 ======================= -->
+<h2 id="permissions">4. Permission Reference</h2>
+
+<p>The GCC Database includes <strong>23 granular permissions</strong> organized into 6 categories. Each permission controls access to a specific feature or action within the application.</p>
+
+<h3 id="perm-certificates">4.1 Certificates <span class="icon-ref">(Certificate icon)</span></h3>
+<table>
+    <thead><tr><th>Permission</th><th>Codename</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td>View Certificates</td><td><code>certificate.view</code></td><td>Browse the certificate directory and view certificate details</td></tr>
+        <tr><td>Create Certificates</td><td><code>certificate.create</code></td><td>Add new certificates to the database</td></tr>
+        <tr><td>Edit Certificates</td><td><code>certificate.edit</code></td><td>Modify existing certificate information and attachments</td></tr>
+        <tr><td>Delete Certificates</td><td><code>certificate.delete</code></td><td>Permanently remove certificates from the database</td></tr>
+        <tr><td>Manage Workflow</td><td><code>certificate.workflow</code></td><td>Manage certificate workflow state transitions (14-state workflow)</td></tr>
+    </tbody>
+</table>
+
+<h3 id="perm-data">4.2 Data <span class="icon-ref">(Database icon)</span></h3>
+<table>
+    <thead><tr><th>Permission</th><th>Codename</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td>Export Data</td><td><code>data.export</code></td><td>Download data in CSV format from admin pages and views</td></tr>
+        <tr><td>Import Data</td><td><code>data.import</code></td><td>Bulk import records from CSV files</td></tr>
+        <tr><td>View Reports</td><td><code>data.reports</code></td><td>Access analytics reports and dashboards</td></tr>
+        <tr><td>View Audit Logs</td><td><code>data.audit</code></td><td>View system activity history (reserved for future use)</td></tr>
+    </tbody>
+</table>
+
+<h3 id="perm-admin">4.3 Administration <span class="icon-ref">(Gear icon)</span></h3>
+<table>
+    <thead><tr><th>Permission</th><th>Codename</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td>Manage Users</td><td><code>admin.users</code></td><td>Create, edit, and deactivate user accounts</td></tr>
+        <tr><td>Manage Roles</td><td><code>admin.roles</code></td><td>Configure roles and assign permissions</td></tr>
+        <tr><td>Manage Companies</td><td><code>admin.companies</code></td><td>Create and manage partner/client companies</td></tr>
+        <tr><td>Manage Tags</td><td><code>admin.tags</code></td><td>Create and manage classification tags (internal and external)</td></tr>
+        <tr><td>Manage Partners</td><td><code>admin.partners</code></td><td>Configure API keys and partner access settings</td></tr>
+    </tbody>
+</table>
+
+<h3 id="perm-api">4.4 API Access <span class="icon-ref">(Plug icon)</span></h3>
+<table>
+    <thead><tr><th>Permission</th><th>Codename</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td>API Read</td><td><code>api.read</code></td><td>Read certificate and product data via REST API</td></tr>
+        <tr><td>API Write</td><td><code>api.write</code></td><td>Create and update records via REST API</td></tr>
+        <tr><td>API Delete</td><td><code>api.delete</code></td><td>Delete records via REST API</td></tr>
+    </tbody>
+</table>
+
+<h3 id="perm-products">4.5 Products <span class="icon-ref">(Box icon)</span></h3>
+<table>
+    <thead><tr><th>Permission</th><th>Codename</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td>View Products</td><td><code>products.view</code></td><td>Browse the product catalog and view product details</td></tr>
+        <tr><td>Manage Products</td><td><code>products.manage</code></td><td>Add, edit, and manage products in the catalog</td></tr>
+        <tr><td>Manage Product Types</td><td><code>products.types</code></td><td>Configure product categories, types, and subcategories</td></tr>
+    </tbody>
+</table>
+
+<h3 id="perm-system">4.6 System <span class="icon-ref">(Shield icon)</span></h3>
+<table>
+    <thead><tr><th>Permission</th><th>Codename</th><th>Description</th></tr></thead>
+    <tbody>
+        <tr><td>System Settings</td><td><code>system.settings</code></td><td>Modify global application configuration</td></tr>
+        <tr><td>Manage Cert Types</td><td><code>system.certtypes</code></td><td>Add and configure certification type definitions</td></tr>
+        <tr><td>Manage Custom Fields</td><td><code>system.fields</code></td><td>Define and configure dynamic form fields</td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 5 ======================= -->
+<h2 id="permission-matrix">5. Permission Matrix</h2>
+
+<p>Complete reference showing default permission assignments for each system role. <span class="badge badge-yes">YES</span> = granted, <span class="badge badge-no">NO</span> = denied, <span class="badge badge-partial">OWN</span> = own company data only.</p>
+
+<h4>Certificate Permissions</h4>
+<table>
+    <thead><tr><th>Permission</th><th>Admin</th><th>Analyst</th><th>External</th><th>Public</th></tr></thead>
+    <tbody>
+        <tr><td>View Certificates</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-partial">OWN</span></td><td><span class="badge badge-yes">YES</span></td></tr>
+        <tr><td>Create Certificates</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Edit Certificates</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Delete Certificates</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Manage Workflow</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+    </tbody>
+</table>
+
+<h4>Data Permissions</h4>
+<table>
+    <thead><tr><th>Permission</th><th>Admin</th><th>Analyst</th><th>External</th><th>Public</th></tr></thead>
+    <tbody>
+        <tr><td>Export Data</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-partial">OWN</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Import Data</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>View Reports</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>View Audit Logs</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+    </tbody>
+</table>
+
+<h4>Administration Permissions</h4>
+<table>
+    <thead><tr><th>Permission</th><th>Admin</th><th>Analyst</th><th>External</th><th>Public</th></tr></thead>
+    <tbody>
+        <tr><td>Manage Users</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Manage Roles</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Manage Companies</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Manage Tags</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Manage Partners</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+    </tbody>
+</table>
+
+<h4>API, Products &amp; System Permissions</h4>
+<table>
+    <thead><tr><th>Permission</th><th>Admin</th><th>Analyst</th><th>External</th><th>Public</th></tr></thead>
+    <tbody>
+        <tr><td>API Read</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>API Write</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>API Delete</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>View Products</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-partial">OWN</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Manage Products</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Manage Product Types</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>System Settings</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Manage Cert Types</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+        <tr><td>Manage Custom Fields</td><td><span class="badge badge-yes">YES</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td><td><span class="badge badge-no">NO</span></td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 6 ======================= -->
+<h2 id="procedures">6. Step-by-Step Procedures</h2>
+
+<h3 id="proc-navigate">6.1 Navigating to Role Management</h3>
+<div class="step-box">
+    <div class="step-row"><span class="step-num">1</span><p>Log in to the GCC Database with an <strong>Administrator</strong> account.</p></div>
+    <div class="step-row"><span class="step-num">2</span><p>In the top navigation bar, click <strong>Administration</strong> to expand the dropdown menu.</p></div>
+    <div class="step-row"><span class="step-num">3</span><p>Select <strong>Role Management</strong> from the dropdown.</p></div>
+    <div class="step-row"><span class="step-num">4</span><p>The Role Management page loads displaying all configured roles in a table.</p></div>
+</div>
+
+<p><strong>Direct URL:</strong> <code>/Admin/RoleManagement</code></p>
+
+<h3 id="proc-view">6.2 Viewing Roles</h3>
+<p>The Role Management page displays a table with the following columns:</p>
+
+<table>
+    <thead><tr><th>Column</th><th>Description</th><th>Sortable?</th></tr></thead>
+    <tbody>
+        <tr><td><strong>Role Name</strong></td><td>The unique name of the role</td><td>Yes (A&ndash;Z / Z&ndash;A)</td></tr>
+        <tr><td><strong>Description</strong></td><td>Brief explanation of the role's purpose</td><td>Yes</td></tr>
+        <tr><td><strong>Permissions</strong></td><td>First 3 permissions shown as badges; "+X more" if additional exist</td><td>No</td></tr>
+        <tr><td><strong>Users</strong></td><td>Count of users currently assigned to this role</td><td>Yes (numeric)</td></tr>
+        <tr><td><strong>Actions</strong></td><td>Edit and Delete buttons</td><td>No</td></tr>
+    </tbody>
+</table>
+
+<p>The footer displays the total number of roles (e.g., "Showing 5 roles").</p>
+
+<h3 id="proc-create">6.3 Creating a New Role</h3>
+<div class="step-box">
+    <h4>Procedure: Add New Role</h4>
+    <div class="step-row"><span class="step-num">1</span><p>On the Role Management page, click the <strong>Add New Role</strong> button (top-right area next to Export).</p></div>
+    <div class="step-row"><span class="step-num">2</span><p>The <strong>Add New Role</strong> modal dialog opens.</p></div>
+    <div class="step-row"><span class="step-num">3</span><p>Enter a <strong>Role Name</strong> (required, maximum 50 characters). Choose a clear, descriptive name.</p></div>
+    <div class="step-row"><span class="step-num">4</span><p>Optionally enter a <strong>Description</strong> (maximum 255 characters) explaining the role's purpose.</p></div>
+    <div class="step-row"><span class="step-num">5</span><p>In the <strong>Permissions</strong> section, select the desired permissions by checking the boxes in each category. Use <strong>Select All</strong> or <strong>Clear All</strong> buttons for quick selection.</p></div>
+    <div class="step-row"><span class="step-num">6</span><p>Review your selections carefully.</p></div>
+    <div class="step-row"><span class="step-num">7</span><p>Click <strong>Save Role</strong> to create the role, or <strong>Cancel</strong> to discard.</p></div>
+    <div class="step-row"><span class="step-num">8</span><p>A success notification confirms the role was created. The table refreshes automatically.</p></div>
+</div>
+
+<div class="callout callout-info"><strong>Tip:</strong> Permission categories are displayed in a 3-column grid on desktop, 2 columns on tablet, and 1 column on mobile. Each category shows its permissions with checkboxes and descriptions.</div>
+
+<h4>Form Field Reference</h4>
+<table class="field-table">
+    <thead><tr><th>Field</th><th>Required?</th><th>Max Length</th><th>Notes</th></tr></thead>
+    <tbody>
+        <tr><td>Role Name</td><td>Yes</td><td>50 characters</td><td>Must be unique. Cannot be changed later for system roles.</td></tr>
+        <tr><td>Description</td><td>No</td><td>255 characters</td><td>Recommended for documentation purposes.</td></tr>
+        <tr><td>Permissions</td><td>No</td><td>&mdash;</td><td>A role with zero permissions is valid but grants no access.</td></tr>
+    </tbody>
+</table>
+
+<h3 id="proc-edit">6.4 Editing a Role</h3>
+<div class="step-box">
+    <h4>Procedure: Edit Existing Role</h4>
+    <div class="step-row"><span class="step-num">1</span><p>Locate the role in the table. Use the search bar if needed.</p></div>
+    <div class="step-row"><span class="step-num">2</span><p>Click the <strong>Edit</strong> button (pencil icon) in the Actions column.</p></div>
+    <div class="step-row"><span class="step-num">3</span><p>The <strong>Edit Role</strong> modal opens, pre-populated with the role's current settings.</p></div>
+    <div class="step-row"><span class="step-num">4</span><p>Modify the name (custom roles only), description, or permission assignments as needed.</p></div>
+    <div class="step-row"><span class="step-num">5</span><p>Click <strong>Save Role</strong> to apply changes.</p></div>
+    <div class="step-row"><span class="step-num">6</span><p>A success notification confirms the update. The table refreshes automatically.</p></div>
+</div>
+
+<div class="callout callout-warning"><strong>System Role Editing:</strong> When editing a system role (Admin, Analyst, External, Public), the <strong>Role Name</strong> field is disabled (grayed out). A yellow warning banner appears: <em>"This is a system role. The role name cannot be changed, but you can modify the description and permissions."</em></div>
+
+<h3 id="proc-delete">6.5 Deleting a Role</h3>
+<div class="step-box">
+    <h4>Procedure: Delete a Custom Role</h4>
+    <div class="step-row"><span class="step-num">1</span><p>Locate the role in the table.</p></div>
+    <div class="step-row"><span class="step-num">2</span><p>Click the <strong>Delete</strong> button (trash icon) in the Actions column.</p></div>
+    <div class="step-row"><span class="step-num">3</span><p>A confirmation dialog appears asking you to confirm the deletion.</p></div>
+    <div class="step-row"><span class="step-num">4</span><p>Click <strong>Confirm</strong> to proceed or <strong>Cancel</strong> to abort.</p></div>
+    <div class="step-row"><span class="step-num">5</span><p>The role is permanently removed. A success notification confirms the deletion.</p></div>
+</div>
+
+<div class="callout callout-danger"><strong>Deletion Rules:</strong>
+<ul style="margin: 4px 0 0 0;">
+    <li>The <strong>Admin</strong> role can <strong>never</strong> be deleted (button is disabled).</li>
+    <li>Other <strong>system roles</strong> (Analyst, External, Public) show a warning before deletion is allowed.</li>
+    <li>Roles with <strong>assigned users</strong> should have those users reassigned to a different role before deletion.</li>
+    <li>Deletion is <strong>permanent</strong> &mdash; there is no undo.</li>
+</ul>
+</div>
+
+<h3 id="proc-export">6.6 Exporting Roles</h3>
+<div class="step-box">
+    <h4>Procedure: Export Roles to CSV</h4>
+    <div class="step-row"><span class="step-num">1</span><p>On the Role Management page, click the <strong>Export</strong> button.</p></div>
+    <div class="step-row"><span class="step-num">2</span><p>A CSV file downloads automatically to your browser's default download location.</p></div>
+    <div class="step-row"><span class="step-num">3</span><p>The file contains all roles with their names, descriptions, permissions, and user counts.</p></div>
+</div>
+
+<p><strong>Export format:</strong> CSV only (per application standards). Excel, JSON, and PDF exports are not available from admin pages.</p>
+
+<h3 id="proc-search">6.7 Searching &amp; Sorting</h3>
+
+<h4>Search</h4>
+<p>Type in the search bar above the table to filter roles in real time. The search checks against:</p>
+<ul>
+    <li>Role name</li>
+    <li>Description</li>
+    <li>Permission names</li>
+</ul>
+<p>Search is debounced (300ms delay) for performance. Results update automatically as you type.</p>
+
+<h4>Sort</h4>
+<p>Click any sortable column header to sort the table. Click again to toggle between ascending and descending order. The current sort direction is indicated by an arrow icon in the column header.</p>
+
+<h4>Keyboard Navigation</h4>
+<table>
+    <thead><tr><th>Key</th><th>Action</th></tr></thead>
+    <tbody>
+        <tr><td><span class="kbd">Tab</span></td><td>Move focus to next interactive element</td></tr>
+        <tr><td><span class="kbd">Enter</span></td><td>Activate focused button or link</td></tr>
+        <tr><td><span class="kbd">Escape</span></td><td>Close open modal dialog</td></tr>
+        <tr><td><span class="kbd">Delete</span></td><td>Delete focused role (when focus is on a table row)</td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 7 ======================= -->
+<h2 id="ui-reference">7. User Interface Reference</h2>
+
+<h3>Page Layout</h3>
+<div class="flow-diagram">
+┌─────────────────────────────────────────────────────────────┐
+│  Role Management                                            │
+│  Manage user roles and permissions                          │
+├─────────────────────────────────────────────────────────────┤
+│  [Export]  [+ Add New Role]                                 │
+│                                                             │
+│  ┌─ Search ──────────────────────────────────────────────┐  │
+│  │  🔍 Search roles...                                   │  │
+│  └───────────────────────────────────────────────────────┘  │
+│                                                             │
+│  ┌───────────┬──────────────┬────────────┬───────┬───────┐  │
+│  │ Role Name │ Description  │ Permissions│ Users │Actions│  │
+│  ├───────────┼──────────────┼────────────┼───────┼───────┤  │
+│  │ Admin     │ Full system..│ [badges]   │   3   │ ✎  🗑 │  │
+│  │ Analyst   │ Certificate..│ [badges]   │   5   │ ✎  🗑 │  │
+│  │ External  │ External...  │ [badges]   │   6   │ ✎  🗑 │  │
+│  │ Public    │ Read-only... │ [badges]   │   2   │ ✎  🗑 │  │
+│  └───────────┴──────────────┴────────────┴───────┴───────┘  │
+│                                                             │
+│  Showing 4 roles                                            │
+└─────────────────────────────────────────────────────────────┘
+</div>
+
+<h3>Add/Edit Role Modal</h3>
+<div class="flow-diagram">
+┌─────────────────────────────────────────────────────┐
+│  Add New Role                                   [X] │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  Role Name *  ┌──────────────────────────────────┐  │
+│               │                                  │  │
+│               └──────────────────────────────────┘  │
+│  Description  ┌──────────────────────────────────┐  │
+│               │                                  │  │
+│               └──────────────────────────────────┘  │
+│                                                     │
+│  ⚠ System role warning (shown for system roles)     │
+│                                                     │
+│  Permissions          [Select All] [Clear All]      │
+│  ┌──────────────┬──────────────┬──────────────┐     │
+│  │ Certificates │ Data         │ Admin        │     │
+│  │ ☐ View       │ ☐ Export     │ ☐ Users      │     │
+│  │ ☐ Create     │ ☐ Import     │ ☐ Roles      │     │
+│  │ ☐ Edit       │ ☐ Reports    │ ☐ Companies  │     │
+│  │ ☐ Delete     │              │ ☐ Tags       │     │
+│  │ ☐ Workflow   │              │ ☐ Partners   │     │
+│  ├──────────────┼──────────────┼──────────────┤     │
+│  │ API Access   │ Products     │ System       │     │
+│  │ ☐ Read       │ ☐ View       │ ☐ Settings   │     │
+│  │ ☐ Write      │ ☐ Manage     │ ☐ Cert Types │     │
+│  │ ☐ Delete     │ ☐ Types      │ ☐ Fields     │     │
+│  └──────────────┴──────────────┴──────────────┘     │
+│                                                     │
+│                        [Cancel]  [Save Role]        │
+└─────────────────────────────────────────────────────┘
+</div>
+
+<h3>Permission Badge Display</h3>
+<p>In the table, permissions are shown as compact badges:</p>
+<ul>
+    <li>The first <strong>3 permissions</strong> are displayed as green gradient badges.</li>
+    <li>If a role has more than 3 permissions, a gray <strong>"+X more"</strong> badge appears.</li>
+    <li>Hovering over the "+X more" badge shows a tooltip listing all permissions.</li>
+    <li>Roles with no permissions display <em>"No permissions assigned"</em> in italic gray text.</li>
+</ul>
+
+<!-- ======================= SECTION 8 ======================= -->
+<h2 id="role-assignment">8. Assigning Roles to Users</h2>
+
+<p>Roles are assigned to users through the <strong>User Management</strong> page, not through Role Management. Each user is assigned exactly one role.</p>
+
+<div class="step-box">
+    <h4>Procedure: Assign a Role to a User</h4>
+    <div class="step-row"><span class="step-num">1</span><p>Navigate to <span class="ui-path">Administration &gt; User Management</span>.</p></div>
+    <div class="step-row"><span class="step-num">2</span><p>Click <strong>Add New User</strong> or <strong>Edit</strong> on an existing user.</p></div>
+    <div class="step-row"><span class="step-num">3</span><p>Select the desired role from the <strong>Role</strong> dropdown.</p></div>
+    <div class="step-row"><span class="step-num">4</span><p>If the role is <strong>External</strong>, also select the user's <strong>Company</strong>.</p></div>
+    <div class="step-row"><span class="step-num">5</span><p>Click <strong>Save</strong> to apply the role assignment.</p></div>
+    <div class="step-row"><span class="step-num">6</span><p>The user must <strong>log out and log back in</strong> for the new role to take effect.</p></div>
+</div>
+
+<div class="callout callout-warning"><strong>One Role Per User:</strong> The system enforces a single role assignment per user. To give a user a unique combination of permissions, create a custom role with the desired permissions and assign it to that user.</div>
+
+<h4>Role &rarr; Landing Page Mapping</h4>
+<table>
+    <thead><tr><th>Role</th><th>Landing Page After Login</th></tr></thead>
+    <tbody>
+        <tr><td><span class="badge badge-admin">Admin</span></td><td>Internal Certificate Tile View (<code>/Certificate/CertificateTileViewInternal</code>)</td></tr>
+        <tr><td><span class="badge badge-analyst">Analyst</span></td><td>Internal Certificate Tile View (<code>/Certificate/CertificateTileViewInternal</code>)</td></tr>
+        <tr><td><span class="badge badge-external">External</span></td><td>External Certificate Tile View (<code>/Certificate/CertificateTileViewExternal</code>)</td></tr>
+        <tr><td><span class="badge badge-public">Public</span></td><td>Public Certificate Tile View (<code>/Certificate/CertificateTileView</code>)</td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 9 ======================= -->
+<h2 id="authorization">9. Authorization &amp; Access Policies</h2>
+
+<p>The application enforces access control through <strong>authorization policies</strong> that map to role names. These policies determine which pages and features each role can access.</p>
+
+<table>
+    <thead><tr><th>Policy Name</th><th>Required Role(s)</th><th>Protected Areas</th></tr></thead>
+    <tbody>
+        <tr><td><code>AdminOnly</code></td><td>Admin</td><td>All Administration pages (User, Role, Company, Tag, Partner management, System Settings)</td></tr>
+        <tr><td><code>AnalystOrAdmin</code></td><td>Admin or Analyst</td><td>Certificate Create/Edit, Internal Tile View, Import, Workflow actions</td></tr>
+        <tr><td><code>ExternalAccess</code></td><td>Admin, Analyst, or External</td><td>External Certificate View, Company-scoped data access</td></tr>
+        <tr><td><code>AuthenticatedUsers</code></td><td>Any authenticated user</td><td>Basic application access, Dashboard</td></tr>
+    </tbody>
+</table>
+
+<div class="callout callout-info"><strong>How it works:</strong> When a user logs in, the system stores their role as a <strong>claim</strong> in their authentication token. Each page and API endpoint checks this claim against its required policy. If the user's role does not satisfy the policy, they receive a <strong>403 Forbidden</strong> response.</div>
+
+<!-- ======================= SECTION 10 ======================= -->
+<h2 id="scenarios">10. Common Scenarios</h2>
+
+<h3>Scenario 1: Onboarding a New Certification Analyst</h3>
+<table class="field-table">
+    <tbody>
+        <tr><td>Recommended Role</td><td><span class="badge badge-analyst">Analyst</span></td></tr>
+        <tr><td>Access Granted</td><td>Create/edit certificates, manage workflow, export/import data, view reports, view products</td></tr>
+        <tr><td>Access Denied</td><td>Delete certificates, administrative functions, API access, system settings</td></tr>
+        <tr><td>Steps</td><td>1. Create user in User Management. 2. Assign "Analyst" role. 3. Provide login credentials.</td></tr>
+    </tbody>
+</table>
+
+<h3>Scenario 2: Setting Up an Amazon Integration Partner</h3>
+<table class="field-table">
+    <tbody>
+        <tr><td>Recommended Role</td><td><span class="badge badge-custom">Custom: Partner</span></td></tr>
+        <tr><td>Suggested Permissions</td><td><code>certificate.view</code>, <code>data.export</code>, <code>data.reports</code>, <code>api.read</code>, <code>products.view</code></td></tr>
+        <tr><td>Steps</td><td>1. Create custom "Partner" role with above permissions. 2. Create partner user. 3. Assign role. 4. Configure API key in Partner Management.</td></tr>
+    </tbody>
+</table>
+
+<h3>Scenario 3: Client Company Representative Needs Access</h3>
+<table class="field-table">
+    <tbody>
+        <tr><td>Recommended Role</td><td><span class="badge badge-external">External</span></td></tr>
+        <tr><td>Access Granted</td><td>View own company's certificates and products, export own data, view reports</td></tr>
+        <tr><td>Important</td><td>Must assign user's Company in User Management. User will only see data for that company.</td></tr>
+        <tr><td>Steps</td><td>1. Ensure company exists in Company Management. 2. Create user with "External" role. 3. Select company during user creation.</td></tr>
+    </tbody>
+</table>
+
+<h3>Scenario 4: Promoting an Analyst to Senior Analyst (with Delete Access)</h3>
+<table class="field-table">
+    <tbody>
+        <tr><td>Recommended Role</td><td><span class="badge badge-custom">Custom: Senior Analyst</span></td></tr>
+        <tr><td>Suggested Permissions</td><td>All Analyst permissions + <code>certificate.delete</code></td></tr>
+        <tr><td>Steps</td><td>1. Create "Senior Analyst" custom role. 2. Assign Analyst permissions + Delete. 3. Reassign user from Analyst to Senior Analyst.</td></tr>
+    </tbody>
+</table>
+
+<h3>Scenario 5: Read-Only Report Viewer</h3>
+<table class="field-table">
+    <tbody>
+        <tr><td>Recommended Role</td><td><span class="badge badge-custom">Custom: Report Viewer</span></td></tr>
+        <tr><td>Suggested Permissions</td><td><code>certificate.view</code>, <code>data.export</code>, <code>data.reports</code>, <code>products.view</code></td></tr>
+        <tr><td>Use Case</td><td>Management staff who need visibility into certification data without any edit capability.</td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 11 ======================= -->
+<h2 id="best-practices">11. Best Practices</h2>
+
+<h3>Principle of Least Privilege</h3>
+<p>Always assign the <strong>minimum permissions necessary</strong> for a user to perform their job. If a user only needs to view certificates and export data, do not give them edit or delete access. Create a custom role if no system role matches.</p>
+
+<h3>Use Descriptive Names and Descriptions</h3>
+<p>When creating custom roles, use names that clearly communicate the role's purpose (e.g., "Amazon Partner" rather than "Custom Role 1"). Always fill in the description field so other administrators understand the role's intent.</p>
+
+<h3>Regular Access Reviews</h3>
+<p>Periodically review role assignments to ensure they remain appropriate. Check the <strong>Users</strong> column in the role table to identify roles with no assigned users (candidates for cleanup) or roles with many users (candidates for review).</p>
+
+<h3>Avoid Modifying System Role Permissions Without Cause</h3>
+<p>System roles ship with carefully considered default permissions. Before changing a system role's permissions, consider whether a custom role would better serve your needs without affecting other users.</p>
+
+<h3>Document Changes</h3>
+<p>When creating or modifying roles, use the Description field to record why the change was made and by whom. This helps future administrators understand the rationale behind custom configurations.</p>
+
+<!-- ======================= SECTION 12 ======================= -->
+<h2 id="troubleshooting">12. Troubleshooting</h2>
+
+<h3>Problem: User cannot access a feature they should have</h3>
+<table class="field-table">
+    <tbody>
+        <tr><td>Check 1</td><td>Verify the user's role in <span class="ui-path">Administration &gt; User Management</span>.</td></tr>
+        <tr><td>Check 2</td><td>Verify the role has the correct permissions in <span class="ui-path">Administration &gt; Role Management</span>.</td></tr>
+        <tr><td>Check 3</td><td>Ask the user to <strong>log out and log back in</strong>. Role/permission changes require a new login session.</td></tr>
+        <tr><td>Check 4</td><td>For External users, confirm their Company assignment matches the data they need to access.</td></tr>
+    </tbody>
+</table>
+
+<h3>Problem: Permission changes not taking effect</h3>
+<table class="field-table">
+    <tbody>
+        <tr><td>Cause</td><td>User's authentication session still has the old role claim cached.</td></tr>
+        <tr><td>Solution</td><td>The user must <strong>log out and log back in</strong>. Permission changes are applied at login time, not in real time.</td></tr>
+    </tbody>
+</table>
+
+<h3>Problem: Cannot delete a role</h3>
+<table class="field-table">
+    <tbody>
+        <tr><td>If Admin role</td><td>The Admin role is permanently protected and <strong>cannot be deleted</strong> under any circumstances.</td></tr>
+        <tr><td>If system role</td><td>System roles show a warning. You must confirm before deletion proceeds.</td></tr>
+        <tr><td>If users assigned</td><td>Reassign all users to a different role before deleting. Check the <strong>Users</strong> count column.</td></tr>
+    </tbody>
+</table>
+
+<h3>Problem: Cannot rename a role</h3>
+<table class="field-table">
+    <tbody>
+        <tr><td>Cause</td><td>System roles (Admin, Analyst, External, Public) have immutable names. The name field is disabled in the edit modal.</td></tr>
+        <tr><td>Solution</td><td>System role names cannot be changed. If you need a differently-named role, create a new custom role with the desired name and permissions.</td></tr>
+    </tbody>
+</table>
+
+<h3>Problem: "Failed to create role" error</h3>
+<table class="field-table">
+    <tbody>
+        <tr><td>Check 1</td><td>Ensure the Role Name is not empty (required field).</td></tr>
+        <tr><td>Check 2</td><td>Ensure the Role Name is 50 characters or fewer.</td></tr>
+        <tr><td>Check 3</td><td>Check for duplicate role names. Each role name must be unique.</td></tr>
+        <tr><td>Check 4</td><td>Check the browser console for network errors (press <span class="kbd">F12</span>).</td></tr>
+    </tbody>
+</table>
+
+<h3>Problem: Export button not working</h3>
+<table class="field-table">
+    <tbody>
+        <tr><td>Cause</td><td>Browser pop-up blocker may be preventing the file download.</td></tr>
+        <tr><td>Solution</td><td>Allow pop-ups for the GCC Database URL, or check your browser's download bar/folder.</td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= SECTION 13 ======================= -->
+<h2 id="faq">13. Frequently Asked Questions</h2>
+
+<h4>Q: Can a user have multiple roles?</h4>
+<p><strong>A:</strong> No. The system enforces one role per user. If a user needs a unique combination of permissions, create a custom role that includes exactly the permissions they need.</p>
+
+<h4>Q: What happens if I change a role's permissions?</h4>
+<p><strong>A:</strong> The change takes effect for all users assigned to that role after they log out and log back in. Currently logged-in users will continue with their existing permissions until their next login.</p>
+
+<h4>Q: Can I restore a deleted role?</h4>
+<p><strong>A:</strong> No. Role deletion is permanent. You would need to recreate the role manually with the same name and permissions. Consider exporting roles before making deletions.</p>
+
+<h4>Q: Why can I change system role permissions but not their names?</h4>
+<p><strong>A:</strong> System role names are used in authorization policies throughout the application code. Changing them would break access control. Permissions, however, can be safely modified because they are evaluated dynamically.</p>
+
+<h4>Q: What is the maximum number of roles I can create?</h4>
+<p><strong>A:</strong> There is no hard limit on custom roles. However, for maintainability, keep the number of distinct roles manageable and well-documented.</p>
+
+<h4>Q: How do I see which users are assigned to a specific role?</h4>
+<p><strong>A:</strong> The Role Management table shows the <strong>Users</strong> count for each role. To see the specific users, go to <span class="ui-path">Administration &gt; User Management</span> and filter or sort by role.</p>
+
+<h4>Q: Are permissions checked in real-time or at login?</h4>
+<p><strong>A:</strong> Role-based authorization is checked in real-time on every request using the role claim in the user's authentication session. However, the role claim itself is set at login time. So while every request checks access, the user must re-login after role changes for the new role to be reflected in their session.</p>
+
+<!-- ======================= SECTION 14 ======================= -->
+<h2 id="glossary">14. Glossary</h2>
+
+<table>
+    <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+    <tbody>
+        <tr><td><strong>RBAC</strong></td><td>Role-Based Access Control &mdash; security model where permissions are assigned to roles, and roles are assigned to users.</td></tr>
+        <tr><td><strong>Role</strong></td><td>A named collection of permissions that defines what actions a user can perform.</td></tr>
+        <tr><td><strong>Permission</strong></td><td>A granular access right that controls a specific action (e.g., "Create Certificates").</td></tr>
+        <tr><td><strong>System Role</strong></td><td>A built-in role that ships with the application. Name is immutable; cannot be deleted.</td></tr>
+        <tr><td><strong>Custom Role</strong></td><td>An administrator-created role with configurable name and permissions.</td></tr>
+        <tr><td><strong>Claim</strong></td><td>A piece of identity data (e.g., role name) stored in the user's authentication token.</td></tr>
+        <tr><td><strong>Policy</strong></td><td>An authorization rule that specifies which roles can access a particular feature or page.</td></tr>
+        <tr><td><strong>Codename</strong></td><td>A machine-readable identifier for a permission (e.g., <code>certificate.view</code>).</td></tr>
+        <tr><td><strong>Workflow</strong></td><td>The 14-state certificate lifecycle from Draft through Approved, Expired, etc.</td></tr>
+        <tr><td><strong>Least Privilege</strong></td><td>Security principle: grant only the minimum access needed for a user to perform their duties.</td></tr>
+    </tbody>
+</table>
+
+<!-- ======================= FOOTER ======================= -->
+
+<div class="doc-footer">
+    <p>GCC Database Solution &mdash; Role Management User Guide v2.0</p>
+    <p>Prepared by Anuki Consulting | March 26, 2026</p>
+    <p>For questions or support, contact your system administrator.</p>
+</div>
+
+</body>
+</html>

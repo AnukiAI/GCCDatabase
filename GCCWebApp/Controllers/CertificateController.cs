@@ -400,6 +400,9 @@ namespace GCCWebApp.Controllers
                 // Load partners from database
                 ViewBag.Partners = await _context.Partners.Where(p => p.IsActive && !p.IsDeleted).OrderBy(p => p.SortOrder).ThenBy(p => p.Name).ToListAsync();
 
+                // Load countries
+                ViewBag.Countries = CountryList.Countries;
+
                 return View(model);
             }
             catch (Exception ex)
@@ -813,6 +816,9 @@ namespace GCCWebApp.Controllers
                 {
                     ViewBag.ExistingSubcategories = new List<object>();
                 }
+
+                // Load countries
+                ViewBag.Countries = CountryList.Countries;
 
                 return View(model);
             }

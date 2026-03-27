@@ -155,9 +155,7 @@
                 <!-- Right Column: Certificate Image/PDF Preview -->
                 <div class="certificate-image-column">
                     @{
-                        // Only consider it a valid snapshot if it's a generated thumbnail (contains "_thumb_" or is in uploads/images/)
-                        bool hasValidSnapshot = !string.IsNullOrEmpty(certificateImagePath) &&
-                            (certificateImagePath.Contains("_thumb_") || certificateImagePath.Contains("uploads/images/"));
+                        bool hasValidSnapshot = !string.IsNullOrEmpty(certificateImagePath);
                         string certificateImageSrc = "";
                         if (hasValidSnapshot)
                         {

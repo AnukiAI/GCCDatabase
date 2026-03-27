@@ -237,13 +237,15 @@
 
                     <div class="form-group">
                         <label asp-for="Country">Country</label>
-                        <select asp-for="Country" class="form-control">
+                        <select asp-for="Country" class="form-control" id="countrySelect">
                             <option value="">Select country...</option>
-                            <option value="United States">United States</option>
-                            <option value="Canada">Canada</option>
-                            <option value="Mexico">Mexico</option>
-                            <option value="United Kingdom">United Kingdom</option>
-                            <option value="Germany">Germany</option>
+                            @if (ViewBag.Countries != null)
+                            {
+                                foreach (var country in (List<string>)ViewBag.Countries)
+                                {
+                                    <option value="@country">@country</option>
+                                }
+                            }
                         </select>
                         <span asp-validation-for="Country" class="text-danger" role="alert"></span>
                     </div>
@@ -396,6 +398,8 @@
     <script src="~/js/certificate-custom-fields.js"></script>
     <script src="~/js/certificate-create.js"></script>
     <script src="~/js/certificate-inline-create.js"></script>
+    <script src="~/js/searchable-select.js"></script>
+    <script>new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });</script>
 
     <script>
         // Image zoom functionality

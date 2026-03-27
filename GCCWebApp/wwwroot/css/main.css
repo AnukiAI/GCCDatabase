@@ -116,6 +116,11 @@ button,
     font-size: 16px !important;
 }
 
+/* Hide validation summary when no errors present */
+.validation-summary-valid {
+    display: none;
+}
+
 /* Focus styles for form elements */
 input:focus,
 select:focus,

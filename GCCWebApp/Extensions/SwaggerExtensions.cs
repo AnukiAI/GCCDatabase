@@ -428,13 +428,6 @@ Cookies are secure, HTTP-only, and have appropriate SameSite settings."
                     {
                         var path = context.Request.Path.Value?.ToLower() ?? "";
 
-                        // Allow public access to partner-data swagger.json for ReDoc
-                        if (path.Equals("/swagger/partner-data/swagger.json", StringComparison.OrdinalIgnoreCase))
-                        {
-                            await next();
-                            return;
-                        }
-
                         var user = context.User;
                         var isAdmin = user?.HasClaim("Role", "Admin") == true;
                         var isAnalyst = user?.HasClaim("Role", "Analyst") == true;

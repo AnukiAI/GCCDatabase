@@ -36,7 +36,7 @@
         <span class="current">Certificate Details</span>
     </span>
     <span class="role-element role-analyst-show role-admin-show">
-        <a href="#">Administration</a>
+        <a href="@Url.Action("Index", "Admin")">Administration</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <a asp-controller="Certificate" asp-action="CertificateTileViewInternal">Certificate Management</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
@@ -184,10 +184,8 @@
                 <!-- Right Column: Certificate Image/PDF Preview -->
                 <div class="certificate-image-column">
                     @{
-                        // Only consider it a valid snapshot if it's a generated thumbnail (contains "_thumb_" or is in uploads/images/)
                         var imagePath = Model.Certificate?.CertificateImagePath ?? "";
-                        bool hasValidSnapshot = !string.IsNullOrEmpty(imagePath) &&
-                            (imagePath.Contains("_thumb_") || imagePath.Contains("uploads/images/"));
+                        bool hasValidSnapshot = !string.IsNullOrEmpty(imagePath);
                         string certificateImageSrc = "";
                         if (hasValidSnapshot)
                         {

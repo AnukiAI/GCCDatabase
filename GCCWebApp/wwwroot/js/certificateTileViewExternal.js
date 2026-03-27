@@ -1205,13 +1205,13 @@ class CertificateTileViewExternal {
         const toggle = document.querySelector('.mobile-filter-toggle');
         
         if (sidebar) {
-            sidebar.classList.toggle('expanded');
-            
+            sidebar.classList.toggle('mobile-open');
+
             if (toggle) {
                 const icon = toggle.querySelector('i');
                 const text = toggle.querySelector('span');
-                
-                if (sidebar.classList.contains('expanded')) {
+
+                if (sidebar.classList.contains('mobile-open')) {
                     icon.classList.remove('fa-chevron-down');
                     icon.classList.add('fa-chevron-up');
                     text.textContent = 'Hide Filters & Search';

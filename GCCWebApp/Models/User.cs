@@ -74,6 +74,10 @@ namespace GCCWebApp.Models
         
         public string? AllowedIPs { get; set; } // Comma-separated list
         
+        public string? PasswordResetToken { get; set; }
+
+        public DateTime? PasswordResetTokenExpiry { get; set; }
+
         public bool RequirePasswordChange { get; set; } = false;
         
         public DateTime? PasswordExpiresAt { get; set; }

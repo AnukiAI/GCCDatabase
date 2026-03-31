@@ -16,7 +16,9 @@ class CertificateTypeManager {
 
     async loadCertificateTypes() {
         try {
-            const response = await fetch('/Admin/GetCertificateTypes');
+            const response = await fetch('/Admin/GetCertificateTypes', {
+                headers: { 'Accept': 'application/json' }
+            });
             const result = await response.json();
 
             if (result.success) {
@@ -877,11 +879,16 @@ class CertificateTypeManager {
         try {
             const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
             console.log('Token found:', token ? 'Yes' : 'No');
+            if (!token) {
+                this.showNotification('Session may have expired. Please refresh the page and try again.', 'error');
+                return;
+            }
             const response = await fetch('/Admin/CreateCertificateType', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    'Accept': 'application/json',
+                    'RequestVerificationToken': token
                 },
                 body: JSON.stringify({
                     name: name,
@@ -889,6 +896,23 @@ class CertificateTypeManager {
                     parentId: parentId || null
                 })
             });
+
+            console.log('Response status:', response.status, response.statusText);
+
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('text/html')) {
+                    // Server returned HTML error page (auth redirect, anti-forgery failure, etc.)
+                    if (response.status === 401 || response.status === 302) {
+                        this.showNotification('Your session has expired. Please refresh the page and log in again.', 'error');
+                    } else if (response.status === 400) {
+                        this.showNotification('Request rejected — your session may have expired. Please refresh the page and try again.', 'error');
+                    } else {
+                        this.showNotification(`Server error (${response.status}). Please refresh the page and try again.`, 'error');
+                    }
+                    return;
+                }
+            }
 
             const result = await response.json();
             if (result.success) {
@@ -900,17 +924,23 @@ class CertificateTypeManager {
             }
         } catch (error) {
             console.error('Error creating certificate type:', error);
-            this.showNotification('Error creating certificate type', 'error');
+            this.showNotification('Error creating certificate type. Please refresh the page and try again.', 'error');
         }
     }
 
     async updateCertificateType(id, name, parentId) {
         try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (!token) {
+                this.showNotification('Session may have expired. Please refresh the page and try again.', 'error');
+                return;
+            }
             const response = await fetch(`/Admin/UpdateCertificateType/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    'Accept': 'application/json',
+                    'RequestVerificationToken': token
                 },
                 body: JSON.stringify({
                     name: name,
@@ -918,6 +948,14 @@ class CertificateTypeManager {
                     parentId: parentId || null
                 })
             });
+
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('text/html')) {
+                    this.showNotification('Request failed — your session may have expired. Please refresh the page and try again.', 'error');
+                    return;
+                }
+            }
 
             const result = await response.json();
             if (result.success) {
@@ -928,20 +966,34 @@ class CertificateTypeManager {
             }
         } catch (error) {
             console.error('Error updating certificate type:', error);
-            this.showNotification('Error updating certificate type', 'error');
+            this.showNotification('Error updating certificate type. Please refresh the page and try again.', 'error');
         }
     }
 
     async deleteCertificateType(id) {
         console.log('deleteCertificateType called:', id);
         try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (!token) {
+                this.showNotification('Session may have expired. Please refresh the page and try again.', 'error');
+                return;
+            }
             const response = await fetch(`/Admin/DeleteCertificateType/${id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
-                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                    'Accept': 'application/json',
+                    'RequestVerificationToken': token
                 }
             });
+
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('text/html')) {
+                    this.showNotification('Request failed — your session may have expired. Please refresh the page and try again.', 'error');
+                    return;
+                }
+            }
 
             const result = await response.json();
             if (result.success) {

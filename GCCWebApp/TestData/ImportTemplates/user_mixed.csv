@@ -1,9 +1,0 @@
-Name,Email,Role,Status
-Valid User One,validuser1@test.com,Admin,active
-,noemail@test.com,Analyst,active
-No Email User,not-an-email,External,active
-Valid User Two,validuser2@test.com,InvalidRole,active
-Valid User Three,validuser3@test.com,Analyst,pending
-"User, With Comma",comma.user@test.com,External,active
-Valid No Status,nostatus@test.com,Analyst,
-Final Valid,finalvalid@test.com,Admin,active

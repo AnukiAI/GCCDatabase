@@ -128,7 +128,7 @@ namespace GCCWebApp.Api.Tests.Integration
             cert.TryGetProperty("issueDate", out _).Should().BeTrue();
             cert.TryGetProperty("expirationDate", out _).Should().BeTrue();
             cert.TryGetProperty("location", out _).Should().BeTrue();
-            cert.TryGetProperty("country", out _).Should().BeTrue();
+            cert.TryGetProperty("certificationCountries", out _).Should().BeTrue();
             cert.TryGetProperty("partner", out _).Should().BeTrue();
             cert.TryGetProperty("certificationResults", out _).Should().BeTrue();
             cert.TryGetProperty("pathway", out _).Should().BeTrue();
@@ -356,7 +356,7 @@ namespace GCCWebApp.Api.Tests.Integration
             report.GetProperty("$schema").GetString()
                 .Should().Contain("gs1us-technology.github.io");
             report.GetProperty("type").GetString().Should().Be("CertificationReport");
-            report.GetProperty("issuer").GetString().Should().Be("Green Circle Certified");
+            report.GetProperty("issuer").GetString().Should().Be("GreenCircle Certified");
             report.TryGetProperty("issueDate", out _).Should().BeTrue();
         }
 
@@ -385,7 +385,7 @@ namespace GCCWebApp.Api.Tests.Integration
 
             var certInfo = product.GetProperty("certificationInfo");
             certInfo.GetProperty("type").GetString().Should().Be("CertificationDetails");
-            certInfo.GetProperty("agency").GetString().Should().Be("Green Circle Certified");
+            certInfo.GetProperty("agency").GetString().Should().Be("GreenCircle Certified");
             certInfo.TryGetProperty("program", out _).Should().BeTrue();
             certInfo.TryGetProperty("certificateId", out _).Should().BeTrue();
             certInfo.TryGetProperty("status", out _).Should().BeTrue();
@@ -531,7 +531,7 @@ namespace GCCWebApp.Api.Tests.Integration
             var root = doc.RootElement;
 
             root.GetProperty("type").GetString().Should().Be("CertificationReport");
-            root.GetProperty("issuer").GetString().Should().Be("Green Circle Certified");
+            root.GetProperty("issuer").GetString().Should().Be("GreenCircle Certified");
         }
 
         [Fact]

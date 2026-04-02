@@ -1436,6 +1436,39 @@ label span.text-danger {
     .email-icon i {
         font-size: 36px;
     }
+
+    /* Fix iOS zoom: ensure all text is at least 16px on mobile */
+    .trust-device label {
+        font-size: 16px;
+    }
+
+    .resend-section p {
+        font-size: 16px;
+    }
+
+    .resend-link {
+        font-size: 16px;
+    }
+
+    .steps-list li {
+        font-size: 16px;
+    }
+
+    .support-info p {
+        font-size: 16px;
+    }
+
+    .timer-label {
+        font-size: 16px;
+    }
+
+    .contact-info p {
+        font-size: 16px;
+    }
+
+    .login-footer p {
+        font-size: 16px;
+    }
 }
 
 /* ====================================================
@@ -1472,9 +1505,23 @@ label span.text-danger {
         font-size: 18px;
     }
 
+    .auth-container {
+        padding: 20px 15px;
+    }
+
+    .code-input-group {
+        gap: 4px;
+    }
+
+    .code-input {
+        width: 36px;
+        height: 44px;
+        font-size: 18px;
+    }
+
     .btn-lime,
     .btn-blue {
         padding: 12px 20px;
-        font-size: 15px;
+        font-size: 16px;
     }
 }

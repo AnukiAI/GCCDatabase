@@ -12,7 +12,7 @@ class CertificateFieldsManager {
         this.itemsPerLoad = 15;
         this.currentDisplayCount = 15;
         this.isLoading = false;
-        this.sortColumn = 'section';
+        this.sortColumn = 'fieldName';
         this.sortDirection = 'asc';
 
         this.init();
@@ -191,7 +191,6 @@ class CertificateFieldsManager {
         const newId = this.fields.length > 0 ? Math.max(...this.fields.map(f => f.id)) + 1 : 1;
         const newField = {
             id: newId,
-            section: 'Additional Information',
             name: '',
             fieldType: 'text',
             isRequired: false,
@@ -288,13 +287,12 @@ class CertificateFieldsManager {
         const inputs = row.querySelectorAll('.edit-input, .edit-select');
 
         const updatedData = {
-            section: inputs[0].value,  // Section dropdown
-            name: inputs[1].value.trim(),
-            fieldType: inputs[2].value,
-            isRequired: inputs[3].value === 'true',
-            roleVisibility: inputs[4].value,  // Visibility dropdown (Public/External/Internal)
+            name: inputs[0].value.trim(),
+            fieldType: inputs[1].value,
+            isRequired: inputs[2].value === 'true',
+            roleVisibility: inputs[3].value,  // Visibility dropdown (Public/External/Internal)
             isVisible: true,
-            defaultValue: inputs[5].value.trim(),  // Notes stored in DefaultValue field
+            defaultValue: inputs[4].value.trim(),  // Notes stored in DefaultValue field
             sortOrder: this.getNextOrder()
         };
 
@@ -374,7 +372,6 @@ class CertificateFieldsManager {
         const visibilityClass = visibility.toLowerCase();
 
         row.innerHTML = `
-            <td style="font-size: 16px; color: #666;">${field.section || 'Additional Information'}</td>
             <td>${field.name}</td>
             <td><span class="field-type type-${field.fieldType.toLowerCase().replace(/[-\s]/g, '')}">${this.formatFieldType(field.fieldType)}</span></td>
             <td><span class="required-label required-${requiredLabel.toLowerCase().replace('-', '')}">${requiredLabel}</span></td>
@@ -399,23 +396,10 @@ class CertificateFieldsManager {
         const notes = field.notes || field.defaultValue || '';
         const visibility = field.roleVisibility || 'Public';
 
-        const sections = [
-            'Additional Information',
-            'Environmental Metrics',
-            'Testing & Compliance',
-            'Record Management'
-        ];
         const controlTypes = ['text', 'email', 'phone', 'textarea', 'dropdown', 'multi-select', 'date', 'file', 'number', 'checkbox', 'system-generated'];
         const visibilityOptions = ['Public', 'External', 'Internal'];
 
         row.innerHTML = `
-            <td>
-                <select class="edit-select" required>
-                    ${sections.map(section =>
-                        `<option value="${section}" ${section === (field.section || 'Additional Information') ? 'selected' : ''}>${section}</option>`
-                    ).join('')}
-                </select>
-            </td>
             <td>
                 <input type="text" class="edit-input" value="${field.name || ''}" required>
             </td>
@@ -482,7 +466,6 @@ class CertificateFieldsManager {
             this.filteredFields = [...this.fields];
         } else {
             this.filteredFields = this.fields.filter(field =>
-                (field.section && field.section.toLowerCase().includes(searchTerm)) ||
                 field.name.toLowerCase().includes(searchTerm) ||
                 field.fieldType.toLowerCase().includes(searchTerm) ||
                 (field.isRequired ? 'required' : 'optional').includes(searchTerm) ||
@@ -540,9 +523,9 @@ class CertificateFieldsManager {
             let valueA, valueB;
 
             switch (this.sortColumn) {
-                case 'section':
-                    valueA = (a.section || '').toLowerCase();
-                    valueB = (b.section || '').toLowerCase();
+                case 'fieldName':
+                    valueA = (a.name || '').toLowerCase();
+                    valueB = (b.name || '').toLowerCase();
                     break;
                 case 'fieldName':
                     valueA = (a.name || '').toLowerCase();

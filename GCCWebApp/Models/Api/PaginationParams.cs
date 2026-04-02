@@ -6,7 +6,7 @@ namespace GCCWebApp.Models.Api
     public class PaginationParams
     {
         private const int MaxPageSize = 100;
-        private int _pageSize = 10;
+        private int _pageSize = 100;
 
         [Range(1, int.MaxValue, ErrorMessage = "Page number must be greater than 0")]
         public int PageNumber { get; set; } = 1;

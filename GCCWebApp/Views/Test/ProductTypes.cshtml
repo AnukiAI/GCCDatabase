@@ -1,0 +1,28 @@
+@{
+    ViewData["Title"] = "Product Types Test";
+}
+
+<h2>Product Types Test</h2>
+
+<div id="productTypesData"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Test the GetProductTypes endpoint
+    fetch('/Test/GetProductTypesTest')
+        .then(response => response.json())
+        .then(data => {
+            const container = document.getElementById('productTypesData');
+            if (data.success && data.data) {
+                container.innerHTML = '<h3>Product Types found:</h3><pre>' + JSON.stringify(data.data, null, 2) + '</pre>';
+                console.log('Product Types:', data.data);
+            } else {
+                container.innerHTML = '<p>Error: ' + (data.message || 'No data found') + '</p>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('productTypesData').innerHTML = '<p>Error loading data: ' + error.message + '</p>';
+        });
+});
+</script>

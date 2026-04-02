@@ -158,3 +158,99 @@
 
 /* External actions column is narrower (Download + View only) */
 .tc-actions  { width: 80px;  min-width: 80px;  }
+
+/* =============================================================================
+   MOBILE RESPONSIVENESS (768px and below)
+   Hide low-priority columns, add scroll affordance, reduce min-width.
+   Remaining visible columns (10):
+     1. Select checkbox
+     2. Actions
+     3. Certificate #
+     4. Certification Type
+     5. Status
+     6. Effective Date
+     7. Expiration Date
+     8. Company
+     10. Product Name
+     17. Partner
+   ============================================================================= */
+
+@media (max-width: 768px) {
+
+    /* --- Scroll affordance: right-edge fade to hint at more content --- */
+    .table-scroll-wrapper {
+        position: relative;
+    }
+
+    .table-scroll-wrapper::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 32px;
+        background: linear-gradient(to right, rgba(255, 255, 255, 0), rgba(0, 0, 0, 0.08));
+        pointer-events: none;
+        z-index: 10;
+        border-radius: 0 8px 8px 0;
+    }
+
+    /* --- Hide low-priority columns (header + body cells) --- */
+    .tc-contact,
+    .tc-prodcat,
+    .tc-prodtype,
+    .tc-prodsub,
+    .tc-location,
+    .tc-country,
+    .tc-exttag,
+    .tc-asin,
+    .tc-upc,
+    .tc-gtin,
+    .tc-ean {
+        display: none !important;
+    }
+
+    /* --- Reduce container min-width for remaining 10 columns --- */
+    /* Remaining widths: 36+80+140+175+110+130+135+170+220+100 = 1296px */
+    .table-grid-container {
+        min-width: 1100px;
+        width: max-content;
+    }
+
+    /* --- Adjust grid template for 10 visible columns --- */
+    .table-grid {
+        grid-template-columns:
+            36px      /* 1. Select checkbox */
+            70px      /* 2. Actions */
+            120px     /* 3. Certificate # */
+            140px     /* 4. Certification Type */
+            90px      /* 5. Status */
+            100px     /* 6. Effective Date */
+            100px     /* 7. Expiration Date */
+            140px     /* 8. Company */
+            170px     /* 10. Product Name */
+            90px;     /* 17. Partner */
+    }
+
+    /* --- Reduce fixed widths on remaining .tc-* classes for tighter fit --- */
+    .tc-actions  { width: 70px;  min-width: 70px;  }
+    .tc-cert     { width: 120px; min-width: 120px; }
+    .tc-type     { width: 140px; min-width: 140px; }
+    .tc-status   { width: 90px;  min-width: 90px;  }
+    .tc-eff      { width: 100px; min-width: 100px; }
+    .tc-exp      { width: 100px; min-width: 100px; }
+    .tc-company  { width: 140px; min-width: 140px; }
+    .tc-product  { width: 170px; min-width: 170px; }
+    .tc-partner  { width: 90px;  min-width: 90px;  }
+
+    /* --- Tighten cell padding on mobile --- */
+    .sticky-header-cell {
+        padding: 6px 6px;
+        font-size: 12px;
+    }
+
+    .table-body-cell {
+        padding: 5px 6px;
+        font-size: 12px;
+    }
+}

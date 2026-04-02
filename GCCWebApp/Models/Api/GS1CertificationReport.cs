@@ -139,7 +139,7 @@ namespace GCCWebApp.Models.Api
         /// Name of the organisation issuing the certification standard.
         /// </summary>
         [JsonPropertyName("agency")]
-        public string Agency { get; set; } = "Green Circle Certified";
+        public string Agency { get; set; } = "GreenCircle Certified";
 
         /// <summary>
         /// URL of the certification agency.

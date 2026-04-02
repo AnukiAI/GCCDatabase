@@ -226,7 +226,7 @@ namespace GCCWebApp.Controllers.Api.v1
                             issueDate = c.EffectiveDate,
                             expirationDate = c.ExpirationDate,
                             location = c.Location,
-                            country = c.Country,
+                            certificationCountries = c.Country,
                             partner = c.Partner,
                             certificationResults = c.CertificationResults,
                             pathway = c.Pathway != null ? c.Pathway.Name : null,
@@ -237,10 +237,8 @@ namespace GCCWebApp.Controllers.Api.v1
                             productId = c.ProductId,
                             certificationType = c.CertificationType != null ? c.CertificationType.Name : null,
                             certificationTypeId = c.CertificationTypeId,
-                            certificationTypeSubcategory = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
-                            certificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
                             amazonCode = c.CertificationType != null ? c.CertificationType.AmazonCode : null,
-                            issuer = "Green Circle Certified",
+                            issuer = "GreenCircle Certified",
                             // Product identifiers (GTIN, MPN, ASIN, UPC, etc.)
                             productIds = c.ProductIds
                                 .Where(pi => pi.Status == "Active")
@@ -277,7 +275,7 @@ namespace GCCWebApp.Controllers.Api.v1
                             issueDate = c.EffectiveDate,
                             expirationDate = c.ExpirationDate,
                             location = c.Location,
-                            country = c.Country,
+                            certificationCountries = c.Country,
                             partner = c.Partner,
                             certificationResults = c.CertificationResults,
                             pathway = c.Pathway != null ? c.Pathway.Name : null,
@@ -287,8 +285,6 @@ namespace GCCWebApp.Controllers.Api.v1
                             companyId = c.CompanyId,
                             certificationType = c.CertificationType != null ? c.CertificationType.Name : null,
                             certificationTypeId = c.CertificationTypeId,
-                            certificationTypeSubcategory = c.CertificationTypeSubcategory != null ? c.CertificationTypeSubcategory.Name : null,
-                            certificationTypeSubcategoryId = c.CertificationTypeSubcategoryId,
                             amazonCode = c.CertificationType != null ? c.CertificationType.AmazonCode : null,
                             createdAt = c.CreatedAt,
                             updatedAt = c.UpdatedAt
@@ -345,7 +341,7 @@ namespace GCCWebApp.Controllers.Api.v1
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetCertificateByNumber(
-            [FromRoute][Required][StringLength(7, MinimumLength = 1, ErrorMessage = "Certificate number must be between 1 and 7 characters")] string certificateNumber)
+            [FromRoute][Required][StringLength(50, MinimumLength = 1, ErrorMessage = "Certificate number must be between 1 and 50 characters")] string certificateNumber)
         {
             try
             {
@@ -847,7 +843,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     issueDate = cert.EffectiveDate,
                     expirationDate = cert.ExpirationDate,
                     location = cert.Location,
-                    country = cert.Country,
+                    certificationCountries = cert.Country,
                     pdfDownloadUrl = $"/api/v1/certificates/{cert.Number}/download",
                     // Return ALL product IDs associated with this certificate
                     productIds = cert.ProductIds
@@ -1098,7 +1094,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
         ///   "id": "https://greencirclecertified.com/api/v1/certificates/gs1/24-0366",
         ///   "type": "CertificationReport",
         ///   "issueDate": "2024-01-15",
-        ///   "issuer": "Green Circle Certified",
+        ///   "issuer": "GreenCircle Certified",
         ///   "products": [
         ///     {
         ///       "id": "https://id.gs1.org/01/00123456789012",
@@ -1110,7 +1106,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
         ///       "name": "Recycled Paper Towels",
         ///       "certificationInfo": {
         ///         "type": "CertificationDetails",
-        ///         "agency": "Green Circle Certified",
+        ///         "agency": "GreenCircle Certified",
         ///         "program": "UL 2809",
         ///         "certificateId": "24-0366",
         ///         "status": "ACTIVE",
@@ -1343,7 +1339,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
             {
                 Id = certUri,
                 IssueDate = issueDate,
-                Issuer = "Green Circle Certified",
+                Issuer = "GreenCircle Certified",
                 Products = new List<GS1Product>
                 {
                     new GS1Product
@@ -1356,11 +1352,10 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         CertificationInfo = new GS1CertificationInfo
                         {
                             Id = $"{certUri}/certification",
-                            Agency = "Green Circle Certified",
+                            Agency = "GreenCircle Certified",
                             AgencyURL = "https://www.greencirclecertified.com",
                             Program = cert.CertificationType?.Name,
                             CertificateId = cert.Number,
-                            Standard = cert.CertificationTypeSubcategory?.Name ?? cert.CertificationType?.Name,
                             Status = gs1Status,
                             Value = cert.CertificationResults,
                             StartDate = issueDate,

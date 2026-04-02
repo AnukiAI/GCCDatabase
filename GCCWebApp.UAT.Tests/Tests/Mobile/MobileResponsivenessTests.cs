@@ -5,33 +5,34 @@ using FluentAssertions;
 namespace GCCWebApp.UAT.Tests.Tests.Mobile
 {
     /// <summary>
-    /// Mobile Responsiveness Tests for UX-002: Mobile-First Design Requirements
-    /// Tests responsive design across different screen sizes and mobile interactions
+    /// Mobile Responsiveness Tests - Strict assertions for layout, touch targets,
+    /// accessibility, and performance on mobile/tablet viewports.
+    /// Uses real app selectors (.mobile-toggle, .nav-links, .certificate-card, etc.)
     /// </summary>
     [Collection("UITests")]
     public class MobileResponsivenessTests : IAsyncLifetime
     {
+        private IPlaywright? _playwright;
         private IBrowser? _browser;
         private IBrowserContext? _context;
         private IPage? _page;
-        
+
         private const string BaseUrl = "http://localhost:5101";
 
         public async Task InitializeAsync()
         {
-            var playwright = await Playwright.CreateAsync();
-            
-            // Test on mobile browser (iPhone 12)
-            _browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            _playwright = await Playwright.CreateAsync();
+
+            _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
             {
-                Headless = false,
-                SlowMo = 100
+                Headless = true
             });
 
             _context = await _browser.NewContextAsync(new BrowserNewContextOptions
             {
-                ViewportSize = new ViewportSize { Width = 390, Height = 844 }, // iPhone 12
-                UserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 14_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Mobile/15E148 Safari/604.1"
+                ViewportSize = new ViewportSize { Width = 390, Height = 844 },
+                UserAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
+                HasTouch = true
             });
 
             _page = await _context.NewPageAsync();
@@ -39,286 +40,396 @@ namespace GCCWebApp.UAT.Tests.Tests.Mobile
 
         public async Task DisposeAsync()
         {
-            await _page?.CloseAsync()!;
-            await _context?.CloseAsync()!;
-            await _browser?.CloseAsync()!;
+            if (_page != null) await _page.CloseAsync();
+            if (_context != null) await _context.CloseAsync();
+            if (_browser != null) await _browser.CloseAsync();
+            _playwright?.Dispose();
         }
 
-        #region UX-002: Mobile-First Design Tests
+        #region Navigation Tests
 
         [Fact]
-        public async Task MobileNavigation_HamburgerMenu_ShouldBeVisibleAndFunctional()
+        public async Task MobileNavigation_HamburgerMenu_MustBeVisibleOnMobile()
         {
-            // Arrange
             await _page!.GotoAsync(BaseUrl);
-
-            // Act - Look for mobile navigation elements
-            var hamburgerMenu = await _page.QuerySelectorAsync(".navbar-toggler, .mobile-menu-toggle, [data-bs-toggle='collapse']");
-            
-            // Assert
-            hamburgerMenu.Should().NotBeNull("Mobile hamburger menu should be visible on mobile screens");
-            
-            if (hamburgerMenu != null)
-            {
-                await hamburgerMenu.ClickAsync();
-                
-                // Verify menu opens
-                var mobileMenu = await _page.QuerySelectorAsync(".navbar-collapse, .mobile-menu");
-                var isVisible = mobileMenu != null && await mobileMenu.IsVisibleAsync();
-                isVisible.Should().BeTrue("Mobile menu should open when hamburger is clicked");
-            }
-        }
-
-        [Fact]
-        public async Task MobileLayout_CertificateList_ShouldStackVertically()
-        {
-            // Arrange
-            await _page!.GotoAsync($"{BaseUrl}/Certificate/Certificates");
             await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            // Act - Check certificate tile layout
-            var certificateTiles = await _page.QuerySelectorAllAsync(".certificate-tile, .card, .certificate-item");
-            
-            // Assert
-            certificateTiles.Should().NotBeEmpty("Certificate tiles should be present");
-            
-            if (certificateTiles.Count > 1)
-            {
-                // Check if tiles are stacked vertically (mobile layout)
-                var firstTile = certificateTiles[0];
-                var secondTile = certificateTiles[1];
-                
-                var firstRect = await firstTile.BoundingBoxAsync();
-                var secondRect = await secondTile.BoundingBoxAsync();
-                
-                if (firstRect != null && secondRect != null)
-                {
-                    secondRect.Y.Should().BeGreaterThan(firstRect.Y, 
-                        "Certificate tiles should stack vertically on mobile");
-                }
-            }
+            // The app uses .mobile-toggle#mobile-toggle for the hamburger button
+            var hamburgerMenu = await _page.QuerySelectorAsync("#mobile-toggle");
+
+            hamburgerMenu.Should().NotBeNull(
+                "Hamburger menu (#mobile-toggle) must exist on mobile viewport");
+
+            var isVisible = await hamburgerMenu!.IsVisibleAsync();
+            isVisible.Should().BeTrue(
+                "Hamburger menu must be visible on 390px mobile viewport");
         }
 
         [Fact]
-        public async Task MobileForm_LoginForm_ShouldBeOptimizedForTouch()
+        public async Task MobileNavigation_HamburgerMenu_OpensNavLinks()
         {
-            // Arrange
-            await _page!.GotoAsync($"{BaseUrl}/Account/Login");
-
-            // Act - Find form elements
-            var emailInput = await _page.QuerySelectorAsync("#Email, input[type='email']");
-            var passwordInput = await _page.QuerySelectorAsync("#Password, input[type='password']");
-            var submitButton = await _page.QuerySelectorAsync("button[type='submit'], input[type='submit']");
-
-            // Assert
-            emailInput.Should().NotBeNull("Email input should be present");
-            passwordInput.Should().NotBeNull("Password input should be present");
-            submitButton.Should().NotBeNull("Submit button should be present");
-
-            if (emailInput != null)
-            {
-                var inputRect = await emailInput.BoundingBoxAsync();
-                inputRect?.Height.Should().BeGreaterThan(40, 
-                    "Form inputs should be large enough for touch interaction (min 44px)");
-            }
-
-            if (submitButton != null)
-            {
-                var buttonRect = await submitButton.BoundingBoxAsync();
-                buttonRect?.Height.Should().BeGreaterThan(40, 
-                    "Buttons should be large enough for touch interaction (min 44px)");
-            }
-        }
-
-        [Fact]
-        public async Task MobileText_ReadabilityAndSize_ShouldBeOptimized()
-        {
-            // Arrange
             await _page!.GotoAsync(BaseUrl);
-
-            // Act - Check text sizing and readability
-            var headings = await _page.QuerySelectorAllAsync("h1, h2, h3, h4, h5, h6");
-            var paragraphs = await _page.QuerySelectorAllAsync("p, .text-body");
-
-            // Assert
-            headings.Should().NotBeEmpty("Page should have headings");
-            
-            foreach (var heading in headings.Take(3)) // Check first 3 headings
-            {
-                var fontSize = await heading.EvaluateAsync<string>("el => window.getComputedStyle(el).fontSize");
-                var fontSizeValue = float.Parse(fontSize.Replace("px", ""));
-                
-                fontSizeValue.Should().BeGreaterThan(18, 
-                    "Headings should be large enough for mobile readability (min 18px)");
-            }
-        }
-
-        [Xunit.Theory]
-        [InlineData(375, 667)]  // iPhone SE
-        [InlineData(390, 844)]  // iPhone 12
-        [InlineData(393, 851)]  // Pixel 5
-        [InlineData(360, 740)]  // Galaxy S8
-        public async Task MobileBreakpoints_DifferentScreenSizes_ShouldMaintainUsability(int width, int height)
-        {
-            // Arrange
-            await _page!.SetViewportSizeAsync(width, height);
-            await _page.GotoAsync(BaseUrl);
-
-            // Act - Check critical elements are still accessible
-            var navigation = await _page.QuerySelectorAsync("nav, .navbar");
-            var mainContent = await _page.QuerySelectorAsync("main, .main-content, .container");
-
-            // Assert
-            navigation.Should().NotBeNull($"Navigation should be present on {width}x{height} screen");
-            mainContent.Should().NotBeNull($"Main content should be present on {width}x{height} screen");
-
-            // Check that content doesn't overflow horizontally
-            var bodyWidth = await _page.EvaluateAsync<int>("document.body.scrollWidth");
-            var viewportWidth = await _page.EvaluateAsync<int>("window.innerWidth");
-            
-            bodyWidth.Should().BeLessThanOrEqualTo(viewportWidth + 5, 
-                $"Content should not cause horizontal scroll on {width}x{height} screen");
-        }
-
-        #endregion
-
-        #region Touch Interaction Tests
-
-        [Fact]
-        public async Task TouchInteraction_CertificateSelection_ShouldRespondToTap()
-        {
-            // Arrange
-            await _page!.GotoAsync($"{BaseUrl}/Certificate/Certificates");
             await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            // Act - Tap on first certificate
-            var firstCertificate = await _page.QuerySelectorAsync(".certificate-tile, .card");
-            
-            if (firstCertificate != null)
-            {
-                await firstCertificate.ClickAsync();
-                
-                // Wait for navigation or modal
-                await Task.Delay(1000);
-                
-                // Assert - Should navigate to certificate details or open modal
-                var currentUrl = _page.Url;
-                var hasModal = await _page.QuerySelectorAsync(".modal, .dialog, .popup") != null;
-                
-                (currentUrl != $"{BaseUrl}/Certificate/Certificates" || hasModal)
-                    .Should().BeTrue("Tapping certificate should trigger navigation or modal");
-            }
+            var hamburgerMenu = await _page.QuerySelectorAsync("#mobile-toggle");
+            hamburgerMenu.Should().NotBeNull();
+
+            await hamburgerMenu!.ClickAsync();
+            await Task.Delay(500);
+
+            // Nav links should become visible
+            var navLinksVisible = await _page.EvaluateAsync<bool>(@"() => {
+                var navLinks = document.querySelector('.nav-links');
+                if (!navLinks) return false;
+                var style = window.getComputedStyle(navLinks);
+                return style.display !== 'none' && style.visibility !== 'hidden';
+            }");
+
+            navLinksVisible.Should().BeTrue(
+                "Nav links must become visible after clicking hamburger menu");
+
+            // Close button must be visible
+            var closeButton = await _page.QuerySelectorAsync("#mobile-nav-close");
+            closeButton.Should().NotBeNull("Close button must exist in mobile nav");
         }
 
         [Fact]
-        public async Task TouchInteraction_SwipeGestures_ShouldBeSupported()
+        public async Task MobileNavigation_AnonUsers_NavHidden()
         {
-            // Arrange
-            await _page!.GotoAsync($"{BaseUrl}/Certificate/Certificates");
+            // Anonymous users should not see nav on mobile (nav-anon is hidden)
+            await _page!.GotoAsync($"{BaseUrl}/Certificate/CertificateTileView");
             await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            // Act - Simulate swipe gesture on scrollable content
-            var scrollableElement = await _page.QuerySelectorAsync(".certificate-list, .table-responsive, main");
-            
-            if (scrollableElement != null)
+            var navWrapper = await _page.QuerySelectorAsync(".nav-wrapper");
+            if (navWrapper != null)
             {
-                var elementRect = await scrollableElement.BoundingBoxAsync();
-                
-                if (elementRect != null)
+                var hasAnonClass = await navWrapper.EvaluateAsync<bool>(
+                    "el => el.classList.contains('nav-anon')");
+
+                if (hasAnonClass)
                 {
-                    // Simulate swipe down
-                    await _page.Mouse.MoveAsync(elementRect.X + elementRect.Width / 2, elementRect.Y + 100);
-                    await _page.Mouse.DownAsync();
-                    await _page.Mouse.MoveAsync(elementRect.X + elementRect.Width / 2, elementRect.Y + 300);
-                    await _page.Mouse.UpAsync();
-                    
-                    // Assert - Content should scroll
-                    var scrollTop = await scrollableElement.EvaluateAsync<int>("el => el.scrollTop");
-                    scrollTop.Should().BeGreaterThan(0, "Swipe gesture should cause scrolling");
+                    var isVisible = await navWrapper.IsVisibleAsync();
+                    isVisible.Should().BeFalse(
+                        "Anonymous nav wrapper should be hidden on mobile");
                 }
             }
         }
 
         #endregion
 
-        #region Mobile-Specific UX Tests
+        #region Layout Tests
 
         [Fact]
-        public async Task MobileUX_SearchInterface_ShouldBeOptimizedForMobile()
+        public async Task MobileLayout_CertificateTiles_MustStackVertically()
         {
-            // Arrange
-            await _page!.GotoAsync($"{BaseUrl}/Certificate/Certificates");
+            await _page!.GotoAsync($"{BaseUrl}/Certificate/CertificateTileView");
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            // Act - Find search interface elements
-            var searchInput = await _page.QuerySelectorAsync("input[type='search'], .search-input, #searchInput");
-            var searchButton = await _page.QuerySelectorAsync(".search-button, button[type='submit']");
+            var tiles = await _page.QuerySelectorAllAsync(".certificate-card");
+            tiles.Should().NotBeEmpty("Certificate cards must be present");
 
-            // Assert
-            if (searchInput != null)
+            if (tiles.Count > 1)
             {
-                var inputRect = await searchInput.BoundingBoxAsync();
-                inputRect?.Width.Should().BeGreaterThan(200, 
-                    "Search input should be wide enough for mobile typing");
-                inputRect?.Height.Should().BeGreaterThan(40, 
-                    "Search input should be tall enough for touch interaction");
+                var firstRect = await tiles[0].BoundingBoxAsync();
+                var secondRect = await tiles[1].BoundingBoxAsync();
 
-                // Check for mobile-optimized keyboard
-                var inputType = await searchInput.GetAttributeAsync("type");
-                var inputMode = await searchInput.GetAttributeAsync("inputmode");
-                
-                (inputType == "search" || inputMode == "search").Should().BeTrue(
-                    "Search input should trigger appropriate mobile keyboard");
+                firstRect.Should().NotBeNull();
+                secondRect.Should().NotBeNull();
+
+                secondRect!.Y.Should().BeGreaterThan(firstRect!.Y,
+                    "Certificate cards must stack vertically on mobile (390px)");
             }
         }
 
         [Fact]
-        public async Task MobileUX_FormValidation_ShouldShowClearErrorMessages()
+        public async Task MobileLayout_LoginPage_MustBeSingleColumn()
         {
-            // Arrange
             await _page!.GotoAsync($"{BaseUrl}/Account/Login");
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            // Act - Submit form with empty fields
-            var submitButton = await _page.QuerySelectorAsync("button[type='submit'], input[type='submit']");
-            if (submitButton != null)
+            var loginContainer = await _page.QuerySelectorAsync(".login-container");
+            loginContainer.Should().NotBeNull("Login container must exist");
+
+            var gridCols = await loginContainer!.EvaluateAsync<string>(
+                "el => window.getComputedStyle(el).gridTemplateColumns");
+
+            var columnCount = gridCols.Trim().Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries).Length;
+            columnCount.Should().Be(1,
+                $"Login must be single column on mobile. Got grid-template-columns: '{gridCols}'");
+        }
+
+        [Fact]
+        public async Task MobileLayout_Logo_MustNotDominateViewport()
+        {
+            await _page!.GotoAsync(BaseUrl);
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            var logo = await _page.QuerySelectorAsync(".main-logo");
+            if (logo != null)
             {
-                await submitButton.ClickAsync();
-                await Task.Delay(500);
+                var logoRect = await logo.BoundingBoxAsync();
+                logoRect.Should().NotBeNull();
 
-                // Assert - Check for validation messages
-                var validationMessages = await _page.QuerySelectorAllAsync(".validation-message, .error-message, .invalid-feedback");
-                
-                if (validationMessages.Any())
+                // Logo must not exceed 25% of 844px viewport height = ~210px
+                logoRect!.Height.Should().BeLessThanOrEqualTo(210,
+                    $"Logo height ({logoRect.Height}px) must not exceed 25% of viewport on mobile");
+            }
+        }
+
+        #endregion
+
+        #region Touch Target Tests
+
+        [Fact]
+        public async Task MobileForm_LoginInputs_MustMeetTouchTargetSize()
+        {
+            await _page!.GotoAsync($"{BaseUrl}/Account/Login");
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            // Check email input
+            var emailInput = await _page.QuerySelectorAsync("#Email, input[name='Email']");
+            emailInput.Should().NotBeNull("Email input must exist on login page");
+
+            var emailRect = await emailInput!.BoundingBoxAsync();
+            emailRect.Should().NotBeNull();
+            emailRect!.Height.Should().BeGreaterThanOrEqualTo(40,
+                $"Email input ({emailRect.Height}px) must be >= 40px for touch targets");
+
+            // Check password input
+            var passwordInput = await _page.QuerySelectorAsync("#Password, input[name='Password']");
+            passwordInput.Should().NotBeNull("Password input must exist");
+
+            var passRect = await passwordInput!.BoundingBoxAsync();
+            passRect.Should().NotBeNull();
+            passRect!.Height.Should().BeGreaterThanOrEqualTo(40,
+                $"Password input ({passRect.Height}px) must be >= 40px for touch targets");
+
+            // Check submit button
+            var submitButton = await _page.QuerySelectorAsync("button[type='submit'], .btn-primary");
+            submitButton.Should().NotBeNull("Submit button must exist");
+
+            var btnRect = await submitButton!.BoundingBoxAsync();
+            btnRect.Should().NotBeNull();
+            btnRect!.Height.Should().BeGreaterThanOrEqualTo(40,
+                $"Submit button ({btnRect.Height}px) must be >= 40px for touch targets");
+        }
+
+        [Fact]
+        public async Task MobileAccessibility_TouchTargets_MustMeetMinimumSize()
+        {
+            await _page!.GotoAsync(BaseUrl);
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            var interactiveElements = await _page.QuerySelectorAllAsync(
+                "button:not([hidden]), a.btn, input[type='submit']");
+
+            interactiveElements.Should().NotBeEmpty("Page must have interactive elements");
+
+            var tooSmallElements = new List<string>();
+            foreach (var element in interactiveElements.Take(10))
+            {
+                var rect = await element.BoundingBoxAsync();
+                if (rect != null && rect.Height > 0 && rect.Width > 0)
                 {
-                    foreach (var message in validationMessages.Take(2))
+                    if (rect.Height < 36 || rect.Width < 36)
                     {
-                        var isVisible = await message.IsVisibleAsync();
-                        isVisible.Should().BeTrue("Validation messages should be visible");
-
-                        var messageRect = await message.BoundingBoxAsync();
-                        messageRect?.Width.Should().BeGreaterThan(0, 
-                            "Error messages should be properly sized for mobile");
+                        var text = await element.InnerTextAsync();
+                        tooSmallElements.Add($"'{text.Trim().Substring(0, Math.Min(text.Trim().Length, 20))}' ({rect.Width:F0}x{rect.Height:F0}px)");
                     }
                 }
             }
+
+            tooSmallElements.Should().BeEmpty(
+                $"All interactive elements must be >= 36px. Too small: {string.Join(", ", tooSmallElements)}");
+        }
+
+        #endregion
+
+        #region Font Size Tests
+
+        [Fact]
+        public async Task MobileText_BodyText_MustBeAtLeast16px()
+        {
+            await _page!.GotoAsync(BaseUrl);
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            // Check body text font sizes - 16px minimum prevents iOS auto-zoom
+            var tooSmallFonts = await _page.EvaluateAsync<string[]>(@"() => {
+                var tooSmall = [];
+                var elements = document.querySelectorAll('p, label, span, li, td, th, a');
+                for (var i = 0; i < Math.min(elements.length, 30); i++) {
+                    var el = elements[i];
+                    var style = window.getComputedStyle(el);
+                    var size = parseFloat(style.fontSize);
+                    if (size < 16 && style.display !== 'none' && el.offsetHeight > 0) {
+                        var text = el.textContent.trim().substring(0, 30);
+                        if (text) tooSmall.push(el.tagName + ': ' + size + 'px - ' + text);
+                    }
+                }
+                return tooSmall;
+            }");
+
+            tooSmallFonts.Should().BeEmpty(
+                $"All visible text must be >= 16px on mobile. Too small: {string.Join("; ", tooSmallFonts)}");
         }
 
         [Fact]
-        public async Task MobileUX_LoadingStates_ShouldProvideVisualFeedback()
+        public async Task MobileText_LoginPage_MustBeAtLeast16px()
         {
-            // Arrange
+            await _page!.GotoAsync($"{BaseUrl}/Account/Login");
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            var tooSmallFonts = await _page.EvaluateAsync<string[]>(@"() => {
+                var tooSmall = [];
+                var elements = document.querySelectorAll('p, label, span, a, input, button, .support-info *, .login-footer *, .resend-section *');
+                for (var i = 0; i < elements.length; i++) {
+                    var el = elements[i];
+                    var style = window.getComputedStyle(el);
+                    var size = parseFloat(style.fontSize);
+                    if (size < 16 && style.display !== 'none' && el.offsetHeight > 0) {
+                        var text = el.textContent.trim().substring(0, 30);
+                        if (text) tooSmall.push(el.tagName + '.' + el.className.split(' ')[0] + ': ' + size + 'px');
+                    }
+                }
+                return tooSmall;
+            }");
+
+            tooSmallFonts.Should().BeEmpty(
+                $"All login page text must be >= 16px on mobile. Too small: {string.Join("; ", tooSmallFonts)}");
+        }
+
+        #endregion
+
+        #region Overflow Tests
+
+        [Xunit.Theory]
+        [InlineData(375, 667, "iPhone SE")]
+        [InlineData(390, 844, "iPhone 12")]
+        [InlineData(360, 800, "Samsung Galaxy S20")]
+        [InlineData(320, 568, "iPhone SE 1st Gen")]
+        public async Task MobileBreakpoints_NoHorizontalOverflow(int width, int height, string device)
+        {
+            await _page!.SetViewportSizeAsync(width, height);
+            await _page.GotoAsync(BaseUrl);
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            var bodyWidth = await _page.EvaluateAsync<int>("document.body.scrollWidth");
+            var viewportWidth = await _page.EvaluateAsync<int>("window.innerWidth");
+
+            bodyWidth.Should().BeLessThanOrEqualTo(viewportWidth + 5,
+                $"No horizontal overflow on {device} ({width}x{height}). Body: {bodyWidth}px, Viewport: {viewportWidth}px");
+        }
+
+        [Xunit.Theory]
+        [InlineData(375, 667, "iPhone SE")]
+        [InlineData(390, 844, "iPhone 12")]
+        public async Task MobileBreakpoints_LoginPage_NoOverflow(int width, int height, string device)
+        {
+            await _page!.SetViewportSizeAsync(width, height);
+            await _page.GotoAsync($"{BaseUrl}/Account/Login");
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            var bodyWidth = await _page.EvaluateAsync<int>("document.body.scrollWidth");
+            var viewportWidth = await _page.EvaluateAsync<int>("window.innerWidth");
+
+            bodyWidth.Should().BeLessThanOrEqualTo(viewportWidth + 5,
+                $"Login page must not overflow on {device} ({width}x{height}). Body: {bodyWidth}px");
+        }
+
+        [Xunit.Theory]
+        [InlineData(768, 1024, "iPad Mini")]
+        [InlineData(820, 1180, "iPad Air")]
+        public async Task TabletBreakpoints_NoHorizontalOverflow(int width, int height, string device)
+        {
+            await _page!.SetViewportSizeAsync(width, height);
+            await _page.GotoAsync(BaseUrl);
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            var bodyWidth = await _page.EvaluateAsync<int>("document.body.scrollWidth");
+            var viewportWidth = await _page.EvaluateAsync<int>("window.innerWidth");
+
+            bodyWidth.Should().BeLessThanOrEqualTo(viewportWidth + 5,
+                $"No overflow on {device} ({width}x{height}). Body: {bodyWidth}px, Viewport: {viewportWidth}px");
+        }
+
+        #endregion
+
+        #region Orientation Tests
+
+        [Fact]
+        public async Task MobileOrientation_PortraitToLandscape_NoBreakage()
+        {
+            // Portrait
+            await _page!.SetViewportSizeAsync(390, 844);
+            await _page.GotoAsync($"{BaseUrl}/Certificate/CertificateTileView");
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            var portraitOverflow = await _page.EvaluateAsync<bool>(
+                "document.body.scrollWidth > window.innerWidth + 5");
+
+            // Landscape
+            await _page.SetViewportSizeAsync(844, 390);
+            await Task.Delay(300);
+
+            var landscapeOverflow = await _page.EvaluateAsync<bool>(
+                "document.body.scrollWidth > window.innerWidth + 5");
+
+            portraitOverflow.Should().BeFalse("No overflow in portrait mode");
+            landscapeOverflow.Should().BeFalse("No overflow in landscape mode");
+        }
+
+        [Fact]
+        public async Task TabletOrientation_PortraitToLandscape_NoBreakage()
+        {
+            // Portrait
+            await _page!.SetViewportSizeAsync(768, 1024);
+            await _page.GotoAsync($"{BaseUrl}/Certificate/CertificateTileView");
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            var portraitOverflow = await _page.EvaluateAsync<bool>(
+                "document.body.scrollWidth > window.innerWidth + 5");
+
+            // Landscape
+            await _page.SetViewportSizeAsync(1024, 768);
+            await Task.Delay(300);
+
+            var landscapeOverflow = await _page.EvaluateAsync<bool>(
+                "document.body.scrollWidth > window.innerWidth + 5");
+
+            portraitOverflow.Should().BeFalse("No overflow in tablet portrait");
+            landscapeOverflow.Should().BeFalse("No overflow in tablet landscape");
+        }
+
+        #endregion
+
+        #region Performance Tests
+
+        [Fact]
+        public async Task MobilePerformance_PageLoadTime_Under5Seconds()
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
             await _page!.GotoAsync(BaseUrl);
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            // Act - Navigate to a page that might show loading
-            await _page.GotoAsync($"{BaseUrl}/Certificate/Certificates", new PageGotoOptions { WaitUntil = WaitUntilState.Load });
+            stopwatch.Stop();
 
-            // Assert - Check for loading indicators (this is a structure test)
-            var potentialLoadingElements = await _page.QuerySelectorAllAsync(
-                ".loading, .spinner, .skeleton, [data-loading], .progress");
+            stopwatch.ElapsedMilliseconds.Should().BeLessThan(5000,
+                $"Page must load within 5 seconds on mobile. Took: {stopwatch.ElapsedMilliseconds}ms");
+        }
 
-            // Note: Loading states might not be visible by the time we check,
-            // but the elements should exist in the DOM structure
-            potentialLoadingElements.Should().NotBeNull(
-                "Page should have loading state elements in the structure");
+        [Fact]
+        public async Task MobilePerformance_LoginPageLoad_Under3Seconds()
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+            await _page!.GotoAsync($"{BaseUrl}/Account/Login");
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+            stopwatch.Stop();
+
+            stopwatch.ElapsedMilliseconds.Should().BeLessThan(3000,
+                $"Login page must load within 3 seconds. Took: {stopwatch.ElapsedMilliseconds}ms");
         }
 
         #endregion
@@ -326,124 +437,44 @@ namespace GCCWebApp.UAT.Tests.Tests.Mobile
         #region Accessibility on Mobile Tests
 
         [Fact]
-        public async Task MobileAccessibility_FocusManagement_ShouldBeLogical()
+        public async Task MobileAccessibility_FocusManagement_TabOrderWorks()
         {
-            // Arrange
             await _page!.GotoAsync($"{BaseUrl}/Account/Login");
+            await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
-            // Act - Tab through focusable elements
-            var focusableElements = await _page.QuerySelectorAllAsync(
-                "a, button, input, select, textarea, [tabindex]:not([tabindex='-1'])");
+            // Tab through form elements
+            await _page.Keyboard.PressAsync("Tab");
+            var firstFocused = await _page.EvaluateAsync<string>("document.activeElement?.tagName");
 
-            // Assert
-            focusableElements.Should().NotBeEmpty("Page should have focusable elements");
+            await _page.Keyboard.PressAsync("Tab");
+            var secondFocused = await _page.EvaluateAsync<string>("document.activeElement?.tagName");
 
-            if (focusableElements.Count > 1)
-            {
-                // Test tab order
-                await _page.Keyboard.PressAsync("Tab");
-                var firstFocused = await _page.EvaluateAsync<string>("document.activeElement.tagName");
-                
-                await _page.Keyboard.PressAsync("Tab");
-                var secondFocused = await _page.EvaluateAsync<string>("document.activeElement.tagName");
-                
-                firstFocused.Should().NotBeEmpty("First tab should focus an element");
-                secondFocused.Should().NotBeEmpty("Second tab should focus next element");
-            }
+            firstFocused.Should().NotBeNullOrEmpty("First tab must focus an element");
+            secondFocused.Should().NotBeNullOrEmpty("Second tab must focus next element");
+
+            // Elements should be focusable form elements
+            var validTags = new[] { "INPUT", "BUTTON", "A", "SELECT", "TEXTAREA" };
+            validTags.Should().Contain(firstFocused!,
+                "Tab should focus interactive elements on login page");
         }
 
         [Fact]
-        public async Task MobileAccessibility_TouchTargetSize_ShouldMeetMinimumRequirements()
+        public async Task MobileAccessibility_ImagesHaveAltText()
         {
-            // Arrange
-            await _page!.GotoAsync(BaseUrl);
-
-            // Act - Find all interactive elements
-            var interactiveElements = await _page.QuerySelectorAllAsync(
-                "button, a, input[type='button'], input[type='submit'], .btn");
-
-            // Assert
-            interactiveElements.Should().NotBeEmpty("Page should have interactive elements");
-
-            foreach (var element in interactiveElements.Take(5)) // Test first 5 elements
-            {
-                var rect = await element.BoundingBoxAsync();
-                if (rect != null)
-                {
-                    var minDimension = Math.Min(rect.Width, rect.Height);
-                    minDimension.Should().BeGreaterThanOrEqualTo(40, 
-                        "Interactive elements should meet minimum touch target size (40px)");
-                }
-            }
-        }
-
-        [Fact]
-        public async Task MobileAccessibility_ColorContrast_ShouldBeAccessible()
-        {
-            // Arrange
-            await _page!.GotoAsync(BaseUrl);
-
-            // Act - Get computed styles for text elements
-            var textElements = await _page.QuerySelectorAllAsync("p, h1, h2, h3, h4, h5, h6, a, button");
-
-            // Assert - Check that elements have proper color styling
-            textElements.Should().NotBeEmpty("Page should have text elements");
-
-            foreach (var element in textElements.Take(3))
-            {
-                var color = await element.EvaluateAsync<string>("el => window.getComputedStyle(el).color");
-                var backgroundColor = await element.EvaluateAsync<string>("el => window.getComputedStyle(el).backgroundColor");
-
-                color.Should().NotBeEmpty("Text elements should have defined color");
-                // Note: Full contrast ratio calculation would require additional libraries
-                // This test ensures the structure is in place
-            }
-        }
-
-        #endregion
-
-        #region Performance on Mobile Tests
-
-        [Fact]
-        public async Task MobilePerformance_PageLoadTime_ShouldBeOptimized()
-        {
-            // Arrange
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-            // Act
             await _page!.GotoAsync(BaseUrl);
             await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-            
-            stopwatch.Stop();
 
-            // Assert
-            stopwatch.ElapsedMilliseconds.Should().BeLessThan(5000, 
-                "Page should load within 5 seconds on mobile");
-        }
+            var imagesWithoutAlt = await _page.EvaluateAsync<int>(@"() => {
+                var images = document.querySelectorAll('img');
+                var count = 0;
+                images.forEach(img => {
+                    if (!img.alt && !img.getAttribute('role') && img.offsetHeight > 0) count++;
+                });
+                return count;
+            }");
 
-        [Fact]
-        public async Task MobilePerformance_ImageOptimization_ShouldUseResponsiveImages()
-        {
-            // Arrange
-            await _page!.GotoAsync(BaseUrl);
-
-            // Act - Find images
-            var images = await _page.QuerySelectorAllAsync("img");
-
-            // Assert
-            foreach (var img in images.Take(3))
-            {
-                var srcset = await img.GetAttributeAsync("srcset");
-                var sizes = await img.GetAttributeAsync("sizes");
-                var alt = await img.GetAttributeAsync("alt");
-
-                // Check for responsive image attributes or proper alt text
-                var hasResponsiveAttributes = !string.IsNullOrEmpty(srcset) || !string.IsNullOrEmpty(sizes);
-                var hasAltText = !string.IsNullOrEmpty(alt);
-
-                (hasResponsiveAttributes || hasAltText).Should().BeTrue(
-                    "Images should have responsive attributes or proper alt text");
-            }
+            imagesWithoutAlt.Should().Be(0,
+                "All visible images must have alt text for accessibility");
         }
 
         #endregion

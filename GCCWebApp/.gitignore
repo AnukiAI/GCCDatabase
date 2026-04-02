@@ -5,6 +5,7 @@
 **/publish-output/
 **/publish-production/
 **/backups/
+deploy-output/
 
 # Deployment artifacts
 *.zip
@@ -32,9 +33,13 @@ logs/
 *.suo
 
 # Environment files with secrets
-.env.local
-.env.production
+.env
+.env.*
+!.env.example
 appsettings.Production.json
+appsettings.Staging.json
+appsettings.Test.json
+appsettings.Security.json
 
 # Node modules (if any)
 node_modules/
@@ -42,7 +47,16 @@ node_modules/
 # Temporary files
 *.tmp
 *.temp
-cookies.txt
+*.bak
+*.backup
+cookies*.txt
+admin_cookies.txt
+headers.txt
+response.json
+response.txt
+c6.txt
+_ul
+_ul-*
 
 # Windows reserved device names (can be accidentally created in bash/Unix shells)
 nul
@@ -71,3 +85,13 @@ temp_page.html
 
 # Data Protection Keys (keep folder, ignore keys)
 DataProtectionKeys/*.xml
+
+# Root-level one-off scripts and SQL
+/migration*.sql
+/prod_*.sql
+/alter_column.ps1
+/check_csv.ps1
+/check_import.ps1
+
+# Test artifacts at root
+test_results/

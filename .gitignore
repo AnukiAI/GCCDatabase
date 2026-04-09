@@ -405,3 +405,4 @@ apiUpdates.txt
 !.env.example
 /0_Documentation/00 GCC_ImplementationDocuments_8_22_25/GCC Wireframes_UserStories_8_25_25.pptx
 /GCCWebApp/.claude/settings.local.json
+/GCCWebApp/deploy-fresh

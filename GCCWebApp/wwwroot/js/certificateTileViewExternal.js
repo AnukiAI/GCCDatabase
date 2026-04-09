@@ -406,9 +406,10 @@ class CertificateTileViewExternal {
         card.className = 'certificate-card';
         card.setAttribute('data-id', cert.id);
         
-        // Format dates
-        const effectiveDate = new Date(cert.effectiveDate).toLocaleDateString();
-        const expirationDate = new Date(cert.expirationDate).toLocaleDateString();
+        // Format dates - parse as local time to avoid UTC timezone shift
+        const parseLocal = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(d + 'T00:00:00') : new Date(d);
+        const effectiveDate = parseLocal(cert.effectiveDate).toLocaleDateString();
+        const expirationDate = parseLocal(cert.expirationDate).toLocaleDateString();
         
         card.innerHTML = `
             <div class="card-header">
@@ -744,8 +745,9 @@ class CertificateTileViewExternal {
      * Create table row HTML for a certificate (External view - no Internal Tag, no Edit button)
      */
     createTableRow(cert) {
-        const effectiveDate = cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A';
-        const expirationDate = cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A';
+        const parseLocal = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(d + 'T00:00:00') : new Date(d);
+        const effectiveDate = cert.effectiveDate ? parseLocal(cert.effectiveDate).toLocaleDateString() : 'N/A';
+        const expirationDate = cert.expirationDate ? parseLocal(cert.expirationDate).toLocaleDateString() : 'N/A';
         const location = this.formatLocation(cert.location, cert.country);
         const statusBadge = this.getStatusBadge(cert.status);
 

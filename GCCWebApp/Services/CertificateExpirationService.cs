@@ -62,6 +62,7 @@ namespace GCCWebApp.Services
         private async Task ExpireOverdueCertificatesAsync()
         {
             var now = DateTime.UtcNow;
+            var today = now.Date;
 
             var expiredStatuses = new[]
             {
@@ -69,8 +70,9 @@ namespace GCCWebApp.Services
                 CertificateStatusHelper.StatusExpiredNoAnnualVerification
             };
 
+            // Expire certs whose expiration date is before today (cert shows through its expiration day, expires the day after)
             var certsToExpire = await _context.Certificates
-                .Where(c => c.ExpirationDate < now
+                .Where(c => c.ExpirationDate < today
                     && !expiredStatuses.Contains(c.Status))
                 .ToListAsync();
 

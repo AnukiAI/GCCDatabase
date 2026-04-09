@@ -131,7 +131,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Company)
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
-                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow))
+                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date))
                             .OrderByDescending(c => c.EffectiveDate)
                             .ToListAsync();
                         reportTitle = "Current Active Certificates";
@@ -144,7 +144,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
                             .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
-                                       (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow) &&
+                                       (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date) &&
                                        c.ExpirationDate <= thirtyDaysFromNow)
                             .OrderBy(c => c.ExpirationDate)
                             .ToListAsync();
@@ -158,7 +158,7 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
                             .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
-                                       (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow) &&
+                                       (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date) &&
                                        c.ExpirationDate <= threeMonthsFromNow)
                             .OrderBy(c => c.ExpirationDate)
                             .ToListAsync();

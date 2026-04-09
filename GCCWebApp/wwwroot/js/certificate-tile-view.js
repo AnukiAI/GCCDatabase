@@ -1088,17 +1088,27 @@
         return div.innerHTML;
     }
 
+    // Parse date string as local time to avoid UTC timezone shift
+    function parseLocalDate(dateStr) {
+        if (!dateStr) return null;
+        // If date-only string (yyyy-MM-dd), append T00:00:00 to parse as local time
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            return new Date(dateStr + 'T00:00:00');
+        }
+        return new Date(dateStr);
+    }
+
     function formatCertificationPeriod(effectiveDate, expirationDate) {
         const formatDate = (dateStr) => {
             if (!dateStr) return 'N/A';
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'numeric', 
-                day: 'numeric' 
+            const date = parseLocalDate(dateStr);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric'
             });
         };
-        
+
         return `${formatDate(effectiveDate)} - ${formatDate(expirationDate)}`;
     }
 
@@ -1121,7 +1131,7 @@
         // Try to extract year from effective date
         let year = '';
         if (effectiveDate) {
-            const date = new Date(effectiveDate);
+            const date = parseLocalDate(effectiveDate);
             if (!isNaN(date.getTime())) {
                 year = date.getFullYear().toString().slice(-2);
             }
@@ -1353,8 +1363,8 @@
 
     // Create table row HTML for a certificate
     function createTableRow(cert) {
-        const effectiveDate = cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A';
-        const expirationDate = cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A';
+        const effectiveDate = cert.effectiveDate ? parseLocalDate(cert.effectiveDate).toLocaleDateString() : 'N/A';
+        const expirationDate = cert.expirationDate ? parseLocalDate(cert.expirationDate).toLocaleDateString() : 'N/A';
         const location = formatLocation(cert.location, cert.country);
 
         return `

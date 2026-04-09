@@ -1130,17 +1130,26 @@
         return div.innerHTML;
     }
 
+    // Parse date string as local time to avoid UTC timezone shift
+    function parseLocalDate(dateStr) {
+        if (!dateStr) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            return new Date(dateStr + 'T00:00:00');
+        }
+        return new Date(dateStr);
+    }
+
     function formatCertificationPeriod(effectiveDate, expirationDate) {
         const formatDate = (dateStr) => {
             if (!dateStr) return 'N/A';
-            const date = new Date(dateStr);
-            return date.toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'numeric', 
-                day: 'numeric' 
+            const date = parseLocalDate(dateStr);
+            return date.toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'numeric',
+                day: 'numeric'
             });
         };
-        
+
         return `${formatDate(effectiveDate)} - ${formatDate(expirationDate)}`;
     }
 
@@ -1153,11 +1162,11 @@
 
     function formatDate(dateStr) {
         if (!dateStr) return 'N/A';
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'short', 
-            day: 'numeric' 
+        const date = parseLocalDate(dateStr);
+        return date.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
         });
     }
 

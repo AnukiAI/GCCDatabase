@@ -1220,6 +1220,7 @@ body:has(.main-container) .page-header {
 
 /* Search bar positioning updates - z-index for autocomplete dropdown */
 .sidebar .search-bar {
+    position: relative;
     z-index: 1001;
 }
 

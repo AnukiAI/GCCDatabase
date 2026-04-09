@@ -92,8 +92,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 card.setAttribute('data-category', cert.productCategory?.toLowerCase().replace(/\s+/g, '-') || 'general');
                 card.setAttribute('data-date', cert.effectiveDate || new Date().toISOString());
 
-                const effectiveDate = cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A';
-                const expirationDate = cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A';
+                const parseLocal = (d) => /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(d + 'T00:00:00') : new Date(d);
+                const effectiveDate = cert.effectiveDate ? parseLocal(cert.effectiveDate).toLocaleDateString() : 'N/A';
+                const expirationDate = cert.expirationDate ? parseLocal(cert.expirationDate).toLocaleDateString() : 'N/A';
 
                 card.innerHTML = `
                     <div class="card-header">

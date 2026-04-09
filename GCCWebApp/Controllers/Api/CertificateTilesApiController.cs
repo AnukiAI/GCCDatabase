@@ -190,8 +190,8 @@ namespace GCCWebApp.Controllers.Api
                     location = c.Location,
                     country = c.Country,
                     status = c.Status,
-                    isExpired = c.ExpirationDate < DateTime.UtcNow,
-                    isExpiringSoon = c.ExpirationDate < DateTime.UtcNow.AddDays(30) && c.ExpirationDate > DateTime.UtcNow,
+                    isExpired = c.ExpirationDate < DateTime.UtcNow.Date,
+                    isExpiringSoon = c.ExpirationDate < DateTime.UtcNow.Date.AddDays(30) && c.ExpirationDate >= DateTime.UtcNow.Date,
                     externalTags = GetCertificateTags(c)
                 });
 
@@ -245,7 +245,7 @@ namespace GCCWebApp.Controllers.Api
             {
                 // Base query for active certificates (public view shows only active/expiring/renewal certificates)
                 var baseQuery = _context.Certificates
-                    .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow));
+                    .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date));
 
                 // Get unique certification type IDs from active certificates
                 var certTypeIds = await baseQuery
@@ -400,7 +400,7 @@ namespace GCCWebApp.Controllers.Api
 
                 // Search certificate numbers
                 var certificates = await _certificateRepository.FindAsync(c => 
-                    CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow) && c.Number.Contains(term));
+                    CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date) && c.Number.Contains(term));
                 
                 suggestions.AddRange(certificates.Take(5).Select(c => new
                 {

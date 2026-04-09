@@ -259,7 +259,7 @@ namespace GCCWebApp.Controllers
                 if (User.Identity?.IsAuthenticated != true)
                 {
                     var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
-                    var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < DateTime.UtcNow;
+                    var isExpired = certificate.ExpirationDate != default && certificate.ExpirationDate < DateTime.UtcNow.Date;
 
                     if (!isPublicStatus || isExpired)
                     {
@@ -1282,8 +1282,8 @@ namespace GCCWebApp.Controllers
                         certificationType = new { id = c.CertificationType.Id, name = c.CertificationType.Name },
                         location = c.Location,
                         country = c.Country,
-                        isExpired = c.ExpirationDate < DateTime.UtcNow,
-                        isExpiringSoon = c.ExpirationDate < DateTime.UtcNow.AddDays(30) && c.ExpirationDate > DateTime.UtcNow
+                        isExpired = c.ExpirationDate < DateTime.UtcNow.Date,
+                        isExpiringSoon = c.ExpirationDate < DateTime.UtcNow.Date.AddDays(30) && c.ExpirationDate >= DateTime.UtcNow.Date
                     }),
                     pagination = new
                     {

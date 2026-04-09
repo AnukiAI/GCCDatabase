@@ -55,7 +55,7 @@ namespace GCCWebApp.Repositories
         public async Task<IEnumerable<Certificate>> GetActiveCertificatesAsync()
         {
             return await _dbSet
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate > DateTime.UtcNow)
+                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate >= DateTime.UtcNow.Date)
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -65,7 +65,7 @@ namespace GCCWebApp.Repositories
         public async Task<IEnumerable<Certificate>> GetExpiringCertificatesAsync(DateTime beforeDate)
         {
             return await _dbSet
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate <= beforeDate && c.ExpirationDate > DateTime.UtcNow)
+                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate <= beforeDate && c.ExpirationDate >= DateTime.UtcNow.Date)
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -253,7 +253,10 @@ namespace GCCWebApp.Repositories
                 query = query.Where(c => filter.Statuses.Contains(c.Status));
 
             if (filter.ExcludeExpiredByDate)
-                query = query.Where(c => c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow);
+            {
+                var today = DateTime.UtcNow.Date;
+                query = query.Where(c => c.ExpirationDate == null || c.ExpirationDate >= today);
+            }
 
             if (!string.IsNullOrEmpty(filter.Location))
                 query = query.Where(c => c.Location != null && c.Location.ToLower().Contains(filter.Location.ToLower()));
@@ -356,7 +359,7 @@ namespace GCCWebApp.Repositories
         {
             var targetDate = DateTime.UtcNow.AddDays(days);
             return await _dbSet
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate <= targetDate && c.ExpirationDate > DateTime.UtcNow)
+                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate <= targetDate && c.ExpirationDate >= DateTime.UtcNow.Date)
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -398,7 +401,7 @@ namespace GCCWebApp.Repositories
         public async Task<Dictionary<string, int>> GetCertificateStatisticsAsync()
         {
             var stats = new Dictionary<string, int>();
-            var now = DateTime.UtcNow;
+            var today = DateTime.UtcNow.Date;
 
             // Total certificates
             stats["Total"] = await _dbSet.CountAsync();
@@ -406,7 +409,7 @@ namespace GCCWebApp.Repositories
             // Active certificates (publicly visible: Client Approved - Paid or Republished, not expired)
             var publicStatuses = CertificateStatusHelper.PublicStatuses;
             stats["Active"] = await _dbSet.CountAsync(c =>
-                publicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now));
+                publicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= today));
 
             // Expired certificates - count by STATUS only, not by expiration date
             stats["Expired"] = await _dbSet.CountAsync(c =>
@@ -415,7 +418,7 @@ namespace GCCWebApp.Repositories
 
             // Active cert base filter for distinct counts
             var activeCertQuery = _dbSet.Where(c =>
-                publicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= now));
+                publicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= today));
 
             // Distinct companies with active certificates
             stats["CompaniesWithActiveCerts"] = await activeCertQuery
@@ -465,14 +468,14 @@ namespace GCCWebApp.Repositories
                 .CountAsync();
 
             // Time-based statistics
-            var startOfMonth = new DateTime(now.Year, now.Month, 1);
+            var startOfMonth = new DateTime(today.Year, today.Month, 1);
             var startOfLastMonth = startOfMonth.AddMonths(-1);
             var endOfLastMonth = startOfMonth.AddDays(-1);
             var startOfNextMonth = startOfMonth.AddMonths(1);
             var endOfNextMonth = startOfNextMonth.AddMonths(1).AddDays(-1);
-            var startOfYear = new DateTime(now.Year, 1, 1);
-            var startOfLastYear = new DateTime(now.Year - 1, 1, 1);
-            var endOfLastYear = new DateTime(now.Year - 1, 12, 31);
+            var startOfYear = new DateTime(today.Year, 1, 1);
+            var startOfLastYear = new DateTime(today.Year - 1, 1, 1);
+            var endOfLastYear = new DateTime(today.Year - 1, 12, 31);
 
             // Published last month (active certs with EffectiveDate in last month)
             stats["PublishedLastMonth"] = await _dbSet.CountAsync(c =>

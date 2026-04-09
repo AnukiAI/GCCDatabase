@@ -587,7 +587,7 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Include(c => c.Product)
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
-                    .Where(c => c.ExpirationDate <= cutoffDate && c.ExpirationDate >= DateTime.UtcNow)
+                    .Where(c => c.ExpirationDate <= cutoffDate && c.ExpirationDate >= DateTime.UtcNow.Date)
                     .OrderBy(c => c.ExpirationDate);
 
                 var totalCount = await query.CountAsync();

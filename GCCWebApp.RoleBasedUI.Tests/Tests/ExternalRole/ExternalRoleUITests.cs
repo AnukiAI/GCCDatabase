@@ -20,7 +20,7 @@ public class ExternalRoleUITests : PageTest
             .AddJsonFile("appsettings.Test.json")
             .Build();
         
-        _baseUrl = _configuration["TestConfiguration:BaseUrl"] ?? "http://localhost:5101";
+        _baseUrl = _configuration["TestConfiguration:BaseUrl"] ?? "https://gccwebapp.com";
     }
 
     [SetUp]

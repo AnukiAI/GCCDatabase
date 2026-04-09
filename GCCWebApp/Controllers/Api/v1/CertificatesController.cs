@@ -1079,8 +1079,8 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
         /// - Nested `certificationInfo` object with certification details
         ///
         /// **Status Mapping:**
-        /// - Active → ACTIVE
-        /// - All other statuses → INACTIVE
+        /// - Client Approved (Paid/Confidential/Not Paid), Republished → ACTIVE
+        /// - Draft, Hold, Expired → INACTIVE
         ///
         /// **Product Identifier Mapping:**
         /// - UPC/GTIN/EAN values become the `gtin` field (padded to 14 digits)
@@ -1321,7 +1321,9 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 .ToList();
 
             // Map status to GS1 format (ACTIVE or INACTIVE)
-            var gs1Status = cert.Status?.Equals("Active", StringComparison.OrdinalIgnoreCase) == true ? "ACTIVE" : "INACTIVE";
+            // Approved/live statuses map to ACTIVE; everything else (Draft, Hold, Expired) maps to INACTIVE
+            var activeStatuses = new[] { "Active", "Client Approved - Paid", "Client Approved - Confidential", "Client Approved - Not Paid", "Republished" };
+            var gs1Status = activeStatuses.Any(s => s.Equals(cert.Status, StringComparison.OrdinalIgnoreCase)) ? "ACTIVE" : "INACTIVE";
 
             // Format dates as YYYY-MM-DD
             var issueDate = cert.EffectiveDate != default ? cert.EffectiveDate.ToString("yyyy-MM-dd") : null;

@@ -50,7 +50,7 @@ public abstract class ScreenshotTestBase : PageTest
         // Get base URL from configuration or environment
         BaseUrl = Environment.GetEnvironmentVariable("TEST_BASE_URL") 
                   ?? Configuration["BaseUrl"] 
-                  ?? "http://localhost:5101";
+                  ?? "https://gccwebapp.com";
         
         // Get headless mode from configuration or environment
         var headlessMode = Environment.GetEnvironmentVariable("TEST_HEADLESS") ?? Configuration["TestSettings:BrowserHeadless"];

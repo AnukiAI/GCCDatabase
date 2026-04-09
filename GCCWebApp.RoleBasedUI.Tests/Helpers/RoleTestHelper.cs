@@ -321,16 +321,16 @@ public static class RoleTestHelper
         return role.ToLower() switch
         {
             "admin" => (
-                configuration["TestConfiguration:AdminCredentials:Username"] ?? "admin@test.com",
-                configuration["TestConfiguration:AdminCredentials:Password"] ?? "TestAdmin123!"
+                configuration["TestConfiguration:AdminCredentials:Username"] ?? "admin",
+                configuration["TestConfiguration:AdminCredentials:Password"] ?? "TestPass123!"
             ),
             "analyst" => (
-                configuration["TestConfiguration:AnalystCredentials:Username"] ?? "analyst@test.com", 
-                configuration["TestConfiguration:AnalystCredentials:Password"] ?? "TestAnalyst123!"
+                configuration["TestConfiguration:AnalystCredentials:Username"] ?? "analyst",
+                configuration["TestConfiguration:AnalystCredentials:Password"] ?? "TestPass123!"
             ),
             "external" => (
-                configuration["TestConfiguration:ExternalCredentials:Username"] ?? "external@test.com",
-                configuration["TestConfiguration:ExternalCredentials:Password"] ?? "TestExternal123!"
+                configuration["TestConfiguration:ExternalCredentials:Username"] ?? "external",
+                configuration["TestConfiguration:ExternalCredentials:Password"] ?? "TestPass123!"
             ),
             _ => throw new ArgumentException($"Unknown role: {role}")
         };

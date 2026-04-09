@@ -1,8 +1,6 @@
 using Microsoft.Playwright;
 using Deque.AxeCore.Playwright;
 using Deque.AxeCore.Commons;
-using GCCWebApp.Accessibility.Tests.Fixtures;
-using Microsoft.AspNetCore.Mvc.Testing;
 using System.Text.Json;
 
 namespace GCCWebApp.Accessibility.Tests.Tests.Core;
@@ -12,21 +10,16 @@ public abstract class BaseAccessibilityTest : IAsyncLifetime
     protected IPlaywright? _playwright;
     protected IBrowser? _browser;
     protected IPage? _page;
-    protected AccessibilityTestWebApplicationFactory _factory = null!;
-    protected HttpClient _httpClient = null!;
     protected string _baseUrl = null!;
 
     public virtual async Task InitializeAsync()
     {
-        _factory = new AccessibilityTestWebApplicationFactory();
-        _httpClient = _factory.CreateClient();
-        _baseUrl = _httpClient.BaseAddress?.ToString() ?? "https://localhost:7265";
+        _baseUrl = (Environment.GetEnvironmentVariable("TEST_BASE_URL") ?? "https://gccwebapp.com").TrimEnd('/');
 
         _playwright = await Microsoft.Playwright.Playwright.CreateAsync();
         _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
         {
-            Headless = true,
-            Args = new[] { "--disable-web-security", "--allow-running-insecure-content" }
+            Headless = true
         });
         _page = await _browser.NewPageAsync();
     }
@@ -36,48 +29,35 @@ public abstract class BaseAccessibilityTest : IAsyncLifetime
         if (_page != null) await _page.CloseAsync();
         if (_browser != null) await _browser.CloseAsync();
         _playwright?.Dispose();
-        _httpClient?.Dispose();
-        await _factory.DisposeAsync();
     }
 
-    protected async Task<AxeResult> RunAccessibilityCheck(string url, AxeOptions? options = null)
+    protected async Task LoginAsync(string email = "admin", string password = "TestPass123!")
+    {
+        if (_page == null) throw new InvalidOperationException("Page not initialized");
+
+        await _page.GotoAsync($"{_baseUrl}/Account/Login");
+        await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+
+        await _page.FillAsync("#Email", email);
+        await _page.FillAsync("#Password", password);
+        await _page.ClickAsync("button[type='submit']");
+        await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
+    }
+
+    protected async Task<AxeResult> RunAccessibilityCheck(string url, AccessibilityCheckOptions? options = null)
     {
         if (_page == null) throw new InvalidOperationException("Page not initialized");
 
         await _page.GotoAsync(url);
         await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
-        
-        // Wait for any dynamic content to load
         await _page.WaitForTimeoutAsync(1000);
 
-        // TODO: Fix AxeCore integration - temporarily disabled for build success
-        // var axeBuilder = new AxeBuilder(_page);
-        
-        // if (options != null)
-        // {
-        //     if (options.Tags != null && options.Tags.Any())
-        //         axeBuilder = axeBuilder.WithTags(options.Tags);
-        //     
-        //     if (options.Rules != null && options.Rules.Any())
-        //         axeBuilder = axeBuilder.WithRules(options.Rules);
-        //         
-        //     if (options.Include != null && options.Include.Any())
-        //         axeBuilder = axeBuilder.Include(options.Include);
-        //         
-        //     if (options.Exclude != null && options.Exclude.Any())
-        //         axeBuilder = axeBuilder.Exclude(options.Exclude);
-        // }
-
-        // return await axeBuilder.AnalyzeAsync();
-        
-        // Placeholder return for build success - return null and handle in calling methods
-        await Task.Delay(100); // Simulate async work
-        return null!; // TODO: Replace with proper AxeResult when AxeCore integration is fixed
+        return await _page.RunAxe();
     }
 
     protected async Task<AxeResult> RunWCAG21AACheck(string url)
     {
-        return await RunAccessibilityCheck(url, new AxeOptions
+        return await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Tags = new[] { "wcag2a", "wcag2aa", "wcag21a", "wcag21aa" }
         });
@@ -85,7 +65,7 @@ public abstract class BaseAccessibilityTest : IAsyncLifetime
 
     protected async Task<AxeResult> RunSection508Check(string url)
     {
-        return await RunAccessibilityCheck(url, new AxeOptions
+        return await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Tags = new[] { "section508" }
         });
@@ -97,10 +77,10 @@ public abstract class BaseAccessibilityTest : IAsyncLifetime
         {
             var report = GenerateViolationReport(results, testName);
             SaveReport(report, testName);
-            
-            var violationSummary = string.Join("\n", results.Violations.Select(v => 
+
+            var violationSummary = string.Join("\n", results.Violations.Select(v =>
                 $"- {v.Id}: {v.Description} (Impact: {v.Impact}, Nodes: {v.Nodes.Count()})"));
-                
+
             throw new AccessibilityViolationException(
                 $"Accessibility violations found in {testName}:\n{violationSummary}\n\nFull report saved to Reports/{testName}_violations.json");
         }
@@ -112,7 +92,7 @@ public abstract class BaseAccessibilityTest : IAsyncLifetime
         {
             var report = GenerateViolationReport(results, testName);
             SaveReport(report, testName);
-            
+
             throw new AccessibilityViolationException(
                 $"Too many accessibility violations in {testName}: {results.Violations.Count()} > {maxViolations}\n\nFull report saved to Reports/{testName}_violations.json");
         }
@@ -137,14 +117,12 @@ public abstract class BaseAccessibilityTest : IAsyncLifetime
                 Help = v.Help,
                 HelpUrl = v.HelpUrl,
                 NodeCount = v.Nodes.Count(),
-                // TODO: Fix AxeCore integration - temporarily disabled
-                // Nodes = v.Nodes.Select(n => new NodeSummary
-                // {
-                //     Html = n.Html,
-                //     Target = string.Join(", ", n.Target),
-                //     FailureSummary = n.FailureSummary
-                // }).ToArray()
-                Nodes = new NodeSummary[0] // Placeholder
+                Nodes = v.Nodes.Select(n => new NodeSummary
+                {
+                    Html = n.Html,
+                    Target = string.Join(", ", n.Target),
+                    FailureSummary = n.Any?.ToString() ?? ""
+                }).ToArray()
             }).ToArray()
         };
     }
@@ -153,14 +131,14 @@ public abstract class BaseAccessibilityTest : IAsyncLifetime
     {
         var reportsDir = Path.Combine(Directory.GetCurrentDirectory(), "Reports");
         Directory.CreateDirectory(reportsDir);
-        
+
         var fileName = Path.Combine(reportsDir, $"{testName}_violations.json");
         var json = JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true });
         File.WriteAllText(fileName, json);
     }
 }
 
-public class AxeOptions
+public class AccessibilityCheckOptions
 {
     public string[]? Tags { get; set; }
     public string[]? Rules { get; set; }

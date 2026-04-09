@@ -17,7 +17,7 @@ namespace GCCWebApp.UAT.Tests.Tests.Mobile
         private IBrowserContext? _context;
         private IPage? _page;
 
-        private const string BaseUrl = "http://localhost:5101";
+        private static readonly string BaseUrl = Environment.GetEnvironmentVariable("TEST_BASE_URL") ?? "https://gccwebapp.com";
 
         public async Task InitializeAsync()
         {

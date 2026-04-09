@@ -59,7 +59,7 @@ public class HomePageAccessibilityTests : BaseAccessibilityTest
         var url = $"{_baseUrl}/";
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "image-alt" }
         });
@@ -75,7 +75,7 @@ public class HomePageAccessibilityTests : BaseAccessibilityTest
         var url = $"{_baseUrl}/";
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "label", "form-field-multiple-labels" }
         });
@@ -91,7 +91,7 @@ public class HomePageAccessibilityTests : BaseAccessibilityTest
         var url = $"{_baseUrl}/";
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "color-contrast", "color-contrast-enhanced" }
         });
@@ -107,7 +107,7 @@ public class HomePageAccessibilityTests : BaseAccessibilityTest
         var url = $"{_baseUrl}/";
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "heading-order", "empty-heading", "page-has-heading-one" }
         });

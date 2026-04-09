@@ -14,7 +14,7 @@ public class NavigationAccessibilityTests : BaseAccessibilityTest
         await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "aria-label", "link-name", "button-name" },
             Include = new[] { ".main-nav", ".nav-links", ".navbar" }
@@ -38,7 +38,7 @@ public class NavigationAccessibilityTests : BaseAccessibilityTest
         if (await dropdownToggles.CountAsync() > 0)
         {
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "aria-expanded", "aria-haspopup", "focus-order-semantics" },
                 Include = new[] { ".dropdown", ".submenu", ".nav-item" }
@@ -61,7 +61,7 @@ public class NavigationAccessibilityTests : BaseAccessibilityTest
         await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "button-name", "aria-expanded", "focus-order-semantics" },
             Include = new[] { ".mobile-toggle", ".mobile-nav" }
@@ -85,7 +85,7 @@ public class NavigationAccessibilityTests : BaseAccessibilityTest
         if (await breadcrumbs.CountAsync() > 0)
         {
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "aria-label", "link-name", "list" },
                 Include = new[] { ".breadcrumbs", ".breadcrumb" }
@@ -113,7 +113,7 @@ public class NavigationAccessibilityTests : BaseAccessibilityTest
             await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "aria-hidden-focus", "color-contrast", "link-name" },
                 Include = new[] { ".nav-links", ".role-element" }
@@ -153,7 +153,7 @@ public class NavigationAccessibilityTests : BaseAccessibilityTest
         }
 
         // Also run automated checks
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "focus-order-semantics" }
         });
@@ -175,7 +175,7 @@ public class NavigationAccessibilityTests : BaseAccessibilityTest
         if (await searchBar.CountAsync() > 0)
         {
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "label", "aria-label", "autocomplete-valid" },
                 Include = new[] { ".search-bar" }
@@ -200,7 +200,7 @@ public class NavigationAccessibilityTests : BaseAccessibilityTest
         if (await userProfile.CountAsync() > 0)
         {
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "button-name", "aria-expanded", "aria-haspopup" },
                 Include = new[] { ".user-profile", ".user-dropdown" }

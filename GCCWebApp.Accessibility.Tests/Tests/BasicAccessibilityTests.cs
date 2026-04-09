@@ -31,7 +31,7 @@ public class BasicAccessibilityTests : IAsyncLifetime
     public async Task HomePage_MinimumFontSize_ShouldBe16px()
     {
         // Arrange
-        const string url = "http://localhost:5101/";
+        const string url = "https://gccwebapp.com/";
         
         // Act
         await _page!.GotoAsync(url);
@@ -56,7 +56,7 @@ public class BasicAccessibilityTests : IAsyncLifetime
     public async Task NavigationText_PublicUser_ShouldBeWhite()
     {
         // Arrange
-        const string url = "http://localhost:5101/";
+        const string url = "https://gccwebapp.com/";
         
         // Act
         await _page!.GotoAsync(url);
@@ -85,9 +85,9 @@ public class BasicAccessibilityTests : IAsyncLifetime
         // Arrange
         var testUrls = new[]
         {
-            "http://localhost:5101/Admin/ProductTypes",
-            "http://localhost:5101/Admin/CertificateFields",
-            "http://localhost:5101/Product/Management"
+            "https://gccwebapp.com/Admin/ProductTypes",
+            "https://gccwebapp.com/Admin/CertificateFields",
+            "https://gccwebapp.com/Product/Management"
         };
         
         foreach (var url in testUrls)
@@ -112,7 +112,7 @@ public class BasicAccessibilityTests : IAsyncLifetime
     public async Task CertificateTileView_CheckboxHeight_ShouldBeReduced()
     {
         // Arrange
-        const string url = "http://localhost:5101/Certificate/CertificateTileViewInternal";
+        const string url = "https://gccwebapp.com/Certificate/CertificateTileViewInternal";
         
         // Act
         await _page!.GotoAsync(url);
@@ -139,7 +139,7 @@ public class BasicAccessibilityTests : IAsyncLifetime
     public async Task SearchAndSortElements_ShouldBeTopAligned()
     {
         // Arrange
-        const string url = "http://localhost:5101/Certificate/CertificateTileView";
+        const string url = "https://gccwebapp.com/Certificate/CertificateTileView";
         
         // Act
         await _page!.GotoAsync(url);
@@ -164,7 +164,7 @@ public class BasicAccessibilityTests : IAsyncLifetime
     public async Task ProductTiles_ShouldHaveConsistentHeight()
     {
         // Arrange
-        const string url = "http://localhost:5101/Certificate/CertificateTileView";
+        const string url = "https://gccwebapp.com/Certificate/CertificateTileView";
         
         // Act
         await _page!.GotoAsync(url);
@@ -192,7 +192,7 @@ public class BasicAccessibilityTests : IAsyncLifetime
     public async Task AdminTableGrids_ShouldHaveReducedPadding()
     {
         // Arrange
-        const string url = "http://localhost:5101/Admin/ProductTypes";
+        const string url = "https://gccwebapp.com/Admin/ProductTypes";
         
         // Act
         await _page!.GotoAsync(url);
@@ -222,7 +222,7 @@ public class BasicAccessibilityTests : IAsyncLifetime
     public async Task Breadcrumbs_AdminRole_ShouldBeVisible()
     {
         // Arrange
-        const string url = "http://localhost:5101/Admin/ProductTypes";
+        const string url = "https://gccwebapp.com/Admin/ProductTypes";
         
         // Act
         await _page!.GotoAsync(url);
@@ -245,8 +245,8 @@ public class BasicAccessibilityTests : IAsyncLifetime
         // Arrange
         var adminUrls = new[]
         {
-            "http://localhost:5101/Admin/ProductTypes",
-            "http://localhost:5101/Admin/CertificateFields"
+            "https://gccwebapp.com/Admin/ProductTypes",
+            "https://gccwebapp.com/Admin/CertificateFields"
         };
         
         foreach (var url in adminUrls)

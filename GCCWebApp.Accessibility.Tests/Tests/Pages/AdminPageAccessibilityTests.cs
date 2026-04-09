@@ -5,6 +5,12 @@ namespace GCCWebApp.Accessibility.Tests.Tests.Pages;
 
 public class AdminPageAccessibilityTests : BaseAccessibilityTest
 {
+    public override async Task InitializeAsync()
+    {
+        await base.InitializeAsync();
+        await LoginAsync("admin", "TestPass123!");
+    }
+
     [Fact]
     public async Task AdminDashboard_ShouldHaveNoWCAG21AAViolations()
     {
@@ -66,7 +72,7 @@ public class AdminPageAccessibilityTests : BaseAccessibilityTest
         await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "label", "form-field-multiple-labels", "aria-required-attr", "aria-invalid-value" }
         });
@@ -92,7 +98,7 @@ public class AdminPageAccessibilityTests : BaseAccessibilityTest
             await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "table-header", "td-headers-attr", "th-has-data-cells" }
             });
@@ -112,7 +118,7 @@ public class AdminPageAccessibilityTests : BaseAccessibilityTest
         await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "button-name", "link-name" }
         });
@@ -135,7 +141,7 @@ public class AdminPageAccessibilityTests : BaseAccessibilityTest
         if (await modalTriggers.CountAsync() > 0)
         {
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "aria-hidden-focus", "focus-order-semantics" }
             });
@@ -159,7 +165,7 @@ public class AdminPageAccessibilityTests : BaseAccessibilityTest
         if (await dropdowns.CountAsync() > 0)
         {
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "select-name", "aria-expanded", "aria-haspopup" }
             });
@@ -178,7 +184,7 @@ public class AdminPageAccessibilityTests : BaseAccessibilityTest
         await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "aria-roles", "aria-required-attr" }
         });

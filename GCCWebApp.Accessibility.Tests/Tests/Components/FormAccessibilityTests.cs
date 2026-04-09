@@ -39,7 +39,7 @@ public class FormAccessibilityTests : BaseAccessibilityTest
                 await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
                 // Act
-                var results = await RunAccessibilityCheck(url, new AxeOptions
+                var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
                 {
                     Rules = new[] { "label", "form-field-multiple-labels", "aria-input-field-name" }
                 });
@@ -72,7 +72,7 @@ public class FormAccessibilityTests : BaseAccessibilityTest
             await _page.WaitForTimeoutAsync(1000); // Wait for validation messages
 
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "aria-required-attr", "aria-invalid-value", "aria-describedby" }
             });
@@ -91,7 +91,7 @@ public class FormAccessibilityTests : BaseAccessibilityTest
         await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "input-button-name", "autocomplete-valid" }
         });
@@ -128,7 +128,7 @@ public class FormAccessibilityTests : BaseAccessibilityTest
             Assert.True(hasLabel, "Password fields should have accessible labels");
 
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "label", "aria-input-field-name" }
             });
@@ -161,7 +161,7 @@ public class FormAccessibilityTests : BaseAccessibilityTest
                 if (await selectElements.CountAsync() > 0)
                 {
                     // Act
-                    var results = await RunAccessibilityCheck(url, new AxeOptions
+                    var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
                     {
                         Rules = new[] { "select-name", "aria-input-field-name" }
                     });
@@ -195,7 +195,7 @@ public class FormAccessibilityTests : BaseAccessibilityTest
             if (await checkboxRadioElements.CountAsync() > 0)
             {
                 // Act
-                var results = await RunAccessibilityCheck(url, new AxeOptions
+                var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
                 {
                     Rules = new[] { "label", "aria-input-field-name", "fieldset-legend" }
                 });
@@ -226,7 +226,7 @@ public class FormAccessibilityTests : BaseAccessibilityTest
             if (await fileInputs.CountAsync() > 0)
             {
                 // Act
-                var results = await RunAccessibilityCheck(url, new AxeOptions
+                var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
                 {
                     Rules = new[] { "label", "aria-input-field-name" }
                 });
@@ -261,7 +261,7 @@ public class FormAccessibilityTests : BaseAccessibilityTest
             await _page.WaitForTimeoutAsync(1000);
 
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "aria-describedby", "aria-invalid-value" }
             });
@@ -287,7 +287,7 @@ public class FormAccessibilityTests : BaseAccessibilityTest
             if (await fieldsets.CountAsync() > 0)
             {
                 // Act
-                var results = await RunAccessibilityCheck(url, new AxeOptions
+                var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
                 {
                     Rules = new[] { "fieldset-legend" }
                 });

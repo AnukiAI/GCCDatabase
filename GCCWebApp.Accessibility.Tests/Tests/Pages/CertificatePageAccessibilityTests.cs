@@ -40,7 +40,7 @@ public class CertificatePageAccessibilityTests : BaseAccessibilityTest
         await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "table-header", "td-headers-attr", "th-has-data-cells", "table-duplicate-name" }
         });
@@ -58,7 +58,7 @@ public class CertificatePageAccessibilityTests : BaseAccessibilityTest
         await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "label", "select-name", "autocomplete-valid" }
         });
@@ -81,7 +81,7 @@ public class CertificatePageAccessibilityTests : BaseAccessibilityTest
         if (await searchInput.CountAsync() > 0)
         {
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "label", "aria-input-field-name" }
             });
@@ -127,7 +127,7 @@ public class CertificatePageAccessibilityTests : BaseAccessibilityTest
         await _page.WaitForLoadStateAsync(LoadState.NetworkIdle);
 
         // Act
-        var results = await RunAccessibilityCheck(url, new AxeOptions
+        var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
         {
             Rules = new[] { "aria-label", "button-name", "link-name" }
         });
@@ -150,7 +150,7 @@ public class CertificatePageAccessibilityTests : BaseAccessibilityTest
         if (await paginationElements.CountAsync() > 0)
         {
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "link-name", "button-name", "aria-label" }
             });
@@ -174,7 +174,7 @@ public class CertificatePageAccessibilityTests : BaseAccessibilityTest
         if (await sortControls.CountAsync() > 0)
         {
             // Act
-            var results = await RunAccessibilityCheck(url, new AxeOptions
+            var results = await RunAccessibilityCheck(url, new AccessibilityCheckOptions
             {
                 Rules = new[] { "select-name", "button-name", "aria-sort" }
             });

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -6,12 +6,11 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <Description>Security tests for GCC Web Application including penetration testing and vulnerability assessments</Description>
+    <Description>Security tests for GCC Web Application running against a remote deployed site</Description>
   </PropertyGroup>
 
   <!-- xUnit test framework packages -->
   <ItemGroup Label="xUnit Test Framework">
-    <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="8.0.11" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.8.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
@@ -30,16 +29,9 @@
     <PackageReference Include="System.Net.Http.Json" Version="9.0.0" />
   </ItemGroup>
 
-  <!-- Project references -->
-  <ItemGroup Label="Project References">
-    <ProjectReference Include="..\GCCWebApp\GCCWebApp.csproj" />
-    <ProjectReference Include="..\GCCWebApp.Tests.Common\GCCWebApp.Tests.Common.csproj" />
-  </ItemGroup>
-
   <!-- Global usings -->
   <ItemGroup Label="Global Usings">
     <Using Include="Xunit" />
-    <Using Include="GCCWebApp.Tests.Common.TestUtilities" />
   </ItemGroup>
 
 </Project>

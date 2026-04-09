@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
@@ -6,10 +6,9 @@
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
-    <Description>Accessibility tests for GCC Web Application ensuring WCAG 2.1 compliance</Description>
+    <Description>Accessibility tests for GCC Web Application ensuring WCAG 2.1 compliance (runs against remote deployed site)</Description>
   </PropertyGroup>
 
-  <!-- xUnit test framework packages -->
   <ItemGroup Label="xUnit Test Framework">
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
@@ -19,28 +18,16 @@
     </PackageReference>
   </ItemGroup>
 
-  <!-- Accessibility testing specific packages -->
   <ItemGroup Label="Accessibility Testing Tools">
     <PackageReference Include="Microsoft.Playwright" Version="1.55.0" />
-    <PackageReference Include="Microsoft.Playwright.NUnit" Version="1.48.0" />
     <PackageReference Include="Deque.AxeCore.Playwright" Version="4.10.1" />
-    <PackageReference Include="Selenium.Axe" Version="4.0.21" />
   </ItemGroup>
 
-  <!-- Project references -->
-  <ItemGroup Label="Project References">
-    <ProjectReference Include="..\GCCWebApp\GCCWebApp.csproj" />
-    <ProjectReference Include="..\GCCWebApp.Tests.Common\GCCWebApp.Tests.Common.csproj" />
-  </ItemGroup>
-
-  <!-- Global usings -->
   <ItemGroup Label="Global Usings">
     <Using Include="Xunit" />
     <Using Include="Microsoft.Playwright" />
-    <Using Include="Microsoft.Playwright.NUnit" />
     <Using Include="Deque.AxeCore.Playwright" />
     <Using Include="Deque.AxeCore.Commons" />
-    <Using Include="GCCWebApp.Tests.Common.TestUtilities" />
   </ItemGroup>
 
 </Project>

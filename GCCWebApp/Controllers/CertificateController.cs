@@ -980,9 +980,14 @@ namespace GCCWebApp.Controllers
                     }
                     else
                     {
-                        // No partners selected - clear all
+                        // No PartnerIds submitted - preserve the Partner dropdown value (set on line 865)
+                        // Only clear to "None" if the Partner dropdown was also not set
                         certificate.Partners.Clear();
-                        certificate.Partner = "None";
+                        if (string.IsNullOrWhiteSpace(model.Partner) || model.Partner == "None")
+                        {
+                            certificate.Partner = "None";
+                        }
+                        // Otherwise keep certificate.Partner as set from model.Partner above
                     }
 
                     // Handle Tags (External and Internal)

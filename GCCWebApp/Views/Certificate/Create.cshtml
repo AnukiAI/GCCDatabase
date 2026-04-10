@@ -738,7 +738,7 @@
                     const fieldsSaved = await certificateCustomFields.saveFieldValues(result.certificateId);
                     if (fieldsSaved) {
                         // Redirect to details page
-                        window.location.href = `/Certificate/Details/${result.certificateId}`;
+                        window.location.href = `/Certificate/CertificateInternalView/${result.certificateId}`;
                     }
                 } else {
                     // Call original success handler if no certificate ID

@@ -66,8 +66,8 @@
         </div>
         <div class="card-body">
             <div class="product-info">
-                <div class="product-name" style="font-size: 22px; font-weight: 700;">@productName</div>
-                <div class="product-type" style="font-size: 18px;">@productType</div>
+                <div class="product-name">@productName</div>
+                @if (productType != "—") { <div class="product-type">@productType</div> }
             </div>
             <!-- Main Detail Grid -->
             <div class="certificate-details-grid">
@@ -76,14 +76,26 @@
                     <!-- Certification Details -->
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Certification Details</h3>
-                        <div class="certificate-field"><strong>Product Category:</strong> <span>@(Model.Certificate?.ProductCategory?.Name ?? Model.Certificate?.Product?.Category?.Name ?? "—")</span></div>
-                        <div class="certificate-field"><strong>Product Type:</strong> <span>@(Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "—")</span></div>
-                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@(Model.Certificate?.ProductSubcategory?.Name ?? Model.Certificate?.Product?.ProductSubcategory?.Name ?? "—")</span></div>
+                        <div class="certificate-field"><strong>Product Category:</strong> <span>@Html.Raw(Model.Certificate?.ProductCategory?.Name ?? Model.Certificate?.Product?.Category?.Name ?? "<span class='no-data'>Data not available</span>")</span></div>
+                        <div class="certificate-field"><strong>Product Type:</strong> <span>@Html.Raw(Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "<span class='no-data'>Data not available</span>")</span></div>
+                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@Html.Raw(Model.Certificate?.ProductSubcategory?.Name ?? Model.Certificate?.Product?.ProductSubcategory?.Name ?? "<span class='no-data'>Data not available</span>")</span></div>
                         <div class="certificate-location">
                             <i class="fas fa-map-marker-alt"></i>
-                            @location@if (!string.IsNullOrEmpty(country))
+                            @if (!string.IsNullOrEmpty(Model.Certificate?.Location) && !string.IsNullOrEmpty(Model.Certificate?.Country))
                             {
-                                <text>, @country</text>
+                                <text>@Model.Certificate.Location, @Model.Certificate.Country</text>
+                            }
+                            else if (!string.IsNullOrEmpty(Model.Certificate?.Location))
+                            {
+                                @Model.Certificate.Location
+                            }
+                            else if (!string.IsNullOrEmpty(Model.Certificate?.Country))
+                            {
+                                @Model.Certificate.Country
+                            }
+                            else
+                            {
+                                <span class="no-data">Data not available</span>
                             }
                         </div>
                     </div>
@@ -107,7 +119,7 @@
                                 }
                                 else
                                 {
-                                    <text>—</text>
+                                    <span class="no-data">Data not available</span>
                                 }
                             </span>
                         </div>
@@ -120,7 +132,7 @@
                                 }
                                 else
                                 {
-                                    <text>—</text>
+                                    <span class="no-data">Data not available</span>
                                 }
                             </span>
                         </div>
@@ -158,10 +170,6 @@
                         {
                             <img src="@certificateImageSrc" alt="@altText"
                                  onclick="openImageZoom('@certificateImageSrc')" />
-                            <!-- Magnifying Glass Icon overlay -->
-                            <div class="zoom-icon-overlay" onclick="openImageZoom('@certificateImageSrc')" title="Click to zoom">
-                                <i class="fas fa-search-plus"></i>
-                            </div>
                         }
                         else
                         {
@@ -174,15 +182,21 @@
                         }
                     </div>
 
-                    <!-- Download Button directly below image (only if PDF exists) -->
-                    @if (!string.IsNullOrEmpty(Model.Certificate?.CertificateFile))
-                    {
-                        <div class="certificate-download-action">
+                    <!-- Action icons below image: zoom + download, right-aligned -->
+                    <div class="certificate-download-action">
+                        @if (hasValidSnapshot)
+                        {
+                            <div class="action-icon zoom" title="Click to zoom" onclick="openImageZoom('@certificateImageSrc')">
+                                <i class="fas fa-search-plus"></i>
+                            </div>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Certificate?.CertificateFile))
+                        {
                             <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@GetFormattedCertificateNumber()')">
                                 <i class="fas fa-download"></i>
                             </div>
-                        </div>
-                    }
+                        }
+                    </div>
                 </div>
             </div>
 
@@ -202,8 +216,11 @@
     // Make downloadCertificate available globally for this page
     window.downloadCertificate = function(certificateNumber) {
         try {
-            window.open(`/Certificate/Download/${certificateNumber}`, '_blank');
-            console.log('Certificate download started');
+            if (!certificateNumber) {
+                console.error('Certificate number is required');
+                return;
+            }
+            window.open(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, '_blank');
         } catch (error) {
             console.error('Error downloading certificate:', error);
         }

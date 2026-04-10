@@ -271,15 +271,15 @@ th,
 }
 
 .header-middle {
-    height: 320px;
+    height: auto;
+    min-height: 200px;
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     color: white;
     position: relative;
-    padding: 10px 0;
+    padding: 20px 0;
     background-color: var(--blue-dark);
-    min-height: 200px;
 }
 
 .header-container {
@@ -1705,8 +1705,11 @@ input, select, button, .form-input, .form-select {
     }
 
 .certificate-image-column {
-    max-width: 400px;
-    flex-shrink: 0;
+    flex: 0 0 40%;
+    padding: 16px;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    align-self: flex-start;
 }
 
 .certificate-image {
@@ -1779,63 +1782,78 @@ body.theme-option4 .certificate-single-card .card-body {
     }
 
     .certificate-details-grid .certificate-image-column {
-        flex: 0 0 600px; /* Increased from 500px to accommodate 750px image */
-        min-width: 450px; /* Increased from 400px */
+        flex: 0 0 40%;
+        min-width: 280px;
     }
 
 .certificate-single-card .detail-section {
-    margin-bottom: 18px; /* Reduced from 28px - tighter section spacing */
-    padding: 14px; /* Reduced from 18px - tighter internal padding */
-    background-color: rgba(255, 255, 255, 0.95); /* More opaque for better contrast */
-    border-radius: 8px; /* Increased from 6px */
-    border-left: 4px solid var(--blue-primary); /* Increased from 3px */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05); /* Subtle shadow for depth */
+    margin-bottom: 16px;
+    padding: 18px 20px;
+    background-color: #fff;
+    border-radius: 8px;
+    border-left: 4px solid var(--blue-primary);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+    border: 1px solid #e9ecef;
+    border-left: 4px solid var(--blue-primary);
 }
 
 .certificate-single-card .certificate-section-title {
-    font-size: 24px; /* Increased from 20px */
-    font-weight: 600;
-    margin-bottom: 10px; /* Reduced from 14px - tighter spacing below title */
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
     color: var(--blue-dark);
+    border-bottom: 1px solid #e9ecef;
     border-left: none;
     padding-left: 0;
-    padding-right: 14px;
-    padding-top: 8px;
-    padding-bottom: 8px;
+    padding-right: 0;
+    padding-top: 0;
 }
 
 .certificate-single-card .certificate-field {
-    font-size: 18px; /* Increased from 16px */
-    margin-bottom: 8px; /* Reduced from 10px - tighter field spacing */
-    color: var(--text-color);
-    line-height: 1.5; /* Increased from 1.4 */
+    font-size: 16px;
+    margin-bottom: 6px;
+    color: #495057;
+    line-height: 1.6;
+    display: flex;
+    gap: 8px;
 }
 
     .certificate-single-card .certificate-field strong {
-        color: var(--blue-dark);
+        color: #212529;
         font-weight: 600;
+        min-width: 160px;
+        flex-shrink: 0;
     }
 
+    .certificate-single-card .certificate-field span {
+        color: #495057;
+    }
+
+.no-data {
+    color: #adb5bd;
+    font-style: italic;
+    font-weight: 400;
+}
+
 .certificate-single-card .certificate-period {
-    font-size: 18px; /* Increased from 16px */
-    color: var(--text-color);
-    background-color: rgba(0, 174, 239, 0.08);
-    padding: 10px; /* Reduced from 14px - tighter period box */
-    border-radius: 8px; /* Increased from 6px */
-    line-height: 1.5; /* Increased from 1.4 */
+    font-size: 16px;
+    color: #495057;
+    padding: 0;
+    line-height: 1.6;
 }
 
 .certificate-single-card .certificate-location {
-    font-size: 18px; /* Increased from 16px */
-    color: var(--text-secondary);
+    font-size: 16px;
+    color: #495057;
     display: flex;
     align-items: center;
-    gap: 8px; /* Increased from 6px */
-    margin-top: 10px; /* Reduced from 12px - tighter spacing */
-    margin-bottom: 0px; /* No extra space below location */
-    padding: 10px; /* Reduced from 12px - tighter location box */
-    background-color: rgba(146, 200, 62, 0.08);
-    border-radius: 8px; /* Increased from 6px */
+    gap: 8px;
+    margin-top: 10px;
+    margin-bottom: 0;
+    padding: 0;
 }
 
     .certificate-single-card .certificate-location i {
@@ -1905,7 +1923,7 @@ body.theme-option4 .certificate-single-card .card-body {
 
 /* SingleCertificateView - Product Info Container - Reduced spacing */
 .certificate-single-card .product-info {
-    margin-bottom: 16px !important; /* Reduced from default */
+    margin-bottom: 8px !important;
     padding-bottom: 0 !important;
 }
 
@@ -2028,9 +2046,10 @@ body.theme-option4 .certificate-single-card .card-body {
 
 .certificate-download-action {
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     gap: 10px;
     margin-top: 12px;
+    max-width: 350px;
 }
 
 .certificate-download-action .action-icon {
@@ -2068,6 +2087,22 @@ body.theme-option4 .certificate-single-card .card-body {
     font-size: 18px; /* Increased from 16px */
 }
 
+/* Tablet responsive adjustments for single view */
+@media (max-width: 1024px) and (min-width: 769px) {
+    .certificate-details-grid .certificate-image-column {
+        flex: 0 0 35%;
+        min-width: 250px;
+    }
+
+    .certificate-single-card .certificate-field strong {
+        min-width: 140px;
+    }
+
+    .certificate-download-action {
+        max-width: 100%;
+    }
+}
+
 /* Mobile responsive adjustments for single view */
 @media (max-width: 768px) {
     .certificate-single-container {
@@ -2081,6 +2116,7 @@ body.theme-option4 .certificate-single-card .card-body {
 
         .certificate-details-grid .certificate-image-column {
             flex: none;
+            width: 100%;
             order: -1;
             text-align: center;
         }
@@ -2100,13 +2136,26 @@ body.theme-option4 .certificate-single-card .card-body {
     }
 
     .certificate-single-card .detail-section {
-        padding: 10px;
+        padding: 12px;
         margin-bottom: 12px;
     }
 
     .certificate-single-card .certificate-section-title {
-        font-size: 16px;
+        font-size: 14px;
         margin-bottom: 8px;
+    }
+
+    .certificate-single-card .certificate-field {
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .certificate-single-card .certificate-field strong {
+        min-width: unset;
+    }
+
+    .certificate-download-action {
+        max-width: 100%;
     }
 }
 
@@ -2141,11 +2190,11 @@ body.theme-option4 .certificate-single-card .card-body {
     }
 
     .certificate-single-card .certificate-period {
-        padding: 8px;
+        padding: 0;
     }
 
     .certificate-single-card .certificate-location {
-        padding: 6px;
+        padding: 0;
     }
 
     .certificate-single-card .certificate-tags {

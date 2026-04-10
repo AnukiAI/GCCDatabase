@@ -307,50 +307,6 @@ namespace GCCWebApp.Controllers
         }
 
         /// <summary>
-        /// Get certificate details by certificate number
-        /// GET: /Certificate/Details/24-0366
-        /// External users can view certificate details (read-only)
-        /// </summary>
-        [Authorize(Policy = "ExternalAccess")]
-        public async Task<IActionResult> Details(string id)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(id))
-                {
-                    return BadRequest("Certificate number is required");
-                }
-
-                // Only look up by certificate number (not integer ID)
-                var certificate = await _certificateRepository.GetCertificateByNumberAsync(id);
-
-                if (certificate == null)
-                {
-                    return NotFound($"Certificate {id} not found");
-                }
-
-                var model = new CertificateDetailsViewModelSimple
-                {
-                    Certificate = certificate,
-                    CanEdit = CanUserEditCertificate(),
-                    CanDelete = CanUserDeleteCertificate(),
-                    ShowInternalData = IsInternalUser()
-                };
-
-                // Load custom field values
-                var customFieldValues = await _certificateFieldService.GetFormattedFieldValuesAsync(certificate.Id);
-                model.CustomFieldValues = customFieldValues;
-
-                return View(model);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading certificate details for id: {Id}", id);
-                return RedirectToAction("Error", "Home");
-            }
-        }
-
-        /// <summary>
         /// Create new certificate - GET
         /// </summary>
         [Authorize(Policy = "AnalystOrAdmin")]
@@ -669,7 +625,7 @@ namespace GCCWebApp.Controllers
                         return RedirectToAction(nameof(Create));
                     }
 
-                    return RedirectToAction(nameof(Details), new { id = certificate.Number });
+                    return RedirectToAction(nameof(CertificateInternalView), new { id = certificate.Number });
                 }
 
                 // If we got here, something failed, reload the form
@@ -1094,7 +1050,7 @@ namespace GCCWebApp.Controllers
                     _logger.LogInformation("Certificate {Number} updated by user {UserId}", certificate.Number, GetCurrentUserId());
 
                     TempData["SuccessMessage"] = $"Certificate {certificate.Number} updated successfully!";
-                    return RedirectToAction(nameof(Details), new { id = certificate.Number });
+                    return RedirectToAction(nameof(CertificateInternalView), new { id = certificate.Number });
                 }
 
                 // If we got here, something failed, reload the form
@@ -1219,7 +1175,7 @@ namespace GCCWebApp.Controllers
             {
                 _logger.LogError(ex, "Error deleting certificate number: {Number}", number);
                 TempData["ErrorMessage"] = "An error occurred while deleting the certificate.";
-                return RedirectToAction(nameof(Details), new { number });
+                return RedirectToAction(nameof(CertificateInternalView), new { id = number });
             }
         }
 

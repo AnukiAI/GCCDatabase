@@ -1003,7 +1003,8 @@
         const announcement = document.getElementById('searchAnnouncement');
 
         if (resultsCount) {
-            const countText = `${state.totalCount} Result${state.totalCount !== 1 ? 's' : ''}`;
+            const shown = state.certificates.length;
+            const countText = `Showing ${shown} of ${state.totalCount} certificate${state.totalCount !== 1 ? 's' : ''}`;
             resultsCount.textContent = countText;
 
             // Announce to screen readers

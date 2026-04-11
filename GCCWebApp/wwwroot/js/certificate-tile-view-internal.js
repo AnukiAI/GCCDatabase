@@ -1070,7 +1070,8 @@
     function updateResultsCount() {
         const resultsCount = document.getElementById('resultsCount');
         if (resultsCount) {
-            resultsCount.textContent = `${state.totalCount} Result${state.totalCount !== 1 ? 's' : ''}`;
+            const shown = state.certificates.length;
+            resultsCount.textContent = `Showing ${shown} of ${state.totalCount} certificate${state.totalCount !== 1 ? 's' : ''}`;
         }
     }
 
@@ -1509,8 +1510,9 @@
         // Update table results count
         const tableResultsCount = document.getElementById('tableResultsCount');
         if (tableResultsCount) {
-            const count = state.totalCount || state.certificates.length;
-            tableResultsCount.innerHTML = `Showing <strong>${count}</strong> certificates`;
+            const shown = state.certificates.length;
+            const total = state.totalCount || shown;
+            tableResultsCount.innerHTML = `Showing <strong>${shown}</strong> of ${total} certificate${total !== 1 ? 's' : ''}`;
         }
 
         // Re-apply column visibility from localStorage

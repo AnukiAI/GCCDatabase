@@ -183,16 +183,35 @@
                     </div>
 
                     <!-- Action icons below image: zoom + download, right-aligned -->
+                    @{
+                        var hasFile = !string.IsNullOrEmpty(Model.Certificate?.CertificateFile);
+                        var zoomClass = hasValidSnapshot ? "action-icon zoom" : "action-icon zoom disabled";
+                        var zoomTitle = hasValidSnapshot ? "Click to zoom" : "No preview available";
+                        var downloadClass = hasFile ? "action-icon download" : "action-icon download disabled";
+                        var downloadTitle = hasFile ? "Download PDF" : "No PDF available";
+                    }
                     <div class="certificate-download-action">
                         @if (hasValidSnapshot)
                         {
-                            <div class="action-icon zoom" title="Click to zoom" onclick="openImageZoom('@certificateImageSrc')">
+                            <div class="@zoomClass" title="@zoomTitle" onclick="openImageZoom('@certificateImageSrc')">
                                 <i class="fas fa-search-plus"></i>
                             </div>
                         }
-                        @if (!string.IsNullOrEmpty(Model.Certificate?.CertificateFile))
+                        else
                         {
-                            <div class="action-icon download" title="Download PDF" onclick="downloadCertificate('@GetFormattedCertificateNumber()')">
+                            <div class="@zoomClass" title="@zoomTitle">
+                                <i class="fas fa-search-plus"></i>
+                            </div>
+                        }
+                        @if (hasFile)
+                        {
+                            <div class="@downloadClass" title="@downloadTitle" onclick="downloadCertificate('@GetFormattedCertificateNumber()')">
+                                <i class="fas fa-download"></i>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="@downloadClass" title="@downloadTitle">
                                 <i class="fas fa-download"></i>
                             </div>
                         }

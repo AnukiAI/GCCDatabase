@@ -1229,10 +1229,11 @@ class CertificateTileViewExternal {
     /**
      * Update results count
      */
-    updateResultsCount(count) {
+    updateResultsCount(totalCount) {
         const countElement = document.getElementById('resultsCount');
         if (countElement) {
-            countElement.textContent = `Showing ${count} certificate${count !== 1 ? 's' : ''}`;
+            const shown = this.service.certificates ? this.service.certificates.length : totalCount;
+            countElement.textContent = `Showing ${shown} of ${totalCount} certificate${totalCount !== 1 ? 's' : ''}`;
         }
     }
 

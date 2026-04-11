@@ -1706,10 +1706,12 @@ input, select, button, .form-input, .form-select {
 
 .certificate-image-column {
     flex: 0 0 40%;
+    min-width: 0;
     padding: 16px;
     border: 1px solid #dee2e6;
     border-radius: 8px;
     align-self: flex-start;
+    overflow: hidden;
 }
 
 .certificate-image {
@@ -1783,7 +1785,7 @@ body.theme-option4 .certificate-single-card .card-body {
 
     .certificate-details-grid .certificate-image-column {
         flex: 0 0 40%;
-        min-width: 280px;
+        min-width: 0;
     }
 
 .certificate-single-card .detail-section {
@@ -2049,7 +2051,7 @@ body.theme-option4 .certificate-single-card .card-body {
     justify-content: flex-end;
     gap: 10px;
     margin-top: 12px;
-    max-width: 350px;
+    width: 100%;
 }
 
 .certificate-download-action .action-icon {
@@ -2067,10 +2069,17 @@ body.theme-option4 .certificate-single-card .card-body {
     font-size: 22px; /* Added for larger icon */
 }
 
-.certificate-download-action .action-icon:hover {
+.certificate-download-action .action-icon:hover:not(.disabled) {
     background: var(--blue-dark);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 174, 239, 0.4);
+}
+
+.certificate-download-action .action-icon.disabled {
+    background: #ced4da;
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 0.6;
 }
 
 .certificate-single-card .card-actions {
@@ -2090,8 +2099,8 @@ body.theme-option4 .certificate-single-card .card-body {
 /* Tablet responsive adjustments for single view */
 @media (max-width: 1024px) and (min-width: 769px) {
     .certificate-details-grid .certificate-image-column {
-        flex: 0 0 35%;
-        min-width: 250px;
+        flex: 0 0 38%;
+        min-width: 0;
     }
 
     .certificate-single-card .certificate-field strong {
@@ -2099,7 +2108,7 @@ body.theme-option4 .certificate-single-card .card-body {
     }
 
     .certificate-download-action {
-        max-width: 100%;
+        width: 100%;
     }
 }
 
@@ -2117,13 +2126,29 @@ body.theme-option4 .certificate-single-card .card-body {
         .certificate-details-grid .certificate-image-column {
             flex: none;
             width: 100%;
+            max-width: 100%;
             order: -1;
             text-align: center;
+            overflow: hidden;
         }
 
     .certificate-single-card .certificate-image {
         max-width: 100%;
         width: 100%;
+    }
+
+    .certificate-preview-box {
+        width: 100%;
+        max-width: 100%;
+        aspect-ratio: auto;
+        height: auto;
+    }
+
+    .certificate-preview-box img {
+        position: static;
+        width: 100%;
+        height: auto;
+        object-fit: contain;
     }
 
     .certificate-single-card .card-header {

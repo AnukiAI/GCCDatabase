@@ -58,6 +58,17 @@ namespace GCCWebApp.Models
         };
 
         /// <summary>
+        /// Statuses counted as "active" for internal dashboard reporting.
+        /// Includes Confidential certs which are not publicly visible but are still active.
+        /// </summary>
+        public static readonly string[] DashboardStatuses = new[]
+        {
+            StatusClientApprovedPaid,
+            StatusRepublished,
+            StatusClientApprovedConfidential
+        };
+
+        /// <summary>
         /// Gets all available status values with their display names
         /// </summary>
         public static Dictionary<string, string> GetAllStatuses()

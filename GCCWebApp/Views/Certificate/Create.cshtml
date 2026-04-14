@@ -254,31 +254,31 @@
                 <!-- Sidebar -->
                 <div class="certificate-sidebar">
                     <div class="upload-section card-style">
-                        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
-                            <div class="section-icon" style="margin-bottom: 0;">
+                        <div class="sidebar-section-header">
+                            <div class="section-icon">
                                 <i class="fas fa-image"></i>
                             </div>
                             <div>
-                                <h3 id="certificate-image-label" style="margin: 0 0 4px 0;">Certificate Preview</h3>
-                                <p id="certificate-image-help" class="text-muted" style="font-size: 13px; margin: 0;">Auto-generated from uploaded PDF</p>
+                                <h3 id="certificate-image-label">Certificate Preview</h3>
+                                <p id="certificate-image-help" class="text-muted sidebar-help-text">Auto-generated from uploaded PDF</p>
                             </div>
                         </div>
-                        <div class="preview-container" style="width: 350px; height: 350px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; position: relative; margin: 0 auto;">
-                            <div class="no-preview" style="text-align: center; color: #6c757d;">
-                                <i class="fas fa-file-pdf" style="font-size: 48px; color: #adb5bd; margin-bottom: 12px; display: block;"></i>
-                                <p style="font-size: 14px; font-weight: 600; color: #6c757d; margin: 0 0 4px 0;">Certificate Unavailable</p>
-                                <small style="color: #adb5bd; font-size: 11px;">Upload a PDF to generate preview</small>
+                        <div class="preview-container certificate-create-preview">
+                            <div class="no-preview">
+                                <i class="fas fa-file-pdf"></i>
+                                <p>Certificate Unavailable</p>
+                                <small>Upload a PDF to generate preview</small>
                             </div>
                         </div>
                         <input type="hidden" asp-for="CertificateImagePath" id="certificateImagePathHidden" />
                     </div>
 
                     <div class="tags-section card-style">
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                            <div class="section-icon" style="margin-bottom: 0;">
+                        <div class="sidebar-section-header">
+                            <div class="section-icon">
                                 <i class="fas fa-tags"></i>
                             </div>
-                            <h3 style="margin: 0;">Certificate Tags</h3>
+                            <h3>Certificate Tags</h3>
                         </div>
 
                         <div class="tags-group">
@@ -399,7 +399,11 @@
     <script src="~/js/certificate-create.js"></script>
     <script src="~/js/certificate-inline-create.js"></script>
     <script src="~/js/searchable-select.js"></script>
-    <script>new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });</script>
+    <script>
+        var certTypeSearch = new SearchableSelect('#CertificationTypeId', { placeholder: 'Search certification types...' });
+        var productCategorySearch = new SearchableSelect('#ProductCategoryId', { placeholder: 'Search product categories...' });
+        new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });
+    </script>
 
     <script>
         // Image zoom functionality
@@ -448,11 +452,6 @@
 
                 // Reset product and dependent dropdowns
                 productSelect.html('<option value="">Select a product...</option>');
-                // Clear autocomplete input if present
-                const productEl = document.getElementById('ProductId');
-                if (productEl && productEl.autocompleteInput) {
-                    productEl.autocompleteInput.value = '';
-                }
                 $('#ProductCategoryId').val('');
                 $('#ProductTypeId').html('<option value="">Select category first...</option>');
                 $('#ProductSubcategoryId').html('<option value="">Select type first...</option>');

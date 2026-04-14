@@ -4,6 +4,7 @@ using GCCWebApp.Models;
 using GCCWebApp.Data;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Services.Audit;
+using System.Text;
 
 namespace GCCWebApp.Controllers
 {
@@ -665,7 +666,7 @@ namespace GCCWebApp.Controllers
                 var companies = await _context.Companies.Where(c => !c.IsDeleted).ToListAsync();
                 var createdCompanies = new List<Company>();
 
-                using (var stream = new StreamReader(file.OpenReadStream()))
+                using (var stream = new StreamReader(file.OpenReadStream(), Encoding.UTF8))
                 {
                     var line = await stream.ReadLineAsync(); // Skip header
                     var lineNumber = 1;

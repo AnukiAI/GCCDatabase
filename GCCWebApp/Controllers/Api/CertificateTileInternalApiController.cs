@@ -89,6 +89,8 @@ namespace GCCWebApp.Controllers.Api
                     .Include(c => c.ProductType)
                     .Include(c => c.ProductSubcategory)
                     .Include(c => c.CertificationType)
+                    .Include(c => c.Pathway)
+                    .Include(c => c.CertificationTypeSubcategories)
                     .Include(c => c.Tags)
                     .Include(c => c.ProductIds)
                     .AsQueryable();
@@ -232,7 +234,11 @@ namespace GCCWebApp.Controllers.Api
                         PdfPath = c.CertificateFile,
                         c.Partner,
                         c.CreatedAt,
-                        c.UpdatedAt
+                        c.UpdatedAt,
+                        CertificationResults = c.CertificationResults ?? "",
+                        PathwayName = c.Pathway != null ? c.Pathway.Name : "",
+                        CertSubcategories = string.Join(", ", c.CertificationTypeSubcategories.Select(s => s.Name)),
+                        CompanyUrl = c.Company.Website ?? ""
                     })
                     .ToListAsync();
 
@@ -268,7 +274,11 @@ namespace GCCWebApp.Controllers.Api
                     c.PdfPath,
                     c.Partner,
                     c.CreatedAt,
-                    c.UpdatedAt
+                    c.UpdatedAt,
+                    c.CertificationResults,
+                    c.PathwayName,
+                    c.CertSubcategories,
+                    c.CompanyUrl
                 }).ToList();
 
                 return Ok(new
@@ -632,7 +642,7 @@ namespace GCCWebApp.Controllers.Api
                 "newest" => query.OrderByDescending(c => c.EffectiveDate),
                 "oldest-effective" => query.OrderBy(c => c.EffectiveDate),
                 "expiring" => query.OrderBy(c => c.ExpirationDate),
-                "longest-validity" => query.OrderByDescending(c => 
+                "longest-validity" => query.OrderByDescending(c =>
                     EF.Functions.DateDiffDay(c.EffectiveDate, c.ExpirationDate)),
                 "recently-issued" => query
                     .Where(c => c.EffectiveDate >= DateTime.Now.AddDays(-30))
@@ -641,17 +651,44 @@ namespace GCCWebApp.Controllers.Api
                 "cert-number-oldest" => query.OrderBy(c => c.Number),
                 "cert-type" => query.OrderBy(c => c.CertificationType.Name),
                 "cert-type-za" => query.OrderByDescending(c => c.CertificationType.Name),
+                "status" => query.OrderBy(c => c.Status),
+                "status-za" => query.OrderByDescending(c => c.Status),
                 "company-az" => query.OrderBy(c => c.Company.Name),
                 "company-za" => query.OrderByDescending(c => c.Company.Name),
                 "product-az" => query.OrderBy(c => c.Product.Name),
                 "product-za" => query.OrderByDescending(c => c.Product.Name),
-                "location-az" => query.OrderBy(c => c.Location),
-                "location-za" => query.OrderByDescending(c => c.Location),
-                "country" => query.OrderBy(c => c.Country),
-                "country-za" => query.OrderByDescending(c => c.Country),
-                "product-type" => query.OrderBy(c => c.Product.ProductType != null ? c.Product.ProductType.Name : ""),
-                "status" => query.OrderBy(c => c.Status),
-                "partner" => query.OrderBy(c => c.Partner ?? "None"),
+                "product-type" => query.OrderBy(c => c.ProductType != null ? c.ProductType.Name : (c.Product.ProductType != null ? c.Product.ProductType.Name : "")),
+                "product-type-za" => query.OrderByDescending(c => c.ProductType != null ? c.ProductType.Name : (c.Product.ProductType != null ? c.Product.ProductType.Name : "")),
+                "product-sub" => query.OrderBy(c => c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : "")),
+                "product-sub-za" => query.OrderByDescending(c => c.ProductSubcategory != null ? c.ProductSubcategory.Name : (c.Product.ProductSubcategory != null ? c.Product.ProductSubcategory.Name : "")),
+                "location-az" => query.OrderBy(c => c.Location ?? ""),
+                "location-za" => query.OrderByDescending(c => c.Location ?? ""),
+                "country" => query.OrderBy(c => c.Country ?? ""),
+                "country-za" => query.OrderByDescending(c => c.Country ?? ""),
+                "ext-tag" => query.OrderBy(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault() ?? ""),
+                "ext-tag-za" => query.OrderByDescending(c => c.Tags.Where(t => t.TagType == "external").Select(t => t.Name).FirstOrDefault() ?? ""),
+                "int-tag" => query.OrderBy(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault() ?? ""),
+                "int-tag-za" => query.OrderByDescending(c => c.Tags.Where(t => t.TagType == "internal").Select(t => t.Name).FirstOrDefault() ?? ""),
+                "partner" => query.OrderBy(c => c.Partner ?? ""),
+                "partner-za" => query.OrderByDescending(c => c.Partner ?? ""),
+                "asin" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
+                "asin-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "ASIN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
+                "upc" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
+                "upc-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "UPC" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
+                "gtin" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
+                "gtin-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "GTIN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
+                "ean" => query.OrderBy(c => c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
+                "ean-za" => query.OrderByDescending(c => c.ProductIds.Where(p => p.ProductIdType == "EAN" && p.IsActive).Select(p => p.ProductIdValue).FirstOrDefault() ?? ""),
+                "contact" => query.OrderBy(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? ""),
+                "contact-za" => query.OrderByDescending(c => !string.IsNullOrEmpty(c.Company.Email) ? c.Company.Email : c.Company.Website ?? ""),
+                "cert-results" => query.OrderBy(c => c.CertificationResults ?? ""),
+                "cert-results-za" => query.OrderByDescending(c => c.CertificationResults ?? ""),
+                "pathway" => query.OrderBy(c => c.Pathway != null ? c.Pathway.Name : ""),
+                "pathway-za" => query.OrderByDescending(c => c.Pathway != null ? c.Pathway.Name : ""),
+                "cert-sub" => query.OrderBy(c => c.CertificationTypeSubcategories.Select(s => s.Name).FirstOrDefault() ?? ""),
+                "cert-sub-za" => query.OrderByDescending(c => c.CertificationTypeSubcategories.Select(s => s.Name).FirstOrDefault() ?? ""),
+                "company-url" => query.OrderBy(c => c.Company.Website ?? ""),
+                "company-url-za" => query.OrderByDescending(c => c.Company.Website ?? ""),
                 "created" => query.OrderByDescending(c => c.CreatedAt),
                 "modified" => query.OrderByDescending(c => c.UpdatedAt),
                 _ => query.OrderByDescending(c => c.EffectiveDate)

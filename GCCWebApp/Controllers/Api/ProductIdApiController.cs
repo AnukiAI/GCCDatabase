@@ -292,7 +292,7 @@ namespace GCCWebApp.Controllers.Api
 
                 var userId = GetCurrentUserId();
                 using var stream = file.OpenReadStream();
-                var result = await _productIdService.ImportFromCsvAsync(certificateId, stream, userId);
+                var result = await _productIdService.ImportFromCsvAsync(certificateId, stream, userId, overwriteExisting);
 
                 return Ok(new ApiResponse<BulkImportResult>
                 {

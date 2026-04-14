@@ -182,7 +182,7 @@ namespace GCCWebApp.Controllers
                 var errorCount = 0;
                 var errors = new List<string>();
 
-                using (var stream = new StreamReader(file.OpenReadStream()))
+                using (var stream = new StreamReader(file.OpenReadStream(), System.Text.Encoding.UTF8))
                 {
                     var line = await stream.ReadLineAsync(); // Skip header
                     var lineNumber = 1;

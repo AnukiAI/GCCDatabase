@@ -543,6 +543,26 @@
         document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
             checkbox.addEventListener('change', handleFilterChange);
         });
+
+        // Filter header collapse/expand toggles
+        document.querySelectorAll('.filter-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const filterId = header.dataset.filter;
+                if (filterId) toggleFilter(filterId);
+            });
+        });
+    }
+
+    function toggleFilter(filterId) {
+        const content = document.getElementById(filterId + '-content');
+        if (!content) return;
+        const header = content.previousElementSibling;
+        const icon = header ? header.querySelector('i') : null;
+
+        const isCollapsed = content.classList.toggle('filter-collapsed');
+        if (icon) {
+            icon.className = isCollapsed ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+        }
     }
 
     // Handle filter checkbox changes

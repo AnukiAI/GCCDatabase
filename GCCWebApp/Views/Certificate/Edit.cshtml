@@ -258,13 +258,13 @@
                 <!-- Sidebar -->
                 <div class="certificate-sidebar">
                     <div class="upload-section card-style">
-                        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
-                            <div class="section-icon" style="margin-bottom: 0;">
+                        <div class="sidebar-section-header">
+                            <div class="section-icon">
                                 <i class="fas fa-image"></i>
                             </div>
                             <div>
-                                <h3 id="certificate-image-label" style="margin: 0 0 4px 0;">Certificate Preview</h3>
-                                <p id="certificate-image-help" class="text-muted" style="font-size: 13px; margin: 0;">Auto-generated from uploaded PDF</p>
+                                <h3 id="certificate-image-label">Certificate Preview</h3>
+                                <p id="certificate-image-help" class="text-muted sidebar-help-text">Auto-generated from uploaded PDF</p>
                             </div>
                         </div>
                         @{
@@ -276,19 +276,18 @@
                                 editImageSrc = editImagePath.StartsWith("/") ? editImagePath : $"/{editImagePath}";
                             }
                         }
-                        <div class="preview-container" style="width: 350px; height: 350px; display: flex; align-items: center; justify-content: center; background: white; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; position: relative; cursor: pointer; margin: 0 auto;">
+                        <div class="preview-container certificate-create-preview">
                             @if (editHasValidSnapshot)
                             {
                                 <img id="certificateImagePreviewImg" src="@editImageSrc" alt="Certificate Preview"
-                                     style="max-width: 100%; max-height: 100%; object-fit: contain; cursor: pointer;"
                                      onclick="openImageZoom('@editImageSrc')" title="Click to view full size" />
                             }
                             else
                             {
-                                <div class="no-preview" style="text-align: center; color: #6c757d;">
-                                    <i class="fas fa-file-pdf" style="font-size: 48px; color: #adb5bd; margin-bottom: 12px; display: block;"></i>
-                                    <p style="font-size: 14px; font-weight: 600; color: #6c757d; margin: 0 0 4px 0;">Certificate Unavailable</p>
-                                    <small style="color: #adb5bd; font-size: 11px;">Preview not generated</small>
+                                <div class="no-preview">
+                                    <i class="fas fa-file-pdf"></i>
+                                    <p>Certificate Unavailable</p>
+                                    <small>Preview not generated</small>
                                 </div>
                             }
                         </div>
@@ -296,11 +295,11 @@
                     </div>
 
                     <div class="tags-section card-style">
-                        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                            <div class="section-icon" style="margin-bottom: 0;">
+                        <div class="sidebar-section-header">
+                            <div class="section-icon">
                                 <i class="fas fa-tags"></i>
                             </div>
-                            <h3 style="margin: 0;">Certificate Tags</h3>
+                            <h3>Certificate Tags</h3>
                         </div>
 
                         <div class="tags-group">
@@ -374,7 +373,7 @@
                             <i class="fas fa-file-pdf" aria-hidden="true"></i>
                         </div>
                         <div class="pdf-upload-text">Drag and drop PDF here or click to select</div>
-                        <small style="color: var(--text-secondary); font-size: 13px;">Maximum file size: 10MB. @(string.IsNullOrEmpty(Model.CertificateImagePath) ? "" : "Leave empty to keep existing PDF.")</small>
+                        <small class="form-text text-muted">Maximum file size: 10MB. @(string.IsNullOrEmpty(Model.CertificateImagePath) ? "" : "Leave empty to keep existing PDF.")</small>
                     </div>
                     <input type="file" id="certificatePdf" name="certificatePdf" accept="application/pdf" style="display: none;" aria-describedby="pdf-help" />
                     <small id="pdf-help" class="form-text text-muted">PDF file optional for editing. Leave empty to keep existing PDF. Image preview will be regenerated if new file uploaded.</small>
@@ -439,7 +438,11 @@
     <script src="~/js/certificate-create.js"></script>
     <script src="~/js/certificate-inline-create.js"></script>
     <script src="~/js/searchable-select.js"></script>
-    <script>new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });</script>
+    <script>
+        var certTypeSearch = new SearchableSelect('#CertificationTypeId', { placeholder: 'Search certification types...' });
+        var productCategorySearch = new SearchableSelect('#ProductCategoryId', { placeholder: 'Search product categories...' });
+        new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });
+    </script>
 
     <script>
         console.log('[Edit.cshtml] Script section loaded');
@@ -492,11 +495,6 @@
                 const productSelect = $('#ProductId');
                 const helpText = $('#productHelpText');
                 productSelect.html('<option value="">Select a product...</option>');
-                // Clear autocomplete input if present
-                const productEl = document.getElementById('ProductId');
-                if (productEl && productEl.autocompleteInput) {
-                    productEl.autocompleteInput.value = '';
-                }
                 companyProducts = [];
 
                 if (!companyId) {
@@ -521,8 +519,6 @@
                             productSelect.html(optionsHtml);
                             // Explicitly set value after all options are in the DOM
                             if (preselectProductId) {
-                                // Use setTimeout to ensure MutationObserver from .html() fires first,
-                                // then set value and trigger change for custom dropdown sync
                                 setTimeout(() => {
                                     productSelect.val(preselectProductId);
                                     productSelect.trigger('change');

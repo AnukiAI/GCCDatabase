@@ -1,6 +1,11 @@
 /**
  * Searchable Select - Converts a <select> into a type-ahead searchable dropdown.
  * Usage: new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });
+ *
+ * Supports dynamic option refresh:
+ *   var ss = new SearchableSelect('#ProductId', { placeholder: 'Search products...' });
+ *   // After options change on the underlying <select>:
+ *   ss.refresh();
  */
 (function () {
     'use strict';
@@ -11,16 +16,26 @@
 
         options = options || {};
         var placeholder = options.placeholder || 'Type to search...';
+        var noResultsText = options.noResultsText || 'No matches found';
 
-        // Build option data from the original select
         var allOptions = [];
-        for (var i = 0; i < select.options.length; i++) {
-            allOptions.push({
-                value: select.options[i].value,
-                text: select.options[i].text,
-                selected: select.options[i].selected
-            });
+        var activeIndex = -1;
+
+        // Store reference on the select element for external access
+        select._searchableSelect = this;
+
+        function loadOptions() {
+            allOptions = [];
+            for (var i = 0; i < select.options.length; i++) {
+                allOptions.push({
+                    value: select.options[i].value,
+                    text: select.options[i].text,
+                    selected: select.options[i].selected
+                });
+            }
         }
+
+        loadOptions();
 
         // Hide original select
         select.style.display = 'none';
@@ -40,7 +55,10 @@
         input.setAttribute('role', 'combobox');
         input.setAttribute('aria-expanded', 'false');
         input.setAttribute('aria-haspopup', 'listbox');
-        input.setAttribute('aria-label', select.getAttribute('aria-label') || 'Search and select');
+        input.setAttribute('aria-label', select.getAttribute('aria-label') || placeholder);
+
+        // Store reference on the original select for external code that needs to clear/set the input
+        select.autocompleteInput = input;
 
         // Set initial value if something is selected
         var currentVal = select.value;
@@ -61,8 +79,6 @@
         dropdown.setAttribute('role', 'listbox');
         dropdown.style.cssText = 'display:none; position:absolute; z-index:1050; width:100%; max-height:250px; overflow-y:auto; background:#fff; border:1px solid #ced4da; border-top:none; border-radius:0 0 4px 4px; box-shadow:0 4px 8px rgba(0,0,0,0.1);';
         wrapper.appendChild(dropdown);
-
-        var activeIndex = -1;
 
         function renderOptions(filter) {
             dropdown.innerHTML = '';
@@ -113,7 +129,7 @@
             if (count === 0) {
                 var noResult = document.createElement('div');
                 noResult.style.cssText = 'padding:8px 12px; color:#6c757d; font-style:italic; font-size:14px;';
-                noResult.textContent = 'No countries found';
+                noResult.textContent = noResultsText;
                 dropdown.appendChild(noResult);
             }
         }
@@ -229,5 +245,39 @@
                 }
             }
         });
+
+        /**
+         * Refresh options from the underlying <select> element.
+         * Call after dynamically adding/removing <option> elements.
+         * Optionally pass preselectValue to auto-select and display that option.
+         */
+        this.refresh = function (preselectValue) {
+            loadOptions();
+            if (preselectValue) {
+                select.value = preselectValue;
+                for (var r = 0; r < allOptions.length; r++) {
+                    if (allOptions[r].value === String(preselectValue)) {
+                        input.value = allOptions[r].text;
+                        break;
+                    }
+                }
+            } else if (select.value) {
+                // Keep current selection display in sync
+                for (var s = 0; s < allOptions.length; s++) {
+                    if (allOptions[s].value === select.value) {
+                        input.value = allOptions[s].text;
+                        break;
+                    }
+                }
+            } else {
+                input.value = '';
+            }
+        };
+
+        /** Clear the input and select value */
+        this.clear = function () {
+            select.value = '';
+            input.value = '';
+        };
     };
 })();

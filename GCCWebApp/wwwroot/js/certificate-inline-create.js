@@ -584,6 +584,24 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
             display: none; max-height: 350px; display: none;
         `;
 
+        // Search input for type-ahead filtering
+        const searchContainer = document.createElement('div');
+        searchContainer.style.cssText = 'padding: 8px 12px; border-bottom: 1px solid #e9ecef;';
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.className = 'custom-dropdown-search';
+        searchInput.placeholder = `Search ${type}...`;
+        searchInput.setAttribute('autocomplete', 'off');
+        searchInput.style.cssText = `
+            width: 100%; padding: 8px 12px; border: 1px solid #ced4da; border-radius: 4px;
+            font-size: 14px; outline: none;
+        `;
+        searchInput.onfocus = () => searchInput.style.borderColor = '#92C83E';
+        searchInput.onblur = () => searchInput.style.borderColor = '#ced4da';
+        searchInput.onclick = (e) => e.stopPropagation();
+        searchInput.addEventListener('input', () => buildOptions(searchInput.value));
+        searchContainer.appendChild(searchInput);
+
         // Options container (scrollable)
         const optionsContainer = document.createElement('div');
         optionsContainer.className = 'custom-dropdown-options';
@@ -591,12 +609,17 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
             max-height: 250px; overflow-y: auto; padding: 8px 0;
         `;
 
-        // Build options from select
-        function buildOptions() {
+        // Build options from select, filtered by search query
+        function buildOptions(filter) {
             optionsContainer.innerHTML = '';
+            const filterLower = (filter || '').toLowerCase();
+            let matchCount = 0;
+
             Array.from(selectElement.options).forEach((opt, index) => {
                 if (index === 0 && !opt.value) return; // Skip placeholder
+                if (filterLower && opt.textContent.toLowerCase().indexOf(filterLower) === -1) return;
 
+                matchCount++;
                 const optionDiv = document.createElement('div');
                 optionDiv.className = 'custom-dropdown-option';
                 optionDiv.dataset.value = opt.value;
@@ -628,6 +651,13 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
 
                 optionsContainer.appendChild(optionDiv);
             });
+
+            if (matchCount === 0 && filterLower) {
+                const noResult = document.createElement('div');
+                noResult.style.cssText = 'padding: 10px 16px; color: #6c757d; font-style: italic; font-size: 14px;';
+                noResult.textContent = `No ${type} found matching "${filter}"`;
+                optionsContainer.appendChild(noResult);
+            }
         }
 
         // Fixed footer with add input
@@ -650,6 +680,7 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
         `;
 
         // Assemble panel
+        panel.appendChild(searchContainer);
         panel.appendChild(optionsContainer);
         panel.appendChild(footer);
 
@@ -729,7 +760,9 @@ window.CertificateInlineCreate = window.CertificateInlineCreate || {};
             trigger.style.borderRadius = '4px 4px 0 0';
             trigger.querySelector('i').style.transform = 'rotate(180deg)';
             isOpen = true;
+            searchInput.value = '';
             buildOptions();
+            setTimeout(() => searchInput.focus(), 50);
         }
 
         function closeDropdown() {

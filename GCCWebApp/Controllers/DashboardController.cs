@@ -283,9 +283,17 @@ namespace GCCWebApp.Controllers
                     return Forbid();
                 }
 
+                // Product category/type/subcategory stats get detailed breakdown exports
+                var detailCsv = await GenerateDetailedStatCsvIfApplicable(type);
+                if (detailCsv != null)
+                {
+                    var detailFileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.csv";
+                    return File(Encoding.UTF8.GetBytes(detailCsv), "text/csv", detailFileName);
+                }
+
                 var stats = await _certificateRepository.GetCertificateStatisticsAsync();
                 var data = GetStatData(type, stats);
-                
+
                 if (data == null)
                 {
                     return BadRequest("Invalid stat type");
@@ -423,6 +431,40 @@ namespace GCCWebApp.Controllers
             var csv = new StringBuilder();
             csv.AppendLine("Metric,Value,Generated Date");
             csv.AppendLine($"\"{data.Description}\",{data.Value},{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            return csv.ToString();
+        }
+
+        private async Task<string?> GenerateDetailedStatCsvIfApplicable(string type)
+        {
+            IEnumerable<(string Name, int Count)>? breakdown = null;
+            string header = "";
+
+            switch (type)
+            {
+                case "product-categories-with-active-certs":
+                    breakdown = await _certificateRepository.GetProductCategoryStatisticsAsync(int.MaxValue);
+                    header = "Product Category,Active Cert Count";
+                    break;
+                case "product-types-with-active-certs":
+                    breakdown = await _certificateRepository.GetProductTypeStatisticsAsync(int.MaxValue);
+                    header = "Product Type,Active Cert Count";
+                    break;
+                case "product-subcategories-with-active-certs":
+                    breakdown = await _certificateRepository.GetProductSubcategoryStatisticsAsync(int.MaxValue);
+                    header = "Product Subcategory,Active Cert Count";
+                    break;
+                default:
+                    return null;
+            }
+
+            var csv = new StringBuilder();
+            csv.AppendLine(header);
+            foreach (var item in breakdown)
+            {
+                csv.AppendLine($"{EscapeCsvValue(item.Name)},{item.Count}");
+            }
+            csv.AppendLine();
+            csv.AppendLine($"Generated,{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             return csv.ToString();
         }
 

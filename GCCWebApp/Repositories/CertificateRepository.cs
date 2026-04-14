@@ -55,7 +55,7 @@ namespace GCCWebApp.Repositories
         public async Task<IEnumerable<Certificate>> GetActiveCertificatesAsync()
         {
             return await _dbSet
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate >= DateTime.UtcNow.Date)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date))
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -65,7 +65,7 @@ namespace GCCWebApp.Repositories
         public async Task<IEnumerable<Certificate>> GetExpiringCertificatesAsync(DateTime beforeDate)
         {
             return await _dbSet
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate <= beforeDate && c.ExpirationDate >= DateTime.UtcNow.Date)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ExpirationDate <= beforeDate && c.ExpirationDate >= DateTime.UtcNow.Date)
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -283,6 +283,10 @@ namespace GCCWebApp.Repositories
             if (filter.Tags != null && filter.Tags.Any())
                 query = query.Where(c => c.Tags.Any(t => filter.Tags.Contains(t.Name)));
 
+            // Filter by additional filters (APR/LEED tags from tile view checkboxes)
+            if (filter.AdditionalFilters != null && filter.AdditionalFilters.Any())
+                query = query.Where(c => c.Tags.Any(t => filter.AdditionalFilters.Contains(t.Name)));
+
             // New filter properties for API
             if (filter.CertificationTypeNames != null && filter.CertificationTypeNames.Any())
                 query = query.Where(c => c.CertificationType != null && filter.CertificationTypeNames.Contains(c.CertificationType.Name));
@@ -359,7 +363,7 @@ namespace GCCWebApp.Repositories
         {
             var targetDate = DateTime.UtcNow.AddDays(days);
             return await _dbSet
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate <= targetDate && c.ExpirationDate >= DateTime.UtcNow.Date)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ExpirationDate <= targetDate && c.ExpirationDate >= DateTime.UtcNow.Date)
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -406,19 +410,19 @@ namespace GCCWebApp.Repositories
             // Total certificates
             stats["Total"] = await _dbSet.CountAsync();
 
-            // Active certificates (publicly visible: Client Approved - Paid or Republished, not expired)
-            var publicStatuses = CertificateStatusHelper.PublicStatuses;
+            // Active certificates for dashboard reporting (includes Confidential, which is active but not public)
+            var dashboardStatuses = CertificateStatusHelper.DashboardStatuses;
             stats["Active"] = await _dbSet.CountAsync(c =>
-                publicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= today));
+                dashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= today));
 
             // Expired certificates - count by STATUS only, not by expiration date
             stats["Expired"] = await _dbSet.CountAsync(c =>
                 c.Status == CertificateStatusHelper.StatusExpired ||
                 c.Status == CertificateStatusHelper.StatusExpiredNoAnnualVerification);
 
-            // Active cert base filter for distinct counts
+            // Active cert base filter for distinct counts (dashboard scope includes Confidential)
             var activeCertQuery = _dbSet.Where(c =>
-                publicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= today));
+                dashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= today));
 
             // Distinct companies with active certificates
             stats["CompaniesWithActiveCerts"] = await activeCertQuery
@@ -479,12 +483,12 @@ namespace GCCWebApp.Repositories
 
             // Published last month (active certs with EffectiveDate in last month)
             stats["PublishedLastMonth"] = await _dbSet.CountAsync(c =>
-                publicStatuses.Contains(c.Status) &&
+                dashboardStatuses.Contains(c.Status) &&
                 c.EffectiveDate >= startOfLastMonth && c.EffectiveDate <= endOfLastMonth);
 
             // Expiring this month
             stats["ExpiringThisMonth"] = await _dbSet.CountAsync(c =>
-                publicStatuses.Contains(c.Status) &&
+                dashboardStatuses.Contains(c.Status) &&
                 c.ExpirationDate >= startOfMonth &&
                 c.ExpirationDate < startOfNextMonth);
 
@@ -495,18 +499,18 @@ namespace GCCWebApp.Repositories
 
             // Expiring next month
             stats["ExpiringNextMonth"] = await _dbSet.CountAsync(c =>
-                publicStatuses.Contains(c.Status) &&
+                dashboardStatuses.Contains(c.Status) &&
                 c.ExpirationDate >= startOfNextMonth &&
                 c.ExpirationDate <= endOfNextMonth);
 
             // Published this year (active certs with EffectiveDate in current year)
             stats["PublishedThisYear"] = await _dbSet.CountAsync(c =>
-                publicStatuses.Contains(c.Status) &&
+                dashboardStatuses.Contains(c.Status) &&
                 c.EffectiveDate >= startOfYear);
 
             // Published last year (active certs with EffectiveDate in last year)
             stats["PublishedLastYear"] = await _dbSet.CountAsync(c =>
-                publicStatuses.Contains(c.Status) &&
+                dashboardStatuses.Contains(c.Status) &&
                 c.EffectiveDate >= startOfLastYear && c.EffectiveDate <= endOfLastYear);
 
             // By status - all 8 statuses
@@ -527,7 +531,7 @@ namespace GCCWebApp.Repositories
         {
             var results = await _dbSet
                 .Include(c => c.CertificationType)
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.CertificationType != null)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.CertificationType != null)
                 .GroupBy(c => c.CertificationType.Name)
                 .OrderByDescending(g => g.Count())
                 .Select(g => new { Name = g.Key, Count = g.Count() })
@@ -540,7 +544,7 @@ namespace GCCWebApp.Repositories
         {
             var results = await _dbSet
                 .Include(c => c.Company)
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.Company != null)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.Company != null)
                 .GroupBy(c => c.Company.Name)
                 .OrderByDescending(g => g.Count())
                 .Take(topCount)
@@ -556,14 +560,14 @@ namespace GCCWebApp.Repositories
             var fromProduct = await _dbSet
                 .Include(c => c.Product)
                     .ThenInclude(p => p.ProductType)
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.Product != null && c.Product.ProductType != null)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.Product != null && c.Product.ProductType != null)
                 .Select(c => new { CertId = c.Id, ProductTypeName = c.Product!.ProductType!.Name })
                 .ToListAsync();
 
             // Get product types from Certificate's direct ProductType field (fallback)
             var fromCertDirect = await _dbSet
                 .Include(c => c.ProductType)
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ProductType != null
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductType != null
                     && (c.Product == null || c.Product.ProductType == null))
                 .Select(c => new { CertId = c.Id, ProductTypeName = c.ProductType!.Name })
                 .ToListAsync();
@@ -587,14 +591,14 @@ namespace GCCWebApp.Repositories
             var fromProduct = await _dbSet
                 .Include(c => c.Product)
                     .ThenInclude(p => p.Category)
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.Product != null && c.Product.Category != null)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.Product != null && c.Product.Category != null)
                 .Select(c => new { CertId = c.Id, CategoryName = c.Product!.Category!.Name })
                 .ToListAsync();
 
             // Get product categories from Certificate's direct ProductCategory field (fallback)
             var fromCertDirect = await _dbSet
                 .Include(c => c.ProductCategory)
-                .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ProductCategory != null
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductCategory != null
                     && (c.Product == null || c.Product.Category == null))
                 .Select(c => new { CertId = c.Id, CategoryName = c.ProductCategory!.Name })
                 .ToListAsync();
@@ -604,6 +608,34 @@ namespace GCCWebApp.Repositories
                 .GroupBy(x => x.CertId)
                 .Select(g => g.First())
                 .GroupBy(x => x.CategoryName)
+                .Select(g => (Name: g.Key, Count: g.Count()))
+                .OrderByDescending(x => x.Count)
+                .Take(topCount)
+                .ToList();
+
+            return combined;
+        }
+
+        public async Task<IEnumerable<(string Name, int Count)>> GetProductSubcategoryStatisticsAsync(int topCount = 10)
+        {
+            var fromProduct = await _dbSet
+                .Include(c => c.Product)
+                    .ThenInclude(p => p.ProductSubcategory)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.Product != null && c.Product.ProductSubcategory != null)
+                .Select(c => new { CertId = c.Id, SubcategoryName = c.Product!.ProductSubcategory!.Name })
+                .ToListAsync();
+
+            var fromCertDirect = await _dbSet
+                .Include(c => c.ProductSubcategory)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ProductSubcategory != null
+                    && (c.Product == null || c.Product.ProductSubcategory == null))
+                .Select(c => new { CertId = c.Id, SubcategoryName = c.ProductSubcategory!.Name })
+                .ToListAsync();
+
+            var combined = fromProduct.Concat(fromCertDirect)
+                .GroupBy(x => x.CertId)
+                .Select(g => g.First())
+                .GroupBy(x => x.SubcategoryName)
                 .Select(g => (Name: g.Key, Count: g.Count()))
                 .OrderByDescending(x => x.Count)
                 .Take(topCount)

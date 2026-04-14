@@ -218,6 +218,10 @@
 .tc-upc      { width: 75px;  min-width: 75px;  }
 .tc-gtin     { width: 75px;  min-width: 75px;  }
 .tc-ean      { width: 75px;  min-width: 75px;  }
+.tc-certresults { width: 150px; min-width: 150px; }
+.tc-pathway  { width: 130px; min-width: 130px; }
+.tc-certsub  { width: 170px; min-width: 170px; }
+.tc-companyurl { width: 180px; min-width: 180px; }
 
 /* Internal actions column is wider (Edit + Download + View) */
 .tc-actions  { width: 90px;  min-width: 90px;  }

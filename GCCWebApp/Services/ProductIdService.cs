@@ -15,11 +15,11 @@ namespace GCCWebApp.Services
         Task<CertificateProductId> UpdateProductIdAsync(CertificateProductId productId);
         Task<bool> DeleteProductIdAsync(int id);
         Task<bool> ValidateProductIdAsync(string type, string value);
-        Task<BulkImportResult> ImportProductIdsAsync(int certificateId, List<ProductIdImportItem> productIds, int? userId = null);
-        Task<BulkImportResult> ImportFromCsvAsync(int certificateId, Stream csvStream, int? userId = null);
+        Task<BulkImportResult> ImportProductIdsAsync(int certificateId, List<ProductIdImportItem> productIds, int? userId = null, bool overwriteExisting = false);
+        Task<BulkImportResult> ImportFromCsvAsync(int certificateId, Stream csvStream, int? userId = null, bool overwriteExisting = false);
         Task<byte[]> ExportToCsvAsync(int certificateId);
         Task<byte[]> ExportToExcelAsync(int certificateId);
-        Task<List<string>> GetValidationErrorsAsync(ProductIdImportItem item);
+        Task<List<string>> GetValidationErrorsAsync(ProductIdImportItem item, int? certificateId = null);
         Task<bool> CheckDuplicateAsync(string type, string value, int? excludeId = null, int? certificateId = null);
         Dictionary<string, string> GetProductIdTypeDescriptions();
         string FormatProductId(string type, string value);
@@ -222,19 +222,51 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<BulkImportResult> ImportProductIdsAsync(int certificateId, List<ProductIdImportItem> productIds, int? userId = null)
+        public async Task<BulkImportResult> ImportProductIdsAsync(int certificateId, List<ProductIdImportItem> productIds, int? userId = null, bool overwriteExisting = false)
         {
             var result = new BulkImportResult();
             result.TotalProcessed = productIds.Count;
+
+            // If overwrite mode, deactivate existing IDs not in the import list
+            if (overwriteExisting)
+            {
+                var existingIds = await _context.CertificateProductIds
+                    .Where(p => p.CertificateId == certificateId && p.IsActive)
+                    .ToListAsync();
+
+                var importKeys = productIds
+                    .Where(i => !string.IsNullOrWhiteSpace(i.Type) && !string.IsNullOrWhiteSpace(i.Value))
+                    .Select(i => $"{i.Type.ToUpper()}:{i.Value.Trim()}")
+                    .ToHashSet();
+
+                foreach (var existing in existingIds)
+                {
+                    var key = $"{existing.ProductIdType}:{existing.ProductIdValue}";
+                    if (!importKeys.Contains(key))
+                    {
+                        existing.IsActive = false;
+                        existing.UpdatedBy = userId;
+                        existing.UpdatedAt = DateTime.UtcNow;
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+            }
 
             foreach (var item in productIds)
             {
                 try
                 {
-                    // Validate the item
-                    var validationErrors = await GetValidationErrorsAsync(item);
+                    // Validate the item (scoped to this certificate)
+                    var validationErrors = await GetValidationErrorsAsync(item, certificateId);
                     if (validationErrors.Any())
                     {
+                        // If duplicate on this certificate and we're in overwrite mode, skip silently (already exists)
+                        if (overwriteExisting && validationErrors.Count == 1 && validationErrors[0].Contains("already exists"))
+                        {
+                            result.SuccessCount++;
+                            continue;
+                        }
                         item.ValidationErrors.AddRange(validationErrors);
                         result.ErrorCount++;
                         result.Errors.Add($"{item.Type}:{item.Value} - {string.Join(", ", validationErrors)}");
@@ -271,11 +303,11 @@ namespace GCCWebApp.Services
             return result;
         }
 
-        public async Task<BulkImportResult> ImportFromCsvAsync(int certificateId, Stream csvStream, int? userId = null)
+        public async Task<BulkImportResult> ImportFromCsvAsync(int certificateId, Stream csvStream, int? userId = null, bool overwriteExisting = false)
         {
             var productIds = new List<ProductIdImportItem>();
 
-            using var reader = new StreamReader(csvStream);
+            using var reader = new StreamReader(csvStream, System.Text.Encoding.UTF8);
             var headerLine = await reader.ReadLineAsync();
             if (string.IsNullOrWhiteSpace(headerLine))
             {
@@ -323,7 +355,7 @@ namespace GCCWebApp.Services
                 }
             }
 
-            return await ImportProductIdsAsync(certificateId, productIds, userId);
+            return await ImportProductIdsAsync(certificateId, productIds, userId, overwriteExisting);
         }
 
         public async Task<byte[]> ExportToCsvAsync(int certificateId)
@@ -353,7 +385,7 @@ namespace GCCWebApp.Services
             return await ExportToCsvAsync(certificateId);
         }
 
-        public async Task<List<string>> GetValidationErrorsAsync(ProductIdImportItem item)
+        public async Task<List<string>> GetValidationErrorsAsync(ProductIdImportItem item, int? certificateId = null)
         {
             var errors = new List<string>();
 
@@ -374,9 +406,9 @@ namespace GCCWebApp.Services
                     errors.Add($"Invalid {item.Type} format");
                 }
 
-                if (await CheckDuplicateAsync(item.Type, item.Value))
+                if (await CheckDuplicateAsync(item.Type, item.Value, certificateId: certificateId))
                 {
-                    errors.Add("Product ID already exists");
+                    errors.Add("Product ID already exists on this certificate");
                 }
             }
 

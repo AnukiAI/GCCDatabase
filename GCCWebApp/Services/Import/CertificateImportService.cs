@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace GCCWebApp.Services.Import
@@ -541,7 +542,7 @@ namespace GCCWebApp.Services.Import
             var rows = new List<CertificateImportCsvRow>();
             int rowNumber = 1; // Start at 1 (header is row 0)
 
-            using var reader = new StreamReader(csvFile.OpenReadStream());
+            using var reader = new StreamReader(csvFile.OpenReadStream(), Encoding.UTF8);
             using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
             {
                 HeaderValidated = null,

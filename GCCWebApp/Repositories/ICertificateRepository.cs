@@ -29,6 +29,7 @@ namespace GCCWebApp.Repositories
         Task<IEnumerable<(string Name, int Count)>> GetTopCompaniesByActiveCertCountAsync(int topCount = 10);
         Task<IEnumerable<(string Name, int Count)>> GetProductTypeStatisticsAsync(int topCount = 10);
         Task<IEnumerable<(string Name, int Count)>> GetProductCategoryStatisticsAsync(int topCount = 5);
+        Task<IEnumerable<(string Name, int Count)>> GetProductSubcategoryStatisticsAsync(int topCount = 10);
 
         // Additional methods for API
         Task<IEnumerable<string>> GetDistinctCountriesAsync();

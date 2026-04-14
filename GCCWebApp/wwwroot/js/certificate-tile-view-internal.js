@@ -614,9 +614,21 @@
                     'productName': 'product-az',
                     'productCategory': 'product-type',
                     'productType': 'product-type',
+                    'productSubcategory': 'product-sub',
                     'location': 'location-az',
                     'country': 'country',
-                    'partner': 'partner'
+                    'externalTag': 'ext-tag',
+                    'internalTag': 'int-tag',
+                    'partner': 'partner',
+                    'asin': 'asin',
+                    'upc': 'upc',
+                    'gtin': 'gtin',
+                    'ean': 'ean',
+                    'companyContact': 'contact',
+                    'certificationResults': 'cert-results',
+                    'pathway': 'pathway',
+                    'certSubcategories': 'cert-sub',
+                    'companyUrl': 'company-url'
                 };
 
                 const sortValue = sortMap[column] || 'newest';
@@ -630,12 +642,27 @@
                 const reverseSortMap = {
                     'cert-number-newest': 'cert-number-oldest',
                     'cert-type': 'cert-type-za',
+                    'status': 'status-za',
                     'newest': 'oldest-effective',
                     'expiring': 'longest-validity',
                     'company-az': 'company-za',
                     'product-az': 'product-za',
+                    'product-type': 'product-type-za',
+                    'product-sub': 'product-sub-za',
                     'location-az': 'location-za',
-                    'country': 'country-za'
+                    'country': 'country-za',
+                    'ext-tag': 'ext-tag-za',
+                    'int-tag': 'int-tag-za',
+                    'partner': 'partner-za',
+                    'asin': 'asin-za',
+                    'upc': 'upc-za',
+                    'gtin': 'gtin-za',
+                    'ean': 'ean-za',
+                    'contact': 'contact-za',
+                    'cert-results': 'cert-results-za',
+                    'pathway': 'pathway-za',
+                    'cert-sub': 'cert-sub-za',
+                    'company-url': 'company-url-za'
                 };
 
                 const finalSort = newDir === 'desc' ? (reverseSortMap[sortValue] || sortValue) : sortValue;
@@ -660,6 +687,26 @@
         document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
             checkbox.addEventListener('change', handleFilterChange);
         });
+
+        // Filter header collapse/expand toggles
+        document.querySelectorAll('.filter-header').forEach(header => {
+            header.addEventListener('click', () => {
+                const filterId = header.dataset.filter;
+                if (filterId) toggleFilter(filterId);
+            });
+        });
+    }
+
+    function toggleFilter(filterId) {
+        const content = document.getElementById(filterId + '-content');
+        if (!content) return;
+        const header = content.previousElementSibling;
+        const icon = header ? header.querySelector('i') : null;
+
+        const isCollapsed = content.classList.toggle('filter-collapsed');
+        if (icon) {
+            icon.className = isCollapsed ? 'fas fa-chevron-down' : 'fas fa-chevron-up';
+        }
     }
 
     // Handle filter checkbox changes
@@ -1586,6 +1633,10 @@
         const certType = cert.certificationType || '';
         const company = cert.companyName || '';
         const contact = cert.companyContact || '';
+        const certResults = cert.certificationResults || '';
+        const pathway = cert.pathwayName || '';
+        const certSub = cert.certSubcategories || '';
+        const companyUrl = cert.companyUrl || '';
         const product = cert.productName || '';
         const category = cert.productCategory || '';
         const type = cert.productType || '';
@@ -1646,6 +1697,10 @@
                 <div class="table-body-cell tc-gtin" data-ids="${escapeHtml(gtin)}" title="Click to copy GTINs" role="gridcell">${gtinCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(gtin)}', 'GTIN')">${gtinCount}</span>` : ''}</div>
                 <div class="table-body-cell tc-ean" data-ids="${escapeHtml(ean)}" title="Click to copy EANs" role="gridcell">${eanCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(ean)}', 'EAN')">${eanCount}</span>` : ''}</div>
                 <div class="table-body-cell tc-contact" title="${escapeHtml(contact)}" role="gridcell">${escapeHtml(contact)}</div>
+                <div class="table-body-cell tc-certresults" title="${escapeHtml(certResults)}" role="gridcell">${escapeHtml(certResults)}</div>
+                <div class="table-body-cell tc-pathway" title="${escapeHtml(pathway)}" role="gridcell">${escapeHtml(pathway)}</div>
+                <div class="table-body-cell tc-certsub" title="${escapeHtml(certSub)}" role="gridcell">${escapeHtml(certSub)}</div>
+                <div class="table-body-cell tc-companyurl" title="${escapeHtml(companyUrl)}" role="gridcell">${companyUrl ? `<a href="${escapeHtml(companyUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml(companyUrl)}</a>` : ''}</div>
             </div>
         `;
     }
@@ -1661,7 +1716,8 @@
         'cert', 'type', 'status', 'eff', 'exp',
         'company', 'product', 'prodcat', 'prodtype', 'prodsub',
         'location', 'country', 'exttag', 'inttag', 'partner',
-        'asin', 'upc', 'gtin', 'ean', 'contact'
+        'asin', 'upc', 'gtin', 'ean', 'contact',
+        'certresults', 'pathway', 'certsub', 'companyurl'
     ];
 
     function initStickyTable() {

@@ -625,8 +625,16 @@ body:has(.main-container) .page-header {
 
 /* Tags spacing within card */
 .certificate-card .certificate-tags {
-    margin-bottom: 12px;
-    padding-bottom: 8px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+}
+
+/* Mobile: extra tag spacing */
+@media (max-width: 768px) {
+    .certificate-card .certificate-tags {
+        margin-bottom: 20px;
+        padding-bottom: 14px;
+    }
 }
 
 /* Card Actions - Download and View Details Icons */

@@ -291,6 +291,72 @@
     width: 100%;
 }
 
+.sidebar-section-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.sidebar-section-header .section-icon {
+    margin-bottom: 0;
+    flex-shrink: 0;
+}
+
+.sidebar-section-header h3 {
+    margin: 0 0 4px 0;
+}
+
+.sidebar-help-text {
+    font-size: 16px;
+    margin: 0;
+}
+
+/* ===== CERTIFICATE CREATE PREVIEW ===== */
+.certificate-create-preview {
+    max-width: 350px;
+    aspect-ratio: 8.5 / 11;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+    position: relative;
+    margin: 0 auto;
+}
+
+.certificate-create-preview .no-preview {
+    text-align: center;
+    color: #6c757d;
+}
+
+.certificate-create-preview .no-preview i {
+    font-size: 48px;
+    color: #adb5bd;
+    margin-bottom: 12px;
+    display: block;
+}
+
+.certificate-create-preview .no-preview p {
+    font-size: 16px;
+    font-weight: 600;
+    color: #6c757d;
+    margin: 0 0 4px 0;
+}
+
+.certificate-create-preview .no-preview small {
+    color: #adb5bd;
+    font-size: 16px;
+}
+
+.certificate-create-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
 /* ===== SECTION ICON ===== */
 .section-icon {
     width: 40px;
@@ -788,8 +854,24 @@
     }
 
     .admin-btn {
-        font-size: 14px;
+        font-size: 16px;
         padding: 8px 14px;
+    }
+
+    /* Certificate preview — scale down */
+    .certificate-create-preview {
+        max-width: 100%;
+        aspect-ratio: 8.5 / 11;
+    }
+
+    /* Card style sections — reduce padding */
+    .card-style {
+        padding: 16px;
+    }
+
+    /* Sidebar section header — wrap on small screens */
+    .sidebar-section-header {
+        flex-wrap: wrap;
     }
 
     /* PDF upload zone — full width */
@@ -842,6 +924,12 @@
     .admin-btn {
         width: 100%;
         justify-content: center;
+        font-size: 16px;
+    }
+
+    /* Preview — fill available width */
+    .certificate-create-preview {
+        max-width: 100%;
     }
 }
 

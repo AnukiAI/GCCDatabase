@@ -8,6 +8,7 @@ class ProductIdManager {
         this.isReadOnly = isReadOnly;
         this.productIds = [];
         this.filteredProductIds = [];
+        this.currentPage = 1;
 
         this.init();
     }
@@ -83,6 +84,7 @@ class ProductIdManager {
         if (!this.certificateId || this.certificateId === 0 || this.certificateId === '0') {
             this.productIds = [];
             this.filteredProductIds = [];
+            this.currentPage = 1;
             this.renderTable();
             this.updateCount();
             return;
@@ -100,6 +102,7 @@ class ProductIdManager {
                     this.productIds = [];
                 }
                 this.filteredProductIds = [...this.productIds];
+                this.currentPage = 1;
                 this.renderTable();
                 this.updateCount();
             } else {
@@ -120,10 +123,74 @@ class ProductIdManager {
 
         if (this.filteredProductIds.length === 0) {
             tbody.innerHTML = this.getEmptyStateHtml();
+            this.renderPagination();
             return;
         }
 
-        tbody.innerHTML = this.filteredProductIds.map(productId => this.getProductIdRowHtml(productId)).join('');
+        const PAGE_SIZE = 50;
+        const totalItems = this.filteredProductIds.length;
+        const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+
+        if (!this.currentPage || this.currentPage < 1) this.currentPage = 1;
+        if (this.currentPage > totalPages) this.currentPage = totalPages;
+
+        // For small lists, show all; for large lists, paginate
+        if (totalItems <= PAGE_SIZE) {
+            tbody.innerHTML = this.filteredProductIds.map(productId => this.getProductIdRowHtml(productId)).join('');
+        } else {
+            const start = (this.currentPage - 1) * PAGE_SIZE;
+            const pageItems = this.filteredProductIds.slice(start, start + PAGE_SIZE);
+            tbody.innerHTML = pageItems.map(productId => this.getProductIdRowHtml(productId)).join('');
+        }
+
+        this.renderPagination();
+    }
+
+    renderPagination() {
+        const PAGE_SIZE = 50;
+        const totalItems = this.filteredProductIds.length;
+        if (totalItems <= PAGE_SIZE) {
+            // Remove pagination if it exists
+            const existing = document.getElementById('pid-pagination');
+            if (existing) existing.remove();
+            return;
+        }
+
+        const totalPages = Math.ceil(totalItems / PAGE_SIZE);
+        const start = (this.currentPage - 1) * PAGE_SIZE + 1;
+        const end = Math.min(this.currentPage * PAGE_SIZE, totalItems);
+
+        let paginationHtml = `
+            <div id="pid-pagination" style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-top: 1px solid #e9ecef; font-size: 14px;">
+                <span style="color: #666;">Showing ${start}-${end} of ${totalItems}</span>
+                <div style="display: flex; gap: 4px;">
+                    <button type="button" onclick="productIdManager.goToPage(1)" ${this.currentPage === 1 ? 'disabled' : ''}
+                        style="padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; background: white; cursor: pointer; font-size: 13px;">First</button>
+                    <button type="button" onclick="productIdManager.goToPage(${this.currentPage - 1})" ${this.currentPage === 1 ? 'disabled' : ''}
+                        style="padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; background: white; cursor: pointer; font-size: 13px;">Prev</button>
+                    <span style="padding: 4px 10px; font-weight: 500;">Page ${this.currentPage} of ${totalPages}</span>
+                    <button type="button" onclick="productIdManager.goToPage(${this.currentPage + 1})" ${this.currentPage === totalPages ? 'disabled' : ''}
+                        style="padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; background: white; cursor: pointer; font-size: 13px;">Next</button>
+                    <button type="button" onclick="productIdManager.goToPage(${totalPages})" ${this.currentPage === totalPages ? 'disabled' : ''}
+                        style="padding: 4px 8px; border: 1px solid #ced4da; border-radius: 4px; background: white; cursor: pointer; font-size: 13px;">Last</button>
+                </div>
+            </div>`;
+
+        // Insert or replace pagination after the table container
+        const container = document.querySelector('.product-ids-table-container');
+        const existing = document.getElementById('pid-pagination');
+        if (existing) existing.remove();
+        if (container) {
+            container.insertAdjacentHTML('afterend', paginationHtml);
+        }
+    }
+
+    goToPage(page) {
+        this.currentPage = page;
+        this.renderTable();
+        // Scroll table container to top
+        const container = document.querySelector('.product-ids-table-container');
+        if (container) container.scrollTop = 0;
     }
 
     getProductIdRowHtml(productId) {
@@ -210,6 +277,7 @@ class ProductIdManager {
             return typeMatch && statusMatch && partnerMatch && searchMatch;
         });
 
+        this.currentPage = 1;
         this.renderTable();
         this.updatePaginationInfo();
     }
@@ -1085,16 +1153,38 @@ class ProductIdManager {
             }
         }
 
+        // Handle "Replace all existing" — deactivate IDs not in the import
+        const overwriteToggle = document.getElementById('overwrite-existing-toggle');
+        let deactivatedCount = 0;
+        if (overwriteToggle && overwriteToggle.checked && this.certificateId && this.certificateId > 0) {
+            const importKeys = new Set(
+                this.importPreviewData
+                    .filter(r => r.status !== 'error')
+                    .map(r => `${(r.data.productIdType || '').toUpperCase()}:${(r.data.productIdValue || '').toUpperCase()}`)
+            );
+
+            for (const existing of this.productIds) {
+                const key = `${(existing.productIdType || '').toUpperCase()}:${(existing.productIdValue || '').toUpperCase()}`;
+                if (!importKeys.has(key)) {
+                    try {
+                        const resp = await fetch(`/api/productids/${existing.id}`, { method: 'DELETE' });
+                        if (resp.ok) deactivatedCount++;
+                    } catch (err) {
+                        console.error(`Error deactivating product ID ${existing.id}:`, err);
+                    }
+                }
+            }
+        }
+
         // Close modal and refresh
         this.closeImportPreviewModal();
 
-        if (successCount > 0) {
+        if (successCount > 0 || deactivatedCount > 0) {
             await this.loadProductIds();
-            if (errorCount > 0) {
-                this.showSuccess(`Imported ${successCount} product ID(s). ${errorCount} failed: ${errorMessages.join('; ')}`);
-            } else {
-                this.showSuccess(`Successfully imported ${successCount} product ID(s)`);
-            }
+            let msg = `Imported ${successCount} product ID(s)`;
+            if (deactivatedCount > 0) msg += `, removed ${deactivatedCount} existing`;
+            if (errorCount > 0) msg += `. ${errorCount} failed: ${errorMessages.join('; ')}`;
+            this.showSuccess(msg);
         } else {
             this.showError(`Import failed: ${errorMessages.join('; ')}`);
         }

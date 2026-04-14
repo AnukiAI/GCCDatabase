@@ -84,16 +84,13 @@ class AdminPagination {
 
         const info = this.getPageInfo();
 
-        // Don't show pagination if all items fit on one page
+        // Don't show pagination controls if all items fit on one page
         if (info.totalItems <= this.pageSize) {
-            container.innerHTML = `<div class="pagination-info">Showing all ${info.totalItems} item${info.totalItems !== 1 ? 's' : ''}</div>`;
+            container.innerHTML = '';
             return;
         }
 
         let html = '<div class="pagination-wrapper">';
-
-        // Info text
-        html += `<div class="pagination-info">Showing ${info.start}\u2013${info.end} of ${info.totalItems}</div>`;
 
         // Page controls
         html += '<div class="pagination-controls">';

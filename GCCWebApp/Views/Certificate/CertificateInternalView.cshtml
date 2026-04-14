@@ -144,13 +144,34 @@
 
                     <!-- Product Identifiers (Always show for Internal users) -->
                     <div class="detail-section">
-                        <h3 class="certificate-section-title">Product Identifiers</h3>
-                        @if (Model.Certificate?.ProductIds != null && Model.Certificate.ProductIds.Any())
+                        @{
+                            var allPids = Model.Certificate?.ProductIds?.OrderBy(p => p.ProductIdType).ToList() ?? new List<GCCWebApp.Models.CertificateProductId>();
+                            var pidCount = allPids.Count;
+                            var initialLimit = 20;
+                            var hasMore = pidCount > initialLimit;
+                        }
+                        <h3 class="certificate-section-title">Product Identifiers <span style="font-size: 14px; font-weight: 400; color: #666;">(@pidCount)</span></h3>
+                        @if (pidCount > 0)
                         {
-                            @foreach (var pid in Model.Certificate.ProductIds.OrderBy(p => p.ProductIdType))
-                            {
-                                <div class="certificate-field"><strong>@pid.ProductIdType:</strong> <span>@pid.ProductIdValue</span></div>
-                            }
+                            <div style="max-height: 400px; overflow-y: auto; border: 1px solid #e9ecef; border-radius: 6px; padding: 8px;" id="pid-container">
+                                @foreach (var pid in allPids.Take(initialLimit))
+                                {
+                                    <div class="certificate-field"><strong>@pid.ProductIdType:</strong> <span>@pid.ProductIdValue</span></div>
+                                }
+                                @if (hasMore)
+                                {
+                                    <div id="pid-remaining" style="display: none;">
+                                        @foreach (var pid in allPids.Skip(initialLimit))
+                                        {
+                                            <div class="certificate-field"><strong>@pid.ProductIdType:</strong> <span>@pid.ProductIdValue</span></div>
+                                        }
+                                    </div>
+                                    <button type="button" id="pid-show-all" onclick="document.getElementById('pid-remaining').style.display='block'; this.style.display='none';"
+                                        style="margin-top: 8px; padding: 6px 16px; background: #f8f9fa; border: 1px solid #ced4da; border-radius: 4px; cursor: pointer; font-size: 14px; width: 100%; text-align: center;">
+                                        Show all @pidCount product identifiers
+                                    </button>
+                                }
+                            </div>
                         }
                         else
                         {

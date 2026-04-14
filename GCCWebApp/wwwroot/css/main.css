@@ -2127,7 +2127,7 @@ body.theme-option4 .certificate-single-card .card-body {
             flex: none;
             width: 100%;
             max-width: 100%;
-            order: -1;
+            order: 1;
             text-align: center;
             overflow: hidden;
         }
@@ -2181,6 +2181,11 @@ body.theme-option4 .certificate-single-card .card-body {
 
     .certificate-download-action {
         max-width: 100%;
+        justify-content: center;
+    }
+
+    .certificate-internal-actions {
+        justify-content: center !important;
     }
 }
 
@@ -3554,6 +3559,15 @@ footer {
 
     .search-box {
         width: 100%;
+    }
+
+    .search-box input {
+        padding: 10px 10px 10px 40px;
+    }
+
+    .search-icon {
+        left: 12px;
+        font-size: 14px;
     }
 
     . /*results-header {

@@ -112,193 +112,201 @@ namespace GCCWebApp.Services
                 return (false, $"A user with email '{model.Email}' already exists");
             }
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-                var user = new User
-                {
-                    Username = model.Email,
-                    Email = model.Email,
-                    FullName = model.Name,
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
-                    Status = "active",
-                    TwoFactorMethod = "Email",
-                    IsActive = true,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                _context.Users.Add(user);
-                await _context.SaveChangesAsync();
-
-                // Add role
-                if (!string.IsNullOrEmpty(model.Role))
-                {
-                    var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == model.Role);
-                    if (role != null)
-                    {
-                        user.Roles.Add(role);
-                    }
-                }
-
-                // Add companies (for External role)
-                if (model.CompanyIds.Any())
-                {
-                    var companies = await _context.Companies
-                        .Where(c => model.CompanyIds.Contains(c.Id))
-                        .ToListAsync();
-
-                    foreach (var company in companies)
-                    {
-                        user.Companies.Add(company);
-                    }
-                }
-
-                // Add partners (for Partner role)
-                if (model.PartnerIds.Any())
-                {
-                    var partners = await _context.Partners
-                        .Where(p => model.PartnerIds.Contains(p.Id))
-                        .ToListAsync();
-
-                    foreach (var partner in partners)
-                    {
-                        user.Partners.Add(partner);
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-
-                // Log audit history
+                using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    await _auditService.LogEntityChangeAsync(
-                        user.Id.ToString(),
-                        user.Email,
-                        "CREATE",
-                        null,
-                        user,
-                        userId,
-                        username,
-                        $"Created user with role: {model.Role ?? "None"}",
-                        "Web UI"
-                    );
-                }
-                catch (Exception auditEx)
-                {
-                    _logger.LogError(auditEx, "Failed to log audit history for user creation");
-                }
+                    var user = new User
+                    {
+                        Username = model.Email,
+                        Email = model.Email,
+                        FullName = model.Name,
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
+                        Status = "active",
+                        TwoFactorMethod = "Email",
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                await transaction.CommitAsync();
-                return (true, string.Empty);
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Failed to create user with email {Email}", model.Email);
-                return (false, ex.Message);
-            }
+                    _context.Users.Add(user);
+                    await _context.SaveChangesAsync();
+
+                    // Add role
+                    if (!string.IsNullOrEmpty(model.Role))
+                    {
+                        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == model.Role);
+                        if (role != null)
+                        {
+                            user.Roles.Add(role);
+                        }
+                    }
+
+                    // Add companies (for External role)
+                    if (model.CompanyIds.Any())
+                    {
+                        var companies = await _context.Companies
+                            .Where(c => model.CompanyIds.Contains(c.Id))
+                            .ToListAsync();
+
+                        foreach (var company in companies)
+                        {
+                            user.Companies.Add(company);
+                        }
+                    }
+
+                    // Add partners (for Partner role)
+                    if (model.PartnerIds.Any())
+                    {
+                        var partners = await _context.Partners
+                            .Where(p => model.PartnerIds.Contains(p.Id))
+                            .ToListAsync();
+
+                        foreach (var partner in partners)
+                        {
+                            user.Partners.Add(partner);
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    // Log audit history
+                    try
+                    {
+                        await _auditService.LogEntityChangeAsync(
+                            user.Id.ToString(),
+                            user.Email,
+                            "CREATE",
+                            null,
+                            user,
+                            userId,
+                            username,
+                            $"Created user with role: {model.Role ?? "None"}",
+                            "Web UI"
+                        );
+                    }
+                    catch (Exception auditEx)
+                    {
+                        _logger.LogError(auditEx, "Failed to log audit history for user creation");
+                    }
+
+                    await transaction.CommitAsync();
+                    return (true, string.Empty);
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Failed to create user with email {Email}", model.Email);
+                    return (false, ex.Message);
+                }
+            });
         }
 
         public async Task<bool> UpdateUserAsync(int id, UserViewModel model, int userId, string username)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
-            try
+            var strategy = _context.Database.CreateExecutionStrategy();
+            return await strategy.ExecuteAsync(async () =>
             {
-                var user = await _context.Users
-                    .Include(u => u.Companies)
-                    .Include(u => u.Partners)
-                    .Include(u => u.Roles)
-                    .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
-
-                if (user == null) return false;
-
-                // Capture old state for audit (detached from context)
-                var oldUser = await _context.Users
-                    .AsNoTracking()
-                    .Include(u => u.Roles)
-                    .Include(u => u.Companies)
-                    .Include(u => u.Partners)
-                    .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
-
-                var oldRole = oldUser?.Roles.FirstOrDefault()?.Name ?? "None";
-                var newRole = model.Role ?? "None";
-
-                user.FullName = model.Name;
-                user.Email = model.Email;
-                user.IsActive = model.Status == "active";
-                user.UpdatedAt = DateTime.UtcNow;
-
-                // Update role
-                user.Roles.Clear();
-                if (!string.IsNullOrEmpty(model.Role))
-                {
-                    var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == model.Role);
-                    if (role != null)
-                    {
-                        user.Roles.Add(role);
-                    }
-                }
-
-                // Update companies (for External role)
-                user.Companies.Clear();
-                if (model.CompanyIds.Any())
-                {
-                    var companies = await _context.Companies
-                        .Where(c => model.CompanyIds.Contains(c.Id))
-                        .ToListAsync();
-
-                    foreach (var company in companies)
-                    {
-                        user.Companies.Add(company);
-                    }
-                }
-
-                // Update partners (for Partner role)
-                user.Partners.Clear();
-                if (model.PartnerIds.Any())
-                {
-                    var partners = await _context.Partners
-                        .Where(p => model.PartnerIds.Contains(p.Id))
-                        .ToListAsync();
-
-                    foreach (var partner in partners)
-                    {
-                        user.Partners.Add(partner);
-                    }
-                }
-
-                await _context.SaveChangesAsync();
-
-                // Log audit history
+                using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    var roleChange = oldRole != newRole ? $" | Role changed from {oldRole} to {newRole}" : "";
-                    await _auditService.LogEntityChangeAsync(
-                        user.Id.ToString(),
-                        user.Email,
-                        "UPDATE",
-                        oldUser,
-                        user,
-                        userId,
-                        username,
-                        $"Updated user{roleChange}",
-                        "Web UI"
-                    );
-                }
-                catch (Exception auditEx)
-                {
-                    _logger.LogError(auditEx, "Failed to log audit history for user update");
-                }
+                    var user = await _context.Users
+                        .Include(u => u.Companies)
+                        .Include(u => u.Partners)
+                        .Include(u => u.Roles)
+                        .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
 
-                await transaction.CommitAsync();
-                return true;
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync();
-                _logger.LogError(ex, "Failed to update user with ID {UserId}", id);
-                return false;
-            }
+                    if (user == null) return false;
+
+                    // Capture old state for audit (detached from context)
+                    var oldUser = await _context.Users
+                        .AsNoTracking()
+                        .Include(u => u.Roles)
+                        .Include(u => u.Companies)
+                        .Include(u => u.Partners)
+                        .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+
+                    var oldRole = oldUser?.Roles.FirstOrDefault()?.Name ?? "None";
+                    var newRole = model.Role ?? "None";
+
+                    user.FullName = model.Name;
+                    user.Email = model.Email;
+                    user.IsActive = model.Status == "active";
+                    user.UpdatedAt = DateTime.UtcNow;
+
+                    // Update role
+                    user.Roles.Clear();
+                    if (!string.IsNullOrEmpty(model.Role))
+                    {
+                        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == model.Role);
+                        if (role != null)
+                        {
+                            user.Roles.Add(role);
+                        }
+                    }
+
+                    // Update companies (for External role)
+                    user.Companies.Clear();
+                    if (model.CompanyIds.Any())
+                    {
+                        var companies = await _context.Companies
+                            .Where(c => model.CompanyIds.Contains(c.Id))
+                            .ToListAsync();
+
+                        foreach (var company in companies)
+                        {
+                            user.Companies.Add(company);
+                        }
+                    }
+
+                    // Update partners (for Partner role)
+                    user.Partners.Clear();
+                    if (model.PartnerIds.Any())
+                    {
+                        var partners = await _context.Partners
+                            .Where(p => model.PartnerIds.Contains(p.Id))
+                            .ToListAsync();
+
+                        foreach (var partner in partners)
+                        {
+                            user.Partners.Add(partner);
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    // Log audit history
+                    try
+                    {
+                        var roleChange = oldRole != newRole ? $" | Role changed from {oldRole} to {newRole}" : "";
+                        await _auditService.LogEntityChangeAsync(
+                            user.Id.ToString(),
+                            user.Email,
+                            "UPDATE",
+                            oldUser,
+                            user,
+                            userId,
+                            username,
+                            $"Updated user{roleChange}",
+                            "Web UI"
+                        );
+                    }
+                    catch (Exception auditEx)
+                    {
+                        _logger.LogError(auditEx, "Failed to log audit history for user update");
+                    }
+
+                    await transaction.CommitAsync();
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    await transaction.RollbackAsync();
+                    _logger.LogError(ex, "Failed to update user with ID {UserId}", id);
+                    return false;
+                }
+            });
         }
 
         public async Task<bool> DeleteUserAsync(int id, int userId, string username)

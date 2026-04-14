@@ -298,17 +298,27 @@ namespace GCCWebApp.Repositories
                 query = query.Where(c => filter.CompanyIds.Contains(c.CompanyId));
 
             // Filter by product categories/types/subcategories (matches all 3 hierarchy levels)
-            // Checks both Product's hierarchy and Certificate's direct fields
+            // Hierarchy: Level 1 = ProductCategory, Level 2 = ProductType (root), Level 3 = ProductType (child)
+            // Checks Product hierarchy, Certificate direct fields, and parent traversal for cascade matching
             if (filter.ProductCategories != null && filter.ProductCategories.Any())
                 query = query.Where(c =>
-                    // Product's hierarchy
-                    filter.ProductCategories.Contains(c.Product.Category.Name) ||
-                    (c.Product.ProductType != null && filter.ProductCategories.Contains(c.Product.ProductType.Name)) ||
-                    (c.Product.ProductSubcategory != null && filter.ProductCategories.Contains(c.Product.ProductSubcategory.Name)) ||
-                    // Certificate's direct fields
+                    // Level 1: ProductCategory (from Product or Certificate)
+                    (c.Product != null && filter.ProductCategories.Contains(c.Product.Category.Name)) ||
                     (c.ProductCategory != null && filter.ProductCategories.Contains(c.ProductCategory.Name)) ||
+                    // Level 2/3: ProductType direct match (Product.ProductTypeId can point to root or child type)
+                    (c.Product != null && c.Product.ProductType != null && filter.ProductCategories.Contains(c.Product.ProductType.Name)) ||
                     (c.ProductType != null && filter.ProductCategories.Contains(c.ProductType.Name)) ||
-                    (c.ProductSubcategory != null && filter.ProductCategories.Contains(c.ProductSubcategory.Name)));
+                    // Level 3: Certificate's subcategory (stored as ProductType child in ProductSubcategoryId)
+                    (c.ProductSubcategory != null && filter.ProductCategories.Contains(c.ProductSubcategory.Name)) ||
+                    // Parent cascade: when Level 2 parent is selected, match products assigned to its children
+                    (c.Product != null && c.Product.ProductType != null && c.Product.ProductType.Parent != null &&
+                     filter.ProductCategories.Contains(c.Product.ProductType.Parent.Name)) ||
+                    (c.ProductType != null && c.ProductType.Parent != null &&
+                     filter.ProductCategories.Contains(c.ProductType.Parent.Name)) ||
+                    (c.ProductSubcategory != null && c.ProductSubcategory.Parent != null &&
+                     filter.ProductCategories.Contains(c.ProductSubcategory.Parent.Name)) ||
+                    // Product's ProductSubcategory table (separate entity from ProductType hierarchy)
+                    (c.Product != null && c.Product.ProductSubcategory != null && filter.ProductCategories.Contains(c.Product.ProductSubcategory.Name)));
 
             var totalCount = await query.CountAsync();
 

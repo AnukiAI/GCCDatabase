@@ -30,11 +30,32 @@ namespace GCCWebApp.Controllers.Api
         /// <param name="certificateId">Certificate ID</param>
         /// <returns>List of product IDs</returns>
         [HttpGet("certificate/{certificateId}")]
-        public async Task<ActionResult<ApiResponse<List<CertificateProductId>>>> GetProductIdsByCertificate(int certificateId)
+        public async Task<ActionResult> GetProductIdsByCertificate(
+            int certificateId,
+            [FromQuery] int page = 0,
+            [FromQuery] int pageSize = 0)
         {
             try
             {
                 var productIds = await _productIdService.GetProductIdsByCertificateAsync(certificateId);
+                var totalCount = productIds.Count;
+
+                // If pagination requested, apply it
+                if (page > 0 && pageSize > 0)
+                {
+                    var pagedData = productIds.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+                    return Ok(new
+                    {
+                        success = true,
+                        data = pagedData,
+                        totalCount,
+                        page,
+                        pageSize,
+                        totalPages = (int)Math.Ceiling((double)totalCount / pageSize),
+                        message = "Product IDs retrieved successfully"
+                    });
+                }
+
                 return Ok(new ApiResponse<List<CertificateProductId>>
                 {
                     Success = true,

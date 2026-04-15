@@ -247,15 +247,8 @@ namespace GCCWebApp.Controllers.Api
                 var baseQuery = _context.Certificates
                     .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date));
 
-                // Get unique certification type IDs from active certificates
-                var certTypeIds = await baseQuery
-                    .Select(c => c.CertificationTypeId)
-                    .Distinct()
-                    .ToListAsync();
-
-                // Get certification types with their hierarchical structure
+                // Get all certification types from admin configuration (matches Admin > Certificate Types page)
                 var allCertTypes = await _context.CertificationTypes
-                    .Where(ct => certTypeIds.Contains(ct.Id) || (ct.Children.Any(child => certTypeIds.Contains(child.Id))))
                     .OrderBy(ct => ct.SortOrder)
                     .Select(ct => new { ct.Id, ct.Name, ct.Level, ct.ParentId, ct.SortOrder })
                     .ToListAsync();

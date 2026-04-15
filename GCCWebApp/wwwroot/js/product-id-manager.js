@@ -1278,8 +1278,8 @@ class ProductIdManager {
     }
 }
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', function() {
+// Initialize the Product ID Manager
+function initProductIdManager() {
     // Guard against double initialization
     if (window.productIdManager) {
         return;
@@ -1295,7 +1295,15 @@ document.addEventListener('DOMContentLoaded', function() {
             window.productIdManager = new ProductIdManager(null, parseInt(certificateId), isReadOnly);
         }
     }
-});
+}
+
+// Initialize when DOM is loaded, or immediately if already loaded
+// (scripts in @section Scripts load after DOMContentLoaded has fired)
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initProductIdManager);
+} else {
+    initProductIdManager();
+}
 
 // Export for use in other modules
 if (typeof module !== 'undefined' && module.exports) {

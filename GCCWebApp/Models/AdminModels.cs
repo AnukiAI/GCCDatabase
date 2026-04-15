@@ -348,33 +348,6 @@ namespace GCCWebApp.Models
         public string ProductIdValue { get; set; } = string.Empty;
     }
 
-    // Amazon API Models
-    public class AmazonAPISettingsViewModel
-    {
-        [Required]
-        [StringLength(100)]
-        public string AccessKeyId { get; set; } = string.Empty;
-        
-        [Required]
-        [StringLength(100)]
-        public string SecretAccessKey { get; set; } = string.Empty;
-        
-        [Required]
-        [StringLength(50)]
-        public string Region { get; set; } = "us-east-1";
-        
-        [Required]
-        [StringLength(100)]
-        public string MarketplaceId { get; set; } = string.Empty;
-        
-        public bool IsEnabled { get; set; } = true;
-        
-        public DateTime? LastSync { get; set; }
-        
-        public string LastSyncStatus { get; set; } = string.Empty;
-        
-        public int SyncIntervalHours { get; set; } = 24;
-    }
 
     // Common response models
     public class ApiResponse<T>

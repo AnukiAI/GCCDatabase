@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GCC Database Solution — Amazon API Integration Timeline</title>
+    <style>
+        :root {
+            --gcc-green: #2E7D32;
+            --gcc-green-light: #4CAF50;
+            --gcc-green-bg: #E8F5E9;
+            --gcc-dark: #1B5E20;
+            --accent-blue: #1565C0;
+            --accent-blue-light: #E3F2FD;
+            --warning-orange: #E65100;
+            --warning-orange-light: #FFF3E0;
+            --neutral-50: #FAFAFA;
+            --neutral-100: #F5F5F5;
+            --neutral-200: #EEEEEE;
+            --neutral-300: #E0E0E0;
+            --neutral-600: #757575;
+            --neutral-700: #616161;
+            --neutral-800: #424242;
+            --neutral-900: #212121;
+            --risk-high: #C62828;
+            --risk-high-bg: #FFEBEE;
+            --risk-medium: #EF6C00;
+            --risk-medium-bg: #FFF3E0;
+            --risk-low: #2E7D32;
+            --risk-low-bg: #E8F5E9;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif;
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--neutral-800);
+            background: #fff;
+        }
+
+        /* --- HEADER --- */
+        .doc-header {
+            background: linear-gradient(135deg, var(--gcc-dark) 0%, var(--gcc-green) 100%);
+            color: #fff;
+            padding: 48px 60px 40px;
+        }
+        .doc-header .logo-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 32px;
+        }
+        .doc-header .logo-bar .company {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            opacity: 0.85;
+        }
+        .doc-header .logo-bar .date {
+            font-size: 13px;
+            opacity: 0.85;
+            text-align: right;
+        }
+        .doc-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+        .doc-header .subtitle {
+            font-size: 16px;
+            font-weight: 400;
+            opacity: 0.9;
+        }
+        .doc-header .confidential {
+            margin-top: 20px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            opacity: 0.6;
+            border-top: 1px solid rgba(255,255,255,0.2);
+            padding-top: 12px;
+        }
+
+        /* --- MAIN CONTENT --- */
+        .content {
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 40px 60px 80px;
+        }
+
+        h2 {
+            font-size: 22px;
+            font-weight: 700;
+            color: var(--gcc-dark);
+            margin: 48px 0 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gcc-green-bg);
+        }
+        h2:first-child { margin-top: 0; }
+
+        h3 {
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--neutral-800);
+            margin: 28px 0 10px;
+        }
+
+        p {
+            margin-bottom: 12px;
+            color: var(--neutral-700);
+        }
+
+        /* --- EXECUTIVE SUMMARY BOX --- */
+        .exec-summary {
+            background: var(--gcc-green-bg);
+            border-left: 4px solid var(--gcc-green);
+            border-radius: 0 8px 8px 0;
+            padding: 24px 28px;
+            margin: 24px 0 32px;
+        }
+        .exec-summary p {
+            color: var(--neutral-800);
+            margin-bottom: 8px;
+        }
+        .exec-summary p:last-child { margin-bottom: 0; }
+
+        /* --- TABLES --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 16px 0 24px;
+            font-size: 14px;
+        }
+        thead th {
+            background: var(--neutral-100);
+            color: var(--neutral-800);
+            font-weight: 600;
+            text-align: left;
+            padding: 10px 14px;
+            border-bottom: 2px solid var(--neutral-300);
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        tbody td {
+            padding: 10px 14px;
+            border-bottom: 1px solid var(--neutral-200);
+            vertical-align: top;
+        }
+        tbody tr:hover { background: var(--neutral-50); }
+
+        /* --- STATUS BADGES --- */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .badge-complete { background: var(--gcc-green-bg); color: var(--gcc-green); }
+        .badge-built { background: var(--gcc-green-bg); color: var(--gcc-green); }
+        .badge-partial { background: var(--warning-orange-light); color: var(--warning-orange); }
+        .badge-pending { background: var(--neutral-200); color: var(--neutral-600); }
+        .badge-not-started { background: var(--risk-high-bg); color: var(--risk-high); }
+
+        /* --- TIMELINE VISUAL --- */
+        .timeline-section {
+            margin: 32px 0;
+        }
+        .timeline-option-label {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+        }
+        .option-a-label { background: var(--accent-blue); color: #fff; }
+        .option-b-label { background: var(--gcc-green); color: #fff; }
+
+        .timeline {
+            position: relative;
+            padding: 0;
+            list-style: none;
+        }
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 20px;
+            top: 0;
+            bottom: 0;
+            width: 3px;
+            background: var(--neutral-300);
+        }
+        .timeline-item {
+            position: relative;
+            padding: 0 0 28px 56px;
+        }
+        .timeline-item:last-child { padding-bottom: 0; }
+        .timeline-dot {
+            position: absolute;
+            left: 12px;
+            top: 4px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            border: 3px solid var(--gcc-green);
+            background: #fff;
+        }
+        .timeline-item.milestone .timeline-dot {
+            background: var(--gcc-green);
+            border-color: var(--gcc-dark);
+        }
+        .timeline-item.milestone .timeline-dot::after {
+            content: '★';
+            position: absolute;
+            top: -1px;
+            left: 2px;
+            font-size: 10px;
+            color: #fff;
+        }
+        .timeline-date {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--gcc-green);
+            margin-bottom: 2px;
+        }
+        .timeline-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--neutral-900);
+            margin-bottom: 4px;
+        }
+        .timeline-desc {
+            font-size: 14px;
+            color: var(--neutral-600);
+            line-height: 1.5;
+        }
+        .timeline-activities {
+            margin: 8px 0 0 0;
+            padding-left: 18px;
+            font-size: 13px;
+            color: var(--neutral-600);
+        }
+        .timeline-activities li { margin-bottom: 3px; }
+        .amazon-milestone {
+            display: inline-block;
+            margin-top: 8px;
+            padding: 4px 12px;
+            background: var(--warning-orange-light);
+            color: var(--warning-orange);
+            font-size: 12px;
+            font-weight: 700;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* --- COMPARISON TABLE --- */
+        .comparison-table thead th:first-child { width: 35%; }
+        .comparison-table .option-a-col { background: var(--accent-blue-light); }
+        .comparison-table .option-b-col { background: var(--gcc-green-bg); }
+        .comparison-table .delta-col { font-weight: 600; color: var(--neutral-600); }
+
+        /* --- RISK MATRIX --- */
+        .risk-high { color: var(--risk-high); font-weight: 600; }
+        .risk-medium { color: var(--risk-medium); font-weight: 600; }
+        .risk-low { color: var(--risk-low); font-weight: 600; }
+
+        /* --- RECOMMENDATION BOX --- */
+        .recommendation {
+            background: linear-gradient(135deg, var(--gcc-green-bg) 0%, #C8E6C9 100%);
+            border: 2px solid var(--gcc-green);
+            border-radius: 8px;
+            padding: 28px 32px;
+            margin: 32px 0;
+        }
+        .recommendation h3 {
+            color: var(--gcc-dark);
+            margin-top: 0;
+            font-size: 18px;
+        }
+        .recommendation p {
+            color: var(--neutral-800);
+        }
+        .recommendation ol {
+            margin: 8px 0 8px 20px;
+            color: var(--neutral-800);
+        }
+        .recommendation ol li {
+            margin-bottom: 6px;
+        }
+
+        /* --- NEXT STEPS --- */
+        .next-steps-table tbody td:nth-child(2) {
+            font-weight: 600;
+        }
+
+        /* --- FOOTER --- */
+        .doc-footer {
+            border-top: 2px solid var(--neutral-200);
+            padding: 24px 60px;
+            text-align: center;
+            font-size: 12px;
+            color: var(--neutral-600);
+        }
+
+        /* --- PRINT STYLES --- */
+        @media print {
+            .doc-header { padding: 32px 40px 28px; }
+            .content { padding: 24px 40px 40px; }
+            h2 { margin-top: 32px; }
+            .timeline-item { padding-bottom: 16px; }
+            body { font-size: 13px; }
+            table { font-size: 12px; }
+            .recommendation { break-inside: avoid; }
+        }
+
+        /* --- PAGE BREAK HINTS --- */
+        .page-break { page-break-before: always; }
+    </style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- HEADER                                                         -->
+<!-- ============================================================ -->
+<div class="doc-header">
+    <div class="logo-bar">
+        <div class="company">Anuki Consulting</div>
+        <div class="date">April 15, 2026</div>
+    </div>
+    <h1>Amazon API Integration Timeline</h1>
+    <div class="subtitle">GCC Database Solution &mdash; Milestone Schedule &amp; Risk Assessment</div>
+    <div class="confidential">Confidential &mdash; Prepared for GreenCircle Certified</div>
+</div>
+
+<!-- ============================================================ -->
+<!-- CONTENT                                                        -->
+<!-- ============================================================ -->
+<div class="content">
+
+    <!-- EXECUTIVE SUMMARY -->
+    <h2>Executive Summary</h2>
+    <div class="exec-summary">
+        <p>Amazon has requested firm milestone dates for API integration and automated product badging. This document presents <strong>two timeline options</strong> with dependencies, risk factors, and mitigation strategies.</p>
+        <p>The API infrastructure (endpoints, authentication, GS1 data schema) is already built. The remaining work consists of: <strong>(1)</strong> completing the current UAT cycle to stabilize the database application, <strong>(2)</strong> implementing the Amazon SP-API push/sync integration, and <strong>(3)</strong> end-to-end testing with Amazon's systems.</p>
+        <p>Both options are achievable contingent on completing the current UAT cycle without significant new scope.</p>
+    </div>
+
+    <!-- CURRENT STATE -->
+    <h2>Current State of Readiness</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Component</th>
+                <th>Status</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Certificate Database Application</td>
+                <td><span class="badge badge-partial">95% Complete</span></td>
+                <td>40 items in final UAT retest cycle</td>
+            </tr>
+            <tr>
+                <td>REST API Endpoints</td>
+                <td><span class="badge badge-built">Built</span></td>
+                <td><code>/api/v1/certificates</code>, search by ASIN, GS1 JSON-LD format</td>
+            </tr>
+            <tr>
+                <td>API Authentication</td>
+                <td><span class="badge badge-built">Built</span></td>
+                <td>Partner API keys with rate limiting (200 req/hr)</td>
+            </tr>
+            <tr>
+                <td>Amazon Developer Guide</td>
+                <td><span class="badge badge-complete">CP2 Complete</span></td>
+                <td>Reviewed by GCC; feedback incorporated</td>
+            </tr>
+            <tr>
+                <td>GS1 Data Schema</td>
+                <td><span class="badge badge-built">Built</span></td>
+                <td>JSON-LD format per GS1 Web Vocabulary standard</td>
+            </tr>
+            <tr>
+                <td>Amazon SP-API Sync (Push)</td>
+                <td><span class="badge badge-not-started">Not Started</span></td>
+                <td>Credential storage built; sync logic pending</td>
+            </tr>
+            <tr>
+                <td>Automated Badging Connection</td>
+                <td><span class="badge badge-not-started">Not Started</span></td>
+                <td>Dependent on API completion and Amazon coordination</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================================ -->
+    <!-- OPTION A                                                       -->
+    <!-- ============================================================ -->
+    <h2>Option A &mdash; Aggressive Timeline</h2>
+    <p style="color: var(--accent-blue); font-weight: 600; margin-bottom: 4px;">Amazon's Requested Dates</p>
+    <p>This timeline meets Amazon's stated milestone dates with minimal buffer. It requires GCC to complete UAT retesting by May 15 and a feature freeze after Phase 1.</p>
+
+    <div class="timeline-section">
+        <span class="timeline-option-label option-a-label">OPTION A</span>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Phase</th>
+                    <th>Milestone</th>
+                    <th>Dates</th>
+                    <th>Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Phase 1</strong></td>
+                    <td>Database Stabilization &amp; UAT Retest</td>
+                    <td>Apr 15 &mdash; May 15</td>
+                    <td>4 weeks</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 2</strong></td>
+                    <td>API Schema Finalization &amp; Lock</td>
+                    <td>May 16 &mdash; May 31</td>
+                    <td>2 weeks</td>
+                </tr>
+                <tr style="background: var(--warning-orange-light);">
+                    <td colspan="4"><span class="amazon-milestone">Amazon Milestone 1 &mdash; May 31, 2026: Finalized API Endpoint &amp; Data Schema</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 3</strong></td>
+                    <td>Amazon SP-API Implementation</td>
+                    <td>Jun 1 &mdash; Jul 15</td>
+                    <td>6 weeks</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 4</strong></td>
+                    <td>Integration Testing &amp; QA</td>
+                    <td>Jul 16 &mdash; Jul 31</td>
+                    <td>2 weeks</td>
+                </tr>
+                <tr style="background: var(--warning-orange-light);">
+                    <td colspan="4"><span class="amazon-milestone">Amazon Milestone 2 &mdash; July 31, 2026: API Implementation &amp; Testing Complete</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 5</strong></td>
+                    <td>Automated Badging Go-Live</td>
+                    <td>Aug 1 &mdash; Aug 31</td>
+                    <td>Rollout</td>
+                </tr>
+                <tr style="background: var(--warning-orange-light);">
+                    <td colspan="4"><span class="amazon-milestone">Amazon Milestone 3 &mdash; August 2026: Automated Badging Live</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Phase details for Option A -->
+    <h3>Phase 1: Database Stabilization &amp; UAT Retest <span style="font-weight:400; color: var(--neutral-600);">(Apr 15 &mdash; May 15)</span></h3>
+    <p>Deploy current code fixes (24 modified files) and 4 SQL migration scripts. Client completes UAT retest of 40+ resolved items. Resolve retest failures and 5 items pending client decision.</p>
+    <p><strong>Exit Criteria:</strong> All critical/high QC items confirmed fixed. No open blockers.</p>
+
+    <h3>Phase 2: API Schema Finalization &amp; Lock <span style="font-weight:400; color: var(--neutral-600);">(May 16 &mdash; May 31)</span></h3>
+    <p>Confirm GS1 JSON-LD schema meets Amazon's CPF requirements. Document final field mappings (ASIN-only per Amazon). Lock API contract &mdash; no breaking changes after this date. Publish final API documentation.</p>
+    <p><strong>Deliverable:</strong> Finalized API specification and data schema documentation.</p>
+
+    <h3>Phase 3: Amazon SP-API Implementation <span style="font-weight:400; color: var(--neutral-600);">(Jun 1 &mdash; Jul 15)</span></h3>
+    <p>Implement Amazon SP-API credential management and authentication. Build automated certificate data push/sync logic. Implement partner-scoped data filtering. Build webhook notifications for certificate status changes. Error handling, retry logic, and sync failure recovery.</p>
+
+    <h3>Phase 4: Integration Testing &amp; QA <span style="font-weight:400; color: var(--neutral-600);">(Jul 16 &mdash; Jul 31)</span></h3>
+    <p>End-to-end testing with Amazon sandbox environment. Load testing, performance validation, and security review. UAT with GCC team on API functionality. Documentation updates and operations runbook.</p>
+
+    <h3>Phase 5: Automated Badging Go-Live <span style="font-weight:400; color: var(--neutral-600);">(Aug 2026)</span></h3>
+    <p>Production deployment. Coordinate go-live with Amazon technical team. Monitor initial sync cycles. Transition to steady-state operations.</p>
+
+    <!-- ============================================================ -->
+    <!-- OPTION B                                                       -->
+    <!-- ============================================================ -->
+    <h2 class="page-break">Option B &mdash; Buffered Timeline</h2>
+    <p style="color: var(--gcc-green); font-weight: 600; margin-bottom: 4px;">+1 Month Per Milestone (End of Q3 2026)</p>
+    <p>This timeline adds one month of buffer to each Amazon milestone, primarily in the UAT stabilization phase. Development and testing durations remain the same as Option A.</p>
+
+    <div class="timeline-section">
+        <span class="timeline-option-label option-b-label">OPTION B</span>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Phase</th>
+                    <th>Milestone</th>
+                    <th>Dates</th>
+                    <th>Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Phase 1</strong></td>
+                    <td>Database Stabilization &amp; UAT Retest</td>
+                    <td>Apr 15 &mdash; May 31</td>
+                    <td>6 weeks</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 2</strong></td>
+                    <td>API Schema Finalization &amp; Lock</td>
+                    <td>Jun 1 &mdash; Jun 30</td>
+                    <td>4 weeks</td>
+                </tr>
+                <tr style="background: var(--warning-orange-light);">
+                    <td colspan="4"><span class="amazon-milestone">Amazon Milestone 1 &mdash; June 30, 2026: Finalized API Endpoint &amp; Data Schema</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 3</strong></td>
+                    <td>Amazon SP-API Implementation</td>
+                    <td>Jul 1 &mdash; Aug 15</td>
+                    <td>6 weeks</td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 4</strong></td>
+                    <td>Integration Testing &amp; QA</td>
+                    <td>Aug 16 &mdash; Aug 31</td>
+                    <td>2 weeks</td>
+                </tr>
+                <tr style="background: var(--warning-orange-light);">
+                    <td colspan="4"><span class="amazon-milestone">Amazon Milestone 2 &mdash; August 31, 2026: API Implementation &amp; Testing Complete</span></td>
+                </tr>
+                <tr>
+                    <td><strong>Phase 5</strong></td>
+                    <td>Automated Badging Go-Live</td>
+                    <td>Sep 1 &mdash; Sep 30</td>
+                    <td>Rollout</td>
+                </tr>
+                <tr style="background: var(--warning-orange-light);">
+                    <td colspan="4"><span class="amazon-milestone">Amazon Milestone 3 &mdash; September 2026: Automated Badging Live</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Key Differences from Option A</h3>
+    <ul style="margin: 8px 0 16px 20px; color: var(--neutral-700);">
+        <li><strong>+2 weeks UAT buffer</strong> &mdash; accounts for historically observed pattern of 15&ndash;30 new items per retest cycle</li>
+        <li><strong>+2 weeks schema review</strong> &mdash; allows iteration with Amazon's technical team on CPF field requirements</li>
+        <li><strong>Same development time</strong> &mdash; SP-API implementation (6 weeks) and testing (2 weeks) are unchanged</li>
+        <li><strong>End of Q3 alignment</strong> &mdash; completes within a natural reporting boundary</li>
+    </ul>
+
+    <!-- ============================================================ -->
+    <!-- SIDE-BY-SIDE COMPARISON                                        -->
+    <!-- ============================================================ -->
+    <h2 class="page-break">Side-by-Side Comparison</h2>
+
+    <table class="comparison-table">
+        <thead>
+            <tr>
+                <th>Milestone</th>
+                <th style="text-align:center;">Option A<br><small style="font-weight:400; text-transform:none;">(Aggressive)</small></th>
+                <th style="text-align:center;">Option B<br><small style="font-weight:400; text-transform:none;">(Buffered)</small></th>
+                <th style="text-align:center;">Delta</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>API Schema Finalized</strong></td>
+                <td class="option-a-col" style="text-align:center;">May 31, 2026</td>
+                <td class="option-b-col" style="text-align:center;">June 30, 2026</td>
+                <td class="delta-col" style="text-align:center;">+1 month</td>
+            </tr>
+            <tr>
+                <td><strong>API Implementation &amp; Testing</strong></td>
+                <td class="option-a-col" style="text-align:center;">July 31, 2026</td>
+                <td class="option-b-col" style="text-align:center;">August 31, 2026</td>
+                <td class="delta-col" style="text-align:center;">+1 month</td>
+            </tr>
+            <tr>
+                <td><strong>Automated Badging Go-Live</strong></td>
+                <td class="option-a-col" style="text-align:center;">August 2026</td>
+                <td class="option-b-col" style="text-align:center;">September 2026</td>
+                <td class="delta-col" style="text-align:center;">+1 month</td>
+            </tr>
+            <tr>
+                <td>UAT Stabilization Window</td>
+                <td style="text-align:center;">4 weeks</td>
+                <td style="text-align:center;">6 weeks</td>
+                <td class="delta-col" style="text-align:center;">+2 weeks</td>
+            </tr>
+            <tr>
+                <td>API Development Time</td>
+                <td style="text-align:center;">6 weeks</td>
+                <td style="text-align:center;">6 weeks</td>
+                <td class="delta-col" style="text-align:center;">Same</td>
+            </tr>
+            <tr>
+                <td>Integration Testing Time</td>
+                <td style="text-align:center;">2 weeks</td>
+                <td style="text-align:center;">2 weeks</td>
+                <td class="delta-col" style="text-align:center;">Same</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================================ -->
+    <!-- RISK FACTORS                                                   -->
+    <!-- ============================================================ -->
+    <h2>Schedule Risk Factors</h2>
+
+    <h3>High Impact Risks</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:25%;">Risk</th>
+                <th style="width:25%;">Impact</th>
+                <th style="width:15%;">Likelihood</th>
+                <th style="width:35%;">Mitigation</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>UAT retest generates significant new defects</strong></td>
+                <td>Delays Phase 1 exit; cascades to all milestones</td>
+                <td><span class="risk-medium">Medium-High</span></td>
+                <td>Feature freeze after Phase 1. Only bug fixes, no new scope.</td>
+            </tr>
+            <tr>
+                <td><strong>New feature requests during UAT</strong></td>
+                <td>Scope creep delays stabilization</td>
+                <td><span class="risk-medium">Medium</span></td>
+                <td>All new requests after UAT start treated as formal Change Requests with separate timeline.</td>
+            </tr>
+            <tr>
+                <td><strong>Amazon schema requirements change after review</strong></td>
+                <td>Rework on finalized API contract</td>
+                <td><span class="risk-medium">Medium</span></td>
+                <td>Early schema review with Amazon technical team. Lock schema with formal sign-off.</td>
+            </tr>
+            <tr>
+                <td><strong>Client availability for testing</strong></td>
+                <td>UAT cycle extends beyond window</td>
+                <td><span class="risk-medium">Medium</span></td>
+                <td>Detailed test cases provided. Set testing windows with committed dates.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <h3>Medium Impact Risks</h3>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:25%;">Risk</th>
+                <th style="width:25%;">Impact</th>
+                <th style="width:15%;">Likelihood</th>
+                <th style="width:35%;">Mitigation</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Amazon sandbox access delays</strong></td>
+                <td>Blocks integration testing</td>
+                <td><span class="risk-low">Low-Medium</span></td>
+                <td>Request sandbox credentials by May 15 regardless of timeline option.</td>
+            </tr>
+            <tr>
+                <td><strong>Production environment DNS/hosting changes</strong></td>
+                <td>Deployment disruption</td>
+                <td><span class="risk-low">Low</span></td>
+                <td>URL structure confirmed. DNS change is pending but independent of API work.</td>
+            </tr>
+            <tr>
+                <td><strong>Partner role scoping</strong></td>
+                <td>Amazon could see non-Amazon certs via API</td>
+                <td><span class="risk-medium">Medium</span></td>
+                <td>Current API already filters by partner field. Full role-based scoping is an enhancement, not a blocker.</td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================================ -->
+    <!-- DEPENDENCIES                                                   -->
+    <!-- ============================================================ -->
+    <h2>External Dependencies</h2>
+    <p>The following items are outside of Anuki's direct control and must be completed by the indicated parties to maintain the schedule.</p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Dependency</th>
+                <th>Owner</th>
+                <th>Needed By</th>
+                <th>Current Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Complete UAT retest of 40 open items</td>
+                <td><strong>GCC</strong> (Carly)</td>
+                <td>May 15 (A) / May 31 (B)</td>
+                <td><span class="badge badge-pending">Not Started</span></td>
+            </tr>
+            <tr>
+                <td>Decisions on 5 pending discussion items</td>
+                <td><strong>GCC</strong> (Carly / Dan)</td>
+                <td>May 15</td>
+                <td><span class="badge badge-pending">Pending</span></td>
+            </tr>
+            <tr>
+                <td>Amazon SP-API sandbox credentials</td>
+                <td><strong>GCC / Amazon</strong></td>
+                <td>Jun 1</td>
+                <td><span class="badge badge-not-started">Not Requested</span></td>
+            </tr>
+            <tr>
+                <td>Amazon technical team schema review</td>
+                <td><strong>Amazon</strong></td>
+                <td>Jun 15</td>
+                <td><span class="badge badge-not-started">Not Scheduled</span></td>
+            </tr>
+            <tr>
+                <td>Final production URL / DNS configuration</td>
+                <td><strong>GCC</strong></td>
+                <td>Jul 1</td>
+                <td><span class="badge badge-pending">Pending</span></td>
+            </tr>
+            <tr>
+                <td>Real certificate data loaded in production DB</td>
+                <td><strong>GCC</strong> (Analysts)</td>
+                <td>Jul 1</td>
+                <td><span class="badge badge-partial">Partial</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- ============================================================ -->
+    <!-- RECOMMENDATION                                                 -->
+    <!-- ============================================================ -->
+    <h2 class="page-break">Recommendation</h2>
+
+    <div class="recommendation">
+        <h3>Anuki Recommends Option B (Buffered Timeline)</h3>
+        <ol>
+            <li><strong>Historical pattern:</strong> Every UAT cycle on this project has generated 15&ndash;30 new items. Option A assumes a clean retest with zero new findings, which has not occurred in any prior cycle.</li>
+            <li><strong>Development time is identical:</strong> Both options allocate 6 weeks for SP-API implementation and 2 weeks for testing. The buffer is entirely in the UAT/stabilization phase where risk is highest.</li>
+            <li><strong>Accountability protection:</strong> A missed aggressive deadline damages the Amazon relationship more than a met conservative one.</li>
+            <li><strong>Q3 alignment:</strong> Option B completes by end of Q3 2026, a natural reporting boundary.</li>
+        </ol>
+        <p style="margin-top: 12px;"><strong>However, if Amazon requires the aggressive timeline, Option A is achievable</strong> provided GCC commits to completing UAT retest by May 15 with dedicated testing time and no new feature requests are introduced during the stabilization phase.</p>
+    </div>
+
+    <!-- ============================================================ -->
+    <!-- NEXT STEPS                                                     -->
+    <!-- ============================================================ -->
+    <h2>Immediate Next Steps</h2>
+
+    <table class="next-steps-table">
+        <thead>
+            <tr>
+                <th>Action</th>
+                <th>Owner</th>
+                <th>Due</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Confirm timeline option with Amazon</td>
+                <td>GCC</td>
+                <td><strong>April 15, 2026</strong></td>
+            </tr>
+            <tr>
+                <td>Deploy current code fixes + SQL migration scripts to production</td>
+                <td>Anuki</td>
+                <td>April 16, 2026</td>
+            </tr>
+            <tr>
+                <td>Begin UAT retest using provided test cases (40 items)</td>
+                <td>GCC</td>
+                <td>April 17, 2026</td>
+            </tr>
+            <tr>
+                <td>Resolve 5 pending discussion items</td>
+                <td>GCC + Anuki</td>
+                <td>April 30, 2026</td>
+            </tr>
+            <tr>
+                <td>Request Amazon SP-API sandbox credentials</td>
+                <td>GCC</td>
+                <td>May 1, 2026</td>
+            </tr>
+            <tr>
+                <td>Complete UAT retest cycle</td>
+                <td>GCC</td>
+                <td>May 15 (A) / May 31 (B)</td>
+            </tr>
+        </tbody>
+    </table>
+
+</div>
+
+<!-- ============================================================ -->
+<!-- FOOTER                                                         -->
+<!-- ============================================================ -->
+<div class="doc-footer">
+    <p><strong>Anuki Consulting</strong> &mdash; Prepared for GreenCircle Certified &mdash; April 15, 2026</p>
+    <p>Confidential. Distribution limited to authorized GCC and Amazon stakeholders.</p>
+</div>
+
+</body>
+</html>

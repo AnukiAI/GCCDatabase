@@ -112,22 +112,22 @@ document.addEventListener('DOMContentLoaded', function() {
         resetSessionTimeout();
     }
 
-    // Handle authentication errors
+    // Handle authentication errors (only if server didn't already render one)
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
-    if (error) {
+    if (error && !document.querySelector('.alert-error')) {
         const errorMessages = {
             'authentication_failed': 'Authentication failed. Please check your credentials.',
             'access_denied': 'Access denied. Please contact your administrator.',
             'session_expired': 'Your session has expired. Please sign in again.',
             'invalid_token': 'Invalid authentication token. Please try again.'
         };
-        
+
         const message = errorMessages[error] || 'An authentication error occurred.';
         const alertDiv = document.createElement('div');
         alertDiv.className = 'alert alert-error';
         alertDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${message}`;
-        
+
         const container = document.querySelector('.login-form-section') || document.querySelector('main');
         if (container) {
             container.insertBefore(alertDiv, container.firstChild);

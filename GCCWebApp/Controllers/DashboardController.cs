@@ -283,25 +283,16 @@ namespace GCCWebApp.Controllers
                     return Forbid();
                 }
 
-                // Product category/type/subcategory stats get detailed breakdown exports
-                var detailCsv = await GenerateDetailedStatCsvIfApplicable(type);
-                if (detailCsv != null)
-                {
-                    var detailFileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.csv";
-                    return File(Encoding.UTF8.GetBytes(detailCsv), "text/csv", detailFileName);
-                }
+                var (certificates, reportTitle) = await GetCertificatesForStat(type);
 
-                var stats = await _certificateRepository.GetCertificateStatisticsAsync();
-                var data = GetStatData(type, stats);
-
-                if (data == null)
+                if (reportTitle == null)
                 {
                     return BadRequest("Invalid stat type");
                 }
 
-                var csv = GenerateStatCsv(type, data);
+                var csv = GenerateCertificateCsv(reportTitle, certificates);
                 var fileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.csv";
-                
+
                 return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
             }
             catch (Exception ex)
@@ -323,16 +314,16 @@ namespace GCCWebApp.Controllers
                     return Forbid();
                 }
 
-                var data = await GetTableData(type);
-                
-                if (data == null)
+                var (certificates, reportTitle) = await GetCertificatesForTable(type);
+
+                if (reportTitle == null)
                 {
                     return BadRequest("Invalid table type");
                 }
 
-                var csv = GenerateTableCsv(type, data);
+                var csv = GenerateCertificateCsv(reportTitle, certificates);
                 var fileName = $"{type}-table-{DateTime.UtcNow:yyyy-MM-dd}.csv";
-                
+
                 return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
             }
             catch (Exception ex)
@@ -342,170 +333,128 @@ namespace GCCWebApp.Controllers
             }
         }
 
-        private object? GetStatData(string type, Dictionary<string, int> stats)
+        private async Task<(IEnumerable<Certificate> certificates, string? reportTitle)> GetCertificatesForStat(string type)
         {
+            var today = CertificateStatusHelper.BusinessToday;
+            var startOfMonth = new DateTime(today.Year, today.Month, 1);
+            var startOfLastMonth = startOfMonth.AddMonths(-1);
+            var endOfLastMonth = startOfMonth.AddDays(-1);
+            var startOfNextMonth = startOfMonth.AddMonths(1);
+            var endOfNextMonth = startOfNextMonth.AddMonths(1).AddDays(-1);
+            var startOfYear = new DateTime(today.Year, 1, 1);
+            var startOfLastYear = new DateTime(today.Year - 1, 1, 1);
+            var endOfLastYear = new DateTime(today.Year - 1, 12, 31);
+
             switch (type)
             {
                 case "total-active-certs":
-                    return new { Value = stats.GetValueOrDefault("Active", 0), Description = "Total Active Certificates" };
+                    return (await _certificateRepository.GetActiveCertificatesAsync(), "Total Active Certificates");
 
                 case "companies-with-active-certs":
-                    return new { Value = stats.GetValueOrDefault("CompaniesWithActiveCerts", 0), Description = "Companies with Active Certificates" };
+                    return (await _certificateRepository.GetActiveCertificatesAsync(), "Companies with Active Certificates");
 
                 case "product-categories-with-active-certs":
-                    return new { Value = stats.GetValueOrDefault("CertTypesWithActiveCerts", 0), Description = "Certification Types with Active Certificates" };
+                    return (await _certificateRepository.GetActiveCertificatesAsync(), "Product Categories with Active Certificates");
 
                 case "product-types-with-active-certs":
-                    return new { Value = stats.GetValueOrDefault("ProductTypesWithActiveCerts", 0), Description = "Product Types with Active Certificates" };
+                    return (await _certificateRepository.GetActiveCertificatesAsync(), "Product Types with Active Certificates");
 
                 case "product-subcategories-with-active-certs":
-                    return new { Value = stats.GetValueOrDefault("ProductSubcategories", 0), Description = "Product Subcategories with Active Certificates" };
+                    return (await _certificateRepository.GetActiveCertificatesAsync(), "Product Subcategories with Active Certificates");
 
                 case "products-with-active-certs":
-                    return new { Value = stats.GetValueOrDefault("ActiveProducts", 0), Description = "Products with Active Certificates" };
+                    return (await _certificateRepository.GetActiveCertificatesAsync(), "Products with Active Certificates");
 
                 case "certs-published-last-month":
-                    return new { Value = stats.GetValueOrDefault("PublishedLastMonth", 0), Description = "Certificates Published Last Month" };
+                    return (await _certificateRepository.GetCertificatesByDateRangeAsync(startOfLastMonth, endOfLastMonth),
+                        "Certificates Published Last Month");
 
                 case "certs-expiring-this-month":
-                    return new { Value = stats.GetValueOrDefault("ExpiringThisMonth", 0), Description = "Certificates Expiring This Month" };
+                    return (await _certificateRepository.GetExpiringCertificatesAsync(startOfNextMonth),
+                        "Certificates Expiring This Month");
 
                 case "certs-expired-last-month":
-                    return new { Value = stats.GetValueOrDefault("ExpiredLastMonth", 0), Description = "Certificates Expired Last Month" };
+                    return (await _certificateRepository.GetCertificatesByDateRangeAsync(startOfLastMonth, endOfLastMonth),
+                        "Certificates Expired Last Month");
 
                 case "certs-expiring-next-month":
-                    return new { Value = stats.GetValueOrDefault("ExpiringNextMonth", 0), Description = "Certificates Expiring Next Month" };
+                    var expiringNext = await _certificateRepository.GetExpiringCertificatesAsync(endOfNextMonth);
+                    var filtered = expiringNext.Where(c => c.ExpirationDate >= startOfNextMonth);
+                    return (filtered, "Certificates Expiring Next Month");
 
                 case "certs-published-this-year":
-                    return new { Value = stats.GetValueOrDefault("PublishedThisYear", 0), Description = "Certificates Published This Year" };
+                    return (await _certificateRepository.GetCertificatesByDateRangeAsync(startOfYear, today),
+                        "Certificates Published This Year");
 
                 case "certs-published-last-year":
-                    return new { Value = stats.GetValueOrDefault("PublishedLastYear", 0), Description = "Certificates Published Last Year" };
+                    return (await _certificateRepository.GetCertificatesByDateRangeAsync(startOfLastYear, endOfLastYear),
+                        "Certificates Published Last Year");
 
                 default:
-                    return null;
+                    return (Enumerable.Empty<Certificate>(), null);
             }
         }
 
-        private async Task<object?> GetTableData(string type)
+        private async Task<(IEnumerable<Certificate> certificates, string? reportTitle)> GetCertificatesForTable(string type)
         {
             switch (type)
             {
                 case "cert-types":
-                    var certTypes = await _certificateRepository.GetCertificationTypeStatisticsAsync();
-                    return certTypes?.Select(ct => new { Name = ct.Name, Count = ct.Count }).ToList();
+                    return (await _certificateRepository.GetActiveCertificatesAsync(),
+                        "Total Active Certs by Certification Type");
 
                 case "top-companies":
-                    var companies = await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
-                    return companies?.Select(c => new { Name = c.Name, Count = c.Count }).ToList();
+                    return (await _certificateRepository.GetActiveCertificatesAsync(),
+                        "Top 10 Companies by Active Cert Count");
 
                 case "cert-status":
-                    // Return ALL statuses matching dashboard display
-                    var stats = await _certificateRepository.GetCertificateStatisticsAsync();
-                    var statusOrder = new[] {
-                        ("Draft", "Status_Draft"),
-                        ("Client Approved - Not Paid", "Status_Client Approved - Not Paid"),
-                        ("Client Approved - Confidential", "Status_Client Approved - Confidential"),
-                        ("Client Approved - Paid", "Status_Client Approved - Paid"),
-                        ("Hold", "Status_Hold"),
-                        ("Expired", "Status_Expired"),
-                        ("Republished", "Status_Republished"),
-                        ("Expired - No Annual Verification", "Status_Expired - No Annual Verification")
+                    // All certificates with navigation properties
+                    var allStatuses = new[] {
+                        CertificateStatusHelper.StatusDraft,
+                        CertificateStatusHelper.StatusClientApprovedNotPaid,
+                        CertificateStatusHelper.StatusClientApprovedConfidential,
+                        CertificateStatusHelper.StatusClientApprovedPaid,
+                        CertificateStatusHelper.StatusHold,
+                        CertificateStatusHelper.StatusExpired,
+                        CertificateStatusHelper.StatusRepublished,
+                        CertificateStatusHelper.StatusExpiredNoAnnualVerification
                     };
-                    return statusOrder.Select(s => new { Name = s.Item1, Count = stats.GetValueOrDefault(s.Item2, 0) }).ToList();
+                    var statusCerts = new List<Certificate>();
+                    foreach (var status in allStatuses)
+                    {
+                        var byCerts = await _certificateRepository.GetCertificatesByStatusAsync(status);
+                        statusCerts.AddRange(byCerts);
+                    }
+                    return (statusCerts, "Certificates by Status");
 
                 case "product-types":
-                    var productTypes = await _certificateRepository.GetProductTypeStatisticsAsync(10);
-                    return productTypes?.Select(pt => new { Name = pt.Name, Count = pt.Count }).ToList();
+                    return (await _certificateRepository.GetActiveCertificatesAsync(),
+                        "Top 10 Product Types by Active Cert Count");
 
                 case "product-categories":
-                    var categories = await _certificateRepository.GetCertificationTypeStatisticsAsync();
-                    return categories?.Take(5).Select(ct => new { Name = ct.Name, Count = ct.Count }).ToList();
+                    return (await _certificateRepository.GetActiveCertificatesAsync(),
+                        "Top 5 Product Categories by Active Cert Count");
 
                 default:
-                    return null;
+                    return (Enumerable.Empty<Certificate>(), null);
             }
         }
 
-        private string GenerateStatCsv(string type, dynamic data)
+        private string GenerateCertificateCsv(string reportTitle, IEnumerable<Certificate> certificates)
         {
+            var certList = certificates.ToList();
             var csv = new StringBuilder();
-            csv.AppendLine("Metric,Value,Generated Date");
-            csv.AppendLine($"\"{data.Description}\",{data.Value},{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
-            return csv.ToString();
-        }
-
-        private async Task<string?> GenerateDetailedStatCsvIfApplicable(string type)
-        {
-            IEnumerable<(string Name, int Count)>? breakdown = null;
-            string header = "";
-
-            switch (type)
-            {
-                case "product-categories-with-active-certs":
-                    breakdown = await _certificateRepository.GetProductCategoryStatisticsAsync(int.MaxValue);
-                    header = "Product Category,Active Cert Count";
-                    break;
-                case "product-types-with-active-certs":
-                    breakdown = await _certificateRepository.GetProductTypeStatisticsAsync(int.MaxValue);
-                    header = "Product Type,Active Cert Count";
-                    break;
-                case "product-subcategories-with-active-certs":
-                    breakdown = await _certificateRepository.GetProductSubcategoryStatisticsAsync(int.MaxValue);
-                    header = "Product Subcategory,Active Cert Count";
-                    break;
-                default:
-                    return null;
-            }
-
-            var csv = new StringBuilder();
-            csv.AppendLine(header);
-            foreach (var item in breakdown)
-            {
-                csv.AppendLine($"{EscapeCsvValue(item.Name)},{item.Count}");
-            }
+            csv.AppendLine($"Report: {reportTitle}");
+            csv.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            csv.AppendLine($"Total Certificates: {certList.Count}");
             csv.AppendLine();
-            csv.AppendLine($"Generated,{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
-            return csv.ToString();
-        }
+            csv.AppendLine("Certificate Number,Status,Company,Product,Certification Type,Effective Date,Expiration Date,Location,Country");
 
-        private string GenerateTableCsv(string type, dynamic data)
-        {
-            var csv = new StringBuilder();
-
-            // Determine header based on table type
-            switch (type)
+            foreach (var cert in certList)
             {
-                case "cert-types":
-                    csv.AppendLine("Certification Type,# of Active Certificates");
-                    break;
-                case "top-companies":
-                    csv.AppendLine("Company,# of Active Certificates");
-                    break;
-                case "cert-status":
-                    csv.AppendLine("Status,# of Certificates");
-                    break;
-                case "product-types":
-                    csv.AppendLine("Product Type,# of Active Certificates");
-                    break;
-                case "product-categories":
-                    csv.AppendLine("Product Category,# of Active Certificates");
-                    break;
-                default:
-                    csv.AppendLine("Name,Count");
-                    break;
+                csv.AppendLine($"{EscapeCsvValue(cert.Number)},{EscapeCsvValue(cert.Status)},{EscapeCsvValue(cert.Company?.Name ?? "")},{EscapeCsvValue(cert.Product?.Name ?? "")},{EscapeCsvValue(cert.CertificationType?.Name ?? "")},{cert.EffectiveDate:yyyy-MM-dd},{cert.ExpirationDate:yyyy-MM-dd},{EscapeCsvValue(cert.Location ?? "")},{EscapeCsvValue(cert.Country ?? "")}");
             }
 
-            if (data != null)
-            {
-                foreach (var item in data)
-                {
-                    csv.AppendLine($"{EscapeCsvValue(item.Name)},{item.Count}");
-                }
-            }
-
-            csv.AppendLine();
-            csv.AppendLine($"Generated,{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             return csv.ToString();
         }
 

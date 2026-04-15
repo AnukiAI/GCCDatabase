@@ -45,8 +45,6 @@ namespace GCCWebApp.Data
         // API management
         public DbSet<ApiKey> ApiKeys { get; set; }
         public DbSet<PartnerApiKey> PartnerApiKeys { get; set; }
-        public DbSet<AmazonApiSettings> AmazonApiSettings { get; set; }
-        public DbSet<AmazonSyncHistory> AmazonSyncHistory { get; set; }
 
         // Settings
         public DbSet<GoogleAnalyticsSettings> GoogleAnalyticsSettings { get; set; }

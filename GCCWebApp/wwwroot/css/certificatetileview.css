@@ -2230,8 +2230,8 @@ body.table-view-active .tile-view-content {
 
 /* Status badge */
 .table-grid .grid-cell .status-badge {
-    padding: 4px 10px;
-    font-size: 16px;
+    padding: 3px 8px;
+    font-size: 12px;
 }
 
 /* Date columns */
@@ -2442,7 +2442,7 @@ body.table-view-active .tile-view-content {
     min-width: 100%;
 }
 .sticky-header-cell {
-    padding: 8px 10px;
+    padding: 6px 8px;
     font-weight: 600;
     font-size: 13px;
     color: #333;
@@ -2498,10 +2498,12 @@ body.table-view-active .tile-view-content {
 .table-body-row:nth-child(even):hover .table-body-cell { background: #f0f7ff; }
 
 .table-body-cell {
-    padding: 6px 10px;
+    padding: 4px 8px;
     font-size: 13px;
     color: #333;
-    white-space: nowrap;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
     overflow: hidden;
     text-overflow: ellipsis;
     flex-shrink: 0;
@@ -2509,7 +2511,7 @@ body.table-view-active .tile-view-content {
     border-right: 1px solid #f0f0f0;
     display: flex;
     align-items: center;
-    min-height: 32px;
+    min-height: 28px;
 }
 .table-body-cell:last-child { border-right: none; }
 
@@ -2568,10 +2570,11 @@ body.table-view-active .tile-view-content {
 /* Status badges in new table */
 .table-body-cell .status-badge {
     display: inline-block;
-    padding: 3px 8px;
+    padding: 2px 6px;
     border-radius: 4px;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 500;
+    white-space: nowrap;
 }
 
 .table-body-cell .status-badge.status-active {

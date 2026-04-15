@@ -141,7 +141,7 @@ namespace GCCWebApp.Services
                 {
                     // Check for expired certificates first (higher priority)
                     if ((certificate.Status == "Active" || certificate.Status == "PendingRenewal") &&
-                        certificate.ExpirationDate < DateTime.UtcNow.Date)
+                        certificate.ExpirationDate < CertificateStatusHelper.BusinessToday)
                     {
                         var oldStatus = certificate.Status;
                         certificate.Status = "Expired";

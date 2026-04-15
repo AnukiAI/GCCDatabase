@@ -389,37 +389,38 @@ namespace GCCWebApp.Controllers
 
         private async Task<object?> GetTableData(string type)
         {
-            // Get all active certificates - we'll filter in memory based on table type
-            var allCerts = await _certificateRepository.GetActiveCertificatesAsync();
-            var certsList = allCerts.ToList();
-
             switch (type)
             {
                 case "cert-types":
-                    // Return all active certificates (they'll be grouped by cert type in the export)
-                    return certsList;
+                    var certTypes = await _certificateRepository.GetCertificationTypeStatisticsAsync();
+                    return certTypes?.Select(ct => new { Name = ct.Name, Count = ct.Count }).ToList();
 
                 case "top-companies":
-                    // Get top 10 companies and filter certificates
-                    var topCompaniesStats = await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
-                    var topCompanyIds = topCompaniesStats.Select(c => c.Name).ToList();
-                    return certsList.Where(c => c.Company != null && topCompanyIds.Contains(c.Company.Name)).ToList();
+                    var companies = await _certificateRepository.GetTopCompaniesByActiveCertCountAsync(10);
+                    return companies?.Select(c => new { Name = c.Name, Count = c.Count }).ToList();
 
                 case "cert-status":
-                    // Return all active certificates (status shown in CSV)
-                    return certsList;
+                    // Return ALL statuses matching dashboard display
+                    var stats = await _certificateRepository.GetCertificateStatisticsAsync();
+                    var statusOrder = new[] {
+                        ("Draft", "Status_Draft"),
+                        ("Client Approved - Not Paid", "Status_Client Approved - Not Paid"),
+                        ("Client Approved - Confidential", "Status_Client Approved - Confidential"),
+                        ("Client Approved - Paid", "Status_Client Approved - Paid"),
+                        ("Hold", "Status_Hold"),
+                        ("Expired", "Status_Expired"),
+                        ("Republished", "Status_Republished"),
+                        ("Expired - No Annual Verification", "Status_Expired - No Annual Verification")
+                    };
+                    return statusOrder.Select(s => new { Name = s.Item1, Count = stats.GetValueOrDefault(s.Item2, 0) }).ToList();
 
                 case "product-types":
-                    // Get top 10 product types and filter certificates
-                    var productTypeStats = await _certificateRepository.GetProductTypeStatisticsAsync(10);
-                    var topProductNames = productTypeStats.Select(p => p.Name).ToList();
-                    return certsList.Where(c => c.Product != null && topProductNames.Contains(c.Product.Name)).ToList();
+                    var productTypes = await _certificateRepository.GetProductTypeStatisticsAsync(10);
+                    return productTypes?.Select(pt => new { Name = pt.Name, Count = pt.Count }).ToList();
 
                 case "product-categories":
-                    // Get top 5 certification types and filter certificates
-                    var certTypeStats = await _certificateRepository.GetCertificationTypeStatisticsAsync();
-                    var top5CertTypes = certTypeStats.Take(5).Select(ct => ct.Name).ToList();
-                    return certsList.Where(c => c.CertificationType != null && top5CertTypes.Contains(c.CertificationType.Name)).ToList();
+                    var categories = await _certificateRepository.GetCertificationTypeStatisticsAsync();
+                    return categories?.Take(5).Select(ct => new { Name = ct.Name, Count = ct.Count }).ToList();
 
                 default:
                     return null;
@@ -472,28 +473,39 @@ namespace GCCWebApp.Controllers
         {
             var csv = new StringBuilder();
 
-            // Header row with full certificate details
-            csv.AppendLine("Certificate Number,Company Name,Product Name,Certification Type,Effective Date,Expiration Date,Status,Certificate PDF URL");
+            // Determine header based on table type
+            switch (type)
+            {
+                case "cert-types":
+                    csv.AppendLine("Certification Type,# of Active Certificates");
+                    break;
+                case "top-companies":
+                    csv.AppendLine("Company,# of Active Certificates");
+                    break;
+                case "cert-status":
+                    csv.AppendLine("Status,# of Certificates");
+                    break;
+                case "product-types":
+                    csv.AppendLine("Product Type,# of Active Certificates");
+                    break;
+                case "product-categories":
+                    csv.AppendLine("Product Category,# of Active Certificates");
+                    break;
+                default:
+                    csv.AppendLine("Name,Count");
+                    break;
+            }
 
             if (data != null)
             {
-                IEnumerable<Certificate> certificates = data;
-
-                foreach (var cert in certificates)
+                foreach (var item in data)
                 {
-                    var certificateNumber = EscapeCsvValue(cert.Number ?? "N/A");
-                    var companyName = EscapeCsvValue(cert.Company?.Name ?? "N/A");
-                    var productName = EscapeCsvValue(cert.Product?.Name ?? "N/A");
-                    var certificationType = EscapeCsvValue(cert.CertificationType?.Name ?? "N/A");
-                    var effectiveDate = cert.EffectiveDate.ToString("yyyy-MM-dd");
-                    var expirationDate = cert.ExpirationDate.ToString("yyyy-MM-dd");
-                    var status = EscapeCsvValue(cert.Status ?? "N/A");
-                    var pdfUrl = !string.IsNullOrEmpty(cert.CertificateFile) ? $"/uploads/certificates/{cert.CertificateFile}" : "N/A";
-
-                    csv.AppendLine($"{certificateNumber},{companyName},{productName},{certificationType},{effectiveDate},{expirationDate},{status},{pdfUrl}");
+                    csv.AppendLine($"{EscapeCsvValue(item.Name)},{item.Count}");
                 }
             }
 
+            csv.AppendLine();
+            csv.AppendLine($"Generated,{DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
             return csv.ToString();
         }
 

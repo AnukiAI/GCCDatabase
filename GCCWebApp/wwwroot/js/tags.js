@@ -543,7 +543,7 @@ async function loadTags() {
 function downloadImportTemplate() {
     try {
         // Create CSV content with headers only (no sample data)
-        const headers = ['Name', 'TagType', 'Description'];
+        const headers = ['Name', 'TagType (Internal, External)', 'Description'];
         const csvContent = headers.join(',');
 
         // Download file
@@ -1154,7 +1154,7 @@ function parseCSVLine(line) {
  * Handles common variations case-insensitively.
  */
 function normalizeTagHeaderName(header) {
-    const normalized = header.toLowerCase().replace(/[\s_-]/g, '');
+    const normalized = header.toLowerCase().replace(/\s*\(.*?\)\s*/g, '').replace(/[\s_-]/g, '');
 
     const headerMappings = {
         // Name variations

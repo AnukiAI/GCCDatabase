@@ -55,7 +55,7 @@ namespace GCCWebApp.Repositories
         public async Task<IEnumerable<Certificate>> GetActiveCertificatesAsync()
         {
             return await _dbSet
-                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date))
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday))
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -65,7 +65,7 @@ namespace GCCWebApp.Repositories
         public async Task<IEnumerable<Certificate>> GetExpiringCertificatesAsync(DateTime beforeDate)
         {
             return await _dbSet
-                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ExpirationDate <= beforeDate && c.ExpirationDate >= DateTime.UtcNow.Date)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ExpirationDate <= beforeDate && c.ExpirationDate >= CertificateStatusHelper.BusinessToday)
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -254,8 +254,8 @@ namespace GCCWebApp.Repositories
 
             if (filter.ExcludeExpiredByDate)
             {
-                var today = DateTime.UtcNow.Date;
-                query = query.Where(c => c.ExpirationDate == null || c.ExpirationDate >= today);
+                var businessToday = CertificateStatusHelper.BusinessToday;
+                query = query.Where(c => c.ExpirationDate == null || c.ExpirationDate >= businessToday);
             }
 
             if (!string.IsNullOrEmpty(filter.Location))
@@ -371,9 +371,10 @@ namespace GCCWebApp.Repositories
 
         public async Task<IEnumerable<Certificate>> GetCertificatesExpiringInDaysAsync(int days)
         {
-            var targetDate = DateTime.UtcNow.AddDays(days);
+            var businessToday = CertificateStatusHelper.BusinessToday;
+            var targetDate = businessToday.AddDays(days);
             return await _dbSet
-                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ExpirationDate <= targetDate && c.ExpirationDate >= DateTime.UtcNow.Date)
+                .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && c.ExpirationDate <= targetDate && c.ExpirationDate >= businessToday)
                 .Include(c => c.Company)
                 .Include(c => c.Product)
                 .Include(c => c.CertificationType)
@@ -415,7 +416,7 @@ namespace GCCWebApp.Repositories
         public async Task<Dictionary<string, int>> GetCertificateStatisticsAsync()
         {
             var stats = new Dictionary<string, int>();
-            var today = DateTime.UtcNow.Date;
+            var today = CertificateStatusHelper.BusinessToday;
 
             // Total certificates
             stats["Total"] = await _dbSet.CountAsync();

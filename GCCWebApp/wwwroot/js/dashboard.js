@@ -6,7 +6,7 @@ async function downloadStat(statType) {
 
     try {
         // Use fetch to handle authentication properly - request CSV format
-        const response = await fetch(`/Export/DownloadStat?type=${statType}&format=csv`, {
+        const response = await fetch(`/Dashboard/DownloadStat?type=${statType}`, {
             method: 'GET',
             credentials: 'same-origin', // Include cookies for authentication
             headers: {

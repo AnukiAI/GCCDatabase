@@ -131,20 +131,20 @@ namespace GCCWebApp.Controllers
                             .Include(c => c.Company)
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
-                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date))
+                            .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday))
                             .OrderByDescending(c => c.EffectiveDate)
                             .ToListAsync();
                         reportTitle = "Current Active Certificates";
                         break;
 
                     case "expiring-30-days":
-                        var thirtyDaysFromNow = DateTime.UtcNow.AddDays(30);
+                        var thirtyDaysFromNow = CertificateStatusHelper.BusinessToday.AddDays(30);
                         certificates = await _context.Certificates
                             .Include(c => c.Company)
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
                             .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
-                                       (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date) &&
+                                       (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday) &&
                                        c.ExpirationDate <= thirtyDaysFromNow)
                             .OrderBy(c => c.ExpirationDate)
                             .ToListAsync();
@@ -152,13 +152,13 @@ namespace GCCWebApp.Controllers
                         break;
 
                     case "expiring-3-months":
-                        var threeMonthsFromNow = DateTime.UtcNow.AddMonths(3);
+                        var threeMonthsFromNow = CertificateStatusHelper.BusinessToday.AddMonths(3);
                         certificates = await _context.Certificates
                             .Include(c => c.Company)
                             .Include(c => c.Product)
                             .Include(c => c.CertificationType)
                             .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
-                                       (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date) &&
+                                       (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday) &&
                                        c.ExpirationDate <= threeMonthsFromNow)
                             .OrderBy(c => c.ExpirationDate)
                             .ToListAsync();

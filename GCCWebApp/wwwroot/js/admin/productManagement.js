@@ -529,7 +529,7 @@ class ProductManagement {
     downloadImportTemplate() {
         try {
             // Create CSV content with headers only (no sample data)
-            const headers = ['Name', 'Description', 'ProductType', 'Company', 'Status'];
+            const headers = ['Name', 'Description', 'ProductType', 'Company', 'Status (Active, Inactive)'];
             const csvContent = headers.join(',');
 
             // Download file
@@ -1623,7 +1623,7 @@ class ProductManagement {
      */
     normalizeHeaderName(header) {
         // Remove spaces, underscores, dashes and convert to lowercase for comparison
-        const normalized = header.toLowerCase().replace(/[\s_-]/g, '');
+        const normalized = header.toLowerCase().replace(/\s*\(.*?\)\s*/g, '').replace(/[\s_-]/g, '');
 
         // Map common variations to standard field names
         const headerMappings = {

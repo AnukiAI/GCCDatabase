@@ -38,6 +38,16 @@ namespace GCCWebApp.Models
     /// </summary>
     public static class CertificateStatusHelper
     {
+        // Business timezone: GCC operates on US Eastern Time.
+        // Expiration dates are business concepts — "valid through April 3" means April 3 in Eastern Time.
+        private static readonly TimeZoneInfo BusinessTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+
+        /// <summary>
+        /// Gets today's date in the business timezone (US Eastern).
+        /// Use this for all expiration date comparisons instead of DateTime.UtcNow.Date.
+        /// </summary>
+        public static DateTime BusinessToday => TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, BusinessTimeZone).Date;
+
         // Status string constants used throughout the application
         public const string StatusDraft = "Draft";
         public const string StatusClientApprovedNotPaid = "Client Approved - Not Paid";

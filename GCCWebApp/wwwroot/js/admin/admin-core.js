@@ -412,17 +412,19 @@ const AdminCore = {
             overlay.setAttribute('aria-describedby', 'modal-message');
 
             // Create modal HTML - Delete button on LEFT (red), Cancel button on RIGHT (green)
+            const confirmText = this.escapeHtml(config.confirmText);
+            const cancelText = this.escapeHtml(config.cancelText);
             overlay.innerHTML = `
                 <div class="admin-modal-dialog gcc-modal-dialog">
                     <div class="gcc-modal-content">
                         <h2 id="modal-title" class="gcc-modal-title">${this.escapeHtml(config.title)}</h2>
                         <p id="modal-message" class="gcc-modal-message">${messageHtml}</p>
                         <div class="gcc-modal-buttons">
-                            <button class="gcc-modal-btn gcc-modal-btn--danger" data-action="confirm">
-                                ${this.escapeHtml(config.confirmText)}
+                            <button type="button" class="gcc-modal-btn gcc-modal-btn--danger" data-action="confirm" style="color:#ffffff;font-size:16px;">
+                                ${confirmText}
                             </button>
-                            <button class="gcc-modal-btn gcc-modal-btn--success" data-action="cancel">
-                                ${this.escapeHtml(config.cancelText)}
+                            <button type="button" class="gcc-modal-btn gcc-modal-btn--success" data-action="cancel" style="color:#ffffff;font-size:16px;">
+                                ${cancelText}
                             </button>
                         </div>
                     </div>

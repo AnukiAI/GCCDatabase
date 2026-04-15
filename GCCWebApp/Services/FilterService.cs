@@ -229,7 +229,7 @@ namespace GCCWebApp.Services
                 var counts = new Dictionary<string, int>
                 {
                     { "Total", await query.CountAsync() },
-                    { "Active", await query.CountAsync(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate >= DateTime.UtcNow.Date) },
+                    { "Active", await query.CountAsync(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && c.ExpirationDate >= CertificateStatusHelper.BusinessToday) },
                     { "Expired", await query.CountAsync(c => c.Status == CertificateStatusHelper.StatusExpired || c.Status == CertificateStatusHelper.StatusExpiredNoAnnualVerification) },
                     { "Draft/Pending", await query.CountAsync(c => c.Status == CertificateStatusHelper.StatusDraft || c.Status == CertificateStatusHelper.StatusClientApprovedNotPaid) }
                 };

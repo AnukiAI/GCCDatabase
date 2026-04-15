@@ -175,6 +175,7 @@ namespace GCCWebApp.Controllers.Api
 
                 var (certificates, totalCount) = await _certificateRepository.GetAdvancedFilteredCertificatesAsync(filter);
 
+                var businessToday = CertificateStatusHelper.BusinessToday;
                 var result = certificates.Select(c => new
                 {
                     id = c.Id,
@@ -190,8 +191,8 @@ namespace GCCWebApp.Controllers.Api
                     location = c.Location,
                     country = c.Country,
                     status = c.Status,
-                    isExpired = c.ExpirationDate < DateTime.UtcNow.Date,
-                    isExpiringSoon = c.ExpirationDate < DateTime.UtcNow.Date.AddDays(30) && c.ExpirationDate >= DateTime.UtcNow.Date,
+                    isExpired = c.ExpirationDate != null && c.ExpirationDate < businessToday,
+                    isExpiringSoon = c.ExpirationDate != null && c.ExpirationDate <= businessToday.AddDays(30) && c.ExpirationDate >= businessToday,
                     externalTags = GetCertificateTags(c)
                 });
 
@@ -244,8 +245,9 @@ namespace GCCWebApp.Controllers.Api
             try
             {
                 // Base query for active certificates (public view shows only active/expiring/renewal certificates)
+                var businessToday = CertificateStatusHelper.BusinessToday;
                 var baseQuery = _context.Certificates
-                    .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date));
+                    .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= businessToday));
 
                 // Get all certification types from admin configuration (matches Admin > Certificate Types page)
                 var allCertTypes = await _context.CertificationTypes
@@ -371,48 +373,68 @@ namespace GCCWebApp.Controllers.Api
 
                 var suggestions = new List<object>();
 
-                // Search companies
-                var companies = await _unitOfWork.Companies.FindAsync(c => 
-                    c.IsActive && c.Name.Contains(term));
-                
-                suggestions.AddRange(companies.Take(5).Select(c => new
+                // Base query: only public-visible certificates (same filter as tile view)
+                var businessToday = CertificateStatusHelper.BusinessToday;
+                var baseQuery = _context.Certificates
+                    .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= businessToday));
+
+                // Search companies that have at least one public certificate
+                var companies = await baseQuery
+                    .Where(c => c.Company != null && c.Company.Name.Contains(term))
+                    .Select(c => c.Company!.Name)
+                    .Distinct()
+                    .Take(5)
+                    .ToListAsync();
+
+                suggestions.AddRange(companies.Select(name => new
                 {
-                    value = c.Name,
-                    label = c.Name,
-                    type = "Company"
+                    value = name,
+                    label = name,
+                    type = ""
                 }));
 
-                // Search products
-                var products = await _unitOfWork.Products.FindAsync(p => 
-                    p.IsActive && p.Name.Contains(term));
-                
-                suggestions.AddRange(products.Take(5).Select(p => new
+                // Search products that have at least one public certificate
+                var products = await baseQuery
+                    .Where(c => c.Product != null && c.Product.Name.Contains(term))
+                    .Select(c => c.Product!.Name)
+                    .Distinct()
+                    .Take(5)
+                    .ToListAsync();
+
+                suggestions.AddRange(products.Select(name => new
                 {
-                    value = p.Name,
-                    label = p.Name,
-                    type = "Product"
+                    value = name,
+                    label = name,
+                    type = ""
                 }));
 
                 // Search certificate numbers
-                var certificates = await _certificateRepository.FindAsync(c => 
-                    CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= DateTime.UtcNow.Date) && c.Number.Contains(term));
-                
-                suggestions.AddRange(certificates.Take(5).Select(c => new
+                var certificates = await baseQuery
+                    .Where(c => c.Number.Contains(term))
+                    .Take(5)
+                    .Select(c => new { c.Number, CompanyName = c.Company != null ? c.Company.Name : "Unknown" })
+                    .ToListAsync();
+
+                suggestions.AddRange(certificates.Select(c => new
                 {
                     value = c.Number,
-                    label = $"{c.Number} - {c.Company?.Name ?? "Unknown"}",
-                    type = "Certificate"
+                    label = $"{c.Number} - {c.CompanyName}",
+                    type = ""
                 }));
 
-                // Search certification types
-                var certTypes = await _unitOfWork.CertificationTypes.FindAsync(ct => 
-                    ct.IsActive && ct.Name.Contains(term));
-                
-                suggestions.AddRange(certTypes.Take(3).Select(ct => new
+                // Search certification types that have at least one public certificate
+                var certTypes = await baseQuery
+                    .Where(c => c.CertificationType != null && c.CertificationType.Name.Contains(term))
+                    .Select(c => c.CertificationType!.Name)
+                    .Distinct()
+                    .Take(3)
+                    .ToListAsync();
+
+                suggestions.AddRange(certTypes.Select(name => new
                 {
-                    value = ct.Name,
-                    label = ct.Name,
-                    type = "Certification Type"
+                    value = name,
+                    label = name,
+                    type = ""
                 }));
 
                 var response = new

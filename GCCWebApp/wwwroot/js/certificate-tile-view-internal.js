@@ -32,7 +32,7 @@
         setupUrlParameters(); // Parse URL params into state.filters first
         await loadFilterOptions(); // Wait for filter checkboxes to be created
         restoreFilterCheckboxes(); // Now apply state.filters to the populated checkboxes
-        loadInitialCertificates();
+        await loadInitialCertificates();
         setupEventListeners();
         setupInfiniteScroll();
         initializeAutocomplete();
@@ -212,15 +212,16 @@
                     console.log('DEBUG - id value:', data.certificates[0].id);
                 }
 
-                const newCertCount = data.certificates.length;
+                let newCertCount = data.certificates.length;
                 if (append) {
-                    state.certificates = [...state.certificates, ...data.certificates];
+                    // Deduplicate by ID to prevent showing the same cert twice
+                    const existingIds = new Set(state.certificates.map(c => c.id));
+                    const uniqueNew = data.certificates.filter(c => !existingIds.has(c.id));
+                    state.certificates = [...state.certificates, ...uniqueNew];
+                    newCertCount = uniqueNew.length;
                 } else {
                     state.certificates = data.certificates;
                 }
-
-                // DEBUG: Verify certificates are stored
-                console.log('DEBUG loadCertificates: Stored', state.certificates.length, 'certificates in state');
 
                 state.totalCount = data.totalCount;
                 state.totalPages = data.totalPages;
@@ -1623,8 +1624,8 @@
 
     // Create table row HTML for a certificate (flex-based for sticky header layout)
     function createTableRow(cert) {
-        const effectiveDate = cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A';
-        const expirationDate = cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A';
+        const effectiveDate = cert.effectiveDate ? parseLocalDate(cert.effectiveDate).toLocaleDateString() : 'N/A';
+        const expirationDate = cert.expirationDate ? parseLocalDate(cert.expirationDate).toLocaleDateString() : 'N/A';
         const location = formatLocation(cert.location, cert.country);
         const statusBadge = getStatusBadge(cert.status);
 

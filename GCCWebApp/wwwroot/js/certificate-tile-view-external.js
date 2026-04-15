@@ -32,7 +32,7 @@
         setupUrlParameters(); // Parse URL params into state.filters first
         await loadFilterOptions(); // Wait for filter checkboxes to be created
         restoreFilterCheckboxes(); // Now apply state.filters to the populated checkboxes
-        loadInitialCertificates();
+        await loadInitialCertificates();
         setupEventListeners();
         setupInfiniteScroll();
         initializeAutocomplete();
@@ -193,7 +193,10 @@
                 const data = await response.json();
                 
                 if (append) {
-                    state.certificates = [...state.certificates, ...data.certificates];
+                    // Deduplicate by ID to prevent showing the same cert twice
+                    const existingIds = new Set(state.certificates.map(c => c.id));
+                    const uniqueNew = data.certificates.filter(c => !existingIds.has(c.id));
+                    state.certificates = [...state.certificates, ...uniqueNew];
                 } else {
                     state.certificates = data.certificates;
                 }
@@ -366,10 +369,20 @@
         });
     }
 
+    // Parse date string as local time to avoid UTC timezone shift
+    // Without this, "2026-04-04" is parsed as UTC midnight, which rolls back a day in US timezones
+    function parseLocalDate(dateStr) {
+        if (!dateStr) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+            return new Date(dateStr + 'T00:00:00');
+        }
+        return new Date(dateStr);
+    }
+
     // Create certificate table row (flex-based for sticky header layout)
     function createCertificateTableRow(cert) {
-        const effectiveDate = cert.effectiveDate ? new Date(cert.effectiveDate).toLocaleDateString() : 'N/A';
-        const expirationDate = cert.expirationDate ? new Date(cert.expirationDate).toLocaleDateString() : 'N/A';
+        const effectiveDate = cert.effectiveDate ? parseLocalDate(cert.effectiveDate).toLocaleDateString() : 'N/A';
+        const expirationDate = cert.expirationDate ? parseLocalDate(cert.expirationDate).toLocaleDateString() : 'N/A';
         const location = formatLocation(cert.location, cert.country);
         const statusBadge = getStatusBadge(cert.status);
 
@@ -949,7 +962,7 @@
     function formatCertificationPeriod(effectiveDate, expirationDate) {
         const formatDate = (dateStr) => {
             if (!dateStr) return 'N/A';
-            const date = new Date(dateStr);
+            const date = parseLocalDate(dateStr);
             return date.toLocaleDateString('en-US', { 
                 year: 'numeric', 
                 month: 'numeric', 

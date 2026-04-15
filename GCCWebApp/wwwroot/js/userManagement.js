@@ -943,7 +943,7 @@ class UserManagement {
      * Handles common variations case-insensitively.
      */
     normalizeUserHeaderName(header) {
-        const normalized = header.toLowerCase().replace(/[\s_-]/g, '');
+        const normalized = header.toLowerCase().replace(/\s*\(.*?\)\s*/g, '').replace(/[\s_-]/g, '');
 
         const headerMappings = {
             // Name variations

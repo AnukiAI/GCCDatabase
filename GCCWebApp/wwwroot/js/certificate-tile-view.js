@@ -35,7 +35,7 @@
         setupUrlParameters(); // Parse URL params into state.filters first
         await loadFilterOptions(); // Wait for filter checkboxes to be created
         restoreFilterCheckboxes(); // Now apply state.filters to the populated checkboxes
-        loadInitialCertificates();
+        await loadInitialCertificates();
         setupEventListeners();
         setupInfiniteScroll();
         initializeAutocomplete();
@@ -123,7 +123,7 @@
             companyList.innerHTML = state.filterOptions.companies.map(company => `
                 <li class="filter-item">
                     <label>
-                        <input type="checkbox" name="company" value="${company.id}">
+                        <input type="checkbox" name="company" value="${escapeHtml(company.name)}">
                         ${escapeHtml(company.name)}
                     </label>
                 </li>
@@ -196,8 +196,11 @@
                 console.log('API data received:', data);
 
                 if (append) {
-                    state.certificates = [...state.certificates, ...data.certificates];
-                    state.loadedCount += data.certificates.length;
+                    // Deduplicate by ID to prevent showing the same cert twice
+                    const existingIds = new Set(state.certificates.map(c => c.id));
+                    const uniqueNew = data.certificates.filter(c => !existingIds.has(c.id));
+                    state.certificates = [...state.certificates, ...uniqueNew];
+                    state.loadedCount += uniqueNew.length;
                 } else {
                     state.certificates = data.certificates;
                     state.loadedCount = data.certificates.length;
@@ -279,12 +282,11 @@
             params.append('country', state.filters.country.join(','));
         }
 
-        if (state.filters.tags.length > 0) {
-            params.append('tags', state.filters.tags.join(','));
-        }
-
-        if (state.filters.additional.length > 0) {
-            params.append('additional', state.filters.additional.join(','));
+        // Combine tags and additional into one 'tags' parameter
+        // The 'tags' API parameter validates external tags and works on all deployments
+        const allTags = [...state.filters.tags, ...state.filters.additional];
+        if (allTags.length > 0) {
+            params.append('tags', allTags.join(','));
         }
 
         params.append('sortBy', state.filters.sortBy);
@@ -716,7 +718,6 @@
         container.innerHTML = suggestions.map((s, index) => `
             <div class="autocomplete-item ${index === 0 ? 'selected' : ''}" data-value="${escapeHtml(s.value)}">
                 <span class="autocomplete-label">${escapeHtml(s.label)}</span>
-                <span class="autocomplete-type">${escapeHtml(s.type)}</span>
             </div>
         `).join('');
 
@@ -918,7 +919,7 @@
 
         if (state.filters.search) {
             html += `<span class="filter-tag" role="listitem">
-                <span class="filter-tag-label">Search:</span> ${escapeHtml(state.filters.search)}
+                ${escapeHtml(state.filters.search)}
                 <button class="filter-tag-remove" data-filter-type="search" aria-label="Remove search filter" title="Remove">&times;</button>
             </span>`;
         }
@@ -928,8 +929,8 @@
             if (values && values.length > 0) {
                 values.forEach(val => {
                     html += `<span class="filter-tag" role="listitem">
-                        <span class="filter-tag-label">${label}:</span> ${escapeHtml(val)}
-                        <button class="filter-tag-remove" data-filter-type="${key}" data-filter-value="${escapeHtml(val)}" aria-label="Remove ${label}: ${escapeHtml(val)} filter" title="Remove">&times;</button>
+                        ${escapeHtml(val)}
+                        <button class="filter-tag-remove" data-filter-type="${key}" data-filter-value="${escapeHtml(val)}" aria-label="Remove ${escapeHtml(val)} filter" title="Remove">&times;</button>
                     </span>`;
                 });
             }

@@ -709,7 +709,7 @@ a.sign-in-link {
     .search-bar input,
     .search-input {
         width: 100%;
-        padding: 10px 15px 10px 40px;
+        padding: 10px 15px 10px 36px;
         border-radius: 6px;
         border: 1px solid var(--border-color);
         background-color: var(--white);
@@ -728,13 +728,15 @@ a.sign-in-link {
 
     .search-bar i {
         position: absolute;
-        left: 15px;
+        left: 12px;
         top: 50%;
         transform: translateY(-50%);
         color: #999;
         font-family: "Font Awesome 6 Free";
         font-weight: 900;
         z-index: 10;
+        font-size: 14px;
+        pointer-events: none;
     }
 
 /* ===== 9. BREADCRUMBS ===== */

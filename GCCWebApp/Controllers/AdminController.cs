@@ -182,7 +182,7 @@ namespace GCCWebApp.Controllers
                 var errorCount = 0;
                 var errors = new List<string>();
 
-                using (var stream = new StreamReader(file.OpenReadStream(), System.Text.Encoding.UTF8))
+                using (var stream = new StreamReader(file.OpenReadStream(), System.Text.Encoding.UTF8, detectEncodingFromByteOrderMarks: true))
                 {
                     var line = await stream.ReadLineAsync(); // Skip header
                     var lineNumber = 1;
@@ -194,24 +194,48 @@ namespace GCCWebApp.Controllers
                         {
                             var values = ParseCsvLine(line);
 
-                            if (values.Length < 4) // Minimum required fields
+                            if (values.Length < 3) // Minimum: Name, Email, Role
                             {
-                                errors.Add($"Line {lineNumber}: Insufficient fields");
+                                errors.Add($"Line {lineNumber}: Insufficient fields (Name, Email, and Role are required)");
                                 errorCount++;
                                 continue;
                             }
 
-                            // CSV Format: Name, Email, Role, Password, CompanyIds (comma-separated)
+                            // QC #108: CSV Format aligned with template:
+                            // Name, Email, Role, Password, Status, RequirePasswordReset, User Company (semicolon-separated names)
+                            var statusVal = values.Length > 4 ? values[4].Trim() : "Active";
+                            var resetVal = values.Length > 5 ? values[5].Trim() : "Yes";
+                            var companyNames = values.Length > 6 && !string.IsNullOrWhiteSpace(values[6])
+                                ? values[6].Split(';').Select(c => c.Trim()).Where(c => c.Length > 0).ToList()
+                                : new List<string>();
+
+                            // Resolve company names to IDs
+                            var companyIds = new List<int>();
+                            foreach (var companyName in companyNames)
+                            {
+                                var company = await _context.Companies
+                                    .FirstOrDefaultAsync(c => c.Name.ToLower() == companyName.ToLower());
+                                if (company != null)
+                                {
+                                    companyIds.Add(company.Id);
+                                }
+                                else
+                                {
+                                    errors.Add($"Line {lineNumber}: Company '{companyName}' not found");
+                                    errorCount++;
+                                    continue;
+                                }
+                            }
+
                             var model = new CreateUserViewModel
                             {
-                                Name = values[0],
-                                Email = values[1],
-                                Role = values[2],
-                                Password = values.Length > 3 ? values[3] : "TempPassword123!",
-                                CompanyIds = values.Length > 4 && !string.IsNullOrWhiteSpace(values[4])
-                                    ? values[4].Split(';').Select(int.Parse).ToList()
-                                    : new List<int>(),
-                                RequirePasswordReset = true
+                                Name = values[0].Trim(),
+                                Email = values[1].Trim(),
+                                Role = values[2].Trim(),
+                                Password = values.Length > 3 && !string.IsNullOrWhiteSpace(values[3]) ? values[3].Trim() : "TempPassword123!",
+                                CompanyIds = companyIds,
+                                RequirePasswordReset = resetVal.Equals("Yes", StringComparison.OrdinalIgnoreCase) ||
+                                                       resetVal.Equals("true", StringComparison.OrdinalIgnoreCase)
                             };
 
                             if (string.IsNullOrWhiteSpace(model.Name))
@@ -629,11 +653,14 @@ namespace GCCWebApp.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteProductType(int id)
+        public async Task<IActionResult> DeleteProductType(int id, [FromQuery] bool isCategory = false)
         {
             try
             {
-                var (success, message) = await _adminService.DeleteProductTypeAsync(id);
+                // QC #117: isCategory=true means the ID is from ProductCategories table
+                var (success, message) = isCategory
+                    ? await _adminService.DeleteProductCategoryAsync(id)
+                    : await _adminService.DeleteProductTypeAsync(id);
                 return Json(new ApiResponse<object>
                 {
                     Success = success,

@@ -321,9 +321,7 @@ namespace GCCWebApp.Controllers
                 {
                     // Auto-populate certificate number (format: YY-XXXX)
                     Number = nextCertNumber,
-                    // Set default dates to current year
-                    EffectiveDate = DateTime.Today,
-                    ExpirationDate = DateTime.Today.AddYears(2), // Default 2-year validity
+                    // Dates left blank - analyst must enter manually (QC #133)
                     Status = "Draft" // Default status - aligned with DATA_VALIDATION_RULES.md
                 };
 
@@ -384,9 +382,7 @@ namespace GCCWebApp.Controllers
                 {
                     // Auto-populate certificate number (format: YY-XXXX)
                     Number = nextCertNumber,
-                    // Set default dates to current year
-                    EffectiveDate = DateTime.Today,
-                    ExpirationDate = DateTime.Today.AddYears(2), // Default 2-year validity
+                    // Dates left blank - analyst must enter manually (QC #133)
                     Status = CertificateStatusHelper.StatusDraft // Default status
                 };
 
@@ -445,8 +441,8 @@ namespace GCCWebApp.Controllers
                         Partner = model.Partner ?? "None",
                         CertificationResults = model.CertificationResults,
                         PathwayId = model.PathwayId,
-                        EffectiveDate = model.EffectiveDate,
-                        ExpirationDate = model.ExpirationDate,
+                        EffectiveDate = model.EffectiveDate.Value,
+                        ExpirationDate = model.ExpirationDate.Value,
                         Location = model.Location,
                         Country = model.Country,
                         Asin = model.Asin,
@@ -821,8 +817,8 @@ namespace GCCWebApp.Controllers
                     certificate.Partner = model.Partner;
                     certificate.CertificationResults = model.CertificationResults;
                     certificate.PathwayId = model.PathwayId;
-                    certificate.EffectiveDate = model.EffectiveDate;
-                    certificate.ExpirationDate = model.ExpirationDate;
+                    certificate.EffectiveDate = model.EffectiveDate.Value;
+                    certificate.ExpirationDate = model.ExpirationDate.Value;
                     certificate.Location = model.Location;
                     certificate.Country = model.Country;
                     certificate.Asin = model.Asin;

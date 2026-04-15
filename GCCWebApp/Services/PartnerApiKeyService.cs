@@ -14,6 +14,7 @@ namespace GCCWebApp.Services
         Task<PartnerApiKey?> GetApiKeyByValueAsync(string apiKey);
         Task<PartnerApiKey> GenerateApiKeyAsync(int partnerId, string? description, DateTime? expiresAt, string createdBy);
         Task<bool> RevokeApiKeyAsync(int id, string revokedBy);
+        Task<(bool Success, string ErrorMessage)> DeleteApiKeyAsync(int id);
         Task<bool> ValidateApiKeyAsync(string apiKey);
         Task UpdateLastUsedAsync(string apiKey);
         Task<Dictionary<string, object>> GetUsageStatsAsync(int partnerId);
@@ -163,6 +164,35 @@ namespace GCCWebApp.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error revoking API key {Id}", id);
+                throw;
+            }
+        }
+
+        public async Task<(bool Success, string ErrorMessage)> DeleteApiKeyAsync(int id)
+        {
+            try
+            {
+                var apiKey = await _context.PartnerApiKeys.FindAsync(id);
+                if (apiKey == null)
+                {
+                    return (false, "API key not found");
+                }
+
+                if (apiKey.IsActive)
+                {
+                    return (false, "Cannot delete an active API key. Revoke it first.");
+                }
+
+                _context.PartnerApiKeys.Remove(apiKey);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Deleted revoked API key {Id} for partner {PartnerId}", id, apiKey.PartnerId);
+
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting API key {Id}", id);
                 throw;
             }
         }

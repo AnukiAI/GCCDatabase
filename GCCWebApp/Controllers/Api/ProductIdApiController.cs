@@ -375,7 +375,7 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
-                var sampleCsv = "Type,Value,Status,Partner,ProductName,ProductSku,Description\nASIN,B08N5WRWNW,Active,Amazon,Sample Product,SKU123,Sample description\nUPC,123456789012,Active,None,Another Product,SKU456,Another description";
+                var sampleCsv = "Type,Product ID,Status,Partner,ProductName,ProductSku,Description\nASIN,B08N5WRWNW,Active,Amazon,Sample Product,SKU123,Sample description\nUPC,123456789012,Active,None,Another Product,SKU456,Another description";
                 var sampleData = System.Text.Encoding.UTF8.GetBytes(sampleCsv);
                 return File(sampleData, "text/csv", "product_ids_sample.csv");
             }

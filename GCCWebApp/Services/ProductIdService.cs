@@ -366,7 +366,7 @@ namespace GCCWebApp.Services
             using var writer = new StreamWriter(memoryStream);
 
             // Write header
-            await writer.WriteLineAsync("Type,Value,Status,Partner,ProductName,ProductSku,Description,CreatedAt,CreatedBy");
+            await writer.WriteLineAsync("Type,Product ID,Status,Partner,ProductName,ProductSku,Description,CreatedAt,CreatedBy");
 
             // Write data
             foreach (var productId in productIds)

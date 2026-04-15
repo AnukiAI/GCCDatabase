@@ -441,7 +441,6 @@
                 <div class="card-body">
                     <div class="product-info">
                         <div class="product-name">${escapeHtml(cert.productName)}</div>
-                        <div class="product-type">${escapeHtml(cert.productType || '')}</div>
                     </div>
                     <div class="certificate-details">
                         <div class="certificate-period">
@@ -1753,13 +1752,12 @@
             stickyBlock.classList.toggle('stuck', stickyBlock.getBoundingClientRect().top <= 0);
         }, { passive: true });
 
-        // Horizontal mouse wheel scrolling on table body
-        // Converts vertical scroll to horizontal when cursor is over the table
+        // Shift + mouse wheel scrolls table horizontally (like spreadsheet apps)
+        // Without Shift, normal vertical page scrolling is preserved for infinite scroll
         bodyWrap.addEventListener('wheel', function (e) {
-            // Only intercept if there's horizontal overflow and the scroll is vertical
-            if (bodyWrap.scrollWidth > bodyWrap.clientWidth && Math.abs(e.deltaY) > Math.abs(e.deltaX) && e.deltaX === 0) {
+            if (e.shiftKey && bodyWrap.scrollWidth > bodyWrap.clientWidth) {
                 e.preventDefault();
-                bodyWrap.scrollLeft += e.deltaY;
+                bodyWrap.scrollLeft += e.deltaY || e.deltaX;
                 scrollbarRow.scrollLeft = bodyWrap.scrollLeft;
                 headerRow.scrollLeft = bodyWrap.scrollLeft;
             }

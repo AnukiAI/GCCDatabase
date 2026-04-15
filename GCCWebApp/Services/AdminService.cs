@@ -112,201 +112,188 @@ namespace GCCWebApp.Services
                 return (false, $"A user with email '{model.Email}' already exists");
             }
 
-            var strategy = _context.Database.CreateExecutionStrategy();
-            return await strategy.ExecuteAsync(async () =>
+            try
             {
-                using var transaction = await _context.Database.BeginTransactionAsync();
+                var user = new User
+                {
+                    Username = model.Email,
+                    Email = model.Email,
+                    FullName = model.Name,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
+                    Status = "active",
+                    TwoFactorMethod = "Email",
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Users.Add(user);
+
+                // Add role
+                if (!string.IsNullOrEmpty(model.Role))
+                {
+                    var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == model.Role);
+                    if (role != null)
+                    {
+                        user.Roles.Add(role);
+                    }
+                }
+
+                // Add companies
+                if (model.CompanyIds.Any())
+                {
+                    var companies = await _context.Companies
+                        .Where(c => model.CompanyIds.Contains(c.Id))
+                        .ToListAsync();
+
+                    foreach (var company in companies)
+                    {
+                        user.Companies.Add(company);
+                    }
+                }
+
+                // Add partners (for Partner role)
+                if (model.PartnerIds.Any())
+                {
+                    var partners = await _context.Partners
+                        .Where(p => model.PartnerIds.Contains(p.Id))
+                        .ToListAsync();
+
+                    foreach (var partner in partners)
+                    {
+                        user.Partners.Add(partner);
+                    }
+                }
+
+                // Single SaveChangesAsync — EF Core tracks all changes and commits atomically
+                await _context.SaveChangesAsync();
+
+                // Log audit history (non-critical — don't fail user creation if audit fails)
                 try
                 {
-                    var user = new User
-                    {
-                        Username = model.Email,
-                        Email = model.Email,
-                        FullName = model.Name,
-                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.Password),
-                        Status = "active",
-                        TwoFactorMethod = "Email",
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    };
-
-                    _context.Users.Add(user);
-                    await _context.SaveChangesAsync();
-
-                    // Add role
-                    if (!string.IsNullOrEmpty(model.Role))
-                    {
-                        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == model.Role);
-                        if (role != null)
-                        {
-                            user.Roles.Add(role);
-                        }
-                    }
-
-                    // Add companies (for External role)
-                    if (model.CompanyIds.Any())
-                    {
-                        var companies = await _context.Companies
-                            .Where(c => model.CompanyIds.Contains(c.Id))
-                            .ToListAsync();
-
-                        foreach (var company in companies)
-                        {
-                            user.Companies.Add(company);
-                        }
-                    }
-
-                    // Add partners (for Partner role)
-                    if (model.PartnerIds.Any())
-                    {
-                        var partners = await _context.Partners
-                            .Where(p => model.PartnerIds.Contains(p.Id))
-                            .ToListAsync();
-
-                        foreach (var partner in partners)
-                        {
-                            user.Partners.Add(partner);
-                        }
-                    }
-
-                    await _context.SaveChangesAsync();
-
-                    // Log audit history
-                    try
-                    {
-                        await _auditService.LogEntityChangeAsync(
-                            user.Id.ToString(),
-                            user.Email,
-                            "CREATE",
-                            null,
-                            user,
-                            userId,
-                            username,
-                            $"Created user with role: {model.Role ?? "None"}",
-                            "Web UI"
-                        );
-                    }
-                    catch (Exception auditEx)
-                    {
-                        _logger.LogError(auditEx, "Failed to log audit history for user creation");
-                    }
-
-                    await transaction.CommitAsync();
-                    return (true, string.Empty);
+                    await _auditService.LogEntityChangeAsync(
+                        user.Id.ToString(),
+                        user.Email,
+                        "CREATE",
+                        null,
+                        user,
+                        userId,
+                        username,
+                        $"Created user with role: {model.Role ?? "None"}",
+                        "Web UI"
+                    );
                 }
-                catch (Exception ex)
+                catch (Exception auditEx)
                 {
-                    await transaction.RollbackAsync();
-                    _logger.LogError(ex, "Failed to create user with email {Email}", model.Email);
-                    return (false, ex.Message);
+                    _logger.LogError(auditEx, "Failed to log audit history for user creation");
                 }
-            });
+
+                return (true, string.Empty);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create user with email {Email}", model.Email);
+                return (false, ex.Message);
+            }
         }
 
         public async Task<bool> UpdateUserAsync(int id, UserViewModel model, int userId, string username)
         {
-            var strategy = _context.Database.CreateExecutionStrategy();
-            return await strategy.ExecuteAsync(async () =>
+            try
             {
-                using var transaction = await _context.Database.BeginTransactionAsync();
+                var user = await _context.Users
+                    .Include(u => u.Companies)
+                    .Include(u => u.Partners)
+                    .Include(u => u.Roles)
+                    .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+
+                if (user == null) return false;
+
+                // Capture old state for audit (detached from context)
+                var oldUser = await _context.Users
+                    .AsNoTracking()
+                    .Include(u => u.Roles)
+                    .Include(u => u.Companies)
+                    .Include(u => u.Partners)
+                    .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
+
+                var oldRole = oldUser?.Roles.FirstOrDefault()?.Name ?? "None";
+                var newRole = model.Role ?? "None";
+
+                user.FullName = model.Name;
+                user.Email = model.Email;
+                user.IsActive = model.Status == "active";
+                user.UpdatedAt = DateTime.UtcNow;
+
+                // Update role
+                user.Roles.Clear();
+                if (!string.IsNullOrEmpty(model.Role))
+                {
+                    var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == model.Role);
+                    if (role != null)
+                    {
+                        user.Roles.Add(role);
+                    }
+                }
+
+                // Update companies
+                user.Companies.Clear();
+                if (model.CompanyIds.Any())
+                {
+                    var companies = await _context.Companies
+                        .Where(c => model.CompanyIds.Contains(c.Id))
+                        .ToListAsync();
+
+                    foreach (var company in companies)
+                    {
+                        user.Companies.Add(company);
+                    }
+                }
+
+                // Update partners (for Partner role)
+                user.Partners.Clear();
+                if (model.PartnerIds.Any())
+                {
+                    var partners = await _context.Partners
+                        .Where(p => model.PartnerIds.Contains(p.Id))
+                        .ToListAsync();
+
+                    foreach (var partner in partners)
+                    {
+                        user.Partners.Add(partner);
+                    }
+                }
+
+                // Single SaveChangesAsync — EF Core tracks all changes and commits atomically
+                await _context.SaveChangesAsync();
+
+                // Log audit history (non-critical)
                 try
                 {
-                    var user = await _context.Users
-                        .Include(u => u.Companies)
-                        .Include(u => u.Partners)
-                        .Include(u => u.Roles)
-                        .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
-
-                    if (user == null) return false;
-
-                    // Capture old state for audit (detached from context)
-                    var oldUser = await _context.Users
-                        .AsNoTracking()
-                        .Include(u => u.Roles)
-                        .Include(u => u.Companies)
-                        .Include(u => u.Partners)
-                        .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
-
-                    var oldRole = oldUser?.Roles.FirstOrDefault()?.Name ?? "None";
-                    var newRole = model.Role ?? "None";
-
-                    user.FullName = model.Name;
-                    user.Email = model.Email;
-                    user.IsActive = model.Status == "active";
-                    user.UpdatedAt = DateTime.UtcNow;
-
-                    // Update role
-                    user.Roles.Clear();
-                    if (!string.IsNullOrEmpty(model.Role))
-                    {
-                        var role = await _context.Roles.FirstOrDefaultAsync(r => r.Name == model.Role);
-                        if (role != null)
-                        {
-                            user.Roles.Add(role);
-                        }
-                    }
-
-                    // Update companies (for External role)
-                    user.Companies.Clear();
-                    if (model.CompanyIds.Any())
-                    {
-                        var companies = await _context.Companies
-                            .Where(c => model.CompanyIds.Contains(c.Id))
-                            .ToListAsync();
-
-                        foreach (var company in companies)
-                        {
-                            user.Companies.Add(company);
-                        }
-                    }
-
-                    // Update partners (for Partner role)
-                    user.Partners.Clear();
-                    if (model.PartnerIds.Any())
-                    {
-                        var partners = await _context.Partners
-                            .Where(p => model.PartnerIds.Contains(p.Id))
-                            .ToListAsync();
-
-                        foreach (var partner in partners)
-                        {
-                            user.Partners.Add(partner);
-                        }
-                    }
-
-                    await _context.SaveChangesAsync();
-
-                    // Log audit history
-                    try
-                    {
-                        var roleChange = oldRole != newRole ? $" | Role changed from {oldRole} to {newRole}" : "";
-                        await _auditService.LogEntityChangeAsync(
-                            user.Id.ToString(),
-                            user.Email,
-                            "UPDATE",
-                            oldUser,
-                            user,
-                            userId,
-                            username,
-                            $"Updated user{roleChange}",
-                            "Web UI"
-                        );
-                    }
-                    catch (Exception auditEx)
-                    {
-                        _logger.LogError(auditEx, "Failed to log audit history for user update");
-                    }
-
-                    await transaction.CommitAsync();
-                    return true;
+                    var roleChange = oldRole != newRole ? $" | Role changed from {oldRole} to {newRole}" : "";
+                    await _auditService.LogEntityChangeAsync(
+                        user.Id.ToString(),
+                        user.Email,
+                        "UPDATE",
+                        oldUser,
+                        user,
+                        userId,
+                        username,
+                        $"Updated user{roleChange}",
+                        "Web UI"
+                    );
                 }
-                catch (Exception ex)
+                catch (Exception auditEx)
                 {
-                    await transaction.RollbackAsync();
-                    _logger.LogError(ex, "Failed to update user with ID {UserId}", id);
-                    return false;
+                    _logger.LogError(auditEx, "Failed to log audit history for user update");
                 }
-            });
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to update user with ID {UserId}", id);
+                return false;
+            }
         }
 
         public async Task<bool> DeleteUserAsync(int id, int userId, string username)
@@ -591,6 +578,7 @@ namespace GCCWebApp.Services
                     SortOrder = category.SortOrder,
                     ParentName = "",
                     ProductCount = 0,
+                    IsCategory = true, // QC #117: This ID is from ProductCategories table
                     Children = new List<ProductTypeViewModel>()
                 };
 
@@ -669,88 +657,117 @@ namespace GCCWebApp.Services
         {
             try
             {
-                // Check for duplicate name at the same level (same parent)
-                var existingType = await _context.ProductTypes
-                    .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
-                        && pt.ParentId == model.ParentId);
+                // QC #117: The tree view uses IsCategory=true for root nodes (ProductCategories table)
+                // and IsCategory=false for types/subcategories (ProductTypes table).
+                // When parentIsCategory is true, model.ParentId is a ProductCategory.Id, NOT a ProductType.Id.
+                bool parentIsCategory = model.IsCategory; // JS sets this when parent is a category node
 
-                if (existingType != null)
+                if (!model.ParentId.HasValue)
                 {
-                    if (model.ParentId.HasValue)
-                    {
-                        var parentName = await _context.ProductTypes
-                            .Where(pt => pt.Id == model.ParentId.Value)
-                            .Select(pt => pt.Name)
-                            .FirstOrDefaultAsync();
-                        return (false, $"'{model.Name}' already exists under '{parentName}'", null);
-                    }
-                    else
-                    {
+                    // Creating a new root-level category
+                    var existingCategory = await _context.ProductCategories
+                        .FirstOrDefaultAsync(pc => pc.Name.ToLower() == model.Name.ToLower());
+                    if (existingCategory != null)
                         return (false, $"'{model.Name}' already exists at the root level", null);
-                    }
-                }
 
-                // Determine level and CategoryId based on parent
-                int level = 0;
-                int categoryId = 0;
-
-                if (model.ParentId.HasValue)
-                {
-                    var parent = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.ParentId.Value);
-                    if (parent != null)
+                    var newCategory = new ProductCategory
                     {
-                        level = parent.Level + 1;
-                        categoryId = parent.CategoryId; // Inherit CategoryId from parent
-                    }
+                        Name = model.Name,
+                        Description = model.Description,
+                        IsActive = true,
+                        SortOrder = model.SortOrder
+                    };
+                    _context.ProductCategories.Add(newCategory);
+                    await _context.SaveChangesAsync();
+
+                    var result = new ProductTypeViewModel
+                    {
+                        Id = newCategory.Id,
+                        Name = newCategory.Name,
+                        Level = 1,
+                        SortOrder = newCategory.SortOrder,
+                        IsCategory = true
+                    };
+                    return (true, null, result);
+                }
+                else if (parentIsCategory)
+                {
+                    // Adding a type directly under a category (level 2)
+                    // model.ParentId is a ProductCategory.Id
+                    var parentCategory = await _context.ProductCategories
+                        .FirstOrDefaultAsync(pc => pc.Id == model.ParentId.Value);
+                    if (parentCategory == null)
+                        return (false, "Parent category not found", null);
+
+                    // Check duplicate within this category
+                    var existingType = await _context.ProductTypes
+                        .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
+                            && pt.CategoryId == parentCategory.Id && pt.ParentId == null);
+                    if (existingType != null)
+                        return (false, $"'{model.Name}' already exists under '{parentCategory.Name}'", null);
+
+                    var productType = new ProductType
+                    {
+                        Name = model.Name,
+                        ParentId = null, // Direct child of category, not another ProductType
+                        Level = 0,
+                        SortOrder = model.SortOrder,
+                        CategoryId = parentCategory.Id,
+                        IsActive = true
+                    };
+                    _context.ProductTypes.Add(productType);
+                    await _context.SaveChangesAsync();
+
+                    var result = new ProductTypeViewModel
+                    {
+                        Id = productType.Id,
+                        Name = productType.Name,
+                        ParentId = parentCategory.Id,
+                        Level = 2,
+                        SortOrder = productType.SortOrder
+                    };
+                    return (true, null, result);
                 }
                 else
                 {
-                    // For root-level items (categories), create a matching ProductCategory
-                    var matchingCategory = await _context.ProductCategories
-                        .FirstOrDefaultAsync(pc => pc.Name.ToLower() == model.Name.ToLower());
+                    // Adding a subcategory under a ProductType (level 3)
+                    var parent = await _context.ProductTypes
+                        .FirstOrDefaultAsync(pt => pt.Id == model.ParentId.Value);
+                    if (parent == null)
+                        return (false, "Parent type not found", null);
 
-                    if (matchingCategory == null)
+                    // Check duplicate under this parent
+                    var existingType = await _context.ProductTypes
+                        .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
+                            && pt.ParentId == parent.Id);
+                    if (existingType != null)
+                        return (false, $"'{model.Name}' already exists under '{parent.Name}'", null);
+
+                    var productType = new ProductType
                     {
-                        matchingCategory = new ProductCategory
-                        {
-                            Name = model.Name,
-                            Description = model.Description,
-                            IsActive = true,
-                            SortOrder = model.SortOrder
-                        };
-                        _context.ProductCategories.Add(matchingCategory);
-                        await _context.SaveChangesAsync();
-                    }
-                    categoryId = matchingCategory.Id;
+                        Name = model.Name,
+                        ParentId = parent.Id,
+                        Level = parent.Level + 1,
+                        SortOrder = model.SortOrder,
+                        CategoryId = parent.CategoryId,
+                        IsActive = true
+                    };
+                    _context.ProductTypes.Add(productType);
+                    await _context.SaveChangesAsync();
+
+                    var result = new ProductTypeViewModel
+                    {
+                        Id = productType.Id,
+                        Name = productType.Name,
+                        ParentId = parent.Id,
+                        Level = productType.Level + 1,
+                        SortOrder = productType.SortOrder
+                    };
+                    return (true, null, result);
                 }
-
-                var productType = new ProductType
-                {
-                    Name = model.Name,
-                    ParentId = model.ParentId,
-                    Level = level,
-                    SortOrder = model.SortOrder,
-                    CategoryId = categoryId,
-                    IsActive = true
-                };
-
-                _context.ProductTypes.Add(productType);
-                await _context.SaveChangesAsync();
-
-                // Return the created product type as view model
-                var result = new ProductTypeViewModel
-                {
-                    Id = productType.Id,
-                    Name = productType.Name,
-                    ParentId = productType.ParentId,
-                    Level = productType.Level,
-                    SortOrder = productType.SortOrder
-                };
-                return (true, null, result);
             }
             catch (Exception ex)
             {
-                // Log the actual error for debugging
                 _logger.LogError(ex, "Error creating product type: {Name}", model.Name);
                 return (false, $"Error creating product type: {ex.Message}", null);
             }
@@ -760,6 +777,27 @@ namespace GCCWebApp.Services
         {
             try
             {
+                // QC #117: If IsCategory is true, this is a ProductCategory being edited
+                if (model.IsCategory)
+                {
+                    var category = await _context.ProductCategories.FirstOrDefaultAsync(pc => pc.Id == model.Id);
+                    if (category == null) return (false, "Category not found");
+
+                    // Check duplicate name
+                    var dupCat = await _context.ProductCategories
+                        .FirstOrDefaultAsync(pc => pc.Name.ToLower() == model.Name.ToLower() && pc.Id != model.Id);
+                    if (dupCat != null)
+                        return (false, $"'{model.Name}' already exists at the root level");
+
+                    category.Name = model.Name;
+                    category.Description = model.Description;
+                    category.SortOrder = model.SortOrder;
+                    await _context.SaveChangesAsync();
+
+                    _logger.LogInformation("Product category {Id} '{Name}' updated successfully", model.Id, model.Name);
+                    return (true, null);
+                }
+
                 var productType = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Id == model.Id);
                 if (productType == null) return (false, "Product type not found");
 
@@ -771,7 +809,7 @@ namespace GCCWebApp.Services
                     if (newParent == null)
                         return (false, "The selected parent does not exist");
 
-                    // Prevent circular reference: new parent cannot be self or a descendant
+                    // Prevent circular reference
                     if (model.ParentId.Value == model.Id)
                         return (false, "An item cannot be its own parent");
 
@@ -780,7 +818,7 @@ namespace GCCWebApp.Services
                         return (false, "Cannot move an item under one of its own descendants");
                 }
 
-                // Check for duplicate name at the same level (same parent), excluding the current record
+                // Check for duplicate name at the same level
                 var existingType = await _context.ProductTypes
                     .FirstOrDefaultAsync(pt => pt.Name.ToLower() == model.Name.ToLower()
                         && pt.ParentId == model.ParentId
@@ -788,58 +826,12 @@ namespace GCCWebApp.Services
 
                 if (existingType != null)
                 {
-                    if (model.ParentId.HasValue)
-                    {
-                        return (false, $"'{model.Name}' already exists under '{newParent?.Name}'");
-                    }
-                    else
-                    {
-                        return (false, $"'{model.Name}' already exists at the root level");
-                    }
-                }
-
-                // Update level and CategoryId based on new parent
-                if (model.ParentId != productType.ParentId)
-                {
-                    if (newParent != null)
-                    {
-                        productType.Level = newParent.Level + 1;
-                        productType.CategoryId = newParent.CategoryId;
-                    }
-                    else
-                    {
-                        productType.Level = 0;
-                        // For root-level items, create a matching ProductCategory
-                        var matchingCategory = await _context.ProductCategories
-                            .FirstOrDefaultAsync(pc => pc.Name.ToLower() == model.Name.ToLower());
-                        if (matchingCategory == null)
-                        {
-                            matchingCategory = new ProductCategory
-                            {
-                                Name = model.Name,
-                                IsActive = true,
-                                SortOrder = model.SortOrder
-                            };
-                            _context.ProductCategories.Add(matchingCategory);
-                            await _context.SaveChangesAsync();
-                        }
-                        productType.CategoryId = matchingCategory.Id;
-                    }
-                }
-
-                // If this is a root-level category being renamed, keep its ProductCategory in sync
-                if (!productType.ParentId.HasValue && productType.Name != model.Name)
-                {
-                    var linkedCategory = await _context.ProductCategories
-                        .FirstOrDefaultAsync(pc => pc.Id == productType.CategoryId);
-                    if (linkedCategory != null)
-                    {
-                        linkedCategory.Name = model.Name;
-                    }
+                    return (false, model.ParentId.HasValue
+                        ? $"'{model.Name}' already exists under '{newParent?.Name}'"
+                        : $"'{model.Name}' already exists at the root level");
                 }
 
                 productType.Name = model.Name;
-                productType.ParentId = model.ParentId;
                 productType.SortOrder = model.SortOrder;
 
                 await _context.SaveChangesAsync();
@@ -915,6 +907,46 @@ namespace GCCWebApp.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error deleting product type {Id}", id);
+                return (false, "An error occurred while deleting. Please try again.");
+            }
+        }
+
+        /// <summary>
+        /// QC #117: Delete a root-level ProductCategory (not a ProductType)
+        /// </summary>
+        public async Task<(bool Success, string Message)> DeleteProductCategoryAsync(int id)
+        {
+            try
+            {
+                var category = await _context.ProductCategories
+                    .Include(pc => pc.ProductTypes)
+                    .Include(pc => pc.Products)
+                    .FirstOrDefaultAsync(pc => pc.Id == id);
+
+                if (category == null)
+                    return (false, "Category not found");
+
+                // Check if it has child product types
+                if (category.ProductTypes != null && category.ProductTypes.Any())
+                {
+                    var childCount = category.ProductTypes.Count;
+                    return (false, $"Cannot delete: This category has {childCount} type(s). Please delete or move them first.");
+                }
+
+                // Check if it has products assigned
+                if (category.Products != null && category.Products.Any())
+                {
+                    var productCount = category.Products.Count;
+                    return (false, $"Cannot delete: {productCount} product(s) are assigned to this category. Please reassign them first.");
+                }
+
+                _context.ProductCategories.Remove(category);
+                await _context.SaveChangesAsync();
+                return (true, "Category deleted successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting product category {Id}", id);
                 return (false, "An error occurred while deleting. Please try again.");
             }
         }
@@ -1180,6 +1212,13 @@ namespace GCCWebApp.Services
                     return (false, $"A certificate field named '{model.Name}' already exists");
                 }
 
+                // Get default certificate type (same approach as seed data)
+                var defaultCertType = await _context.CertificationTypes.FirstOrDefaultAsync();
+                if (defaultCertType == null)
+                {
+                    return (false, "No certificate types exist in database. Please add a certificate type first.");
+                }
+
                 var field = new CustomField
                 {
                     Name = model.Name,
@@ -1192,7 +1231,7 @@ namespace GCCWebApp.Services
                     DefaultValue = model.DefaultValue,
                     ValidationRules = model.ValidationRules,
                     Section = model.Section ?? "Additional Information",
-                    CertificateTypeId = 1 // Default to first certificate type for now
+                    CertificateTypeId = defaultCertType.Id
                 };
 
                 _context.CustomFields.Add(field);

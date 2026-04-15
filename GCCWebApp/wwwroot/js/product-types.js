@@ -98,6 +98,8 @@ class ProductTypeManager {
         const nodeContent = document.createElement('div');
         nodeContent.className = `node-content ${nodeType}-node ${hasChildren ? 'expandable' : ''}`;
         
+        // QC #117: Pass isCategory flag so CRUD operations use the correct table
+        const isCat = node.isCategory ? 'true' : 'false';
         nodeContent.innerHTML = `
             <div class="node-indent level-${level}"></div>
             ${hasChildren ? '<div class="node-icon"><i class="fas fa-chevron-right"></i></div>' : '<div class="node-icon"></div>'}
@@ -105,11 +107,11 @@ class ProductTypeManager {
             <div class="node-meta">
                 <span class="node-count">${node.productCount || 0}</span>
                 <div class="node-actions">
-                    <button class="action-btn edit" title="Edit ${nodeType}" data-id="${node.id}" data-type="${nodeType}">
+                    <button class="action-btn edit" title="Edit ${nodeType}" data-id="${node.id}" data-type="${nodeType}" data-is-category="${isCat}">
                         <i class="fas fa-edit"></i>
                     </button>
-                    ${level < 3 ? `<button class="action-btn add" title="Add ${level === 1 ? 'Type' : 'Subcategory'}" data-parent-id="${node.id}" data-type="${level === 1 ? 'type' : 'subcategory'}"><i class="fas fa-plus"></i></button>` : ''}
-                    <button class="action-btn delete" title="Delete ${nodeType}" data-id="${node.id}" data-type="${nodeType}">
+                    ${level < 3 ? `<button class="action-btn add" title="Add ${level === 1 ? 'Type' : 'Subcategory'}" data-parent-id="${node.id}" data-type="${level === 1 ? 'type' : 'subcategory'}" data-parent-is-category="${isCat}"><i class="fas fa-plus"></i></button>` : ''}
+                    <button class="action-btn delete" title="Delete ${nodeType}" data-id="${node.id}" data-type="${nodeType}" data-is-category="${isCat}">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>
@@ -345,6 +347,7 @@ class ProductTypeManager {
             const row = document.createElement('tr');
             const typeLabel = item.level === 0 ? 'Category' : item.level === 1 ? 'Type' : 'Subcategory';
 
+            const isCatFlag = item.isCategory ? 'true' : 'false';
             row.innerHTML = `
                 <td>${'&nbsp;'.repeat(item.level * 4)}${item.name}</td>
                 <td><span class="badge badge-${typeLabel.toLowerCase()}">${typeLabel}</span></td>
@@ -353,10 +356,10 @@ class ProductTypeManager {
                 <td>${item.sortOrder || 0}</td>
                 <td>
                     <div class="action-buttons">
-                        <button class="action-btn edit edit-btn" data-id="${item.id}" data-type="${typeLabel.toLowerCase()}" title="Edit">
+                        <button class="action-btn edit edit-btn" data-id="${item.id}" data-type="${typeLabel.toLowerCase()}" data-is-category="${isCatFlag}" title="Edit">
                             <i class="fas fa-edit"></i>
                         </button>
-                        <button class="action-btn delete delete-btn" data-id="${item.id}" data-type="${typeLabel.toLowerCase()}" title="Delete">
+                        <button class="action-btn delete delete-btn" data-id="${item.id}" data-type="${typeLabel.toLowerCase()}" data-is-category="${isCatFlag}" title="Delete">
                             <i class="fas fa-trash"></i>
                         </button>
                     </div>
@@ -376,16 +379,18 @@ class ProductTypeManager {
             btn.addEventListener('click', (e) => {
                 const id = e.currentTarget.dataset.id;
                 const type = e.currentTarget.dataset.type;
-                this.showEditModal(id, type);
+                const isCategory = e.currentTarget.dataset.isCategory === 'true';
+                this.showEditModal(id, type, isCategory);
             });
         });
-        
+
         // Delete buttons
         tbody.querySelectorAll('.delete-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const id = e.currentTarget.dataset.id;
                 const type = e.currentTarget.dataset.type;
-                this.showDeleteConfirm(id, type);
+                const isCategory = e.currentTarget.dataset.isCategory === 'true';
+                this.showDeleteConfirm(id, type, isCategory);
             });
         });
     }
@@ -473,10 +478,12 @@ class ProductTypeManager {
         }
     }
 
-    showAddModal(entityType, parentId = null) {
-        console.log('showAddModal called with entityType:', entityType, 'parentId:', parentId);
+    showAddModal(entityType, parentId = null, parentIsCategory = false) {
+        console.log('showAddModal called with entityType:', entityType, 'parentId:', parentId, 'parentIsCategory:', parentIsCategory);
         try {
             const modal = this.createModal('Add ' + this.capitalize(entityType), entityType, null, parentId);
+            // QC #117: Store parentIsCategory on the modal so createProductType can access it
+            modal.dataset.parentIsCategory = parentIsCategory;
             console.log('Modal created:', modal);
             document.body.appendChild(modal);
             console.log('Modal appended to body');
@@ -487,9 +494,8 @@ class ProductTypeManager {
         }
     }
 
-    showEditModal(id, entityType) {
-        console.log('showEditModal called with id:', id, 'entityType:', entityType);
-        console.log('hierarchyData:', JSON.stringify(this.hierarchyData, null, 2));
+    showEditModal(id, entityType, isCategory = false) {
+        console.log('showEditModal called with id:', id, 'entityType:', entityType, 'isCategory:', isCategory);
 
         // Use findItemById to search nested hierarchy
         const item = this.findItemById(id);
@@ -502,12 +508,14 @@ class ProductTypeManager {
         }
 
         const modal = this.createModal('Edit ' + this.capitalize(entityType), entityType, item);
+        // QC #117: Store isCategory on the modal for updateProductType
+        modal.dataset.isCategory = isCategory;
         document.body.appendChild(modal);
         this.setupModalEvents(modal);
     }
 
-    async showDeleteConfirm(id, entityType) {
-        console.log('showDeleteConfirm called with id:', id, 'entityType:', entityType);
+    async showDeleteConfirm(id, entityType, isCategory = false) {
+        console.log('showDeleteConfirm called with id:', id, 'entityType:', entityType, 'isCategory:', isCategory);
 
         // Use findItemById to search nested hierarchy
         const item = this.findItemById(id);
@@ -529,7 +537,7 @@ class ProductTypeManager {
         });
 
         if (confirmed) {
-            this.deleteProductType(id);
+            this.deleteProductType(id, isCategory);
         }
     }
 
@@ -891,12 +899,16 @@ class ProductTypeManager {
                     if (isEdit) {
                         // Get ID from hidden input (more reliable than searching by name)
                         const editItemId = form.querySelector('#editItemId')?.value;
+                        const editIsCategory = modal.dataset.isCategory === 'true';
                         if (editItemId) {
-                            this.updateProductType(editItemId, data);
+                            this.updateProductType(editItemId, data, editIsCategory);
                         } else {
                             console.error('Could not find editItemId in form');
                         }
                     } else {
+                        // QC #117: Pass parentIsCategory so the API knows which table the parent ID refers to
+                        const parentIsCategory = modal.dataset.parentIsCategory === 'true';
+                        data.isCategory = parentIsCategory;
                         this.createProductType(data);
                     }
                     
@@ -955,15 +967,15 @@ class ProductTypeManager {
         }
     }
 
-    async updateProductType(id, data) {
+    async updateProductType(id, data, isCategory = false) {
         try {
-            const response = await fetch(`/Admin/UpdateProductType/${id}`, {
+            const response = await fetch(`/Admin/UpdateProductType/${id}?isCategory=${isCategory}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
                 },
-                body: JSON.stringify({ ...data, id })
+                body: JSON.stringify({ ...data, id, isCategory })
             });
             
             const result = await response.json();
@@ -979,9 +991,10 @@ class ProductTypeManager {
         }
     }
 
-    async deleteProductType(id) {
+    async deleteProductType(id, isCategory = false) {
         try {
-            const response = await fetch(`/Admin/DeleteProductType/${id}`, {
+            // QC #117: Pass isCategory so the controller deletes from the correct table
+            const response = await fetch(`/Admin/DeleteProductType/${id}?isCategory=${isCategory}`, {
                 method: 'POST',
                 headers: {
                     'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
@@ -1162,33 +1175,37 @@ function initializeExportFunctionality() {
 function initializeEventHandlers() {
     // Delegate events for dynamically created elements
     document.addEventListener('click', (e) => {
+        // QC #117: Pass isCategory flag through all CRUD operations
         // Handle edit buttons
         if (e.target.closest('.action-btn.edit')) {
             const btn = e.target.closest('.action-btn.edit');
             const id = btn.dataset.id;
             const type = btn.dataset.type;
+            const isCategory = btn.dataset.isCategory === 'true';
             if (window.productTypeManager) {
-                window.productTypeManager.showEditModal(id, type);
+                window.productTypeManager.showEditModal(id, type, isCategory);
             }
         }
-        
+
         // Handle add buttons
         if (e.target.closest('.action-btn.add')) {
             const btn = e.target.closest('.action-btn.add');
             const parentId = btn.dataset.parentId;
             const type = btn.dataset.type;
+            const parentIsCategory = btn.dataset.parentIsCategory === 'true';
             if (window.productTypeManager) {
-                window.productTypeManager.showAddModal(type, parentId);
+                window.productTypeManager.showAddModal(type, parentId, parentIsCategory);
             }
         }
-        
+
         // Handle delete buttons
         if (e.target.closest('.action-btn.delete')) {
             const btn = e.target.closest('.action-btn.delete');
             const id = btn.dataset.id;
             const type = btn.dataset.type;
+            const isCategory = btn.dataset.isCategory === 'true';
             if (window.productTypeManager) {
-                window.productTypeManager.showDeleteConfirm(id, type);
+                window.productTypeManager.showDeleteConfirm(id, type, isCategory);
             }
         }
     });

@@ -117,24 +117,30 @@ namespace GCCWebApp.Models
     public class ProductTypeViewModel
     {
         public int Id { get; set; }
-        
+
         [Required]
         [StringLength(100)]
         public string Name { get; set; } = string.Empty;
-        
+
         public int? ParentId { get; set; }
-        
+
         public int Level { get; set; }
-        
+
         public int SortOrder { get; set; }
-        
+
         public string? Description { get; set; }
-        
+
         public int ProductCount { get; set; }
-        
+
         public List<ProductTypeViewModel> Children { get; set; } = new List<ProductTypeViewModel>();
-        
+
         public string ParentName { get; set; } = string.Empty;
+
+        /// <summary>
+        /// QC #117: Distinguishes root-level ProductCategory nodes from ProductType nodes.
+        /// When true, Id refers to ProductCategories table; when false, Id refers to ProductTypes table.
+        /// </summary>
+        public bool IsCategory { get; set; }
     }
 
     // Certificate Types Models

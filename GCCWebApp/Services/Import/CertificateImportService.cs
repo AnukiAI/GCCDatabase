@@ -542,7 +542,7 @@ namespace GCCWebApp.Services.Import
             var rows = new List<CertificateImportCsvRow>();
             int rowNumber = 1; // Start at 1 (header is row 0)
 
-            using var reader = new StreamReader(csvFile.OpenReadStream(), Encoding.UTF8);
+            using var reader = new StreamReader(csvFile.OpenReadStream(), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
             using var csv = new CsvReader(reader, new CsvConfiguration(CultureInfo.InvariantCulture)
             {
                 HeaderValidated = null,

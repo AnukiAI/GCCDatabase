@@ -308,7 +308,7 @@ class ProductIdManager {
     showAddModal() {
         this.resetForm();
         document.getElementById('productIdModalLabel').textContent = 'Add Product ID';
-        const modal = new bootstrap.Modal(document.getElementById('productIdModal'));
+        const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('productIdModal'));
         modal.show();
     }
 
@@ -319,7 +319,7 @@ class ProductIdManager {
             if (productId) {
                 this.populateForm(productId);
                 document.getElementById('productIdModalLabel').textContent = 'Edit Product ID';
-                const modal = new bootstrap.Modal(document.getElementById('productIdModal'));
+                const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('productIdModal'));
                 modal.show();
             } else {
                 this.showError('Product ID not found');
@@ -333,7 +333,7 @@ class ProductIdManager {
                 const productId = await response.json();
                 this.populateForm(productId);
                 document.getElementById('productIdModalLabel').textContent = 'Edit Product ID';
-                const modal = new bootstrap.Modal(document.getElementById('productIdModal'));
+                const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('productIdModal'));
                 modal.show();
             } else {
                 this.showError('Failed to load product ID details');
@@ -779,7 +779,7 @@ class ProductIdManager {
             });
 
             const type = productId.type || '';
-            let value = productId.value || productId.productid || '';
+            let value = productId.value || productId.productid || productId['product id'] || '';
 
             // Fix scientific notation from Excel (e.g., 1.23E+12 → 123000000000)
             value = this.fixScientificNotation(value);
@@ -1219,7 +1219,7 @@ class ProductIdManager {
     }
 
     downloadSample() {
-        const csvContent = "Type,Value,Status,Partner,ProductName,ProductSku,Description";
+        const csvContent = "Type,Product ID,Status,Partner,ProductName,ProductSku,Description";
 
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);

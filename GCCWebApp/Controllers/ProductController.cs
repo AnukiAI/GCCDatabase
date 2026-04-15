@@ -666,7 +666,7 @@ namespace GCCWebApp.Controllers
                 var companies = await _context.Companies.Where(c => !c.IsDeleted).ToListAsync();
                 var createdCompanies = new List<Company>();
 
-                using (var stream = new StreamReader(file.OpenReadStream(), Encoding.UTF8))
+                using (var stream = new StreamReader(file.OpenReadStream(), Encoding.UTF8, detectEncodingFromByteOrderMarks: true))
                 {
                     var line = await stream.ReadLineAsync(); // Skip header
                     var lineNumber = 1;

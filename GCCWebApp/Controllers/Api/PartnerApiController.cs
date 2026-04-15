@@ -368,6 +368,59 @@ namespace GCCWebApp.Controllers.Api
         }
 
         /// <summary>
+        /// Delete a revoked partner API key
+        /// </summary>
+        /// <remarks>
+        /// Permanently deletes a revoked API key from the system.
+        /// Only revoked keys can be deleted — active keys must be revoked first.
+        /// </remarks>
+        /// <param name="id">The unique identifier of the API key to delete</param>
+        /// <response code="200">API key deleted successfully</response>
+        /// <response code="400">Cannot delete an active API key</response>
+        /// <response code="404">API key not found</response>
+        /// <response code="500">Internal server error</response>
+        [HttpDelete("apikey/{id}/delete")]
+        [SwaggerOperation(
+            Summary = "Delete revoked API key",
+            Description = "Permanently removes a revoked API key from the system",
+            OperationId = "DeleteApiKey",
+            Tags = new[] { "Partner API Management" }
+        )]
+        [ProducesResponseType(typeof(StandardApiResponse<object>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> DeleteApiKey([FromRoute] int id)
+        {
+            try
+            {
+                var (success, errorMessage) = await _partnerApiKeyService.DeleteApiKeyAsync(id);
+
+                if (!success)
+                {
+                    if (errorMessage.Contains("not found"))
+                    {
+                        return NotFound(StandardApiResponse<object>.ErrorResult(
+                            errorMessage, ApiErrorCodes.NotFound));
+                    }
+                    return BadRequest(StandardApiResponse<object>.ErrorResult(
+                        errorMessage, ApiErrorCodes.ValidationError));
+                }
+
+                return Ok(StandardApiResponse<object>.SuccessResult(
+                    new { deleted = true },
+                    "API key deleted successfully"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting API key {Id}", id);
+                return StatusCode(500, StandardApiResponse<object>.ErrorResult(
+                    "Failed to delete API key",
+                    ApiErrorCodes.InternalError));
+            }
+        }
+
+        /// <summary>
         /// Get usage statistics for a partner
         /// </summary>
         /// <remarks>

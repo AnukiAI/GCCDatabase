@@ -750,8 +750,8 @@ namespace GCCWebApp.Services
                 {
                     Number = certificate.Number,
                     Status = certificate.Status,
-                    EffectiveDate = certificate.EffectiveDate,
-                    ExpirationDate = certificate.ExpirationDate,
+                    EffectiveDate = certificate.EffectiveDate.Value,
+                    ExpirationDate = certificate.ExpirationDate.Value,
                     Location = certificate.Location,
                     Country = certificate.Country,
                     Asin = certificate.Asin,
@@ -786,8 +786,8 @@ namespace GCCWebApp.Services
 
                 existingCertificate.Number = certificate.Number;
                 existingCertificate.Status = certificate.Status;
-                existingCertificate.EffectiveDate = certificate.EffectiveDate;
-                existingCertificate.ExpirationDate = certificate.ExpirationDate;
+                existingCertificate.EffectiveDate = certificate.EffectiveDate.Value;
+                existingCertificate.ExpirationDate = certificate.ExpirationDate.Value;
                 existingCertificate.Location = certificate.Location;
                 existingCertificate.Country = certificate.Country;
                 existingCertificate.Asin = certificate.Asin;

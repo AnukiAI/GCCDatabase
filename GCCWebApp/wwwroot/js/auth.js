@@ -134,6 +134,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // QC #71: Global fetch interceptor — catch 401 responses from AJAX calls when session expires
+    // and redirect to login instead of silently failing or showing broken UI
+    const originalFetch = window.fetch;
+    window.fetch = async function(...args) {
+        const response = await originalFetch.apply(this, args);
+        if (response.status === 401 && document.querySelector('#logoutForm')) {
+            // Session has expired server-side — redirect to login
+            if (typeof UnsavedChanges !== 'undefined' && UnsavedChanges.initialized && UnsavedChanges.hasChanges) {
+                UnsavedChanges.saveToLocalStorage();
+            }
+            window.location.href = '/Account/Login?error=session_expired';
+            // Return the response so in-flight code doesn't throw
+            return response;
+        }
+        return response;
+    };
+
     // Smooth redirect after login
     const returnUrl = urlParams.get('returnUrl');
     if (returnUrl && window.location.pathname.includes('/Account/Login')) {

@@ -509,6 +509,10 @@ class UserManagement {
         if (companyGroup) companyGroup.style.display = 'block';
         if (partnerGroup) partnerGroup.style.display = 'none';
 
+        // Reset Check All checkbox
+        const checkAll = document.getElementById('company-check-all');
+        if (checkAll) checkAll.checked = false;
+
         this.showModal();
     }
     
@@ -538,6 +542,11 @@ class UserManagement {
             companyCheckboxes.forEach(checkbox => {
                 checkbox.checked = user.companyIds.includes(parseInt(checkbox.value));
             });
+            // Sync Check All state
+            const checkAll = document.getElementById('company-check-all');
+            if (checkAll) {
+                checkAll.checked = companyCheckboxes.length > 0 && Array.from(companyCheckboxes).every(cb => cb.checked);
+            }
         }
 
         // Set selected partner (first partner in the array, per design: single partner per user)
@@ -636,7 +645,7 @@ class UserManagement {
         const formData = {
             name: document.getElementById('user-name').value.trim(),
             email: document.getElementById('user-email').value.trim(),
-            companyIds: role === 'External' ? selectedCompanies : [],  // Only for External role
+            companyIds: role !== 'Partner' ? selectedCompanies : [],  // All roles except Partner
             partnerIds: role === 'Partner' ? partnerIds : [],  // Only for Partner role
             role: role,
             status: document.getElementById('user-status').value,
@@ -776,13 +785,13 @@ class UserManagement {
 
         try {
             // Prepare export data - get company names from companyNames array
+            // QC #108: "User Company" per Carly's feedback
             const exportData = this.filteredUsers.map(user => ({
-                ID: user.id,
                 Name: user.name || '',
                 Email: user.email || '',
-                Company: user.companyNames ? user.companyNames.join(', ') : (user.company || ''),
                 Role: user.role || '',
                 Status: user.status || '',
+                'User Company': user.companyNames ? user.companyNames.join('; ') : (user.company || ''),
                 'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'
             }));
 
@@ -822,8 +831,18 @@ class UserManagement {
     
     downloadImportTemplate() {
         try {
-            // Create CSV content with headers only (no sample data)
-            const headers = ['Name', 'Email', 'Company', 'Role', 'Status', 'Password', 'RequirePasswordReset'];
+            // QC #108: Template headers aligned with import parser and Carly's feedback.
+            // "User Company" per Carly. Status: Active/Inactive. RequirePasswordReset: Yes/No.
+            // Multiple companies separated by semicolons (company names, not IDs).
+            const headers = [
+                'Name',
+                'Email',
+                'Role (Admin/Analyst/External)',
+                'Password',
+                'Status (Active/Inactive)',
+                'RequirePasswordReset (Yes/No)',
+                'User Company (semicolon-separated if multiple)'
+            ];
             const csvContent = headers.join(',');
 
             // Download file
@@ -1507,16 +1526,19 @@ class UserManagement {
     }
     
     populateCompanyDropdowns() {
+        // Sort companies alphabetically by name
+        const sorted = [...this.companies].sort((a, b) =>
+            (a.name || '').localeCompare(b.name || '')
+        );
+
         // Update filter dropdown
         const companyFilter = document.getElementById('company-filter');
         if (companyFilter) {
-            // Clear existing options except "All Companies"
             const firstOption = companyFilter.children[0];
             companyFilter.innerHTML = '';
             companyFilter.appendChild(firstOption);
-            
-            // Add company options
-            this.companies.forEach(company => {
+
+            sorted.forEach(company => {
                 const option = document.createElement('option');
                 option.value = company.id;
                 option.textContent = company.name;
@@ -1528,7 +1550,32 @@ class UserManagement {
         const companiesContainer = document.getElementById('user-companies-container');
         if (companiesContainer) {
             companiesContainer.innerHTML = '';
-            this.companies.forEach(company => {
+
+            // Add "Check All" option at top
+            const checkAllLabel = document.createElement('label');
+            checkAllLabel.className = 'admin-checkbox-item';
+            checkAllLabel.style.cssText = 'width: 100%; border-bottom: 1px solid #e0e0e0; padding-bottom: 6px; margin-bottom: 4px; font-weight: 600;';
+
+            const checkAllBox = document.createElement('input');
+            checkAllBox.type = 'checkbox';
+            checkAllBox.id = 'company-check-all';
+
+            const checkAllSpan = document.createElement('span');
+            checkAllSpan.textContent = 'Check All';
+            checkAllSpan.style.fontWeight = '600';
+
+            checkAllLabel.appendChild(checkAllBox);
+            checkAllLabel.appendChild(checkAllSpan);
+            companiesContainer.appendChild(checkAllLabel);
+
+            // Toggle all company checkboxes when Check All is clicked
+            checkAllBox.addEventListener('change', () => {
+                const boxes = companiesContainer.querySelectorAll('input[name="user-companies"]');
+                boxes.forEach(cb => cb.checked = checkAllBox.checked);
+            });
+
+            // Add individual company checkboxes (alphabetical)
+            sorted.forEach(company => {
                 const label = document.createElement('label');
                 label.className = 'admin-checkbox-item';
 
@@ -1537,6 +1584,13 @@ class UserManagement {
                 checkbox.name = 'user-companies';
                 checkbox.value = company.id;
                 checkbox.id = `company-${company.id}`;
+
+                // Update Check All state when individual boxes change
+                checkbox.addEventListener('change', () => {
+                    const boxes = companiesContainer.querySelectorAll('input[name="user-companies"]');
+                    const allChecked = Array.from(boxes).every(cb => cb.checked);
+                    document.getElementById('company-check-all').checked = allChecked;
+                });
 
                 const span = document.createElement('span');
                 span.textContent = company.name;

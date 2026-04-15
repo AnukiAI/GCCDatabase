@@ -299,7 +299,6 @@
                 <div class="card-body">
                     <div class="product-info">
                         <div class="product-name">${escapeHtml(cert.productName)}</div>
-                        <div class="product-type">${escapeHtml(cert.productType || '')}</div>
                     </div>
                     <div class="certificate-details">
                         <div class="certificate-period">

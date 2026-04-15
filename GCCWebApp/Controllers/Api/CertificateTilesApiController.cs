@@ -323,12 +323,14 @@ namespace GCCWebApp.Controllers.Api
                         .OrderBy(c => c.name)
                         .ToListAsync(),
 
-                    countries = await baseQuery
+                    countries = (await baseQuery
                         .Select(c => c.Country)
                         .Where(c => !string.IsNullOrEmpty(c))
                         .Distinct()
-                        .OrderBy(c => c)
-                        .ToListAsync(),
+                        .ToListAsync())
+                        .OrderBy(c => c == "United States" ? 0 : 1)
+                        .ThenBy(c => c)
+                        .ToList(),
 
                     // Hierarchical product categories (Level 1 -> Level 2 -> Level 3)
                     productCategoriesHierarchy,

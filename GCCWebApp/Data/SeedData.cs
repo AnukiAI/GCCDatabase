@@ -90,6 +90,7 @@ namespace GCCWebApp.Data
             {
                 new Role { Name = "Admin", Description = "Full system access", IsSystem = true },
                 new Role { Name = "Analyst", Description = "Certificate management access", IsSystem = true },
+                new Role { Name = "Partner", Description = "Partner organization access - scoped to assigned partner data", IsSystem = true },
                 new Role { Name = "External", Description = "External user access", IsSystem = true },
                 new Role { Name = "Public", Description = "Public read-only access", IsSystem = true }
             };
@@ -100,6 +101,7 @@ namespace GCCWebApp.Data
             // Assign permissions to roles
             var adminRole = roles.First(r => r.Name == "Admin");
             var analystRole = roles.First(r => r.Name == "Analyst");
+            var partnerRole = roles.First(r => r.Name == "Partner");
             var externalRole = roles.First(r => r.Name == "External");
             var publicRole = roles.First(r => r.Name == "Public");
 
@@ -113,6 +115,14 @@ namespace GCCWebApp.Data
                 "products.view"
             };
             analystRole.Permissions = permissions.Where(p => analystPermissions.Contains(p.Codename)).ToList();
+
+            // Partner gets view certificates scoped to their partner, products, export, reports
+            var partnerPermissions = new[] {
+                "certificate.view",
+                "data.export", "data.reports",
+                "products.view"
+            };
+            partnerRole.Permissions = permissions.Where(p => partnerPermissions.Contains(p.Codename)).ToList();
 
             // External (Client) gets view own certificates, products, export own data, reports
             var externalPermissions = new[] {

@@ -460,14 +460,17 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
     white-space: nowrap;
-    position: relative;
 }
 
 #product-table th:hover {
     background: #e9ecef;
 }
 
+/* QC #91: Override admin-sort-icon absolute positioning that causes overlap with column text.
+   Keep sort arrows inline next to the header text. */
 #product-table th .sort-icon {
+    position: static;
+    transform: none;
     display: inline-block;
     margin-left: 4px;
     font-size: 10px;

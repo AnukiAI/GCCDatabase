@@ -43,10 +43,10 @@ class ProductManagement {
             }
         });
         
-        // Table sorting events
-        document.querySelectorAll('[data-sort]').forEach(header => {
-            header.addEventListener('click', () => this.handleSort(header.dataset.sort));
-        });
+        // QC #95: Sort handlers are managed by the inline script in Management.cshtml.
+        // Do NOT attach competing sort handlers here — they conflict with the inline
+        // sort state and overwrite the sort icons via updateSortIcons(), making sorting
+        // appear broken (only works once, direction doesn't toggle).
         
         // Handle escape key to cancel editing
         document.addEventListener('keydown', (e) => {

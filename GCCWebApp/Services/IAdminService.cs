@@ -28,7 +28,8 @@ namespace GCCWebApp.Services
         Task<(bool Success, string? ErrorMessage, ProductTypeViewModel? Data)> CreateProductTypeAsync(ProductTypeViewModel model);
         Task<(bool Success, string? ErrorMessage)> UpdateProductTypeAsync(ProductTypeViewModel model);
         Task<(bool Success, string Message)> DeleteProductTypeAsync(int id);
-        
+        Task<(bool Success, string Message)> DeleteProductCategoryAsync(int id);
+
         // Certificate Types
         Task<List<CertificateTypeViewModel>> GetCertificateTypesAsync();
         Task<CertificateTypeViewModel?> GetCertificateTypeByIdAsync(int id);

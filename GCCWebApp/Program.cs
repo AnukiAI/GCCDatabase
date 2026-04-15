@@ -585,6 +585,30 @@ else
     app.UseDeveloperExceptionPage();
 }
 
+// QC #71: Handle 400/401/403 status codes gracefully instead of showing "This page isn't working"
+// For browser requests, redirect expired/unauthorized sessions to the login page.
+// API requests already return JSON via cookie event handlers above.
+app.UseStatusCodePages(context =>
+{
+    var response = context.HttpContext.Response;
+    var request = context.HttpContext.Request;
+
+    // Skip API requests — they already get JSON responses from cookie auth events
+    if (request.Path.StartsWithSegments("/api") ||
+        request.Headers["X-Requested-With"] == "XMLHttpRequest")
+    {
+        return Task.CompletedTask;
+    }
+
+    // For 400/401/403 on browser page requests, redirect to login with session_expired message
+    if (response.StatusCode == 400 || response.StatusCode == 401 || response.StatusCode == 403)
+    {
+        response.Redirect("/Account/Login?error=session_expired");
+    }
+
+    return Task.CompletedTask;
+});
+
 // HTTPS redirection - skip in Test environment to avoid "Failed to determine https port" errors
 if (!app.Environment.IsEnvironment("Test"))
 {

@@ -96,23 +96,29 @@ function setupEventListeners() {
         });
     }
 
-    // Event delegation for revoke buttons in API keys table
+    // Event delegation for revoke/delete buttons in API keys table
     document.getElementById('api-keys-tbody')?.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-action="revoke"]');
-        if (btn) {
-            const keyId = btn.dataset.keyId;
-            const keyValue = btn.dataset.keyValue;
-            revokeApiKey(keyId, keyValue);
+        const revokeBtn = e.target.closest('[data-action="revoke"]');
+        if (revokeBtn) {
+            revokeApiKey(revokeBtn.dataset.keyId, revokeBtn.dataset.keyValue);
+            return;
+        }
+        const deleteBtn = e.target.closest('[data-action="delete"]');
+        if (deleteBtn) {
+            deleteApiKey(deleteBtn.dataset.keyId);
         }
     });
 
-    // Event delegation for revoke buttons in all keys table
+    // Event delegation for revoke/delete buttons in all keys table
     document.getElementById('all-keys-tbody')?.addEventListener('click', (e) => {
-        const btn = e.target.closest('[data-action="revoke"]');
-        if (btn) {
-            const keyId = btn.dataset.keyId;
-            const keyValue = btn.dataset.keyValue;
-            revokeApiKey(keyId, keyValue);
+        const revokeBtn = e.target.closest('[data-action="revoke"]');
+        if (revokeBtn) {
+            revokeApiKey(revokeBtn.dataset.keyId, revokeBtn.dataset.keyValue);
+            return;
+        }
+        const deleteBtn = e.target.closest('[data-action="delete"]');
+        if (deleteBtn) {
+            deleteApiKey(deleteBtn.dataset.keyId);
         }
     });
 }
@@ -313,7 +319,12 @@ function displayPartnerApiKeys(keys) {
                               title="Revoke this API key">
                            <i class="fas fa-ban"></i>
                        </button>`
-                    : '<span style="color: #999;">-</span>'}
+                    : `<button class="admin-btn-icon admin-btn-icon--danger"
+                              data-action="delete"
+                              data-key-id="${key.id}"
+                              title="Delete this revoked API key">
+                           <i class="fas fa-trash"></i>
+                       </button>`}
             </td>
         </tr>
     `).join('');
@@ -384,7 +395,12 @@ async function loadAllApiKeys() {
                                       title="Revoke this API key">
                                    <i class="fas fa-ban"></i>
                                </button>`
-                            : '<span style="color: #999;">-</span>'}
+                            : `<button class="admin-btn-icon admin-btn-icon--danger"
+                                      data-action="delete"
+                                      data-key-id="${key.id}"
+                                      title="Delete this revoked API key">
+                                   <i class="fas fa-trash"></i>
+                               </button>`}
                     </td>
                 </tr>
             `).join('');
@@ -708,6 +724,48 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
+/**
+ * Delete a revoked API key permanently
+ */
+async function deleteApiKey(keyId) {
+    const confirmed = await AdminCore.showConfirmation({
+        title: 'Delete API Key',
+        message: 'Are you sure you want to permanently delete this revoked API key? This action cannot be undone.',
+        confirmText: 'Delete',
+        type: 'danger'
+    });
+
+    if (!confirmed) return;
+
+    try {
+        const response = await fetch(`/api/admin/partner/apikey/${keyId}/delete`, {
+            method: 'DELETE',
+            headers: {
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+            }
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+            throw new Error(result.message || 'Failed to delete API key');
+        }
+
+        AdminCore.showNotification('API key deleted successfully', 'success');
+
+        // Reload data
+        loadAllApiKeys();
+        if (selectedPartnerId) {
+            loadPartnerDetails(selectedPartnerId);
+        }
+
+    } catch (error) {
+        console.error('Error deleting API key:', error);
+        AdminCore.showNotification('Failed to delete API key: ' + error.message, 'error');
+    }
+}
+
 // Make functions available globally for inline onclick handlers
 window.revokeApiKey = revokeApiKey;
+window.deleteApiKey = deleteApiKey;
 window.initializePartnerAPI = initializePartnerAPI;

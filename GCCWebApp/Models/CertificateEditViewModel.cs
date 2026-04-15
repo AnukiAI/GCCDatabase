@@ -39,12 +39,12 @@ namespace GCCWebApp.Models
         [Required]
         [Display(Name = "Effective Date")]
         [DataType(DataType.Date)]
-        public DateTime EffectiveDate { get; set; }
+        public DateTime? EffectiveDate { get; set; }
 
         [Required]
         [Display(Name = "Expiration Date")]
         [DataType(DataType.Date)]
-        public DateTime ExpirationDate { get; set; }
+        public DateTime? ExpirationDate { get; set; }
 
         [Display(Name = "Location")]
         [MaxLength(175)]

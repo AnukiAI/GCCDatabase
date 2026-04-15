@@ -1004,8 +1004,9 @@
         }
 
         function exportProducts() {
-            // Each identifier gets its own row, product info repeated
-            const headers = ['Name', 'Company', 'Category', 'Product Type', 'Subcategory', 'Status', 'Identifier Type', 'Identifier Value'];
+            // QC #103: Align export columns with Template and Add Product modal.
+            // Removed Status (per QC #92). Added Description to match template.
+            const headers = ['Name', 'Company', 'Description', 'Category', 'Product Type', 'Subcategory', 'Identifier Type', 'Identifier Value'];
             const rows = [];
 
             products.forEach(p => {
@@ -1013,10 +1014,10 @@
                 const baseRow = [
                     p.name || '',
                     p.companyName || p.company || '',
+                    p.description || '',
                     p.categoryName || p.category || '',
                     p.productTypeName || '',
-                    p.productSubcategoryName || '',
-                    p.status || (p.isActive ? 'Active' : 'Inactive')
+                    p.productSubcategoryName || ''
                 ];
 
                 // Collect all identifiers into type/value pairs

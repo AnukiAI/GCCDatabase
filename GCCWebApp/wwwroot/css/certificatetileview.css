@@ -617,23 +617,28 @@ body:has(.main-container) .page-header {
 
 /* Card Body - Ensure consistent spacing */
 .card-body {
-    padding: 10px; /* Reduced from 12px to balance increased product-name height */
+    padding: 10px 10px 0 10px; /* No bottom padding - child margin handles gap to card-actions */
     flex: 1;
     display: flex;
     flex-direction: column;
 }
 
+/* Ensure last element in card-body has bottom margin for spacing above card-actions */
+.certificate-card .card-body > *:last-child {
+    margin-bottom: 12px;
+}
+
 /* Tags spacing within card */
 .certificate-card .certificate-tags {
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     padding-bottom: 0;
 }
 
 /* Mobile: extra tag spacing */
 @media (max-width: 768px) {
     .certificate-card .certificate-tags {
-        margin-bottom: 6px;
-        padding-bottom: 0;
+        margin-bottom: 10px;
+        padding-bottom: 4px;
     }
 }
 
@@ -646,6 +651,14 @@ body:has(.main-container) .page-header {
     border-top: none;
     background-color: transparent;
     margin-top: auto;
+    flex-shrink: 0;
+}
+
+/* Override theme-option4 absolute positioning so actions stay in document flow */
+body.theme-option4 .certificate-card .card-actions {
+    position: static !important;
+    bottom: auto !important;
+    right: auto !important;
 }
 
 .action-icon {
@@ -728,10 +741,11 @@ body:has(.main-container) .page-header {
     line-height: 1.3;
     color: #fff;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
+    min-height: calc(16px * 1.3 * 3); /* Reserve space for 3 lines */
 }
 
 /* Compact header for public/external views (no status/partner rows) */
@@ -775,6 +789,7 @@ body:has(.main-container) .page-header {
     margin: 3px 0 3px 0 !important;
     color: var(--text-color) !important;
     height: auto !important;
+    min-height: calc(22px * 1.45 * 3) !important; /* Reserve space for 3 lines */
     max-height: 128px !important; /* ~4 lines at 22px * 1.45 line-height */
     max-width: 100% !important;
     width: 100% !important;

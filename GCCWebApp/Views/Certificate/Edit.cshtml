@@ -442,6 +442,9 @@
         var certTypeSearch = new SearchableSelect('#CertificationTypeId', { placeholder: 'Search certification types...' });
         var productCategorySearch = new SearchableSelect('#ProductCategoryId', { placeholder: 'Search product categories...' });
         new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });
+        // QC #59: Add type-ahead to Company and Product dropdowns
+        new SearchableSelect('#CompanyId', { placeholder: 'Search companies...' });
+        new SearchableSelect('#ProductId', { placeholder: 'Search products...' });
     </script>
 
     <script>

@@ -283,6 +283,22 @@ namespace GCCWebApp.Controllers
                     return Forbid();
                 }
 
+                // QC #155: Aggregate exports for category/type/subcategory stats
+                var aggregateTypes = new[] {
+                    "product-categories-with-active-certs",
+                    "product-types-with-active-certs",
+                    "product-subcategories-with-active-certs",
+                    "companies-with-active-certs"
+                };
+
+                if (aggregateTypes.Contains(type))
+                {
+                    var csv = await GenerateAggregatedStatCsv(type);
+                    if (csv == null) return BadRequest("Invalid stat type");
+                    var fileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.csv";
+                    return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
+                }
+
                 var (certificates, reportTitle) = await GetCertificatesForStat(type);
 
                 if (reportTitle == null)
@@ -290,10 +306,10 @@ namespace GCCWebApp.Controllers
                     return BadRequest("Invalid stat type");
                 }
 
-                var csv = GenerateCertificateCsv(reportTitle, certificates);
-                var fileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.csv";
+                var detailCsv = GenerateCertificateCsv(reportTitle, certificates);
+                var detailFileName = $"{type}-report-{DateTime.UtcNow:yyyy-MM-dd}.csv";
 
-                return File(Encoding.UTF8.GetBytes(csv), "text/csv", fileName);
+                return File(Encoding.UTF8.GetBytes(detailCsv), "text/csv", detailFileName);
             }
             catch (Exception ex)
             {
@@ -438,6 +454,70 @@ namespace GCCWebApp.Controllers
                 default:
                     return (Enumerable.Empty<Certificate>(), null);
             }
+        }
+
+        /// <summary>
+        /// QC #155: Generate aggregated name + count CSV for category/type/subcategory/company stats
+        /// </summary>
+        private async Task<string?> GenerateAggregatedStatCsv(string type)
+        {
+            var activeCerts = (await _certificateRepository.GetActiveCertificatesAsync()).ToList();
+            var csv = new StringBuilder();
+            string header;
+            IEnumerable<(string Name, int Count)> groups;
+
+            switch (type)
+            {
+                case "product-categories-with-active-certs":
+                    header = "Product Category";
+                    groups = activeCerts
+                        .GroupBy(c => c.Product?.Category?.Name ?? "Uncategorized")
+                        .Select(g => (Name: g.Key, Count: g.Count()))
+                        .OrderByDescending(g => g.Count);
+                    break;
+
+                case "product-types-with-active-certs":
+                    header = "Product Type";
+                    groups = activeCerts
+                        .GroupBy(c => c.ProductType?.Name ?? "Unassigned")
+                        .Select(g => (Name: g.Key, Count: g.Count()))
+                        .OrderByDescending(g => g.Count);
+                    break;
+
+                case "product-subcategories-with-active-certs":
+                    header = "Product Subcategory";
+                    groups = activeCerts
+                        .GroupBy(c => c.ProductSubcategory?.Name ?? "Unassigned")
+                        .Select(g => (Name: g.Key, Count: g.Count()))
+                        .OrderByDescending(g => g.Count);
+                    break;
+
+                case "companies-with-active-certs":
+                    header = "Company";
+                    groups = activeCerts
+                        .GroupBy(c => c.Company?.Name ?? "Unknown")
+                        .Select(g => (Name: g.Key, Count: g.Count()))
+                        .OrderByDescending(g => g.Count);
+                    break;
+
+                default:
+                    return null;
+            }
+
+            var groupList = groups.ToList();
+            var pluralHeader = header.EndsWith("y") ? header[..^1] + "ies" : header + "s";
+            csv.AppendLine($"Report: {pluralHeader} with Active Certificates");
+            csv.AppendLine($"Generated: {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss} UTC");
+            csv.AppendLine($"Total {pluralHeader}: {groupList.Count}");
+            csv.AppendLine();
+            csv.AppendLine($"{header},Active Certificate Count");
+
+            foreach (var (name, count) in groupList)
+            {
+                csv.AppendLine($"{EscapeCsvValue(name)},{count}");
+            }
+
+            return csv.ToString();
         }
 
         private string GenerateCertificateCsv(string reportTitle, IEnumerable<Certificate> certificates)

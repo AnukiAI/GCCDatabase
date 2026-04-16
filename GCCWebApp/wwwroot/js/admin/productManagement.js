@@ -528,8 +528,8 @@ class ProductManagement {
     
     downloadImportTemplate() {
         try {
-            // Create CSV content with headers only (no sample data)
-            const headers = ['Name', 'Description', 'ProductType', 'Company', 'Status (Active, Inactive)'];
+            // Create CSV content with headers only (no sample data) — QC #103/#148: aligned with import fields, hints added
+            const headers = ['Name', 'Company', 'Description', 'Product Type', 'Status (Active, Inactive)'];
             const csvContent = headers.join(',');
 
             // Download file

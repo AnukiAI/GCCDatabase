@@ -1016,10 +1016,8 @@
 
     function animateCards() {
         const cards = document.querySelectorAll('.certificate-card:not(.animated)');
-        cards.forEach((card, index) => {
-            setTimeout(() => {
-                card.classList.add('animated', 'fadeInUp');
-            }, index * 50);
+        cards.forEach((card) => {
+            card.classList.add('animated', 'fadeInUp');
         });
     }
 

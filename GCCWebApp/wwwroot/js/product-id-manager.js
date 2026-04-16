@@ -432,6 +432,11 @@ class ProductIdManager {
 
             const modal = bootstrap.Modal.getInstance(document.getElementById('productIdModal'));
             if (modal) modal.hide();
+            // QC #80: Clean up any stuck modal backdrops to prevent gray overlay buildup
+            document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+            document.body.classList.remove('modal-open');
+            document.body.style.removeProperty('overflow');
+            document.body.style.removeProperty('padding-right');
 
             this.showSuccess(isEdit ? 'Product ID updated' : 'Product ID added (will be saved with certificate)');
             return;
@@ -454,6 +459,11 @@ class ProductIdManager {
             if (response.ok) {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('productIdModal'));
                 modal.hide();
+                // QC #80: Clean up any stuck modal backdrops
+                document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
                 await this.loadProductIds();
                 this.showSuccess(isEdit ? 'Product ID updated successfully' : 'Product ID added successfully');
             } else {

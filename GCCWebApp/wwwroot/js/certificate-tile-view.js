@@ -857,7 +857,6 @@
             'company-za': 'Company Z-A',
             'product-az': 'Product Name A-Z',
             'product-za': 'Product Name Z-A',
-            'product-type': 'Product Type A-Z',
             'location-az': 'Location A-Z',
             'location-za': 'Location Z-A',
             'country': 'Country A-Z',
@@ -1192,10 +1191,8 @@
 
     function animateCards() {
         const cards = document.querySelectorAll('.certificate-card:not(.animated)');
-        cards.forEach((card, index) => {
-            setTimeout(() => {
-                card.classList.add('animated', 'fadeInUp');
-            }, index * 50);
+        cards.forEach((card) => {
+            card.classList.add('animated', 'fadeInUp');
         });
     }
 

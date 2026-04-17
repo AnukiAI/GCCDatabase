@@ -236,7 +236,6 @@
                 state.retryCount++;
                 const delay = state.retryDelay * Math.pow(2, state.retryCount - 1); // Exponential backoff
 
-                console.log(`Retrying in ${delay}ms (attempt ${state.retryCount}/${state.maxRetries})...`);
                 showError(`Connection failed. Retrying in ${delay / 1000} seconds... (${state.retryCount}/${state.maxRetries})`);
 
                 setTimeout(() => {
@@ -1022,7 +1021,6 @@
             showToast('Error: Certificate number not found', 'error');
             return;
         }
-        console.log('Opening certificate in new tab:', certificateNumber);
         // Encode URI to handle certificate numbers with special chars like "24-0366"
         window.open(`/Certificate/CertificateSingleView/${encodeURIComponent(certificateNumber)}`, '_blank');
     };
@@ -1035,7 +1033,6 @@
             showToast('Error: Certificate number not found', 'error');
             return;
         }
-        console.log('Opening certificate in new tab:', certificateNumber);
         // Encode URI to handle certificate numbers with special chars like "24-0366"
         window.open(`/Certificate/CertificateSingleView/${encodeURIComponent(certificateNumber)}`, '_blank');
     }
@@ -1412,7 +1409,6 @@
             showToast('Error: Certificate number not found', 'error');
             return;
         }
-        console.log('Editing certificate:', certificateNumber);
         // Use certificate number (e.g., "24-1605") instead of ID for URL
         window.location.href = `/Certificate/Edit/${encodeURIComponent(certificateNumber)}`;
     };

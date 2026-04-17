@@ -1,139 +1,16 @@
 /* =============================================================================
    CERTIFICATE TILE VIEW EXTERNAL - PAGE-SPECIFIC STYLES
 
-   Extracted from Views/Certificate/CertificateTileViewExternal.cshtml
-   This file contains grid column definitions specific to the External view.
+   Forked from certificate-tile-internal.css
+   Differences: No Internal Tag column, narrower Actions column (no Edit button)
    All shared styles are in certificatetileview.css
 
-   Last Updated: January 2026
+   Last Updated: April 2026
    ============================================================================= */
 
 /* =============================================================================
-   GRID LAYOUT - EXTERNAL VIEW (21 COLUMNS)
-   Does NOT include: Internal Tag column (only visible to internal users)
-   CSF Attributes column removed per client request
-   ============================================================================= */
-
-.table-grid {
-    display: grid;
-    grid-template-columns:
-        36px      /* 1. Select checkbox */
-        80px      /* 2. Actions (Download + View) */
-        140px     /* 3. Certificate # */
-        175px     /* 4. Certification Type */
-        110px     /* 5. Status */
-        130px     /* 6. Effective Date */
-        135px     /* 7. Expiration Date */
-        170px     /* 8. Company */
-        150px     /* 9. Company Contact */
-        220px     /* 10. Product Name */
-        200px     /* 11. Product Category */
-        130px     /* 12. Product Type */
-        140px     /* 13. Product Subcategory */
-        100px     /* 14. Location */
-        100px     /* 15. Country */
-        120px     /* 16. External Tag */
-        100px     /* 17. Partner */
-        80px      /* 18. ASIN */
-        75px      /* 19. UPC */
-        75px      /* 20. GTIN */
-        75px;     /* 21. EAN */
-    min-width: max-content;
-    width: 100%;
-}
-
-/* Table container min-width for External (21 columns) */
-.table-grid-container {
-    min-width: 2491px;
-    width: max-content;
-}
-
-/* =============================================================================
-   SELECT & ACTIONS COLUMNS - CENTERED LAYOUT
-   ============================================================================= */
-
-/* Select cell - header & body - CENTERED checkbox */
-.table-grid .grid-header-cell.select-cell,
-.table-grid .grid-cell.select-cell {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    padding: 8px !important;
-    text-align: center !important;
-}
-
-/* Actions column - header & body - CENTERED content */
-.table-grid .grid-header-cell.actions-column,
-.table-grid .grid-cell.actions-column {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    text-align: center !important;
-    padding: 8px 6px !important;
-    overflow: visible !important;
-}
-
-/* Actions header text centering - full width span */
-.table-grid .grid-header-cell.actions-column span {
-    display: block !important;
-    text-align: center !important;
-    width: 100% !important;
-    font-weight: 600 !important;
-}
-
-/* Action buttons container - centered within the cell */
-.table-grid .grid-cell.actions-column .action-buttons {
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    gap: 4px !important;
-    margin: 0 auto !important;
-    width: 100% !important;
-}
-
-/* Individual action buttons - consistent sizing */
-.table-grid .grid-cell.actions-column .action-btn {
-    padding: 4px !important;
-    min-width: 26px !important;
-    height: 26px !important;
-    display: inline-flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    border: none !important;
-    background: transparent !important;
-    border-radius: 4px !important;
-    color: #666 !important;
-    cursor: pointer !important;
-    flex-shrink: 0 !important;
-}
-
-.table-grid .grid-cell.actions-column .action-btn:hover {
-    background: #e3f2fd !important;
-    color: #007bff !important;
-}
-
-.table-grid .grid-cell.actions-column .action-btn i {
-    font-size: 14px !important;
-}
-
-/* =============================================================================
-   CERTIFICATE NUMBER COLUMN - LEFT ALIGNED, NOT BOLD
-   ============================================================================= */
-
-.table-grid .grid-header-cell[data-sort-column="certificate"],
-.table-grid .grid-cell[data-column="certificateNumber"] {
-    justify-content: flex-start !important;
-    text-align: left !important;
-    padding-left: 10px !important;
-}
-
-.table-grid .grid-cell[data-column="certificateNumber"] {
-    font-weight: 400 !important;
-}
-
-/* =============================================================================
-   STICKY TABLE COLUMN WIDTHS - EXTERNAL VIEW (21 COLUMNS)
-   No Internal Tag column. Actions column narrower (no Edit button).
+   STICKY TABLE COLUMN WIDTHS - EXTERNAL VIEW
+   Same as internal minus Internal Tag column, narrower Actions (no Edit button)
    ============================================================================= */
 
 .tc-cert     { width: 140px; min-width: 140px; }
@@ -142,7 +19,7 @@
 .tc-eff      { width: 130px; min-width: 130px; }
 .tc-exp      { width: 135px; min-width: 135px; }
 .tc-company  { width: 170px; min-width: 170px; }
-.tc-contact  { width: 150px; min-width: 150px; }
+.tc-contact  { width: 220px; min-width: 220px; }
 .tc-product  { width: 220px; min-width: 220px; }
 .tc-prodcat  { width: 200px; min-width: 200px; }
 .tc-prodtype { width: 130px; min-width: 130px; }
@@ -155,29 +32,89 @@
 .tc-upc      { width: 75px;  min-width: 75px;  }
 .tc-gtin     { width: 75px;  min-width: 75px;  }
 .tc-ean      { width: 75px;  min-width: 75px;  }
+.tc-certresults { width: 150px; min-width: 150px; }
+.tc-pathway  { width: 130px; min-width: 130px; }
+.tc-certsub  { width: 170px; min-width: 170px; }
+.tc-companyurl { width: 180px; min-width: 180px; }
 
-/* External actions column is narrower (Download + View only) */
-.tc-actions  { width: 80px;  min-width: 80px;  }
+/* External actions column is narrower (Download + View only, no Edit) */
+.tc-actions  { width: 70px;  min-width: 70px;  }
+
+/* =============================================================================
+   EXPORT BUTTON STYLES - Grey outline to match admin pages
+   ============================================================================= */
+
+.export-options .btn.btn-outline {
+    background-color: white !important;
+    color: #333 !important;
+    border: 1px solid #ddd !important;
+}
+
+.export-options .btn.btn-outline:hover {
+    background-color: #f8f9fa !important;
+    border-color: #999 !important;
+    color: #333 !important;
+}
+
+.export-options .btn.btn-outline i {
+    color: inherit !important;
+}
+
+/* =============================================================================
+   PRODUCT ID COUNT BADGE - CLICKABLE FOR EXCEL-FRIENDLY COPY
+   ============================================================================= */
+
+.id-count-cell {
+    text-align: center !important;
+    justify-content: center !important;
+}
+
+.id-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 28px;
+    padding: 2px 8px;
+    background: #e8f5e1;
+    color: #447638;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.id-count-badge:hover {
+    background: #c5e0a5;
+    color: #2d5a1e;
+}
+
+/* Sort icon styling for table headers */
+.grid-header-cell[data-sort-column] {
+    cursor: pointer;
+    user-select: none;
+}
+
+.grid-header-cell[data-sort-column]:hover {
+    background-color: #e8f5e1;
+}
+
+/* =============================================================================
+   CERTIFICATE NUMBER COLUMN - LEFT ALIGNED
+   ============================================================================= */
+
+.table-body-cell.tc-cert {
+    font-weight: 400 !important;
+}
 
 /* =============================================================================
    MOBILE RESPONSIVENESS (768px and below)
-   Hide low-priority columns, add scroll affordance, reduce min-width.
-   Remaining visible columns (10):
-     1. Select checkbox
-     2. Actions
-     3. Certificate #
-     4. Certification Type
-     5. Status
-     6. Effective Date
-     7. Expiration Date
-     8. Company
-     10. Product Name
-     17. Partner
    ============================================================================= */
 
 @media (max-width: 768px) {
 
-    /* --- Scroll affordance: right-edge fade to hint at more content --- */
+    /* Scroll affordance */
     .table-scroll-wrapper {
         position: relative;
     }
@@ -195,7 +132,7 @@
         border-radius: 0 8px 8px 0;
     }
 
-    /* --- Hide low-priority columns (header + body cells) --- */
+    /* Hide low-priority columns on mobile */
     .tc-contact,
     .tc-prodcat,
     .tc-prodtype,
@@ -206,34 +143,16 @@
     .tc-asin,
     .tc-upc,
     .tc-gtin,
-    .tc-ean {
+    .tc-ean,
+    .tc-certresults,
+    .tc-pathway,
+    .tc-certsub,
+    .tc-companyurl {
         display: none !important;
     }
 
-    /* --- Reduce container min-width for remaining 10 columns --- */
-    /* Remaining widths: 36+80+140+175+110+130+135+170+220+100 = 1296px */
-    .table-grid-container {
-        min-width: 1100px;
-        width: max-content;
-    }
-
-    /* --- Adjust grid template for 10 visible columns --- */
-    .table-grid {
-        grid-template-columns:
-            36px      /* 1. Select checkbox */
-            70px      /* 2. Actions */
-            120px     /* 3. Certificate # */
-            140px     /* 4. Certification Type */
-            90px      /* 5. Status */
-            100px     /* 6. Effective Date */
-            100px     /* 7. Expiration Date */
-            140px     /* 8. Company */
-            170px     /* 10. Product Name */
-            90px;     /* 17. Partner */
-    }
-
-    /* --- Reduce fixed widths on remaining .tc-* classes for tighter fit --- */
-    .tc-actions  { width: 70px;  min-width: 70px;  }
+    /* Reduce widths on mobile */
+    .tc-actions  { width: 60px;  min-width: 60px;  }
     .tc-cert     { width: 120px; min-width: 120px; }
     .tc-type     { width: 140px; min-width: 140px; }
     .tc-status   { width: 90px;  min-width: 90px;  }
@@ -243,7 +162,7 @@
     .tc-product  { width: 170px; min-width: 170px; }
     .tc-partner  { width: 90px;  min-width: 90px;  }
 
-    /* --- Tighten cell padding on mobile --- */
+    /* Tighten cell padding on mobile */
     .sticky-header-cell {
         padding: 6px 6px;
         font-size: 12px;

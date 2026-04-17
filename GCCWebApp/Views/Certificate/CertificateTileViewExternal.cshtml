@@ -5,17 +5,18 @@
 
 <link rel="stylesheet" href="~/css/certificatetileview.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/pages/certificate-tile-external.css" asp-append-version="true" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
 <!-- Main Container -->
 <div class="main-container" style="width: 100%;">
     <!-- Sidebar Toggle Tab (visible when sidebar is collapsed) -->
-    <button class="sidebar-toggle-tab" id="sidebarToggleTab" aria-label="Show filters" aria-controls="sidebar">
+    <button class="sidebar-toggle-tab" id="sidebarToggleTab" aria-label="Show filters" aria-controls="filterSidebar" aria-expanded="false">
+        <span>Show Filters</span>
         <i class="fas fa-chevron-right" aria-hidden="true"></i>
     </button>
 
     <!-- Sidebar (Filters) -->
-    <aside id="sidebar" class="sidebar" role="complementary" aria-label="Certificate filters">
-        <!-- Hide Filters button - matches mobile toggle style -->
+    <aside id="filterSidebar" class="sidebar" role="complementary" aria-label="Certificate filters">
+        <!-- Hide Filters button -->
         <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Hide filters" aria-expanded="true">
             <span>Hide Filters</span>
             <i class="fas fa-chevron-left" aria-hidden="true"></i>
@@ -47,10 +48,7 @@
             <fieldset class="filter-content" id="cert-type-content">
                 <legend class="admin-sr-only">Filter by certification type</legend>
                 <ul class="filter-tree" role="group">
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:85%"></span></li>
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:70%"></span></li>
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:90%"></span></li>
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:60%"></span></li>
+                    <!-- Populated by JS -->
                 </ul>
             </fieldset>
         </div>
@@ -64,9 +62,7 @@
             <fieldset class="filter-content" id="product-cat-content">
                 <legend class="admin-sr-only">Filter by product category</legend>
                 <ul class="filter-tree" role="group">
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:75%"></span></li>
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:90%"></span></li>
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:65%"></span></li>
+                    <!-- Populated by JS -->
                 </ul>
             </fieldset>
         </div>
@@ -80,9 +76,7 @@
             <fieldset class="filter-content" id="company-content">
                 <legend class="admin-sr-only">Filter by company</legend>
                 <ul class="filter-tree" role="group">
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:80%"></span></li>
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:70%"></span></li>
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:85%"></span></li>
+                    <!-- Populated by JS -->
                 </ul>
             </fieldset>
         </div>
@@ -96,9 +90,7 @@
             <fieldset class="filter-content" id="countries-content">
                 <legend class="admin-sr-only">Filter by country</legend>
                 <ul class="filter-tree" role="group">
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:65%"></span></li>
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:80%"></span></li>
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:55%"></span></li>
+                    <!-- Populated by JS -->
                 </ul>
             </fieldset>
         </div>
@@ -112,19 +104,32 @@
             <fieldset class="filter-content" id="additional-content">
                 <legend class="admin-sr-only">Filter by additional tags</legend>
                 <ul class="filter-tree" role="group">
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:70%"></span></li>
-                    <li class="filter-item skeleton-filter-item"><span class="skeleton-checkbox"></span><span class="skeleton-line" style="width:85%"></span></li>
+                    <!-- Populated by JS -->
+                </ul>
+            </fieldset>
+        </div>
+
+        <!-- Partner Filter -->
+        <div class="filter-panel">
+            <button class="filter-header" data-filter="partner" aria-expanded="true" aria-controls="partner-content">
+                <span>Partners</span>
+                <i class="fas fa-chevron-down" aria-hidden="true"></i>
+            </button>
+            <fieldset class="filter-content" id="partner-content">
+                <legend class="admin-sr-only">Filter by partner</legend>
+                <ul class="filter-tree" role="group">
+                    <!-- Populated by JS -->
                 </ul>
             </fieldset>
         </div>
     </aside>
+
     <!-- Main Content Area -->
     <div class="tile-view-content">
         <!-- Active filter tags -->
         <div class="active-filter-tags" id="activeFilterTags" aria-label="Active filters" role="list"></div>
         <div class="results-header">
-            <div class="results-count" id="resultsCount">15 Results</div>
-
+            <div class="results-count" id="resultsCount">0 Results</div>
 
             <div class="sort-controls">
                 <label for="sortDropdownButton" class="sort-label" id="sortByLabel">Sort By</label>
@@ -134,112 +139,45 @@
                         <i class="fas fa-chevron-down" aria-hidden="true"></i>
                     </button>
                     <div class="sort-dropdown-content" id="sortContent" role="listbox" aria-label="Sort options">
-                        <!-- Date-based sorting -->
                         <div class="sort-group-header" role="presentation">By Date</div>
-                        <div class="sort-option" data-sort="newest" role="option">
-                            <i class="fas fa-calendar-plus" aria-hidden="true"></i>
-                            Newest Effective Date
-                        </div>
-                        <div class="sort-option" data-sort="oldest-effective" role="option">
-                            <i class="fas fa-calendar-minus" aria-hidden="true"></i>
-                            Oldest Effective Date
-                        </div>
-                        <div class="sort-option" data-sort="longest-validity" role="option">
-                            <i class="fas fa-hourglass-end" aria-hidden="true"></i>
-                            Longest Validity Period
-                        </div>
-                        <div class="sort-option" data-sort="recently-issued" role="option">
-                            <i class="fas fa-calendar-check" aria-hidden="true"></i>
-                            Recently Issued (Last 30 Days)
-                        </div>
+                        <div class="sort-option" data-sort="newest" role="option"><i class="fas fa-calendar-plus" aria-hidden="true"></i> Newest Effective Date</div>
+                        <div class="sort-option" data-sort="oldest-effective" role="option"><i class="fas fa-calendar-minus" aria-hidden="true"></i> Oldest Effective Date</div>
+                        <div class="sort-option" data-sort="longest-validity" role="option"><i class="fas fa-hourglass-end" aria-hidden="true"></i> Longest Validity Period</div>
+                        <div class="sort-option" data-sort="recently-issued" role="option"><i class="fas fa-calendar-check" aria-hidden="true"></i> Recently Issued (Last 30 Days)</div>
 
-                        <!-- Certificate Information -->
                         <div class="sort-group-header" role="presentation">By Certificate</div>
-                        <div class="sort-option" data-sort="cert-number-newest" role="option">
-                            <i class="fas fa-certificate" aria-hidden="true"></i>
-                            Certificate Number (Newest)
-                        </div>
-                        <div class="sort-option" data-sort="cert-number-oldest" role="option">
-                            <i class="fas fa-certificate" aria-hidden="true"></i>
-                            Certificate Number (Oldest)
-                        </div>
-                        <div class="sort-option" data-sort="cert-type" role="option">
-                            <i class="fas fa-award" aria-hidden="true"></i>
-                            Certification Type A-Z
-                        </div>
-                        <div class="sort-option" data-sort="cert-type-za" role="option">
-                            <i class="fas fa-award" aria-hidden="true"></i>
-                            Certification Type Z-A
-                        </div>
+                        <div class="sort-option" data-sort="cert-number-newest" role="option"><i class="fas fa-certificate" aria-hidden="true"></i> Certificate Number (Newest)</div>
+                        <div class="sort-option" data-sort="cert-number-oldest" role="option"><i class="fas fa-certificate" aria-hidden="true"></i> Certificate Number (Oldest)</div>
+                        <div class="sort-option" data-sort="cert-type" role="option"><i class="fas fa-award" aria-hidden="true"></i> Certification Type A-Z</div>
+                        <div class="sort-option" data-sort="cert-type-za" role="option"><i class="fas fa-award" aria-hidden="true"></i> Certification Type Z-A</div>
 
-                        <!-- Alphabetical sorting -->
                         <div class="sort-group-header" role="presentation">Alphabetical</div>
-                        <div class="sort-option" data-sort="company-az" role="option">
-                            <i class="fas fa-building" aria-hidden="true"></i>
-                            Company A-Z
-                        </div>
-                        <div class="sort-option" data-sort="company-za" role="option">
-                            <i class="fas fa-building" aria-hidden="true"></i>
-                            Company Z-A
-                        </div>
-                        <div class="sort-option" data-sort="product-az" role="option">
-                            <i class="fas fa-tag" aria-hidden="true"></i>
-                            Product Name A-Z
-                        </div>
-                        <div class="sort-option" data-sort="product-za" role="option">
-                            <i class="fas fa-tag" aria-hidden="true"></i>
-                            Product Name Z-A
-                        </div>
+                        <div class="sort-option" data-sort="company-az" role="option"><i class="fas fa-building" aria-hidden="true"></i> Company A-Z</div>
+                        <div class="sort-option" data-sort="company-za" role="option"><i class="fas fa-building" aria-hidden="true"></i> Company Z-A</div>
+                        <div class="sort-option" data-sort="product-az" role="option"><i class="fas fa-tag" aria-hidden="true"></i> Product Name A-Z</div>
+                        <div class="sort-option" data-sort="product-za" role="option"><i class="fas fa-tag" aria-hidden="true"></i> Product Name Z-A</div>
 
-                        <!-- Location sorting -->
                         <div class="sort-group-header" role="presentation">By Location</div>
-                        <div class="sort-option" data-sort="location-az" role="option">
-                            <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
-                            Location A-Z
-                        </div>
-                        <div class="sort-option" data-sort="location-za" role="option">
-                            <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
-                            Location Z-A
-                        </div>
-                        <div class="sort-option" data-sort="country" role="option">
-                            <i class="fas fa-globe" aria-hidden="true"></i>
-                            Country A-Z
-                        </div>
-                        <div class="sort-option" data-sort="country-za" role="option">
-                            <i class="fas fa-globe" aria-hidden="true"></i>
-                            Country Z-A
-                        </div>
+                        <div class="sort-option" data-sort="location-az" role="option"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> Location A-Z</div>
+                        <div class="sort-option" data-sort="location-za" role="option"><i class="fas fa-map-marker-alt" aria-hidden="true"></i> Location Z-A</div>
+                        <div class="sort-option" data-sort="country" role="option"><i class="fas fa-globe" aria-hidden="true"></i> Country A-Z</div>
+                        <div class="sort-option" data-sort="country-za" role="option"><i class="fas fa-globe" aria-hidden="true"></i> Country Z-A</div>
 
-                        <!-- Advanced sorting -->
                         <div class="sort-group-header" role="presentation">Advanced</div>
-                        <div class="sort-option" data-sort="popularity" role="option">
-                            <i class="fas fa-star" aria-hidden="true"></i>
-                            Most Popular Companies
-                        </div>
-                        <div class="sort-option" data-sort="product-type" role="option">
-                            <i class="fas fa-boxes" aria-hidden="true"></i>
-                            Product Type A-Z
-                        </div>
-                        <div class="sort-option" data-sort="relevance" role="option">
-                            <i class="fas fa-search" aria-hidden="true"></i>
-                            Relevance Score
-                        </div>
-                        <div class="sort-option" data-sort="status" role="option">
-                            <i class="fas fa-check-circle" aria-hidden="true"></i>
-                            Status
-                        </div>
+                        <div class="sort-option" data-sort="popularity" role="option"><i class="fas fa-star" aria-hidden="true"></i> Most Popular Companies</div>
+                        <div class="sort-option" data-sort="product-type" role="option"><i class="fas fa-boxes" aria-hidden="true"></i> Product Type A-Z</div>
+                        <div class="sort-option" data-sort="status" role="option"><i class="fas fa-check-circle" aria-hidden="true"></i> Status</div>
                     </div>
                 </div>
             </div>
         </div>
 
-
-        <!-- After results-header div -->
+        <!-- Results Controls -->
         <div class="results-controls">
             <div class="left-controls">
                 <div class="export-options">
                     <!-- Add Certificate button removed for External users -->
-                    <button class="btn btn-primary" id="downloadSelectedBtn" disabled title="Select certificates in table view to download" aria-label="Download selected certificates. Currently disabled - select certificates first.">
+                    <button class="btn btn-primary" id="downloadSelectedBtn" disabled title="Select certificates in table view to download" aria-label="Download selected certificates">
                         <i class="fas fa-download" aria-hidden="true"></i> Download Selected
                     </button>
                     <button class="btn btn-primary" id="exportAllBtn" aria-label="Export all visible certificates to Excel file">
@@ -288,12 +226,58 @@
                 </div>
             </div>
 
-            <!-- STICKY BLOCK: Toolbar + Scrollbar + Headers (no column toggle for external) -->
+            <!-- STICKY BLOCK: Toolbar + Scrollbar + Headers -->
             <div class="sticky-table-block" id="stickyTableBlock">
                 <!-- Toolbar Row -->
                 <div class="table-toolbar-row">
                     <div class="table-toolbar-left">
                         <span id="tableResultsCount">Showing <strong>0</strong> certificates</span>
+                    </div>
+                    <div class="table-toolbar-right">
+                        <div class="col-toggle-wrap">
+                            <button class="col-toggle-btn" id="colToggleBtn">
+                                <i class="fas fa-sliders-h" aria-hidden="true"></i> Columns
+                                <span class="col-toggle-badge" id="colCount">23</span>
+                            </button>
+                            <div class="col-toggle-dropdown" id="colToggleDropdown">
+                                <div class="ct-header">
+                                    <span>Column Settings</span>
+                                    <a href="#" id="colResetBtn">Show All</a>
+                                </div>
+                                <div class="ct-divider">Core Fields</div>
+                                <div class="ct-row ct-locked"><span class="ct-label"><span class="ct-icon"><i class="fas fa-check-square"></i></span> Select</span><label class="ct-switch"><input type="checkbox" checked disabled><span class="ct-slider"></span></label></div>
+                                <div class="ct-row ct-locked"><span class="ct-label"><span class="ct-icon"><i class="fas fa-ellipsis-h"></i></span> Actions</span><label class="ct-switch"><input type="checkbox" checked disabled><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-hashtag"></i></span> Certificate #</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-cert"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-certificate"></i></span> Cert Type</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-type"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-circle-check"></i></span> Status</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-status"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-calendar"></i></span> Effective Date</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-eff"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-calendar-xmark"></i></span> Expiration Date</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-exp"><span class="ct-slider"></span></label></div>
+                                <div class="ct-divider">Company & Product</div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-building"></i></span> Company</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-company"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-box"></i></span> Product</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-product"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-folder"></i></span> Category</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-prodcat"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-tag"></i></span> Prod Type</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-prodtype"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-tags"></i></span> Subcategory</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-prodsub"><span class="ct-slider"></span></label></div>
+                                <div class="ct-divider">Location & Tags</div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-map-pin"></i></span> Location</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-location"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-globe"></i></span> Country</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-country"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-tag"></i></span> Ext Tag</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-exttag"><span class="ct-slider"></span></label></div>
+                                <!-- Internal Tag toggle omitted for External users -->
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-handshake"></i></span> Partner</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-partner"><span class="ct-slider"></span></label></div>
+                                <div class="ct-divider">Product IDs</div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-barcode"></i></span> ASIN</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-asin"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-barcode"></i></span> UPC</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-upc"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-barcode"></i></span> GTIN</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-gtin"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-barcode"></i></span> EAN</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-ean"><span class="ct-slider"></span></label></div>
+                                <div class="ct-divider">Contact</div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-envelope"></i></span> Company Contact</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-contact"><span class="ct-slider"></span></label></div>
+                                <div class="ct-divider">Additional</div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-flask"></i></span> Cert Results</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-certresults"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-route"></i></span> Pathway</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-pathway"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-layer-group"></i></span> Cert Subcategories</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-certsub"><span class="ct-slider"></span></label></div>
+                                <div class="ct-row"><span class="ct-label"><span class="ct-icon"><i class="fas fa-link"></i></span> Company URL</span><label class="ct-switch"><input type="checkbox" checked data-col="tc-companyurl"><span class="ct-slider"></span></label></div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -302,36 +286,40 @@
                     <div class="scrollbar-sizer" id="scrollbarSizer"></div>
                 </div>
 
-                <!-- Sticky Column Headers -->
+                <!-- Sticky Column Headers (same order as internal, minus Internal Tag) -->
                 <div class="sticky-header-row" id="stickyHeaderRow">
                     <div class="sticky-header-inner" id="stickyHeaderInner">
                         <div class="sticky-header-cell tc-select"><input type="checkbox" id="selectAll" title="Select all visible rows" aria-label="Select all certificates"></div>
                         <div class="sticky-header-cell tc-actions">Actions</div>
-                        <div class="sticky-header-cell tc-cert" data-sort-column="certificate">Certificate # <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-type" data-sort-column="certificationType">Certification Type <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-status" data-sort-column="status">Status <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-eff" data-sort-column="effectiveDate">Effective Date <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-exp" data-sort-column="expirationDate">Expiration Date <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-company" data-sort-column="company">Company <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-contact" data-sort-column="companyContact">Contact <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-product" data-sort-column="productName">Product Name <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-prodcat" data-sort-column="productCategory">Product Category <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-prodtype" data-sort-column="productType">Product Type <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-prodsub" data-sort-column="productSubcategory">Subcategory <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-location" data-sort-column="location">Location <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-country" data-sort-column="country">Country <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-exttag" data-sort-column="externalTag">External Tag <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-cert" data-sort-column="certificate">Certificate # <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-type" data-sort-column="certificationType">Certification Type <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-status" data-sort-column="status">Status <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-eff" data-sort-column="effectiveDate">Effective Date <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-exp" data-sort-column="expirationDate">Expiration Date <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-company" data-sort-column="company">Company <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-product" data-sort-column="productName">Product Name <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-prodcat" data-sort-column="productCategory">Product Category <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-prodtype" data-sort-column="productType">Product Type <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-prodsub" data-sort-column="productSubcategory">Subcategory <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-location" data-sort-column="location">Location <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-country" data-sort-column="country">Country <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-exttag" data-sort-column="externalTag">External Tag <span class="sort-icon">&#9660;</span></div>
                         <!-- Internal Tag column omitted for External users -->
-                        <div class="sticky-header-cell tc-partner" data-sort-column="partner">Partner <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-asin" data-sort-column="asin">ASIN <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-upc" data-sort-column="upc">UPC <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-gtin" data-sort-column="gtin">GTIN <span class="sort-icon">▼</span></div>
-                        <div class="sticky-header-cell tc-ean" data-sort-column="ean">EAN <span class="sort-icon">▼</span></div>
+                        <div class="sticky-header-cell tc-partner" data-sort-column="partner">Partner <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-asin" data-sort-column="asin">ASIN <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-upc" data-sort-column="upc">UPC <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-gtin" data-sort-column="gtin">GTIN <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-ean" data-sort-column="ean">EAN <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-contact" data-sort-column="companyContact">Company Contact <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-certresults" data-sort-column="certificationResults">Cert Results <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-pathway" data-sort-column="pathway">Pathway <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-certsub" data-sort-column="certSubcategories">Cert Subcategories <span class="sort-icon">&#9660;</span></div>
+                        <div class="sticky-header-cell tc-companyurl" data-sort-column="companyUrl">Company URL <span class="sort-icon">&#9660;</span></div>
                     </div>
                 </div>
             </div>
 
-            <!-- Table Body (scrollable, native bottom scrollbar hidden) -->
+            <!-- Table Body -->
             <div class="table-body-wrap" id="tableBodyWrap">
                 <div class="table-body-inner" id="gridBody" role="table" aria-label="Certificates data table">
                     <!-- Rows rendered by JS -->
@@ -339,16 +327,7 @@
             </div>
         </div>
 
-
-        <!-- Modern External View Scripts -->
-        <script src="~/js/certificateExternalService.js?v=20260316"></script>
-        <script src="~/js/certificateTileViewExternal.js?v=20260316"></script>
-        <script>
-            // Initialize the Certificate Tile View External
-            document.addEventListener('DOMContentLoaded', () => {
-                window.certificateTileViewExternal = new CertificateTileViewExternal();
-                console.log('CertificateTileViewExternal initialized successfully');
-            });
-        </script>
+        <!-- Load the forked external JS (based on internal, role-specific features removed) -->
+        <script src="~/js/certificate-tile-view-external.js" asp-append-version="true"></script>
     </div>
 </div>

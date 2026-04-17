@@ -212,9 +212,6 @@
 
                 // DEBUG: Log the first certificate to verify API response structure
                 if (data.certificates && data.certificates.length > 0) {
-                    console.log('DEBUG - First certificate from API:', JSON.stringify(data.certificates[0], null, 2));
-                    console.log('DEBUG - certificateNumber value:', data.certificates[0].certificateNumber);
-                    console.log('DEBUG - id value:', data.certificates[0].id);
                 }
 
                 let newCertCount = data.certificates.length;
@@ -337,15 +334,11 @@
         grid.classList.remove('hidden-for-table');
 
         const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
-        console.log('DEBUG renderCertificatesTiles: HTML length:', html.length);
-        console.log('DEBUG renderCertificatesTiles: Certificates count:', state.certificates.length);
 
         grid.innerHTML = html;
 
-        console.log('DEBUG renderCertificatesTiles: Children count:', grid.children.length);
         if (grid.children.length === 0 && state.certificates.length > 0) {
             console.error('ERROR: No children after setting innerHTML!');
-            console.log('HTML was:', html.substring(0, 1000));
         }
 
         // Force all cards visible immediately
@@ -989,7 +982,6 @@
     // Render active filter tags above results
     function renderActiveFilterTags() {
         const container = document.getElementById('activeFilterTags');
-        console.log('[FilterTags] renderActiveFilterTags called, container:', container, 'filters:', JSON.stringify(state.filters));
         if (!container) return;
 
         const labelMap = {
@@ -1169,7 +1161,6 @@
             }
             // Use the main Download endpoint which accepts certificate number
             window.open(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, '_blank');
-            console.log('Certificate download started for:', certificateNumber);
         } catch (error) {
             console.error('Error downloading certificate:', error);
             showToast('Failed to download certificate', 'error');
@@ -1493,7 +1484,6 @@
 
             // If certificates aren't loaded yet, load them first
             if (!state.certificates || state.certificates.length === 0) {
-                console.log('DEBUG showTableView: No certificates in state, loading...');
                 await loadCertificates();
             }
 
@@ -1535,15 +1525,11 @@
         gridBody.innerHTML = '';
 
         // DEBUG: Log state to trace the issue
-        console.log('DEBUG populateTableView: state.certificates length =', state.certificates ? state.certificates.length : 'undefined');
-        console.log('DEBUG populateTableView: state.totalCount =', state.totalCount);
 
         // Use current certificates data
         if (state.certificates && state.certificates.length > 0) {
-            console.log('DEBUG populateTableView: Rendering', state.certificates.length, 'rows');
             renderTableRows(state.certificates);
         } else {
-            console.log('DEBUG populateTableView: No certificates in state, showing empty message');
             gridBody.innerHTML = '<div class="no-results">No certificates found</div>';
         }
 

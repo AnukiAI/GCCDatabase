@@ -22,7 +22,8 @@
         isLoading: false,
         hasMore: true,
         filterOptions: {},
-        debounceTimer: null
+        debounceTimer: null,
+        currentView: 'tile'
     };
 
     // Initialize on DOM ready
@@ -263,17 +264,13 @@
         return params.toString();
     }
 
-    // Render certificates to the grid
+    // Render certificates based on current view mode
     function renderCertificates(append = false) {
-        const grid = document.getElementById('certificatesGrid');
-        if (!grid) return;
-
-        // Check if we're in table view or tile view
-        const isTableView = grid.classList.contains('table-view');
-        
-        if (isTableView) {
+        if (state.currentView === 'list') {
             renderCertificatesTable();
         } else {
+            const grid = document.getElementById('certificatesGrid');
+            if (!grid) return;
             if (append) {
                 const html = state.certificates.map(cert => createCertificateCard(cert)).join('');
                 grid.insertAdjacentHTML('beforeend', html);
@@ -1044,6 +1041,8 @@
         });
         document.querySelector(`[data-view="${viewType}"]`).classList.add('active');
 
+        state.currentView = viewType;
+
         const tileView = document.getElementById('certificatesGrid');
         const tableView = document.getElementById('tableView');
 
@@ -1057,6 +1056,7 @@
             document.body.classList.add('table-view-active');
         } else {
             // Show tile view, hide table
+            state.currentView = 'tile';
             if (tableView) tableView.style.display = 'none';
             if (tileView) tileView.classList.remove('hidden-for-table');
             document.body.classList.remove('table-view-active');

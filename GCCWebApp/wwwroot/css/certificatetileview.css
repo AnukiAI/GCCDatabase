@@ -2541,6 +2541,8 @@ body.table-view-active .tile-view-content {
 }
 .table-body-row {
     display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
     align-items: center;
     width: max-content;
     min-width: 100%;
@@ -2555,9 +2557,7 @@ body.table-view-active .tile-view-content {
     padding: 4px 8px;
     font-size: 13px;
     color: #333;
-    white-space: normal;
-    word-wrap: break-word;
-    overflow-wrap: break-word;
+    white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     flex-shrink: 0;
@@ -2565,7 +2565,7 @@ body.table-view-active .tile-view-content {
     border-right: 1px solid #f0f0f0;
     display: flex;
     align-items: center;
-    min-height: 28px;
+    height: 36px;
 }
 
 .table-body-cell:last-child { border-right: none; }

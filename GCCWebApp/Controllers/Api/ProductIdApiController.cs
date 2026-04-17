@@ -344,16 +344,8 @@ namespace GCCWebApp.Controllers.Api
             try
             {
                 var csvData = await _productIdService.ExportToCsvAsync(certificateId);
-                if (csvData == null || csvData.Length == 0)
-                {
-                    return NotFound(new ApiResponse<object>
-                    {
-                        Success = false,
-                        Message = "No product IDs found for this certificate"
-                    });
-                }
-
-                return File(csvData, "text/csv", $"certificate_{certificateId}_product_ids.csv");
+                // Always return the CSV (even if only headers) - let the user see the empty template
+                return File(csvData ?? Array.Empty<byte>(), "text/csv", $"certificate_{certificateId}_product_ids.csv");
             }
             catch (Exception ex)
             {

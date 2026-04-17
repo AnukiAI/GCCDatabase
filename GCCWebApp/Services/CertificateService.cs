@@ -852,6 +852,16 @@ namespace GCCWebApp.Services
             }
         }
 
+        public async Task<Certificate?> GetCertificateEntityAsync(int id)
+        {
+            return await _context.Certificates.FindAsync(id);
+        }
+
+        public async Task SaveChangesAsync()
+        {
+            await _context.SaveChangesAsync();
+        }
+
         #region Private Helper Methods
 
         private static string GetBadgeText(string certificationType)

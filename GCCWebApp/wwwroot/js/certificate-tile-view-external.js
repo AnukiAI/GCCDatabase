@@ -30,9 +30,14 @@
 
     async function initialize() {
         setupUrlParameters(); // Parse URL params into state.filters first
-        await loadFilterOptions(); // Wait for filter checkboxes to be created
-        restoreFilterCheckboxes(); // Now apply state.filters to the populated checkboxes
-        await loadInitialCertificates();
+
+        // Load filters and certificates in parallel for faster initial render
+        await Promise.all([
+            loadFilterOptions(),
+            loadInitialCertificates()
+        ]);
+
+        restoreFilterCheckboxes(); // Apply state.filters to the now-populated checkboxes
         setupEventListeners();
         setupInfiniteScroll();
         initializeAutocomplete();

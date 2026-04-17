@@ -364,6 +364,12 @@
                                 <i class="fas fa-eye"></i> View
                             </button>
                         }
+                        <button type="button" onclick="window.CertificateEdit.confirmRemovePdf(@Model.Id)"
+                                class="btn btn-sm"
+                                style="background-color: #FF5252; color: white; padding: 4px 12px; border-radius: 4px; border: none; cursor: pointer;"
+                                title="Remove uploaded PDF">
+                            <i class="fas fa-trash-alt"></i> Remove
+                        </button>
                     </div>
                 }
                 <div class="form-group">
@@ -442,9 +448,8 @@
         var certTypeSearch = new SearchableSelect('#CertificationTypeId', { placeholder: 'Search certification types...' });
         var productCategorySearch = new SearchableSelect('#ProductCategoryId', { placeholder: 'Search product categories...' });
         new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });
-        // QC #59: Add type-ahead to Company and Product dropdowns
-        new SearchableSelect('#CompanyId', { placeholder: 'Search companies...' });
-        new SearchableSelect('#ProductId', { placeholder: 'Search products...' });
+        // Company and Product dropdowns are handled by certificate-inline-create.js (createCustomDropdown)
+        // which provides search + "Add New" functionality. Do NOT also wrap them with SearchableSelect.
     </script>
 
     <script>
@@ -894,6 +899,62 @@
             if (confirmed) {
                 // Redirect to delete action
                 window.location.href = '@Url.Action("Delete", "Certificate")/' + certificateId;
+            }
+        };
+
+        // Remove saved PDF confirmation and API call
+        window.CertificateEdit.confirmRemovePdf = async function(certificateId) {
+            const confirmed = await window.CertificateCreate.showConfirmation({
+                title: 'Remove Certificate PDF',
+                message: 'Are you sure you want to remove the uploaded PDF and its preview? This action cannot be undone.',
+                confirmText: 'Remove',
+                type: 'danger'
+            });
+
+            if (confirmed) {
+                try {
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                    const response = await fetch(`/api/CertificatesApi/${certificateId}/pdf`, {
+                        method: 'DELETE',
+                        headers: {
+                            'RequestVerificationToken': token
+                        }
+                    });
+
+                    if (response.ok) {
+                        // Hide the current PDF info bar
+                        const pdfInfo = document.querySelector('.current-pdf-info');
+                        if (pdfInfo) pdfInfo.style.display = 'none';
+
+                        // Reset sidebar preview
+                        const sidebarPreview = document.querySelector('.preview-container');
+                        if (sidebarPreview) {
+                            sidebarPreview.innerHTML = `
+                                <div class="no-preview" style="text-align: center; color: #6c757d;">
+                                    <i class="fas fa-file-pdf" style="font-size: 48px; color: #adb5bd; margin-bottom: 12px; display: block;"></i>
+                                    <p style="font-size: 14px; font-weight: 600; color: #6c757d; margin: 0 0 4px 0;">Certificate Unavailable</p>
+                                    <small style="color: #adb5bd; font-size: 11px;">Upload a PDF to generate preview</small>
+                                </div>
+                            `;
+                        }
+
+                        // Clear hidden input
+                        const hiddenInput = document.getElementById('certificateImagePathHidden') || document.getElementById('CertificateImagePath');
+                        if (hiddenInput) hiddenInput.value = '';
+
+                        // Update upload label
+                        const uploadLabel = document.querySelector('label[for="certificatePdf"]');
+                        if (uploadLabel) uploadLabel.textContent = 'Upload PDF Certificate';
+
+                        ModalSystem.showNotification('Certificate PDF removed successfully.', 'success');
+                    } else {
+                        const result = await response.json();
+                        ModalSystem.showNotification(result.message || 'Failed to remove PDF.', 'error');
+                    }
+                } catch (error) {
+                    console.error('Error removing PDF:', error);
+                    ModalSystem.showNotification('An error occurred while removing the PDF.', 'error');
+                }
             }
         };
 

@@ -403,9 +403,8 @@
         var certTypeSearch = new SearchableSelect('#CertificationTypeId', { placeholder: 'Search certification types...' });
         var productCategorySearch = new SearchableSelect('#ProductCategoryId', { placeholder: 'Search product categories...' });
         new SearchableSelect('#countrySelect', { placeholder: 'Search countries...' });
-        // QC #59: Add type-ahead to Company and Product dropdowns
-        new SearchableSelect('#CompanyId', { placeholder: 'Search companies...' });
-        new SearchableSelect('#ProductId', { placeholder: 'Search products...' });
+        // Company and Product dropdowns are handled by certificate-inline-create.js (createCustomDropdown)
+        // which provides search + "Add New" functionality. Do NOT also wrap them with SearchableSelect.
     </script>
 
     <script>

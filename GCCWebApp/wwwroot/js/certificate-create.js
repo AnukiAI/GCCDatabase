@@ -227,7 +227,7 @@
                         <div class="file-name" style="font-weight: 500; color: var(--text-color);">${file.name}</div>
                         <div class="file-size" style="font-size: 14px; color: var(--text-secondary);">${fileSizeMB}MB</div>
                     </div>
-                    <button type="button" class="remove-btn" onclick="window.CertificateCreate.removePdfPreview()" style="background: none; border: none; color: var(--warning); cursor: pointer; font-size: 20px; padding: 4px 8px; border-radius: 4px; transition: var(--transition);">×</button>
+                    <button type="button" class="remove-btn" onclick="window.CertificateCreate.removePdfPreview()" style="background: none; border: none; color: #FF5252; cursor: pointer; font-size: 18px; padding: 4px 8px; border-radius: 4px; transition: var(--transition);" title="Remove PDF"><i class="fas fa-trash-alt"></i></button>
                 </div>
             `;
 

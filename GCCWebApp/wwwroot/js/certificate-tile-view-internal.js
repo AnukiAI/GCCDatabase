@@ -30,9 +30,14 @@
 
     async function initialize() {
         setupUrlParameters(); // Parse URL params into state.filters first
-        await loadFilterOptions(); // Wait for filter checkboxes to be created
-        restoreFilterCheckboxes(); // Now apply state.filters to the populated checkboxes
-        await loadInitialCertificates();
+
+        // Load filters and certificates in parallel for faster initial render
+        await Promise.all([
+            loadFilterOptions(),
+            loadInitialCertificates()
+        ]);
+
+        restoreFilterCheckboxes(); // Apply state.filters to the now-populated checkboxes
         setupEventListeners();
         setupInfiniteScroll();
         initializeAutocomplete();
@@ -460,9 +465,10 @@
                             </div>
                         ` : ''}
                     </div>
-                    ${cert.externalTags ? `
+                    ${cert.externalTags || cert.internalTags ? `
                         <div class="certificate-tags">
-                            <span class="tag">${escapeHtml(cert.externalTags)}</span>
+                            ${cert.externalTags ? `<span class="tag external">${escapeHtml(cert.externalTags)}</span>` : ''}
+                            ${cert.internalTags ? `<span class="tag internal">${escapeHtml(cert.internalTags)}</span>` : ''}
                         </div>
                     ` : ''}
                 </div>
@@ -1131,7 +1137,8 @@
             return;
         }
         // Encode URI to handle certificate numbers with special chars like "24-0366"
-        window.location.href = `/Certificate/CertificateInternalView/${encodeURIComponent(certificateNumber)}`;
+        // Opens in new window so user doesn't lose their place in the tile view
+        window.open(`/Certificate/CertificateInternalView/${encodeURIComponent(certificateNumber)}`, '_blank');
     };
 
     function viewCertificate(certificateNumber) {
@@ -1219,16 +1226,13 @@
     }
 
     function removeSkeleton() {
-        const grid = document.getElementById('certificatesGrid');
-        if (grid) {
-            grid.querySelectorAll('.skeleton-card').forEach(el => el.remove());
-        }
+        const loading = document.getElementById('initialLoadingState');
+        if (loading) loading.remove();
     }
 
     function showLoadingIndicator() {
         const grid = document.getElementById('certificatesGrid');
         if (!grid) return;
-        if (grid.querySelector('.skeleton-card')) return;
 
         const loader = document.createElement('div');
         loader.className = 'loading-indicator';

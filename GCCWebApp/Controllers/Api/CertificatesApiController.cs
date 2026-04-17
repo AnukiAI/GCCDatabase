@@ -695,6 +695,58 @@ namespace GCCWebApp.Controllers.Api
         }
 
         #endregion
+
+        /// <summary>
+        /// Remove the uploaded PDF and thumbnail from a certificate
+        /// </summary>
+        [HttpDelete("{id:int}/pdf")]
+        [Authorize(Roles = "Admin,Analyst")]
+        [ProducesResponseType(typeof(ApiSuccessResponse), 200)]
+        [ProducesResponseType(typeof(ApiErrorResponse), 404)]
+        public async Task<ActionResult> RemoveCertificatePdf(int id)
+        {
+            try
+            {
+                var certificate = await _certificateService.GetCertificateEntityAsync(id);
+                if (certificate == null)
+                {
+                    return NotFound(new ApiErrorResponse { Message = "Certificate not found." });
+                }
+
+                // Delete physical files
+                if (!string.IsNullOrEmpty(certificate.CertificateFile))
+                {
+                    try { await _fileUploadService.DeleteFileAsync(certificate.CertificateFile); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "Failed to delete certificate PDF file: {Path}", certificate.CertificateFile); }
+                }
+                if (!string.IsNullOrEmpty(certificate.CertificateImagePath))
+                {
+                    try { await _fileUploadService.DeleteFileAsync(certificate.CertificateImagePath); }
+                    catch (Exception ex) { _logger.LogWarning(ex, "Failed to delete certificate thumbnail: {Path}", certificate.CertificateImagePath); }
+                }
+
+                // Clear the database fields
+                certificate.CertificateFile = null;
+                certificate.CertificateImagePath = null;
+                await _certificateService.SaveChangesAsync();
+
+                _logger.LogInformation("Certificate PDF removed for certificate ID: {CertificateId}", id);
+
+                return Ok(new ApiSuccessResponse
+                {
+                    Success = true,
+                    Message = "Certificate PDF removed successfully."
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing PDF for certificate ID: {CertificateId}", id);
+                return StatusCode(500, new ApiErrorResponse
+                {
+                    Message = "An error occurred while removing the certificate PDF."
+                });
+            }
+        }
     }
 
     #region Request/Response Models

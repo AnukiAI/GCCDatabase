@@ -562,12 +562,15 @@ namespace GCCWebApp.Controllers.Api
         private string? GetCertificateTags(Certificate certificate)
         {
             var tags = new List<string>();
-            
-            if (!string.IsNullOrEmpty(certificate.Partner) && certificate.Partner != "None")
+
+            // Include external tags (public-safe)
+            if (certificate.Tags != null)
             {
-                tags.Add(certificate.Partner);
+                tags.AddRange(certificate.Tags
+                    .Where(t => t.TagType == "external")
+                    .Select(t => t.Name));
             }
-            
+
             return tags.Any() ? string.Join(", ", tags) : null;
         }
 

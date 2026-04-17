@@ -1,15 +1,13 @@
 /* Product ID Manager Styles */
 /* Following GCC Master Design Guide - 16px minimum font size, accessible colors */
 
-/* Modal Base - Hide by default, Bootstrap JS will show when triggered */
-#productIdModal,
-#importModal {
-    display: none;
+/* Modal z-index must exceed the app's backdrop override (9998 in modals.css) */
+#productIdModal {
+    z-index: 9999 !important;
 }
 
-#productIdModal.show,
-#importModal.show {
-    display: block;
+#productIdModal .modal-dialog {
+    max-width: 650px;
 }
 
 .product-id-manager {

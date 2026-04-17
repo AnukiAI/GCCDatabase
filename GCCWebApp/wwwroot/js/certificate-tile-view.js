@@ -16,7 +16,7 @@
             sortBy: 'cert-number-newest'
         },
         loadedCount: 0,
-        batchSize: 20,
+        batchSize: 50,
         totalCount: 0,
         isLoading: false,
         hasMore: true,
@@ -33,9 +33,14 @@
 
     async function initialize() {
         setupUrlParameters(); // Parse URL params into state.filters first
-        await loadFilterOptions(); // Wait for filter checkboxes to be created
-        restoreFilterCheckboxes(); // Now apply state.filters to the populated checkboxes
-        await loadInitialCertificates();
+
+        // Load filters and certificates in parallel for faster initial render
+        const [filtersResult] = await Promise.all([
+            loadFilterOptions(),
+            loadInitialCertificates()
+        ]);
+
+        restoreFilterCheckboxes(); // Apply state.filters to the now-populated checkboxes
         setupEventListeners();
         setupInfiniteScroll();
         initializeAutocomplete();
@@ -175,7 +180,6 @@
         state.isLoading = true;
         showLoadingIndicator();
 
-        console.log('Loading certificates from:', `${state.apiBaseUrl}?${buildApiParams()}`);
 
         try {
             // Check network connectivity first
@@ -188,12 +192,10 @@
                 signal: AbortSignal.timeout(30000) // 30 second timeout
             });
 
-            console.log('API Response status:', response.status, response.ok);
 
             if (response.ok) {
                 const data = await response.json();
 
-                console.log('API data received:', data);
 
                 if (append) {
                     // Deduplicate by ID to prevent showing the same cert twice
@@ -304,7 +306,6 @@
             return;
         }
 
-        console.log('Rendering certificates:', state.certificates.length, 'append:', append);
 
         // Remove skeleton placeholders on first render
         removeSkeleton();
@@ -1159,18 +1160,14 @@
     }
 
     function removeSkeleton() {
-        // Remove skeleton cards from the grid (initial load only)
-        const grid = document.getElementById('certificatesGrid');
-        if (grid) {
-            grid.querySelectorAll('.skeleton-card').forEach(el => el.remove());
-        }
+        // Remove initial loading state (spinner shown before first data arrives)
+        const loading = document.getElementById('initialLoadingState');
+        if (loading) loading.remove();
     }
 
     function showLoadingIndicator() {
-        // Don't show spinner if skeleton cards are still visible (initial load)
         const grid = document.getElementById('certificatesGrid');
         if (!grid) return;
-        if (grid.querySelector('.skeleton-card')) return;
 
         const loader = document.createElement('div');
         loader.className = 'loading-indicator';

@@ -19,6 +19,14 @@ class ProductIdManager {
             return;
         }
 
+        // Move modals to body so they aren't trapped inside the form's stacking context
+        // (Bootstrap backdrop is appended to body at z-index 1050; modals inside
+        //  nested positioned containers render behind it)
+        const productIdModal = document.getElementById('productIdModal');
+        if (productIdModal) document.body.appendChild(productIdModal);
+        const importModal = document.getElementById('import-preview-modal');
+        if (importModal) document.body.appendChild(importModal);
+
         this.bindEvents();
         this.loadProductIds();
         this.initializeTypeHelp();
@@ -347,7 +355,12 @@ class ProductIdManager {
     resetForm() {
         const form = document.getElementById('productIdForm');
         if (form) {
-            form.reset();
+            // productIdForm is a <div>, not a <form>, so reset fields manually
+            const inputs = form.querySelectorAll('input[type="text"], textarea');
+            inputs.forEach(input => input.value = '');
+            const selects = form.querySelectorAll('select');
+            selects.forEach(select => select.selectedIndex = 0);
+
             document.getElementById('productIdId').value = '0';
             document.getElementById('certificateId').value = this.certificateId;
             document.getElementById('productIdStatus').value = 'Active';
@@ -1201,6 +1214,12 @@ class ProductIdManager {
     }
 
     async exportProductIds() {
+        // For new certificates (no ID yet), export from in-memory data
+        if (!this.certificateId || this.certificateId === 0) {
+            this.exportInMemoryProductIds();
+            return;
+        }
+
         try {
             this.showLoading(true);
             const response = await fetch(`/api/productids/certificate/${this.certificateId}/export`);
@@ -1218,13 +1237,38 @@ class ProductIdManager {
 
                 this.showSuccess('Product IDs exported successfully');
             } else {
-                this.showError('Failed to export product IDs');
+                const errorData = await response.json().catch(() => null);
+                this.showError(errorData?.message || 'Failed to export product IDs');
             }
         } catch (error) {
             console.error('Export error:', error);
             this.showError('Export failed');
         } finally {
             this.showLoading(false);
+        }
+    }
+
+    exportInMemoryProductIds() {
+        const header = 'Type,Product ID,Status,Partner,ProductName,ProductSku,Description';
+        const rows = this.productIds.map(pid =>
+            `"${pid.productIdType || ''}","${pid.productIdValue || ''}","${pid.status || ''}","${pid.partner || ''}","${pid.productName || ''}","${pid.productSku || ''}","${pid.description || ''}"`
+        );
+        const csvContent = [header, ...rows].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'product-ids-export.csv';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+        if (this.productIds.length === 0) {
+            this.showSuccess('Exported empty template (no product IDs added yet)');
+        } else {
+            this.showSuccess(`Exported ${this.productIds.length} product ID(s)`);
         }
     }
 

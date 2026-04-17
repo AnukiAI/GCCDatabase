@@ -736,7 +736,7 @@ body.theme-option4 .certificate-card .card-actions {
 }
 
 .certificate-card .card-header .company-name {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 600;
     line-height: 1.3;
     color: #fff;
@@ -745,7 +745,7 @@ body.theme-option4 .certificate-card .card-actions {
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-height: calc(16px * 1.3 * 3); /* Reserve space for 3 lines */
+    height: calc(18px * 1.3 * 3); /* Fixed height for 3 lines - consistent across cards */
 }
 
 /* Compact header for public/external views (no status/partner rows) */
@@ -788,13 +788,11 @@ body.theme-option4 .certificate-card .card-actions {
     font-weight: 600 !important;
     margin: 3px 0 3px 0 !important;
     color: var(--text-color) !important;
-    height: auto !important;
-    min-height: calc(22px * 1.45 * 3) !important; /* Reserve space for 3 lines */
-    max-height: 128px !important; /* ~4 lines at 22px * 1.45 line-height */
+    height: calc(22px * 1.45 * 3 + 16px) !important; /* Fixed height for 3 lines + padding - consistent across cards */
     max-width: 100% !important;
     width: 100% !important;
     display: -webkit-box !important;
-    -webkit-line-clamp: 3 !important; /* 3 lines, 4 max with ellipsis */
+    -webkit-line-clamp: 3 !important;
     -webkit-box-orient: vertical !important;
     line-height: 1.45 !important;
     overflow: hidden !important;

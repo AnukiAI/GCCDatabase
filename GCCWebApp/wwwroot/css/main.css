@@ -5188,11 +5188,6 @@ footer {
             display: block !important;
         }
 
-/* Debug style - remove after testing */
-.table-wrapper {
-    border: 2px solid red; /* Temporary for debugging */
-}
-
 /* Enhanced Table Styles */
 .table-wrapper {
     background: #fff;

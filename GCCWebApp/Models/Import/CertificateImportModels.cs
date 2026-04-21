@@ -44,6 +44,10 @@ namespace GCCWebApp.Models.Import
         public List<string> NewProductNames { get; set; } = new();
         public List<string> NewProductTypeNames { get; set; } = new();
         public List<string> NewTagNames { get; set; } = new();
+
+        // Multi-ASIN and PDF summaries
+        public int ProductIdsToCreate { get; set; }
+        public int PdfFilesToUpload { get; set; }
     }
 
     /// <summary>
@@ -88,6 +92,12 @@ namespace GCCWebApp.Models.Import
         public List<int> TagIds { get; set; } = new();
         public List<string> TagsToCreate { get; set; } = new();
 
+        // Product IDs (for multi-ASIN support - additional rows with same cert number)
+        public List<ProductIdEntry> ProductIdEntries { get; set; } = new();
+
+        // PDF file path
+        public string? PdfFilePath { get; set; }
+
         // Metadata
         public ImportRowStatus RowStatus { get; set; }
         public List<string> ValidationMessages { get; set; } = new();
@@ -98,6 +108,20 @@ namespace GCCWebApp.Models.Import
         public int? ProductId { get; set; }
         public int? CertificationTypeId { get; set; }
         public int? ExistingCertificateId { get; set; } // If updating existing
+    }
+
+    /// <summary>
+    /// Represents a product identifier entry to be created during import
+    /// </summary>
+    public class ProductIdEntry
+    {
+        public int RowNumber { get; set; }
+        public string ProductIdType { get; set; } = string.Empty;
+        public string ProductIdValue { get; set; } = string.Empty;
+        public string? ProductName { get; set; }
+        public string? ProductSku { get; set; }
+        public string? AmazonCode { get; set; }
+        public string? Partner { get; set; }
     }
 
     /// <summary>
@@ -168,6 +192,15 @@ namespace GCCWebApp.Models.Import
         public string Upc { get; set; } = string.Empty;
         public string Gtin { get; set; } = string.Empty;
         public string Ean { get; set; } = string.Empty;
+
+        // Product ID fields (for multi-ASIN support)
+        public string ProductIdType { get; set; } = string.Empty;   // ASIN, UPC, GTIN, EAN, etc.
+        public string ProductIdValue { get; set; } = string.Empty;  // The actual identifier value
+        public string ProductSku { get; set; } = string.Empty;      // Optional SKU
+        public string AmazonCode { get; set; } = string.Empty;      // Amazon certification code
+
+        // PDF file
+        public string PdfFilePath { get; set; } = string.Empty;     // Local path to PDF file for upload
 
         // Partner
         public string Partner { get; set; } = string.Empty;

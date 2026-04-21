@@ -1086,7 +1086,7 @@ async function importCSV() {
                     email: fields[3]?.trim() || '',
                     role: fields[4]?.trim().toLowerCase() || 'external',
                     status: fields[5]?.trim().toLowerCase() || 'active',
-                    password: fields[7]?.trim() || 'TempPassword123!',
+                    password: fields[7]?.trim() || 'TestPass123!',
                     requirePasswordReset: fields[8] ? fields[8].trim().toLowerCase() === 'true' : true
                 });
             }

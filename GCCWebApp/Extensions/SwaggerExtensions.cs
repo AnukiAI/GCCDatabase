@@ -292,19 +292,17 @@ All responses follow this structure:
                 // Enable annotations
                 c.EnableAnnotations();
 
-                // Add servers (configure production URLs as needed)
+                // Add servers
+                c.AddServer(new OpenApiServer
+                {
+                    Url = "https://greencirclecertified.com/database",
+                    Description = "Production Server"
+                });
                 c.AddServer(new OpenApiServer
                 {
                     Url = "http://localhost:5101",
                     Description = "Development Server"
                 });
-
-                // TODO: Add production server URL when available
-                // c.AddServer(new OpenApiServer
-                // {
-                //     Url = "https://your-production-domain.com",
-                //     Description = "Production Server"
-                // });
 
                 // Security Definitions
                 c.AddSecurityDefinition("ApiKey", new OpenApiSecurityScheme

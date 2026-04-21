@@ -232,7 +232,7 @@ namespace GCCWebApp.Controllers
                                 Name = values[0].Trim(),
                                 Email = values[1].Trim(),
                                 Role = values[2].Trim(),
-                                Password = values.Length > 3 && !string.IsNullOrWhiteSpace(values[3]) ? values[3].Trim() : "TempPassword123!",
+                                Password = values.Length > 3 && !string.IsNullOrWhiteSpace(values[3]) ? values[3].Trim() : "TestPass123!",
                                 CompanyIds = companyIds,
                                 RequirePasswordReset = resetVal.Equals("Yes", StringComparison.OrdinalIgnoreCase) ||
                                                        resetVal.Equals("true", StringComparison.OrdinalIgnoreCase)

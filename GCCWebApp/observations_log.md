@@ -3653,3 +3653,40 @@ Conducted exhaustive review of all tag filtering logic in response to:
 - Updated production CSF Attributes to match client's full list (36 attributes)
 - Data stored in Tags table with TagType = "csf"
 
+---
+
+## Session: April 21, 2026
+
+### DEF: Partner API Status Contract Violation (Amazon Integration)
+
+**Trigger:** Shawn asked why yesterday's data import didn't result in Amazon seeing `status: "Active"` in the API JSON payload. Initial analysis suggested "as designed" (import defaults certs to Draft, which is correct per the Amazon Developer Guide §8 "draft, expired, suspended, and revoked certs are excluded"). Shawn then provided a live JSON sample showing `"status": "Client Approved - Paid"` being returned to Amazon — confirming the Partner API was leaking internal lifecycle statuses instead of honoring the signed contract.
+
+**Contract source:** `GCC Database Partner API - Amazon Developer Guide_updates_SW3.pdf` v1.0 (March 2026)
+- §4 Response Data Model: `status` field → *"Always 'Active' (only active certs returned)"*
+- §8 Security & Access Scope: *"Only active certificates are returned; draft, expired, suspended, and revoked certs are excluded"* + *"You will never see: … internal notes, workflow history, draft certificates…"*
+- §9 Field Reference: `data[].status = "Active"` (Standard JSON) / `certificationInfo.status = "ACTIVE"` (GS1)
+
+**Root cause:** Two failures in `Controllers/Api/v1/CertificatesController.cs`:
+1. **Missing status filter on queries** — Partner role filtering only checked `Partner = "Amazon"`; never filtered by `PublicStatuses`. Draft, Hold, Expired certs leaked through if tagged to Amazon.
+2. **Raw status projected to response** — Projections passed `c.Status` directly (e.g., `"Client Approved - Paid"`, `"Draft"`) instead of the contract literal `"Active"`.
+
+**Note:** The GS1 single-cert endpoint already had correct mapping logic (lines 1325-1326 used ACTIVE/INACTIVE). The fix generalizes that pattern across all Partner-facing endpoints.
+
+**Fix applied** (all in `Controllers/Api/v1/CertificatesController.cs`):
+- `GetCertificates` (list, with and without ProductIds): added `PublicStatuses` filter for Partner + External roles; projections now output `isPartnerCaller ? "Active" : c.Status`
+- `GetCertificatesByProductId` (search by ASIN/UPC/etc.): same filter + same projection rule
+- `GetCertificatesGS1` (GS1 list): added `PublicStatuses` filter for Partner + External (GS1 single-cert mapping to ACTIVE/INACTIVE was already correct; filter ensures list only contains active)
+- `GetCertificate` (by id), `GetCertificateByNumber`, `GetCertificateGS1` (single), `DownloadCertificate`: added Partner-role 404 guard when certificate status is not in `PublicStatuses`
+- Updated two stale XML docstrings at lines ~88 and ~679 that claimed `Active, Inactive, Pending, Expired` — corrected to match the contract's `Active`-only promise
+
+**Scope preservation:**
+- Admin and Analyst roles see no behavior change (they still get raw lifecycle status for internal dashboards)
+- Import service default of `"Draft"` on new certificates (`CertificateImportService.cs:687, 744`) was not changed — it is correct per contract; the Partner API now correctly hides Drafts instead of leaking them
+- No schema changes; no new dependencies
+
+**Why yesterday's import "didn't work":** Two things compounded. Import correctly set new certs to `Draft` per lifecycle safety. But the Partner API did not filter out Drafts AND did not map approved statuses to the contract `"Active"` literal. Shawn saw raw internal values in the JSON and reported that as "import didn't set status to Active" — the defect was actually in the API layer, not the import.
+
+**Build result:** 0 errors, 46 warnings (all pre-existing, unrelated).
+
+**Files modified:** `Controllers/Api/v1/CertificatesController.cs` only.
+

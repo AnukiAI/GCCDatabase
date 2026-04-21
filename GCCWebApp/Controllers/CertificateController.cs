@@ -2410,6 +2410,78 @@ namespace GCCWebApp.Controllers
         #endregion
 
         #endregion
+
+        #region PDF Upload API
+
+        /// <summary>
+        /// POST: /api/certificates/{number}/upload-pdf
+        /// Uploads a PDF file to an existing certificate by certificate number.
+        /// Designed for automated imports where only the PDF needs to be attached.
+        /// </summary>
+        [HttpPost]
+        [Route("/api/certificates/{number}/upload-pdf")]
+        [Authorize(Policy = "AdminOnly")]
+        public async Task<IActionResult> UploadPdfByNumber(string number, IFormFile pdfFile)
+        {
+            try
+            {
+                if (pdfFile == null || pdfFile.Length == 0)
+                    return BadRequest(new { success = false, message = "No PDF file provided" });
+
+                if (!pdfFile.FileName.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+                    return BadRequest(new { success = false, message = "Only PDF files are accepted" });
+
+                if (pdfFile.Length > 20 * 1024 * 1024)
+                    return BadRequest(new { success = false, message = "File size must be less than 20MB" });
+
+                var certificate = await _context.Certificates
+                    .FirstOrDefaultAsync(c => c.Number == number);
+
+                if (certificate == null)
+                    return NotFound(new { success = false, message = $"Certificate '{number}' not found" });
+
+                var uploadResult = await _fileUploadService.UploadCertificateAsync(pdfFile, number);
+
+                if (!uploadResult.IsSuccess)
+                    return BadRequest(new { success = false, message = string.Join(", ", uploadResult.Errors) });
+
+                certificate.CertificateFile = uploadResult.FilePath;
+
+                // Generate thumbnail
+                try
+                {
+                    var pdfPath = Path.Combine(_hostingEnvironment.WebRootPath,
+                        uploadResult.FilePath.Replace("/", Path.DirectorySeparatorChar.ToString()));
+                    var thumbnailPath = await _fileUploadService.GeneratePdfThumbnailAsync(pdfPath, number);
+                    if (!string.IsNullOrEmpty(thumbnailPath))
+                        certificate.CertificateImagePath = thumbnailPath;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to generate thumbnail for {Number}", number);
+                }
+
+                certificate.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("PDF uploaded via API for certificate {Number}", number);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"PDF uploaded for certificate {number}",
+                    filePath = certificate.CertificateFile,
+                    thumbnailPath = certificate.CertificateImagePath
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to upload PDF for certificate {Number}", number);
+                return StatusCode(500, new { success = false, message = ex.Message });
+            }
+        }
+
+        #endregion
     }
 }
 

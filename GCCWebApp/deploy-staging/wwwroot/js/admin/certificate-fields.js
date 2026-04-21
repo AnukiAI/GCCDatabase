@@ -1,0 +1,663 @@
+/**
+ * Certificate Fields Management System
+ * Handles CRUD operations and UI interactions for certificate fields
+ */
+
+class CertificateFieldsManager {
+    constructor() {
+        this.fields = [];
+        this.filteredFields = [];
+        this.displayedFields = [];
+        this.currentEditingId = null;
+        this.itemsPerLoad = 15;
+        this.currentDisplayCount = 15;
+        this.isLoading = false;
+        this.sortColumn = 'fieldName';
+        this.sortDirection = 'asc';
+
+        this.init();
+    }
+
+    async init() {
+        this.bindEvents();
+        await this.loadFields();
+        this.renderFields();
+        this.initInfiniteScroll();
+    }
+
+    bindEvents() {
+        // DOM elements
+        this.fieldsTableBody = document.getElementById('fields-table-body');
+        this.fieldCountElement = document.getElementById('field-count');
+        this.searchInput = document.getElementById('search-input');
+        this.addFieldBtn = document.getElementById('add-field-btn');
+        this.exportBtn = document.getElementById('export-btn');
+        this.tableContainer = document.querySelector('.table-container');
+
+        // Event listeners
+        this.addFieldBtn?.addEventListener('click', () => this.startAddNew());
+        this.searchInput?.addEventListener('input', this.debounce((e) => this.handleSearch(e), 300));
+        this.exportBtn?.addEventListener('click', () => this.showExportModal());
+
+        // Initialize sorting
+        this.initializeSorting();
+
+        // Table event delegation
+        this.fieldsTableBody?.addEventListener('click', (e) => this.handleTableClick(e));
+        
+        // Double-click to edit
+        this.fieldsTableBody?.addEventListener('dblclick', (e) => {
+            const row = e.target.closest('tr');
+            if (row && row.dataset.id && !row.classList.contains('edit-row')) {
+                const fieldId = parseInt(row.dataset.id);
+                this.editField(fieldId);
+            }
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.currentEditingId) {
+                this.cancelInlineEdit(this.currentEditingId);
+            }
+            if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+                e.preventDefault();
+                this.startAddNew();
+            }
+        });
+    }
+
+    async loadFields() {
+        try {
+            const response = await fetch('/Admin/GetCertificateFields');
+            const result = await response.json();
+
+            if (result.success) {
+                this.fields = result.data || [];
+                this.filteredFields = [...this.fields];
+                console.log('Loaded fields from database:', this.fields);
+            } else {
+                console.error('Failed to load fields:', result.message);
+                this.showToast('Failed to load certificate fields from database', 'error');
+                // Show empty state - no fallback to mock data
+                this.fields = [];
+                this.filteredFields = [];
+            }
+        } catch (error) {
+            console.error('Error loading fields:', error);
+            this.showToast('Error connecting to database. Please try again.', 'error');
+            // Show empty state - no fallback to mock data
+            this.fields = [];
+            this.filteredFields = [];
+        }
+    }
+
+    async createField(fieldData) {
+        try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            
+            const response = await fetch('/Admin/CreateCertificateField', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(fieldData)
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showToast('Certificate field created successfully', 'success');
+                await this.loadFields();
+                this.renderFields();
+                return true;
+            } else {
+                this.showToast(result.message || 'Failed to create certificate field', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error creating field:', error);
+            this.showToast('Error creating certificate field', 'error');
+            return false;
+        }
+    }
+
+    async updateField(id, fieldData) {
+        try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            
+            const response = await fetch(`/Admin/UpdateCertificateField/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                },
+                body: JSON.stringify(fieldData)
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showToast('Certificate field updated successfully', 'success');
+                await this.loadFields();
+                this.renderFields();
+                return true;
+            } else {
+                this.showToast(result.message || 'Failed to update certificate field', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error updating field:', error);
+            this.showToast('Error updating certificate field', 'error');
+            return false;
+        }
+    }
+
+    async deleteField(id) {
+        try {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            
+            const response = await fetch(`/Admin/DeleteCertificateField/${id}`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': token
+                }
+            });
+
+            const result = await response.json();
+            
+            if (result.success) {
+                this.showToast('Certificate field deleted successfully', 'success');
+                await this.loadFields();
+                this.renderFields();
+                return true;
+            } else {
+                this.showToast(result.message || 'Failed to delete certificate field', 'error');
+                return false;
+            }
+        } catch (error) {
+            console.error('Error deleting field:', error);
+            this.showToast('Error deleting certificate field', 'error');
+            return false;
+        }
+    }
+
+    startAddNew() {
+        if (this.currentEditingId !== null) {
+            this.cancelInlineEdit(this.currentEditingId);
+        }
+
+        const newId = this.fields.length > 0 ? Math.max(...this.fields.map(f => f.id)) + 1 : 1;
+        const newField = {
+            id: newId,
+            name: '',
+            fieldType: 'text',
+            isRequired: false,
+            isVisible: true,
+            notes: '',
+            sortOrder: this.getNextOrder()
+        };
+
+        const newRow = document.createElement('tr');
+        newRow.setAttribute('data-id', newId);
+
+        this.renderEditRow(newRow, newField);
+
+        if (this.fieldsTableBody.firstChild) {
+            this.fieldsTableBody.insertBefore(newRow, this.fieldsTableBody.firstChild);
+        } else {
+            this.fieldsTableBody.appendChild(newRow);
+        }
+
+        this.currentEditingId = newId;
+        
+        setTimeout(() => {
+            const nameInput = newRow.querySelector('.edit-input');
+            if (nameInput) nameInput.focus();
+        }, 0);
+    }
+
+    getNextOrder() {
+        return Math.max(...this.fields.map(f => f.sortOrder || 0), 0) + 1;
+    }
+
+    handleTableClick(e) {
+        const target = e.target.closest('button');
+        if (!target) return;
+
+        const row = target.closest('tr');
+        const fieldId = parseInt(row.dataset.id);
+
+        if (target.classList.contains('edit-btn')) {
+            this.editField(fieldId);
+        } else if (target.classList.contains('delete-btn')) {
+            this.confirmDeleteField(fieldId);
+        } else if (target.classList.contains('save-btn')) {
+            this.saveInlineEdit(fieldId);
+        } else if (target.classList.contains('cancel-btn')) {
+            this.cancelInlineEdit(fieldId);
+        }
+    }
+
+    editField(id) {
+        if (this.currentEditingId && this.currentEditingId !== id) {
+            this.cancelInlineEdit(this.currentEditingId);
+        }
+
+        const field = this.fields.find(f => f.id === id);
+        if (!field) return;
+
+        this.currentEditingId = id;
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        this.renderEditRow(row, field);
+    }
+
+    async confirmDeleteField(id) {
+        const field = this.fields.find(f => f.id === id);
+        if (!field) {
+            console.error('Field not found for id:', id);
+            return;
+        }
+
+        console.log('confirmDeleteField called for:', field.name);
+        console.log('AdminCore available:', typeof AdminCore !== 'undefined');
+        console.log('showConfirmation available:', typeof AdminCore !== 'undefined' && typeof AdminCore.showConfirmation === 'function');
+
+        try {
+            const confirmed = await AdminCore.showConfirmation({
+                title: 'Delete Confirmation',
+                message: `Are you sure you want to delete the field <strong>${field.name}</strong>? This action cannot be undone.`,
+                confirmText: 'Delete',
+                cancelText: 'Cancel',
+                type: 'danger',
+                allowHtml: true
+            });
+
+            if (confirmed) {
+                await this.deleteField(id);
+            }
+        } catch (error) {
+            console.error('Error showing confirmation:', error);
+        }
+    }
+
+    async saveInlineEdit(id) {
+        const row = document.querySelector(`tr[data-id="${id}"]`);
+        const inputs = row.querySelectorAll('.edit-input, .edit-select');
+
+        const updatedData = {
+            name: inputs[0].value.trim(),
+            fieldType: inputs[1].value,
+            isRequired: inputs[2].value === 'true',
+            roleVisibility: inputs[3].value,  // Visibility dropdown (Public/External/Internal)
+            isVisible: true,
+            defaultValue: inputs[4].value.trim(),  // Notes stored in DefaultValue field
+            sortOrder: this.getNextOrder()
+        };
+
+        if (!updatedData.name || !updatedData.fieldType) {
+            this.showToast('Please fill in all required fields', 'error');
+            return;
+        }
+
+        // Check for duplicate names (excluding current field)
+        if (this.fields.some(field => field.name.toLowerCase() === updatedData.name.toLowerCase() && field.id !== id)) {
+            this.showToast('A field with this name already exists', 'error');
+            return;
+        }
+
+        const existingField = this.fields.find(f => f.id === id);
+        let success = false;
+
+        if (existingField) {
+            // Update existing field
+            success = await this.updateField(id, updatedData);
+        } else {
+            // Create new field
+            success = await this.createField(updatedData);
+        }
+
+        if (success) {
+            this.currentEditingId = null;
+        }
+    }
+
+    cancelInlineEdit(id) {
+        const existingField = this.fields.find(f => f.id === id);
+        
+        if (!existingField) {
+            // This is a new field that was being added - just remove the row
+            const row = document.querySelector(`tr[data-id="${id}"]`);
+            if (row) {
+                row.remove();
+            }
+        } else {
+            // This is an existing field being edited - reload the table
+            this.renderFields();
+        }
+        
+        this.currentEditingId = null;
+    }
+
+    renderFields() {
+        if (!this.fieldsTableBody) return;
+
+        this.fieldsTableBody.innerHTML = '';
+
+        // Show all fields at once (no lazy loading for admin pages with small datasets)
+        this.displayedFields = this.filteredFields;
+
+        this.displayedFields.forEach(field => {
+            const row = document.createElement('tr');
+            row.setAttribute('data-id', field.id);
+
+            if (this.currentEditingId === field.id) {
+                this.renderEditRow(row, field);
+            } else {
+                this.renderNormalRow(row, field);
+            }
+
+            this.fieldsTableBody.appendChild(row);
+        });
+
+        this.updateFieldCount();
+    }
+
+    renderNormalRow(row, field) {
+        const requiredLabel = field.isRequired ? 'Required' : 'Optional';
+        // Notes are stored in defaultValue field
+        const notes = field.notes || field.defaultValue || '';
+        const visibility = field.roleVisibility || 'Public';
+        const visibilityClass = visibility.toLowerCase();
+
+        row.innerHTML = `
+            <td>${field.name}</td>
+            <td><span class="field-type type-${field.fieldType.toLowerCase().replace(/[-\s]/g, '')}">${this.formatFieldType(field.fieldType)}</span></td>
+            <td><span class="required-label required-${requiredLabel.toLowerCase().replace('-', '')}">${requiredLabel}</span></td>
+            <td><span class="visibility-label visibility-${visibilityClass}">${visibility}</span></td>
+            <td>${notes}</td>
+            <td>
+                <div class="action-buttons">
+                    <button class="action-btn edit-btn" title="Edit Field" aria-label="Edit field">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
+                    </button>
+                    <button class="action-btn delete-btn" title="Delete Field" aria-label="Delete field">
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+    }
+
+    renderEditRow(row, field) {
+        row.classList.add('edit-row');
+        // Notes are stored in defaultValue field
+        const notes = field.notes || field.defaultValue || '';
+        const visibility = field.roleVisibility || 'Public';
+
+        const controlTypes = ['text', 'email', 'phone', 'textarea', 'dropdown', 'multi-select', 'date', 'file', 'number', 'checkbox', 'system-generated'];
+        const visibilityOptions = ['Public', 'External', 'Internal'];
+
+        row.innerHTML = `
+            <td>
+                <input type="text" class="edit-input" value="${field.name || ''}" required>
+            </td>
+            <td>
+                <select class="edit-select" required>
+                    ${controlTypes.map(type =>
+                        `<option value="${type}" ${type === field.fieldType ? 'selected' : ''}>${this.formatFieldType(type)}</option>`
+                    ).join('')}
+                </select>
+            </td>
+            <td>
+                <select class="edit-select" required>
+                    <option value="true" ${field.isRequired ? 'selected' : ''}>Required</option>
+                    <option value="false" ${!field.isRequired ? 'selected' : ''}>Optional</option>
+                </select>
+            </td>
+            <td>
+                <select class="edit-select" required>
+                    ${visibilityOptions.map(opt =>
+                        `<option value="${opt}" ${visibility === opt ? 'selected' : ''}>${opt}</option>`
+                    ).join('')}
+                </select>
+            </td>
+            <td>
+                <input type="text" class="edit-input" value="${notes}" placeholder="Optional notes">
+            </td>
+            <td>
+                <div class="action-buttons edit-actions">
+                    <button class="action-btn save-btn" title="Save Changes" aria-label="Save changes to custom field">
+                        <i class="fas fa-check" aria-hidden="true"></i>
+                    </button>
+                    <button class="action-btn cancel-btn" title="Cancel Edit" aria-label="Cancel editing custom field">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+    }
+
+    formatFieldType(type) {
+        const typeMap = {
+            'text': 'Text',
+            'email': 'Email',
+            'phone': 'Phone',
+            'textarea': 'Textarea',
+            'dropdown': 'Dropdown',
+            'multi-select': 'Multi-Select',
+            'multiselect': 'Multi-Select',
+            'select': 'Dropdown',
+            'date': 'Date',
+            'file': 'File',
+            'number': 'Number',
+            'checkbox': 'Checkbox',
+            'boolean': 'Checkbox',
+            'system-generated': 'System Generated'
+        };
+        return typeMap[type] || type;
+    }
+
+    handleSearch(e) {
+        const searchTerm = e.target.value.toLowerCase().trim();
+
+        if (searchTerm === '') {
+            this.filteredFields = [...this.fields];
+        } else {
+            this.filteredFields = this.fields.filter(field =>
+                field.name.toLowerCase().includes(searchTerm) ||
+                field.fieldType.toLowerCase().includes(searchTerm) ||
+                (field.isRequired ? 'required' : 'optional').includes(searchTerm) ||
+                (field.notes && field.notes.toLowerCase().includes(searchTerm))
+            );
+        }
+
+        // Sort and show all filtered results
+        this.sortFields();
+        this.renderFields();
+    }
+
+    initializeSorting() {
+        const table = document.getElementById('certificate-fields-table');
+        if (!table) return;
+
+        const headers = table.querySelectorAll('th[data-sort]');
+        headers.forEach(header => {
+            header.style.cursor = 'pointer';
+            header.addEventListener('click', () => {
+                const column = header.getAttribute('data-sort');
+
+                // Toggle sort direction if clicking the same column
+                if (this.sortColumn === column) {
+                    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sortColumn = column;
+                    this.sortDirection = 'asc';
+                }
+
+                // Update header styling and icons
+                headers.forEach(h => {
+                    h.classList.remove('active-sort');
+                    const icon = h.querySelector('.sort-icon');
+                    if (icon) {
+                        icon.textContent = '▼';
+                    }
+                });
+
+                header.classList.add('active-sort');
+                const sortIcon = header.querySelector('.sort-icon');
+                if (sortIcon) {
+                    sortIcon.textContent = this.sortDirection === 'asc' ? '▲' : '▼';
+                }
+
+                // Sort and re-render
+                this.sortFields();
+                this.renderFields();
+            });
+        });
+    }
+
+    sortFields() {
+        this.filteredFields.sort((a, b) => {
+            let valueA, valueB;
+
+            switch (this.sortColumn) {
+                case 'fieldName':
+                    valueA = (a.name || '').toLowerCase();
+                    valueB = (b.name || '').toLowerCase();
+                    break;
+                case 'fieldName':
+                    valueA = (a.name || '').toLowerCase();
+                    valueB = (b.name || '').toLowerCase();
+                    break;
+                case 'controlType':
+                    valueA = (a.fieldType || '').toLowerCase();
+                    valueB = (b.fieldType || '').toLowerCase();
+                    break;
+                case 'required':
+                    valueA = a.isRequired ? 1 : 0;
+                    valueB = b.isRequired ? 1 : 0;
+                    break;
+                case 'visibility':
+                    valueA = (a.roleVisibility || 'public').toLowerCase();
+                    valueB = (b.roleVisibility || 'public').toLowerCase();
+                    break;
+                case 'notes':
+                    valueA = (a.notes || a.defaultValue || '').toLowerCase();
+                    valueB = (b.notes || b.defaultValue || '').toLowerCase();
+                    break;
+                default:
+                    valueA = (a[this.sortColumn] || '').toString().toLowerCase();
+                    valueB = (b[this.sortColumn] || '').toString().toLowerCase();
+            }
+
+            if (this.sortDirection === 'asc') {
+                return valueA > valueB ? 1 : valueA < valueB ? -1 : 0;
+            } else {
+                return valueA < valueB ? 1 : valueA > valueB ? -1 : 0;
+            }
+        });
+    }
+
+    initInfiniteScroll() {
+        if (!this.tableContainer) return;
+
+        this.tableContainer.addEventListener('scroll', () => {
+            if (this.isLoading) return;
+
+            const scrollTop = this.tableContainer.scrollTop;
+            const scrollHeight = this.tableContainer.scrollHeight;
+            const clientHeight = this.tableContainer.clientHeight;
+
+            // Load more when 200px from bottom
+            if (scrollTop + clientHeight >= scrollHeight - 200) {
+                this.loadMoreFields();
+            }
+        });
+    }
+
+    loadMoreFields() {
+        if (this.displayedFields.length >= this.filteredFields.length) {
+            return; // All fields already displayed
+        }
+
+        this.isLoading = true;
+        this.currentDisplayCount += this.itemsPerLoad;
+        this.renderFields();
+        this.isLoading = false;
+    }
+
+    updateFieldCount() {
+        if (!this.fieldCountElement) return;
+
+        const totalFields = this.filteredFields.length;
+        const displayedCount = this.displayedFields.length;
+
+        if (this.filteredFields.length !== this.fields.length) {
+            this.fieldCountElement.textContent = `Showing ${displayedCount} of ${totalFields} filtered fields (${this.fields.length} total)`;
+        } else {
+            this.fieldCountElement.textContent = `Showing ${displayedCount} of ${totalFields} fields`;
+        }
+    }
+
+    // Removed updateShowMoreButton - using infinite scroll instead
+
+    // Export to CSV only
+    showExportModal() {
+        if (window.ExportUtils) {
+            const columns = [
+                { key: 'id', header: 'ID' },
+                { key: 'name', header: 'Name' },
+                { key: 'fieldType', header: 'Field Type' },
+                { key: 'isRequired', header: 'Required' },
+                { key: 'isVisible', header: 'Visible' },
+                { key: 'sortOrder', header: 'Sort Order' },
+                { key: 'notes', header: 'Notes' }
+            ];
+
+            // Direct CSV export only
+            window.ExportUtils.exportToCSV(this.filteredFields, columns, 'certificate-fields', (message, type) => this.showToast(message, type));
+        } else {
+            this.showToast('Export functionality not available', 'error');
+        }
+    }
+
+    showToast(message, type = 'success') {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
+            <span>${message}</span>
+        `;
+
+        const container = document.getElementById('toast-container');
+        if (container) {
+            container.appendChild(toast);
+
+            setTimeout(() => toast.classList.add('show'), 100);
+
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+    }
+
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    window.certificateFieldsManager = new CertificateFieldsManager();
+});

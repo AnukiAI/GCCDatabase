@@ -9,8 +9,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
+using GCCWebApp.Services;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -27,6 +29,8 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         private readonly Mock<IAuditService> _mockAuditService;
         private readonly IMemoryCache _cache;
         private readonly Mock<ILogger<CertificateImportService>> _mockLogger;
+        private readonly Mock<IWebHostEnvironment> _mockEnvironment;
+        private readonly Mock<IFileUploadService> _mockFileUploadService;
         private readonly CertificateImportService _service;
 
         public CertificateImportServiceTests()
@@ -44,8 +48,12 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             _mockAuditService = new Mock<IAuditService>();
             _cache = new MemoryCache(new MemoryCacheOptions());
             _mockLogger = new Mock<ILogger<CertificateImportService>>();
+            _mockEnvironment = new Mock<IWebHostEnvironment>();
+            _mockEnvironment.Setup(e => e.WebRootPath).Returns(Path.GetTempPath());
+            _mockFileUploadService = new Mock<IFileUploadService>();
             _service = new CertificateImportService(
-                _context, _mockAuditService.Object, _cache, _mockLogger.Object);
+                _context, _mockAuditService.Object, _cache, _mockLogger.Object,
+                _mockEnvironment.Object, _mockFileUploadService.Object);
 
             SeedData();
         }
@@ -659,7 +667,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
 
             var freshService = new CertificateImportService(
                 freshContext, _mockAuditService.Object, _cache,
-                _mockLogger.Object);
+                _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object);
 
             var csv = BuildCsv(StdHeaders, StdRow());
             var file = CreateCsvFormFile(csv);
@@ -1315,7 +1323,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var freshService = new CertificateImportService(
                 freshContext, _mockAuditService.Object,
                 new MemoryCache(new MemoryCacheOptions()),
-                _mockLogger.Object);
+                _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object);
 
             var preview = CreatePreviewWithNewRow("25-8000");
             preview.NewCompanyNames = new List<string> { "NewCo" };

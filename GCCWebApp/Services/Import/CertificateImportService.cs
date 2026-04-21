@@ -24,6 +24,8 @@ namespace GCCWebApp.Services.Import
         private readonly IAuditService _auditService;
         private readonly IMemoryCache _cache;
         private readonly ILogger<CertificateImportService> _logger;
+        private readonly IWebHostEnvironment _environment;
+        private readonly IFileUploadService _fileUploadService;
         private const string CACHE_KEY_PREFIX = "CertImport_";
         private const int CACHE_MINUTES = 30;
 
@@ -31,12 +33,16 @@ namespace GCCWebApp.Services.Import
             ApplicationDbContext context,
             IAuditService auditService,
             IMemoryCache cache,
-            ILogger<CertificateImportService> logger)
+            ILogger<CertificateImportService> logger,
+            IWebHostEnvironment environment,
+            IFileUploadService fileUploadService)
         {
             _context = context;
             _auditService = auditService;
             _cache = cache;
             _logger = logger;
+            _environment = environment;
+            _fileUploadService = fileUploadService;
         }
 
         #region Column Name Mappings (supports both UPPERCASE_WITH_UNDERSCORES and PascalCase formats)
@@ -62,6 +68,11 @@ namespace GCCWebApp.Services.Import
         private static readonly string[] UpcColumns = { "UPC", "Upc", "upc" };
         private static readonly string[] GtinColumns = { "GTIN", "Gtin", "gtin" };
         private static readonly string[] EanColumns = { "EAN", "Ean", "ean" };
+        private static readonly string[] ProductIdTypeColumns = { "PRODUCT_ID_TYPE", "ProductIdType", "product_id_type", "type" };
+        private static readonly string[] ProductIdValueColumns = { "PRODUCT_ID_VALUE", "ProductIdValue", "product_id_value", "value" };
+        private static readonly string[] ProductSkuColumns = { "PRODUCT_SKU", "ProductSku", "product_sku", "productSku" };
+        private static readonly string[] AmazonCodeColumns = { "AMAZON_CODE", "AmazonCode", "amazon_code", "amazonCode" };
+        private static readonly string[] PdfFilePathColumns = { "PDF_FILE_PATH", "PdfFilePath", "pdf_file_path", "pdfDownloadUrl" };
 
         /// <summary>
         /// Gets a field value by trying multiple column name formats
@@ -174,20 +185,21 @@ namespace GCCWebApp.Services.Import
                 var productTypesToCreate = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 var tagsToCreate = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
-                // Process each row
-                foreach (var csvRow in csvRows)
+                // Group rows by certificate number to handle multi-ASIN rows
+                var groupedRows = csvRows
+                    .Where(r => !string.IsNullOrWhiteSpace(r.CertificateNumber) ||
+                                !string.IsNullOrWhiteSpace(r.CompanyName) ||
+                                !string.IsNullOrWhiteSpace(r.ProductName) ||
+                                !string.IsNullOrWhiteSpace(r.CertificationType))
+                    .GroupBy(r => r.CertificateNumber, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                foreach (var group in groupedRows)
                 {
-                    // Skip empty rows (all required fields are empty)
-                    if (string.IsNullOrWhiteSpace(csvRow.CertificateNumber) &&
-                        string.IsNullOrWhiteSpace(csvRow.CompanyName) &&
-                        string.IsNullOrWhiteSpace(csvRow.ProductName) &&
-                        string.IsNullOrWhiteSpace(csvRow.CertificationType))
-                    {
-                        continue;
-                    }
+                    var primaryRow = group.First();
 
                     var importRow = await ProcessRowAsync(
-                        csvRow,
+                        primaryRow,
                         companies,
                         products,
                         certTypes,
@@ -199,6 +211,80 @@ namespace GCCWebApp.Services.Import
                         productTypesToCreate,
                         tagsToCreate
                     );
+
+                    // Collect product ID entries from ALL rows in the group
+                    foreach (var csvRow in group)
+                    {
+                        // Check for explicit ProductIdType/ProductIdValue columns first
+                        if (!string.IsNullOrWhiteSpace(csvRow.ProductIdType) &&
+                            !string.IsNullOrWhiteSpace(csvRow.ProductIdValue))
+                        {
+                            importRow.ProductIdEntries.Add(new ProductIdEntry
+                            {
+                                RowNumber = csvRow.RowNumber,
+                                ProductIdType = csvRow.ProductIdType.ToUpperInvariant(),
+                                ProductIdValue = csvRow.ProductIdValue,
+                                ProductName = !string.IsNullOrWhiteSpace(csvRow.ProductName) ? csvRow.ProductName : null,
+                                ProductSku = !string.IsNullOrWhiteSpace(csvRow.ProductSku) ? csvRow.ProductSku : null,
+                                AmazonCode = !string.IsNullOrWhiteSpace(csvRow.AmazonCode) ? csvRow.AmazonCode : null,
+                                Partner = !string.IsNullOrWhiteSpace(csvRow.Partner) && csvRow.Partner != "None" ? csvRow.Partner : null
+                            });
+                        }
+                        // Fall back to legacy ASIN/UPC/GTIN/EAN columns
+                        else
+                        {
+                            if (!string.IsNullOrWhiteSpace(csvRow.Asin))
+                            {
+                                importRow.ProductIdEntries.Add(new ProductIdEntry
+                                {
+                                    RowNumber = csvRow.RowNumber,
+                                    ProductIdType = "ASIN",
+                                    ProductIdValue = csvRow.Asin,
+                                    ProductName = !string.IsNullOrWhiteSpace(csvRow.ProductName) ? csvRow.ProductName : null,
+                                    ProductSku = !string.IsNullOrWhiteSpace(csvRow.ProductSku) ? csvRow.ProductSku : null,
+                                    AmazonCode = !string.IsNullOrWhiteSpace(csvRow.AmazonCode) ? csvRow.AmazonCode : null,
+                                    Partner = !string.IsNullOrWhiteSpace(csvRow.Partner) && csvRow.Partner != "None" ? csvRow.Partner : null
+                                });
+                            }
+                            if (!string.IsNullOrWhiteSpace(csvRow.Upc))
+                            {
+                                importRow.ProductIdEntries.Add(new ProductIdEntry
+                                {
+                                    RowNumber = csvRow.RowNumber,
+                                    ProductIdType = "UPC",
+                                    ProductIdValue = csvRow.Upc,
+                                    ProductName = !string.IsNullOrWhiteSpace(csvRow.ProductName) ? csvRow.ProductName : null
+                                });
+                            }
+                            if (!string.IsNullOrWhiteSpace(csvRow.Gtin))
+                            {
+                                importRow.ProductIdEntries.Add(new ProductIdEntry
+                                {
+                                    RowNumber = csvRow.RowNumber,
+                                    ProductIdType = "GTIN",
+                                    ProductIdValue = csvRow.Gtin,
+                                    ProductName = !string.IsNullOrWhiteSpace(csvRow.ProductName) ? csvRow.ProductName : null
+                                });
+                            }
+                            if (!string.IsNullOrWhiteSpace(csvRow.Ean))
+                            {
+                                importRow.ProductIdEntries.Add(new ProductIdEntry
+                                {
+                                    RowNumber = csvRow.RowNumber,
+                                    ProductIdType = "EAN",
+                                    ProductIdValue = csvRow.Ean,
+                                    ProductName = !string.IsNullOrWhiteSpace(csvRow.ProductName) ? csvRow.ProductName : null
+                                });
+                            }
+                        }
+                    }
+
+                    // Set PDF file path from the primary row (or first row that has one)
+                    var pdfRow = group.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.PdfFilePath));
+                    if (pdfRow != null)
+                    {
+                        importRow.PdfFilePath = pdfRow.PdfFilePath;
+                    }
 
                     // Categorize based on status
                     switch (importRow.RowStatus)
@@ -228,7 +314,7 @@ namespace GCCWebApp.Services.Import
                                 CertificateNumber = importRow.CertificateNumber,
                                 ErrorType = "Validation",
                                 ErrorMessages = importRow.ValidationMessages,
-                                RawData = csvRow.RawData
+                                RawData = primaryRow.RawData
                             });
                             result.InvalidRows++;
                             break;
@@ -247,6 +333,12 @@ namespace GCCWebApp.Services.Import
                 result.NewProductNames = productsToCreate.ToList();
                 result.NewProductTypeNames = productTypesToCreate.ToList();
                 result.NewTagNames = tagsToCreate.ToList();
+
+                // Multi-ASIN and PDF summaries
+                result.ProductIdsToCreate = result.NewRows.Concat(result.ModifiedRows)
+                    .Sum(r => r.ProductIdEntries.Count);
+                result.PdfFilesToUpload = result.NewRows.Concat(result.ModifiedRows)
+                    .Count(r => !string.IsNullOrWhiteSpace(r.PdfFilePath));
 
                 // Cache the result for later application
                 _cache.Set(
@@ -494,6 +586,32 @@ namespace GCCWebApp.Services.Import
                     }
                 }
 
+                // === Phase 3: Attach Product IDs and PDFs to unchanged (existing) certificates ===
+                foreach (var row in previewResult.UnchangedRows)
+                {
+                    try
+                    {
+                        if (row.ExistingCertificateId.HasValue && row.ProductIdEntries.Any())
+                        {
+                            await CreateProductIdEntriesAsync(row.ExistingCertificateId.Value, row.ProductIdEntries, userId);
+                        }
+
+                        if (row.ExistingCertificateId.HasValue && !string.IsNullOrWhiteSpace(row.PdfFilePath))
+                        {
+                            var cert = await _context.Certificates.FindAsync(row.ExistingCertificateId.Value);
+                            if (cert != null)
+                            {
+                                await UploadPdfFromPathAsync(cert, row.PdfFilePath);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to attach product IDs/PDF to existing certificate {CertNumber}",
+                            row.CertificateNumber);
+                    }
+                }
+
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
@@ -587,6 +705,13 @@ namespace GCCWebApp.Services.Import
                     Upc = GetFieldWithMapping(csv, UpcColumns),
                     Gtin = GetFieldWithMapping(csv, GtinColumns),
                     Ean = GetFieldWithMapping(csv, EanColumns),
+                    // Product ID fields (for multi-ASIN support)
+                    ProductIdType = GetFieldWithMapping(csv, ProductIdTypeColumns),
+                    ProductIdValue = GetFieldWithMapping(csv, ProductIdValueColumns),
+                    ProductSku = GetFieldWithMapping(csv, ProductSkuColumns),
+                    AmazonCode = GetFieldWithMapping(csv, AmazonCodeColumns),
+                    // PDF file path
+                    PdfFilePath = GetFieldWithMapping(csv, PdfFilePathColumns),
                     // Partner
                     Partner = string.IsNullOrWhiteSpace(partner) ? "None" : partner,
                     RawData = csv.Context.Parser.RawRecord
@@ -963,6 +1088,12 @@ namespace GCCWebApp.Services.Import
                 await _context.SaveChangesAsync();
             }
 
+            // Create CertificateProductId entries (multi-ASIN support)
+            await CreateProductIdEntriesAsync(certificate.Id, row.ProductIdEntries, userId);
+
+            // Upload PDF if provided
+            await UploadPdfFromPathAsync(certificate, row.PdfFilePath);
+
             // Log to audit
             await _auditService.LogEntityChangeAsync(
                 certificate.Id.ToString(),
@@ -1048,6 +1179,12 @@ namespace GCCWebApp.Services.Import
 
             await _context.SaveChangesAsync();
 
+            // Create CertificateProductId entries (multi-ASIN support)
+            await CreateProductIdEntriesAsync(certificate.Id, row.ProductIdEntries, userId);
+
+            // Upload PDF if provided
+            await UploadPdfFromPathAsync(certificate, row.PdfFilePath);
+
             // Log to audit
             await _auditService.LogEntityChangeAsync(
                 certificate.Id.ToString(),
@@ -1060,6 +1197,131 @@ namespace GCCWebApp.Services.Import
                 reason ?? "Updated via CSV import",
                 AuditChangeSource.Import
             );
+        }
+
+        /// <summary>
+        /// Creates CertificateProductId entries for a certificate from import data
+        /// Checks for duplicates per-certificate (same ASIN can exist on different certs)
+        /// </summary>
+        private async Task CreateProductIdEntriesAsync(int certificateId, List<ProductIdEntry> entries, int userId)
+        {
+            if (entries == null || !entries.Any())
+                return;
+
+            // Get existing product IDs for THIS certificate to avoid duplicates
+            var existingProductIds = await _context.Set<CertificateProductId>()
+                .Where(p => p.CertificateId == certificateId)
+                .ToListAsync();
+
+            int displayOrder = existingProductIds.Count;
+
+            foreach (var entry in entries)
+            {
+                // Skip if this type+value already exists on THIS certificate
+                var exists = existingProductIds.Any(p =>
+                    p.ProductIdType.Equals(entry.ProductIdType, StringComparison.OrdinalIgnoreCase) &&
+                    p.ProductIdValue.Equals(entry.ProductIdValue, StringComparison.OrdinalIgnoreCase));
+
+                if (exists)
+                {
+                    _logger.LogInformation("Skipping duplicate product ID {Type}:{Value} for certificate {CertId}",
+                        entry.ProductIdType, entry.ProductIdValue, certificateId);
+                    continue;
+                }
+
+                var productId = new CertificateProductId
+                {
+                    CertificateId = certificateId,
+                    ProductIdType = entry.ProductIdType,
+                    ProductIdValue = entry.ProductIdValue,
+                    ProductName = entry.ProductName,
+                    ProductSku = entry.ProductSku,
+                    Description = entry.AmazonCode,
+                    Partner = entry.Partner,
+                    Status = "Active",
+                    IsActive = true,
+                    IsPublic = true,
+                    DisplayOrder = displayOrder++,
+                    CreatedBy = userId,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedBy = userId,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Set<CertificateProductId>().Add(productId);
+                _logger.LogInformation("Created product ID {Type}:{Value} for certificate {CertId}",
+                    entry.ProductIdType, entry.ProductIdValue, certificateId);
+            }
+
+            await _context.SaveChangesAsync();
+        }
+
+        /// <summary>
+        /// Uploads a PDF file from a local file path and associates it with the certificate
+        /// </summary>
+        private async Task UploadPdfFromPathAsync(Certificate certificate, string? pdfFilePath)
+        {
+            if (string.IsNullOrWhiteSpace(pdfFilePath))
+                return;
+
+            // Resolve the file path
+            var fullPath = pdfFilePath;
+            if (!Path.IsPathRooted(fullPath))
+            {
+                fullPath = Path.GetFullPath(fullPath);
+            }
+
+            if (!File.Exists(fullPath))
+            {
+                _logger.LogWarning("PDF file not found at path: {PdfPath} for certificate {CertNumber}",
+                    fullPath, certificate.Number);
+                return;
+            }
+
+            if (!fullPath.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogWarning("File is not a PDF: {PdfPath} for certificate {CertNumber}",
+                    fullPath, certificate.Number);
+                return;
+            }
+
+            try
+            {
+                // Copy the file to the uploads directory
+                var uploadsDir = Path.Combine(_environment.WebRootPath, "uploads", "certificates");
+                Directory.CreateDirectory(uploadsDir);
+
+                var fileName = $"{certificate.Number}_{DateTime.UtcNow:yyyyMMdd_HHmmss}.pdf";
+                var destPath = Path.Combine(uploadsDir, fileName);
+
+                File.Copy(fullPath, destPath, overwrite: true);
+
+                certificate.CertificateFile = Path.Combine("uploads", "certificates", fileName).Replace("\\", "/");
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("PDF uploaded from {SourcePath} for certificate {CertNumber}",
+                    fullPath, certificate.Number);
+
+                // Try to generate thumbnail
+                try
+                {
+                    var thumbnailPath = await _fileUploadService.GeneratePdfThumbnailAsync(destPath, certificate.Number);
+                    if (!string.IsNullOrEmpty(thumbnailPath))
+                    {
+                        certificate.CertificateImagePath = thumbnailPath;
+                        await _context.SaveChangesAsync();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to generate PDF thumbnail for certificate {CertNumber}", certificate.Number);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to upload PDF from path {PdfPath} for certificate {CertNumber}",
+                    fullPath, certificate.Number);
+            }
         }
 
         #endregion

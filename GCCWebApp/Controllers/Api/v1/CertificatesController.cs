@@ -85,7 +85,7 @@ namespace GCCWebApp.Controllers.Api.v1
         ///   {
         ///     "type": "ASIN",           // Product ID type: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN
         ///     "value": "B08N5WRWNW",    // The actual product identifier value
-        ///     "status": "Active",       // Status: Active, Inactive, Pending, Expired
+        ///     "status": "Active",       // Partner API contract: always "Active" (only active certs/IDs are returned)
         ///     "partner": "Amazon",      // Partner association: Amazon, Novi, None, Other
         ///     "productName": "Sample Product",  // Optional product name for this ID
         ///     "productSku": "SKU123",           // Optional SKU
@@ -153,6 +153,10 @@ namespace GCCWebApp.Controllers.Api.v1
                         _logger.LogWarning("Partner API key used but no partner name found in claims");
                         return PaginatedResponse(new List<object>(), 0, parameters.PageNumber, parameters.PageSize);
                     }
+
+                    // Partner API contract (Amazon Developer Guide §8): only active certificates are returned;
+                    // draft, expired, suspended, and revoked certs are excluded
+                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
                 }
                 else if (userRole == "External")
                 {
@@ -178,6 +182,9 @@ namespace GCCWebApp.Controllers.Api.v1
                     {
                         return PaginatedResponse(new List<object>(), 0, parameters.PageNumber, parameters.PageSize);
                     }
+
+                    // External users only see publicly-visible certificates (parity with external tile API)
+                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
                 }
                 // Admin and Analyst see all certificates (no additional filtering)
 
@@ -212,6 +219,11 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Skip((parameters.PageNumber - 1) * parameters.PageSize)
                     .Take(parameters.PageSize);
 
+                // Partner API contract (Amazon Developer Guide §4): status field is always "Active"
+                // for partner callers (only active certs pass the query filter above).
+                // Admin/Analyst callers still see the raw internal lifecycle status.
+                var isPartnerCaller = userRole == "Partner";
+
                 // Different projection based on whether ProductIds are included
                 if (includeProductIds)
                 {
@@ -222,7 +234,7 @@ namespace GCCWebApp.Controllers.Api.v1
                         {
                             id = c.Id,
                             certificateNumber = c.Number,
-                            status = c.Status,
+                            status = isPartnerCaller ? "Active" : c.Status,
                             issueDate = c.EffectiveDate,
                             expirationDate = c.ExpirationDate,
                             location = c.Location,
@@ -271,7 +283,7 @@ namespace GCCWebApp.Controllers.Api.v1
                         {
                             id = c.Id,
                             certificateNumber = c.Number,
-                            status = c.Status,
+                            status = isPartnerCaller ? "Active" : c.Status,
                             issueDate = c.EffectiveDate,
                             expirationDate = c.ExpirationDate,
                             location = c.Location,
@@ -324,6 +336,10 @@ namespace GCCWebApp.Controllers.Api.v1
                 if (certificate == null)
                     return NotFoundResponse($"Certificate with ID {id} not found");
 
+                // Partner API contract: non-active certs are not visible to partners
+                if (GetCurrentUserRole() == "Partner" && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                    return NotFoundResponse($"Certificate with ID {id} not found");
+
                 return SuccessResponse(certificate);
             }
             catch (Exception ex)
@@ -355,6 +371,10 @@ namespace GCCWebApp.Controllers.Api.v1
                     .FirstOrDefaultAsync(c => c.Number == certificateNumber);
 
                 if (certificate == null)
+                    return NotFoundResponse($"Certificate with number {certificateNumber} not found");
+
+                // Partner API contract: non-active certs are not visible to partners
+                if (GetCurrentUserRole() == "Partner" && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
                     return NotFoundResponse($"Certificate with number {certificateNumber} not found");
 
                 return SuccessResponse(certificate);
@@ -664,7 +684,7 @@ namespace GCCWebApp.Controllers.Api.v1
         ///   {
         ///     "type": "ASIN",           // Product ID type: ASIN, UPC, GTIN, EAN, ISBN, SKU, MPN
         ///     "value": "B08N5WRWNW",    // The actual product identifier value
-        ///     "status": "Active",       // Status: Active, Inactive, Pending, Expired
+        ///     "status": "Active",       // Partner API contract: always "Active" (only active certs/IDs are returned)
         ///     "partner": "Amazon",      // Partner association: Amazon, Novi, None, Other
         ///     "productName": "Sample Product",  // Optional product name for this ID
         ///     "productSku": "SKU123",           // Optional SKU
@@ -785,6 +805,9 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         _logger.LogWarning("Partner API key used but no partner name found in claims");
                         return SuccessResponse(new List<object>(), "No certificates found matching your access permissions");
                     }
+
+                    // Partner API contract (Amazon Developer Guide §8): only active certificates are returned
+                    certificatesQuery = certificatesQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
                 }
                 // Apply role-based filtering for External users (logged in via session)
                 else if (userRole == "External")
@@ -815,6 +838,9 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         // No associations - return empty
                         return SuccessResponse(new List<object>(), "No certificates found matching your access permissions");
                     }
+
+                    // External users only see publicly-visible certificates
+                    certificatesQuery = certificatesQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
                 }
                 // Admin and Analyst see all matched certificates (no additional filtering)
 
@@ -824,6 +850,9 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 {
                     return SuccessResponse(new List<object>(), "No certificates found matching your access permissions");
                 }
+
+                // Partner API contract (Amazon Developer Guide §4): status field is always "Active" for partner callers
+                var isPartnerCaller = userRole == "Partner";
 
                 // Map to response objects with ALL product IDs for each certificate
                 var results = certificates.Select(cert => new
@@ -837,7 +866,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     partner = cert.Partner,
                     certificationResults = cert.CertificationResults,
                     pathway = cert.Pathway?.Name,
-                    status = cert.Status,
+                    status = isPartnerCaller ? "Active" : cert.Status,
                     certificationType = cert.CertificationType?.Name,
                     amazonCode = cert.CertificationType?.AmazonCode,
                     issueDate = cert.EffectiveDate,
@@ -1027,6 +1056,10 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 if (certificate == null)
                     return NotFoundResponse($"Certificate '{id}' not found");
 
+                // Partner API contract: non-active certs are not visible to partners
+                if (GetCurrentUserRole() == "Partner" && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                    return NotFoundResponse($"Certificate '{id}' not found");
+
                 // Check if uploaded certificate file exists
                 if (!string.IsNullOrEmpty(certificate.CertificateFile))
                 {
@@ -1168,6 +1201,9 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                             Message = "No certificates found matching your access permissions"
                         });
                     }
+
+                    // Partner API contract (Amazon Developer Guide §8): only active certificates are returned
+                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
                 }
                 else if (userRole == "External")
                 {
@@ -1199,6 +1235,9 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                             Message = "No certificates found matching your access permissions"
                         });
                     }
+
+                    // External users only see publicly-visible certificates
+                    query = query.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status));
                 }
                 // Admin and Analyst see all certificates
 
@@ -1278,6 +1317,10 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     .FirstOrDefaultAsync(c => c.Number == certificateNumber);
 
                 if (certificate == null)
+                    return NotFoundResponse($"Certificate '{certificateNumber}' not found");
+
+                // Partner API contract: non-active certs are not visible to partners
+                if (GetCurrentUserRole() == "Partner" && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
                     return NotFoundResponse($"Certificate '{certificateNumber}' not found");
 
                 var gs1Report = MapToGS1Format(certificate, Request);

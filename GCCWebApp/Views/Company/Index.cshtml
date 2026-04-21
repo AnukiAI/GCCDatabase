@@ -669,29 +669,9 @@
         // Download import template
         function downloadImportTemplate() {
             try {
-                // Create template data with example row
-                const templateData = [
-                    {
-                        Name: 'Acme Corporation',
-                        Email: 'info@acmecorp.com',
-                        Website: 'https://www.acmecorp.com'
-                    }
-                ];
-
-                // Create CSV content
+                // Headers only - no sample data to avoid accidental import
                 const headers = ['Name', 'Email', 'Website'];
-                const csvContent = [
-                    headers.join(','),
-                    ...templateData.map(row =>
-                        headers.map(header => {
-                            const value = row[header] || '';
-                            // Escape quotes and wrap in quotes if contains comma
-                            return value.includes(',') || value.includes('"')
-                                ? `"${value.replace(/"/g, '""')}"`
-                                : value;
-                        }).join(',')
-                    )
-                ].join('\n');
+                const csvContent = headers.join(',');
 
                 // Download file
                 const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });

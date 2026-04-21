@@ -340,7 +340,7 @@ namespace GCCWebApp.Data
 
                 // Composite indexes for complex queries
                 entity.HasIndex(e => new { e.CertificateId, e.ProductIdType });
-                entity.HasIndex(e => new { e.ProductIdType, e.ProductIdValue }).IsUnique();
+                entity.HasIndex(e => new { e.CertificateId, e.ProductIdType, e.ProductIdValue }).IsUnique();
                 entity.HasIndex(e => new { e.Partner, e.Status, e.IsActive });
                 entity.HasIndex(e => new { e.CertificateId, e.IsActive });
                 entity.HasIndex(e => new { e.Status, e.IsActive, e.CreatedAt });

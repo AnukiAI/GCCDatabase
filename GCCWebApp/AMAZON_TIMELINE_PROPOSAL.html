@@ -337,7 +337,7 @@
 <div class="doc-header">
     <div class="logo-bar">
         <div class="company">Anuki Consulting</div>
-        <div class="date">April 15, 2026</div>
+        <div class="date">April 18, 2026</div>
     </div>
     <h1>Amazon API Integration Timeline</h1>
     <div class="subtitle">GCC Database Solution &mdash; Milestone Schedule &amp; Risk Assessment</div>
@@ -352,9 +352,9 @@
     <!-- EXECUTIVE SUMMARY -->
     <h2>Executive Summary</h2>
     <div class="exec-summary">
-        <p>Amazon has requested firm milestone dates for API integration and automated product badging. This document presents <strong>two timeline options</strong> with dependencies, risk factors, and mitigation strategies.</p>
-        <p>The API infrastructure (endpoints, authentication, GS1 data schema) is already built. The remaining work consists of: <strong>(1)</strong> completing the current UAT cycle to stabilize the database application, <strong>(2)</strong> implementing the Amazon SP-API push/sync integration, and <strong>(3)</strong> end-to-end testing with Amazon's systems.</p>
-        <p>Both options are achievable contingent on completing the current UAT cycle without significant new scope.</p>
+        <p>Amazon has requested firm milestone dates for API integration and automated product badging. This document presents the <strong>milestone schedule</strong> with dependencies, risk factors, and mitigation strategies.</p>
+        <p>The API infrastructure (endpoints, authentication, GS1 data schema) is already built. The remaining work consists of: <strong>(1)</strong> completing SIT and UAT testing to stabilize the database application, <strong>(2)</strong> implementing the Amazon SP-API push/sync integration, and <strong>(3)</strong> end-to-end testing with Amazon's systems.</p>
+        <p>System Integration Testing (SIT) is currently underway with QC log issues being resolved. UAT is scheduled to begin April 22, 2026.</p>
     </div>
 
     <!-- CURRENT STATE -->
@@ -371,7 +371,7 @@
             <tr>
                 <td>Certificate Database Application</td>
                 <td><span class="badge badge-partial">95% Complete</span></td>
-                <td>40 items in final UAT retest cycle</td>
+                <td>SIT in progress; resolving QC log issues. UAT begins Apr 22.</td>
             </tr>
             <tr>
                 <td>REST API Endpoints</td>
@@ -407,15 +407,12 @@
     </table>
 
     <!-- ============================================================ -->
-    <!-- OPTION A                                                       -->
+    <!-- MILESTONE SCHEDULE                                              -->
     <!-- ============================================================ -->
-    <h2>Option A &mdash; Aggressive Timeline</h2>
-    <p style="color: var(--accent-blue); font-weight: 600; margin-bottom: 4px;">Amazon's Requested Dates</p>
-    <p>This timeline meets Amazon's stated milestone dates with minimal buffer. It requires GCC to complete UAT retesting by May 15 and a feature freeze after Phase 1.</p>
+    <h2>Milestone Schedule</h2>
+    <p>This timeline meets Amazon's stated milestone dates. SIT is currently underway resolving QC log issues. UAT begins April 22 and must complete by May 15. A feature freeze is in effect after Phase 1.</p>
 
     <div class="timeline-section">
-        <span class="timeline-option-label option-a-label">OPTION A</span>
-
         <table>
             <thead>
                 <tr>
@@ -429,7 +426,7 @@
                 <tr>
                     <td><strong>Phase 1</strong></td>
                     <td>Database Stabilization &amp; UAT Retest</td>
-                    <td>Apr 15 &mdash; May 15</td>
+                    <td>Apr 18 &mdash; May 15</td>
                     <td>4 weeks</td>
                 </tr>
                 <tr>
@@ -469,9 +466,9 @@
         </table>
     </div>
 
-    <!-- Phase details for Option A -->
-    <h3>Phase 1: Database Stabilization &amp; UAT Retest <span style="font-weight:400; color: var(--neutral-600);">(Apr 15 &mdash; May 15)</span></h3>
-    <p>Deploy current code fixes (24 modified files) and 4 SQL migration scripts. Client completes UAT retest of 40+ resolved items. Resolve retest failures and 5 items pending client decision.</p>
+    <!-- Phase details -->
+    <h3>Phase 1: Database Stabilization &amp; UAT Retest <span style="font-weight:400; color: var(--neutral-600);">(Apr 18 &mdash; May 15)</span></h3>
+    <p>SIT is currently underway resolving outstanding QC log issues. UAT begins April 22 with client retest of 40+ resolved items. Resolve retest failures and items pending client decision.</p>
     <p><strong>Exit Criteria:</strong> All critical/high QC items confirmed fixed. No open blockers.</p>
 
     <h3>Phase 2: API Schema Finalization &amp; Lock <span style="font-weight:400; color: var(--neutral-600);">(May 16 &mdash; May 31)</span></h3>
@@ -486,131 +483,6 @@
 
     <h3>Phase 5: Automated Badging Go-Live <span style="font-weight:400; color: var(--neutral-600);">(Aug 2026)</span></h3>
     <p>Production deployment. Coordinate go-live with Amazon technical team. Monitor initial sync cycles. Transition to steady-state operations.</p>
-
-    <!-- ============================================================ -->
-    <!-- OPTION B                                                       -->
-    <!-- ============================================================ -->
-    <h2 class="page-break">Option B &mdash; Buffered Timeline</h2>
-    <p style="color: var(--gcc-green); font-weight: 600; margin-bottom: 4px;">+1 Month Per Milestone (End of Q3 2026)</p>
-    <p>This timeline adds one month of buffer to each Amazon milestone, primarily in the UAT stabilization phase. Development and testing durations remain the same as Option A.</p>
-
-    <div class="timeline-section">
-        <span class="timeline-option-label option-b-label">OPTION B</span>
-
-        <table>
-            <thead>
-                <tr>
-                    <th>Phase</th>
-                    <th>Milestone</th>
-                    <th>Dates</th>
-                    <th>Duration</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>Phase 1</strong></td>
-                    <td>Database Stabilization &amp; UAT Retest</td>
-                    <td>Apr 15 &mdash; May 31</td>
-                    <td>6 weeks</td>
-                </tr>
-                <tr>
-                    <td><strong>Phase 2</strong></td>
-                    <td>API Schema Finalization &amp; Lock</td>
-                    <td>Jun 1 &mdash; Jun 30</td>
-                    <td>4 weeks</td>
-                </tr>
-                <tr style="background: var(--warning-orange-light);">
-                    <td colspan="4"><span class="amazon-milestone">Amazon Milestone 1 &mdash; June 30, 2026: Finalized API Endpoint &amp; Data Schema</span></td>
-                </tr>
-                <tr>
-                    <td><strong>Phase 3</strong></td>
-                    <td>Amazon SP-API Implementation</td>
-                    <td>Jul 1 &mdash; Aug 15</td>
-                    <td>6 weeks</td>
-                </tr>
-                <tr>
-                    <td><strong>Phase 4</strong></td>
-                    <td>Integration Testing &amp; QA</td>
-                    <td>Aug 16 &mdash; Aug 31</td>
-                    <td>2 weeks</td>
-                </tr>
-                <tr style="background: var(--warning-orange-light);">
-                    <td colspan="4"><span class="amazon-milestone">Amazon Milestone 2 &mdash; August 31, 2026: API Implementation &amp; Testing Complete</span></td>
-                </tr>
-                <tr>
-                    <td><strong>Phase 5</strong></td>
-                    <td>Automated Badging Go-Live</td>
-                    <td>Sep 1 &mdash; Sep 30</td>
-                    <td>Rollout</td>
-                </tr>
-                <tr style="background: var(--warning-orange-light);">
-                    <td colspan="4"><span class="amazon-milestone">Amazon Milestone 3 &mdash; September 2026: Automated Badging Live</span></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <h3>Key Differences from Option A</h3>
-    <ul style="margin: 8px 0 16px 20px; color: var(--neutral-700);">
-        <li><strong>+2 weeks UAT buffer</strong> &mdash; accounts for historically observed pattern of 15&ndash;30 new items per retest cycle</li>
-        <li><strong>+2 weeks schema review</strong> &mdash; allows iteration with Amazon's technical team on CPF field requirements</li>
-        <li><strong>Same development time</strong> &mdash; SP-API implementation (6 weeks) and testing (2 weeks) are unchanged</li>
-        <li><strong>End of Q3 alignment</strong> &mdash; completes within a natural reporting boundary</li>
-    </ul>
-
-    <!-- ============================================================ -->
-    <!-- SIDE-BY-SIDE COMPARISON                                        -->
-    <!-- ============================================================ -->
-    <h2 class="page-break">Side-by-Side Comparison</h2>
-
-    <table class="comparison-table">
-        <thead>
-            <tr>
-                <th>Milestone</th>
-                <th style="text-align:center;">Option A<br><small style="font-weight:400; text-transform:none;">(Aggressive)</small></th>
-                <th style="text-align:center;">Option B<br><small style="font-weight:400; text-transform:none;">(Buffered)</small></th>
-                <th style="text-align:center;">Delta</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td><strong>API Schema Finalized</strong></td>
-                <td class="option-a-col" style="text-align:center;">May 31, 2026</td>
-                <td class="option-b-col" style="text-align:center;">June 30, 2026</td>
-                <td class="delta-col" style="text-align:center;">+1 month</td>
-            </tr>
-            <tr>
-                <td><strong>API Implementation &amp; Testing</strong></td>
-                <td class="option-a-col" style="text-align:center;">July 31, 2026</td>
-                <td class="option-b-col" style="text-align:center;">August 31, 2026</td>
-                <td class="delta-col" style="text-align:center;">+1 month</td>
-            </tr>
-            <tr>
-                <td><strong>Automated Badging Go-Live</strong></td>
-                <td class="option-a-col" style="text-align:center;">August 2026</td>
-                <td class="option-b-col" style="text-align:center;">September 2026</td>
-                <td class="delta-col" style="text-align:center;">+1 month</td>
-            </tr>
-            <tr>
-                <td>UAT Stabilization Window</td>
-                <td style="text-align:center;">4 weeks</td>
-                <td style="text-align:center;">6 weeks</td>
-                <td class="delta-col" style="text-align:center;">+2 weeks</td>
-            </tr>
-            <tr>
-                <td>API Development Time</td>
-                <td style="text-align:center;">6 weeks</td>
-                <td style="text-align:center;">6 weeks</td>
-                <td class="delta-col" style="text-align:center;">Same</td>
-            </tr>
-            <tr>
-                <td>Integration Testing Time</td>
-                <td style="text-align:center;">2 weeks</td>
-                <td style="text-align:center;">2 weeks</td>
-                <td class="delta-col" style="text-align:center;">Same</td>
-            </tr>
-        </tbody>
-    </table>
 
     <!-- ============================================================ -->
     <!-- RISK FACTORS                                                   -->
@@ -670,7 +542,7 @@
                 <td><strong>Amazon sandbox access delays</strong></td>
                 <td>Blocks integration testing</td>
                 <td><span class="risk-low">Low-Medium</span></td>
-                <td>Request sandbox credentials by May 15 regardless of timeline option.</td>
+                <td>Request sandbox credentials by May 15.</td>
             </tr>
             <tr>
                 <td><strong>Production environment DNS/hosting changes</strong></td>
@@ -706,8 +578,8 @@
             <tr>
                 <td>Complete UAT retest of 40 open items</td>
                 <td><strong>GCC</strong> (Carly)</td>
-                <td>May 15 (A) / May 31 (B)</td>
-                <td><span class="badge badge-pending">Not Started</span></td>
+                <td>May 15</td>
+                <td><span class="badge badge-pending">Begins Apr 22</span></td>
             </tr>
             <tr>
                 <td>Decisions on 5 pending discussion items</td>
@@ -745,17 +617,17 @@
     <!-- ============================================================ -->
     <!-- RECOMMENDATION                                                 -->
     <!-- ============================================================ -->
-    <h2 class="page-break">Recommendation</h2>
+    <h2>Schedule Commitment</h2>
 
     <div class="recommendation">
-        <h3>Anuki Recommends Option B (Buffered Timeline)</h3>
+        <h3>Schedule Commitment &amp; Critical Assumptions</h3>
+        <p>This schedule is achievable provided the following conditions are met:</p>
         <ol>
-            <li><strong>Historical pattern:</strong> Every UAT cycle on this project has generated 15&ndash;30 new items. Option A assumes a clean retest with zero new findings, which has not occurred in any prior cycle.</li>
-            <li><strong>Development time is identical:</strong> Both options allocate 6 weeks for SP-API implementation and 2 weeks for testing. The buffer is entirely in the UAT/stabilization phase where risk is highest.</li>
-            <li><strong>Accountability protection:</strong> A missed aggressive deadline damages the Amazon relationship more than a met conservative one.</li>
-            <li><strong>Q3 alignment:</strong> Option B completes by end of Q3 2026, a natural reporting boundary.</li>
+            <li><strong>Feature freeze:</strong> No new feature requests after Phase 1. All new requests treated as formal Change Requests with separate timeline.</li>
+            <li><strong>UAT completion by May 15:</strong> GCC must dedicate testing resources to complete UAT retest within the window. SIT is underway now with UAT beginning April 22.</li>
+            <li><strong>Timely decisions:</strong> Pending discussion items must be resolved by April 30 to avoid cascading delays.</li>
+            <li><strong>Amazon coordination:</strong> SP-API sandbox credentials and technical team schema review must be scheduled per the External Dependencies table.</li>
         </ol>
-        <p style="margin-top: 12px;"><strong>However, if Amazon requires the aggressive timeline, Option A is achievable</strong> provided GCC commits to completing UAT retest by May 15 with dedicated testing time and no new feature requests are introduced during the stabilization phase.</p>
     </div>
 
     <!-- ============================================================ -->
@@ -773,22 +645,17 @@
         </thead>
         <tbody>
             <tr>
-                <td>Confirm timeline option with Amazon</td>
-                <td>GCC</td>
-                <td><strong>April 15, 2026</strong></td>
-            </tr>
-            <tr>
-                <td>Deploy current code fixes + SQL migration scripts to production</td>
+                <td>Complete SIT testing and resolve remaining QC log issues</td>
                 <td>Anuki</td>
-                <td>April 16, 2026</td>
+                <td><strong>April 21, 2026</strong></td>
             </tr>
             <tr>
                 <td>Begin UAT retest using provided test cases (40 items)</td>
                 <td>GCC</td>
-                <td>April 17, 2026</td>
+                <td><strong>April 22, 2026</strong></td>
             </tr>
             <tr>
-                <td>Resolve 5 pending discussion items</td>
+                <td>Resolve pending discussion items</td>
                 <td>GCC + Anuki</td>
                 <td>April 30, 2026</td>
             </tr>
@@ -800,7 +667,7 @@
             <tr>
                 <td>Complete UAT retest cycle</td>
                 <td>GCC</td>
-                <td>May 15 (A) / May 31 (B)</td>
+                <td>May 15, 2026</td>
             </tr>
         </tbody>
     </table>
@@ -811,7 +678,7 @@
 <!-- FOOTER                                                         -->
 <!-- ============================================================ -->
 <div class="doc-footer">
-    <p><strong>Anuki Consulting</strong> &mdash; Prepared for GreenCircle Certified &mdash; April 15, 2026</p>
+    <p><strong>Anuki Consulting</strong> &mdash; Prepared for GreenCircle Certified &mdash; April 18, 2026</p>
     <p>Confidential. Distribution limited to authorized GCC and Amazon stakeholders.</p>
 </div>
 

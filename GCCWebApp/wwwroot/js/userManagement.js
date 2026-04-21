@@ -657,7 +657,7 @@ class UserManagement {
             formData.password = passwordValue;
         } else if (!this.currentEditingId) {
             // Generate a temporary password for new users if none provided
-            formData.password = 'TempPassword123!';
+            formData.password = 'TestPass123!';
             formData.requirePasswordReset = true; // Force password reset
         }
         
@@ -1357,7 +1357,7 @@ class UserManagement {
                     email: row.data.email,
                     role: row.data.role,
                     status: row.data.status,
-                    password: row.data.password || 'TempPassword123!',
+                    password: row.data.password || 'TestPass123!',
                     requirePasswordReset: row.data.requirePasswordReset || !row.data.password,
                     companyIds: companyIds
                 };

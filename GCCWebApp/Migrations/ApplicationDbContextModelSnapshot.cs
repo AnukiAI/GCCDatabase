@@ -82,138 +82,6 @@ namespace GCCWebApp.Migrations
                     b.ToTable("CompanyUser");
                 });
 
-            modelBuilder.Entity("GCCWebApp.Models.AmazonApiSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AccessKeyId")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("LastError")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<DateTime?>("LastSync")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("LastSyncStatus")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<string>("MarketplaceId")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("RecordsSynced")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RefreshToken")
-                        .IsRequired()
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<string>("Region")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("SecretAccessKey")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool>("SyncCertificates")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("SyncCompliance")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("SyncIntervalHours")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("SyncProducts")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("WebhookUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AmazonApiSettings");
-                });
-
-            modelBuilder.Entity("GCCWebApp.Models.AmazonSyncHistory", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<double>("DurationSeconds")
-                        .HasColumnType("float");
-
-                    b.Property<string>("ErrorDetails")
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
-
-                    b.Property<string>("Message")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
-
-                    b.Property<int>("RecordsFailed")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RecordsProcessed")
-                        .HasColumnType("int");
-
-                    b.Property<int>("RecordsSucceeded")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime>("Timestamp")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("TriggeredBy")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AmazonSyncHistory");
-                });
-
             modelBuilder.Entity("GCCWebApp.Models.ApiKey", b =>
                 {
                     b.Property<int>("Id")
@@ -804,7 +672,7 @@ namespace GCCWebApp.Migrations
 
                     b.HasIndex("CertificateId", "ProductIdType");
 
-                    b.HasIndex("ProductIdType", "ProductIdValue")
+                    b.HasIndex("CertificateId", "ProductIdType", "ProductIdValue")
                         .IsUnique();
 
                     b.HasIndex("Partner", "Status", "IsActive");

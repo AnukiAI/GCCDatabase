@@ -2,7 +2,7 @@
 @{
     ViewData["Title"] = "Certificates";
     ViewData["BodyClass"] = "role-admin";
-    ViewData["UserName"] = "Jane Smith";
+    ViewData["UserName"] = User.Identity?.Name ?? "";
 }
 
 @section Styles {

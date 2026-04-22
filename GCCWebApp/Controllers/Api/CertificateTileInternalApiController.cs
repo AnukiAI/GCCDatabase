@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Data;
+using GCCWebApp.Extensions;
 using GCCWebApp.Models;
 using Microsoft.AspNetCore.Authorization;
 using System.Text.RegularExpressions;
@@ -275,7 +276,7 @@ namespace GCCWebApp.Controllers.Api
                     c.Partner,
                     c.CreatedAt,
                     c.UpdatedAt,
-                    c.CertificationResults,
+                    CertificationResults = DisplayFormatters.FormatCertificationResults(c.CertificationResults),
                     c.PathwayName,
                     c.CertSubcategories,
                     c.CompanyUrl

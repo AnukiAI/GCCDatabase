@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using GCCWebApp.Controllers.Api;
 using GCCWebApp.Data;
+using GCCWebApp.Extensions;
 using GCCWebApp.Models;
 using GCCWebApp.Models.Api;
 using GCCWebApp.Attributes;
@@ -224,34 +225,28 @@ namespace GCCWebApp.Controllers.Api.v1
                 // Admin/Analyst callers still see the raw internal lifecycle status.
                 var isPartnerCaller = userRole == "Partner";
 
-                // Different projection based on whether ProductIds are included
+                // Response shape matches Amazon Developer Guide §4 / §5.1 contract exactly.
+                // Cert fields: certificateNumber, status, issueDate, expirationDate,
+                // certificationCountries, partner, certificationResults, pathway, company,
+                // productName, certificationType, amazonCode, issuer, productIds, pdfDownloadUrl.
                 if (includeProductIds)
                 {
-                    // Full projection with ProductIds for partner integrations (Novi, Amazon, etc.)
-                    // Field names standardized to camelCase for consistency across all endpoints
-                    var certificatesWithProductIds = await pagedQuery
+                    var certificatesWithProductIdsRaw = await pagedQuery
                         .Select(c => new
                         {
-                            id = c.Id,
                             certificateNumber = c.Number,
                             status = isPartnerCaller ? "Active" : c.Status,
                             issueDate = c.EffectiveDate,
                             expirationDate = c.ExpirationDate,
-                            location = c.Location,
                             certificationCountries = c.Country,
                             partner = c.Partner,
                             certificationResults = c.CertificationResults,
                             pathway = c.Pathway != null ? c.Pathway.Name : null,
-                            // Company and product info
                             company = c.Company != null ? c.Company.Name : null,
-                            companyId = c.CompanyId,
                             productName = c.Product != null ? c.Product.Name : null,
-                            productId = c.ProductId,
                             certificationType = c.CertificationType != null ? c.CertificationType.Name : null,
-                            certificationTypeId = c.CertificationTypeId,
                             amazonCode = c.CertificationType != null ? c.CertificationType.AmazonCode : null,
                             issuer = "GreenCircle Certified",
-                            // Product identifiers (GTIN, MPN, ASIN, UPC, etc.)
                             productIds = c.ProductIds
                                 .Where(pi => pi.Status == "Active")
                                 .Select(pi => new
@@ -261,47 +256,55 @@ namespace GCCWebApp.Controllers.Api.v1
                                     status = pi.Status,
                                     partner = pi.Partner,
                                     productName = pi.ProductName,
-                                    productSku = pi.ProductSku,
-                                    description = pi.Description
+                                    productSku = pi.ProductSku
                                 })
                                 .ToList(),
-                            createdAt = c.CreatedAt,
-                            updatedAt = c.UpdatedAt,
-                            // Download URL for certificate PDF
                             pdfDownloadUrl = $"/api/v1/certificates/{c.Number}/download"
                         })
                         .ToListAsync();
+
+                    // Post-process: format CertificationResults as percentage (raw DB value may be decimal, e.g. "0.17")
+                    var certificatesWithProductIds = certificatesWithProductIdsRaw.Select(x => new
+                    {
+                        x.certificateNumber, x.status, x.issueDate, x.expirationDate,
+                        x.certificationCountries, x.partner,
+                        certificationResults = DisplayFormatters.FormatCertificationResults(x.certificationResults),
+                        x.pathway, x.company, x.productName, x.certificationType, x.amazonCode,
+                        x.issuer, x.productIds, x.pdfDownloadUrl
+                    }).ToList();
 
                     return PaginatedResponse(certificatesWithProductIds, totalCount, parameters.PageNumber, parameters.PageSize);
                 }
                 else
                 {
-                    // Standard projection without ProductIds
-                    // Field names standardized to camelCase for consistency across all endpoints
-                    var certificates = await pagedQuery
+                    var certificatesRaw = await pagedQuery
                         .Select(c => new
                         {
-                            id = c.Id,
                             certificateNumber = c.Number,
                             status = isPartnerCaller ? "Active" : c.Status,
                             issueDate = c.EffectiveDate,
                             expirationDate = c.ExpirationDate,
-                            location = c.Location,
                             certificationCountries = c.Country,
                             partner = c.Partner,
                             certificationResults = c.CertificationResults,
                             pathway = c.Pathway != null ? c.Pathway.Name : null,
-                            productName = c.Product != null ? c.Product.Name : null,
-                            productId = c.ProductId,
                             company = c.Company != null ? c.Company.Name : null,
-                            companyId = c.CompanyId,
+                            productName = c.Product != null ? c.Product.Name : null,
                             certificationType = c.CertificationType != null ? c.CertificationType.Name : null,
-                            certificationTypeId = c.CertificationTypeId,
                             amazonCode = c.CertificationType != null ? c.CertificationType.AmazonCode : null,
-                            createdAt = c.CreatedAt,
-                            updatedAt = c.UpdatedAt
+                            issuer = "GreenCircle Certified",
+                            pdfDownloadUrl = $"/api/v1/certificates/{c.Number}/download"
                         })
                         .ToListAsync();
+
+                    var certificates = certificatesRaw.Select(x => new
+                    {
+                        x.certificateNumber, x.status, x.issueDate, x.expirationDate,
+                        x.certificationCountries, x.partner,
+                        certificationResults = DisplayFormatters.FormatCertificationResults(x.certificationResults),
+                        x.pathway, x.company, x.productName, x.certificationType, x.amazonCode,
+                        x.issuer, x.pdfDownloadUrl
+                    }).ToList();
 
                     return PaginatedResponse(certificates, totalCount, parameters.PageNumber, parameters.PageSize);
                 }
@@ -857,24 +860,20 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 // Map to response objects with ALL product IDs for each certificate
                 var results = certificates.Select(cert => new
                 {
-                    id = cert.Id,
+                    // Response shape matches Amazon Developer Guide §4 / §5.3 contract.
                     certificateNumber = cert.Number,
-                    productName = cert.Product?.Name,
-                    productType = cert.ProductType?.Name ?? cert.Product?.ProductType?.Name,
-                    company = cert.Company?.Name,
-                    companyId = cert.CompanyId,
-                    partner = cert.Partner,
-                    certificationResults = cert.CertificationResults,
-                    pathway = cert.Pathway?.Name,
                     status = isPartnerCaller ? "Active" : cert.Status,
-                    certificationType = cert.CertificationType?.Name,
-                    amazonCode = cert.CertificationType?.AmazonCode,
                     issueDate = cert.EffectiveDate,
                     expirationDate = cert.ExpirationDate,
-                    location = cert.Location,
                     certificationCountries = cert.Country,
-                    pdfDownloadUrl = $"/api/v1/certificates/{cert.Number}/download",
-                    // Return ALL product IDs associated with this certificate
+                    partner = cert.Partner,
+                    certificationResults = DisplayFormatters.FormatCertificationResults(cert.CertificationResults),
+                    pathway = cert.Pathway?.Name,
+                    company = cert.Company?.Name,
+                    productName = cert.Product?.Name,
+                    certificationType = cert.CertificationType?.Name,
+                    amazonCode = cert.CertificationType?.AmazonCode,
+                    issuer = "GreenCircle Certified",
                     productIds = cert.ProductIds
                         .Where(cpi => cpi.Status == "Active") // Only active product IDs
                         .Select(cpi => new
@@ -885,14 +884,15 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                             partner = cpi.Partner,
                             productName = cpi.ProductName,
                             productSku = cpi.ProductSku,
-                            description = cpi.Description,
+                            // isMatchedId flag is documented in §5.3 — marks which ID matched the search
                             isMatchedId = cpi.ProductIdValue == productId &&
                                          (string.IsNullOrEmpty(type) || cpi.ProductIdType.Equals(type, StringComparison.OrdinalIgnoreCase))
                         })
                         .OrderByDescending(pi => pi.isMatchedId) // Put the matched ID first
                         .ThenBy(pi => pi.type)
                         .ThenBy(pi => pi.value)
-                        .ToList()
+                        .ToList(),
+                    pdfDownloadUrl = $"/api/v1/certificates/{cert.Number}/download"
                 }).ToList();
 
                 var totalProductIds = results.Sum(r => r.productIds.Count);
@@ -1391,18 +1391,16 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     {
                         Id = productUri,
                         Gtin = gtin,
-                        AdditionalTradeItemId = additionalIds.Any() ? additionalIds : null,
                         Name = cert.Product?.Name,
-                        Description = cert.Product?.Description,
+                        AdditionalTradeItemId = additionalIds.Any() ? additionalIds : null,
                         CertificationInfo = new GS1CertificationInfo
                         {
-                            Id = $"{certUri}/certification",
                             Agency = "GreenCircle Certified",
                             AgencyURL = "https://www.greencirclecertified.com",
                             Program = cert.CertificationType?.Name,
                             CertificateId = cert.Number,
                             Status = gs1Status,
-                            Value = cert.CertificationResults,
+                            Value = DisplayFormatters.FormatCertificationResults(cert.CertificationResults),
                             StartDate = issueDate,
                             EndDate = endDate,
                             TargetCountries = !string.IsNullOrEmpty(cert.Country)

@@ -3690,3 +3690,33 @@ Conducted exhaustive review of all tag filtering logic in response to:
 
 **Files modified:** `Controllers/Api/v1/CertificatesController.cs` only.
 
+### Observation: CertificationResults displayed as decimal instead of percentage
+
+**Trigger:** Shawn reviewed `/Certificate/CertificateInternalView/26-0106` and observed `certificationResults` shows as `"0.17"` — should be `"17%"` for consistency with Amazon Developer Guide examples (`"32%"`, `"25%"`, `"60%"`).
+
+**Root cause:** Field is a free-text 1000-char column (`Certificate.CertificationResults`) and analysts entered decimals. No display-side formatting anywhere.
+
+**Scope audit:** 6 output surfaces displayed the raw value — internal detail view, internal tile API, Partner API v1 (4 projection sites including GS1), and product-ID search. External tile API and public tile API already exclude the field. CSV/Excel exports don't include it. JS tile views render whatever the server sends.
+
+**Fix approach (Option A — display-side helper):**
+- Added `Extensions/DisplayFormatters.FormatCertificationResults(string?)` with rule:
+  - null/empty → unchanged
+  - contains `%` → unchanged (already formatted, e.g. `"32%"`)
+  - non-numeric → unchanged (e.g. `"Pass"`)
+  - numeric in [0, 1) → multiply by 100, append `%` (e.g. `"0.17"` → `"17%"`)
+  - numeric ≥ 1 → append `%` (e.g. `"17"` → `"17%"`)
+- Applied at 6 sites. EF LINQ projections can't translate the custom method, so 2 of the Partner API projections materialize first then apply the format in a post-query `.Select`.
+- Internal tile JS needs no change — it now receives pre-formatted values from the API.
+
+**Files modified:**
+- `Extensions/DisplayFormatters.cs` (new, ~15 LOC)
+- `Views/Certificate/CertificateInternalView.cshtml:110`
+- `Controllers/Api/v1/CertificatesController.cs` (+using, 4 projection sites, GS1 mapper)
+- `Controllers/Api/CertificateTileInternalApiController.cs` (+using, 1 projection site)
+
+**Build result:** 0 errors.
+
+**Not in scope** (confirmed with client, Option A):
+- No data normalization on save — Create/Edit forms still accept free text
+- No DB migration — existing values display-formatted on the fly
+

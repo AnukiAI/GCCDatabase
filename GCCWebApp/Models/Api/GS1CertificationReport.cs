@@ -59,42 +59,42 @@ namespace GCCWebApp.Models.Api
         /// <summary>
         /// Unique identifier describing the certified product. Must be a GS1 Digital Link URI.
         /// </summary>
+        [JsonPropertyOrder(1)]
         [JsonPropertyName("id")]
         public string Id { get; set; } = string.Empty;
 
         /// <summary>
         /// Type declaration. Must be "Product".
         /// </summary>
+        [JsonPropertyOrder(2)]
         [JsonPropertyName("type")]
         public string Type { get; set; } = "Product";
 
         /// <summary>
         /// A Global Trade Item Number (GTIN). The 14 digit GS1 Identification Key.
         /// </summary>
+        [JsonPropertyOrder(3)]
         [JsonPropertyName("gtin")]
         public string? Gtin { get; set; }
 
         /// <summary>
-        /// Additional product identifiers (ASIN, SKU, etc.)
-        /// </summary>
-        [JsonPropertyName("additionalTradeItemId")]
-        public List<GS1AdditionalTradeItemId>? AdditionalTradeItemId { get; set; }
-
-        /// <summary>
         /// Consumer friendly short description of the product.
         /// </summary>
+        [JsonPropertyOrder(4)]
         [JsonPropertyName("name")]
         public string? Name { get; set; }
 
         /// <summary>
-        /// An understandable and useable description of a product.
+        /// Additional product identifiers (ASIN, SKU, etc.)
         /// </summary>
-        [JsonPropertyName("description")]
-        public string? Description { get; set; }
+        [JsonPropertyOrder(5)]
+        [JsonPropertyName("additionalTradeItemId")]
+        public List<GS1AdditionalTradeItemId>? AdditionalTradeItemId { get; set; }
 
         /// <summary>
         /// Certification information for this product.
         /// </summary>
+        [JsonPropertyOrder(6)]
         [JsonPropertyName("certificationInfo")]
         public GS1CertificationInfo CertificationInfo { get; set; } = new();
     }
@@ -124,12 +124,6 @@ namespace GCCWebApp.Models.Api
     public class GS1CertificationInfo
     {
         /// <summary>
-        /// A globally unique URI describing this certification.
-        /// </summary>
-        [JsonPropertyName("id")]
-        public string Id { get; set; } = string.Empty;
-
-        /// <summary>
         /// Type declaration. Must be "CertificationDetails".
         /// </summary>
         [JsonPropertyName("type")]
@@ -158,12 +152,6 @@ namespace GCCWebApp.Models.Api
         /// </summary>
         [JsonPropertyName("certificateId")]
         public string? CertificateId { get; set; }
-
-        /// <summary>
-        /// Name of the certification standard.
-        /// </summary>
-        [JsonPropertyName("standard")]
-        public string? Standard { get; set; }
 
         /// <summary>
         /// Current status of the certification: ACTIVE or INACTIVE.
@@ -217,22 +205,21 @@ namespace GCCWebApp.Models.Api
     /// </summary>
     public class GS1CertificationReportListResponse
     {
+        [JsonPropertyOrder(1)]
         [JsonPropertyName("success")]
         public bool Success { get; set; } = true;
 
-        [JsonPropertyName("data")]
-        public List<GS1CertificationReport> Data { get; set; } = new();
-
+        [JsonPropertyOrder(2)]
         [JsonPropertyName("pagination")]
         public PaginationMetadata? Pagination { get; set; }
 
+        [JsonPropertyOrder(3)]
+        [JsonPropertyName("data")]
+        public List<GS1CertificationReport> Data { get; set; } = new();
+
+        [JsonPropertyOrder(4)]
         [JsonPropertyName("message")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Message { get; set; }
-
-        [JsonPropertyName("timestamp")]
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-
-        [JsonPropertyName("version")]
-        public string Version { get; set; } = "1.0";
     }
 }

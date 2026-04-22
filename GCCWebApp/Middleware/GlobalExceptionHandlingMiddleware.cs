@@ -84,8 +84,6 @@ public class GlobalExceptionHandlingMiddleware
         {
             Success = false,
             Message = message,
-            RequestId = requestId,
-            Timestamp = DateTime.UtcNow,
             Errors = new List<ApiError>
             {
                 new ApiError(errorCode, message)

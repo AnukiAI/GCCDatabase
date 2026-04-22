@@ -1,0 +1,49 @@
+{
+  "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+  "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+  "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0151",
+  "type": "CertificationReport",
+  "issueDate": "2026-04-01",
+  "issuer": "GreenCircle Certified",
+  "products": [
+    {
+      "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0151/product",
+      "type": "Product",
+      "gtin": null,
+      "additionalTradeItemId": [
+        {
+          "type": "ASIN",
+          "value": "B0BQN8PSY6"
+        },
+        {
+          "type": "ASIN",
+          "value": "B0BQN9BJCB"
+        },
+        {
+          "type": "ASIN",
+          "value": "B0C544FF8Q"
+        }
+      ],
+      "name": "Color Protecting Shampoo 250ml",
+      "description": null,
+      "certificationInfo": {
+        "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0151/certification",
+        "type": "CertificationDetails",
+        "agency": "GreenCircle Certified",
+        "agencyURL": "https://www.greencirclecertified.com",
+        "program": "Sustainable Energy Practices",
+        "certificateId": "26-0151",
+        "standard": null,
+        "status": "ACTIVE",
+        "value": "100%",
+        "startDate": "2026-04-01",
+        "endDate": "2028-05-31",
+        "targetCountries": [
+          "All"
+        ],
+        "amazonCode": "greencircle_sustainable_energy_practices",
+        "pathway": "Renewable electricity usage"
+      }
+    }
+  ]
+}

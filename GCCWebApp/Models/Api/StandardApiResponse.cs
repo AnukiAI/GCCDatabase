@@ -2,28 +2,28 @@ using System.Text.Json.Serialization;
 
 namespace GCCWebApp.Models.Api
 {
+    // Response envelope — shape matches Amazon Developer Guide §5.1 / §5.2 / §6.
+    // Success response: { success, pagination?, data }
+    // Error response:   { success: false, errors: [...] }  (message/errors suppressed when empty)
     public class StandardApiResponse<T>
     {
+        [JsonPropertyOrder(1)]
         [JsonPropertyName("success")]
         public bool Success { get; set; }
 
+        [JsonPropertyOrder(3)]
         [JsonPropertyName("data")]
         public T? Data { get; set; }
 
+        [JsonPropertyOrder(4)]
         [JsonPropertyName("message")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Message { get; set; }
 
+        [JsonPropertyOrder(5)]
         [JsonPropertyName("errors")]
-        public List<ApiError> Errors { get; set; } = new();
-
-        [JsonPropertyName("timestamp")]
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-
-        [JsonPropertyName("requestId")]
-        public string RequestId { get; set; } = Guid.NewGuid().ToString();
-
-        [JsonPropertyName("version")]
-        public string Version { get; set; } = "1.0";
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<ApiError>? Errors { get; set; }
 
         public StandardApiResponse() { }
 
@@ -37,7 +37,7 @@ namespace GCCWebApp.Models.Api
         public StandardApiResponse(ApiError error)
         {
             Success = false;
-            Errors.Add(error);
+            Errors = new List<ApiError> { error };
         }
 
         public StandardApiResponse(List<ApiError> errors)
@@ -49,7 +49,7 @@ namespace GCCWebApp.Models.Api
         public StandardApiResponse(string errorMessage, string errorCode = "GENERAL_ERROR")
         {
             Success = false;
-            Errors.Add(new ApiError(errorCode, errorMessage));
+            Errors = new List<ApiError> { new ApiError(errorCode, errorMessage) };
         }
 
         public static StandardApiResponse<T> SuccessResult(T data, string? message = null)
@@ -70,6 +70,7 @@ namespace GCCWebApp.Models.Api
 
     public class StandardPaginatedResponse<T> : StandardApiResponse<T>
     {
+        [JsonPropertyOrder(2)]
         [JsonPropertyName("pagination")]
         public PaginationMetadata Pagination { get; set; } = new();
 
@@ -84,37 +85,38 @@ namespace GCCWebApp.Models.Api
                 PageNumber = pageNumber,
                 PageSize = pageSize,
                 TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
-                HasPrevious = pageNumber > 1,
-                HasNext = pageNumber < (int)Math.Ceiling(totalCount / (double)pageSize)
+                HasNext = pageNumber < (int)Math.Ceiling(totalCount / (double)pageSize),
+                HasPrevious = pageNumber > 1
             };
         }
     }
 
+    // Field order matches Amazon Developer Guide §5.1 pagination example.
     public class PaginationMetadata
     {
+        [JsonPropertyOrder(1)]
         [JsonPropertyName("totalCount")]
         public int TotalCount { get; set; }
 
+        [JsonPropertyOrder(2)]
         [JsonPropertyName("pageNumber")]
         public int PageNumber { get; set; }
 
+        [JsonPropertyOrder(3)]
         [JsonPropertyName("pageSize")]
         public int PageSize { get; set; }
 
+        [JsonPropertyOrder(4)]
         [JsonPropertyName("totalPages")]
         public int TotalPages { get; set; }
 
-        [JsonPropertyName("hasPrevious")]
-        public bool HasPrevious { get; set; }
-
+        [JsonPropertyOrder(5)]
         [JsonPropertyName("hasNext")]
         public bool HasNext { get; set; }
 
-        [JsonPropertyName("firstPage")]
-        public int FirstPage => 1;
-
-        [JsonPropertyName("lastPage")]
-        public int LastPage => TotalPages;
+        [JsonPropertyOrder(6)]
+        [JsonPropertyName("hasPrevious")]
+        public bool HasPrevious { get; set; }
     }
 
     public class ApiError
@@ -126,9 +128,11 @@ namespace GCCWebApp.Models.Api
         public string Message { get; set; }
 
         [JsonPropertyName("field")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Field { get; set; }
 
         [JsonPropertyName("details")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public object? Details { get; set; }
 
         public ApiError(string code, string message, string? field = null, object? details = null)

@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "data": null,
+  "errors": [
+    {
+      "code": "RESOURCE_NOT_FOUND",
+      "message": "Certificate with number 99-9999 not found"
+    }
+  ]
+}

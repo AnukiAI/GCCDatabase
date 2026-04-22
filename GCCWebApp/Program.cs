@@ -439,6 +439,9 @@ builder.Services.AddControllersWithViews(options =>
     options.JsonSerializerOptions.WriteIndented = true;
     // Handle circular references in navigation properties (Company -> Certificates -> Company)
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+    // Emit DateTime values as ISO 8601 UTC with 'Z' suffix (matches Amazon Developer Guide format)
+    options.JsonSerializerOptions.Converters.Add(new GCCWebApp.Extensions.UtcDateTimeConverter());
+    options.JsonSerializerOptions.Converters.Add(new GCCWebApp.Extensions.UtcNullableDateTimeConverter());
 });
 
 builder.Services.AddRazorPages();

@@ -114,9 +114,7 @@ namespace GCCWebApp.Middleware
                     ApiErrorCodes.InternalError)
             };
 
-            response.RequestId = requestId;
-
-            if (_environment.IsDevelopment() && exception is not ValidationException)
+            if (_environment.IsDevelopment() && exception is not ValidationException && response.Errors != null)
             {
                 response.Errors.FirstOrDefault()!.Details = new
                 {

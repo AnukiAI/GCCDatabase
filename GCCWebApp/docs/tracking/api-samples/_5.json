@@ -1,0 +1,51 @@
+{
+  "success": true,
+  "data": [
+    {
+      "certificateNumber": "26-0151",
+      "status": "Active",
+      "issueDate": "2026-04-01T00:00:00Z",
+      "expirationDate": "2028-05-31T00:00:00Z",
+      "certificationCountries": "All",
+      "partner": "Amazon",
+      "certificationResults": "100%",
+      "pathway": "Renewable electricity usage",
+      "company": "KAO",
+      "productName": "Color Protecting Shampoo 250ml",
+      "certificationType": "Sustainable Energy Practices",
+      "amazonCode": "greencircle_sustainable_energy_practices",
+      "issuer": "GreenCircle Certified",
+      "productIds": [
+        {
+          "type": "ASIN",
+          "value": "B0BQN8PSY6",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Shampoo 250ml",
+          "productSku": null,
+          "isMatchedId": true
+        },
+        {
+          "type": "ASIN",
+          "value": "B0BQN9BJCB",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Shampoo 750ml",
+          "productSku": null,
+          "isMatchedId": false
+        },
+        {
+          "type": "ASIN",
+          "value": "B0C544FF8Q",
+          "status": "Active",
+          "partner": "Amazon",
+          "productName": "Color Protecting Shampoo 75ml",
+          "productSku": null,
+          "isMatchedId": false
+        }
+      ],
+      "pdfDownloadUrl": "/api/v1/certificates/26-0151/download"
+    }
+  ],
+  "message": "Found 1 certificate(s) with 3 total product IDs for search: B0BQN8PSY6"
+}

@@ -1,4 +1,4 @@
-# Deployment Package — 2026-04-21
+# Deployment Package — 2026-04-22
 
 **Contents of the ZIP at the root = full published ASP.NET Core 8.0 web app.**
 Extract the zip contents directly into the site's `httpdocs` (or equivalent) folder. The `_deploy/` folder is supporting material only — do **not** copy it into the live site.
@@ -29,6 +29,21 @@ Extract the zip contents directly into the site's `httpdocs` (or equivalent) fol
 
 ### 2. Data correction — cert 26-0126 → 26-0106
 Dev and Test/Prod DBs were both updated on 2026-04-21. The SQL in `_deploy/sql/` is **already executed** and kept only as audit trail.
+
+### 3. Display fix — CertificationResults formatted as percentage
+**Problem:** Field shown as decimal (e.g. `"0.17"`) instead of percentage (e.g. `"17%"`).
+**Fix:** `Extensions/DisplayFormatters.FormatCertificationResults(...)` applied at 6 output surfaces — internal detail view, internal tile API, Partner API standard + GS1 responses, and product-ID search response. Rule: values containing `%` are left unchanged; non-numeric values are left unchanged; decimals in `[0,1)` are multiplied by 100; values ≥ 1 get `%` appended.
+
+### 4. Partner API contract compliance — response shape matches Amazon Dev Guide
+**Problem:** `/api/v1/certificates` and `/api/v1/certificates/search/productid` returned extra fields not in the documented contract (`id`, `location`, `companyId`, `productId`, `certificationTypeId`, `createdAt`, `updatedAt`, and `description` on productIds[]).
+**Fix:** Projections in `Controllers/Api/v1/CertificatesController.cs` stripped to exactly the fields listed in Amazon Developer Guide §4 and §5.1. Cert-level: `certificateNumber, status, issueDate, expirationDate, certificationCountries, partner, certificationResults, pathway, company, productName, certificationType, amazonCode, issuer, productIds, pdfDownloadUrl`. productIds[]: `type, value, status, partner, productName, productSku` (plus `isMatchedId` on the product-ID search endpoint per §5.3).
+
+### 5. Data corrections (already applied in DB)
+- CertificationType AmazonCode long-form for Sustainable Energy Practices, Recycled Content, Certified Energy Savings
+- Cert 26-0151: CertificationResults `100%`, pathway "Renewable electricity usage"
+- Company "Kao" → "KAO"
+- Location "All" cleared on 6 recent-batch certs (not part of source dataset)
+- Cert 26-0106: certificationCountries set to "All"
 
 ## Deploy steps
 

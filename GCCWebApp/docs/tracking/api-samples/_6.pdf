@@ -1,0 +1,10 @@
+{
+  "success": false,
+  "data": null,
+  "errors": [
+    {
+      "code": "RESOURCE_NOT_FOUND",
+      "message": "Certificate file not found. PDF generation not yet implemented."
+    }
+  ]
+}

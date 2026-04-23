@@ -780,6 +780,13 @@ app.MapControllerRoute(
     defaults: new { controller = "Certificate", action = "Edit" },
     constraints: new { number = @"^[0-9]+-[0-9A-Za-z]+$" });
 
+// Certificate number delete route (must come before default)
+app.MapControllerRoute(
+    name: "certificate_delete_by_number",
+    pattern: "Certificate/Delete/{number}",
+    defaults: new { controller = "Certificate", action = "Delete" },
+    constraints: new { number = @"^[0-9]+-[0-9A-Za-z]+$" });
+
 // Dashboard route - explicit mapping for /Dashboard to Dashboard/Index
 app.MapControllerRoute(
     name: "dashboard",

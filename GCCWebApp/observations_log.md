@@ -3720,3 +3720,106 @@ Conducted exhaustive review of all tag filtering logic in response to:
 - No data normalization on save — Create/Edit forms still accept free text
 - No DB migration — existing values display-formatted on the fly
 
+---
+
+## 2026-04-22 - QC #10 Retest: Certificates page margins (Database QC Log 4.22.26)
+
+### Status on re-open
+QC #10 (Amanda/Dan, 2025-11-04) was marked Complete but Carly's brutal-testing standard would re-flag it. Complaint: "Margins on both sides are very large - can we remove the margins so website uses the full page."
+
+### Audit results (before fix) — `/Certificate/Certificates` at 2560×1080:
+- **840px total empty gutter space (32.8% of screen)** — content capped at 1800px, centered, huge gray gutters both sides
+- At 1920×1080: 200px gutters (10.4%)
+- At ≤1440px: acceptable (<6%)
+
+### Root cause
+`wwwroot/css/main.css:207-211` — `.page-container { max-width: 1800px; padding: 0 40px; }` is global. Any viewport wider than 1800px shows gutters. External tile view (`CertificateTileViewExternal`) was already fluid (`max-width: 100%`) — consistent with Carly's expectation.
+
+### Fix applied (scoped, non-breaking)
+Added scoped override in `wwwroot/css/certificates.css` (lines 36-40):
+```css
+body:has(.certificate-search-section) .page-container {
+    max-width: none;
+}
+```
+`.certificate-search-section` exists only in `Views/Certificate/Certificates.cshtml` (verified via grep) — scope is guaranteed to the cert list page only. Other admin pages (Dashboard, UserManagement, ProductTypes, etc.) still hit the global 1800px cap.
+
+### Audit results (after fix)
+| Viewport | Before total gutter | After total gutter | Improvement |
+|---|---|---|---|
+| 1920 Full HD | 200px (10.4%) | 80px (4.2%) | −120px |
+| 2560 Ultrawide | 840px (32.8%) | 80px (3.1%) | **−760px** |
+| ≤1440px | unchanged | unchanged | n/a |
+
+Test tooling: `Scripts/qc-10-margin-audit.js` (Playwright, 9 viewports × 3 roles). Screenshots saved to `Scripts/screenshots/qc-10-2026-04-23/`.
+
+### Remaining
+- Update QC log (Database QC Log_4.22.26Updates.xlsx) to confirm #10 retested and fixed
+- No regression tests written — would recommend adding viewport/gutter assertions to existing Mobile UI test suite
+
+---
+
+## 2026-04-23 - QC #123: Duplicate certification types in public filter
+
+### Defect
+Carly flagged `/api/certificate-tiles/filters` returning 43 cert types with ~10 duplicates (Recycled Content x2, Certified Water Savings x2, LCA Optimized x2, etc.). Dev notes suggested query bug. Actual root cause was two-part:
+
+### Root cause
+**1. Data:** 10 `CertificationTypes` rows are duplicates by Name. Same name exists as both a Level-1 root (ParentId NULL) and as a child under `ParentId=7` ("Certified Sustainability Facts"). All certificates reference the root versions — the children have zero cert references. Looks like a bad taxonomy import.
+
+**2. Code:** `CertificateTilesApiController.GetFilterOptions()` pulled `CertificationTypes` without filtering `IsActive = true`, so even if data was deactivated it would still surface. Sister APIs (Internal, External) use `certTypeIds.Contains(ct.Id)` which implicitly filtered orphans.
+
+### Fix
+- **Data:** Deactivated 10 duplicate records: IDs 49, 50, 53, 54, 55, 59, 65, 71, 73, 78. SQL saved to `Database_Scripts/QC123_deactivate_duplicate_cert_types.sql` for prod deploy (includes rollback).
+- **Code:** `Controllers/Api/CertificateTilesApiController.cs:253-257` — added `.Where(ct => ct.IsActive)` to filter query.
+
+### Verified
+API now returns 52 unique certification types (down from 62, removed 10 dup rows).
+
+### Not addressed (separate decisions)
+Carly also flagged near-duplicates: "Closed Loop" vs "Closed Loop Product", "Material Ingredient Reporting" vs "Reporting Disclosure". These are distinct names representing different concepts — consolidation is a taxonomy/business call for GCC, not a data cleanup.
+
+---
+
+## 2026-04-23 - QC #124: Public company filter ignored company names
+
+### Defect
+`/api/certificate-tiles?company=Amazon` returned all 25 certs instead of just Amazon's. Carly's repro confirmed — sidebar company checkboxes did nothing on the public tile view.
+
+### Root cause
+`CertificateTilesApiController.GetCertificates` assigns non-numeric company values to `filter.CompanyNames` (line 139). `CertificateRepository.GetAdvancedFilteredCertificatesAsync` consumed `filter.CompanyIds` but had no branch for `filter.CompanyNames` — the property was defined on the filter interface (`ICertificateRepository.cs:68`) but not read.
+
+### Fix
+`Repositories/CertificateRepository.cs:300-302` — added:
+```csharp
+if (filter.CompanyNames != null && filter.CompanyNames.Any())
+    query = query.Where(c => c.Company != null && filter.CompanyNames.Contains(c.Company.Name));
+```
+
+### Verified (localhost)
+| Filter | Before | After |
+|---|---|---|
+| `?company=Amazon` | 25 | 8 (all 8 Amazon public certs) |
+| `?company=Henkel` | 25 | 4 (8 public, 9 Expired excluded correctly) |
+| `?company=NonExistent` | 25 | 0 |
+| `?company=KAO` | 25 | 0 (all 4 KAO certs have status='Active' which is NOT in PublicStatuses — separate issue, see below) |
+| no filter | 20 | 20 (unaffected) |
+
+---
+
+## 2026-04-23 - QC #125: Country filter shows 'All' literal — BLOCKED on CR
+
+6 certificates have `Country = 'All'` literal in the dev DB (KAO x4, Amazon Devices x1, Sonos x1). This is clearly bad data — 'All' is not a valid country value and was likely entered via a multi-select dropdown that defaulted to a placeholder label.
+
+Shawn's directive (2026-04-23): **"All is not a default field. This is a CR change."** — data cleanup on business records like Certificate.Country requires a formal Change Request from GCC. No unilateral UPDATE.
+
+**Blocked until:** GCC issues a CR specifying whether to NULL these values, replace with a specific country (e.g., United States), or handle via front-end by filtering out the literal 'All' from the dropdown.
+
+---
+
+## 2026-04-23 - QC #120 Row 159 (open) — ancillary finding
+PublicStatuses = `['Client Approved - Paid', 'Republished']` only. The DB also contains the literal status value `'Active'` (KAO certs use this) which is treated as NOT-public. Carly's complaint at row 159 — "reports aren't taking into account all 'Active' cert status types" — is a semantic naming collision, not a counting bug. Either:
+(a) rename/migrate the literal `'Active'` DB values to their proper workflow state, or
+(b) add `'Active'` to PublicStatuses. Needs product decision from GCC.
+
+

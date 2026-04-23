@@ -33,6 +33,12 @@
     --shadow-lg: 0 4px 20px rgba(0,0,0,0.15);
 }
 
+/* QC #10: Remove 1800px cap so Certificates list uses full viewport on wide monitors.
+   Scoped via :has() to only the cert list page (identified by .certificate-search-section). */
+body:has(.certificate-search-section) .page-container {
+    max-width: none;
+}
+
 /* ===== SEARCH SECTION ===== */
 .certificate-search-section {
     padding: 20px;

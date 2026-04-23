@@ -251,6 +251,7 @@ namespace GCCWebApp.Controllers.Api
 
                 // Get all certification types from admin configuration (matches Admin > Certificate Types page)
                 var allCertTypes = await _context.CertificationTypes
+                    .Where(ct => ct.IsActive)
                     .OrderBy(ct => ct.SortOrder)
                     .Select(ct => new { ct.Id, ct.Name, ct.Level, ct.ParentId, ct.SortOrder })
                     .ToListAsync();

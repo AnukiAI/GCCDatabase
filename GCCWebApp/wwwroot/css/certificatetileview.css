@@ -634,11 +634,11 @@ body:has(.main-container) .page-header {
     padding-bottom: 0;
 }
 
-/* Mobile: extra tag spacing */
+/* Mobile: extra tag spacing (QC R143: Carly wanted more room below tag row) */
 @media (max-width: 768px) {
     .certificate-card .certificate-tags {
-        margin-bottom: 10px;
-        padding-bottom: 4px;
+        margin-bottom: 18px;
+        padding-bottom: 8px;
     }
 }
 

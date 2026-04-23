@@ -632,9 +632,14 @@
 
                 const sortValue = sortMap[column] || 'newest';
 
-                // Toggle ascending/descending
-                const currentDir = header.dataset.sortDir || 'asc';
-                const newDir = currentDir === 'asc' ? 'desc' : 'asc';
+                // QC R162: First click on a fresh column sorts ascending (A-Z / oldest-newest).
+                // Second click on the same column flips to descending. Clicking a different
+                // column resets all other columns so only one active sort direction exists at a time.
+                document.querySelectorAll('.sticky-header-cell[data-sort-column]').forEach(h => {
+                    if (h !== header) delete h.dataset.sortDir;
+                });
+                const currentDir = header.dataset.sortDir;
+                const newDir = !currentDir ? 'asc' : (currentDir === 'asc' ? 'desc' : 'asc');
                 header.dataset.sortDir = newDir;
 
                 // Map to reverse sort if descending
@@ -687,8 +692,13 @@
             checkbox.addEventListener('change', handleFilterChange);
         });
 
-        // Filter header collapse/expand toggles
+        // Filter header collapse/expand toggles.
+        // QC R168: attachFilterEventListeners is called twice (init + after data load) so
+        // the click handler was being bound twice — two toggles per click effectively
+        // canceled out. Guard with a flag on the element so the listener binds once.
         document.querySelectorAll('.filter-header').forEach(header => {
+            if (header.dataset.toggleBound === '1') return;
+            header.dataset.toggleBound = '1';
             header.addEventListener('click', () => {
                 const filterId = header.dataset.filter;
                 if (filterId) toggleFilter(filterId);

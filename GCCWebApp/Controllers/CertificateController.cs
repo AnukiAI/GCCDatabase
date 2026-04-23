@@ -56,44 +56,6 @@ namespace GCCWebApp.Controllers
         #region Basic CRUD Operations
 
         /// <summary>
-        /// Main certificates listing page
-        /// GET: /Certificate/Certificates
-        /// </summary>
-        [Authorize(Policy = "AnalystOrAdmin")]
-        public async Task<IActionResult> Certificates(int page = 1, int pageSize = 10, string searchTerm = "", int? companyId = null, int? productId = null, string? partner = null)
-        {
-            try
-            {
-                var (certificates, totalCount) = await _certificateRepository.GetPagedCertificatesAsync(
-                    page, pageSize, searchTerm, companyId, productId, partner);
-
-                var model = new CertificateListViewModelSimple
-                {
-                    Certificates = certificates,
-                    CurrentPage = page,
-                    PageSize = pageSize,
-                    TotalCount = totalCount,
-                    TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize),
-                    SearchTerm = searchTerm,
-                    CompanyId = companyId,
-                    ProductId = productId,
-                    Partner = partner
-                };
-
-                // Get companies and products for filter dropdowns
-                ViewBag.Companies = (await _unitOfWork.Companies.GetAllAsync()).Where(c => c.IsActive && !c.IsDeleted).OrderBy(c => c.Name).ToList();
-                ViewBag.Products = await _unitOfWork.Products.GetAllAsync();
-
-                return View(model);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error loading certificates page");
-                return View(new CertificateListViewModelSimple());
-            }
-        }
-
-        /// <summary>
         /// Certificate tile view - Public access allowed
         /// GET: /Certificate/CertificateTileView
         /// </summary>
@@ -1150,28 +1112,28 @@ namespace GCCWebApp.Controllers
             {
                 if (string.IsNullOrWhiteSpace(number))
                 {
-                    return BadRequest("Certificate number is required");
+                    return BadRequest(new { success = false, message = "Certificate number is required" });
                 }
 
                 var certificate = await _certificateRepository.GetCertificateByNumberAsync(number);
                 if (certificate == null)
                 {
-                    return NotFound($"Certificate {number} not found");
+                    return NotFound(new { success = false, message = $"Certificate {number} not found" });
                 }
 
+                var deletedNumber = certificate.Number;
                 await _certificateRepository.RemoveAsync(certificate);
                 await _unitOfWork.CompleteAsync();
 
-                _logger.LogInformation("Certificate {Number} deleted by user {UserId}", certificate.Number, GetCurrentUserId());
+                _logger.LogInformation("Certificate {Number} deleted by user {UserId}", deletedNumber, GetCurrentUserId());
 
-                TempData["SuccessMessage"] = $"Certificate {certificate.Number} has been successfully deleted.";
-                return RedirectToAction(nameof(Certificates));
+                return Json(new { success = true, message = $"Certificate {deletedNumber} has been successfully deleted.", redirectUrl = Url.Action(nameof(CertificateTileViewInternal)) });
             }
             catch (Exception ex)
             {
+                var detail = ex.InnerException?.Message ?? ex.Message;
                 _logger.LogError(ex, "Error deleting certificate number: {Number}", number);
-                TempData["ErrorMessage"] = "An error occurred while deleting the certificate.";
-                return RedirectToAction(nameof(CertificateInternalView), new { id = number });
+                return StatusCode(500, new { success = false, message = $"Error deleting certificate: {detail}" });
             }
         }
 

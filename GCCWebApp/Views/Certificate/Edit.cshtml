@@ -421,7 +421,7 @@
                 </a>
                 @if (User.IsInRole("Admin"))
                 {
-                    <button type="button" class="btn btn-outline" style="background-color: #FF5252; color: white; border: none;" onclick="window.CertificateEdit.confirmDelete(@Model.Id)" aria-label="Delete this certificate permanently">
+                    <button type="button" class="btn btn-outline" style="background-color: #FF5252; color: white; border: none;" onclick="window.CertificateEdit.confirmDelete('@Model.Number')" aria-label="Delete this certificate permanently">
                         Delete
                     </button>
                 }
@@ -888,7 +888,12 @@
         window.CertificateEdit = window.CertificateEdit || {};
 
         // Delete confirmation using custom modal
-        window.CertificateEdit.confirmDelete = async function(certificateId) {
+        window.CertificateEdit.confirmDelete = async function(certificateNumber) {
+            if (!certificateNumber) {
+                console.error('Certificate number is missing');
+                return;
+            }
+
             const confirmed = await window.CertificateCreate.showConfirmation({
                 title: 'Delete Certificate',
                 message: 'Are you sure you want to delete this certificate? This action cannot be undone.',
@@ -896,9 +901,38 @@
                 type: 'danger'
             });
 
-            if (confirmed) {
-                // Redirect to delete action
-                window.location.href = '@Url.Action("Delete", "Certificate")/' + certificateId;
+            if (!confirmed) return;
+
+            try {
+                const response = await fetch(`/Certificate/Delete/${encodeURIComponent(certificateNumber)}`, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
+                    }
+                });
+                let payload = null;
+                try { payload = await response.json(); } catch (_) { /* non-JSON response */ }
+
+                if (response.ok && payload && payload.success) {
+                    const target = payload.redirectUrl || '@Url.Action("CertificateTileViewInternal", "Certificate")';
+                    window.location.href = target;
+                } else {
+                    const msg = (payload && payload.message) || `Failed to delete certificate (HTTP ${response.status})`;
+                    console.error('Delete failed:', response.status, payload);
+                    if (window.AdminCore && AdminCore.showNotification) {
+                        AdminCore.showNotification(msg, 'error');
+                    } else {
+                        alert(msg);
+                    }
+                }
+            } catch (error) {
+                console.error('Error deleting certificate:', error);
+                if (window.AdminCore && AdminCore.showNotification) {
+                    AdminCore.showNotification('An error occurred while deleting the certificate', 'error');
+                } else {
+                    alert('An error occurred while deleting the certificate');
+                }
             }
         };
 

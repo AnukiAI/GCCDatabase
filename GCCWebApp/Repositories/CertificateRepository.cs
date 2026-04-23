@@ -297,6 +297,10 @@ namespace GCCWebApp.Repositories
             if (filter.CompanyIds != null && filter.CompanyIds.Any())
                 query = query.Where(c => filter.CompanyIds.Contains(c.CompanyId));
 
+            // QC #124: public sidebar passes company names (not IDs) via CompanyNames.
+            if (filter.CompanyNames != null && filter.CompanyNames.Any())
+                query = query.Where(c => c.Company != null && filter.CompanyNames.Contains(c.Company.Name));
+
             // Filter by product categories/types/subcategories (matches all 3 hierarchy levels)
             // Hierarchy: Level 1 = ProductCategory, Level 2 = ProductType (root), Level 3 = ProductType (child)
             // Checks Product hierarchy, Certificate direct fields, and parent traversal for cascade matching

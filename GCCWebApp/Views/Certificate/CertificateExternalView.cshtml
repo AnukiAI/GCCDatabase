@@ -257,7 +257,7 @@
                     }
                     @if (Model.CanDelete)
                     {
-                        <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@certificateId')">
+                        <div class="action-icon delete" title="Delete Certificate" onclick="deleteCertificate('@GetFormattedCertificateNumber()')">
                             <i class="fas fa-trash"></i>
                         </div>
                     }
@@ -329,9 +329,9 @@
     };
 
     // Delete certificate function
-    window.deleteCertificate = async function(certificateId) {
-        if (!certificateId) {
-            console.error('Certificate ID is missing');
+    window.deleteCertificate = async function(certificateNumber) {
+        if (!certificateNumber) {
+            console.error('Certificate number is missing');
             return;
         }
 
@@ -345,18 +345,24 @@
 
         if (confirmed) {
             try {
-                const response = await fetch(`/Certificate/Delete/${certificateId}`, {
+                const response = await fetch(`/Certificate/Delete/${encodeURIComponent(certificateNumber)}`, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                         'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value
                     }
                 });
-                if (response.ok) {
-                    AdminCore.showNotification('Certificate deleted successfully', 'success');
-                    setTimeout(() => { window.location.href = '/Certificate/CertificateTileViewExternal'; }, 1500);
+                let payload = null;
+                try { payload = await response.json(); } catch (_) { /* non-JSON response */ }
+
+                if (response.ok && payload && payload.success) {
+                    AdminCore.showNotification(payload.message || 'Certificate deleted successfully', 'success');
+                    const target = payload.redirectUrl || '/Certificate/CertificateTileViewExternal';
+                    setTimeout(() => { window.location.href = target; }, 1200);
                 } else {
-                    AdminCore.showNotification('Failed to delete certificate', 'error');
+                    const msg = (payload && payload.message) || `Failed to delete certificate (HTTP ${response.status})`;
+                    console.error('Delete failed:', response.status, payload);
+                    AdminCore.showNotification(msg, 'error');
                 }
             } catch (error) {
                 console.error('Error deleting certificate:', error);

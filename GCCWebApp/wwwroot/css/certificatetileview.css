@@ -2835,6 +2835,12 @@ body.table-view-active .tile-view-content {
         display: flex;
     }
 
+    /* Desktop collapse button is redundant with mobile toggle on tablet/mobile */
+    .sidebar-collapse-btn,
+    .sidebar-toggle-tab {
+        display: none !important;
+    }
+
     /* Hide filter content by default on tablet/mobile */
     .sidebar .search-bar,
     .sidebar .filters-header,

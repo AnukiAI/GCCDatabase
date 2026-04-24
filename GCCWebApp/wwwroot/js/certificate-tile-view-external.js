@@ -680,8 +680,14 @@
             checkbox.addEventListener('change', handleFilterChange);
         });
 
-        // Filter header collapse/expand toggles
+        // Filter header collapse/expand toggles.
+        // QC #163: attachFilterEventListeners is called multiple times (init + after data load + on rerender)
+        // so the click handler was being bound 2-3 times — an even number of toggles per click
+        // canceled out and the panel appeared not to collapse. Guard with a flag on the element
+        // so the listener binds once. (Same pattern as internal view's QC R168 fix.)
         document.querySelectorAll('.filter-header').forEach(header => {
+            if (header.dataset.toggleBound === '1') return;
+            header.dataset.toggleBound = '1';
             header.addEventListener('click', () => {
                 const filterId = header.dataset.filter;
                 if (filterId) toggleFilter(filterId);

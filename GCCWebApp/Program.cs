@@ -626,6 +626,13 @@ if (!app.Environment.IsDevelopment())
     app.UseIpRateLimiting();
 }
 
+// Test environment access gate (HTTP Basic Auth) — opt-in via config.
+// Config: TestEnvironmentGate:Enabled + Username + Password.
+// Skips /api/* so Partner API key authentication still works.
+// Must sit AFTER UseStatusCodePages so we can disable its 401→login redirect
+// for gate-issued 401s, and BEFORE UseStaticFiles so /css, /js, /img aren't public.
+app.UseMiddleware<TestEnvironmentGateMiddleware>();
+
 // Static files with cache control headers
 app.UseStaticFiles(new StaticFileOptions
 {

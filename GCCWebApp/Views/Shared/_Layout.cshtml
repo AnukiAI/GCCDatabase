@@ -2,6 +2,7 @@
 @using Microsoft.EntityFrameworkCore
 @using GCCWebApp.Data
 @inject ApplicationDbContext DbContext
+@inject Microsoft.Extensions.Configuration.IConfiguration Configuration
 @{
     // Get the user role from session or set to "Public" for unauthenticated users
     var userRole = Context.Session.GetString("UserRole") ?? "Public";
@@ -92,6 +93,14 @@
 <body class="theme-option4 @roleCssClass @ViewData["BodyClass"]">
     <!-- Skip to main content link for keyboard navigation -->
     <a href="#main-content" class="admin-sr-only skip-to-main">Skip to main content</a>
+
+    @if (Configuration.GetValue<bool>("TestEnvironmentGate:ShowBanner"))
+    {
+        <div role="status" aria-label="Test environment notice"
+             style="background: #c0392b; color: #fff; text-align: center; padding: 6px 12px; font-size: 14px; font-weight: 600; letter-spacing: 0.5px; border-bottom: 2px solid #8e2b22;">
+            TEST ENVIRONMENT — data shown here reflects production records; do not share this URL publicly.
+        </div>
+    }
 
     <!-- Header -->
     <header class="header">

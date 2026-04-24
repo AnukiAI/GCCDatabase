@@ -238,7 +238,7 @@ namespace GCCWebApp.Controllers.Api.v1
                             status = isPartnerCaller ? "Active" : c.Status,
                             issueDate = c.EffectiveDate,
                             expirationDate = c.ExpirationDate,
-                            certificationCountries = c.Country,
+                            certificationCountries = isPartnerCaller ? "All" : c.Country,
                             partner = c.Partner,
                             certificationResults = c.CertificationResults,
                             pathway = c.Pathway != null ? c.Pathway.Name : null,
@@ -284,7 +284,7 @@ namespace GCCWebApp.Controllers.Api.v1
                             status = isPartnerCaller ? "Active" : c.Status,
                             issueDate = c.EffectiveDate,
                             expirationDate = c.ExpirationDate,
-                            certificationCountries = c.Country,
+                            certificationCountries = isPartnerCaller ? "All" : c.Country,
                             partner = c.Partner,
                             certificationResults = c.CertificationResults,
                             pathway = c.Pathway != null ? c.Pathway.Name : null,
@@ -865,7 +865,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                     status = isPartnerCaller ? "Active" : cert.Status,
                     issueDate = cert.EffectiveDate,
                     expirationDate = cert.ExpirationDate,
-                    certificationCountries = cert.Country,
+                    certificationCountries = isPartnerCaller ? "All" : cert.Country,
                     partner = cert.Partner,
                     certificationResults = DisplayFormatters.FormatCertificationResults(cert.CertificationResults),
                     pathway = cert.Pathway?.Name,
@@ -1403,9 +1403,8 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                             Value = DisplayFormatters.FormatCertificationResults(cert.CertificationResults),
                             StartDate = issueDate,
                             EndDate = endDate,
-                            TargetCountries = !string.IsNullOrEmpty(cert.Country)
-                                ? new List<string> { cert.Country }
-                                : null,
+                            // Amazon Developer Guide contract: targetCountries is always "All" for partner responses
+                            TargetCountries = new List<string> { "All" },
                             AmazonCode = cert.CertificationType?.AmazonCode,
                             Pathway = cert.Pathway?.Name
                         }

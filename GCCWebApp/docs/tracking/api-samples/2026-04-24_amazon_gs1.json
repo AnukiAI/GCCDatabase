@@ -1,7 +1,7 @@
 {
   "success": true,
   "pagination": {
-    "totalCount": 8,
+    "totalCount": 6,
     "pageNumber": 1,
     "pageSize": 100,
     "totalPages": 1,
@@ -9,39 +9,6 @@
     "hasPrevious": false
   },
   "data": [
-    {
-      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
-      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
-      "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0007",
-      "type": "CertificationReport",
-      "issueDate": "2026-04-01",
-      "issuer": "GreenCircle Certified",
-      "products": [
-        {
-          "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0007/product",
-          "type": "Product",
-          "gtin": null,
-          "name": "John Frieda Conditioner",
-          "additionalTradeItemId": null,
-          "certificationInfo": {
-            "type": "CertificationDetails",
-            "agency": "GreenCircle Certified",
-            "agencyURL": "https://www.greencirclecertified.com",
-            "program": "Sustainable Energy Practices",
-            "certificateId": "26-0007",
-            "status": "ACTIVE",
-            "value": "17%",
-            "startDate": "2026-04-01",
-            "endDate": "2028-05-31",
-            "targetCountries": [
-              "Germany"
-            ],
-            "amazonCode": "greencircle_sustainable_energy_practices",
-            "pathway": "Energy usage reduction"
-          }
-        }
-      ]
-    },
     {
       "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
       "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
@@ -291,39 +258,7 @@
           }
         }
       ]
-    },
-    {
-      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
-      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
-      "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0001",
-      "type": "CertificationReport",
-      "issueDate": "2026-01-01",
-      "issuer": "GreenCircle Certified",
-      "products": [
-        {
-          "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0001/product",
-          "type": "Product",
-          "gtin": null,
-          "name": "Kuiper",
-          "additionalTradeItemId": null,
-          "certificationInfo": {
-            "type": "CertificationDetails",
-            "agency": "GreenCircle Certified",
-            "agencyURL": "https://www.greencirclecertified.com",
-            "program": "Recycled Content",
-            "certificateId": "26-0001",
-            "status": "ACTIVE",
-            "value": null,
-            "startDate": "2026-01-01",
-            "endDate": "2026-12-31",
-            "targetCountries": [
-              "United States"
-            ],
-            "amazonCode": "greencircle_recycled_content"
-          }
-        }
-      ]
     }
   ],
-  "message": "Found 8 certificate(s) in GS1 format"
+  "message": "Found 6 certificate(s) in GS1 format"
 }

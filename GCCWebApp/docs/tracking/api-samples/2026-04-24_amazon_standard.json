@@ -1,7 +1,7 @@
 {
   "success": true,
   "pagination": {
-    "totalCount": 8,
+    "totalCount": 6,
     "pageNumber": 1,
     "pageSize": 100,
     "totalPages": 1,
@@ -10,27 +10,10 @@
   },
   "data": [
     {
-      "certificateNumber": "26-0007",
-      "status": "Active",
-      "issueDate": "2026-04-01T00:00:00Z",
-      "expirationDate": "2028-05-31T00:00:00Z",
-      "certificationCountries": "Germany",
-      "partner": "Amazon",
-      "certificationResults": "17%",
-      "pathway": "Energy usage reduction",
-      "company": "KAO",
-      "productName": "John Frieda Conditioner",
-      "certificationType": "Sustainable Energy Practices",
-      "amazonCode": "greencircle_sustainable_energy_practices",
-      "issuer": "GreenCircle Certified",
-      "productIds": [],
-      "pdfDownloadUrl": "/api/v1/certificates/26-0007/download"
-    },
-    {
       "certificateNumber": "26-0146",
       "status": "Active",
-      "issueDate": "2026-04-01T00:00:00Z",
-      "expirationDate": "2028-05-31T00:00:00Z",
+      "issueDate": "2026-04-01T00:00:00",
+      "expirationDate": "2028-05-31T00:00:00",
       "certificationCountries": "All",
       "partner": "Amazon",
       "certificationResults": "17%",
@@ -63,8 +46,8 @@
     {
       "certificateNumber": "26-0147",
       "status": "Active",
-      "issueDate": "2026-04-01T00:00:00Z",
-      "expirationDate": "2028-05-31T00:00:00Z",
+      "issueDate": "2026-04-01T00:00:00",
+      "expirationDate": "2028-05-31T00:00:00",
       "certificationCountries": "All",
       "partner": "Amazon",
       "certificationResults": "100%",
@@ -97,8 +80,8 @@
     {
       "certificateNumber": "26-0150",
       "status": "Active",
-      "issueDate": "2026-04-01T00:00:00Z",
-      "expirationDate": "2028-05-31T00:00:00Z",
+      "issueDate": "2026-04-01T00:00:00",
+      "expirationDate": "2028-05-31T00:00:00",
       "certificationCountries": "All",
       "partner": "Amazon",
       "certificationResults": "27%",
@@ -139,8 +122,8 @@
     {
       "certificateNumber": "26-0151",
       "status": "Active",
-      "issueDate": "2026-04-01T00:00:00Z",
-      "expirationDate": "2028-05-31T00:00:00Z",
+      "issueDate": "2026-04-01T00:00:00",
+      "expirationDate": "2028-05-31T00:00:00",
       "certificationCountries": "All",
       "partner": "Amazon",
       "certificationResults": "100%",
@@ -181,8 +164,8 @@
     {
       "certificateNumber": "26-0106",
       "status": "Active",
-      "issueDate": "2026-03-13T00:00:00Z",
-      "expirationDate": "2027-03-12T00:00:00Z",
+      "issueDate": "2026-03-13T00:00:00",
+      "expirationDate": "2027-03-12T00:00:00",
       "certificationCountries": "All",
       "partner": "Amazon",
       "certificationResults": "69%",
@@ -207,8 +190,8 @@
     {
       "certificateNumber": "26-0157",
       "status": "Active",
-      "issueDate": "2026-03-12T00:00:00Z",
-      "expirationDate": "2027-03-11T00:00:00Z",
+      "issueDate": "2026-03-12T00:00:00",
+      "expirationDate": "2027-03-11T00:00:00",
       "certificationCountries": "All",
       "partner": "Amazon",
       "certificationResults": "17%",
@@ -229,23 +212,6 @@
         }
       ],
       "pdfDownloadUrl": "/api/v1/certificates/26-0157/download"
-    },
-    {
-      "certificateNumber": "26-0001",
-      "status": "Active",
-      "issueDate": "2026-01-01T00:00:00Z",
-      "expirationDate": "2026-12-31T00:00:00Z",
-      "certificationCountries": "United States",
-      "partner": "Amazon",
-      "certificationResults": null,
-      "pathway": null,
-      "company": "Amazon",
-      "productName": "Kuiper",
-      "certificationType": "Recycled Content",
-      "amazonCode": "greencircle_recycled_content",
-      "issuer": "GreenCircle Certified",
-      "productIds": [],
-      "pdfDownloadUrl": "/api/v1/certificates/26-0001/download"
     }
   ]
 }

@@ -27,6 +27,11 @@ The Amazon integration work. All items confirmed against the live endpoint befor
 - `type` field clarification: only `ASIN` is referenced for Amazon; UPC/GTIN/EAN/ISBN/MPN removed from Amazon-facing docs.
 - Updated production URL reference from subdomain to path-based (`https://greencirclecertified.com/database`).
 
+## CRs delivered
+
+- **CR-005 — Public view Hide/Show Filters parity** (2026-04-24). The internal (analyst) and external (logged-in partner) certificate listings already had a desktop "Hide Filters" / "Show Filters" sidebar collapse control; the public listing was missing it. Identified during SIT screenshot review. Added matching markup + JS to `Views/Certificate/CertificateTileView.cshtml` and `wwwroot/js/certificate-tile-view.js`. All 3 cert listing views now behave the same way at desktop. Validated locally via Playwright (collapse/expand both directions, edge tab visibility).
+- **CR-006 — Em dash placeholder on certificate detail views** (2026-04-24). Client wanted "Data not available" replaced with an em dash (—) when a field on the cert detail page is empty. Swapped the visible text in 18 places across the three cert detail views (public `CertificateSingleView`, partner `CertificateExternalView`, analyst/admin `CertificateInternalView`) — Product Category, Product Type, Product Subcategory, Location, Company Email, Company URL. Kept the `<span class="no-data">` wrapper so the existing dimmed-text styling still applies. Out of scope: tile-card listings, PDF export, partner API, server logs (left as-is — flagged for separate confirmation if Carly wants those swept too).
+
 ## UI / UX defects
 
 - **Tablet view** on the logged-in certificate listing no longer shows two stacked "Hide Filters" bars (DEF-098). One CSS rule; visible fix.

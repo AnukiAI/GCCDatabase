@@ -1,0 +1,344 @@
+[
+  {
+    "id": "31",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. click into a tile to test detail page button alignment"
+  },
+  {
+    "id": "33",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. interactive: tick APR/LEED filters and verify result count changes"
+  },
+  {
+    "id": "35",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. data check: every cert tile must have a real PDF (not placeholder) \u2014 needs data audit"
+  },
+  {
+    "id": "37",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. mobile only: tag bottom spacing"
+  },
+  {
+    "id": "123",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. search for cert 23-0375; verify \u2122/\u00ae symbols render correctly (not garbled)"
+  },
+  {
+    "id": "127",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. interactive: apply a Company filter, verify chip shows name not ID, no 'Type:'/'Company:' prefix"
+  },
+  {
+    "id": "128",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. interactive: tick LEED filter, verify only LEED-tagged certs remain"
+  },
+  {
+    "id": "129",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. interactive: type 'amaz' in search; verify only entities with public certs appear"
+  },
+  {
+    "id": "130",
+    "role": "anonymous",
+    "status": "PASS",
+    "notes": "None of ['Product Type A-Z'] found on page. sort dropdown must not include Product Type A-Z"
+  },
+  {
+    "id": "131",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. visual: product name 3-line clamp, no subcategory shown on tile"
+  },
+  {
+    "id": "132",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. visual: open Country filter; United States must be at top, others A-Z"
+  },
+  {
+    "id": "135",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: needs cert with expiration=today; verify it shows today, hidden tomorrow"
+  },
+  {
+    "id": "136",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. visual: dates display as entered, no off-by-one"
+  },
+  {
+    "id": "137",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. visual: search icon inside box, not overlapping border"
+  },
+  {
+    "id": "152",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MOBILE: search icon doesn't overlap border at 390/375"
+  },
+  {
+    "id": "153",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MOBILE: click a cert tile; verify image at bottom, content at top, image not cut off"
+  },
+  {
+    "id": "149",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. interactive: verify Level 2 and Level 3 product category filters actually filter the cert list"
+  },
+  {
+    "id": "51",
+    "role": "anonymous",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. data: scan for special chars (\u2122 \u00ae \u00e4 &) \u2014 should render correctly, not garbled"
+  },
+  {
+    "id": "23",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. verify expired certs show 'Expired' status; data + display correctness"
+  },
+  {
+    "id": "45",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. open Certification Type dropdown; verify 4 new types present, 2 old types absent"
+  },
+  {
+    "id": "50",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MOBILE: verify Create page usable at 390/375 \u2014 no overflow, fields stack, 16px text"
+  },
+  {
+    "id": "59",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. interactive: each of 5 dropdowns has type-ahead search input"
+  },
+  {
+    "id": "60",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: requires creating a cert and checking post-create detail page"
+  },
+  {
+    "id": "66",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. visual: status badges/labels at 13px on tile cards"
+  },
+  {
+    "id": "71",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. GET to /Account/LogoutPost should redirect to /Account/Login, not 400/405 error"
+  },
+  {
+    "id": "106",
+    "role": "admin",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: click Add New User; verify Company field visible for all roles, Check All works"
+  },
+  {
+    "id": "107",
+    "role": "admin",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: try create with duplicate email; verify clear specific error"
+  },
+  {
+    "id": "108",
+    "role": "admin",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: download template; verify headers-only, 'User Company' label, Yes/No + Active/Inactive hints"
+  },
+  {
+    "id": "109",
+    "role": "admin",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: import valid CSV; then bad CSV; verify specific error messages"
+  },
+  {
+    "id": "117",
+    "role": "admin",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: add new root category; verify it doesn't default to 'Chemicals and Raw Materials'"
+  },
+  {
+    "id": "118",
+    "role": "admin",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: verify Section column visible in admin; flat 'Additional Fields' on Create/Edit"
+  },
+  {
+    "id": "142",
+    "role": "admin",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: click delete (trash) icon; verify modal buttons show white text labels"
+  },
+  {
+    "id": "145",
+    "role": "admin",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: verify Active keys show Revoke; Revoked keys show Delete"
+  },
+  {
+    "id": "147",
+    "role": "admin",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. visual: walk through all admin pages; Import = fa-file-import, Export = fa-file-export"
+  },
+  {
+    "id": "148",
+    "role": "admin",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: download template; verify Status header reads 'Status (Active, Inactive)'"
+  },
+  {
+    "id": "138",
+    "role": "external",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MOBILE: verify External tag has visible spacing below it"
+  },
+  {
+    "id": "78",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: open Product ID Manager, download template, verify headers-only and 'Product ID' header"
+  },
+  {
+    "id": "80",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: open Product ID Manager, click Add then Edit, verify modal fields are editable (not grayed)"
+  },
+  {
+    "id": "84",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. switch to List view; verify Company URL/Email, Cert Subcat, Cert Results, Pathway columns present"
+  },
+  {
+    "id": "86",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: switch to List view, verify mouse wheel scrolls page (not just hijacked to horizontal)"
+  },
+  {
+    "id": "91",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. verify Product Type and Subcategory columns; sort arrows don't overlap text"
+  },
+  {
+    "id": "95",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: click each column header \u2014 verify ascending and descending sort works"
+  },
+  {
+    "id": "96",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: hover top-nav dropdowns; verify they render above search bar / page content"
+  },
+  {
+    "id": "103",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: download template + export; verify column headers match exactly"
+  },
+  {
+    "id": "104",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. verify Administration breadcrumb is clickable and lands on Admin Dashboard"
+  },
+  {
+    "id": "133",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. verify Effective Date and Expiration Date are EMPTY by default (not pre-populated)"
+  },
+  {
+    "id": "134",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: create a cert and verify it appears once, not duplicated"
+  },
+  {
+    "id": "139",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. verify Pathway label has NO '(Optional)' text"
+  },
+  {
+    "id": "140",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. switch to List view; verify status font reduced, cells wrap, condensed height, action icons middle-aligned"
+  },
+  {
+    "id": "141",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: download each stat widget; verify all statuses + detail breakdowns"
+  },
+  {
+    "id": "154",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. verify dashboard counts include Confidential certs (higher than public count)"
+  },
+  {
+    "id": "155",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: download product cat/type/subcat exports; verify multi-row detail"
+  },
+  {
+    "id": "156",
+    "role": "analyst",
+    "status": "PASS",
+    "notes": "All required text present: ['Active Certs Published Last Month', 'Active Certs Published This Year', 'Active Certs Published Last Year']. all 3 dashboard labels must include 'Active' prefix"
+  },
+  {
+    "id": "157",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: List view; click Status, Location, Internal Tag, Partner, ASIN, UPC headers; verify both directions"
+  },
+  {
+    "id": "159",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: open Product ID Manager bulk import; test scope of duplicate checks"
+  },
+  {
+    "id": "161",
+    "role": "analyst",
+    "status": "MANUAL",
+    "notes": "Visual review of screenshots required. MANUAL: open Column Settings; verify Cert Results, Pathway, Cert Subcat, Contact URL present"
+  },
+  {
+    "id": "139-edit",
+    "role": "analyst",
+    "status": "PASS",
+    "notes": "None of ['(Optional)'] found on page. Pathway label on Edit form must not contain '(Optional)' (NB: may appear on other fields legitimately \u2014 manual confirm if FAIL)"
+  }
+]

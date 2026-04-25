@@ -76,9 +76,9 @@
                     <!-- Certification Details -->
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Certification Details</h3>
-                        <div class="certificate-field"><strong>Product Category:</strong> <span>@Html.Raw(Model.Certificate?.ProductCategory?.Name ?? Model.Certificate?.Product?.Category?.Name ?? "<span class='no-data'>Data not available</span>")</span></div>
-                        <div class="certificate-field"><strong>Product Type:</strong> <span>@Html.Raw(Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "<span class='no-data'>Data not available</span>")</span></div>
-                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@Html.Raw(Model.Certificate?.ProductSubcategory?.Name ?? Model.Certificate?.Product?.ProductSubcategory?.Name ?? "<span class='no-data'>Data not available</span>")</span></div>
+                        <div class="certificate-field"><strong>Product Category:</strong> <span>@Html.Raw(Model.Certificate?.ProductCategory?.Name ?? Model.Certificate?.Product?.Category?.Name ?? "<span class='no-data'>—</span>")</span></div>
+                        <div class="certificate-field"><strong>Product Type:</strong> <span>@Html.Raw(Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "<span class='no-data'>—</span>")</span></div>
+                        <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@Html.Raw(Model.Certificate?.ProductSubcategory?.Name ?? Model.Certificate?.Product?.ProductSubcategory?.Name ?? "<span class='no-data'>—</span>")</span></div>
                         <div class="certificate-location">
                             <i class="fas fa-map-marker-alt"></i>
                             @if (!string.IsNullOrEmpty(Model.Certificate?.Location) && !string.IsNullOrEmpty(Model.Certificate?.Country))
@@ -95,7 +95,7 @@
                             }
                             else
                             {
-                                <span class="no-data">Data not available</span>
+                                <span class="no-data">—</span>
                             }
                         </div>
                     </div>
@@ -119,7 +119,7 @@
                                 }
                                 else
                                 {
-                                    <span class="no-data">Data not available</span>
+                                    <span class="no-data">—</span>
                                 }
                             </span>
                         </div>
@@ -132,7 +132,7 @@
                                 }
                                 else
                                 {
-                                    <span class="no-data">Data not available</span>
+                                    <span class="no-data">—</span>
                                 }
                             </span>
                         </div>

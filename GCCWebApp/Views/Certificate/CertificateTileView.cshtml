@@ -6,8 +6,20 @@
 
 <!-- Main Container -->
 <div class="main-container">
+    <!-- Show Filters button (visible when sidebar collapsed) -->
+    <button class="sidebar-toggle-tab" id="sidebarToggleTab" aria-label="Show filters" aria-controls="filterSidebar" aria-expanded="false">
+        <span>Show Filters</span>
+        <i class="fas fa-chevron-right" aria-hidden="true"></i>
+    </button>
+
     <!-- Sidebar (Filters) -->
-    <div class="sidebar">
+    <aside id="filterSidebar" class="sidebar" role="complementary" aria-label="Certificate filters">
+        <!-- Hide Filters button - desktop only, matches internal/external views -->
+        <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Hide filters" aria-expanded="true">
+            <span>Hide Filters</span>
+            <i class="fas fa-chevron-left" aria-hidden="true"></i>
+        </button>
+
         <button class="mobile-filter-toggle" id="mobileFilterToggle">
             <span>Show Filters & Search</span>
             <i class="fas fa-chevron-down"></i>
@@ -96,7 +108,7 @@
                     </ul>
             </fieldset>
         </div>
-    </div>
+    </aside>
 
     <!-- Main Content Area -->
     <div class="tile-view-content">

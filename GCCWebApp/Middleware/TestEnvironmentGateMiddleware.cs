@@ -119,8 +119,20 @@ public class TestEnvironmentGateMiddleware
         // not anything nested under a directory.
         if (path.IndexOf('/', 1) >= 0) return false;
 
-        return path.StartsWith("/google", StringComparison.OrdinalIgnoreCase)
-               && path.EndsWith(".html", StringComparison.OrdinalIgnoreCase);
+        // Google: /google<hash>.html
+        if (path.StartsWith("/google", StringComparison.OrdinalIgnoreCase)
+            && path.EndsWith(".html", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        // Bing: /BingSiteAuth.xml
+        if (path.Equals("/BingSiteAuth.xml", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     // Constant-time string compare — prevents timing-attack enumeration of the

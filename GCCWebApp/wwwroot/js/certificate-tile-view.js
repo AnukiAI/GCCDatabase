@@ -44,6 +44,33 @@
         setupEventListeners();
         setupInfiniteScroll();
         initializeAutocomplete();
+        setupSidebarToggle();
+    }
+
+    // CR-005: desktop Hide/Show Filters parity with internal/external views
+    function setupSidebarToggle() {
+        const toggleTab = document.getElementById('sidebarToggleTab');
+        const collapseBtn = document.getElementById('sidebarCollapseBtn');
+        if (toggleTab) toggleTab.addEventListener('click', expandSidebar);
+        if (collapseBtn) collapseBtn.addEventListener('click', collapseSidebar);
+    }
+
+    function collapseSidebar() {
+        const sidebar = document.getElementById('filterSidebar');
+        const toggleTab = document.getElementById('sidebarToggleTab');
+        const mainContainer = document.querySelector('.main-container');
+        if (sidebar) sidebar.classList.add('collapsed');
+        if (toggleTab) toggleTab.classList.add('visible');
+        if (mainContainer) mainContainer.classList.add('sidebar-collapsed');
+    }
+
+    function expandSidebar() {
+        const sidebar = document.getElementById('filterSidebar');
+        const toggleTab = document.getElementById('sidebarToggleTab');
+        const mainContainer = document.querySelector('.main-container');
+        if (sidebar) sidebar.classList.remove('collapsed');
+        if (toggleTab) toggleTab.classList.remove('visible');
+        if (mainContainer) mainContainer.classList.remove('sidebar-collapsed');
     }
 
     // Load filter options from API

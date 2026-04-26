@@ -2543,7 +2543,10 @@ body.table-view-active .tile-view-content {
     display: flex;
     flex-direction: row;
     flex-wrap: nowrap;
-    align-items: center;
+    /* stretch makes every cell fill the row's tallest height, so the bottom borders
+       line up across the row even when one column wraps to multiple lines.
+       Cells keep their own `align-items: center` to vertically center their inner content. */
+    align-items: stretch;
     width: max-content;
     min-width: 100%;
     cursor: pointer;
@@ -2585,13 +2588,20 @@ body.table-view-active .tile-view-content {
 .sticky-header-cell.tc-select,
 .sticky-header-cell.tc-actions { justify-content: center; }
 
-/* Action buttons in body rows */
+/* Action buttons in body rows.
+   `display: flex` (not inline-flex) so the wrapper is a true block flex item — inline-flex
+   inherits baseline behavior from line-height, which biases it downward in tall rows.
+   `margin: 0` resets the global `.action-buttons { margin-top: 24px }` from main.css
+   (intended for page-level button bars) which was leaking in and pushing icons 11–12px
+   below the row's vertical center. */
 .table-body-cell.tc-actions .action-buttons {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
     gap: 4px;
     width: 100%;
+    margin: 0;
+    align-self: center;
 }
 .table-body-cell.tc-actions .action-btn {
     padding: 4px;
@@ -2629,13 +2639,15 @@ body.table-view-active .tile-view-content {
 .table-body-cell.tc-gtin,
 .table-body-cell.tc-ean { justify-content: center; }
 
-/* Status badges in new table */
+/* Status badges in new table.
+   `!important` on font-size/font-weight to beat the global `.status-badge` rule in main.css
+   (which sets 16px/600 for page-level badges) — same trick as the tile-card overrides above. */
 .table-body-cell .status-badge {
     display: inline-block;
     padding: 2px 6px;
     border-radius: 4px;
-    font-size: 11px;
-    font-weight: 500;
+    font-size: 11px !important;
+    font-weight: 500 !important;
     /* Allow long statuses like "Client Approved - Paid" to wrap inside the 110px Status column
        instead of truncating to "CLIENT APPR" */
     white-space: normal;

@@ -231,8 +231,11 @@ namespace GCCWebApp.Controllers.Api
                         c.Country,
                         ExternalTags = string.Join(", ", c.Tags.Where(t => t.TagType == "external").Select(t => t.Name)),
                         PdfPath = c.CertificateFile,
-                        c.Partner
-                        // Note: Status and internal fields are not exposed for external view
+                        c.Partner,
+                        // Status: only PublicStatuses reach this projection (filter at line ~204),
+                        // so this is always one of "Client Approved - Paid" / "Republished".
+                        // Surfaced in the UI table so the Status column actually has a value.
+                        c.Status
                     })
                     .ToListAsync();
 
@@ -255,7 +258,8 @@ namespace GCCWebApp.Controllers.Api
                     c.Country,
                     c.ExternalTags,
                     c.PdfPath,
-                    c.Partner
+                    c.Partner,
+                    c.Status
                 }).ToList();
 
                 return Ok(new

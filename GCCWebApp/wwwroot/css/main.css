@@ -3214,7 +3214,10 @@ footer {
     }
 
     /* Show when mobile-open on tablet/mobile */
-    .sidebar.mobile-open .search-bar,
+    .sidebar.mobile-open .search-bar {
+        display: block;
+    }
+
     .sidebar.mobile-open .filters-header,
     .sidebar.mobile-open .filter-panel {
         display: block;
@@ -3454,7 +3457,10 @@ footer {
     }
 
     /* Show when mobile-open */
-    .sidebar.mobile-open .search-bar,
+    .sidebar.mobile-open .search-bar {
+        display: block;
+    }
+
     .sidebar.mobile-open .filters-header,
     .sidebar.mobile-open .filter-panel {
         display: block;
@@ -3471,8 +3477,11 @@ footer {
         overflow-y: auto;
     }
 
+    /* Padding on .search-bar would shift the input inward while leaving the
+       absolute-positioned .search-icon at left:12px — the icon ends up sitting in
+       the search-bar's padding instead of inside the input. Use a bottom border
+       only; the sidebar's own padding handles horizontal inset. */
     .sidebar.mobile-open .search-bar {
-        padding: 15px;
         border-bottom: 1px solid var(--border-color);
     }
 

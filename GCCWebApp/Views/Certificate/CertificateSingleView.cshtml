@@ -11,13 +11,13 @@
         ? Model.Certificate.Number
         : Context.Request.RouteValues["id"]?.ToString() ?? "";
     var certificationType = Model.Certificate?.CertificationType?.Name ?? "Certified Environmental Facts";
-    var company = Model.Certificate?.Company?.Name ?? "Unknown Company";
-    var productName = Model.Certificate?.Product?.Name ?? "Unknown Product";
+    var company = Model.Certificate?.Company?.Name ?? "—";
+    var productName = Model.Certificate?.Product?.Name ?? "—";
     var productType = Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "—";
-    var location = Model.Certificate?.Location ?? "Unknown Location";
-    var country = Model.Certificate?.Country ?? "Unknown Country";
-    var effectiveDate = Model.Certificate?.EffectiveDate.ToString("M/d/yyyy") ?? "Unknown";
-    var expirationDate = Model.Certificate?.ExpirationDate.ToString("M/d/yyyy") ?? "Unknown";
+    var location = Model.Certificate?.Location ?? "—";
+    var country = Model.Certificate?.Country ?? "—";
+    var effectiveDate = Model.Certificate?.EffectiveDate.ToString("M/d/yyyy") ?? "—";
+    var expirationDate = Model.Certificate?.ExpirationDate.ToString("M/d/yyyy") ?? "—";
     var companyContact = "";
     var companyUrl = "";
     var companyEmail = "";
@@ -25,7 +25,7 @@
     // Format certificate number as YY-####
     string GetFormattedCertificateNumber()
     {
-        if (string.IsNullOrEmpty(certificateNumber)) return "N/A";
+        if (string.IsNullOrEmpty(certificateNumber)) return "—";
 
         // If already in correct format, return as is
         if (System.Text.RegularExpressions.Regex.IsMatch(certificateNumber, @"^\d{2}-\d{4}$"))

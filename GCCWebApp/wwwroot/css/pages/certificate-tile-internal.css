@@ -223,5 +223,8 @@
 .tc-certsub  { width: 170px; min-width: 170px; }
 .tc-companyurl { width: 180px; min-width: 180px; }
 
-/* Internal actions column is wider (Edit + Download + View) */
-.tc-actions  { width: 90px;  min-width: 90px;  }
+/* Internal actions column: 110px gives 3 icons (Edit + Download + View, 78px content) breathing room */
+.tc-actions  { width: 110px;  min-width: 110px;  }
+
+/* CR-007: admin-managed custom field columns — single rule covers any number of fields */
+[class*="tc-cf-"] { width: 160px; min-width: 160px; }

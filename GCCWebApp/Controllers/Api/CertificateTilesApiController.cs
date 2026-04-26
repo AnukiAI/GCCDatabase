@@ -479,9 +479,21 @@ namespace GCCWebApp.Controllers.Api
                     return NotFound(new { error = "Certificate not found" });
                 }
 
+                // Per business rule (2026-04-25): never auto-generate a placeholder PDF.
+                // Analysts must upload a real certificate file at creation time.
+                if (string.IsNullOrEmpty(certificate.CertificateFile))
+                {
+                    return NotFound(new { error = "Certificate PDF not available" });
+                }
+
+                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", certificate.CertificateFile.TrimStart('/'));
+                if (!System.IO.File.Exists(fullPath))
+                {
+                    return NotFound(new { error = "Certificate PDF file not found on server" });
+                }
+
+                var fileBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
                 var fileName = $"Certificate_{certificate.Number}.pdf";
-                var fileBytes = await _pdfService.GenerateCertificatePdfAsync(certificate);
-                
                 return File(fileBytes, "application/pdf", fileName);
             }
             catch (Exception ex)

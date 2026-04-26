@@ -1150,16 +1150,42 @@
     window.viewCertificateNewTab = viewCertificate;
     window.editCertificate = editCertificate;
 
-    // Download certificate - uses the main CertificateController endpoint which handles
-    // both uploaded files and PDF generation fallback
-    function downloadCertificate(certificateNumber) {
+    // Download certificate via fetch so we can show an in-page toast on failure
+    // instead of navigating the user to a 404 in a new tab. Mirrors the public
+    // view pattern (`certificate-tile-view.js`).
+    async function downloadCertificate(certificateNumber) {
+        if (!certificateNumber) {
+            showToast('Certificate number is required', 'error');
+            return;
+        }
         try {
-            if (!certificateNumber) {
-                showToast('Certificate number is required', 'error');
-                return;
+            const response = await fetch(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`);
+
+            if (response.ok) {
+                const blob = await response.blob();
+                let filename = `Certificate_${certificateNumber}.pdf`;
+                const contentDisposition = response.headers.get('Content-Disposition');
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (match && match[1]) filename = match[1].replace(/['"]/g, '');
+                }
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showToast('Certificate download started', 'success');
+            } else if (response.status === 404) {
+                showToast(
+                    `No certificate PDF has been uploaded for ${certificateNumber}. Download is unavailable until an analyst uploads the certificate file.`,
+                    'error'
+                );
+            } else {
+                showToast('Failed to download certificate', 'error');
             }
-            // Use the main Download endpoint which accepts certificate number
-            window.open(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, '_blank');
         } catch (error) {
             console.error('Error downloading certificate:', error);
             showToast('Failed to download certificate', 'error');

@@ -94,6 +94,8 @@ namespace GCCWebApp.Controllers.Api
                     .Include(c => c.CertificationTypeSubcategories)
                     .Include(c => c.Tags)
                     .Include(c => c.ProductIds)
+                    .Include(c => c.CustomFieldValues)
+                        .ThenInclude(cfv => cfv.Field)
                     .AsQueryable();
 
                 // Apply search filter with flexible matching (handles hyphens, spaces, capitalization)
@@ -239,7 +241,28 @@ namespace GCCWebApp.Controllers.Api
                         CertificationResults = c.CertificationResults ?? "",
                         PathwayName = c.Pathway != null ? c.Pathway.Name : "",
                         CertSubcategories = string.Join(", ", c.CertificationTypeSubcategories.Select(s => s.Name)),
-                        CompanyUrl = c.Company.Website ?? ""
+                        CompanyUrl = c.Company.Website ?? "",
+                        // CR-007: per-cert custom field values keyed by field id.
+                        // Values are stored in TextValue regardless of FieldType (per CertificateFieldService).
+                        CustomFieldValues = c.CustomFieldValues
+                            .Where(cfv => cfv.Field != null && cfv.Field.IsVisible && !string.IsNullOrWhiteSpace(cfv.TextValue))
+                            .Select(cfv => new { cfv.FieldId, cfv.TextValue })
+                            .ToList()
+                    })
+                    .ToListAsync();
+
+                // CR-007: fetch all visible custom field definitions for the column toggle
+                // Internal table = analyst/admin → show every field marked IsVisible (RoleVisibility is enforced
+                // for partner/external surfaces, not the internal admin grid).
+                var customFieldDefinitions = await _context.CustomFields
+                    .Where(cf => cf.IsVisible)
+                    .OrderBy(cf => cf.SortOrder).ThenBy(cf => cf.Name)
+                    .Select(cf => new
+                    {
+                        id = cf.Id,
+                        name = cf.Name,
+                        section = cf.Section,
+                        sortOrder = cf.SortOrder
                     })
                     .ToListAsync();
 
@@ -279,7 +302,9 @@ namespace GCCWebApp.Controllers.Api
                     CertificationResults = DisplayFormatters.FormatCertificationResults(c.CertificationResults),
                     c.PathwayName,
                     c.CertSubcategories,
-                    c.CompanyUrl
+                    c.CompanyUrl,
+                    // CR-007: emit a flat object so JS can do `cert.customFields[fieldId]`
+                    customFields = c.CustomFieldValues.ToDictionary(v => v.FieldId.ToString(), v => v.TextValue ?? string.Empty)
                 }).ToList();
 
                 return Ok(new
@@ -292,6 +317,7 @@ namespace GCCWebApp.Controllers.Api
                     page = Math.Max(1, (actualOffset / actualLimit) + 1),
                     pageSize = actualLimit,
                     totalPages = (int)Math.Ceiling((double)totalCount / actualLimit),
+                    customFieldDefinitions, // CR-007
                     message = (string?)null
                 });
             }

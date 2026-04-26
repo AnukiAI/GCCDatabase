@@ -325,15 +325,29 @@ namespace GCCWebApp.Services
                 var certificate = await GetCertificateDetailsAsync(id, userRole);
                 if (certificate == null) return null;
 
-                // For now, return a placeholder PDF
-                var pdfContent = GenerateCertificatePdf(certificate);
+                // Per business rule (2026-04-25): never auto-generate a placeholder PDF.
+                // Read the actual uploaded file off disk; if there isn't one, return null so the
+                // controller can surface 404. Analysts must upload a real PDF at cert creation.
+                var entity = await _context.Certificates.FindAsync(id);
+                if (entity == null || string.IsNullOrEmpty(entity.CertificateFile))
+                {
+                    return null;
+                }
+
+                var fullPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", entity.CertificateFile.TrimStart('~', '/'));
+                if (!System.IO.File.Exists(fullPath))
+                {
+                    return null;
+                }
+
+                var fileContent = await System.IO.File.ReadAllBytesAsync(fullPath);
 
                 return new CertificateDownloadModel
                 {
                     CertificateId = id,
                     CertificateNumber = certificate.CertificateNumber,
                     FileName = $"Certificate_{certificate.CertificateNumber}.pdf",
-                    FileContent = pdfContent,
+                    FileContent = fileContent,
                     ContentType = "application/pdf",
                     UserRole = userRole
                 };

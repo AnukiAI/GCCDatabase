@@ -1437,11 +1437,9 @@ namespace GCCWebApp.Controllers
                     }
                 }
 
-                // Fallback: Generate the certificate PDF if no uploaded file exists
-                var generatedFileName = $"Certificate_{certificate.Number}.pdf";
-                var generatedFileBytes = await _pdfService.GenerateCertificatePdfAsync(certificate);
-
-                return File(generatedFileBytes, "application/pdf", generatedFileName);
+                // No uploaded file → no download. Per business rule (2026-04-25): analysts must upload a real
+                // PDF when creating a certificate; we never auto-generate a placeholder.
+                return NotFound($"No certificate PDF has been uploaded for {id}. Download is unavailable until an analyst uploads the certificate file.");
             }
             catch (Exception ex)
             {

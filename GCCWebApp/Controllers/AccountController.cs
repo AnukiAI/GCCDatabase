@@ -169,7 +169,7 @@ namespace GCCWebApp.Controllers
             }
 
             // Simple authentication logic for testing
-            var (userRole, loginError) = ValidateUserDetailed(model.Email, model.Password);
+            var (userRole, canonicalEmail, loginError) = ValidateUserDetailed(model.Email, model.Password);
 
             if (string.IsNullOrEmpty(userRole))
             {
@@ -178,11 +178,17 @@ namespace GCCWebApp.Controllers
                 return View(model);
             }
 
+            // DEF-113: from this point on use canonicalEmail (the user's actual Email column),
+            // never model.Email. Form input may be a username; if we propagate it as the email
+            // claim, every downstream lookup of "Users where Email == claim" silently misses
+            // and external/role-scoped UIs return empty.
+            if (string.IsNullOrEmpty(canonicalEmail)) canonicalEmail = model.Email;
+
             // Check if user requires password reset
-            if (CheckRequirePasswordReset(model.Email))
+            if (CheckRequirePasswordReset(canonicalEmail))
             {
-                _logger.LogInformation("User {Email} requires password reset on login", model.Email);
-                TempData["ForceResetEmail"] = model.Email;
+                _logger.LogInformation("User {Email} requires password reset on login", canonicalEmail);
+                TempData["ForceResetEmail"] = canonicalEmail;
                 TempData["ForceResetRole"] = userRole;
                 TempData["ForceResetReturnUrl"] = returnUrl;
                 TempData["ForceResetRememberMe"] = model.RememberMe;
@@ -191,39 +197,39 @@ namespace GCCWebApp.Controllers
 
             // Check if 2FA is enabled
             var is2FAEnabled = _configuration.GetValue<bool>("Authentication:Enable2FA", true);
-            
+
             if (is2FAEnabled)
             {
                 try
                 {
                     // Get user preferences for 2FA delivery method
-                    var preferences = await _twoFactorService.GetUserPreferencesAsync(model.Email);
-                    
+                    var preferences = await _twoFactorService.GetUserPreferencesAsync(canonicalEmail);
+
                     // Generate and send 2FA code using preferred method
                     var code = _twoFactorService.GenerateCode();
-                    _twoFactorService.StoreCode(model.Email, code);
-                    await _twoFactorService.SendCodeAsync(model.Email, code, preferences.PreferredMethod, preferences.Email, preferences.PhoneNumber);
-                    
-                    // Store user info temporarily in TempData
-                    TempData["2FAEmail"] = model.Email;
+                    _twoFactorService.StoreCode(canonicalEmail, code);
+                    await _twoFactorService.SendCodeAsync(canonicalEmail, code, preferences.PreferredMethod, preferences.Email, preferences.PhoneNumber);
+
+                    // Store user info temporarily in TempData (canonical email so Verify2FA hits the right user)
+                    TempData["2FAEmail"] = canonicalEmail;
                     TempData["2FARole"] = userRole;
                     TempData["ReturnUrl"] = returnUrl;
                     TempData["RememberMe"] = model.RememberMe;
                     TempData["2FAMethod"] = preferences.PreferredMethod.ToString();
-                    
-                    _logger.LogInformation($"2FA code sent to {model.Email} via {preferences.PreferredMethod}");
+
+                    _logger.LogInformation($"2FA code sent to {canonicalEmail} via {preferences.PreferredMethod}");
                     return RedirectToAction("TwoFactorAuthentication");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, $"Failed to send 2FA code to {model.Email}");
+                    _logger.LogError(ex, $"Failed to send 2FA code to {canonicalEmail}");
                     ModelState.AddModelError("", "Unable to send verification code. Please try again or contact support.");
                     return View(model);
                 }
             }
 
-            // Direct login without 2FA
-            await SignInUser(model.Email, userRole, model.RememberMe);
+            // Direct login without 2FA — use canonical email for all auth claims
+            await SignInUser(canonicalEmail, userRole, model.RememberMe);
             return RedirectToLocal(returnUrl);
         }
 
@@ -638,12 +644,16 @@ namespace GCCWebApp.Controllers
                     return RedirectToAction("Login");
                 }
 
+                // DEF-113: pin downstream calls to the user's canonical email so claims/2FA/lookups
+                // all resolve correctly even when the user originally typed a username.
+                var canonicalEmail = user.Email;
+
                 // Hash and update password
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(password);
                 user.RequirePasswordReset = false;
                 _context.SaveChanges();
 
-                _logger.LogInformation("Password successfully reset for user {Email}", email);
+                _logger.LogInformation("Password successfully reset for user {Email}", canonicalEmail);
 
                 // Check if 2FA is required after password reset
                 var is2FAEnabled = _configuration.GetValue<bool>("Authentication:Enable2FA", true);
@@ -651,12 +661,12 @@ namespace GCCWebApp.Controllers
                 if (is2FAEnabled)
                 {
                     // Proceed with 2FA flow
-                    var preferences = await _twoFactorService.GetUserPreferencesAsync(email);
+                    var preferences = await _twoFactorService.GetUserPreferencesAsync(canonicalEmail);
                     var code = _twoFactorService.GenerateCode();
-                    _twoFactorService.StoreCode(email, code);
-                    await _twoFactorService.SendCodeAsync(email, code, preferences.PreferredMethod, preferences.Email, preferences.PhoneNumber);
+                    _twoFactorService.StoreCode(canonicalEmail, code);
+                    await _twoFactorService.SendCodeAsync(canonicalEmail, code, preferences.PreferredMethod, preferences.Email, preferences.PhoneNumber);
 
-                    TempData["2FAEmail"] = email;
+                    TempData["2FAEmail"] = canonicalEmail;
                     TempData["2FARole"] = role;
                     TempData["ReturnUrl"] = returnUrl;
                     TempData["RememberMe"] = rememberMe;
@@ -665,8 +675,8 @@ namespace GCCWebApp.Controllers
                     return RedirectToAction("TwoFactorAuthentication");
                 }
 
-                // Sign in directly without 2FA
-                await SignInUser(email, role, rememberMe);
+                // Sign in directly without 2FA — use canonical email
+                await SignInUser(canonicalEmail, role, rememberMe);
                 return RedirectToLocal(returnUrl);
             }
             catch (Exception ex)
@@ -995,11 +1005,16 @@ namespace GCCWebApp.Controllers
 
         private string ValidateUser(string email, string password)
         {
-            var (role, _) = ValidateUserDetailed(email, password);
+            var (role, _, _) = ValidateUserDetailed(email, password);
             return role;
         }
 
-        private (string Role, string Error) ValidateUserDetailed(string email, string password)
+        // Returns: (Role, CanonicalEmail, Error). CanonicalEmail is the user's actual Email column
+        // value — distinct from the form input (which can be a username). Callers MUST use the
+        // canonical email for downstream claims/TempData/lookups; otherwise role-scoped queries
+        // (e.g. external user → company → certificates) silently return zero rows when the user
+        // logs in with a username instead of their full email. (DEF-113, 2026-04-26.)
+        private (string Role, string Email, string Error) ValidateUserDetailed(string email, string password)
         {
             try
             {
@@ -1012,7 +1027,7 @@ namespace GCCWebApp.Controllers
                 if (user == null)
                 {
                     _logger.LogWarning("Login attempt failed: User not found for email/username: {Email}", email);
-                    return (string.Empty, "User not found");
+                    return (string.Empty, string.Empty, "User not found");
                 }
 
                 // Check if user is active
@@ -1020,7 +1035,7 @@ namespace GCCWebApp.Controllers
                 {
                     _logger.LogWarning("Login attempt failed: User {Email} is not active (IsActive={IsActive}, IsDeleted={IsDeleted}, Status={Status})",
                         email, user.IsActive, user.IsDeleted, user.Status);
-                    return (string.Empty, $"Account inactive (IsActive={user.IsActive}, IsDeleted={user.IsDeleted}, Status={user.Status})");
+                    return (string.Empty, string.Empty, $"Account inactive (IsActive={user.IsActive}, IsDeleted={user.IsDeleted}, Status={user.Status})");
                 }
 
                 // Verify password using BCrypt
@@ -1030,31 +1045,31 @@ namespace GCCWebApp.Controllers
                     {
                         _logger.LogWarning("Login attempt failed: Invalid password for user: {Email} (hash prefix: {HashPrefix})",
                             email, user.PasswordHash?.Substring(0, Math.Min(20, user.PasswordHash?.Length ?? 0)));
-                        return (string.Empty, "Invalid password");
+                        return (string.Empty, string.Empty, "Invalid password");
                     }
                 }
                 catch (Exception bcryptEx)
                 {
                     _logger.LogError(bcryptEx, "BCrypt verification threw exception for user {Email}, hash length={Len}",
                         email, user.PasswordHash?.Length);
-                    return (string.Empty, $"Password verification error: {bcryptEx.Message}");
+                    return (string.Empty, string.Empty, $"Password verification error: {bcryptEx.Message}");
                 }
 
                 // Get user's primary role
                 var role = user.Roles.FirstOrDefault()?.Name ?? "Public";
 
-                _logger.LogInformation("User {Email} successfully authenticated with role {Role}", email, role);
+                _logger.LogInformation("User {Email} (input: {Input}) successfully authenticated with role {Role}", user.Email, email, role);
 
                 // Update last login timestamp
                 user.LastLoginAt = DateTime.UtcNow;
                 _context.SaveChanges();
 
-                return (role, string.Empty);
+                return (role, user.Email, string.Empty);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error validating user {Email}", email);
-                return (string.Empty, $"Database error: {ex.Message}");
+                return (string.Empty, string.Empty, $"Database error: {ex.Message}");
             }
         }
 

@@ -8,14 +8,14 @@
     var certificateId = Model.Certificate?.Id.ToString() ?? "0";
     var certificateNumber = Model.Certificate?.Number ?? "";
     var certificationType = Model.Certificate?.CertificationType?.Name ?? "Certified Environmental Facts";
-    var company = Model.Certificate?.Company?.Name ?? "Unknown Company";
-    var productName = Model.Certificate?.Product?.Name ?? "Unknown Product";
+    var company = Model.Certificate?.Company?.Name ?? "—";
+    var productName = Model.Certificate?.Product?.Name ?? "—";
     var productType = Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "—";
 
     // Format certificate number as YY-####
     string GetFormattedCertificateNumber()
     {
-        if (string.IsNullOrEmpty(certificateNumber)) return "N/A";
+        if (string.IsNullOrEmpty(certificateNumber)) return "—";
         if (System.Text.RegularExpressions.Regex.IsMatch(certificateNumber, @"^\d{2}-\d{4}$"))
             return certificateNumber;
         var year = Model.Certificate?.EffectiveDate != null
@@ -53,7 +53,7 @@
                     <!-- Certification Details -->
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Certification Details</h3>
-                        <div class="certificate-field"><strong>Status:</strong> <span class="status-@(Model.Certificate?.Status?.ToLower())">@(Model.Certificate?.Status ?? "Unknown")</span></div>
+                        <div class="certificate-field"><strong>Status:</strong> <span class="status-@(Model.Certificate?.Status?.ToLower())">@(Model.Certificate?.Status ?? "—")</span></div>
                         <div class="certificate-field"><strong>Product Category:</strong> <span>@Html.Raw(Model.Certificate?.ProductCategory?.Name ?? Model.Certificate?.Product?.Category?.Name ?? "<span class='no-data'>—</span>")</span></div>
                         <div class="certificate-field"><strong>Product Type:</strong> <span>@Html.Raw(Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "<span class='no-data'>—</span>")</span></div>
                         <div class="certificate-field"><strong>Product Subcategory:</strong> <span>@Html.Raw(Model.Certificate?.ProductSubcategory?.Name ?? Model.Certificate?.Product?.ProductSubcategory?.Name ?? "<span class='no-data'>—</span>")</span></div>
@@ -97,8 +97,8 @@
                     <div class="detail-section">
                         <h3 class="certificate-section-title">Certification Period</h3>
                         <div class="certificate-period">
-                            <strong>Effective Date:</strong> @(Model.Certificate?.EffectiveDate.ToString("M/d/yyyy") ?? "Unknown")<br>
-                            <strong>Expiration Date:</strong> @(Model.Certificate?.ExpirationDate.ToString("M/d/yyyy") ?? "Unknown")
+                            <strong>Effective Date:</strong> @(Model.Certificate?.EffectiveDate.ToString("M/d/yyyy") ?? "—")<br>
+                            <strong>Expiration Date:</strong> @(Model.Certificate?.ExpirationDate.ToString("M/d/yyyy") ?? "—")
                         </div>
                     </div>
 
@@ -182,8 +182,8 @@
                     <!-- Record Information (Always show for Internal users) -->
                     <div class="detail-section record-info">
                         <h3 class="certificate-section-title">Record Information</h3>
-                        <div class="certificate-field"><strong>Created Date:</strong> <span>@(Model.Certificate?.CreatedAt.ToString("M/d/yyyy") ?? "Unknown")</span></div>
-                        <div class="certificate-field"><strong>Last Updated:</strong> <span>@(Model.Certificate?.UpdatedAt.ToString("M/d/yyyy") ?? "Unknown")</span></div>
+                        <div class="certificate-field"><strong>Created Date:</strong> <span>@(Model.Certificate?.CreatedAt.ToString("M/d/yyyy") ?? "—")</span></div>
+                        <div class="certificate-field"><strong>Last Updated:</strong> <span>@(Model.Certificate?.UpdatedAt.ToString("M/d/yyyy") ?? "—")</span></div>
                         @if (Model.Certificate?.CreatedByUser != null)
                         {
                             <div class="certificate-field"><strong>Created By:</strong> <span>@Model.Certificate.CreatedByUser.Email</span></div>
@@ -416,15 +416,38 @@
         }
     };
 
-    window.downloadCertificate = function(certificateNumber) {
+    window.downloadCertificate = async function(certificateNumber) {
         if (!certificateNumber) {
-            console.error('Certificate number is missing');
+            AdminCore.showNotification('Certificate number is missing', 'error');
             return;
         }
         try {
-            window.open(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, '_blank');
+            const response = await fetch(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                let filename = `Certificate_${certificateNumber}.pdf`;
+                const cd = response.headers.get('Content-Disposition');
+                if (cd) {
+                    const match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (match && match[1]) filename = match[1].replace(/['"]/g, '');
+                }
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click();
+                window.URL.revokeObjectURL(url); document.body.removeChild(a);
+                AdminCore.showNotification('Certificate download started', 'success');
+            } else if (response.status === 404) {
+                AdminCore.showNotification(
+                    `No certificate PDF has been uploaded for ${certificateNumber}. Download is unavailable until an analyst uploads the certificate file.`,
+                    'error'
+                );
+            } else {
+                AdminCore.showNotification('Failed to download certificate', 'error');
+            }
         } catch (error) {
             console.error('Error downloading certificate:', error);
+            AdminCore.showNotification('Failed to download certificate', 'error');
         }
     };
 </script>

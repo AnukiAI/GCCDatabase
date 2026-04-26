@@ -25,7 +25,8 @@
         filterOptions: {},
         debounceTimer: null,
         currentView: 'tile', // Track current view: 'tile' or 'list'
-        initialized: false
+        initialized: false,
+        customFieldDefinitions: [] // CR-007: admin-managed custom field columns
     };
 
     async function initialize() {
@@ -229,6 +230,12 @@
                 state.totalPages = data.totalPages;
                 state.hasMore = data.hasMore;
                 state._lastNewCount = newCertCount;
+
+                // CR-007: capture admin-managed custom field column definitions (refreshed each load
+                // so newly-added/removed fields in the admin UI flow through without a page reload)
+                if (Array.isArray(data.customFieldDefinitions)) {
+                    state.customFieldDefinitions = data.customFieldDefinitions;
+                }
 
                 renderCertificates(append);
                 updateResultsCount();
@@ -1161,16 +1168,42 @@
     window.viewCertificateNewTab = viewCertificate;
     window.editCertificate = editCertificate;
 
-    // Download certificate - uses the main CertificateController endpoint which handles
-    // both uploaded files and PDF generation fallback
-    function downloadCertificate(certificateNumber) {
+    // Download certificate via fetch so we can show an in-page toast on failure
+    // instead of navigating the user to a 404 in a new tab. Mirrors the public
+    // view pattern (`certificate-tile-view.js`).
+    async function downloadCertificate(certificateNumber) {
+        if (!certificateNumber) {
+            showToast('Certificate number is required', 'error');
+            return;
+        }
         try {
-            if (!certificateNumber) {
-                showToast('Certificate number is required', 'error');
-                return;
+            const response = await fetch(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`);
+
+            if (response.ok) {
+                const blob = await response.blob();
+                let filename = `Certificate_${certificateNumber}.pdf`;
+                const contentDisposition = response.headers.get('Content-Disposition');
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (match && match[1]) filename = match[1].replace(/['"]/g, '');
+                }
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+                showToast('Certificate download started', 'success');
+            } else if (response.status === 404) {
+                showToast(
+                    `No certificate PDF has been uploaded for ${certificateNumber}. Download is unavailable until an analyst uploads the certificate file.`,
+                    'error'
+                );
+            } else {
+                showToast('Failed to download certificate', 'error');
             }
-            // Use the main Download endpoint which accepts certificate number
-            window.open(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, '_blank');
         } catch (error) {
             console.error('Error downloading certificate:', error);
             showToast('Failed to download certificate', 'error');
@@ -1623,6 +1656,19 @@
     }
 
     // Create table row HTML for a certificate (flex-based for sticky header layout)
+    // CR-007: render one cell per admin-managed custom field, in the same SortOrder
+    // returned by the API. col-hidden is added later by applyColumnVisibility based on localStorage.
+    function renderCustomFieldCells(cert) {
+        const defs = state.customFieldDefinitions || [];
+        if (defs.length === 0) return '';
+        const values = cert.customFields || {};
+        return defs.map(def => {
+            const colKey = `tc-cf-${def.id}`;
+            const value = values[def.id] || values[String(def.id)] || '';
+            return `<div class="table-body-cell ${colKey}" title="${escapeHtml(value)}" role="gridcell">${escapeHtml(value)}</div>`;
+        }).join('');
+    }
+
     function createTableRow(cert) {
         const effectiveDate = cert.effectiveDate ? parseLocalDate(cert.effectiveDate).toLocaleDateString() : 'N/A';
         const expirationDate = cert.expirationDate ? parseLocalDate(cert.expirationDate).toLocaleDateString() : 'N/A';
@@ -1701,6 +1747,7 @@
                 <div class="table-body-cell tc-pathway" title="${escapeHtml(pathway)}" role="gridcell">${escapeHtml(pathway)}</div>
                 <div class="table-body-cell tc-certsub" title="${escapeHtml(certSub)}" role="gridcell">${escapeHtml(certSub)}</div>
                 <div class="table-body-cell tc-companyurl" title="${escapeHtml(companyUrl)}" role="gridcell">${companyUrl ? `<a href="${escapeHtml(companyUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml(companyUrl)}</a>` : ''}</div>
+                ${renderCustomFieldCells(cert)}
             </div>
         `;
     }
@@ -1767,11 +1814,86 @@
         // Sync sizes on window resize
         window.addEventListener('resize', syncScrollSizes);
 
+        // CR-007: append admin-managed custom field columns BEFORE wiring toggles
+        installCustomFieldColumns();
+
         // Column toggle dropdown
         setupColumnToggle();
 
         // Load saved column visibility
         loadColumnVisibility();
+    }
+
+    // CR-007: Append admin-managed custom field columns to the table.
+    // Inserts header cells + column-toggle dropdown rows, defaulting new fields to OFF
+    // (so an admin who creates 30 fields doesn't blow up the table on first visit).
+    // Once a field has been "seen" we stop forcing it hidden — user preference wins.
+    const STORAGE_KEY_CF_SEEN = 'gcc-cert-cf-seen-internal';
+
+    function installCustomFieldColumns() {
+        const defs = state.customFieldDefinitions || [];
+        if (defs.length === 0) return;
+
+        const headerInner = document.getElementById('stickyHeaderInner');
+        const dropdown = document.getElementById('colToggleDropdown');
+        if (!headerInner || !dropdown) return;
+
+        // Read current hidden-keys + seen-ids from localStorage
+        let hidden = [];
+        try {
+            const saved = localStorage.getItem(STORAGE_KEY);
+            if (saved) hidden = JSON.parse(saved) || [];
+        } catch (e) { /* localStorage unavailable */ }
+
+        let seen = [];
+        try {
+            const savedSeen = localStorage.getItem(STORAGE_KEY_CF_SEEN);
+            if (savedSeen) seen = JSON.parse(savedSeen) || [];
+        } catch (e) { /* localStorage unavailable */ }
+        const seenSet = new Set(seen);
+
+        // Single "Custom Fields" bucket — do NOT split by CustomField.Section
+        // (Section is leftover schema; admin-created fields are one logical group.)
+        const divider = document.createElement('div');
+        divider.className = 'ct-divider';
+        divider.textContent = 'Custom Fields';
+        dropdown.appendChild(divider);
+
+        let mutatedHidden = false;
+        defs.forEach(def => {
+            const colKey = `tc-cf-${def.id}`;
+
+            // First-time-seen → force default OFF
+            if (!seenSet.has(def.id)) {
+                if (!hidden.includes(colKey)) {
+                    hidden.push(colKey);
+                    mutatedHidden = true;
+                }
+                seenSet.add(def.id);
+            }
+
+            const isHidden = hidden.includes(colKey);
+
+            // Toggle row
+            const row = document.createElement('div');
+            row.className = 'ct-row';
+            row.innerHTML = `<span class="ct-label"><span class="ct-icon"><i class="fas fa-puzzle-piece"></i></span> ${escapeHtml(def.name)}</span><label class="ct-switch"><input type="checkbox"${isHidden ? '' : ' checked'} data-col="${colKey}"><span class="ct-slider"></span></label>`;
+            dropdown.appendChild(row);
+
+            // Sticky header cell
+            const headerCell = document.createElement('div');
+            headerCell.className = `sticky-header-cell ${colKey}${isHidden ? ' col-hidden' : ''}`;
+            headerCell.title = def.name;
+            headerCell.textContent = def.name;
+            headerInner.appendChild(headerCell);
+        });
+
+        try {
+            localStorage.setItem(STORAGE_KEY_CF_SEEN, JSON.stringify(Array.from(seenSet)));
+            if (mutatedHidden) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(hidden));
+            }
+        } catch (e) { /* localStorage unavailable */ }
     }
 
     function syncScrollSizes() {

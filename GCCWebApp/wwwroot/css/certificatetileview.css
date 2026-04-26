@@ -2554,25 +2554,32 @@ body.table-view-active .tile-view-content {
 .table-body-row:nth-child(even):hover .table-body-cell { background: #f0f7ff; }
 
 .table-body-cell {
-    padding: 4px 8px;
+    padding: 6px 8px;
     font-size: 13px;
     color: #333;
-    white-space: nowrap;
+    /* Wrap long content instead of truncating with ellipsis so analysts can read full values
+       (Product Name, Cert Type, Status etc.) without hovering or clicking through. */
+    white-space: normal;
     overflow: hidden;
-    text-overflow: ellipsis;
+    text-overflow: clip;
+    word-break: break-word;
     flex-shrink: 0;
     border-bottom: 1px solid #eee;
     border-right: 1px solid #f0f0f0;
     display: flex;
     align-items: center;
-    height: 36px;
+    min-height: 36px;
+    height: auto;
+    line-height: 1.4;
 }
 
 .table-body-cell:last-child { border-right: none; }
 
 /* Cell-specific styles (shared between header and body) */
 .tc-select { width: 36px; min-width: 36px; justify-content: center; }
-.tc-actions { width: 90px; min-width: 90px; justify-content: center; }
+/* tc-actions widened from 90px → 110px so 3 buttons (78px content + gaps) have breathing room.
+   align-self: stretch keeps the icons vertically centered when neighboring cells wrap and grow taller. */
+.tc-actions { width: 110px; min-width: 110px; justify-content: center; align-self: stretch; }
 
 /* Centered content for select/actions */
 .sticky-header-cell.tc-select,
@@ -2629,7 +2636,11 @@ body.table-view-active .tile-view-content {
     border-radius: 4px;
     font-size: 11px;
     font-weight: 500;
-    white-space: nowrap;
+    /* Allow long statuses like "Client Approved - Paid" to wrap inside the 110px Status column
+       instead of truncating to "CLIENT APPR" */
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
 }
 
 .table-body-cell .status-badge.status-active {

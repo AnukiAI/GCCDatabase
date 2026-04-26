@@ -11,14 +11,14 @@
         ? Model.Certificate.Number
         : Context.Request.RouteValues["id"]?.ToString() ?? "";
     var certificationType = Model.Certificate?.CertificationType?.Name ?? "Certified Environmental Facts";
-    var company = Model.Certificate?.Company?.Name ?? "Unknown Company";
-    var productName = Model.Certificate?.Product?.Name ?? "Unknown Product";
+    var company = Model.Certificate?.Company?.Name ?? "—";
+    var productName = Model.Certificate?.Product?.Name ?? "—";
     var productType = Model.Certificate?.ProductType?.Name ?? Model.Certificate?.Product?.ProductType?.Name ?? "—";
-    var location = Model.Certificate?.Location ?? "Unknown Location";
-    var country = Model.Certificate?.Country ?? "Unknown Country";
-    var effectiveDate = Model.Certificate?.EffectiveDate.ToString("M/d/yyyy") ?? "Unknown";
-    var expirationDate = Model.Certificate?.ExpirationDate.ToString("M/d/yyyy") ?? "Unknown";
-    var status = Model.Certificate?.Status ?? "unknown";
+    var location = Model.Certificate?.Location ?? "—";
+    var country = Model.Certificate?.Country ?? "—";
+    var effectiveDate = Model.Certificate?.EffectiveDate.ToString("M/d/yyyy") ?? "—";
+    var expirationDate = Model.Certificate?.ExpirationDate.ToString("M/d/yyyy") ?? "—";
+    var status = Model.Certificate?.Status ?? "—";
     var partner = Model.Certificate?.Partner ?? "";
     var certificateImagePath = Model.Certificate?.CertificateImagePath ?? "";
     var certificateFile = Model.Certificate?.CertificateFile ?? "";
@@ -29,7 +29,7 @@
     // Format certificate number as YY-####
     string GetFormattedCertificateNumber()
     {
-        if (string.IsNullOrEmpty(certificateNumber)) return "N/A";
+        if (string.IsNullOrEmpty(certificateNumber)) return "—";
 
         // If already in correct format, return as is
         if (System.Text.RegularExpressions.Regex.IsMatch(certificateNumber, @"^\d{2}-\d{4}$"))
@@ -277,16 +277,38 @@
 <script src="~/js/certificates.js"></script>
 <script>
     // Make downloadCertificate available globally for this page
-    window.downloadCertificate = function(certificateNumber) {
+    window.downloadCertificate = async function(certificateNumber) {
+        if (!certificateNumber) {
+            AdminCore.showNotification('Certificate number is missing', 'error');
+            return;
+        }
         try {
-            if (!certificateNumber) {
-                console.error('Certificate number is required');
-                return;
+            const response = await fetch(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`);
+            if (response.ok) {
+                const blob = await response.blob();
+                let filename = `Certificate_${certificateNumber}.pdf`;
+                const cd = response.headers.get('Content-Disposition');
+                if (cd) {
+                    const match = cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+                    if (match && match[1]) filename = match[1].replace(/['"]/g, '');
+                }
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url; a.download = filename;
+                document.body.appendChild(a); a.click();
+                window.URL.revokeObjectURL(url); document.body.removeChild(a);
+                AdminCore.showNotification('Certificate download started', 'success');
+            } else if (response.status === 404) {
+                AdminCore.showNotification(
+                    `No certificate PDF has been uploaded for ${certificateNumber}. Download is unavailable until an analyst uploads the certificate file.`,
+                    'error'
+                );
+            } else {
+                AdminCore.showNotification('Failed to download certificate', 'error');
             }
-            window.open(`/Certificate/Download/${encodeURIComponent(certificateNumber)}`, '_blank');
-            console.log('Certificate download started for:', certificateNumber);
         } catch (error) {
             console.error('Error downloading certificate:', error);
+            AdminCore.showNotification('Failed to download certificate', 'error');
         }
     };
 

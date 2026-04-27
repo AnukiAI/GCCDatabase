@@ -47,6 +47,20 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 - **Relates to:** SIT item #163 (filter collapse fix). #163 addressed collapsing the individual filter panels via the down-chevron — different control from this one.
 - **Deploy:** TBD
 
+### DEF-100 — Tile-view list/table mode: lazy-load wipes earlier pages, only latest page visible
+- **Date:** 2026-04-26
+- **Severity:** High
+- **Status:** Fixed — pending deploy
+- **Reporter:** Shawn (live observation on `https://gccwebapp.com/Certificate/CertificateTileViewInternal`)
+- **Symptom:** On the certificate tile page in **list/table view**, scrolling to trigger the next page replaces the previously rendered rows with only the new page. User sees "the remainder, not the whole of the dataset". Tile (card) view was unaffected. Reproduced on both internal and external tile pages.
+- **Root cause:** In `renderCertificates(append=true)` of both `certificate-tile-view-internal.js` (line ~309) and `certificate-tile-view-external.js` (line ~302), the list-view branch called `renderTableRows(newCerts)`. `renderTableRows` is a full-render helper that does `gridBody.innerHTML = certificates.map(...).join('')`, so passing only the new page's rows wiped every previously rendered row. The tile branch correctly used `grid.insertAdjacentHTML('beforeend', html)` and was fine. Public `certificate-tile-view.js` passes the full `state.certificates` to `renderTableRows` after card append, so it re-rendered every row each scroll — slower but visually correct.
+- **Fix:** In the list-view append branch of both internal and external scripts, build HTML for the new certs only and call `gridBody.insertAdjacentHTML('beforeend', html)`. After insert: attach `change` listeners to the new `.row-checkbox` elements (so bulk selection still works on later pages), call `applyColumnVisibility()` so column-toggle settings apply to new rows, and `requestAnimationFrame(syncScrollSizes)` to keep the sticky-header scroll bar in sync.
+- **Files changed:**
+  - `wwwroot/js/certificate-tile-view-internal.js` (`renderCertificates` list-view append branch)
+  - `wwwroot/js/certificate-tile-view-external.js` (`renderCertificates` list-view append branch)
+- **Verification needed (post-deploy):** Open table view on internal and external tile pages, scroll past page boundary, confirm row count grows and earlier rows persist. Confirm bulk-selection checkboxes on rows past the first page still toggle the bulk-actions bar.
+- **Deploy:** TBD
+
 ### DEF-099 — SIT #163 follow-up: external cert listing filter panels still don't collapse on desktop
 - **Date:** 2026-04-24
 - **Severity:** Low

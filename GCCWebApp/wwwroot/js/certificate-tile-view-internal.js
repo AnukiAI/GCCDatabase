@@ -303,10 +303,21 @@
         // Use tracked view state instead of CSS class check
         if (state.currentView === 'list') {
             if (append) {
-                // Append only new rows to the table
+                // Append only new rows — must NOT use renderTableRows here (it sets innerHTML and would
+                // wipe rows from earlier pages, leaving only the latest page visible).
+                const gridBody = document.getElementById('gridBody');
                 const newCount = state._lastNewCount || 0;
                 const newCerts = state.certificates.slice(state.certificates.length - newCount);
-                renderTableRows(newCerts);
+                if (gridBody && newCerts.length > 0) {
+                    const html = newCerts.map(cert => createTableRow(cert)).join('');
+                    gridBody.insertAdjacentHTML('beforeend', html);
+                    // Wire change listeners on the newly-inserted checkboxes only
+                    const allCheckboxes = gridBody.querySelectorAll('.row-checkbox');
+                    const newCheckboxes = Array.from(allCheckboxes).slice(-newCerts.length);
+                    newCheckboxes.forEach(cb => cb.addEventListener('change', updateBulkActionsBar));
+                    applyColumnVisibility();
+                    requestAnimationFrame(syncScrollSizes);
+                }
                 // Update table results count
                 const tableResultsCount = document.getElementById('tableResultsCount');
                 if (tableResultsCount) {

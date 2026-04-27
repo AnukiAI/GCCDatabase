@@ -35,6 +35,10 @@ On both the analyst (internal) and partner (external) certificate tile pages, sw
 
 When a certificate had no uploaded PDF, hitting Download returned a freshly-generated placeholder PDF instead of failing — misleading analysts and partners (it implied a real cert exists when it doesn't). Three download paths fell through to `_pdfService.GenerateCertificatePdfAsync()`: `/Certificate/Download/{n}` (the route every UI download button hits), `/api/certificate-tiles/{id}/download` (always generated, never even checked for a file), and `Services/CertificateService.GetCertificateDownloadAsync` (called by `/api/certificates/{id}/download`). All three now return HTTP 404 when `Certificate.CertificateFile` is null/empty or the file is missing on disk. Partner API `/api/v1/certificates/{id}/download` was already correct (returns 404 with a TODO comment) — left untouched per the immutable-Partner-API rule. Verified: cert WITH file returns 200 + 2.4MB PDF; cert WITHOUT file returns 404. Follow-up flagged: list-view download buttons are still clickable for fileless certs (will open a 404 in a new tab), since neither the public nor internal list API surfaces a `hasPdf` indicator yet.
 
+## DEF-101 — Import/Export icon arrow direction unified across all admin views (2026-04-26)
+
+Live observation by Shawn on `/Company/Index`: the **Import** button used an UP arrow (`fa-upload`) and the **Export** button used a DOWN arrow (`fa-download`) — backwards by every UX convention (Import = inbound = down, Export = outbound = up). Audit found the same inversion on most admin pages: Company/Index, Company/Management (modal header only — buttons were fine), Product/Management, Product/ManagementV2, Product/ManagementAlt, Product/Categories, Admin/ProductManagement, Admin/CSFAttributes, Admin/CertificateTypes, Admin/Pathways, Admin/ProductTypes, Admin/CertificateFields, Admin/RoleManagement, Admin/Partners, Shared/_ProductIdManager partial. Tags and User Management already used the correct `fa-file-arrow-down`/`fa-file-arrow-up` family; left untouched. Import Preview modal headers (Company/Index, Company/Management, Product/Management, Admin/ProductManagement, _ProductIdManager) updated to match. Literal-action buttons ("Upload Document", "Download Selected", "Download Template") left alone — those names match their icons. Files: 15 .cshtml views. Logged as DEF-101.
+
 ## CRs delivered
 
 - **CR-005 — Public view Hide/Show Filters parity** (2026-04-24). The internal (analyst) and external (logged-in partner) certificate listings already had a desktop "Hide Filters" / "Show Filters" sidebar collapse control; the public listing was missing it. Identified during SIT screenshot review. Added matching markup + JS to `Views/Certificate/CertificateTileView.cshtml` and `wwwroot/js/certificate-tile-view.js`. All 3 cert listing views now behave the same way at desktop. Validated locally via Playwright (collapse/expand both directions, edge tab visibility).
@@ -96,7 +100,7 @@ When a certificate had no uploaded PDF, hitting Download returned a freshly-gene
 
 ## Deployments this month
 
-Every item above ships via the Plesk test zip. Multiple zips deployed in April: sprint 2 build (2026-04-15), tile format (2026-04-16), three break-fix rounds (2026-04-17), break-fix resolution (2026-04-22), API updates (2026-04-24), and today's DEF-097/DEF-098/access-gate build.
+Every item above ships via the Plesk test zip. Multiple zips deployed in April: sprint 2 build (2026-04-15), tile format (2026-04-16), three break-fix rounds (2026-04-17), break-fix resolution (2026-04-22), API updates (2026-04-24), DEF-097/DEF-098/access-gate build (2026-04-24), and DEF-100/DEF-101 build (`GCCWebApp-test-2026-04-26-2312.zip`, 61 MB) covering tile-view lazy-load fix and Import/Export icon convention sweep.
 
 ## Known items still open
 

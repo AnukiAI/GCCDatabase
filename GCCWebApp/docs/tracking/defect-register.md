@@ -45,7 +45,7 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 - **Files changed:**
   - `wwwroot/css/certificatetileview.css` (tablet media block around line 2834)
 - **Relates to:** SIT item #163 (filter collapse fix). #163 addressed collapsing the individual filter panels via the down-chevron — different control from this one.
-- **Deploy:** TBD
+- **Deploy:** `GCCWebApp-test-2026-04-26-2312.zip` (bundled with DEF-100, DEF-101)
 
 ### DEF-100 — Tile-view list/table mode: lazy-load wipes earlier pages, only latest page visible
 - **Date:** 2026-04-26
@@ -59,7 +59,35 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
   - `wwwroot/js/certificate-tile-view-internal.js` (`renderCertificates` list-view append branch)
   - `wwwroot/js/certificate-tile-view-external.js` (`renderCertificates` list-view append branch)
 - **Verification needed (post-deploy):** Open table view on internal and external tile pages, scroll past page boundary, confirm row count grows and earlier rows persist. Confirm bulk-selection checkboxes on rows past the first page still toggle the bulk-actions bar.
-- **Deploy:** TBD
+- **Deploy:** `GCCWebApp-test-2026-04-26-2312.zip` (bundled with DEF-100, DEF-101)
+
+### DEF-101 — Import/Export icons reversed across admin views (arrow direction violates UX convention)
+- **Date:** 2026-04-26
+- **Severity:** Low
+- **Status:** Fixed — pending deploy
+- **Reporter:** Shawn (live observation on `http://localhost:5101/Company/Index`)
+- **Symptom:** Across most admin pages, the **Import** button used `fa-upload` (up arrow) and the **Export** button used `fa-download` (down arrow). Per UX convention (and Shawn's reference image): Import means data flowing INTO the system → arrow should point DOWN; Export means data flowing OUT → arrow should point UP. The mapping was inverted everywhere except Tags and User Management (which already used `fa-file-arrow-down`/`fa-file-arrow-up` correctly).
+- **Root cause:** Inconsistent FontAwesome icon convention. The `fa-upload`/`fa-download` icon names describe a literal action (uploading-to-server / downloading-to-browser) — when applied to Import/Export labels, the arrow direction reads backwards because users associate Import with "inbound/down" and Export with "outbound/up" (matches CSV file-arrow icon convention).
+- **Fix:** Swapped icons on all affected views so Import → `fa-download` (or `fa-file-arrow-down` where the page already used the file-arrow family) and Export → `fa-upload`. Modal headers for "Import Preview" updated to match. Buttons that label literal actions ("Upload Document", "Download Selected", "Download Template") were left alone — those names match their icon.
+- **Files changed:**
+  - `Views/Company/Index.cshtml` (Import + Export buttons + Import Preview modal header)
+  - `Views/Company/Management.cshtml` (Import Preview modal header — buttons were already correct using `fa-file-arrow-*`)
+  - `Views/Product/Management.cshtml` (Import + Export buttons + Import Preview modal header)
+  - `Views/Product/ManagementV2.cshtml` (Import + Export All)
+  - `Views/Product/ManagementAlt.cshtml` (Import + Export Selected + Export All)
+  - `Views/Product/Categories.cshtml` (Import + Export)
+  - `Views/Admin/ProductManagement.cshtml` (Import + Export buttons + Import Preview modal header)
+  - `Views/Admin/CSFAttributes.cshtml` (Export to CSV)
+  - `Views/Admin/CertificateTypes.cshtml` (Export)
+  - `Views/Admin/Pathways.cshtml` (Export)
+  - `Views/Admin/ProductTypes.cshtml` (Export)
+  - `Views/Admin/CertificateFields.cshtml` (Export)
+  - `Views/Admin/RoleManagement.cshtml` (Export)
+  - `Views/Admin/Partners.cshtml` (Export)
+  - `Views/Shared/_ProductIdManager.cshtml` (Import + Export buttons + Import Preview modal header)
+- **Pages already correct (left untouched):** `Views/Admin/Tags.cshtml`, `Views/Admin/UserManagement.cshtml` (both use `fa-file-arrow-down`/`fa-file-arrow-up` consistently across buttons + modal headers).
+- **Verification needed (post-deploy):** Visit Company/Index, Product/Management, Admin/* pages and confirm Import button shows down-arrow, Export button shows up-arrow. Open the Import Preview modal on Company/Index, Product/Management, Admin/ProductManagement, _ProductIdManager — header icon should be down-arrow.
+- **Deploy:** `GCCWebApp-test-2026-04-26-2312.zip` (bundled with DEF-100, DEF-101)
 
 ### DEF-099 — SIT #163 follow-up: external cert listing filter panels still don't collapse on desktop
 - **Date:** 2026-04-24
@@ -72,7 +100,7 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 - **Files changed:**
   - `wwwroot/js/certificate-tile-view-external.js` (around line 684, `attachFilterEventListeners`)
 - **Relates to:** Original SIT #163 fix (which added `toggleFilter()` to internal + external) and DEF-098 (tablet duplicate Hide Filters bar). This closes the third and last tail of #163.
-- **Deploy:** TBD
+- **Deploy:** `GCCWebApp-test-2026-04-26-2312.zip` (bundled with DEF-100, DEF-101)
 
 ---
 

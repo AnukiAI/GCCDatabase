@@ -333,7 +333,8 @@ class ProductIdManager {
         try {
             const response = await fetch(`/api/productids/${productIdId}`);
             if (response.ok) {
-                const productId = await response.json();
+                const result = await response.json();
+                const productId = result.data || result;
                 this.populateForm(productId);
                 document.getElementById('productIdModalLabel').textContent = 'Edit Product ID';
                 const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('productIdModal'));

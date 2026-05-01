@@ -738,14 +738,14 @@ body.theme-option4 .certificate-card .card-actions {
 .certificate-card .card-header .company-name {
     font-size: 18px;
     font-weight: 600;
-    line-height: 1.3;
+    line-height: 1.4;
     color: #fff;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    height: calc(18px * 1.3 * 3); /* Fixed height for 3 lines - consistent across cards */
+    min-height: calc(18px * 1.4 * 3); /* Reserve 3 lines; line-clamp caps the max so descenders aren't clipped */
 }
 
 /* Compact header for public/external views (no status/partner rows) */
@@ -1486,6 +1486,27 @@ body.theme-option4 .certificate-card .card-actions {
 
 .toggle-btn i {
     margin-right: 5px;
+}
+
+/* Mobile: stack results-controls so view-toggle doesn't overlap action buttons */
+@media (max-width: 768px) {
+    .results-controls {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+    .left-controls {
+        margin-left: 0;
+        width: 100%;
+    }
+    .right-controls {
+        order: -1;
+        justify-content: flex-start;
+        width: 100%;
+    }
+    .view-toggle-container {
+        margin-left: 0;
+    }
 }
 
 /* Action button styling - shared for Download and View */
@@ -2806,6 +2827,17 @@ body.table-view-active .tile-view-content {
 }
 .ct-switch input:checked + .ct-slider { background: #2980b9; }
 .ct-switch input:checked + .ct-slider:before { transform: translateX(16px); }
+
+/* Mobile: anchor column dropdown to the viewport's right edge (top is set by JS on open) */
+@media (max-width: 768px) {
+    .col-toggle-dropdown.open {
+        position: fixed;
+        right: 8px;
+        left: auto;
+        width: min(300px, calc(100vw - 16px));
+        max-height: calc(100vh - 120px);
+    }
+}
 
 /* ====================================================
    MOBILE / TABLET RESPONSIVE - SIDEBAR & FILTERS

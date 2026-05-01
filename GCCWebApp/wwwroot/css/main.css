@@ -3829,6 +3829,11 @@ footer {
         max-height: 50px;
     }
 
+    /* When opened, allow sidebar to expand and show filters/search on small portrait phones */
+    .sidebar.mobile-open {
+        max-height: none;
+    }
+
     .mobile-filter-toggle {
         padding: 12px 16px;
         font-size: 16px;

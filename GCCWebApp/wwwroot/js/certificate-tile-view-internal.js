@@ -31,6 +31,7 @@
 
     async function initialize() {
         setupUrlParameters(); // Parse URL params into state.filters first
+        setupMobileFilterToggle(); // Bind toggle synchronously so it works while API calls are pending
 
         // Load filters and certificates in parallel for faster initial render
         await Promise.all([
@@ -516,23 +517,26 @@
         return `<span class="status-badge ${cssClass}">${escapeHtml(status)}</span>`;
     }
 
+    // Mobile filter toggle — bound early in initialize() so it works during async data loads
+    function setupMobileFilterToggle() {
+        const mobileFilterToggle = document.getElementById('mobileFilterToggle');
+        if (!mobileFilterToggle || mobileFilterToggle.dataset.bound === '1') return;
+        mobileFilterToggle.dataset.bound = '1';
+        mobileFilterToggle.addEventListener('click', () => {
+            const sidebar = document.querySelector('.sidebar');
+            sidebar.classList.toggle('mobile-open');
+            mobileFilterToggle.classList.toggle('open');
+            const span = mobileFilterToggle.querySelector('span');
+            if (sidebar.classList.contains('mobile-open')) {
+                span.textContent = 'Hide Filters & Search';
+            } else {
+                span.textContent = 'Show Filters & Search';
+            }
+        });
+    }
+
     // Setup event listeners
     function setupEventListeners() {
-        // Mobile filter toggle
-        const mobileFilterToggle = document.getElementById('mobileFilterToggle');
-        if (mobileFilterToggle) {
-            mobileFilterToggle.addEventListener('click', () => {
-                const sidebar = document.querySelector('.sidebar');
-                sidebar.classList.toggle('mobile-open');
-                mobileFilterToggle.classList.toggle('open');
-                const span = mobileFilterToggle.querySelector('span');
-                if (sidebar.classList.contains('mobile-open')) {
-                    span.textContent = 'Hide Filters & Search';
-                } else {
-                    span.textContent = 'Show Filters & Search';
-                }
-            });
-        }
 
         // Clear filters button
         const clearFiltersBtn = document.querySelector('.clear-filters');
@@ -1930,10 +1934,22 @@
 
         if (!toggleBtn || !dropdown) return;
 
+        // On mobile, position the fixed-positioned dropdown directly below the toggle button
+        function positionDropdownForMobile() {
+            if (window.matchMedia('(max-width: 768px)').matches) {
+                const r = toggleBtn.getBoundingClientRect();
+                dropdown.style.top = (r.bottom + 4) + 'px';
+            } else {
+                dropdown.style.top = '';
+            }
+        }
+
         // Toggle dropdown open/close
         toggleBtn.addEventListener('click', function (e) {
             e.stopPropagation();
+            const willOpen = !dropdown.classList.contains('open');
             dropdown.classList.toggle('open');
+            if (willOpen) positionDropdownForMobile();
         });
 
         // Close dropdown when clicking outside

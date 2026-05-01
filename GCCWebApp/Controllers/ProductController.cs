@@ -685,13 +685,17 @@ namespace GCCWebApp.Controllers
                                 continue;
                             }
 
-                            // CSV Format: Name, Company, Description, Category, Product Type, Subcategory
+                            // CSV Format: Name, Company, Description, Category, Product Type, Subcategory, Status
                             var productName = values[0];
                             var companyName = values.Length > 1 ? values[1] : "";
                             var description = values.Length > 2 ? values[2] : null;
                             var categoryName = values.Length > 3 ? values[3] : "";
                             var productTypeName = values.Length > 4 ? values[4] : "";
                             var subcategoryName = values.Length > 5 ? values[5] : "";
+                            var statusValue = values.Length > 6 ? values[6] : "";
+
+                            // Status: blank or "Active" → IsActive=true; "Inactive" → IsActive=false
+                            bool isActive = !statusValue.Trim().Equals("Inactive", StringComparison.OrdinalIgnoreCase);
 
                             if (string.IsNullOrWhiteSpace(productName))
                             {
@@ -770,7 +774,7 @@ namespace GCCWebApp.Controllers
                                 ProductTypeId = productTypeId,
                                 ProductSubcategoryId = productSubcategoryId,
                                 CompanyId = company?.Id,
-                                IsActive = true,
+                                IsActive = isActive,
                                 CreatedAt = DateTime.UtcNow,
                                 UpdatedAt = DateTime.UtcNow
                             };
@@ -856,8 +860,8 @@ namespace GCCWebApp.Controllers
         public IActionResult DownloadProductImportTemplate()
         {
             // Headers only — no sample data rows (QC #102/#103)
-            // Fields match the Add New Product modal
-            var csv = "Name,Company,Description,Category,Product Type,Subcategory";
+            // Status is optional; defaults to Active when blank. Accepts: Active, Inactive (case-insensitive)
+            var csv = "Name,Company,Description,Category,Product Type,Subcategory,Status";
 
             var bytes = System.Text.Encoding.UTF8.GetBytes(csv);
             return File(bytes, "text/csv", "product_import_template.csv");

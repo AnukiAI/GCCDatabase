@@ -1,4 +1,4 @@
-@{
+﻿@{
     ViewData["Title"] = "Product Management";
     ViewData["BodyClass"] = "admin-product-management";
 }
@@ -13,7 +13,7 @@
 
 @section Breadcrumbs {
     <span class="role-element role-admin-show">
-        <a href="@Url.Action("Index", "Admin")">Administration</a>
+        <span>Administration</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span>Data Management</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
@@ -79,7 +79,7 @@
                             <input type="text" id="new-product-input" class="admin-input admin-input--inline" placeholder="Enter product name" aria-label="New product name">
                         </td>
                         <td class="admin-table-cell" data-label="Parent Identifiers">
-                            <span class="text-muted">—</span>
+                            <span class="text-muted">â€”</span>
                         </td>
                         <td class="admin-table-cell admin-table-cell--actions" data-label="Actions">
                             <div class="admin-action-group">

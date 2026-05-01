@@ -35,11 +35,11 @@ namespace GCCWebApp.Controllers
             return null;
         }
 
-        // GET: Admin Dashboard
-        public async Task<IActionResult> Index()
+        // Admin landing route → redirect to first available admin page so /Admin doesn't 404 from old bookmarks.
+        // Per client decision (2026-05-01): the standalone admin dashboard view is removed.
+        public IActionResult Index()
         {
-            var dashboardModel = await _adminService.GetDashboardDataAsync();
-            return View(dashboardModel);
+            return RedirectToAction(nameof(UserManagement));
         }
 
         // User Management

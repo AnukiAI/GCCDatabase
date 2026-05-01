@@ -1,4 +1,4 @@
-@{
+﻿@{
     ViewData["Title"] = "CSF Attributes Management";
     ViewData["BodyClass"] = "admin-csf-attributes";
 }
@@ -11,7 +11,7 @@
 
 @section Breadcrumbs {
     <span class="role-element role-admin-show">
-        <a href="@Url.Action("Index", "Admin")">Administration</a>
+        <span>Administration</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span>Data Management</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
@@ -56,13 +56,13 @@
                 <thead class="admin-table-header">
                     <tr>
                         <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="30%">
-                            Attribute Name <span class="sort-icon">▼</span>
+                            Attribute Name <span class="sort-icon">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable" data-sort="description" width="50%">
-                            Description <span class="sort-icon">▼</span>
+                            Description <span class="sort-icon">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable" data-sort="isActive" width="10%">
-                            Active <span class="sort-icon">▼</span>
+                            Active <span class="sort-icon">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--actions" width="10%">Actions</th>
                     </tr>

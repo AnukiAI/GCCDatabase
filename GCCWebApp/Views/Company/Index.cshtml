@@ -1,4 +1,4 @@
-@{
+﻿@{
     ViewData["Title"] = "Company Management";
     ViewData["BodyClass"] = "admin-company-management";
 }
@@ -13,7 +13,7 @@
 
 @section Breadcrumbs {
     <span class="role-element role-analyst-show role-admin-show">
-        <a href="@Url.Action("Index", "Admin")">Administration</a>
+        <span>Administration</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span>Companies & Products</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
@@ -65,9 +65,9 @@
                 <table id="company-table" class="admin-table">
                     <thead class="admin-table-header">
                         <tr>
-                            <th class="admin-table-th admin-table-th--sortable" data-sort="name" style="width: 30%;">Company Name <span class="sort-icon">▼</span></th>
-                            <th class="admin-table-th admin-table-th--sortable" data-sort="email" style="width: 30%;">Email <span class="sort-icon">▼</span></th>
-                            <th class="admin-table-th admin-table-th--sortable" data-sort="url" style="width: auto;">URL <span class="sort-icon">▼</span></th>
+                            <th class="admin-table-th admin-table-th--sortable" data-sort="name" style="width: 30%;">Company Name <span class="sort-icon">â–¼</span></th>
+                            <th class="admin-table-th admin-table-th--sortable" data-sort="email" style="width: 30%;">Email <span class="sort-icon">â–¼</span></th>
+                            <th class="admin-table-th admin-table-th--sortable" data-sort="url" style="width: auto;">URL <span class="sort-icon">â–¼</span></th>
                             <th class="admin-table-th admin-table-th--actions" style="width: 120px; min-width: 120px;">Actions</th>
                         </tr>
                     </thead>
@@ -659,7 +659,7 @@
                     header.classList.add('active-sort');
 
                     const sortIcon = header.querySelector('.sort-icon');
-                    sortIcon.textContent = sortDirection === 'asc' ? '▲' : '▼';
+                    sortIcon.textContent = sortDirection === 'asc' ? 'â–²' : 'â–¼';
 
                     sortData();
                 });

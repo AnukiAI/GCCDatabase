@@ -2035,12 +2035,10 @@ namespace GCCWebApp.Services
 
                 case "partners":
                     var partners = await GetPartnersAsync();
-                    content.AppendLine("Partner Name,Description,Website,Active,Users,Created Date");
+                    content.AppendLine("Partner Name");
                     foreach (var partner in partners)
                     {
-                        content.AppendLine($"\"{partner.Name}\",\"{partner.Description}\"," +
-                                         $"\"{partner.Website}\",{partner.IsActive},{partner.UserCount}," +
-                                         $"\"{partner.CreatedDate:yyyy-MM-dd HH:mm}\"");
+                        content.AppendLine($"\"{partner.Name}\"");
                     }
                     break;
 
@@ -2184,27 +2182,11 @@ namespace GCCWebApp.Services
                         
                     case "partners":
                         var partnersData = await GetPartnersAsync();
-                        
-                        // Headers
-                        worksheet.Cell(1, 1).Value = "ID";
-                        worksheet.Cell(1, 2).Value = "Name";
-                        worksheet.Cell(1, 3).Value = "Description";
-                        worksheet.Cell(1, 4).Value = "Website";
-                        worksheet.Cell(1, 5).Value = "Active";
-                        worksheet.Cell(1, 6).Value = "User Count";
-                        worksheet.Cell(1, 7).Value = "Created Date";
-                        
-                        // Data
+                        worksheet.Cell(1, 1).Value = "Partner Name";
                         row = 2;
                         foreach (var partner in partnersData)
                         {
-                            worksheet.Cell(row, 1).Value = partner.Id;
-                            worksheet.Cell(row, 2).Value = partner.Name;
-                            worksheet.Cell(row, 3).Value = partner.Description;
-                            worksheet.Cell(row, 4).Value = partner.Website;
-                            worksheet.Cell(row, 5).Value = partner.IsActive;
-                            worksheet.Cell(row, 6).Value = partner.UserCount;
-                            worksheet.Cell(row, 7).Value = partner.CreatedDate.ToString("yyyy-MM-dd HH:mm");
+                            worksheet.Cell(row, 1).Value = partner.Name;
                             row++;
                         }
                         break;

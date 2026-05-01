@@ -1,4 +1,4 @@
-@{
+﻿@{
     ViewData["Title"] = "User Management";
     ViewData["BodyClass"] = "admin-user-management";
 }
@@ -15,7 +15,7 @@
 
 @section Breadcrumbs {
     <span class="role-element role-admin-show">
-        <a href="@Url.Action("Index", "Admin")">Administration</a>
+        <span>Administration</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span class="current">User Management</span>
     </span>
@@ -89,25 +89,25 @@
                 <thead class="admin-table-header">
                     <tr>
                         <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="18%" aria-sort="none" role="columnheader">
-                            Name <span class="sort-icon" aria-hidden="true">▼</span>
+                            Name <span class="sort-icon" aria-hidden="true">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable" data-sort="company" width="20%" aria-sort="none" role="columnheader">
-                            Company <span class="sort-icon" aria-hidden="true">▼</span>
+                            Company <span class="sort-icon" aria-hidden="true">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable" data-sort="email" width="22%" aria-sort="none" role="columnheader">
-                            Email <span class="sort-icon" aria-hidden="true">▼</span>
+                            Email <span class="sort-icon" aria-hidden="true">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable" data-sort="role" width="12%" aria-sort="none" role="columnheader">
-                            Role <span class="sort-icon" aria-hidden="true">▼</span>
+                            Role <span class="sort-icon" aria-hidden="true">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable" data-sort="status" width="10%" aria-sort="none" role="columnheader">
-                            Status <span class="sort-icon" aria-hidden="true">▼</span>
+                            Status <span class="sort-icon" aria-hidden="true">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="lastLogin" width="10%" aria-sort="none" role="columnheader">
-                            Last Login <span class="sort-icon" aria-hidden="true">▼</span>
+                            Last Login <span class="sort-icon" aria-hidden="true">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable" data-sort="twoFactorEnabled" width="8%" aria-sort="none" role="columnheader">
-                            2FA <span class="sort-icon" aria-hidden="true">▼</span>
+                            2FA <span class="sort-icon" aria-hidden="true">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--actions" width="10%" role="columnheader">Actions</th>
                     </tr>
@@ -263,7 +263,7 @@
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #e0e0e0;">
                             <span style="font-size: 13px; font-weight: 600; color: #333;"><i class="fas fa-building" style="margin-right: 6px; color: #002B76;"></i>Company Access</span>
                         </div>
-                        <div id="user-companies-container" class="admin-checkbox-list" aria-describedby="company-help" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 120px; overflow-y: auto;">
+                        <div id="user-companies-container" class="admin-checkbox-list" aria-describedby="company-help" style="display: flex; flex-wrap: wrap; gap: 8px; max-height: 280px; overflow-y: auto;">
                             <!-- Company checkboxes will be populated by JavaScript -->
                         </div>
                         <span class="admin-form-help" id="company-help" style="display: block; margin-top: 8px; font-size: 11px; color: #888;">Select the companies associated with this user</span>

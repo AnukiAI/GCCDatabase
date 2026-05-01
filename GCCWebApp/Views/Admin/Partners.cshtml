@@ -1,4 +1,4 @@
-@{
+﻿@{
     ViewData["Title"] = "Partners Management";
     ViewData["BodyClass"] = "role-admin";
     ViewData["UserName"] = User.Identity?.Name ?? "";
@@ -14,7 +14,7 @@
 
 @section Breadcrumbs {
     <span class="role-element role-admin-show">
-        <a href="@Url.Action("Index", "Admin")">Administration</a>
+        <span>Administration</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span>Data Management</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
@@ -60,7 +60,7 @@
             <thead class="admin-table-header">
                 <tr>
                     <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="90%">
-                        Partner Name <span class="sort-icon">▼</span>
+                        Partner Name <span class="sort-icon">â–¼</span>
                     </th>
                     <th class="admin-table-th admin-table-th--actions" width="10%">Actions</th>
                 </tr>
@@ -273,14 +273,14 @@
                         h.classList.remove('active-sort');
                         const icon = h.querySelector('.sort-icon');
                         if (icon) {
-                            icon.textContent = '▼';
+                            icon.textContent = 'â–¼';
                         }
                     });
 
                     header.classList.add('active-sort');
                     const sortIcon = header.querySelector('.sort-icon');
                     if (sortIcon) {
-                        sortIcon.textContent = sortDirection === 'asc' ? '▲' : '▼';
+                        sortIcon.textContent = sortDirection === 'asc' ? 'â–²' : 'â–¼';
                     }
 
                     // Sort the data

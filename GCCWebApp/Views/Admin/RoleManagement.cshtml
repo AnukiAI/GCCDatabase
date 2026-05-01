@@ -1,4 +1,4 @@
-@{
+﻿@{
     ViewData["Title"] = "Role Management";
     ViewData["BodyClass"] = "admin-role-management";
 }
@@ -14,7 +14,7 @@
 
 @section Breadcrumbs {
     <span class="role-element role-admin-show">
-        <a href="@Url.Action("Index", "Admin")">Administration</a>
+        <span>Administration</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span class="current">Role Management</span>
     </span>
@@ -58,14 +58,14 @@
                 <thead class="admin-table-header">
                     <tr role="row">
                         <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="20%" role="columnheader" aria-sort="none" tabindex="0">
-                            Role Name <span class="sort-icon">▼</span>
+                            Role Name <span class="sort-icon">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="description" width="30%" role="columnheader" aria-sort="none" tabindex="0">
-                            Description <span class="sort-icon">▼</span>
+                            Description <span class="sort-icon">â–¼</span>
                         </th>
                         <th class="admin-table-th" width="35%" role="columnheader">Permissions</th>
                         <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="users" width="10%" role="columnheader" aria-sort="none" tabindex="0">
-                            Users <span class="sort-icon">▼</span>
+                            Users <span class="sort-icon">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--actions" width="5%" role="columnheader">Actions</th>
                     </tr>

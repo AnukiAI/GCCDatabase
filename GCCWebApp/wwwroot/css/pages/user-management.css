@@ -110,6 +110,28 @@ tr[role="row"]:focus {
     border-width: 0;
 }
 
+/* Keep header text + sort arrow on a single line so the arrow can't wrap below */
+#user-table thead th {
+    white-space: nowrap;
+}
+
+/* Tablet/mobile: contain wide table inside the card with horizontal scroll */
+.admin-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+/* Cap the filter selects so a long option (e.g. a long company name) can't push the row past the card edge. */
+.admin-filter-group {
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+.admin-filter-group .admin-filter-select {
+    max-width: 220px;
+    text-overflow: ellipsis;
+}
+
 /* Table row hover */
 tr[role="row"] {
     transition: background-color 0.2s;

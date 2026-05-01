@@ -1236,15 +1236,16 @@ document.addEventListener('DOMContentLoaded', function() {
         exportBtn.addEventListener('click', function() {
             AdminCore.showLoading(exportBtn);
 
-            // CSV columns match UI: Tag Name, Tag Type, Description
+            // CSV columns: Name, Tag Type (Internal/External), Description
+            const titleCase = s => s ? s.charAt(0).toUpperCase() + s.slice(1).toLowerCase() : '';
             const exportData = tags.map(tag => ({
                 name: tag.name,
-                type: tag.tagType,
+                type: titleCase(tag.tagType),
                 description: tag.description || ''
             }));
 
             const columns = [
-                { key: 'name', header: 'Tag Name' },
+                { key: 'name', header: 'Name' },
                 { key: 'type', header: 'Tag Type' },
                 { key: 'description', header: 'Description' }
             ];

@@ -1,4 +1,4 @@
-@model GCCWebApp.Models.CertificateEditViewModel
+﻿@model GCCWebApp.Models.CertificateEditViewModel
 
 @{
     ViewData["Title"] = "Edit Certificate";
@@ -16,7 +16,7 @@
     <span class="role-element role-analyst-show role-admin-show">
         <a href="/">Home</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
-        <a href="@Url.Action("Index", "Admin")">Administration</a>
+        <span>Administration</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <a asp-controller="Certificate" asp-action="CertificateTileViewInternal">Certificate Management</a>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
@@ -496,7 +496,7 @@
             const savedProductId = '@(Model.ProductId > 0 ? Model.ProductId.ToString() : "")';
             const savedCompanyId = '@(Model.CompanyId > 0 ? Model.CompanyId.ToString() : "")';
 
-            // ===== Company → Product Cascading Dropdown (REQ-CERT-10) =====
+            // ===== Company â†’ Product Cascading Dropdown (REQ-CERT-10) =====
 
             // Load products for a company and optionally pre-select a product
             async function loadProductsForCompany(companyId, preselectProductId) {
@@ -1011,7 +1011,7 @@
                             tagElement.innerHTML = `
                                 ${tag.Name}
                                 <button type="button" class="tag-remove" onclick="window.CertificateCreate.removeTag('${tag.Id}', 'external')">
-                                    ×
+                                    Ã—
                                 </button>
                             `;
                             container.appendChild(tagElement);
@@ -1039,7 +1039,7 @@
                             tagElement.innerHTML = `
                                 ${tag.Name}
                                 <button type="button" class="tag-remove" onclick="window.CertificateCreate.removeTag('${tag.Id}', 'internal')">
-                                    ×
+                                    Ã—
                                 </button>
                             `;
                             container.appendChild(tagElement);

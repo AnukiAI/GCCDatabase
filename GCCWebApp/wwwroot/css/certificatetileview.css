@@ -738,14 +738,17 @@ body.theme-option4 .certificate-card .card-actions {
 .certificate-card .card-header .company-name {
     font-size: 18px;
     font-weight: 600;
-    line-height: 1.4;
+    line-height: 1.5;
     color: #fff;
     display: -webkit-box;
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
     text-overflow: ellipsis;
-    min-height: calc(18px * 1.4 * 3); /* Reserve 3 lines; line-clamp caps the max so descenders aren't clipped */
+    /* 3 lines + 6px buffer so descenders ('g', 'p', 'y') aren't clipped on line 3.
+       6px is too small to fit a 4th line (which needs 27px) so no bleed. */
+    min-height: calc(18px * 1.5 * 3 + 6px);
+    max-height: calc(18px * 1.5 * 3 + 6px);
 }
 
 /* Compact header for public/external views (no status/partner rows) */
@@ -1488,8 +1491,8 @@ body.theme-option4 .certificate-card .card-actions {
     margin-right: 5px;
 }
 
-/* Mobile: stack results-controls so view-toggle doesn't overlap action buttons */
-@media (max-width: 768px) {
+/* Mobile + tablet: stack so view-toggle falls BELOW the action buttons, right-aligned */
+@media (max-width: 1024px) {
     .results-controls {
         flex-direction: column;
         align-items: stretch;
@@ -1499,10 +1502,10 @@ body.theme-option4 .certificate-card .card-actions {
         margin-left: 0;
         width: 100%;
     }
+    /* Shrink right-controls to its content and pin it to the right edge */
     .right-controls {
-        order: -1;
-        justify-content: flex-start;
-        width: 100%;
+        align-self: flex-end;
+        width: auto;
     }
     .view-toggle-container {
         margin-left: 0;
@@ -2488,6 +2491,7 @@ body.table-view-active .tile-view-content {
     display: flex;
     align-items: center;
     gap: 10px;
+    margin-left: auto;          /* keep Columns button right-aligned even when row wraps to a new line on narrow viewports */
 }
 
 /* --- Sticky Scrollbar Row --- */

@@ -18,6 +18,87 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-115 — Cert tile views (Internal + External): "Columns" toggle button left-aligns on narrow viewports instead of right-aligning
+
+- **Date:** 2026-05-01
+- **Severity:** Low (cosmetic alignment, no functional break)
+- **Status:** **Fixed** — pending deploy
+- **Reporter:** Shawn ("most likely external too. Columns should be right aligned.")
+- **Root cause:** `.table-toolbar-row` is a flexbox with `flex-wrap: wrap` and `justify-content: space-between`. At narrow widths (~360 px portrait phone), the "Showing N certificates" left text plus the "Columns" right button don't fit on one line, so flex wraps the right element to its own line. `space-between` only distributes items WITHIN a flex line — when the right element is alone on line 2, it falls to the line's flex-start position (left edge) and reads as left-aligned.
+- **Fix:** Added `margin-left: auto` to `.table-toolbar-right`. On a wrapped flex line containing only this item, the auto margin expands to fill the line's spare space and pushes the button to the right edge. Desktop behavior is unchanged because `space-between` already produced the same outcome there.
+- **Files touched:** `wwwroot/css/certificatetileview.css` (single declaration on `.table-toolbar-right`).
+- **Coverage:** Same selectors and same stylesheet are shared between `Views/Certificate/CertificateTileViewInternal.cshtml` and `Views/Certificate/CertificateTileViewExternal.cshtml`, so a single CSS edit fixes both.
+- **Verified locally (2026-05-01):** Playwright sweep across 5 viewports (360, 768, 900, 1024, 1280). At every width, button now sits 16 px from the row's right edge. At 360 px the button x-position moved from 56 → 172 (left edge → right edge of available line). Visual screenshot confirms toolbar reads "Showing 20 of 40 certificates" on line 1 and right-aligned "Columns" button on line 2.
+
+---
+
+### DEF-114 — Dashboard mobile portrait: column 2 of stats tables clipped, headers/values truncated
+
+- **Date:** 2026-05-01
+- **Severity:** Medium (visible data loss on mobile portrait — column 2 numbers were cropped at the right edge of the section)
+- **Status:** **Fixed** — pending deploy
+- **Reporter:** Shawn (screenshot `Screenshot_1-5-2026_164437_localhost.jpeg`, "data on dashboard tables are not showing all the data, the formatting is cutting off text in mobile portrait view")
+- **Root cause:** At 360 px viewport, the standard admin shell ate ~50 px of horizontal space per side: `.admin-container { margin: 10px; padding: 15px }` + `.admin-body-content { padding: 24px }`. The `.tables-container` was rendered at only **216 px wide**, while the inner `<table>` measured 232–263 px depending on the second-column header label. `.table-section { overflow: hidden }` then **silently clipped** the right edge — that's why the headers and values appeared cut off in the screenshot.
+- **First attempt (rejected):** Added `overflow-wrap: anywhere; word-break: break-word;` to cell text. This caused catastrophic character-by-character vertical stacking (one letter per line) — confirmed via Playwright screenshot. Reverted.
+- **Second attempt (rejected):** Capped `th:last-child { max-width: 130px }` to force column 2 narrower. Treated the symptom (table wider than container) without fixing the cause (container too narrow).
+- **Final fix:** Scoped admin-shell padding/margin reduction to a new `.dashboard-page` class on the dashboard's `.admin-container` element. At ≤480 px, dashboard-only shell padding drops from 10/15/24 → 4/6/4 per side, returning ~46 px of horizontal space to the tables-container. Sections now measure 274 px wide and tables fit cleanly at 272 px.
+- **Files touched:**
+  - `Views/Dashboard/Index.cshtml` — added `.dashboard-page` class to the root `.admin-container` div (line 14)
+  - `wwwroot/css/pages/dashboard.css` — inside `@media (max-width: 480px)`: removed the `th:last-child max-width` kludge, added `.dashboard-page.admin-container` and `.dashboard-page .admin-body-content` padding/margin overrides
+- **Verified locally (2026-05-01):** Playwright at 360×800 mobile viewport. `tables-container` width 216 → 274 (+58 px). All 5 tables: `tableScrollWidth === tableClientWidth = 272`, no clipping. `documentElement.scrollWidth === viewport (360)`, no horizontal scroll. Visual screenshot confirms all column 2 headers fully visible ("TOTAL ACTIVE CERTS", "# OF ACTIVE CERTIFICATES", etc.) and all numeric values readable.
+- **Scoping note:** The `.dashboard-page` class isolates the padding cut to the Dashboard view only. Other admin pages (`UserManagement`, `Tags`, etc.) keep their existing 10/15/24 shell padding — none of those pages have the same column-2 truncation problem because their tables either scroll horizontally (DEF-110 user-management) or use card layouts.
+
+---
+
+### DEF-113 — Remove `/Admin/Index` admin dashboard page (client doesn't want it)
+
+- **Date:** 2026-05-01
+- **Severity:** Low (feature removal, no functional bug)
+- **Status:** **Fixed** — pending deploy
+- **Reporter:** Shawn (client preference: client doesn't want a standalone admin dashboard)
+- **Change:**
+  - Deleted `Views/Admin/Index.cshtml`
+  - `AdminController.Index()` now redirects to `UserManagement` so any old bookmarks land somewhere useful instead of 404
+  - Replaced `<a href="@Url.Action("Index", "Admin")">Administration</a>` with non-clickable `<span>Administration</span>` in 18 view breadcrumbs (matches the "Companies & Products" pattern from DEF-104)
+- **Files touched:** `Controllers/AdminController.cs`, `Views/Admin/Index.cshtml` (deleted), 18 breadcrumb-bearing views: `Views/Admin/{CertificateFields,CertificateTypes,CreateUser,CSFAttributes,GCCAPI,GoogleAnalytics,PartnerAPI,Partners,Pathways,ProductManagement,ProductTypes,RoleManagement,Tags,UserManagement}.cshtml`, `Views/Certificate/{Create,Edit}.cshtml`, `Views/Company/Index.cshtml`, `Views/Product/Management.cshtml`
+- **Verified locally (2026-05-01):** `/Admin/Index` redirects to `/Admin/UserManagement`. `/Admin` (no action) returns 404 (MVC default routing). All 18 breadcrumbs render "Administration" as a plain span. Login flow unaffected — Admin role still routes to `Dashboard/Index` (different page) on login per existing `HomeController` and `AccountController` redirects.
+- **Note:** `_adminService.GetDashboardDataAsync()` is now an orphan method — left in place this cycle, can be removed in a future cleanup.
+
+---
+
+### DEF-112 — Partner role: web-user "Partner" vs Partner API "Partner" share the same code path with different identities — needs an architectural decision
+
+- **Date:** 2026-05-01
+- **Severity:** Medium (no current bug, but the dual meaning makes future changes risky and the model is ambiguous to operators)
+- **Status:** **Open** — flagged during a walkthrough of the User Management modal; needs Shawn's call before any fix
+- **Reporter:** Surfaced while explaining how Partner role gets applied during the Edit User modal review (2026-05-01)
+- **Problem:** Two completely different identities both flow through `if (userRole == "Partner")` in cert-listing controllers, and the codebase doesn't distinguish them at the policy/audit layer:
+  1. **Web-user Partner role** — a human user logs in with email/password (cookie session). `User.Partners` collection is populated via the Edit User modal (Partner Assignment dropdown). They see the web UI filtered by `userPartnerNames.Contains(c.Partner ?? "None")`.
+  2. **Partner API key Partner role** — Amazon's automated systems hit `/api/v1/certificates*` with `X-API-Key`. Middleware assigns role="Partner" for the request lifetime. Same filter branch fires.
+- **Where the conflation lives:**
+  - `Controllers/Api/CertificateTileExternalApiController.cs:98-110` — web-user partner filter
+  - `Controllers/Api/v1/CertificatesController.cs:943` — Partner API key middleware comment "Partner API keys get 'Partner' role from middleware"
+  - `Controllers/Api/v1/CertificatesController.cs:993-995` — same `user.Partners.Any()` lookup, but for an API key context that doesn't have a user record
+  - `Models/User.cs:102` — `User.Partners` is a many-to-many collection; modal saves a single value but the model supports multi
+- **Why this matters:**
+  - Audit trail: a human Partner user editing their own data and an Amazon API call look identical in claims-based logs.
+  - Brittle filter expansion: any future filter change has to be reasoned about under both identities. Hard to test.
+  - Onboarding confusion: the modal has Partner Assignment for web users, but most "Partner" semantics in stakeholder conversations refer to the API contract — not human users.
+  - Memory: `feedback_amazon_api_immutable.md` says Partner API contract is locked; web-user role logic shares code paths with that locked contract, so an internal-app refactor could accidentally break the contract.
+- **Resolution paths to consider (DECISION NEEDED, not picking one):**
+  1. **Rename web-user role** to `PartnerUser` or `BrandPartner` and keep `Partner` as the API-key-only role. Cleanest separation; requires DB migration on `Roles` table + UI label updates.
+  2. **Split the filter branch** into two: `userRole == "PartnerApiKey"` vs `userRole == "Partner"`, with the API-key path deriving partner names from the key's metadata, not `User.Partners`.
+  3. **Document the dual meaning** in code comments + add a `[Display(Name="Partner User")]` on the role and leave the wire format alone. Lowest-effort but doesn't fix the audit-trail confusion.
+  4. **Eliminate the web-user Partner role** entirely if no human user actually needs it — Amazon's UAT users could become External users with company scoping instead.
+- **Open questions for Shawn:**
+  - Are there *currently* any human users with Partner role in production, or is it only the API-key path that's used?
+  - Does Carly/the client expect Partner-role *humans* to be able to log in (e.g., Amazon staff with portal logins)?
+  - If yes, should they see their *partner's* certs only, or *their company's* certs + their partner's certs?
+- **Effort estimate:** Path 3 (~2 hrs documentation), Path 1/2 (~6-10 hrs code + migration + tests), Path 4 (~4 hrs code + data migration).
+- **Files to touch (any path):** `Controllers/Api/CertificateTileExternalApiController.cs`, `Controllers/Api/v1/CertificatesController.cs`, `Controllers/ProductController.cs`, `Models/User.cs`, `Views/Admin/UserManagement.cshtml`, `wwwroot/js/userManagement.js` + migration if Path 1.
+
+---
+
 ### DEF-111 — `/Product/Management` "Error loading products: SyntaxError: Unexpected token '<'" — fetch parses HTML auth-redirect as JSON
 
 - **Date:** 2026-05-01

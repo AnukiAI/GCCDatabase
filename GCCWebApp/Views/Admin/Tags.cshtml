@@ -1,4 +1,4 @@
-@{
+﻿@{
     ViewData["Title"] = "Tag Management";
     ViewData["BodyClass"] = "admin-tags";
 }
@@ -12,7 +12,7 @@
 
 @section Breadcrumbs {
     <span class="role-element role-admin-show">
-        <a href="@Url.Action("Index", "Admin")">Administration</a>
+        <span>Administration</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span>Data Management</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
@@ -73,13 +73,13 @@
                 <thead class="admin-table-header">
                     <tr>
                         <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="25%">
-                            Tag Name <span class="sort-icon">▼</span>
+                            Tag Name <span class="sort-icon">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="type" width="20%">
-                            Tag Type <span class="sort-icon">▼</span>
+                            Tag Type <span class="sort-icon">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--sortable admin-table-th--hidden-mobile" data-sort="description" width="45%">
-                            Description <span class="sort-icon">▼</span>
+                            Description <span class="sort-icon">â–¼</span>
                         </th>
                         <th class="admin-table-th admin-table-th--actions" width="10%">Actions</th>
                     </tr>

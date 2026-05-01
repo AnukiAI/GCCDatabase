@@ -391,8 +391,42 @@
 
     .table-section th,
     .table-section td {
-        padding: 10px 12px;
+        padding: 10px 8px;
         font-size: var(--font-size-base, 16px);
+        white-space: normal;          /* allow header text to wrap on multiple lines */
+        line-height: 1.3;
+    }
+
+    /* Drop uppercase letter-spacing on narrow screens (saves horizontal space without breaking words) */
+    .table-section th {
+        letter-spacing: 0;
+        line-height: 1.2;
+    }
+
+    /* Numeric column: don't break mid-number, but allow header wrap */
+    .table-section td:last-child {
+        white-space: nowrap;
+    }
+
+    /* Long single-token cell values (e.g. "ExtTest-NoPartnerCo") wrap at hyphens / break only when forced */
+    .table-section td {
+        overflow-wrap: break-word;
+    }
+
+    /* Reclaim horizontal space on narrow phones — the standard admin shell
+       (admin-container 10+15 px, admin-body-content 24 px) eats ~50 px each side,
+       which clipped column 2 of the dashboard tables on 360 px viewports.
+       Scoped to .dashboard-page so other admin pages keep their existing padding. */
+    .dashboard-page.admin-container {
+        margin-left: 4px;
+        margin-right: 4px;
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .dashboard-page .admin-body-content {
+        padding-left: 4px;
+        padding-right: 4px;
     }
 
     .table-header {

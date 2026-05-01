@@ -1,4 +1,4 @@
-@{
+﻿@{
     ViewData["Title"] = "Product Management";
     ViewData["BodyClass"] = "admin-product-management";
 }
@@ -15,7 +15,7 @@
 
 @section Breadcrumbs {
     <span class="role-element role-analyst-show role-admin-show">
-        <a href="@Url.Action("Index", "Admin")">Administration</a>
+        <span>Administration</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
         <span>Companies & Products</span>
         <span class="separator"><i class="fas fa-chevron-right"></i></span>
@@ -103,14 +103,14 @@
                 <thead class="admin-table-header">
                     <tr>
                         <th style="width: 40px;"></th>
-                        <th data-sort="name" class="admin-table-th--sortable" style="min-width: 160px;">Product Name <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="company" class="admin-table-th--sortable" style="min-width: 130px;">Company <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="category" class="admin-table-th--sortable" style="min-width: 130px;">Category <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="productType" class="admin-table-th--sortable" style="min-width: 130px;">Product Type <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="subcategory" class="admin-table-th--sortable" style="min-width: 130px;">Subcategory <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="status" class="admin-table-th--sortable" style="width: 120px; min-width: 120px;">Status <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="certificates" class="admin-table-th--sortable" style="width: 100px; min-width: 100px;">Certs <span class="sort-icon admin-sort-icon">▼</span></th>
-                        <th data-sort="identifiers" class="admin-table-th--sortable" style="width: 90px; min-width: 90px;">IDs <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="name" class="admin-table-th--sortable" style="min-width: 160px;">Product Name <span class="sort-icon admin-sort-icon">â–¼</span></th>
+                        <th data-sort="company" class="admin-table-th--sortable" style="min-width: 130px;">Company <span class="sort-icon admin-sort-icon">â–¼</span></th>
+                        <th data-sort="category" class="admin-table-th--sortable" style="min-width: 130px;">Category <span class="sort-icon admin-sort-icon">â–¼</span></th>
+                        <th data-sort="productType" class="admin-table-th--sortable" style="min-width: 130px;">Product Type <span class="sort-icon admin-sort-icon">â–¼</span></th>
+                        <th data-sort="subcategory" class="admin-table-th--sortable" style="min-width: 130px;">Subcategory <span class="sort-icon admin-sort-icon">â–¼</span></th>
+                        <th data-sort="status" class="admin-table-th--sortable" style="width: 120px; min-width: 120px;">Status <span class="sort-icon admin-sort-icon">â–¼</span></th>
+                        <th data-sort="certificates" class="admin-table-th--sortable" style="width: 100px; min-width: 100px;">Certs <span class="sort-icon admin-sort-icon">â–¼</span></th>
+                        <th data-sort="identifiers" class="admin-table-th--sortable" style="width: 90px; min-width: 90px;">IDs <span class="sort-icon admin-sort-icon">â–¼</span></th>
                         <th class="actions-col role-element role-analyst-show role-admin-show" style="width: 100px; min-width: 100px;">Actions</th>
                     </tr>
                 </thead>
@@ -524,7 +524,7 @@
             }
             if (exportBtn) exportBtn.addEventListener('click', exportProducts);
 
-            // Modal cascade dropdowns: Category → Type → Subcategory
+            // Modal cascade dropdowns: Category â†’ Type â†’ Subcategory
             const categorySelect = document.getElementById('product-category');
             const typeSelect = document.getElementById('product-type');
             if (categorySelect) {
@@ -644,7 +644,7 @@
 
                 row.innerHTML = `
                     <td data-label="">
-                        <span class="expand-indicator" onclick="toggleRowDetails(${product.id})">▶</span>
+                        <span class="expand-indicator" onclick="toggleRowDetails(${product.id})">â–¶</span>
                     </td>
                     <td data-label="Product">
                         <div class="product-info">
@@ -783,12 +783,12 @@
                     headers.forEach(h => {
                         h.classList.remove('active-sort');
                         const icon = h.querySelector('.sort-icon');
-                        if (icon) icon.textContent = '▼';
+                        if (icon) icon.textContent = 'â–¼';
                     });
                     header.classList.add('active-sort');
 
                     const sortIcon = header.querySelector('.sort-icon');
-                    sortIcon.textContent = sortDirection === 'asc' ? '▲' : '▼';
+                    sortIcon.textContent = sortDirection === 'asc' ? 'â–²' : 'â–¼';
 
                     populateTable();
                 });
@@ -1358,7 +1358,7 @@
             
             const now = new Date();
             document.getElementById('last-update-indicator').textContent = 
-                ` • Last updated: ${now.toLocaleTimeString()}`;
+                ` â€¢ Last updated: ${now.toLocaleTimeString()}`;
         }
         
         function createNotificationContainer() {
@@ -1494,11 +1494,11 @@
                 
                 if (isExpanded) {
                     detailRow.classList.remove('show');
-                    indicator.textContent = '▶';
+                    indicator.textContent = 'â–¶';
                     indicator.classList.remove('expanded');
                 } else {
                     detailRow.classList.add('show');
-                    indicator.textContent = '▼';
+                    indicator.textContent = 'â–¼';
                     indicator.classList.add('expanded');
                 }
             }

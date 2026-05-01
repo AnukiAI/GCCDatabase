@@ -152,7 +152,10 @@ public class SecurityHeadersMiddleware
         cspBuilder.Add("img-src 'self' data: https: blob:");
 
         // Connect source (for AJAX requests and Google Analytics)
-        cspBuilder.Add("connect-src 'self' https://api.greencirclecertified.com https://www.google-analytics.com https://www.googletagmanager.com https://cdn.jsdelivr.net");
+        // DEF-108 (2026-05-01): GA4 fires beacons to analytics.google.com, www.google.com,
+        // and region-specific *.analytics.google.com hosts — not just www.google-analytics.com.
+        // Without these in connect-src, every page-view event is blocked by CSP.
+        cspBuilder.Add("connect-src 'self' https://api.greencirclecertified.com https://www.google-analytics.com https://*.google-analytics.com https://analytics.google.com https://www.google.com https://stats.g.doubleclick.net https://www.googletagmanager.com https://cdn.jsdelivr.net");
 
         // Frame source
         cspBuilder.Add("frame-src 'none'");

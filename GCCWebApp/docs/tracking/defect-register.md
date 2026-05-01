@@ -18,6 +18,26 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-111 — `/Product/Management` "Error loading products: SyntaxError: Unexpected token '<'" — fetch parses HTML auth-redirect as JSON
+
+- **Date:** 2026-05-01
+- **Severity:** Medium (silent functional failure; the user sees an empty/broken product list with no actionable error)
+- **Status:** **Open** — surfaced during DEF-108 verification sweep, not fixed in this cycle
+- **Reporter:** Anuki internal full-spectrum QA pass (2026-05-01)
+- **Symptom:** Logged in as analyst, navigating to `/Product/Management` produces this console error: `Error loading products: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. The page renders but the products table is empty / not populated. No visible error toast or banner — the user has no idea anything went wrong.
+- **Suspected root cause:** An AJAX fetch on the Product Management page is hitting an API endpoint that returns HTML (almost certainly the login page or AccessDenied page after a session check) and the JS is calling `response.json()` without first checking `response.ok` or `Content-Type`. Two possible upstream causes:
+  1. The endpoint requires Admin role and the analyst silently 403s/302s to a login page.
+  2. There's a session/CSRF-token mismatch and auth middleware redirects the AJAX call to login.
+- **Why it matters:** Real defect for analysts trying to view products (one of the top-3 critical workflows). User sees "page is broken" with no feedback. Silent failure also masks data-integrity issues if downstream code assumes the product list loaded.
+- **Repro:** Login as `analyst` / `TestPass123!`, navigate to `http://localhost:5101/Product/Management`, open DevTools console.
+- **Investigation needed (NOT done in this cycle):**
+  1. Find the failing fetch URL via Network tab.
+  2. Check whether endpoint requires `[Authorize(Roles="Admin")]` or similar — if so, hide the page from analyst nav OR add Admin/Analyst to the policy.
+  3. Add `response.ok` / content-type guard to the JS so failures surface visibly via `AdminCore.showNotification('error', ...)` instead of console.
+- **Files (pending investigation):** likely `Views/Product/Management.cshtml` JS block + whatever controller endpoint it calls.
+- **Found by:** `fullspectrum_out/console-errors-rollup.json` (2026-05-01 verification run for DEF-107/108 fix).
+- **Deploy:** Open
+
 ### DEF-110 — CSV export headers don't match UI table column labels (12 export surfaces)
 
 - **Date:** 2026-05-01
@@ -77,7 +97,7 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 - **Date:** 2026-05-01
 - **Severity:** Medium (analytics blackout + console-error noise on every page load; no functional break for the app itself)
-- **Status:** **Open** — root cause confirmed, fix is a one-line middleware change
+- **Status:** **Fixed (local) — pending deploy.** Verified on `localhost:5101` 2026-05-01: console errors dropped from 112 to 0 GA-related errors after both header changes.
 - **Reporter:** Anuki internal full-spectrum QA pass (2026-05-01)
 - **Symptom:** Browser console on every authed and unauthed page shows:
   - `Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep` (5x on `/Account/AccessDenied` alone)
@@ -88,18 +108,20 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
   1. GA is silently NOT recording any page views in dev OR test env (and probably in prod too — needs verification post-deploy). Whatever data the client thinks they're getting from GA, they're not.
   2. Console-error noise makes real defects harder to spot during QA.
   3. COEP is only valuable when the app uses `SharedArrayBuffer` / cross-origin isolation features. This codebase does not.
-- **Sibling effect:** `Cross-Origin-Resource-Policy: same-origin` (line 99) doubles down on the same restriction for outbound resources. Probably also overly aggressive.
-- **Proposed fix (one-line):** In `Middleware/SecurityHeadersMiddleware.cs`, change `Cross-Origin-Embedder-Policy` from `require-corp` to `unsafe-none` (or remove the header entirely). Optionally relax `Cross-Origin-Resource-Policy` to `cross-origin` if any internal asset is loaded by an external referrer — not currently the case.
-- **Files touched (proposed):** `Middleware/SecurityHeadersMiddleware.cs` lines 99–102
-- **Verification (when fixed):** Re-run `C:\Users\swest\AppData\Local\Temp\uitest\fullspectrum_ui.js`. Console errors total should drop from 112 to <20 (mostly Feature-Policy warnings until DEF-107 also lands). GA `g/collect` calls should return 200/204 instead of being blocked.
+- **Sibling effect:** `Cross-Origin-Resource-Policy: same-origin` (line 99) is fine — only affects how OUR resources can be embedded by other origins. Left in place.
+- **Fix applied (two-part):**
+  1. `Middleware/SecurityHeadersMiddleware.cs` — changed `Cross-Origin-Embedder-Policy` from `require-corp` to `unsafe-none`. This unblocked the cross-origin script load.
+  2. Same file — extended `connect-src` in CSP from `'self' https://api.greencirclecertified.com https://www.google-analytics.com https://www.googletagmanager.com https://cdn.jsdelivr.net` to additionally include `https://*.google-analytics.com https://analytics.google.com https://www.google.com https://stats.g.doubleclick.net`. GA4 fires beacons to all of these endpoints (not just `www.google-analytics.com`); without them in connect-src, the unblocked scripts could load but their fetches were CSP-rejected.
+- **Verification on `localhost:5101` (2026-05-01):** Re-ran `fullspectrum_ui.js`. Console errors total: **112 → 1** (-99%). The single remaining is DEF-111 (`/Product/Management` SyntaxError, unrelated). All `analytics.google.com`, `www.google.com/g/collect`, `stats.g.doubleclick.net` fetches succeed.
+- **Files touched:** `Middleware/SecurityHeadersMiddleware.cs` (CSP `connect-src` line, Permissions/Feature-Policy block, COEP value)
 - **Found by:** `fullspectrum_out/console-errors-rollup.json` produced by the 2026-05-01 full-spectrum sweep.
-- **Deploy:** Open
+- **Deploy:** Pending — bundles cleanly with DEF-107.
 
 ### DEF-107 — Duplicate `Feature-Policy` + `Permissions-Policy` headers on every response (browser warning 16x per session)
 
 - **Date:** 2026-05-01
 - **Severity:** Low (warning only; no functional break)
-- **Status:** **Open** — root cause confirmed, fix is a one-line middleware change
+- **Status:** **Fixed (local) — pending deploy.** Verified on `localhost:5101` 2026-05-01: the 16x warning entry no longer appears in `console-errors-rollup.json`.
 - **Reporter:** Anuki internal full-spectrum QA pass (2026-05-01)
 - **Symptom:** Every page load (login, dashboard, public tile view, internal tile view, external tile view, all admin pages) emits this Chromium console warning: `Error with Feature-Policy header: Some features are specified in both Feature-Policy and Permissions-Policy header: camera, microphone, geolocation, payment, usb. Values defined in Permissions-Policy will be used.` Total warnings logged across the sweep: 16 across 11 distinct page URLs.
 - **Root cause:** `Middleware/SecurityHeadersMiddleware.cs` lines 91 and 95 emit BOTH headers with overlapping directives. The comment on line 94 says "for older browsers" — but every browser that supports the cert tile view JS (ES2017+ async/await, fetch, etc.) supports `Permissions-Policy`. Sending both is redundant and produces the warning.

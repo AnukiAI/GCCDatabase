@@ -18,6 +18,64 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-109 — Tile listings render Effective/Expiration date one day earlier than the DB value
+
+- **Date:** 2026-05-01
+- **Severity:** High (visible to analysts and partners; displayed date does not match entered date)
+- **Status:** **Closed** — deployed and validated by Shawn on 2026-05-01
+- **Reporter:** Shawn (live test on cert 26-0160)
+- **Symptom:** Edit form shows the correct date (e.g. `5/10/2026`), but the same cert on `/Certificate/CertificateTileViewInternal` and `/Certificate/CertificateTileViewExternal` renders one day earlier (`5/9/2026`). Public tile view (`/Certificate/CertificateTileView`) was correct.
+- **Root cause:** Global `UtcDateTimeConverter` (`Extensions/UtcDateTimeConverter.cs`, registered in `Program.cs:443-444`) serializes every `DateTime` as `"yyyy-MM-ddTHH:mm:ssZ"` — including calendar-only dates whose `Kind` is `Unspecified`. The `Z` suffix tells the browser the value is UTC midnight; in any negative-UTC timezone the browser then converts to local and `toLocaleDateString` renders the previous calendar day. The internal/external tile APIs were emitting raw `c.EffectiveDate` / `c.ExpirationDate` and went through the converter. The public tile API was already pre-formatting with `.ToString("yyyy-MM-dd")`, which is why only public was correct. Server-rendered Razor views (Edit form, `CertificateInternalView`, `CertificateExternalView`, `CertificateSingleView`) were also correct because they format server-side and never round-trip through JS.
+- **Why the converter exists:** Per its header comment, it was added so the **Partner API** (`/api/v1/certificates*`) emits `"2024-01-15T00:00:00Z"` to match Amazon's documented format. Removing it globally would break the Partner API contract (`feedback_amazon_api_immutable.md`), so the fix mirrors the public API's existing pre-formatting pattern in the two tile APIs only.
+- **Fix:** In the in-memory projection of both `Controllers/Api/CertificateTileInternalApiController.cs` and `Controllers/Api/CertificateTileExternalApiController.cs`, format the two date fields explicitly: `EffectiveDate = c.EffectiveDate.ToString("yyyy-MM-dd")` and `ExpirationDate = c.ExpirationDate.ToString("yyyy-MM-dd")`. JS `parseLocalDate` then matches its date-only regex branch and constructs a local `Date` — no UTC drift. Partner API output is unchanged.
+- **Files:** `Controllers/Api/CertificateTileInternalApiController.cs`, `Controllers/Api/CertificateTileExternalApiController.cs`.
+- **Verification:** Playwright run on `http://localhost:5101` (`C:\Users\swest\AppData\Local\Temp\uitest\verify_def_104_dates.js`, viewport timezone `America/New_York`):
+  - Internal API: 3 sampled certs all returned dates as `yyyy-MM-dd` (e.g. `26-0023 eff=2027-07-08 exp=2028-07-07`).
+  - External API: same shape (e.g. `26-0025 eff=2026-02-25 exp=2028-02-25`).
+  - Internal tile card 1 rendered `7/8/2027` — matches the API's `2027-07-08` exactly (no off-by-one).
+  - Build clean (0 errors, 49 warnings unchanged).
+- **Cross-reference:** Same class of bug as the previously-shipped QC #23 fix, but a different surface (those were the cert detail view; this is the tile list APIs). The `UtcDateTimeConverter` was added later for Partner API compliance and re-introduced the drift on the JSON-API surfaces it touches.
+- **Deploy:** `GCCWebApp-test-2026-05-01-1051.zip` (bundled with DEF-103, DEF-106, Manage Workflow seed removal). Validated live by Shawn 2026-05-01.
+
+### DEF-108 — `Cross-Origin-Embedder-Policy: require-corp` blocks Google Analytics and other cross-origin embeds on every page
+
+- **Date:** 2026-05-01
+- **Severity:** Medium (analytics blackout + console-error noise on every page load; no functional break for the app itself)
+- **Status:** **Open** — root cause confirmed, fix is a one-line middleware change
+- **Reporter:** Anuki internal full-spectrum QA pass (2026-05-01)
+- **Symptom:** Browser console on every authed and unauthed page shows:
+  - `Failed to load resource: net::ERR_BLOCKED_BY_RESPONSE.NotSameOriginAfterDefaultedToSameOriginByCoep` (5x on `/Account/AccessDenied` alone)
+  - `Connecting to 'https://analytics.google.com/g/collect?...' was blocked due to "require-corp" being set as Cross-Origin-Embedder-Policy` (2x per cert tile page load)
+  - `Fetch API cannot load https://analytics.google.com/g/collect?...` (paired with each block)
+- **Root cause:** `Middleware/SecurityHeadersMiddleware.cs` line 102 sets `Cross-Origin-Embedder-Policy: require-corp`. This policy mandates that every cross-origin embedded resource must respond with `Cross-Origin-Resource-Policy: cross-origin`. Google Analytics endpoints (`analytics.google.com`, `www.google.com/g/collect`) and `googletagmanager.com` do NOT set CORP, so they're blocked by the browser. Same root cause produces the AccessDenied resource block.
+- **Why it matters:**
+  1. GA is silently NOT recording any page views in dev OR test env (and probably in prod too — needs verification post-deploy). Whatever data the client thinks they're getting from GA, they're not.
+  2. Console-error noise makes real defects harder to spot during QA.
+  3. COEP is only valuable when the app uses `SharedArrayBuffer` / cross-origin isolation features. This codebase does not.
+- **Sibling effect:** `Cross-Origin-Resource-Policy: same-origin` (line 99) doubles down on the same restriction for outbound resources. Probably also overly aggressive.
+- **Proposed fix (one-line):** In `Middleware/SecurityHeadersMiddleware.cs`, change `Cross-Origin-Embedder-Policy` from `require-corp` to `unsafe-none` (or remove the header entirely). Optionally relax `Cross-Origin-Resource-Policy` to `cross-origin` if any internal asset is loaded by an external referrer — not currently the case.
+- **Files touched (proposed):** `Middleware/SecurityHeadersMiddleware.cs` lines 99–102
+- **Verification (when fixed):** Re-run `C:\Users\swest\AppData\Local\Temp\uitest\fullspectrum_ui.js`. Console errors total should drop from 112 to <20 (mostly Feature-Policy warnings until DEF-107 also lands). GA `g/collect` calls should return 200/204 instead of being blocked.
+- **Found by:** `fullspectrum_out/console-errors-rollup.json` produced by the 2026-05-01 full-spectrum sweep.
+- **Deploy:** Open
+
+### DEF-107 — Duplicate `Feature-Policy` + `Permissions-Policy` headers on every response (browser warning 16x per session)
+
+- **Date:** 2026-05-01
+- **Severity:** Low (warning only; no functional break)
+- **Status:** **Open** — root cause confirmed, fix is a one-line middleware change
+- **Reporter:** Anuki internal full-spectrum QA pass (2026-05-01)
+- **Symptom:** Every page load (login, dashboard, public tile view, internal tile view, external tile view, all admin pages) emits this Chromium console warning: `Error with Feature-Policy header: Some features are specified in both Feature-Policy and Permissions-Policy header: camera, microphone, geolocation, payment, usb. Values defined in Permissions-Policy will be used.` Total warnings logged across the sweep: 16 across 11 distinct page URLs.
+- **Root cause:** `Middleware/SecurityHeadersMiddleware.cs` lines 91 and 95 emit BOTH headers with overlapping directives. The comment on line 94 says "for older browsers" — but every browser that supports the cert tile view JS (ES2017+ async/await, fetch, etc.) supports `Permissions-Policy`. Sending both is redundant and produces the warning.
+- **Why it matters:**
+  1. Console-error noise during QA — masks real defects.
+  2. The redundancy implies older-browser support that the rest of the codebase doesn't actually deliver.
+- **Proposed fix (one-line):** Remove the `Feature-Policy` `Append` call (lines 94–96) in `Middleware/SecurityHeadersMiddleware.cs`. Keep `Permissions-Policy`.
+- **Files touched (proposed):** `Middleware/SecurityHeadersMiddleware.cs` lines 94–96
+- **Verification (when fixed):** Re-run `fullspectrum_ui.js`. The 16x warning entry should drop out of `console-errors-rollup.json`.
+- **Found by:** `fullspectrum_out/console-errors-rollup.json` produced by the 2026-05-01 full-spectrum sweep.
+- **Deploy:** Open
+
 ### DEF-097 — Partner API `certificationCountries` must always be "All"
 - **Date:** 2026-04-24
 - **Severity:** Medium
@@ -160,7 +218,7 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 - **Date:** 2026-04-30
 - **Severity:** Medium (data hygiene; Amazon badging via Partner API was already filtered at the cert level so no live leak — but underlying state was wrong).
-- **Status:** **Fixed locally + dev DB backfilled — pending deploy.**
+- **Status:** **Fixed locally + dev DB backfilled + PROD DB backfilled 2026-05-01 — app deploy pending.**
 - **Reporter:** Shawn (raised on the 2026-04-30 status conversation; client confirmed scope).
 - **Symptom:** `CertificateProductId.Status` defaulted to `"Active"` on insert and was never auto-flipped when the parent cert moved out of `PublicStatuses` (Draft / Hold / Expired / Confidential / Not Paid / Republished->Expired / Expired - No Annual Verification). Analysts could also pick any per-row status from the UI / CSV, drifting from the cert's actual eligibility.
 - **Why it matters:** Amazon badging integrity. The Partner API already filters cert lists to `PublicStatuses` (DEF-097 / 2026-04-21 fix), so live data going to Amazon was correct, but the underlying per-row state was stale and any future direct query / partner-side data hygiene check would surface the drift.
@@ -170,7 +228,7 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
   - Cascade wired into 6 cert-status-change paths: `CertificateController.Edit` (POST), `CertificateController.Create` (POST), `CertificateController.ImportCertificates` (bulk POST), `CertificateService.PerformBulkActionAsync.update_status`, `CertificateService.UpdateCertificateAsync`, `CertificateWorkflowService.TransitionCertificateStatusAsync`, `CertificateExpirationService.ExpireOverdueCertificatesAsync`, `CertificateImportService.UpdateCertificateAsync` + `.CreateProductIdEntriesAsync`.
   - `ProductIdService.CreateProductIdAsync` / `UpdateProductIdAsync` overwrite incoming Status with the derived value (user input ignored).
   - Surface removal: Status column dropped from `_ProductIdManager.cshtml` table, filter dropdown, and Add/Edit modal; dropped from JS render / filter / form payload (`product-id-manager.js`); CSV import template, sample-CSV API endpoint, and in-memory export now omit the Status column. Status header in CSV import is silently ignored if present (back-compat for any saved templates).
-- **Backfill:** `Scripts/database/CR015_backfill_product_id_status.sql` — idempotent. Ran against dev DB (`ANUKI01.GCCDatabase_Dev`) on 2026-04-30 — 12 product IDs flipped to Inactive (parent cert in legacy `Active` status, not in `PublicStatuses`); 0 needed flip to Active. Post-backfill audit query returned 0 mismatches.
+- **Backfill:** `Scripts/database/CR015_backfill_product_id_status.sql` — idempotent. Ran against dev DB (`ANUKI01.GCCDatabase_Dev`) on 2026-04-30 — 12 product IDs flipped to Inactive (parent cert in legacy `Active` status, not in `PublicStatuses`); 0 needed flip to Active. Post-backfill audit query returned 0 mismatches. **Ran against PROD DB (`gccwebap_certificates` @ `68.71.129.120,1533`) on 2026-05-01 — 4 product IDs on Expired certs flipped to Inactive; 0 needed flip to Active; 17 rows on `Client Approved - Paid` certs were already correct. Post-flight audit returned 0 mismatches. Final prod state: 17 Active on Paid, 4 Inactive on Expired.**
 - **Build:** 0 errors. `dotnet test` 143/144 (the 1 remaining failure is `CertificateWorkflowServiceTests.CheckAndUpdateExpiringCertificatesAsync_PendingRenewalExpired_TransitionsToExpired` — pre-existing dead-code failure on master, not introduced by this CR; verified via `git stash` baseline).
 - **Verification (`localhost:5101`, dev DB):**
   - `/api/productids/sample-csv` returns `Type,Product ID,Partner,ProductName,ProductSku,Description` (Status header gone).
@@ -179,6 +237,89 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
   - Status filter dropdown removed from filter row.
 - **Partner API impact:** None. Contract is unchanged; this only cleans up underlying state. `feedback_amazon_api_immutable.md` rule preserved.
 - **Pre-deploy on prod:** Run `CR015_backfill_product_id_status.sql` once after the app deploys. Counts the prod data ahead of time with the pre-flight query in the script header so we know the scale before flipping.
+
+### DEF-104 — VOIDED 2026-04-30 (not a defect)
+
+Originally logged as a regression of QC #31 (download icon position at desktop). On 2026-04-30 the user confirmed: **right-aligned is the intended behavior**, not centered. The 3/10 dev note that said "Changed to justify-content: center" was a mid-cycle fix that was later superseded; the 4/3 reopen ("buttons are not aligned right") meant *should be right-aligned*, and the current implementation correctly does that. My test card had the wrong expected outcome — TC-QC-031 PASSes at all viewports. No code change needed.
+
+### DEF-106 — Partner API single-cert endpoints leak across partners (cross-tenant data exposure)
+
+- **Date:** 2026-05-01
+- **Severity:** **High** (security / partner data isolation)
+- **Status:** **Fixed locally — pending deploy.** Found during TC-QC-143 (CR-008 Partner Role) execution; fix verified locally same day.
+- **Reporter:** Anuki internal QA pass
+
+**Symptom:** A Partner-role caller (API key OR Partner-role app user) could fetch certificates belonging to a DIFFERENT partner via the single-cert endpoints. Empirically confirmed on `localhost:5101` 2026-05-01:
+- `GET /api/v1/certificates/number/EXT-NOVI-001` with the Amazon partner key → HTTP 200, returned the Novi cert in full (including `"partner": "Novi"` in the response).
+- `GET /api/v1/certificates/42` (Novi cert id) with the Amazon partner key → HTTP 200, same leak.
+- `GET /api/v1/certificates/gs1/EXT-NOVI-001` with the Amazon partner key → HTTP 200, GS1-formatted Novi cert exposed.
+- `GET /api/v1/certificates/42/download` with the Amazon partner key → HTTP 404 in this case (the cert had no PDF), but the partner-scope check would have approved access if a file existed.
+
+**Root cause:** The single-cert endpoints checked only role and `PublicStatuses`, NOT the caller's assigned partner. The LIST endpoint had been correctly applying `userPartnerNames.Contains(c.Partner)` since 2026-04-21; the same scoping was never applied to the four single-cert endpoints.
+
+**Fix applied (`Controllers/Api/v1/CertificatesController.cs`):**
+- `GetCertificate` (by-id, line ~340): added `var userPartnerNames = await GetCurrentUserPartnerNamesAsync(); if (!userPartnerNames.Any() || !userPartnerNames.Contains(certificate.Partner ?? "None")) return NotFoundResponse(...)` after the existing PublicStatuses check.
+- `GetCertificateByNumber` (by-number, line ~390): same partner-scope check.
+- `GetCertificateGS1` (gs1/{n}, line ~1352): same.
+- `DownloadCertificate` ({id}/download, line ~1088): same.
+- All four endpoints now: (1) check PublicStatuses for Partner, (2) check userPartnerNames.Contains(cert.Partner), (3) on either fail return generic 404 (no leak of "exists but you can't see it"). Admin/Analyst paths unchanged.
+
+**Verification (`localhost:5101`, dev DB):**
+- Positive: Amazon key → Amazon cert (by-number, by-id, GS1) all 200 ✓
+- Negative: Amazon key → Novi cert (by-number, by-id, GS1, download) all 404 ✓
+- Regression: Amazon LIST endpoint still returns 4 Amazon certs ✓
+- Same fix protects Partner-role app users (cookie auth) — they share the same `GetCurrentUserPartnerNamesAsync()` and `GetCurrentUserRole() == "Partner"` paths.
+
+**Pre-deploy implications for prod:**
+- This is a real cross-partner data exposure that's been in prod since the partner-API endpoints were built. Severity is High because it's a partner-isolation breach, not a UI bug.
+- Coordinate deploy with DEF-103 (which fixed the response shape) — both fixes touch the same four endpoints.
+- Client should be informed before deploy. Consider whether to flag to the partner contact (Amazon side); the leak was inbound (Amazon could read others' data), not outbound (Amazon's data wasn't exposed to others — they're only in `c.Partner = 'Amazon'` rows).
+
+**Found by:** TC-QC-143 (CR-008 Partner Role) execution in `docs/tracking/test-execution-log.md`.
+
+### DEF-105 — CLOSED 2026-05-01 (Won't Fix — dev-only, not worth cycles)
+
+Original framing: "prod has 12 duplicate cert types" — wrong, those were L2 subcategories (see `feedback_certtypes_hierarchy.md`). Re-scoped to "dev DB on pre-migration cert-type spec." Shawn confirmed 2026-05-01 he doesn't care about dev data hygiene; closing this entry. Prod is correct, no UAT impact.
+
+(Original analysis preserved below for reference.)
+
+- **Date:** 2026-04-30 (revised 2026-05-01)
+- **Severity:** Low (dev environment only)
+- **Status:** **Closed — Won't Fix**
+- **Reporter:** Anuki internal QA pass
+
+**Original draft of this defect claimed prod had 12 duplicate-name zombie rows. That was wrong.** Schema check showed `CertificationTypes` is self-referencing via `ParentId` with a `Level` column. The 12 "duplicates" I saw in prod are L2 subcategories under parent "Certified Sustainability Facts" (Id=6). They share Names with L1 top-level types, but they're referenced through a separate FK (`Certificates.CertificationTypeSubcategoryId`) and the L1 row carries the `AmazonCode`. By design, not a defect. Cleanup SQL has been removed from this entry — it would have wrongly deactivated valid hierarchy rows.
+
+**Actual finding (dev only):**
+
+The dev DB (`GCCDatabase_Dev` on `ANUKI01`) is on the pre-QC-#45 cert-types spec. The L1 top-level list (which is what the analyst Cert Create dropdown shows) has these wrong values:
+
+| L1 cert type | Dev | Spec |
+|---|---|---|
+| Carbon Footprint Reduction | Inactive ✗ | Active |
+| Sustainable Energy Practices | Inactive ✗ | Active |
+| Sustainable Manufacturing Practices | Inactive ✗ | Active |
+| Material Ingredient Reporting | MISSING ✗ | Active (renamed from MIV) |
+| Product Optimization: Carbon Footprint Reduction | MISSING ✗ | Active |
+| Renewable Resource Content | Active ✗ | Inactive |
+| Biobased | Active ✗ | Inactive |
+| Manufacturer Inventory Verification | Active ✗ | Should be renamed/gone |
+
+Prod (`gccwebap_certificates`) has all of these correct. Migration `19_20260320_UpdateCertificationTypes.sql` ran cleanly on prod; never ran on dev.
+
+**Hierarchy structure (for reference):**
+- Dev: 21 L1 (16 active, 5 inactive) + 41 L2 (31 active)
+- Prod: 18 L1 (all active) + 14 L2 (all active, mostly under Id=6 "Certified Sustainability Facts")
+- The two environments have different L2 trees — that's likely fine, but note for future comparisons.
+
+**Action:** re-seed or migrate the dev DB so future Section B testing isn't tripped by stale cert-type data. Low priority; doesn't block client UAT (prod is already correct). If we re-seed: also dedupe the L1 `Sustainable Energy Practices` row in dev (currently exists twice, both Inactive — appears to be a one-off seed glitch).
+
+**Lessons learned for future DB inspection:**
+- `CertificationTypes` is hierarchical via `ParentId` + `Level`. Always include those columns when comparing.
+- Same Name at different Levels is by design, not a duplicate.
+- See `feedback_certtypes_hierarchy.md`.
+
+**Found by:** TC-QC-045 in `docs/tracking/test-execution-log.md`. Originally flagged with wrong "prod duplicates" framing; corrected after schema check.
 
 ---
 

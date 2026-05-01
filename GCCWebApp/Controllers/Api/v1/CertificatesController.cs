@@ -343,12 +343,20 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 var isPartnerCaller = GetCurrentUserRole() == "Partner";
 
-                // Partner API contract: non-active certs are not visible to partners
-                if (isPartnerCaller && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
-                    return NotFoundResponse($"Certificate with ID {id} not found");
-
                 if (isPartnerCaller)
+                {
+                    // Partner API contract: non-active certs are not visible to partners
+                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                        return NotFoundResponse($"Certificate with ID {id} not found");
+
+                    // DEF-106: scope by partner. A Partner caller (API key OR Partner-role user)
+                    // can only see certs whose Partner matches one of their assigned partners.
+                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                    if (!userPartnerNames.Any() || !userPartnerNames.Contains(certificate.Partner ?? "None"))
+                        return NotFoundResponse($"Certificate with ID {id} not found");
+
                     return SuccessResponse(BuildPartnerCertificateDto(certificate));
+                }
 
                 return SuccessResponse(certificate);
             }
@@ -387,12 +395,19 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 var isPartnerCaller = GetCurrentUserRole() == "Partner";
 
-                // Partner API contract: non-active certs are not visible to partners
-                if (isPartnerCaller && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
-                    return NotFoundResponse($"Certificate with number {certificateNumber} not found");
-
                 if (isPartnerCaller)
+                {
+                    // Partner API contract: non-active certs are not visible to partners
+                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                        return NotFoundResponse($"Certificate with number {certificateNumber} not found");
+
+                    // DEF-106: scope by partner.
+                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                    if (!userPartnerNames.Any() || !userPartnerNames.Contains(certificate.Partner ?? "None"))
+                        return NotFoundResponse($"Certificate with number {certificateNumber} not found");
+
                     return SuccessResponse(BuildPartnerCertificateDto(certificate));
+                }
 
                 return SuccessResponse(certificate);
             }
@@ -1070,9 +1085,17 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 if (certificate == null)
                     return NotFoundResponse($"Certificate '{id}' not found");
 
-                // Partner API contract: non-active certs are not visible to partners
-                if (GetCurrentUserRole() == "Partner" && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
-                    return NotFoundResponse($"Certificate '{id}' not found");
+                if (GetCurrentUserRole() == "Partner")
+                {
+                    // Partner API contract: non-active certs are not visible to partners
+                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                        return NotFoundResponse($"Certificate '{id}' not found");
+
+                    // DEF-106: scope by partner.
+                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                    if (!userPartnerNames.Any() || !userPartnerNames.Contains(certificate.Partner ?? "None"))
+                        return NotFoundResponse($"Certificate '{id}' not found");
+                }
 
                 // Check if uploaded certificate file exists
                 if (!string.IsNullOrEmpty(certificate.CertificateFile))
@@ -1333,9 +1356,17 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 if (certificate == null)
                     return NotFoundResponse($"Certificate '{certificateNumber}' not found");
 
-                // Partner API contract: non-active certs are not visible to partners
-                if (GetCurrentUserRole() == "Partner" && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
-                    return NotFoundResponse($"Certificate '{certificateNumber}' not found");
+                if (GetCurrentUserRole() == "Partner")
+                {
+                    // Partner API contract: non-active certs are not visible to partners
+                    if (!CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                        return NotFoundResponse($"Certificate '{certificateNumber}' not found");
+
+                    // DEF-106: scope by partner.
+                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                    if (!userPartnerNames.Any() || !userPartnerNames.Contains(certificate.Partner ?? "None"))
+                        return NotFoundResponse($"Certificate '{certificateNumber}' not found");
+                }
 
                 var gs1Report = MapToGS1Format(certificate, Request);
                 return Ok(gs1Report);

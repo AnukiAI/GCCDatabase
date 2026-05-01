@@ -51,7 +51,8 @@ namespace GCCWebApp.Data
                 new Permission { Name = "Create Certificates", Codename = "certificate.create", Category = "Certificates", Description = "Add new certificates" },
                 new Permission { Name = "Edit Certificates", Codename = "certificate.edit", Category = "Certificates", Description = "Modify existing certificates" },
                 new Permission { Name = "Delete Certificates", Codename = "certificate.delete", Category = "Certificates", Description = "Remove certificates" },
-                new Permission { Name = "Manage Workflow", Codename = "certificate.workflow", Category = "Certificates", Description = "Manage certificate workflow state transitions" },
+                // Note: "Manage Workflow" (certificate.workflow) was removed 2026-05-01 per client request.
+                // It was a placeholder permission never enforced by any controller; workflow is gated by role-based policies.
 
                 // Data Module
                 new Permission { Name = "Export Data", Codename = "data.export", Category = "Data", Description = "Download CSV exports" },
@@ -110,7 +111,7 @@ namespace GCCWebApp.Data
 
             // Analyst gets certificate management, data export/import, reports, and product view
             var analystPermissions = new[] {
-                "certificate.view", "certificate.create", "certificate.edit", "certificate.workflow",
+                "certificate.view", "certificate.create", "certificate.edit",
                 "data.export", "data.import", "data.reports",
                 "products.view"
             };

@@ -245,8 +245,11 @@ namespace GCCWebApp.Controllers.Api
                     c.Id,
                     CertificateNumber = FormatCertificateNumber(c.RawNumber, c.EffectiveDate),
                     c.CertificationType,
-                    c.EffectiveDate,
-                    c.ExpirationDate,
+                    // Emit as yyyy-MM-dd so the JS parseLocalDate hits the date-only branch.
+                    // Raw DateTime would go through UtcDateTimeConverter, which appends Z and shifts the
+                    // calendar date back a day in negative-UTC zones (DEF: tile period off-by-one).
+                    EffectiveDate = c.EffectiveDate.ToString("yyyy-MM-dd"),
+                    ExpirationDate = c.ExpirationDate.ToString("yyyy-MM-dd"),
                     c.CompanyName,
                     c.CompanyEmail,
                     c.CompanyUrl,

@@ -1822,10 +1822,39 @@
 
         if (!toggleBtn || !dropdown) return;
 
+        // On mobile (fixed-positioned dropdown), pick the side with more vertical room
+        // and constrain max-height to that space so the dropdown never extends past
+        // the viewport bottom. Without this, the column list can spill below the screen
+        // on portrait phones (DEF-117).
+        function positionDropdownForMobile() {
+            if (window.matchMedia('(max-width: 768px)').matches) {
+                const r = toggleBtn.getBoundingClientRect();
+                const vpH = window.innerHeight;
+                const margin = 8;
+                const below = vpH - r.bottom - margin;
+                const above = r.top - margin;
+                if (below >= above) {
+                    dropdown.style.top = (r.bottom + 4) + 'px';
+                    dropdown.style.bottom = 'auto';
+                    dropdown.style.maxHeight = Math.max(below - 4, 200) + 'px';
+                } else {
+                    dropdown.style.top = 'auto';
+                    dropdown.style.bottom = (vpH - r.top + 4) + 'px';
+                    dropdown.style.maxHeight = Math.max(above - 4, 200) + 'px';
+                }
+            } else {
+                dropdown.style.top = '';
+                dropdown.style.bottom = '';
+                dropdown.style.maxHeight = '';
+            }
+        }
+
         // Toggle dropdown open/close
         toggleBtn.addEventListener('click', function (e) {
             e.stopPropagation();
+            const willOpen = !dropdown.classList.contains('open');
             dropdown.classList.toggle('open');
+            if (willOpen) positionDropdownForMobile();
         });
 
         // Close dropdown when clicking outside

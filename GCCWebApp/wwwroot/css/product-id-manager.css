@@ -7,7 +7,11 @@
 }
 
 #productIdModal .modal-dialog {
-    max-width: 650px;
+    /* Wide enough for the 2-column form (Type | Product ID, Partner alongside)
+       to actually render at col-md-6 instead of collapsing to a single stack
+       on desktop. Bootstrap modal-lg defaults to 800px; we go a bit wider for
+       the description textarea to breathe. */
+    max-width: 900px;
 }
 
 .product-id-manager {
@@ -74,6 +78,33 @@
     box-sizing: border-box;
 }
 
+/* Filter row: wraps on narrow viewports instead of overflowing.
+   Replaces the previous inline flex-wrap:nowrap + fixed-px widths that
+   pushed the search box off-screen on phones. */
+.product-manager-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+.product-manager-filter-row .pid-filter-type {
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 110px;
+}
+
+.product-manager-filter-row .pid-filter-partner {
+    flex: 0 1 auto;
+    width: auto;
+    min-width: 120px;
+}
+
+.product-manager-filter-row .pid-filter-search {
+    flex: 1 1 200px;        /* grow to fill remaining row space, wrap to its own line on narrow widths */
+    min-width: 0;
+}
+
 /* Fix Bootstrap row negative margins */
 .product-manager-filters .row {
     margin-left: -8px;
@@ -89,6 +120,19 @@
     padding: 0;
     max-height: 400px;
     overflow-y: auto;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    /* Scroll-shadow affordance: shows a subtle gradient on the right edge when
+       the table extends beyond the visible width (mobile). Disappears when
+       the user has scrolled to the end. */
+    background:
+        linear-gradient(to right, white 30%, rgba(255,255,255,0)) left center,
+        linear-gradient(to right, rgba(255,255,255,0), white 70%) right center,
+        radial-gradient(farthest-side at 0 50%, rgba(0,0,0,0.15), rgba(0,0,0,0)) left center,
+        radial-gradient(farthest-side at 100% 50%, rgba(0,0,0,0.15), rgba(0,0,0,0)) right center;
+    background-repeat: no-repeat;
+    background-size: 30px 100%, 30px 100%, 14px 100%, 14px 100%;
+    background-attachment: local, local, scroll, scroll;
 }
 
 /* Table Styling */
@@ -232,9 +276,10 @@
 }
 
 /* Modal Enhancements */
-.modal-dialog {
-    max-width: 600px;
-}
+/* Bare `.modal-dialog { max-width: 600px }` removed: it leaked onto every
+   Bootstrap modal on Certificate Create/Edit (the only views loading this CSS).
+   The product ID modal width is set by `#productIdModal .modal-dialog` above;
+   other modals on these views now get their default Bootstrap widths. */
 
 .modal-title {
     font-size: 18px;

@@ -18,6 +18,129 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-121 — SECURITY: `/api/productids/certificate/{id}` leaks password hashes and 2FA secrets in CreatedByUser / UpdatedByUser
+
+- **Date:** 2026-05-01
+- **Severity:** **HIGH** (information disclosure — credentials exposure)
+- **Status:** **Open** — needs immediate fix before next deploy
+- **Reporter:** Found incidentally while diagnosing DEF-120 (Created By column rendering)
+- **Problem:** `GET /api/productids/certificate/{certificateId}` returns the full `CertificateProductId` entity with `Include(p => p.CreatedByUser)` and `Include(p => p.UpdatedByUser)` (`Services/ProductIdService.cs:65-66`). Default JSON serialization emits the entire User object, including:
+  - `passwordHash` (BCrypt hash — recoverable to plaintext via offline attack if leaked)
+  - `twoFactorSecret` (TOTP seed — bypasses 2FA entirely if leaked)
+  - `recoveryCodes`
+  - `securityQuestions`
+  - `passwordResetToken` / `passwordResetTokenExpiry`
+  - `allowedIPs` (IP allowlist — useful for attacker reconnaissance)
+  - `passwordHistory`
+  - Email + last-login metadata
+- **Authorization:** Endpoint requires `[Authorize(Policy = "AnalystOrAdmin")]`. The leak is not anonymous — it's only visible to authenticated Analyst+ users. But: (1) any Analyst account compromise immediately yields all admin password hashes; (2) any Analyst can capture all admin 2FA secrets and bypass MFA on any account; (3) Partner API users do NOT hit this endpoint, so contract is unaffected.
+- **Other endpoints potentially affected (audit needed):** Any controller that returns `CertificateProductId` with the same `Include` pattern (e.g. `GetProductId(int id)`, `CreateProductId`, `UpdateProductId`). The cert tile internal/external APIs may also leak via `Certificate.CreatedByUser` includes — needs verification.
+- **Recommended fixes (pick one or combine):**
+  1. **DTO projection (preferred):** introduce `ProductIdResponseDto` with only `{ id, certificateId, productIdType, productIdValue, status, partner, productName, productSku, description, isActive, isPublic, displayOrder, createdAt, createdBy, createdByUserName, updatedAt, updatedBy, updatedByUserName }`. Map in controller before returning. Eliminates the entire User-entity surface.
+  2. **`[JsonIgnore]` on User secrets:** mark `passwordHash`, `twoFactorSecret`, `recoveryCodes`, `securityQuestions`, `passwordResetToken`, `passwordHistory`, `allowedIPs` with `[JsonIgnore]` on `Models/User.cs`. Application-wide protection but couples the model to serialization concerns.
+  3. **Both:** belt-and-suspenders.
+- **Not fixed in this commit:** flagged as standalone defect. Needs Shawn's call on which approach + audit scope.
+- **Why this got through:** Pattern of `.Include(...).Returning(entity)` is convenient and is used in many places. No DTO layer enforced. Code review didn't catch it because the User entity grew over time (new security fields added) without revisiting which endpoints serialize it.
+
+---
+
+### DEF-120 — Certificate Edit: Product Identifiers "Created By" column shows user ID instead of username
+
+- **Date:** 2026-05-01
+- **Severity:** Medium (functional bug — operators see meaningless numeric ID instead of human-readable username)
+- **Status:** **Fixed** — pending deploy
+- **Reporter:** Shawn (`http://localhost:5101/Certificate/Edit/26-0150`, "Under product Identifiers shows 1 under Create By. This should be populated by the user name")
+- **Root cause:** `wwwroot/js/product-id-manager.js:244` rendered the cell with `productId.createdBy` — that's the numeric foreign-key column from `CertificateProductId.CreatedBy` (e.g. `1` for the admin user). The Razor partial (`Views/Shared/_ProductIdManager.cshtml:118-119`) correctly reads `productId.CreatedByUser?.Username`, but the JS cell renderer (used after the page hydrates) wasn't using the same navigation property.
+- **Fix:** Updated the cell render to read `(productId.createdByUser && productId.createdByUser.username) || 'System'`. The API already includes the navigation property (`Services/ProductIdService.cs:65 .Include(p => p.CreatedByUser)`), so no API change needed.
+- **Files touched:** `wwwroot/js/product-id-manager.js` (single template literal at lines 244-246)
+- **Verified locally (2026-05-01):** Playwright on `localhost:5101/Certificate/Edit/26-0150`. API returns `createdByUser.username: "admin"`. Rendered cells show `["admin", "admin", "admin"]` instead of the previous `["1", "1", "1"]`.
+
+---
+
+### DEF-119 — Certificate Create / Edit: Add Product ID modal too narrow on desktop, form collapses to single column
+
+- **Date:** 2026-05-01
+- **Severity:** Low (cosmetic — form still works, just wastes desktop screen real estate)
+- **Status:** **Fixed** — pending deploy
+- **Reporter:** Shawn (`Screenshot_1-5-2026_175147_localhost.jpeg`, "Add Product ID Modal width is too narrow for desktop view")
+- **Root cause:** Two stacked modal-width caps in `wwwroot/css/product-id-manager.css`:
+  1. `#productIdModal .modal-dialog { max-width: 650px }` — capped the product modal at 650 px regardless of `modal-lg` class on the dialog (Bootstrap modal-lg defaults to 800 px). At 650 px, the form's `col-md-6` columns (Type | Product ID) still rendered side-by-side, but with no breathing room — and the description textarea looked cramped.
+  2. `.modal-dialog { max-width: 600px }` — a bare global selector that capped EVERY Bootstrap modal on Certificate Create / Edit (the only views loading this CSS) to 600 px. The specific rule on `#productIdModal` already won, so this was a stealth leak affecting any other modal that happened to render on those pages.
+- **Fix:** Bumped the productIdModal cap to 900 px (a touch wider than modal-lg's 800 px to give the description textarea more room) and removed the bare global `.modal-dialog { max-width: 600px }` rule entirely. Other modals on Create / Edit now get their default Bootstrap widths.
+- **Files touched:** `wwwroot/css/product-id-manager.css` (two rules)
+- **Verified locally (2026-05-01):** Playwright at 1280×1080 and 1920×1080.
+  - 1280: dialog 900 px wide, 174 px margin each side. 2-column form renders with comfortable spacing.
+  - 1920: dialog 900 px wide, 494 px margin each side. Centered nicely on the wider screen.
+  - Visual confirms: Type | Product ID side-by-side at col-md-6, Partner / Product Name / SKU / Description full-width below, footer with Cancel + Save Product ID buttons properly spaced.
+- **Coverage:** The `_ProductIdManager` partial is shared between Certificate Create and Certificate Edit, so both pages benefit from the single CSS edit.
+
+---
+
+### DEF-118 — Certificate Create: Product ID Manager export missing Created and Created By columns
+
+- **Date:** 2026-05-01
+- **Severity:** Low (data column gap in export — UI table shows Created / Created By, export omitted them)
+- **Status:** **Fixed** — pending deploy
+- **Reporter:** Shawn ("Product ID Manager Export does not have Created and Created By" on `/Certificate/Create`)
+- **Root cause:** The Create page uses an in-memory CSV builder (`exportInMemoryProductIds` in `wwwroot/js/product-id-manager.js`) because there's no certificate ID yet to hit the server export endpoint. That builder only included `Type, Product ID, Partner, ProductName, ProductSku, Description` — missing the Created and Created By columns that the on-screen table shows. The header naming also drifted from the table ("ProductName" vs "Product Name", "ProductSku" vs "SKU") in violation of the DEF-110 standard ("export headers match table column labels").
+- **Fix:** Updated `exportInMemoryProductIds` to emit `Type, Product ID, Product Name, SKU, Partner, Created, Created By, Description` — column order matches the on-screen table; Description trails since it's saved data but not a table column. Created formatted as `yyyy-MM-dd` from `pid.createdAt` (blank for new in-memory items), Created By reads `pid.createdByUser?.username || pid.createdBy || ''`. Round-trip safe: importer matches header names case-insensitively and ignores unknown headers, so adding columns doesn't break import.
+- **Files touched:** `wwwroot/js/product-id-manager.js` (single function: `exportInMemoryProductIds`)
+- **Verified locally (2026-05-01):** Playwright on `localhost:5101/Certificate/Create`. Added one row via Add Product ID modal (ASIN/B0ABCDEFGH/Amazon/Test Product/SKU-001/A test row). Captured exported CSV via Blob interception:
+  ```
+  Type,Product ID,Product Name,SKU,Partner,Created,Created By,Description
+  "ASIN","B0ABCDEFGH","Test Product","SKU-001","Amazon","","","A test row"
+  ```
+  Created and Created By appear, blank as expected for a new unsaved certificate.
+- **Note for follow-up (NOT changed):** The Edit-page server export (`Services/ProductIdService.cs:418`) currently emits `Type,Product ID,Status,Partner,ProductName,ProductSku,Description,CreatedAt,CreatedBy` — it still includes the legacy `Status` column (CR-015 says auto-derived, should be removed) and uses non-table-aligned header names. Two surfaces, two header conventions — worth a follow-up CR to align the server export to the same column shape as the in-memory export. Did not change in this fix per "only what was asked."
+
+---
+
+### DEF-117 — Cert tile views (Internal + External): Column Settings dropdown spills below viewport on mobile portrait — bottom of column list unreachable
+
+- **Date:** 2026-05-01
+- **Severity:** Medium (functional impact: ~half of column toggles unreachable on mobile portrait — users can't hide/show columns past the visible area)
+- **Status:** **Fixed** — pending deploy
+- **Reporter:** Shawn (`Screenshot_1-5-2026_172446_localhost.jpeg`, mobile portrait, "column setting drop down display is off and unable to see the bottom of the sort list")
+- **Root cause:** The mobile JS positioner (`positionDropdownForMobile` in `certificate-tile-view-internal.js`) set the dropdown's `top` to `toggleBtn.bottom + 4`, but did NOT adjust `max-height` to match available space below. The CSS hard-coded `max-height: calc(100vh - 120px)` (≈680 px on a 800 px viewport). With the toggle button at y≈423 in the viewport, the 680-px-tall dropdown extended to y≈1111 — 311 px past the 800 px viewport bottom. The dropdown was scrollable internally (`overflow-y: auto`, content was 1208 px tall), but the user could only see the top ~370 px because the rest was below the fold. The external view didn't have any positioner at all — it relied on default `position: absolute; top: 100%` so the dropdown opened below the button anchored to the document, also overflowing.
+- **Fix:** Rewrote `positionDropdownForMobile` to dynamically size `max-height` to the actual available space, and to flip ABOVE the button when there's more room above than below:
+  ```js
+  const below = vpH - r.bottom - margin;
+  const above = r.top - margin;
+  if (below >= above) {
+      // open below: top = btn.bottom+4, max-height = below
+  } else {
+      // flip above: bottom = vpH - btn.top + 4, max-height = above
+  }
+  ```
+  Floor of 200 px applied so the dropdown is always usable even on tiny viewports. External view got the same logic added (it didn't have one before — same code, same JS structure).
+- **Files touched:** `wwwroot/js/certificate-tile-view-internal.js`, `wwwroot/js/certificate-tile-view-external.js`
+- **CSS unchanged:** existing `@media (max-width: 768px)` rule with `position: fixed` still applies. JS now overrides `max-height` and (when flipping) the `top`/`bottom` properties.
+- **Verified locally (2026-05-01):** Playwright at 360×800.
+  - Button mid-viewport (scrollY=503, btnTop=375): opens below, `max-height: 364 px`, `dd.bottom: 796 px` (4 px margin from viewport bottom). `ddBelowViewport: false`. Internal scroll active for 1208 px content.
+  - Button near top of viewport (scrollY=1542, btnTop=45): opens below, `max-height: 695 px`, dd extends from 101→796 — uses nearly the full viewport. Visual confirms full Column Settings list reachable via internal scroll. CORE FIELDS header visible, COMPANY & PRODUCT section visible just below.
+- **Coverage:** Internal and external cert tile views both fixed. Shared CSS (no change needed).
+
+---
+
+### DEF-116 — Certificate Create / Edit: Product Identifier filter row overflows mobile viewport
+
+- **Date:** 2026-05-01
+- **Severity:** Medium (filter controls partially / fully off-screen on phones — Search input was completely invisible at 360 px)
+- **Status:** **Fixed** — pending deploy
+- **Reporter:** Shawn ("Product Identifier section — controls are not contained in the view on mobile")
+- **Root cause:** The filter row in `Views/Shared/_ProductIdManager.cshtml` used inline styles `display: flex; flex-wrap: nowrap` plus fixed pixel widths (`min-width: 110px`, `min-width: 120px`, `width: 200px`). At a 360 px portrait viewport the available container width was 190 px, but the filter row's intrinsic width was 449 px — so the partner dropdown was clipped ("All Partne...") and the search input was entirely off-screen. Inline styles also made the row impossible to override with media queries.
+- **Fix:** Moved layout into a CSS class (`.product-manager-filter-row`) and switched from `nowrap` to `wrap`. Type and Partner dropdowns keep their min-width but no longer force a single line. Search uses `flex: 1 1 200px` — grows to fill remaining space at desktop/tablet widths, wraps to its own line on phones. Also added a scroll-shadow background gradient on `.product-ids-table-container` so users get a visual cue that the data table extends horizontally beyond the viewport (the table still requires `min-width: 800px` to keep its 8 columns readable).
+- **Files touched:**
+  - `Views/Shared/_ProductIdManager.cshtml` — replaced inline `style=""` attributes with CSS classes (`.product-manager-filter-row`, `.pid-filter-type`, `.pid-filter-partner`, `.pid-filter-search`)
+  - `wwwroot/css/product-id-manager.css` — added the new flex-wrap rule + scroll-shadow background on the table container
+- **Coverage:** The `_ProductIdManager` partial is shared across `Views/Certificate/Create.cshtml`, `Views/Certificate/Edit.cshtml`, and any other view that includes it — single source-of-truth fix.
+- **Verified locally (2026-05-01):** Playwright at 360 / 768 / 1024 px viewports.
+  - 360 px (mobile): inner filter row went from `scrollWidth=449/clientWidth=190 (overflow=259 px)` to `scrollWidth=190/clientWidth=190 (zero overflow)`. All three controls now fully visible on three wrapped rows. Visual confirmed.
+  - 768 px (tablet): all three controls fit on one row; search expands to 311 px to fill remaining space.
+  - 1024 px (desktop): single-row layout intact; search expands to 491 px.
+
+---
+
 ### DEF-115 — Cert tile views (Internal + External): "Columns" toggle button left-aligns on narrow viewports instead of right-aligning
 
 - **Date:** 2026-05-01

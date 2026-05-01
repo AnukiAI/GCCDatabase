@@ -36,8 +36,8 @@
 
     <!-- Filter Section -->
     <div class="product-manager-filters mb-3">
-        <div style="display: flex; flex-wrap: nowrap; gap: 10px; align-items: center;">
-            <select class="form-select form-select-sm" id="filterByType" style="width: auto; min-width: 110px;">
+        <div class="product-manager-filter-row">
+            <select class="form-select form-select-sm pid-filter-type" id="filterByType">
                 <option value="">All Types</option>
                 <option value="ASIN">ASIN</option>
                 <option value="UPC">UPC</option>
@@ -49,14 +49,14 @@
                 <option value="OTHER">Other</option>
             </select>
             @* CR-015: Status filter removed — product ID status follows parent certificate. *@
-            <select class="form-select form-select-sm" id="filterByPartner" style="width: auto; min-width: 120px;">
+            <select class="form-select form-select-sm pid-filter-partner" id="filterByPartner">
                 <option value="">All Partners</option>
                 <option value="Amazon">Amazon</option>
                 <option value="Novi">Novi</option>
                 <option value="None">None</option>
                 <option value="Other">Other</option>
             </select>
-            <input type="text" class="form-control form-control-sm" id="searchProductIds" placeholder="Search" style="width: 200px;">
+            <input type="text" class="form-control form-control-sm pid-filter-search" id="searchProductIds" placeholder="Search">
         </div>
     </div>
 

@@ -241,8 +241,8 @@ class ProductIdManager {
                 <td class="created-date" title="${this.formatDateTime(productId.createdAt)}">
                     ${this.formatDate(productId.createdAt)}
                 </td>
-                <td class="created-by" title="${productId.createdBy || 'System'}">
-                    ${productId.createdBy || 'System'}
+                <td class="created-by" title="${(productId.createdByUser && productId.createdByUser.username) || 'System'}">
+                    ${(productId.createdByUser && productId.createdByUser.username) || 'System'}
                 </td>
                 ${actionsHtml}
             </tr>`;
@@ -1243,9 +1243,19 @@ class ProductIdManager {
 
     exportInMemoryProductIds() {
         // CR-015: Status column dropped from in-memory export — derived from parent cert.
-        const header = 'Type,Product ID,Partner,ProductName,ProductSku,Description';
+        // DEF-110 alignment: header order + labels match the on-screen table
+        // (Type, Product ID, Product Name, SKU, Partner, Created, Created By).
+        // Description trails — it's saved data but not a table column.
+        // For new (unsaved) certificates the in-memory items have no createdAt/createdBy yet,
+        // so Created/Created By cells will be blank in the export — accurate for that state.
+        const header = 'Type,Product ID,Product Name,SKU,Partner,Created,Created By,Description';
+        const formatCreated = (iso) => {
+            if (!iso) return '';
+            const d = new Date(iso);
+            return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+        };
         const rows = this.productIds.map(pid =>
-            `"${pid.productIdType || ''}","${pid.productIdValue || ''}","${pid.partner || ''}","${pid.productName || ''}","${pid.productSku || ''}","${pid.description || ''}"`
+            `"${pid.productIdType || ''}","${pid.productIdValue || ''}","${pid.productName || ''}","${pid.productSku || ''}","${pid.partner || ''}","${formatCreated(pid.createdAt)}","${(pid.createdByUser && pid.createdByUser.username) || pid.createdBy || ''}","${pid.description || ''}"`
         );
         const csvContent = [header, ...rows].join('\n');
 

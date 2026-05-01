@@ -1,0 +1,462 @@
+/* =============================================================================
+   USER MANAGEMENT PAGE STYLES
+
+   Extracted from Views/Admin/UserManagement.cshtml inline styles.
+   This file contains all user management-specific styling.
+
+   Last Updated: January 2026
+   ============================================================================= */
+
+/* =============================================================================
+   BADGE STYLING
+   ============================================================================= */
+
+.admin-badge--info {
+    background: linear-gradient(135deg, var(--color-blue-dark, #002B76) 0%, #1a4a9e 100%);
+    color: var(--text-light, white);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.admin-badge--success {
+    background: linear-gradient(135deg, var(--color-primary, #92C83E) 0%, #7ab02d 100%);
+    color: var(--text-light, white);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+.admin-badge--inactive {
+    background: var(--bg-light, #e9ecef);
+    color: var(--color-grey, #6c757d);
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-block;
+}
+
+/* =============================================================================
+   NO DATA MESSAGE
+   ============================================================================= */
+
+.no-data {
+    text-align: center;
+    padding: 40px !important;
+}
+
+.no-data-message {
+    color: var(--text-muted, #adb5bd);
+}
+
+.no-data-message i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    color: var(--border-color-dark, #dee2e6);
+}
+
+.no-data-message p {
+    font-size: 18px;
+    margin-bottom: 8px;
+    color: var(--text-secondary, #6c757d);
+}
+
+.no-data-message small {
+    font-size: 14px;
+    color: var(--text-muted, #adb5bd);
+}
+
+/* =============================================================================
+   KEYBOARD NAVIGATION & ACCESSIBILITY
+   ============================================================================= */
+
+.admin-table-row:focus,
+tr[role="row"]:focus {
+    outline: 3px solid var(--color-primary, #92C83E);
+    outline-offset: -3px;
+    background-color: var(--bg-light, #f8f9fa);
+}
+
+.admin-action-btn:focus {
+    outline: 2px solid var(--color-primary, #92C83E);
+    outline-offset: 2px;
+}
+
+.admin-btn:focus {
+    outline: 3px solid var(--color-primary, #92C83E);
+    outline-offset: 2px;
+}
+
+.admin-search-input:focus {
+    border-color: var(--color-primary, #92C83E);
+    box-shadow: 0 0 0 3px rgba(146, 200, 62, 0.15);
+}
+
+/* Screen reader only text */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+/* Keep header text + sort arrow on a single line so the arrow can't wrap below */
+#user-table thead th {
+    white-space: nowrap;
+}
+
+/* Tablet/mobile: contain wide table inside the card with horizontal scroll */
+.admin-table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+}
+
+/* Cap the filter selects so a long option (e.g. a long company name) can't push the row past the card edge. */
+.admin-filter-group {
+    flex-wrap: wrap;
+    max-width: 100%;
+}
+.admin-filter-group .admin-filter-select {
+    max-width: 220px;
+    text-overflow: ellipsis;
+}
+
+/* Table row hover */
+tr[role="row"] {
+    transition: background-color 0.2s;
+}
+
+tr[role="row"]:hover {
+    background-color: var(--bg-light, #f8f9fa);
+}
+
+/* =============================================================================
+   FORM GROUP STYLING
+   ============================================================================= */
+
+.admin-form-group {
+    margin-bottom: 16px;
+}
+
+.admin-form-group:last-child {
+    margin-bottom: 0;
+}
+
+.admin-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary, #333);
+    margin-bottom: 6px;
+}
+
+.admin-label--required::after {
+    content: " *";
+    color: var(--color-danger, #e74c3c);
+}
+
+/* =============================================================================
+   LOADING OVERLAY
+   ============================================================================= */
+
+#loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 10000;
+}
+
+.loading-content {
+    background: var(--bg-card, white);
+    padding: 32px 48px;
+    border-radius: var(--border-radius-lg, 12px);
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.loading-spinner {
+    width: 48px;
+    height: 48px;
+    border: 4px solid var(--border-color, #e9ecef);
+    border-top: 4px solid var(--color-primary, #92C83E);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 16px;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading-message {
+    color: var(--text-primary, #333);
+    font-size: 14px;
+    font-weight: 500;
+}
+
+/* =============================================================================
+   DROPDOWN MENU STYLING
+   ============================================================================= */
+
+.admin-dropdown {
+    position: relative;
+}
+
+.admin-dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    min-width: 180px;
+    background: var(--bg-card, white);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    display: none;
+    padding: 8px 0;
+}
+
+.admin-dropdown-menu--show {
+    display: block;
+}
+
+.admin-dropdown-menu--right {
+    right: 0;
+    left: auto;
+}
+
+.admin-dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
+    color: var(--text-primary, #333);
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.admin-dropdown-item:hover {
+    background-color: var(--bg-light, #f8f9fa);
+}
+
+.admin-dropdown-item i {
+    width: 16px;
+    color: var(--color-grey, #6c757d);
+}
+
+.admin-dropdown-item--danger {
+    color: var(--color-danger, #dc3545);
+}
+
+.admin-dropdown-item--danger:hover {
+    background-color: #ffebee;
+}
+
+.admin-dropdown-item--disabled {
+    color: var(--text-muted, #adb5bd);
+    cursor: not-allowed;
+}
+
+.admin-dropdown-item--disabled:hover {
+    background-color: transparent;
+}
+
+.admin-dropdown-divider {
+    height: 1px;
+    background: var(--border-color, #e9ecef);
+    margin: 8px 0;
+}
+
+/* Row with dropdown open should have higher z-index */
+.admin-table-row.dropdown-open {
+    position: relative;
+    z-index: 100;
+}
+
+/* =============================================================================
+   CHECKBOX LIST STYLING
+   ============================================================================= */
+
+.admin-checkbox-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px;
+    background: var(--bg-light, #f8f9fa);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: var(--border-radius, 6px);
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.admin-checkbox-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-card, white);
+    padding: 6px 12px;
+    border-radius: 16px;
+    border: 1px solid var(--border-color, #e9ecef);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.admin-checkbox-item:hover {
+    border-color: var(--color-primary, #92C83E);
+    background: #f0f7e6;
+}
+
+.admin-checkbox-item input[type="checkbox"] {
+    accent-color: var(--color-primary, #92C83E);
+}
+
+/* =============================================================================
+   MODAL OVERRIDES
+   ============================================================================= */
+
+.admin-modal-body {
+    padding: 20px 24px !important;
+}
+
+.admin-modal-header {
+    padding: 16px 24px !important;
+}
+
+.admin-modal-title {
+    font-size: 18px !important;
+    margin: 0;
+}
+
+.admin-modal-footer {
+    padding: 16px 24px;
+    background: var(--bg-light, #f8f9fa);
+    border-radius: 0 0 var(--border-radius-lg, 12px) var(--border-radius-lg, 12px);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* =============================================================================
+   2FA STATUS BADGES & DROPDOWN
+   ============================================================================= */
+
+.badge-2fa {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-2fa-enabled {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.badge-2fa-disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #dee2e6;
+}
+
+.btn-2fa {
+    background: none;
+    border: 1px solid #6c757d;
+    border-radius: 4px;
+    padding: 4px 8px;
+    margin-left: 4px;
+    cursor: pointer;
+    color: #6c757d;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.btn-2fa:hover {
+    background-color: #f8f9fa;
+    color: #002B76;
+    border-color: #002B76;
+}
+
+.dropdown-2fa {
+    display: inline-block;
+    position: relative;
+}
+
+.dropdown-2fa-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    z-index: 1000;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 200px;
+    padding: 4px 0;
+}
+
+.dropdown-2fa-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 16px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+    color: #374151;
+    text-align: left;
+    transition: background-color 0.15s;
+}
+
+.dropdown-2fa-item:hover {
+    background-color: #f3f4f6;
+}
+
+.dropdown-2fa-item:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.dropdown-2fa-item:disabled:hover {
+    background-color: transparent;
+}
+
+/* =============================================================================
+   RESPONSIVE
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .admin-checkbox-list {
+        max-height: 120px;
+    }
+}

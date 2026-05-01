@@ -1,0 +1,99 @@
+/* =============================================================================
+   FORMS & INPUTS - SINGLE SOURCE OF TRUTH
+
+   Standard form and input styling across the application.
+   All search bar, input, select styles defined here.
+
+   Last Updated: January 2026
+   ============================================================================= */
+
+/* =============================================================================
+   SEARCH BARS - 95% WIDTH STANDARD
+   All search inputs should be 95% of their container width
+   ============================================================================= */
+
+/* Global search container - 95% width of parent */
+.search-box,
+.search-bar,
+.admin-search-section,
+.admin-search-box,
+[class*="search-container"] {
+    width: 95% !important;
+    max-width: none !important;
+}
+
+/* Search inputs - full width within container */
+.search-input,
+.admin-search-input,
+.search-box input,
+.search-bar input,
+input[type="search"],
+input.search {
+    width: 100%;
+    min-height: 40px;
+    padding: 8px 16px;
+    padding-left: 40px;
+    font-size: var(--font-size-sm, 14px);
+    border: 1px solid var(--border-color, #e9ecef);
+    border-radius: var(--border-radius, 6px);
+    background-color: var(--bg-card, #ffffff);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-input:focus,
+.admin-search-input:focus,
+.search-box input:focus,
+.search-bar input:focus,
+input[type="search"]:focus,
+input.search:focus {
+    outline: none;
+    border-color: var(--color-blue, #00AEEF);
+    box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.1);
+}
+
+.search-input::placeholder,
+.admin-search-input::placeholder,
+.search-box input::placeholder,
+.search-bar input::placeholder {
+    color: var(--text-muted, #adb5bd);
+}
+
+/* Search icon positioning.
+   QC R157: pushed left from 12px to 16px so the icon sits fully inside the input
+   on mobile where the positioned-ancestor offset was 3px off, causing the icon to
+   straddle the input's left border. Also enforce z-index so the icon paints above
+   the input border. */
+.search-icon,
+.admin-search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted, #adb5bd);
+    pointer-events: none;
+    font-size: 14px;
+    z-index: 1;
+}
+
+/* =============================================================================
+   SIDEBAR SEARCH - Special case for filter sidebars
+   These should be 100% of the sidebar width
+   ============================================================================= */
+
+.sidebar .search-bar,
+.sidebar .search-box {
+    width: 100% !important;
+}
+
+/* =============================================================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    .search-box,
+    .search-bar,
+    .admin-search-section,
+    .admin-search-box {
+        width: 100% !important;
+    }
+}

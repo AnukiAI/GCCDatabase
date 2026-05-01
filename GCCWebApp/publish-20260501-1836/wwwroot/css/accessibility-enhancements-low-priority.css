@@ -1,0 +1,509 @@
+/* =============================================================================
+   ACCESSIBILITY ENHANCEMENTS - LOW PRIORITY FIXES
+   WCAG 2.1 Level AA Compliance - Best Practice Improvements
+
+   This file addresses:
+   1. Enhanced focus indicators (3:1 contrast)
+   2. Status badge color independence (icons + patterns)
+   3. Print stylesheet accessibility
+   4. High contrast mode support
+   5. SVG accessibility (handled in markup)
+   6. Abbreviation expansion (handled in markup)
+   7. Table row hover states (non-color dependent)
+   8. Form field placeholder contrast
+
+   Created: 2026-02-02
+   ============================================================================= */
+
+/* =============================================================================
+   1. ENHANCED FOCUS INDICATORS - 3:1 Contrast Ratio
+   Ensuring all interactive elements have clearly visible focus indicators
+   ============================================================================= */
+
+/* Global focus indicator - 3px outline with high contrast */
+*:focus,
+*:focus-visible {
+    outline: 3px solid #0066cc;
+    outline-offset: 2px;
+}
+
+/* Button focus indicators */
+.btn:focus,
+.btn:focus-visible,
+.admin-action-btn:focus,
+.admin-action-btn:focus-visible,
+.action-btn:focus,
+.action-btn:focus-visible,
+.action-icon:focus,
+.action-icon:focus-visible,
+button:focus,
+button:focus-visible {
+    outline: 3px solid #0066cc;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.25);
+}
+
+/* Link focus indicators */
+a:focus,
+a:focus-visible {
+    outline: 3px solid #0066cc;
+    outline-offset: 2px;
+    text-decoration: underline;
+    text-decoration-thickness: 2px;
+}
+
+/* Form control focus indicators */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+.form-control:focus,
+.form-control:focus-visible {
+    outline: 3px solid #0066cc;
+    outline-offset: 2px;
+    border-color: #0066cc;
+    box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.15);
+}
+
+/* Checkbox and radio focus indicators */
+input[type="checkbox"]:focus,
+input[type="checkbox"]:focus-visible,
+input[type="radio"]:focus,
+input[type="radio"]:focus-visible {
+    outline: 3px solid #0066cc;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.25);
+}
+
+/* Dropdown and select focus */
+.sort-dropdown-button:focus,
+.sort-dropdown-button:focus-visible {
+    outline: 3px solid #0066cc;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.25);
+}
+
+/* Table action buttons focus */
+.admin-action-btn:focus,
+.admin-action-btn:focus-visible,
+.btn-icon:focus,
+.btn-icon:focus-visible {
+    outline: 3px solid #0066cc;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.25);
+}
+
+/* Modal button focus */
+.admin-modal-btn:focus,
+.admin-modal-btn:focus-visible {
+    outline: 3px solid #0066cc;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 4px rgba(0, 102, 204, 0.25);
+}
+
+/* =============================================================================
+   2. STATUS BADGE COLOR INDEPENDENCE
+   Status color is sufficient - icons/patterns removed per design decision
+   ============================================================================= */
+
+/* =============================================================================
+   3. PRINT STYLESHEET ACCESSIBILITY
+   Ensuring printed pages are accessible and readable
+   ============================================================================= */
+
+@media print {
+    /* Reset page margins and ensure proper font rendering */
+    @page {
+        margin: 2cm;
+        size: A4;
+    }
+
+    /* Ensure black text on white background */
+    body {
+        background: white;
+        color: black;
+        font-size: 12pt;
+        line-height: 1.5;
+    }
+
+    /* Ensure headings are properly sized and spaced */
+    h1 {
+        font-size: 24pt;
+        margin-top: 0;
+        margin-bottom: 12pt;
+        page-break-after: avoid;
+    }
+
+    h2 {
+        font-size: 18pt;
+        margin-top: 12pt;
+        margin-bottom: 8pt;
+        page-break-after: avoid;
+    }
+
+    h3 {
+        font-size: 14pt;
+        margin-top: 10pt;
+        margin-bottom: 6pt;
+        page-break-after: avoid;
+    }
+
+    /* Hide interactive elements */
+    button,
+    .btn,
+    .action-btn,
+    .admin-action-btn,
+    input[type="button"],
+    input[type="submit"],
+    .no-print,
+    .admin-no-print {
+        display: none !important;
+    }
+
+    /* Ensure links are underlined and show URL */
+    a {
+        color: black;
+        text-decoration: underline;
+    }
+
+    a[href^="http"]::after {
+        content: " (" attr(href) ")";
+        font-size: 0.8em;
+        color: #666;
+    }
+
+    /* Tables - ensure proper borders and spacing */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        page-break-inside: avoid;
+    }
+
+    table, th, td {
+        border: 1pt solid black;
+    }
+
+    th, td {
+        padding: 6pt;
+        text-align: left;
+    }
+
+    th {
+        background-color: #f0f0f0 !important;
+        font-weight: bold;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Ensure images are visible if needed */
+    img {
+        max-width: 100%;
+        page-break-inside: avoid;
+    }
+
+    /* Avoid page breaks in the middle of content */
+    p, .certificate-card, .admin-card {
+        page-break-inside: avoid;
+    }
+
+    /* Certificate tiles - format for printing */
+    .certificate-card {
+        border: 1pt solid black;
+        margin-bottom: 12pt;
+        padding: 12pt;
+        page-break-inside: avoid;
+    }
+
+    /* Remove shadows and transitions */
+    * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* =============================================================================
+   4. HIGH CONTRAST MODE SUPPORT
+   Windows High Contrast Mode and forced-colors media query
+   ============================================================================= */
+
+@media (prefers-contrast: high), (forced-colors: active) {
+    /* Ensure all interactive elements have visible borders */
+    button,
+    .btn,
+    .admin-action-btn,
+    .action-btn,
+    input,
+    select,
+    textarea {
+        border: 2px solid currentColor !important;
+    }
+
+    /* Ensure focus indicators are visible */
+    *:focus,
+    *:focus-visible {
+        outline: 3px solid currentColor !important;
+        outline-offset: 2px;
+    }
+
+    /* Ensure status badges have borders */
+    .status-badge {
+        border: 2px solid currentColor !important;
+        background: transparent !important;
+    }
+
+    /* Ensure table borders are visible */
+    table,
+    th,
+    td {
+        border: 1px solid currentColor !important;
+    }
+
+    /* Ensure links are underlined */
+    a {
+        text-decoration: underline !important;
+        text-decoration-thickness: 2px;
+    }
+
+    /* Remove background images that may not be visible */
+    .status-badge.active,
+    .status-badge.status-active,
+    .status-badge.expired,
+    .status-badge.status-expired,
+    .status-badge.pending,
+    .status-badge.status-pending,
+    .status-badge.draft,
+    .status-badge.status-draft {
+        background-image: none !important;
+    }
+
+    /* Ensure icons are visible */
+    .admin-action-btn,
+    .action-btn,
+    .btn-icon {
+        border: 2px solid currentColor !important;
+    }
+
+    /* Ensure cards have visible borders */
+    .certificate-card,
+    .admin-card {
+        border: 2px solid currentColor !important;
+    }
+
+    /* Remove hover effects that rely on color */
+    .certificate-card:hover,
+    .admin-table-row:hover {
+        outline: 2px solid currentColor !important;
+    }
+}
+
+/* =============================================================================
+   7. TABLE ROW HOVER STATES - NON-COLOR DEPENDENT
+   Adding underline and border indicators in addition to color change
+   ============================================================================= */
+
+/* Admin tables - add left border on hover */
+.admin-table-row:hover {
+    border-left: 4px solid #0066cc;
+    padding-left: calc(var(--admin-space-md, 16px) - 4px);
+}
+
+/* Certificate table rows - add left border on hover */
+/* Note: .grid-row uses display:contents so border-left cannot render on it */
+.certificate-row:hover {
+    border-left: 4px solid #0066cc;
+}
+
+/* Ensure hover state is visible in all contexts */
+.admin-table-row:hover td:first-child,
+.certificate-row:hover td:first-child {
+    border-left: 4px solid #0066cc;
+}
+
+/* Add box shadow as additional indicator */
+.certificate-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 102, 204, 0.3),
+                inset 0 0 0 2px #0066cc;
+}
+
+/* Table cells - add subtle underline on hover */
+/* Note: .grid-row .grid-cell excluded - position:relative causes layout shift in CSS Grid */
+.admin-table-row:hover .admin-table-cell,
+.certificate-row:hover td {
+    position: relative;
+}
+
+.admin-table-row:hover .admin-table-cell::after,
+.certificate-row:hover td::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: rgba(0, 102, 204, 0.3);
+}
+
+/* =============================================================================
+   8. FORM FIELD PLACEHOLDER CONTRAST
+   Ensuring placeholder text meets 4.5:1 contrast ratio
+   ============================================================================= */
+
+/* Enhanced placeholder contrast - #757575 on white = 4.54:1 */
+input::placeholder,
+textarea::placeholder,
+select::placeholder,
+.form-control::placeholder,
+.search-input::placeholder,
+.admin-search-input::placeholder {
+    color: #757575 !important;
+    opacity: 1 !important;
+}
+
+/* Firefox specific */
+input::-moz-placeholder,
+textarea::-moz-placeholder,
+.form-control::-moz-placeholder {
+    color: #757575 !important;
+    opacity: 1 !important;
+}
+
+/* Edge/IE specific */
+input:-ms-input-placeholder,
+textarea:-ms-input-placeholder,
+.form-control:-ms-input-placeholder {
+    color: #757575 !important;
+    opacity: 1 !important;
+}
+
+/* Webkit specific */
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder,
+.form-control::-webkit-input-placeholder {
+    color: #757575 !important;
+    opacity: 1 !important;
+}
+
+/* Ensure placeholder doesn't disappear on focus */
+input:focus::placeholder,
+textarea:focus::placeholder,
+.form-control:focus::placeholder {
+    color: #999999 !important;
+    opacity: 1 !important;
+}
+
+/* =============================================================================
+   ADDITIONAL BEST PRACTICES
+   ============================================================================= */
+
+/* Ensure sufficient color contrast for disabled states */
+button:disabled,
+.btn:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    border: 2px solid #999;
+}
+
+/* Ensure error messages are clearly visible */
+.error,
+.invalid-feedback,
+.field-validation-error {
+    color: #c70000; /* 5.74:1 contrast on white */
+    font-weight: 500;
+}
+
+/* Add icon to error messages */
+.error::before,
+.invalid-feedback::before,
+.field-validation-error::before {
+    content: '\26A0 '; /* ⚠ warning sign */
+    font-weight: bold;
+}
+
+/* Ensure success messages are visible */
+.success,
+.valid-feedback {
+    color: #006b00; /* 4.54:1 contrast on white */
+    font-weight: 500;
+}
+
+.success::before,
+.valid-feedback::before {
+    content: '\2713 '; /* ✓ checkmark */
+    font-weight: bold;
+}
+
+/* Skip links for keyboard navigation */
+.skip-link {
+    position: absolute;
+    top: -40px;
+    left: 0;
+    background: #0066cc;
+    color: white;
+    padding: 8px 16px;
+    text-decoration: none;
+    font-weight: bold;
+    z-index: 100000;
+}
+
+.skip-link:focus {
+    top: 0;
+}
+
+/* Ensure all interactive elements have min touch target size (44x44px) */
+button,
+.btn,
+.action-btn,
+.admin-action-btn,
+a.btn,
+input[type="submit"],
+input[type="button"] {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 8px 16px;
+}
+
+/* Smaller buttons need spacing to maintain 44px touch target */
+.btn-sm,
+.btn-icon {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
+}
+
+/* =============================================================================
+   RESPONSIVE ACCESSIBILITY
+   ============================================================================= */
+
+@media (max-width: 768px) {
+    /* Increase touch target sizes on mobile */
+    button,
+    .btn,
+    .action-btn,
+    a.btn {
+        min-width: 48px;
+        min-height: 48px;
+        padding: 12px 20px;
+    }
+
+    /* Increase font size for better readability */
+    body {
+        font-size: 16px !important;
+    }
+
+    /* Ensure focus indicators are more visible on mobile */
+    *:focus,
+    *:focus-visible {
+        outline-width: 4px;
+    }
+}
+
+/* =============================================================================
+   END OF ACCESSIBILITY ENHANCEMENTS
+   ============================================================================= */

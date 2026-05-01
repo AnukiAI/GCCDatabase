@@ -367,7 +367,8 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
-                var sampleCsv = "Type,Product ID,Status,Partner,ProductName,ProductSku,Description";
+                // CR-015: Status removed from sample CSV — auto-derived from parent cert.
+                var sampleCsv = "Type,Product ID,Partner,ProductName,ProductSku,Description";
                 var sampleData = System.Text.Encoding.UTF8.GetBytes(sampleCsv);
                 return File(sampleData, "text/csv", "product_ids_sample.csv");
             }

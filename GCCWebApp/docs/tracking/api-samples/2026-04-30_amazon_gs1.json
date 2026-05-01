@@ -1,0 +1,276 @@
+{
+  "success": true,
+  "pagination": {
+    "totalCount": 6,
+    "pageNumber": 1,
+    "pageSize": 100,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  },
+  "data": [
+    {
+      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+      "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0146",
+      "type": "CertificationReport",
+      "issueDate": "2026-04-01",
+      "issuer": "GreenCircle Certified",
+      "products": [
+        {
+          "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0146/product",
+          "type": "Product",
+          "gtin": null,
+          "name": "John Frieda PROfiller+ Thickening Conditioner",
+          "additionalTradeItemId": [
+            {
+              "type": "ASIN",
+              "value": "B0BRNN8BKS",
+              "name": "John Frieda PROfiller+ Thickening Conditioner"
+            },
+            {
+              "type": "ASIN",
+              "value": "B005PMYJBO",
+              "name": "John Frieda Dream Curls Conditioner 250ml"
+            }
+          ],
+          "certificationInfo": {
+            "type": "CertificationDetails",
+            "agency": "GreenCircle Certified",
+            "agencyURL": "https://www.greencirclecertified.com",
+            "program": "Sustainable Energy Practices",
+            "certificateId": "26-0146",
+            "status": "ACTIVE",
+            "value": "17%",
+            "startDate": "2026-04-01",
+            "endDate": "2028-05-31",
+            "targetCountries": [
+              "All"
+            ],
+            "amazonCode": "greencircle_sustainable_energy_practices",
+            "pathway": "Energy usage reduction"
+          }
+        }
+      ]
+    },
+    {
+      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+      "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0147",
+      "type": "CertificationReport",
+      "issueDate": "2026-04-01",
+      "issuer": "GreenCircle Certified",
+      "products": [
+        {
+          "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0147/product",
+          "type": "Product",
+          "gtin": null,
+          "name": "John Frieda ProFiller plus Shampoo 250ml",
+          "additionalTradeItemId": [
+            {
+              "type": "ASIN",
+              "value": "B0BRNPBZJ8",
+              "name": "John Frieda ProFiller plus Shampoo 250ml"
+            },
+            {
+              "type": "ASIN",
+              "value": "B01DSSNB5G",
+              "name": "John Frieda Sheer Blonde Go Blonder Shampoo 250ml"
+            }
+          ],
+          "certificationInfo": {
+            "type": "CertificationDetails",
+            "agency": "GreenCircle Certified",
+            "agencyURL": "https://www.greencirclecertified.com",
+            "program": "Sustainable Energy Practices",
+            "certificateId": "26-0147",
+            "status": "ACTIVE",
+            "value": "100%",
+            "startDate": "2026-04-01",
+            "endDate": "2028-05-31",
+            "targetCountries": [
+              "All"
+            ],
+            "amazonCode": "greencircle_sustainable_energy_practices",
+            "pathway": "Renewable electricity usage"
+          }
+        }
+      ]
+    },
+    {
+      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+      "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0150",
+      "type": "CertificationReport",
+      "issueDate": "2026-04-01",
+      "issuer": "GreenCircle Certified",
+      "products": [
+        {
+          "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0150/product",
+          "type": "Product",
+          "gtin": null,
+          "name": "Color Protecting Conditioner 200ml",
+          "additionalTradeItemId": [
+            {
+              "type": "ASIN",
+              "value": "B0BQN8R7JJ",
+              "name": "Color Protecting Conditioner 200ml"
+            },
+            {
+              "type": "ASIN",
+              "value": "B0BQN91QFB",
+              "name": "Color Protecting Conditioner 750ml"
+            },
+            {
+              "type": "ASIN",
+              "value": "B0C54679T3",
+              "name": "Color Protecting Conditioner 75ml"
+            }
+          ],
+          "certificationInfo": {
+            "type": "CertificationDetails",
+            "agency": "GreenCircle Certified",
+            "agencyURL": "https://www.greencirclecertified.com",
+            "program": "Sustainable Energy Practices",
+            "certificateId": "26-0150",
+            "status": "ACTIVE",
+            "value": "27%",
+            "startDate": "2026-04-01",
+            "endDate": "2028-05-31",
+            "targetCountries": [
+              "All"
+            ],
+            "amazonCode": "greencircle_sustainable_energy_practices",
+            "pathway": "Energy usage reduction"
+          }
+        }
+      ]
+    },
+    {
+      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+      "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0151",
+      "type": "CertificationReport",
+      "issueDate": "2026-04-01",
+      "issuer": "GreenCircle Certified",
+      "products": [
+        {
+          "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0151/product",
+          "type": "Product",
+          "gtin": null,
+          "name": "Color Protecting Shampoo 250ml",
+          "additionalTradeItemId": [
+            {
+              "type": "ASIN",
+              "value": "B0BQN8PSY6",
+              "name": "Color Protecting Shampoo 250ml"
+            },
+            {
+              "type": "ASIN",
+              "value": "B0BQN9BJCB",
+              "name": "Color Protecting Shampoo 750ml"
+            },
+            {
+              "type": "ASIN",
+              "value": "B0C544FF8Q",
+              "name": "Color Protecting Shampoo 75ml"
+            }
+          ],
+          "certificationInfo": {
+            "type": "CertificationDetails",
+            "agency": "GreenCircle Certified",
+            "agencyURL": "https://www.greencirclecertified.com",
+            "program": "Sustainable Energy Practices",
+            "certificateId": "26-0151",
+            "status": "ACTIVE",
+            "value": "100%",
+            "startDate": "2026-04-01",
+            "endDate": "2028-05-31",
+            "targetCountries": [
+              "All"
+            ],
+            "amazonCode": "greencircle_sustainable_energy_practices",
+            "pathway": "Renewable electricity usage"
+          }
+        }
+      ]
+    },
+    {
+      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+      "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0106",
+      "type": "CertificationReport",
+      "issueDate": "2026-03-13",
+      "issuer": "GreenCircle Certified",
+      "products": [
+        {
+          "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0106/product",
+          "type": "Product",
+          "gtin": null,
+          "name": "eero 7, Individual Unit, ISP, Bulk Pack",
+          "additionalTradeItemId": [
+            {
+              "type": "ASIN",
+              "value": "B0D9HW3Z3Y",
+              "name": "eero 7, Individual Unit, ISP, Bulk Pack"
+            }
+          ],
+          "certificationInfo": {
+            "type": "CertificationDetails",
+            "agency": "GreenCircle Certified",
+            "agencyURL": "https://www.greencirclecertified.com",
+            "program": "Recycled Content",
+            "certificateId": "26-0106",
+            "status": "ACTIVE",
+            "value": "69%",
+            "startDate": "2026-03-13",
+            "endDate": "2027-03-12",
+            "targetCountries": [
+              "All"
+            ],
+            "amazonCode": "greencircle_recycled_content"
+          }
+        }
+      ]
+    },
+    {
+      "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+      "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+      "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0157",
+      "type": "CertificationReport",
+      "issueDate": "2026-03-12",
+      "issuer": "GreenCircle Certified",
+      "products": [
+        {
+          "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0157/product",
+          "type": "Product",
+          "gtin": null,
+          "name": "Sonos Play (Black)",
+          "additionalTradeItemId": [
+            {
+              "type": "ASIN",
+              "value": "B0GJRV3MZC",
+              "name": "Sonos Play (Black)"
+            }
+          ],
+          "certificationInfo": {
+            "type": "CertificationDetails",
+            "agency": "GreenCircle Certified",
+            "agencyURL": "https://www.greencirclecertified.com",
+            "program": "Certified Energy Savings",
+            "certificateId": "26-0157",
+            "status": "ACTIVE",
+            "value": "17%",
+            "startDate": "2026-03-12",
+            "endDate": "2027-03-11",
+            "targetCountries": [
+              "All"
+            ],
+            "amazonCode": "greencircle_energy_savings"
+          }
+        }
+      ]
+    }
+  ],
+  "message": "Found 6 certificate(s) in GS1 format"
+}

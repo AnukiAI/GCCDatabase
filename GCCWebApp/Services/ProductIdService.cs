@@ -14,6 +14,12 @@ namespace GCCWebApp.Services
         Task<CertificateProductId> CreateProductIdAsync(CertificateProductId productId);
         Task<CertificateProductId> UpdateProductIdAsync(CertificateProductId productId);
         Task<bool> DeleteProductIdAsync(int id);
+        /// <summary>
+        /// Syncs all product IDs on a certificate to the auto-derived status from the cert's status (CR-015).
+        /// Called whenever a cert's status changes (manual edit, bulk update, auto-expire).
+        /// Returns the number of product ID rows that were updated.
+        /// </summary>
+        Task<int> SyncProductIdStatusesForCertificateAsync(int certificateId);
         Task<bool> ValidateProductIdAsync(string type, string value);
         Task<BulkImportResult> ImportProductIdsAsync(int certificateId, List<ProductIdImportItem> productIds, int? userId = null, bool overwriteExisting = false);
         Task<BulkImportResult> ImportFromCsvAsync(int certificateId, Stream csvStream, int? userId = null, bool overwriteExisting = false);
@@ -86,6 +92,13 @@ namespace GCCWebApp.Services
                     throw new InvalidOperationException($"Product ID {productId.ProductIdValue} already exists on this certificate");
                 }
 
+                // CR-015: Status is derived from parent cert, not user input.
+                var parentCertStatus = await _context.Certificates
+                    .Where(c => c.Id == productId.CertificateId)
+                    .Select(c => c.Status)
+                    .FirstOrDefaultAsync();
+                productId.Status = CertificateProductId.DeriveStatusFromCert(parentCertStatus);
+
                 // Set audit fields
                 productId.CreatedAt = DateTime.UtcNow;
                 productId.UpdatedAt = DateTime.UtcNow;
@@ -143,7 +156,12 @@ namespace GCCWebApp.Services
                 // Update fields
                 existing.ProductIdType = productId.ProductIdType;
                 existing.ProductIdValue = productId.ProductIdValue;
-                existing.Status = productId.Status;
+                // CR-015: Status is derived from parent cert, not user input.
+                var parentCertStatus = await _context.Certificates
+                    .Where(c => c.Id == existing.CertificateId)
+                    .Select(c => c.Status)
+                    .FirstOrDefaultAsync();
+                existing.Status = CertificateProductId.DeriveStatusFromCert(parentCertStatus);
                 existing.Partner = productId.Partner;
                 existing.ProductName = productId.ProductName;
                 existing.ProductSku = productId.ProductSku;
@@ -189,6 +207,37 @@ namespace GCCWebApp.Services
                 _logger.LogError(ex, "Error deleting product ID {Id}", id);
                 throw;
             }
+        }
+
+        public async Task<int> SyncProductIdStatusesForCertificateAsync(int certificateId)
+        {
+            // CR-015: Cascade cert status to all child product IDs.
+            var certStatus = await _context.Certificates
+                .Where(c => c.Id == certificateId)
+                .Select(c => c.Status)
+                .FirstOrDefaultAsync();
+
+            var derivedStatus = CertificateProductId.DeriveStatusFromCert(certStatus);
+
+            var rows = await _context.CertificateProductIds
+                .Where(p => p.CertificateId == certificateId && p.Status != derivedStatus)
+                .ToListAsync();
+
+            foreach (var row in rows)
+            {
+                row.Status = derivedStatus;
+                row.UpdatedAt = DateTime.UtcNow;
+            }
+
+            if (rows.Count > 0)
+            {
+                await _context.SaveChangesAsync();
+                _logger.LogInformation(
+                    "CR-015 cascade: synced {Count} product IDs on cert {CertId} to status '{Status}'",
+                    rows.Count, certificateId, derivedStatus);
+            }
+
+            return rows.Count;
         }
 
         public Task<bool> ValidateProductIdAsync(string type, string value)
@@ -274,12 +323,12 @@ namespace GCCWebApp.Services
                     }
 
                     // Create the product ID
+                    // CR-015: Status is auto-derived from parent cert by CreateProductIdAsync, ignore item.Status.
                     var productId = new CertificateProductId
                     {
                         CertificateId = certificateId,
                         ProductIdType = item.Type.ToUpper(),
                         ProductIdValue = item.Value.Trim(),
-                        Status = item.Status ?? "Active",
                         Partner = item.Partner,
                         ProductName = item.ProductName,
                         ProductSku = item.ProductSku,
@@ -340,7 +389,7 @@ namespace GCCWebApp.Services
                     {
                         Type = GetValueByHeader(headers, values, "Type") ?? "",
                         Value = GetValueByHeader(headers, values, "Value") ?? "",
-                        Status = GetValueByHeader(headers, values, "Status"),
+                        // CR-015: Status header from CSV is ignored; status auto-derives from parent cert.
                         Partner = GetValueByHeader(headers, values, "Partner"),
                         ProductName = GetValueByHeader(headers, values, "ProductName"),
                         ProductSku = GetValueByHeader(headers, values, "ProductSku"),

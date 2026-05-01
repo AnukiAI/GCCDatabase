@@ -28,6 +28,7 @@ namespace GCCWebApp.Controllers
         private readonly ICertificateFieldService _certificateFieldService;
         private readonly GCCWebApp.Services.Audit.IAuditService _auditService;
         private readonly ApplicationDbContext _context;
+        private readonly IProductIdService _productIdService;
 
         public CertificateController(
             ILogger<CertificateController> logger,
@@ -39,7 +40,8 @@ namespace GCCWebApp.Controllers
             IFileUploadService fileUploadService,
             ICertificateFieldService certificateFieldService,
             GCCWebApp.Services.Audit.IAuditService auditService,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IProductIdService productIdService)
         {
             _logger = logger;
             _unitOfWork = unitOfWork;
@@ -51,6 +53,7 @@ namespace GCCWebApp.Controllers
             _certificateFieldService = certificateFieldService;
             _auditService = auditService;
             _context = context;
+            _productIdService = productIdService;
         }
 
         #region Basic CRUD Operations
@@ -574,6 +577,10 @@ namespace GCCWebApp.Controllers
                         }
                     }
 
+                    // CR-015: cascade product-ID statuses on the freshly-created cert.
+                    // Newly-created certs default to Draft so any product IDs added at creation start as Inactive.
+                    await _productIdService.SyncProductIdStatusesForCertificateAsync(certificate.Id);
+
                     _logger.LogInformation("Certificate {Number} created by user {UserId}", certificate.Number, GetCurrentUserId());
 
                     // Handle "Save & Add Another" action
@@ -991,6 +998,10 @@ namespace GCCWebApp.Controllers
 
                     await _certificateRepository.UpdateAsync(certificate);
                     await _unitOfWork.CompleteAsync();
+
+                    // CR-015: always cascade — picks up status changes AND newly added/replaced product IDs.
+                    // Cheap when no-op (only writes rows where stored status drifts from derived value).
+                    await _productIdService.SyncProductIdStatusesForCertificateAsync(certificate.Id);
 
                     // Update company email/website if provided
                     if (model.CompanyEmail != null || model.CompanyWebsite != null)
@@ -1924,6 +1935,9 @@ namespace GCCWebApp.Controllers
 
                     await _certificateRepository.AddAsync(certificate);
                     await _unitOfWork.CompleteAsync();
+
+                    // CR-015: cascade for any product IDs created on this import path.
+                    await _productIdService.SyncProductIdStatusesForCertificateAsync(certificate.Id);
 
                     successfulCerts.Add(certNumber);
                 }

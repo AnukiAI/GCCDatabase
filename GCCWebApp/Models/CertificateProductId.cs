@@ -23,8 +23,10 @@ namespace GCCWebApp.Models
         [MaxLength(50)]
         public string ProductIdValue { get; set; } = string.Empty;
 
+        // Status is auto-derived from parent certificate status (CR-015).
+        // Not user-editable: "Active" iff parent cert is in PublicStatuses, else "Inactive".
         [MaxLength(20)]
-        public string Status { get; set; } = "Active"; // Active, Inactive, Pending, Expired
+        public string Status { get; set; } = "Inactive"; // Auto-set on save; default Inactive until cascade runs.
 
         [MaxLength(50)]
         public string? Partner { get; set; } // Amazon, Novi, None, Other
@@ -60,6 +62,18 @@ namespace GCCWebApp.Models
         public User? CreatedByUser { get; set; }
         [ValidateNever]
         public User? UpdatedByUser { get; set; }
+
+        /// <summary>
+        /// Derives the product-ID status from its parent certificate's status (CR-015).
+        /// "Active" only when the cert is in PublicStatuses (Client Approved - Paid or Republished);
+        /// "Inactive" for every other state (Draft, Hold, Expired, Confidential, Not Paid, Republished->Expired, etc.).
+        /// </summary>
+        public static string DeriveStatusFromCert(string? certStatus)
+        {
+            return CertificateStatusHelper.PublicStatuses.Contains(certStatus ?? string.Empty)
+                ? "Active"
+                : "Inactive";
+        }
     }
 
     /// <summary>

@@ -51,9 +51,10 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             _mockEnvironment = new Mock<IWebHostEnvironment>();
             _mockEnvironment.Setup(e => e.WebRootPath).Returns(Path.GetTempPath());
             _mockFileUploadService = new Mock<IFileUploadService>();
+            var mockProductIdService = new Mock<IProductIdService>();
             _service = new CertificateImportService(
                 _context, _mockAuditService.Object, _cache, _mockLogger.Object,
-                _mockEnvironment.Object, _mockFileUploadService.Object);
+                _mockEnvironment.Object, _mockFileUploadService.Object, mockProductIdService.Object);
 
             SeedData();
         }
@@ -667,7 +668,8 @@ namespace GCCWebApp.Api.Tests.Unit.Services
 
             var freshService = new CertificateImportService(
                 freshContext, _mockAuditService.Object, _cache,
-                _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object);
+                _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object,
+                new Mock<IProductIdService>().Object);
 
             var csv = BuildCsv(StdHeaders, StdRow());
             var file = CreateCsvFormFile(csv);
@@ -1323,7 +1325,8 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var freshService = new CertificateImportService(
                 freshContext, _mockAuditService.Object,
                 new MemoryCache(new MemoryCacheOptions()),
-                _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object);
+                _mockLogger.Object, _mockEnvironment.Object, _mockFileUploadService.Object,
+                new Mock<IProductIdService>().Object);
 
             var preview = CreatePreviewWithNewRow("25-8000");
             preview.NewCompanyNames = new List<string> { "NewCo" };

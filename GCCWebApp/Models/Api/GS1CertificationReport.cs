@@ -116,6 +116,14 @@ namespace GCCWebApp.Models.Api
         /// </summary>
         [JsonPropertyName("value")]
         public string Value { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Optional product name associated with this specific identifier.
+        /// Populated from the import CSV ProductName column or the cert edit UI's per-identifier name field.
+        /// </summary>
+        [JsonPropertyName("name")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Name { get; set; }
     }
 
     /// <summary>

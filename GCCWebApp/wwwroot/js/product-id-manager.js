@@ -52,7 +52,7 @@ class ProductIdManager {
 
         // Filter controls
         document.getElementById('filterByType')?.addEventListener('change', () => this.applyFilters());
-        document.getElementById('filterByStatus')?.addEventListener('change', () => this.applyFilters());
+        // CR-015: Status filter removed.
         document.getElementById('filterByPartner')?.addEventListener('change', () => this.applyFilters());
         document.getElementById('searchProductIds')?.addEventListener('input', () => this.applyFilters());
 
@@ -232,11 +232,7 @@ class ProductIdManager {
                 <td class="product-sku" title="${productId.productSku || ''}">
                     ${productId.productSku || '-'}
                 </td>
-                <td>
-                    <span class="status-badge status-${productId.status.toLowerCase()}">
-                        ${productId.status}
-                    </span>
-                </td>
+                <!-- CR-015: Status cell removed — derived from parent cert. -->
                 <td>
                     ${productId.partner ?
                         `<span class="partner-badge partner-${productId.partner.toLowerCase()}">${productId.partner}</span>` :
@@ -253,7 +249,7 @@ class ProductIdManager {
     }
 
     getEmptyStateHtml() {
-        const colspan = this.isReadOnly ? 8 : 9;
+        const colspan = this.isReadOnly ? 7 : 8;
         const message = this.isReadOnly ?
             'No product IDs added yet.' :
             'No product IDs added yet.<br><small>Click "Add Product ID" to get started.</small>';
@@ -269,20 +265,19 @@ class ProductIdManager {
 
     applyFilters() {
         const typeFilter = document.getElementById('filterByType')?.value || '';
-        const statusFilter = document.getElementById('filterByStatus')?.value || '';
+        // CR-015: Status filter removed — product ID status follows parent cert.
         const partnerFilter = document.getElementById('filterByPartner')?.value || '';
         const searchFilter = document.getElementById('searchProductIds')?.value.toLowerCase() || '';
 
         this.filteredProductIds = this.productIds.filter(productId => {
             const typeMatch = !typeFilter || productId.productIdType === typeFilter;
-            const statusMatch = !statusFilter || productId.status === statusFilter;
             const partnerMatch = !partnerFilter || productId.partner === partnerFilter;
             const searchMatch = !searchFilter ||
                 productId.productIdValue.toLowerCase().includes(searchFilter) ||
                 (productId.productName && productId.productName.toLowerCase().includes(searchFilter)) ||
                 (productId.productSku && productId.productSku.toLowerCase().includes(searchFilter));
 
-            return typeMatch && statusMatch && partnerMatch && searchMatch;
+            return typeMatch && partnerMatch && searchMatch;
         });
 
         this.currentPage = 1;
@@ -363,7 +358,7 @@ class ProductIdManager {
 
             document.getElementById('productIdId').value = '0';
             document.getElementById('certificateId').value = this.certificateId;
-            document.getElementById('productIdStatus').value = 'Active';
+            // CR-015: Status field removed from modal — auto-derived from parent cert on save.
             this.clearValidation();
         }
     }
@@ -373,7 +368,7 @@ class ProductIdManager {
         document.getElementById('certificateId').value = productId.certificateId;
         document.getElementById('productIdType').value = productId.productIdType;
         document.getElementById('productIdValue').value = productId.productIdValue;
-        document.getElementById('productIdStatus').value = productId.status;
+        // CR-015: Status field removed from modal — derived from parent cert.
         document.getElementById('productIdPartner').value = productId.partner || '';
         document.getElementById('productName').value = productId.productName || '';
         document.getElementById('productSku').value = productId.productSku || '';
@@ -391,12 +386,12 @@ class ProductIdManager {
         }
 
         // Collect form data from individual fields (form is a div, not a <form>)
+        // CR-015: Status omitted — backend auto-derives from parent cert.
         const productId = {
             Id: parseInt(document.getElementById('productIdId').value) || 0,
             CertificateId: parseInt(document.getElementById('certificateId').value) || this.certificateId,
             ProductIdType: document.getElementById('productIdType').value,
             ProductIdValue: document.getElementById('productIdValue').value.trim(),
-            Status: document.getElementById('productIdStatus').value || 'Active',
             Partner: document.getElementById('productIdPartner').value || '',
             ProductName: document.getElementById('productName').value.trim(),
             ProductSku: document.getElementById('productSku').value.trim(),
@@ -407,6 +402,7 @@ class ProductIdManager {
         if (!this.certificateId || this.certificateId === 0) {
             const isEdit = productId.Id < 0; // Temp IDs are negative
 
+            // CR-015: temp items have no status; backend derives from cert on save.
             if (isEdit) {
                 // Update existing temp item
                 const index = this.productIds.findIndex(p => p.id === productId.Id);
@@ -415,7 +411,6 @@ class ProductIdManager {
                         ...this.productIds[index],
                         productIdType: productId.ProductIdType,
                         productIdValue: productId.ProductIdValue,
-                        status: productId.Status || 'Active',
                         partner: productId.Partner || '',
                         productName: productId.ProductName || '',
                         productSku: productId.ProductSku || '',
@@ -430,7 +425,6 @@ class ProductIdManager {
                     certificateId: 0,
                     productIdType: productId.ProductIdType,
                     productIdValue: productId.ProductIdValue,
-                    status: productId.Status || 'Active',
                     partner: productId.Partner || '',
                     productName: productId.ProductName || '',
                     productSku: productId.ProductSku || '',
@@ -539,10 +533,10 @@ class ProductIdManager {
      * Returns array suitable for posting with the certificate form
      */
     getProductIdsForSubmission() {
+        // CR-015: Status omitted — backend auto-derives from parent cert.
         return this.productIds.map(p => ({
             ProductIdType: p.productIdType,
             ProductIdValue: p.productIdValue,
-            Status: p.status || 'Active',
             Partner: p.partner || '',
             ProductName: p.productName || '',
             ProductSku: p.productSku || '',
@@ -812,11 +806,11 @@ class ProductIdManager {
             // Also fix scientific notation on SKU field
             const sku = this.fixScientificNotation(productId.productsku || productId.sku || '');
 
+            // CR-015: Status from CSV is ignored — derived from parent cert.
             parsedProductIds.push({
                 rowNumber: i,
                 productIdType: type.toUpperCase(),
                 productIdValue: value,
-                status: productId.status || 'Active',
                 partner: productId.partner || '',
                 productName: productId.productname || '',
                 productSku: sku,
@@ -902,11 +896,9 @@ class ProductIdManager {
 
             if (existingItem) {
                 // Compare fields and determine status
+                // CR-015: Status comparison removed — Status is no longer in the import payload.
                 const changes = [];
 
-                if ((existingItem.status || '').toLowerCase() !== (importItem.status || '').toLowerCase()) {
-                    changes.push({ field: 'Status', oldValue: existingItem.status || '', newValue: importItem.status || '' });
-                }
                 if ((existingItem.partner || '') !== (importItem.partner || '')) {
                     changes.push({ field: 'Partner', oldValue: existingItem.partner || '', newValue: importItem.partner || '' });
                 }
@@ -1098,12 +1090,12 @@ class ProductIdManager {
             for (const row of selectedRows) {
                 // Generate a temporary negative ID for new items
                 const tempId = -(Date.now() + successCount);
+                // CR-015: temp items have no status; backend derives from cert on save.
                 const newItem = {
                     id: tempId,
                     certificateId: 0,
                     productIdType: row.data.productIdType,
                     productIdValue: row.data.productIdValue,
-                    status: row.data.status || 'Active',
                     partner: row.data.partner || '',
                     productName: row.data.productName || '',
                     productSku: row.data.productSku || '',
@@ -1128,11 +1120,11 @@ class ProductIdManager {
 
         for (const row of selectedRows) {
             try {
+                // CR-015: Status omitted — backend auto-derives from parent cert.
                 const productIdData = {
                     CertificateId: this.certificateId,
                     ProductIdType: row.data.productIdType,
                     ProductIdValue: row.data.productIdValue,
-                    Status: row.data.status || 'Active',
                     Partner: row.data.partner || '',
                     ProductName: row.data.productName || '',
                     ProductSku: row.data.productSku || '',
@@ -1249,9 +1241,10 @@ class ProductIdManager {
     }
 
     exportInMemoryProductIds() {
-        const header = 'Type,Product ID,Status,Partner,ProductName,ProductSku,Description';
+        // CR-015: Status column dropped from in-memory export — derived from parent cert.
+        const header = 'Type,Product ID,Partner,ProductName,ProductSku,Description';
         const rows = this.productIds.map(pid =>
-            `"${pid.productIdType || ''}","${pid.productIdValue || ''}","${pid.status || ''}","${pid.partner || ''}","${pid.productName || ''}","${pid.productSku || ''}","${pid.description || ''}"`
+            `"${pid.productIdType || ''}","${pid.productIdValue || ''}","${pid.partner || ''}","${pid.productName || ''}","${pid.productSku || ''}","${pid.description || ''}"`
         );
         const csvContent = [header, ...rows].join('\n');
 
@@ -1273,7 +1266,8 @@ class ProductIdManager {
     }
 
     downloadSample() {
-        const csvContent = "Type,Product ID,Status,Partner,ProductName,ProductSku,Description";
+        // CR-015: Status header removed from import template — auto-derived from parent cert.
+        const csvContent = "Type,Product ID,Partner,ProductName,ProductSku,Description";
 
         const blob = new Blob([csvContent], { type: 'text/csv' });
         const url = window.URL.createObjectURL(blob);

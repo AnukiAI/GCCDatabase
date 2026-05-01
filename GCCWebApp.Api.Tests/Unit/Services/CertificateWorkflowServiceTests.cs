@@ -29,12 +29,14 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             _loggerMock = new Mock<ILogger<CertificateWorkflowService>>();
             _httpContextAccessorMock = new Mock<IHttpContextAccessor>();
 
+            var productIdServiceMock = new Mock<IProductIdService>();
             _service = new CertificateWorkflowService(
                 _certificateRepoMock.Object,
                 _unitOfWorkMock.Object,
                 _loggerMock.Object,
                 _context,
-                _httpContextAccessorMock.Object);
+                _httpContextAccessorMock.Object,
+                productIdServiceMock.Object);
 
             SeedTestData();
         }

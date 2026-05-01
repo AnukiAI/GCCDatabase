@@ -1,0 +1,44 @@
+{
+  "@context": "https://gs1us-technology.github.io/certification-data-model/cert_context.json",
+  "$schema": "https://gs1us-technology.github.io/certification-data-model/cert_schema.json",
+  "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0146",
+  "type": "CertificationReport",
+  "issueDate": "2026-04-01",
+  "issuer": "GreenCircle Certified",
+  "products": [
+    {
+      "id": "https://gccwebapp.com/api/v1/certificates/gs1/26-0146/product",
+      "type": "Product",
+      "gtin": null,
+      "name": "John Frieda PROfiller+ Thickening Conditioner",
+      "additionalTradeItemId": [
+        {
+          "type": "ASIN",
+          "value": "B0BRNN8BKS",
+          "name": "John Frieda PROfiller+ Thickening Conditioner"
+        },
+        {
+          "type": "ASIN",
+          "value": "B005PMYJBO",
+          "name": "John Frieda Dream Curls Conditioner 250ml"
+        }
+      ],
+      "certificationInfo": {
+        "type": "CertificationDetails",
+        "agency": "GreenCircle Certified",
+        "agencyURL": "https://www.greencirclecertified.com",
+        "program": "Sustainable Energy Practices",
+        "certificateId": "26-0146",
+        "status": "ACTIVE",
+        "value": "17%",
+        "startDate": "2026-04-01",
+        "endDate": "2028-05-31",
+        "targetCountries": [
+          "All"
+        ],
+        "amazonCode": "greencircle_sustainable_energy_practices",
+        "pathway": "Energy usage reduction"
+      }
+    }
+  ]
+}

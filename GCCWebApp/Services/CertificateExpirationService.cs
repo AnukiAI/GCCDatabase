@@ -22,6 +22,7 @@ namespace GCCWebApp.Services
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<CertificateExpirationService> _logger;
+        private readonly IProductIdService _productIdService;
 
         // Static so the throttle persists across scoped instances for the app's lifetime
         private static DateTime _lastRunUtc = DateTime.MinValue;
@@ -29,10 +30,12 @@ namespace GCCWebApp.Services
 
         public CertificateExpirationService(
             ApplicationDbContext context,
-            ILogger<CertificateExpirationService> logger)
+            ILogger<CertificateExpirationService> logger,
+            IProductIdService productIdService)
         {
             _context = context;
             _logger = logger;
+            _productIdService = productIdService;
         }
 
         public async Task CheckAndExpireAsync()
@@ -126,6 +129,13 @@ namespace GCCWebApp.Services
             }
 
             await _context.SaveChangesAsync();
+
+            // CR-015: cascade Inactive status to all child product IDs on the just-expired certs.
+            foreach (var cert in certsToExpire)
+            {
+                await _productIdService.SyncProductIdStatusesForCertificateAsync(cert.Id);
+            }
+
             _logger.LogInformation("Successfully expired {Count} certificates", certsToExpire.Count);
         }
     }

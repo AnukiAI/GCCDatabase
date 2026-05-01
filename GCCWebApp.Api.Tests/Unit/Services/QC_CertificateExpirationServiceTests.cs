@@ -26,7 +26,8 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         {
             _context = TestDbContextFactory.CreateInMemoryContext();
             _loggerMock = new Mock<ILogger<CertificateExpirationService>>();
-            _service = new CertificateExpirationService(_context, _loggerMock.Object);
+            var productIdServiceMock = new Mock<IProductIdService>();
+            _service = new CertificateExpirationService(_context, _loggerMock.Object, productIdServiceMock.Object);
 
             // Reset the static throttle so each test can run
             ResetThrottle();

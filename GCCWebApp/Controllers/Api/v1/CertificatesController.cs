@@ -332,6 +332,8 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
                     .Include(c => c.CertificationTypeSubcategory)
+                    .Include(c => c.Pathway)
+                    .Include(c => c.ProductIds)
                     .Include(c => c.CustomFieldValues)
                         .ThenInclude(cfv => cfv.Field)
                     .FirstOrDefaultAsync(c => c.Id == id);
@@ -339,9 +341,14 @@ namespace GCCWebApp.Controllers.Api.v1
                 if (certificate == null)
                     return NotFoundResponse($"Certificate with ID {id} not found");
 
+                var isPartnerCaller = GetCurrentUserRole() == "Partner";
+
                 // Partner API contract: non-active certs are not visible to partners
-                if (GetCurrentUserRole() == "Partner" && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                if (isPartnerCaller && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
                     return NotFoundResponse($"Certificate with ID {id} not found");
+
+                if (isPartnerCaller)
+                    return SuccessResponse(BuildPartnerCertificateDto(certificate));
 
                 return SuccessResponse(certificate);
             }
@@ -369,6 +376,8 @@ namespace GCCWebApp.Controllers.Api.v1
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
                     .Include(c => c.CertificationTypeSubcategory)
+                    .Include(c => c.Pathway)
+                    .Include(c => c.ProductIds)
                     .Include(c => c.CustomFieldValues)
                         .ThenInclude(cfv => cfv.Field)
                     .FirstOrDefaultAsync(c => c.Number == certificateNumber);
@@ -376,9 +385,14 @@ namespace GCCWebApp.Controllers.Api.v1
                 if (certificate == null)
                     return NotFoundResponse($"Certificate with number {certificateNumber} not found");
 
+                var isPartnerCaller = GetCurrentUserRole() == "Partner";
+
                 // Partner API contract: non-active certs are not visible to partners
-                if (GetCurrentUserRole() == "Partner" && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
+                if (isPartnerCaller && !CertificateStatusHelper.PublicStatuses.Contains(certificate.Status))
                     return NotFoundResponse($"Certificate with number {certificateNumber} not found");
+
+                if (isPartnerCaller)
+                    return SuccessResponse(BuildPartnerCertificateDto(certificate));
 
                 return SuccessResponse(certificate);
             }
@@ -1134,7 +1148,7 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
         ///       "type": "Product",
         ///       "gtin": "00123456789012",
         ///       "additionalTradeItemId": [
-        ///         { "type": "ASIN", "value": "B08XQRT456" }
+        ///         { "type": "ASIN", "value": "B08XQRT456", "name": "Recycled Paper Towels - 12 pack" }
         ///       ],
         ///       "name": "Recycled Paper Towels",
         ///       "certificationInfo": {
@@ -1359,7 +1373,8 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                 .Select(pi => new GS1AdditionalTradeItemId
                 {
                     Type = pi.ProductIdType,
-                    Value = pi.ProductIdValue
+                    Value = pi.ProductIdValue,
+                    Name = pi.ProductName
                 })
                 .ToList();
 
@@ -1410,6 +1425,43 @@ This is crucial for partners who need to see all ASINs/UPCs for a product family
                         }
                     }
                 }
+            };
+        }
+
+        // DEF-103: shared partner-cert DTO so single-cert endpoints (by-id, by-number)
+        // return the same contract shape as the list endpoint. Status hardcoded to "Active",
+        // certificationCountries hardcoded to "All" per Amazon Developer Guide §4 / §8.
+        // No internal IDs leaked; productIds[] uses the array shape, not the legacy flat asin/upc/gtin/ean.
+        private object BuildPartnerCertificateDto(Certificate c)
+        {
+            return new
+            {
+                certificateNumber = c.Number,
+                status = "Active",
+                issueDate = c.EffectiveDate,
+                expirationDate = c.ExpirationDate,
+                certificationCountries = "All",
+                partner = c.Partner,
+                certificationResults = DisplayFormatters.FormatCertificationResults(c.CertificationResults),
+                pathway = c.Pathway?.Name,
+                company = c.Company?.Name,
+                productName = c.Product?.Name,
+                certificationType = c.CertificationType?.Name,
+                amazonCode = c.CertificationType?.AmazonCode,
+                issuer = "GreenCircle Certified",
+                productIds = (c.ProductIds ?? new List<CertificateProductId>())
+                    .Where(pi => pi.Status == "Active")
+                    .Select(pi => new
+                    {
+                        type = pi.ProductIdType,
+                        value = pi.ProductIdValue,
+                        status = pi.Status,
+                        partner = pi.Partner,
+                        productName = pi.ProductName,
+                        productSku = pi.ProductSku
+                    })
+                    .ToList(),
+                pdfDownloadUrl = $"/api/v1/certificates/{c.Number}/download"
             };
         }
     }

@@ -26,6 +26,7 @@ namespace GCCWebApp.Services.Import
         private readonly ILogger<CertificateImportService> _logger;
         private readonly IWebHostEnvironment _environment;
         private readonly IFileUploadService _fileUploadService;
+        private readonly IProductIdService _productIdService;
         private const string CACHE_KEY_PREFIX = "CertImport_";
         private const int CACHE_MINUTES = 30;
 
@@ -35,7 +36,8 @@ namespace GCCWebApp.Services.Import
             IMemoryCache cache,
             ILogger<CertificateImportService> logger,
             IWebHostEnvironment environment,
-            IFileUploadService fileUploadService)
+            IFileUploadService fileUploadService,
+            IProductIdService productIdService)
         {
             _context = context;
             _auditService = auditService;
@@ -43,6 +45,7 @@ namespace GCCWebApp.Services.Import
             _logger = logger;
             _environment = environment;
             _fileUploadService = fileUploadService;
+            _productIdService = productIdService;
         }
 
         #region Column Name Mappings (supports both UPPERCASE_WITH_UNDERSCORES and PascalCase formats)
@@ -1179,6 +1182,9 @@ namespace GCCWebApp.Services.Import
 
             await _context.SaveChangesAsync();
 
+            // CR-015: cascade product-ID statuses on cert update from import.
+            await _productIdService.SyncProductIdStatusesForCertificateAsync(certificate.Id);
+
             // Create CertificateProductId entries (multi-ASIN support)
             await CreateProductIdEntriesAsync(certificate.Id, row.ProductIdEntries, userId);
 
@@ -1238,7 +1244,8 @@ namespace GCCWebApp.Services.Import
                     ProductSku = entry.ProductSku,
                     Description = entry.AmazonCode,
                     Partner = entry.Partner,
-                    Status = "Active",
+                    // CR-015: Status will be auto-set by SyncProductIdStatusesForCertificateAsync below.
+                    Status = "Inactive",
                     IsActive = true,
                     IsPublic = true,
                     DisplayOrder = displayOrder++,
@@ -1254,6 +1261,9 @@ namespace GCCWebApp.Services.Import
             }
 
             await _context.SaveChangesAsync();
+
+            // CR-015: After insert, sync per-row status to the parent cert's derived status.
+            await _productIdService.SyncProductIdStatusesForCertificateAsync(certificateId);
         }
 
         /// <summary>

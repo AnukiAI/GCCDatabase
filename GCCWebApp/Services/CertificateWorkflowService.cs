@@ -26,19 +26,22 @@ namespace GCCWebApp.Services
         private readonly ILogger<CertificateWorkflowService> _logger;
         private readonly ApplicationDbContext _context;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IProductIdService _productIdService;
 
         public CertificateWorkflowService(
             ICertificateRepository certificateRepository,
             IUnitOfWork unitOfWork,
             ILogger<CertificateWorkflowService> logger,
             ApplicationDbContext context,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IProductIdService productIdService)
         {
             _certificateRepository = certificateRepository;
             _unitOfWork = unitOfWork;
             _logger = logger;
             _context = context;
             _httpContextAccessor = httpContextAccessor;
+            _productIdService = productIdService;
         }
 
         /// <summary>
@@ -94,6 +97,9 @@ namespace GCCWebApp.Services
 
                 // Trigger additional business logic based on new status
                 await HandleStatusChangeBusinessLogic(certificate, oldStatus, newStatus, userId);
+
+                // CR-015: cascade product-ID statuses to follow the new cert status.
+                await _productIdService.SyncProductIdStatusesForCertificateAsync(certificateId);
 
                 return (true, "Status updated successfully");
             }

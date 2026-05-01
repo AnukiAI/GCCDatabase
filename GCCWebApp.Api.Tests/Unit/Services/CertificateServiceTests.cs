@@ -20,7 +20,8 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         {
             _context = TestDbContextFactory.CreateInMemoryContext();
             _loggerMock = new Mock<ILogger<CertificateService>>();
-            _service = new CertificateService(_loggerMock.Object, _context);
+            var productIdServiceMock = new Mock<IProductIdService>();
+            _service = new CertificateService(_loggerMock.Object, _context, productIdServiceMock.Object);
 
             SeedTestData();
         }

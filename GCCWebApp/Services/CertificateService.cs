@@ -15,13 +15,16 @@ namespace GCCWebApp.Services
     {
         private readonly ILogger<CertificateService> _logger;
         private readonly ApplicationDbContext _context;
+        private readonly IProductIdService _productIdService;
 
         public CertificateService(
             ILogger<CertificateService> logger,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            IProductIdService productIdService)
         {
             _logger = logger;
             _context = context;
+            _productIdService = productIdService;
         }
 
         public async Task<CertificateListResponse> GetCertificatesAsync(CertificateListRequest request)
@@ -641,7 +644,13 @@ namespace GCCWebApp.Services
                             }
 
                             await _context.SaveChangesAsync();
-                            
+
+                            // CR-015: cascade product-ID statuses on each cert whose status just changed.
+                            foreach (var cert in certificatesToUpdate)
+                            {
+                                await _productIdService.SyncProductIdStatusesForCertificateAsync(cert.Id);
+                            }
+
                             result.AffectedCount = certificatesToUpdate.Count;
                             result.Message = $"Successfully updated status for {result.AffectedCount} certificates";
                         }
@@ -798,6 +807,8 @@ namespace GCCWebApp.Services
                 var existingCertificate = await _context.Certificates.FindAsync(id);
                 if (existingCertificate == null) return false;
 
+                var previousStatus = existingCertificate.Status;
+
                 existingCertificate.Number = certificate.Number;
                 existingCertificate.Status = certificate.Status;
                 existingCertificate.EffectiveDate = certificate.EffectiveDate.Value;
@@ -814,6 +825,13 @@ namespace GCCWebApp.Services
                 existingCertificate.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
+
+                // CR-015: cascade product-ID statuses if cert status changed.
+                if (!string.Equals(previousStatus, certificate.Status, StringComparison.Ordinal))
+                {
+                    await _productIdService.SyncProductIdStatusesForCertificateAsync(id);
+                }
+
                 return true;
             }
             catch (Exception ex)

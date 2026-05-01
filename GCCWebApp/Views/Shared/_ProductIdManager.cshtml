@@ -48,13 +48,7 @@
                 <option value="MPN">MPN</option>
                 <option value="OTHER">Other</option>
             </select>
-            <select class="form-select form-select-sm" id="filterByStatus" style="width: auto; min-width: 110px;">
-                <option value="">All Status</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-                <option value="Pending">Pending</option>
-                <option value="Expired">Expired</option>
-            </select>
+            @* CR-015: Status filter removed — product ID status follows parent certificate. *@
             <select class="form-select form-select-sm" id="filterByPartner" style="width: auto; min-width: 120px;">
                 <option value="">All Partners</option>
                 <option value="Amazon">Amazon</option>
@@ -75,7 +69,7 @@
                     <th width="120">Product ID</th>
                     <th width="150">Product Name</th>
                     <th width="100">SKU</th>
-                    <th width="80">Status</th>
+                    @* CR-015: Status column removed — product ID status follows parent certificate. *@
                     <th width="100">Partner</th>
                     <th width="100">Created</th>
                     <th width="100">Created By</th>
@@ -105,11 +99,7 @@
                             <td class="product-sku" title="@productId.ProductSku">
                                 @(productId.ProductSku ?? "-")
                             </td>
-                            <td>
-                                <span class="status-badge status-@productId.Status.ToLower()">
-                                    @productId.Status
-                                </span>
-                            </td>
+                            @* CR-015: Status cell removed — derived from parent cert. *@
                             <td>
                                 @if (!string.IsNullOrEmpty(productId.Partner))
                                 {
@@ -151,7 +141,7 @@
                 else
                 {
                     <tr id="noProductIdsRow">
-                        <td colspan="@(isReadOnly ? 8 : 9)" class="text-center text-muted py-4">
+                        <td colspan="@(isReadOnly ? 7 : 8)" class="text-center text-muted py-4">
                             <i class="fas fa-barcode fa-2x mb-2 d-block text-muted"></i>
                             No product IDs added yet.
                             @if (!isReadOnly)
@@ -216,17 +206,8 @@
                             </div>
                         </div>
 
+                        @* CR-015: Status field removed — auto-derived from parent certificate, not user-controlled. *@
                         <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="productIdStatus" class="form-label">Status</label>
-                                    <select class="form-select" id="productIdStatus" name="Status">
-                                        <option value="Active">Active</option>
-                                        <option value="Inactive">Inactive</option>
-                                        <option value="Pending">Pending</option>
-                                    </select>
-                                </div>
-                            </div>
                             <div class="col-md-6">
                                 <div class="mb-3">
                                     <label for="productIdPartner" class="form-label">Partner</label>

@@ -1236,16 +1236,14 @@ document.addEventListener('DOMContentLoaded', function() {
         exportBtn.addEventListener('click', function() {
             AdminCore.showLoading(exportBtn);
 
-            // Prepare export data
+            // CSV columns match UI: Tag Name, Tag Type, Description
             const exportData = tags.map(tag => ({
-                id: tag.id,
                 name: tag.name,
                 type: tag.tagType,
                 description: tag.description || ''
             }));
 
             const columns = [
-                { key: 'id', header: 'ID' },
                 { key: 'name', header: 'Tag Name' },
                 { key: 'type', header: 'Tag Type' },
                 { key: 'description', header: 'Description' }

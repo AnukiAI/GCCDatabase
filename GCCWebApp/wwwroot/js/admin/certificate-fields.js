@@ -603,16 +603,14 @@ class CertificateFieldsManager {
 
     // Removed updateShowMoreButton - using infinite scroll instead
 
-    // Export to CSV only
+    // Export to CSV only — column headers match UI table labels.
     showExportModal() {
         if (window.ExportUtils) {
             const columns = [
-                { key: 'id', header: 'ID' },
-                { key: 'name', header: 'Name' },
-                { key: 'fieldType', header: 'Field Type' },
+                { key: 'name', header: 'Field Name' },
+                { key: 'fieldType', header: 'Control Type' },
                 { key: 'isRequired', header: 'Required' },
-                { key: 'isVisible', header: 'Visible' },
-                { key: 'sortOrder', header: 'Sort Order' },
+                { key: 'isVisible', header: 'Visibility' },
                 { key: 'notes', header: 'Notes' }
             ];
 

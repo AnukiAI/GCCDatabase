@@ -1,5 +1,9 @@
 # Observations Log
 
+## 2026-05-01 - Export CSV header alignment audit (DEF-110)
+
+Audited every Export feature in the app — 15 surfaces total. Found CSV headers diverging from UI table labels on 12 of them, plus a duplicate-handler bug (Product Management pages were downloading 2 CSVs per Export click) and a CSV-ONLY rule violation (Product Types admin page used a CSV/JSON/Excel chooser modal). Standardized all 12 export header lines to match UI labels exactly, removed the duplicate registration, and forced Product Types to direct CSV. Export header text and import-template column names are now deliberately decoupled: User import template still uses "User Company" for round-trip with Carly's QC #108; export uses "Company" to match UI. Same pattern for product imports. C# changes in CertificateService.cs and AdminService.cs need server restart to take effect; JS/Razor changes are live on localhost:5101. Files: 12. See defect-register DEF-110 for the per-export breakdown.
+
 ## 2026-01-11 - Automated Login Testing & CSS Consolidation Verification
 
 ### Summary

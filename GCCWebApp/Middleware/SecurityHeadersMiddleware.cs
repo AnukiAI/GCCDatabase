@@ -88,18 +88,21 @@ public class SecurityHeadersMiddleware
         response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
 
         // Permissions Policy
-        response.Headers.Append("Permissions-Policy", 
+        // DEF-107 (2026-05-01): legacy Feature-Policy header removed; Permissions-Policy
+        // alone covers every browser this app supports. Sending both produced a Chromium
+        // console warning on every page load.
+        response.Headers.Append("Permissions-Policy",
             "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
-
-        // Feature Policy (for older browsers)
-        response.Headers.Append("Feature-Policy", 
-            "camera 'none'; microphone 'none'; geolocation 'none'; payment 'none'; usb 'none'");
 
         // Cross-Origin Resource Policy
         response.Headers.Append("Cross-Origin-Resource-Policy", "same-origin");
 
         // Cross-Origin Embedder Policy
-        response.Headers.Append("Cross-Origin-Embedder-Policy", "require-corp");
+        // DEF-108 (2026-05-01): require-corp blocked Google Analytics and any other
+        // cross-origin resource that doesn't return a CORP header. The codebase doesn't
+        // use SharedArrayBuffer or any feature that needs cross-origin isolation, so
+        // unsafe-none is the correct posture and restores GA collection.
+        response.Headers.Append("Cross-Origin-Embedder-Policy", "unsafe-none");
 
         // Cross-Origin Opener Policy
         response.Headers.Append("Cross-Origin-Opener-Policy", "same-origin");

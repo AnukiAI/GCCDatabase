@@ -1141,20 +1141,20 @@ function initializeExportFunctionality() {
             };
             flatten(window.productTypeManager.hierarchyData, 0);
 
+            // CSV-only export per project standard (no Excel/JSON modal).
             const columns = [
-                { key: 'id', header: 'ID' },
                 { key: 'name', header: 'Name' },
                 { key: 'type', header: 'Type' },
                 { key: 'parent', header: 'Parent' },
-                { key: 'level', header: 'Hierarchy Level' },
+                { key: 'level', header: 'Level' },
                 { key: 'sortOrder', header: 'Sort Order' },
                 { key: 'productCount', header: 'Product Count' }
             ];
-            
-            if (typeof ExportUtils !== 'undefined') {
-                ExportUtils.showExportModal(
-                    flattenedData, 
-                    columns, 
+
+            if (typeof ExportUtils !== 'undefined' && ExportUtils.exportToCSV) {
+                ExportUtils.exportToCSV(
+                    flattenedData,
+                    columns,
                     'product_types_hierarchy',
                     (message, type) => {
                         if (window.productTypeManager) {

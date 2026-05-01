@@ -28,7 +28,9 @@ class ProductManagement {
         document.getElementById('add-product-btn')?.addEventListener('click', () => this.showAddProduct());
         document.getElementById('template-btn')?.addEventListener('click', () => this.downloadImportTemplate());
         document.getElementById('import-btn')?.addEventListener('click', () => this.showImportModal());
-        document.getElementById('export-btn')?.addEventListener('click', () => this.exportProducts());
+        // Export button is wired up by each consuming page's inline handler so CSV columns
+        // can match that page's UI table. Class-level exportProducts() remains for callers
+        // that explicitly invoke window.productManagement.exportProducts().
         
         // Search event
         document.getElementById('search-input')?.addEventListener('input', (e) => this.handleSearch(e.target.value));

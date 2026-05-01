@@ -1022,7 +1022,8 @@ namespace GCCWebApp.Services
                 var (customFieldNames, customFieldValueMap) = GetCustomFieldDataForExport(certIds);
 
                 // CSV Header — all certificate fields + admin custom fields
-                csv.Append("\"Certificate Number\",\"Certification Type\",\"Certification Subcategories\",\"Status\",\"Company Name\",\"Company Contact Email\",\"Company Contact URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Product Subcategory\",\"Partner Program\",\"Pathway\",\"Certification Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tags\",\"Internal Tags\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"");
+                // CSV header text matches the certificate tile UI column labels.
+                csv.Append("\"Certificate #\",\"Certification Type\",\"Cert Subcategories\",\"Status\",\"Company\",\"Company Contact Email/URL\",\"Contact URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"");
                 foreach (var fieldName in customFieldNames)
                 {
                     csv.Append($",\"{EscapeCsvField(fieldName)}\"");

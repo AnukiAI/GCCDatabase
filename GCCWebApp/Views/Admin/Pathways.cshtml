@@ -573,14 +573,9 @@
                 return;
             }
 
-            // Client-side CSV export using ExportUtils pattern
-            const headers = ['Name', 'Description', 'Active', 'Sort Order'];
-            const rows = pathwaysData.map(p => [
-                p.name,
-                p.description || '',
-                p.isActive ? 'Yes' : 'No',
-                p.sortOrder
-            ]);
+            // CSV must match UI table column: only "Pathway Name" is shown.
+            const headers = ['Pathway Name'];
+            const rows = pathwaysData.map(p => [p.name]);
 
             let csv = headers.join(',') + '\n';
             rows.forEach(row => {

@@ -784,15 +784,15 @@ class UserManagement {
         }
 
         try {
-            // Prepare export data - get company names from companyNames array
-            // QC #108: "User Company" per Carly's feedback
+            // CSV columns must match UI table headers exactly: Name, Company, Email, Role, Status, Last Login, 2FA
             const exportData = this.filteredUsers.map(user => ({
                 Name: user.name || '',
+                Company: user.companyNames ? user.companyNames.join('; ') : (user.company || ''),
                 Email: user.email || '',
                 Role: user.role || '',
                 Status: user.status || '',
-                'User Company': user.companyNames ? user.companyNames.join('; ') : (user.company || ''),
-                'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never'
+                'Last Login': user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'Never',
+                '2FA': user.twoFactorEnabled ? 'Enabled' : 'Disabled'
             }));
 
             // Create CSV content

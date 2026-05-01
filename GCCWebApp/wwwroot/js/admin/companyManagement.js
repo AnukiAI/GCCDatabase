@@ -384,12 +384,11 @@ class CompanyManagement {
         }
         
         try {
-            // Prepare export data
+            // CSV columns must match UI table headers: Company Name, Email, URL
             const exportData = this.filteredCompanies.map(company => ({
-                ID: company.id,
-                Name: company.name || '',
+                'Company Name': company.name || '',
                 Email: company.email || '',
-                Website: company.url || ''
+                URL: company.url || ''
             }));
             
             // Create CSV content

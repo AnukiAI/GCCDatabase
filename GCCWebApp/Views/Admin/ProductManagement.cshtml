@@ -400,16 +400,28 @@
                             return;
                         }
 
-                        // Create CSV content
-                        const headers = ['Name', 'Description', 'SKU', 'Model', 'Status'];
+                        // CSV columns must match UI table headers: Product Name, Parent Identifiers, Status
+                        const headers = ['Product Name', 'Parent Identifiers', 'Status'];
                         const csvRows = [headers.join(',')];
+
+                        const formatParentIdentifiers = (product) => {
+                            const list = product.productIdentifiers || [];
+                            if (!list.length) return '';
+                            const grouped = {};
+                            list.forEach(pi => {
+                                const t = (pi.identifierType || '').toString();
+                                if (!grouped[t]) grouped[t] = [];
+                                grouped[t].push(pi.identifierValue || '');
+                            });
+                            return Object.keys(grouped)
+                                .map(t => `${t}: ${grouped[t].join(', ')}`)
+                                .join('; ');
+                        };
 
                         products.forEach(product => {
                             const row = [
                                 `"${(product.name || '').replace(/"/g, '""')}"`,
-                                `"${(product.description || '').replace(/"/g, '""')}"`,
-                                `"${(product.sku || '').replace(/"/g, '""')}"`,
-                                `"${(product.model || '').replace(/"/g, '""')}"`,
+                                `"${formatParentIdentifiers(product).replace(/"/g, '""')}"`,
                                 product.isActive ? 'Active' : 'Inactive'
                             ];
                             csvRows.push(row.join(','));

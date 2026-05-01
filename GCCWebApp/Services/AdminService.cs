@@ -1984,74 +1984,76 @@ namespace GCCWebApp.Services
         {
             var content = new StringBuilder();
             
+            // CSV header text matches each entity's UI table column labels.
             switch (entityType.ToLower())
             {
                 case "users":
                     var users = await GetUsersAsync();
-                    content.AppendLine("Id,Name,Email,Role,Status,Companies,LastLogin");
+                    content.AppendLine("Name,Company,Email,Role,Status,Last Login");
                     foreach (var user in users)
                     {
-                        content.AppendLine($"{user.Id},\"{user.Name}\",\"{user.Email}\",\"{user.Role}\",\"{user.Status}\"," +
-                                         $"\"{string.Join(", ", user.CompanyNames)}\",\"{user.LastLogin?.ToString("yyyy-MM-dd HH:mm")}\"");
+                        content.AppendLine($"\"{user.Name}\",\"{string.Join("; ", user.CompanyNames)}\",\"{user.Email}\"," +
+                                         $"\"{user.Role}\",\"{user.Status}\"," +
+                                         $"\"{user.LastLogin?.ToString("yyyy-MM-dd HH:mm")}\"");
                     }
                     break;
-                    
+
                 case "roles":
                     var roles = await GetRolesAsync();
-                    content.AppendLine("Id,Name,Description,UserCount,Permissions");
+                    content.AppendLine("Role Name,Description,Permissions,Users");
                     foreach (var role in roles)
                     {
-                        content.AppendLine($"{role.Id},\"{role.Name}\",\"{role.Description}\",{role.UserCount}," +
-                                         $"\"{string.Join(", ", role.Permissions)}\"");
+                        content.AppendLine($"\"{role.Name}\",\"{role.Description}\"," +
+                                         $"\"{string.Join(", ", role.Permissions)}\",{role.UserCount}");
                     }
                     break;
-                    
+
                 case "certificate-types":
                 case "certificatetypes":
                 case "certificate_types":
                     var certTypes = await GetCertificateTypesAsync();
-                    content.AppendLine("Id,Name,Description,IsActive,CertificateCount");
+                    content.AppendLine("Name,Description,Active,Certificates");
                     foreach (var certType in certTypes)
                     {
-                        content.AppendLine($"{certType.Id},\"{certType.Name}\",\"{certType.Description}\"," +
+                        content.AppendLine($"\"{certType.Name}\",\"{certType.Description}\"," +
                                          $"{certType.IsActive},{certType.CertificateCount}");
                     }
                     break;
-                    
+
                 case "certificate-fields":
                 case "certificatefields":
                 case "certificate_fields":
                     var certFields = await GetCertificateFieldsAsync();
-                    content.AppendLine("Id,Name,FieldType,IsRequired,IsVisible,SortOrder,Options,DefaultValue,ValidationRules");
+                    content.AppendLine("Field Name,Control Type,Required,Visibility,Notes");
                     foreach (var field in certFields)
                     {
-                        content.AppendLine($"{field.Id},\"{field.Name}\",\"{field.FieldType}\"," +
-                                         $"{field.IsRequired},{field.IsVisible},{field.SortOrder}," +
-                                         $"\"{field.Options}\",\"{field.DefaultValue}\",\"{field.ValidationRules}\"");
+                        content.AppendLine($"\"{field.Name}\",\"{field.FieldType}\"," +
+                                         $"{field.IsRequired},{field.IsVisible}," +
+                                         $"\"{field.ValidationRules}\"");
                     }
                     break;
-                    
+
                 case "partners":
                     var partners = await GetPartnersAsync();
-                    content.AppendLine("Id,Name,Description,Website,IsActive,UserCount,CreatedDate");
+                    content.AppendLine("Partner Name,Description,Website,Active,Users,Created Date");
                     foreach (var partner in partners)
                     {
-                        content.AppendLine($"{partner.Id},\"{partner.Name}\",\"{partner.Description}\"," +
+                        content.AppendLine($"\"{partner.Name}\",\"{partner.Description}\"," +
                                          $"\"{partner.Website}\",{partner.IsActive},{partner.UserCount}," +
                                          $"\"{partner.CreatedDate:yyyy-MM-dd HH:mm}\"");
                     }
                     break;
-                    
+
                 case "product-types":
                 case "producttypes":
                 case "product_types":
                 case "product_types_hierarchy":
                     var productTypes = await GetProductTypesAsync();
-                    content.AppendLine("Id,Name,Type,Parent,Level,SortOrder,ProductCount");
+                    content.AppendLine("Name,Type,Parent,Level,Sort Order,Product Count");
                     foreach (var productType in productTypes)
                     {
                         var typeLabel = productType.Level == 0 ? "Category" : productType.Level == 1 ? "Type" : "Subcategory";
-                        content.AppendLine($"{productType.Id},\"{productType.Name}\",\"{typeLabel}\"," +
+                        content.AppendLine($"\"{productType.Name}\",\"{typeLabel}\"," +
                                          $"\"{productType.ParentName}\",{productType.Level + 1},{productType.SortOrder},{productType.ProductCount}");
                     }
                     break;

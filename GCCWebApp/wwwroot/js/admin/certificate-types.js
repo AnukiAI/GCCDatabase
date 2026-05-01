@@ -1068,24 +1068,22 @@ function initializeExportFunctionality() {
                 return;
             }
 
-            // Prepare data for export
+            // CSV columns align with the Certificate Types UI tree (name + parent + certificate count).
             const exportData = window.certTypeManager.flatData.map(item => {
                 const parent = window.certTypeManager.flatData.find(p => p.id === item.parentId);
                 return {
-                    id: item.id,
                     name: item.name,
                     type: item.parentId === null ? 'Type' : 'Subcategory',
                     parent: parent ? parent.name : '(Top Level)',
-                    certificateCount: item.certificateCount || 0
+                    certificates: item.certificateCount || 0
                 };
             });
 
             const columns = [
-                { key: 'id', header: 'ID' },
                 { key: 'name', header: 'Name' },
                 { key: 'type', header: 'Type' },
                 { key: 'parent', header: 'Parent' },
-                { key: 'certificateCount', header: 'Certificate Count' }
+                { key: 'certificates', header: 'Certificates' }
             ];
 
             if (typeof ExportUtils !== 'undefined') {

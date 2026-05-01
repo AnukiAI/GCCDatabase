@@ -1004,42 +1004,32 @@
         }
 
         function exportProducts() {
-            // QC #103: Align export columns with Template and Add Product modal.
-            // Removed Status (per QC #92). Added Description to match template.
-            const headers = ['Name', 'Company', 'Description', 'Category', 'Product Type', 'Subcategory', 'Identifier Type', 'Identifier Value'];
+            // CSV header text matches the per-company products UI table:
+            // Product Name, Company, Category, Product Type, Subcategory, Status, Certs, IDs
+            const headers = ['Product Name', 'Company', 'Category', 'Product Type', 'Subcategory', 'Status', 'Certs', 'IDs'];
             const rows = [];
 
             products.forEach(p => {
                 const identifiers = p.identifiers || {};
-                const baseRow = [
-                    p.name || '',
-                    p.companyName || p.company || '',
-                    p.description || '',
-                    p.categoryName || p.category || '',
-                    p.productTypeName || '',
-                    p.productSubcategoryName || ''
-                ];
-
-                // Collect all identifiers into type/value pairs
-                const allIds = [];
+                const idTokens = [];
                 Object.keys(identifiers).forEach(type => {
-                    const values = identifiers[type] || [];
-                    values.forEach(val => {
-                        allIds.push({ type: type.toUpperCase(), value: val });
+                    (identifiers[type] || []).forEach(val => {
+                        if (val) idTokens.push(`${type.toUpperCase()}: ${val}`);
                     });
                 });
+                if (p.sku) idTokens.push(`SKU: ${p.sku}`);
+                if (p.model) idTokens.push(`Model: ${p.model}`);
 
-                // Also check direct fields
-                if (p.sku) allIds.push({ type: 'SKU', value: p.sku });
-                if (p.model) allIds.push({ type: 'Model', value: p.model });
-
-                if (allIds.length > 0) {
-                    allIds.forEach(id => {
-                        rows.push([...baseRow, id.type, id.value]);
-                    });
-                } else {
-                    rows.push([...baseRow, '', '']);
-                }
+                rows.push([
+                    p.name || '',
+                    p.companyName || p.company || '',
+                    p.categoryName || p.category || '',
+                    p.productTypeName || '',
+                    p.productSubcategoryName || '',
+                    (p.isActive === false) ? 'Inactive' : 'Active',
+                    p.certificateCount ?? 0,
+                    idTokens.join('; ')
+                ]);
             });
 
             const escapeCell = (val) => {

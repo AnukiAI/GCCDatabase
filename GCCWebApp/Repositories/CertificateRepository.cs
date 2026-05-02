@@ -57,7 +57,12 @@ namespace GCCWebApp.Repositories
             return await _dbSet
                 .Where(c => CertificateStatusHelper.DashboardStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday))
                 .Include(c => c.Company)
-                .Include(c => c.Product)
+                .Include(c => c.Product).ThenInclude(p => p!.Category)
+                .Include(c => c.Product).ThenInclude(p => p!.ProductType)
+                .Include(c => c.Product).ThenInclude(p => p!.ProductSubcategory)
+                .Include(c => c.ProductCategory)
+                .Include(c => c.ProductType)
+                .Include(c => c.ProductSubcategory)
                 .Include(c => c.CertificationType)
                 .ToListAsync();
         }
@@ -478,6 +483,19 @@ namespace GCCWebApp.Repositories
                 .Distinct()
                 .ToListAsync();
             stats["ProductSubcategories"] = pscFromProduct.Concat(pscFromCertDirect).Distinct().Count();
+
+            // Distinct product categories with active certificates (two queries to avoid EF Core translation issues)
+            var pcFromProduct = await activeCertQuery
+                .Where(c => c.Product != null && c.Product.Category != null)
+                .Select(c => c.Product!.Category!.Name)
+                .Distinct()
+                .ToListAsync();
+            var pcFromCertDirect = await activeCertQuery
+                .Where(c => c.ProductCategory != null && (c.Product == null || c.Product.Category == null))
+                .Select(c => c.ProductCategory!.Name)
+                .Distinct()
+                .ToListAsync();
+            stats["ProductCategoriesWithActiveCerts"] = pcFromProduct.Concat(pcFromCertDirect).Distinct().Count();
 
             // Products with active certificates
             stats["ActiveProducts"] = await activeCertQuery

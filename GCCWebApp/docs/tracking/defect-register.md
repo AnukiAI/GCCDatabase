@@ -18,6 +18,26 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-122 — Dashboard: tile #3 label "# Product Categories with Active Certs" was bound to certification-types count
+
+- **Date:** 2026-05-02
+- **Severity:** Medium (visible to internal users; misleading reporting metric)
+- **Status:** Fixed (pending deploy)
+- **Reporter:** Shawn — "are the numbers correct" audit of `/Dashboard`
+- **Symptom:** Dashboard tile #3 displayed the count of distinct **certification types** under a "Product Categories" label. Dashboard had no tile for actual product categories.
+- **Root cause:** `Views/Dashboard/Index.cshtml:58` bound the value to `Model.TotalCertificationTypes` (which the controller fills from `Statistics["CertTypesWithActiveCerts"]`). The repository never computed a `ProductCategoriesWithActiveCerts` stat at all — the key didn't exist.
+- **Fix:**
+  1. `Repositories/CertificateRepository.cs` — added `stats["ProductCategoriesWithActiveCerts"]` distinct-count query, mirroring the two-query EF pattern already used for ProductTypes / Subcategories (handles certs linked via `Product.Category` and certs linked directly via `c.ProductCategory`).
+  2. `Views/Dashboard/Index.cshtml` (line 58) — rebound to `Model.Statistics.GetValueOrDefault("ProductCategoriesWithActiveCerts", 0)`.
+- **Validation (dev DB):** OLD value = 4 (cert types — wrong); NEW value = 1 ("Chemicals and Raw Materials" — matches Top-5 Product Categories table at the bottom of the same page).
+- **Files touched:**
+  - `Repositories/CertificateRepository.cs`
+  - `Views/Dashboard/Index.cshtml`
+- **Deploy:** Pending — next build after 2026-05-01 zip
+- **Notes:** Tile's download button (`data-stat-type="product-categories-with-active-certs"`) was already correctly mapped to the right CSV — was just sitting on a tile showing the wrong number. `DashboardViewModel.TotalCertificationTypes` left in place (no other consumers found, but kept for safety; can remove in a future cleanup).
+
+---
+
 ### DEF-121 — SECURITY: `/api/productids/certificate/{id}` leaks password hashes and 2FA secrets in CreatedByUser / UpdatedByUser
 
 - **Date:** 2026-05-01

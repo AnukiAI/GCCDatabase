@@ -573,6 +573,38 @@
     #company-table td {
         padding: var(--space-sm);
     }
+
+    /* Mobile: drop fixed layout + percentage column widths so URL column gets
+       real width and content can wrap. Without this, the URL column collapses
+       to near-zero and long URLs overflow past the viewport edge. */
+    #company-table {
+        table-layout: auto;
+    }
+
+    #company-table th[style*="width"] {
+        width: auto !important;
+    }
+
+    /* Long URLs and emails must break inside their cell, not overflow it */
+    #company-table .company-url,
+    #company-table .company-email,
+    #company-table .url-link,
+    #company-table .company-name {
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        max-width: 100%;
+    }
+
+    #company-table .url-link {
+        display: inline-block;
+    }
+
+    /* Container should scroll horizontally if anything still overflows
+       (overrides admin-mockup-override.css forcing overflow:visible) */
+    .admin-content,
+    .admin-table-container {
+        overflow-x: auto !important;
+    }
 }
 
 @media (max-width: 480px) {

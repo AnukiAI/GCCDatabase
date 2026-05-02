@@ -10,20 +10,20 @@
 
 ## Executive summary
 
-**55 items validated in 9 batches on 2026-05-01.**
+**55 items validated in 9 batches on 2026-05-01; 3 mobile items confirmed PASS by Shawn 2026-05-02.**
 
 | Outcome | Count | %  |
 |---|---|---|
-| ✅ **PASS** (verified working) | 36 | 65% |
-| ⚠️ **NEEDS MANUAL** (Playwright couldn't reach the path; visual review required) | 11 | 20% |
+| ✅ **PASS** (verified working) | 39 | 71% |
+| ⚠️ **NEEDS MANUAL** (Playwright couldn't reach the path; visual review required) | 8 | 15% |
 | 💬 **CR-LEVEL** (feature request beyond what was scoped — not a regression) | 4 | 7% |
 | 📋 **DATA / PROD-ONLY** (dev DB doesn't have data to exercise; re-test on prod) | 4 | 7% |
 
 **Items by status:**
 
-**✅ PASS (36):** #23, #31, #33, #35, #45 (Section A/B regression — already passed 4/30), #51, #66, #71, #78, #91, #94 (code), #95 (3 of 7 cols), #104, #106 (with caveat), #107, #109, #117, #118, #127, #129, #131, #133, #134 (at scan), #137, #139, #141, #142, #144, #146, #147, #154, #155, #156, #161, #163
+**✅ PASS (39):** #23, #31, #33, #35, #37, #45 (Section A/B regression — already passed 4/30), #51, #66, #71, #78, #91, #94 (code), #95 (3 of 7 cols), #104, #106 (with caveat), #107, #109, #117, #118, #127, #129, #131, #133, #134 (at scan), #137, #139, #141, #142, #144, #146, #147, #152, #153, #154, #155, #156, #161, #163
 
-**⚠️ NEEDS MANUAL (11):** #37, #60, #80, #95 (4 of 7 cols), #96, #123, #128, #130, #136 (verify on prod), #149, #152, #153, #157
+**⚠️ NEEDS MANUAL (8):** #60, #80, #95 (4 of 7 cols), #96, #123, #128, #130, #136 (verify on prod), #149, #157
 
 **💬 CR-LEVEL (4):** #59 (autocomplete narrowing), #84 (URL-naming question), #86 (mouse-drag scroll), #159 (bulk replace)
 
@@ -91,7 +91,7 @@
 | 31 | — | DEFECT | Public cert detail | Download button alignment + image cutoff | 9 | PASS-PRIOR |
 | 33 | High | DEFECT | Public | APR/LEED filters don't actually filter | 9 | PASS-PRIOR |
 | 35 | High | DATA | Public | Default placeholder PDF leaking on certs missing real PDF | 9 | PASS-PRIOR |
-| 37 | — | COSMETIC | Mobile public | Tags too close to bottom on mobile tile | 7 | PEND |
+| 37 | — | COSMETIC | Mobile public | Tags too close to bottom on mobile tile | 7 | PASS |
 | 45 | High | DATA | Cert create | Missing cert types in dropdown | 9 | PASS-PRIOR |
 | 51 | — | DATA | Global | Random characters in name (TM/registered/diacritics) | 5 | PEND |
 | 59 | High | DEFECT | Cert create | Autocomplete missing — long Company list | 4 | PEND |
@@ -133,8 +133,8 @@
 | 146 | — | WAD | Admin Tags | Page header right-aligned with buttons (should be left) | 2 | PEND |
 | 147 | — | DEFECT | Global | Import/Export icon arrow direction | 8 | PEND |
 | 149 | — | DEFECT | Public | L2/L3 Product Category options don't filter | 5 | PEND |
-| 152 | — | COSMETIC | Mobile search | Magnifying glass running into box border | 7 | PEND |
-| 153 | — | DEFECT | Mobile cert detail | Cert image cutoff + buttons + image-on-top order | 7 | PEND |
+| 152 | — | COSMETIC | Mobile search | Magnifying glass running into box border | 7 | PASS |
+| 153 | — | DEFECT | Mobile cert detail | Cert image cutoff + buttons + image-on-top order | 7 | PASS |
 | 154 | — | WAD | Dashboard | Active-only counts ignore Confidential / Republished | 6 | PEND |
 | 155 | — | DEFECT | Dashboard | Cat/Type/Subcat-with-Active-Certs export missing cols | 6 | PEND |
 | 156 | — | NEW | Dashboard | Last Month / Last Year / This Year tile labels say "Active" | 6 | PEND |
@@ -635,32 +635,21 @@ Carly's two complaints both addressed:
 **Viewports:** iPhone 12 (390×844), iPhone SE (375×667), Galaxy S9+ (320×658)
 **Screenshots:** `screenshots/2026-05-01-batch7/{iphone12,iphoneSE,galaxyS9}_public.png` and `_cert_detail.png`
 
-#### QC #37 — Tags too close to tile bottom on mobile → **NEEDS VISUAL REVIEW**
+#### QC #37 — Tags too close to tile bottom on mobile → **PASS**
 
-Programmatic measurement of tag element vs tile bottom returned null (tag selector didn't match the mobile-rendered tile structure). The 2026-04-01 mobile responsive fix-pass updated `certificate-tile-external.css` and `main.css` for mobile breakpoints — that fix is known intact in the repo.
+Programmatic measurement returned null (tag selector didn't match the mobile-rendered tile structure on dev DB). Visual review by Shawn 2026-05-02 against `screenshots/2026-05-01-qa-review/qc37_public_tile_360.png` (360×800 portrait): tag-to-tile-bottom spacing reads correctly. The 2026-04-01 mobile responsive fix-pass on `certificate-tile-external.css` and `main.css` is intact.
 
-**Action:** open `screenshots/2026-05-01-batch7/iphone12_public.png` and visually verify there's reasonable padding between the bottom tag pill and the tile bottom edge.
+#### QC #152 — Search icon overlapping border on mobile → **PASS**
 
-#### QC #152 — Search icon overlapping border on mobile → **NEEDS VISUAL REVIEW**
+Search input bounding box returned 0×0 in headless Chromium because the input sits behind the mobile menu toggle. Visual review by Shawn 2026-05-02: magnifying-glass icon sits cleanly inside the input border with adequate padding.
 
-Search input bounding box returned 0×0 — the input is hidden behind a hamburger/search-menu toggle on mobile. Programmatic test cannot reach it without first toggling the mobile menu open.
+#### QC #153 — Mobile cert detail: image cutoff + image-on-top order → **PASS**
 
-**Action:** open the mobile public view, tap the search affordance to reveal the input, verify the magnifying-glass icon is inside the input border with adequate left padding (≥8px from box edge).
-
-#### QC #153 — Mobile cert detail: image cutoff + image-on-top order → **NEEDS VISUAL REVIEW**
-
-Tile click on mobile didn't navigate to cert detail — page URL remained `/`. The cert tile click may use a touch handler that headless Chromium emulation doesn't trigger reliably. Cannot programmatically measure image vs content order.
-
-Carly's two asks:
-- Image not cutoff
-- Image moved to bottom (after content) on mobile so users can read text first
-
-**Action:** open public view on a real mobile device or a real Chrome DevTools mobile emulation (not headless), open any cert detail, scroll through, verify image renders fully and (per Carly's preference) sits below the text content sections.
+Tile click in headless emulation did not navigate to cert detail (touch-handler quirk in headless Chromium). Visual review by Shawn 2026-05-02 on a real mobile viewport: image renders fully (no cutoff) and the layout order matches the requested behaviour.
 
 #### Batch 7 follow-up actions
 
-- [ ] All 3 items need a manual mobile pass — best done in Chrome DevTools mobile emulation or on a real iPhone/Android device.
-- [ ] If image-on-top order needs to change for QC #153, that's likely a CSS flex-direction or grid-template-areas change in `Views/Certificate/Details.cshtml` — small CSS-only fix.
+- ~~All 3 items need a manual mobile pass~~ — completed by Shawn 2026-05-02. All three PASS.
 
 ---
 

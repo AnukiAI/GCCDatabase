@@ -471,7 +471,7 @@ namespace GCCWebApp.Controllers
                 case "product-categories-with-active-certs":
                     header = "Product Category";
                     groups = activeCerts
-                        .GroupBy(c => c.Product?.Category?.Name ?? "Uncategorized")
+                        .GroupBy(c => c.Product?.Category?.Name ?? c.ProductCategory?.Name ?? "Uncategorized")
                         .Select(g => (Name: g.Key, Count: g.Count()))
                         .OrderByDescending(g => g.Count);
                     break;
@@ -479,7 +479,7 @@ namespace GCCWebApp.Controllers
                 case "product-types-with-active-certs":
                     header = "Product Type";
                     groups = activeCerts
-                        .GroupBy(c => c.ProductType?.Name ?? "Unassigned")
+                        .GroupBy(c => c.Product?.ProductType?.Name ?? c.ProductType?.Name ?? "Unassigned")
                         .Select(g => (Name: g.Key, Count: g.Count()))
                         .OrderByDescending(g => g.Count);
                     break;
@@ -487,7 +487,7 @@ namespace GCCWebApp.Controllers
                 case "product-subcategories-with-active-certs":
                     header = "Product Subcategory";
                     groups = activeCerts
-                        .GroupBy(c => c.ProductSubcategory?.Name ?? "Unassigned")
+                        .GroupBy(c => c.Product?.ProductSubcategory?.Name ?? c.ProductSubcategory?.Name ?? "Unassigned")
                         .Select(g => (Name: g.Key, Count: g.Count()))
                         .OrderByDescending(g => g.Count);
                     break;

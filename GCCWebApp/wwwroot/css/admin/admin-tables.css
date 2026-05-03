@@ -665,9 +665,39 @@
     }
 
     /* Hide specific columns on mobile via utility classes */
+    /* Note: --td-- alias exists because Tags/UserManagement/gccapi views and
+       JS row generators emit "admin-table-td--hidden-mobile" on <td>s.
+       Without this alias, headers hide on mobile but body cells stay,
+       making the table wider than the viewport. */
     .admin-table-th--hidden-mobile,
-    .admin-table-cell--hidden-mobile {
+    .admin-table-cell--hidden-mobile,
+    .admin-table-td--hidden-mobile {
         display: none;
+    }
+
+    /* Make the table-container the horizontal-scroll boundary on mobile.
+       admin-mockup-override.css resets it to overflow:visible — without this
+       restore, wide tables push the whole page wider than the viewport. */
+    .admin-content,
+    .admin-table-container {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /* Action icons inside admin tables must stay horizontal on mobile.
+       Several page-level CSS files (tags, partners, userManagement-additions)
+       used to flip these to flex-direction:column, stacking icons vertically
+       and bloating row height. Force them back to a single row. */
+    .admin-table .action-buttons,
+    .admin-table .admin-inline-actions,
+    .admin-table .admin-inline-edit-actions,
+    .admin-table .admin-inline-add-actions,
+    .admin-table .admin-action-buttons,
+    .admin-table-cell--actions,
+    .admin-table-td--actions {
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        white-space: nowrap !important;
     }
 }
 

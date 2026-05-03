@@ -73,7 +73,7 @@ function populateTable(data) {
 
         // Tag type cell with view and edit modes
         const typeCell = document.createElement('td');
-        typeCell.className = 'admin-table-td admin-table-td--hidden-mobile';
+        typeCell.className = 'admin-table-td';
 
         // View mode
         const typeSpan = document.createElement('span');
@@ -96,7 +96,7 @@ function populateTable(data) {
 
         // Description cell with view and edit modes
         const descCell = document.createElement('td');
-        descCell.className = 'admin-table-td admin-table-td--hidden-mobile';
+        descCell.className = 'admin-table-td';
 
         // View mode
         const descSpan = document.createElement('span');

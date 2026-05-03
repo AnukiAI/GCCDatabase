@@ -75,7 +75,7 @@
 /* ===== ACTION BUTTON CONTAINERS ===== */
 .admin-inline-actions {
     display: flex;
-    gap: 8px;
+    gap: 4px;
     justify-content: flex-end;
     align-items: center;
 }
@@ -89,7 +89,7 @@
 .admin-inline-edit-actions,
 .admin-inline-add-actions {
     display: none;
-    gap: 8px;
+    gap: 4px;
     justify-content: flex-end;
     align-items: center;
 }
@@ -235,20 +235,19 @@
 
 /* ===== RESPONSIVE DESIGN ===== */
 @media (max-width: 768px) {
+    /* Action icons must stay side-by-side on mobile, never stack vertically.
+       Stacking inflates row height and is harder to tap accurately. */
+    .admin-inline-actions,
     .admin-inline-edit-actions,
     .admin-inline-add-actions {
-        flex-direction: column;
-        gap: 4px;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 2px;
+        white-space: nowrap;
     }
 
     .admin-inline-btn-save,
     .admin-inline-btn-cancel {
-        width: 100%;
         justify-content: center;
-    }
-
-    .admin-inline-actions {
-        flex-direction: column;
-        gap: 4px;
     }
 }

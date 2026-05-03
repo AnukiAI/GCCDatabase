@@ -103,14 +103,14 @@
                 <thead class="admin-table-header">
                     <tr>
                         <th style="width: 40px;"></th>
-                        <th data-sort="name" class="admin-table-th--sortable" style="min-width: 160px;">Product Name <span class="sort-icon admin-sort-icon">â–¼</span></th>
-                        <th data-sort="company" class="admin-table-th--sortable" style="min-width: 130px;">Company <span class="sort-icon admin-sort-icon">â–¼</span></th>
-                        <th data-sort="category" class="admin-table-th--sortable" style="min-width: 130px;">Category <span class="sort-icon admin-sort-icon">â–¼</span></th>
-                        <th data-sort="productType" class="admin-table-th--sortable" style="min-width: 130px;">Product Type <span class="sort-icon admin-sort-icon">â–¼</span></th>
-                        <th data-sort="subcategory" class="admin-table-th--sortable" style="min-width: 130px;">Subcategory <span class="sort-icon admin-sort-icon">â–¼</span></th>
-                        <th data-sort="status" class="admin-table-th--sortable" style="width: 120px; min-width: 120px;">Status <span class="sort-icon admin-sort-icon">â–¼</span></th>
-                        <th data-sort="certificates" class="admin-table-th--sortable" style="width: 100px; min-width: 100px;">Certs <span class="sort-icon admin-sort-icon">â–¼</span></th>
-                        <th data-sort="identifiers" class="admin-table-th--sortable" style="width: 90px; min-width: 90px;">IDs <span class="sort-icon admin-sort-icon">â–¼</span></th>
+                        <th data-sort="name" class="admin-table-th--sortable" style="min-width: 160px;">Product Name <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="company" class="admin-table-th--sortable" style="min-width: 130px;">Company <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="category" class="admin-table-th--sortable" style="min-width: 130px;">Category <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="productType" class="admin-table-th--sortable" style="min-width: 130px;">Product Type <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="subcategory" class="admin-table-th--sortable" style="min-width: 130px;">Subcategory <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="status" class="admin-table-th--sortable" style="width: 120px; min-width: 120px;">Status <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="certificates" class="admin-table-th--sortable" style="width: 100px; min-width: 100px;">Certs <span class="sort-icon admin-sort-icon">▼</span></th>
+                        <th data-sort="identifiers" class="admin-table-th--sortable" style="width: 90px; min-width: 90px;">IDs <span class="sort-icon admin-sort-icon">▼</span></th>
                         <th class="actions-col role-element role-analyst-show role-admin-show" style="width: 100px; min-width: 100px;">Actions</th>
                     </tr>
                 </thead>
@@ -783,12 +783,12 @@
                     headers.forEach(h => {
                         h.classList.remove('active-sort');
                         const icon = h.querySelector('.sort-icon');
-                        if (icon) icon.textContent = 'â–¼';
+                        if (icon) icon.textContent = '▼';
                     });
                     header.classList.add('active-sort');
 
                     const sortIcon = header.querySelector('.sort-icon');
-                    sortIcon.textContent = sortDirection === 'asc' ? 'â–²' : 'â–¼';
+                    sortIcon.textContent = sortDirection === 'asc' ? '▲' : '▼';
 
                     populateTable();
                 });
@@ -1498,7 +1498,7 @@
                     indicator.classList.remove('expanded');
                 } else {
                     detailRow.classList.add('show');
-                    indicator.textContent = 'â–¼';
+                    indicator.textContent = '▼';
                     indicator.classList.add('expanded');
                 }
             }

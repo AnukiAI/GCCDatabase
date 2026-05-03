@@ -568,14 +568,12 @@
         width: 95%;
     }
 
-    .action-buttons {
-        flex-direction: column;
-        gap: 4px;
-    }
-
+    .action-buttons,
     .tags-edit-actions {
-        flex-direction: column;
-        gap: 3px;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 4px;
+        white-space: nowrap;
     }
 }
 

@@ -261,7 +261,7 @@
 #company-table .action-buttons {
     display: inline-flex !important;
     flex-wrap: nowrap !important;
-    gap: 8px !important;
+    gap: 4px !important;
     justify-content: center !important;
     align-items: center !important;
 }
@@ -440,7 +440,7 @@
 /* Edit action buttons */
 #company-table .action-buttons {
     display: inline-flex !important;
-    gap: 8px;
+    gap: 4px;
     justify-content: center;
     align-items: center;
     flex-wrap: nowrap;
@@ -458,7 +458,7 @@
 
 #company-table .company-edit-row .company-edit-actions {
     display: inline-flex !important;
-    gap: 8px;
+    gap: 4px;
     justify-content: center;
     align-items: center;
     flex-wrap: nowrap;
@@ -562,7 +562,7 @@
     .btn-delete, .btn-edit {
         min-width: 32px;
         height: 32px;
-        margin: 0 1px;
+        margin: 0;
     }
 
     #company-table {

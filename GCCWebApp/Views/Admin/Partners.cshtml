@@ -60,7 +60,7 @@
             <thead class="admin-table-header">
                 <tr>
                     <th class="admin-table-th admin-table-th--sortable" data-sort="name" width="90%">
-                        Partner Name <span class="sort-icon">â–¼</span>
+                        Partner Name <span class="sort-icon">▼</span>
                     </th>
                     <th class="admin-table-th admin-table-th--actions" width="10%">Actions</th>
                 </tr>
@@ -273,14 +273,14 @@
                         h.classList.remove('active-sort');
                         const icon = h.querySelector('.sort-icon');
                         if (icon) {
-                            icon.textContent = 'â–¼';
+                            icon.textContent = '▼';
                         }
                     });
 
                     header.classList.add('active-sort');
                     const sortIcon = header.querySelector('.sort-icon');
                     if (sortIcon) {
-                        sortIcon.textContent = sortDirection === 'asc' ? 'â–²' : 'â–¼';
+                        sortIcon.textContent = sortDirection === 'asc' ? '▲' : '▼';
                     }
 
                     // Sort the data

@@ -439,8 +439,10 @@
         }
 
     .partners-edit-actions {
-        flex-direction: column;
+        flex-direction: row;
+        flex-wrap: nowrap;
         gap: 3px;
+        white-space: nowrap;
     }
 
     .partners-btn-save,

@@ -1370,7 +1370,7 @@
 
             // Build export URL with selected IDs as query params
             const params = new URLSearchParams();
-            params.append('format', 'excel');
+            params.append('format', 'csv');
 
             // For now, export with current filters (selected export for specific IDs would need a new endpoint)
             // This is a simplified version - you may want to add a dedicated endpoint for selected exports
@@ -1387,14 +1387,14 @@
         }
     }
 
-    // Handle export all certificates to Excel
+    // Handle export all certificates to CSV (DEF-128)
     async function handleExportAll() {
         try {
             showToast('Preparing export...', 'info');
 
             // Build export URL with current filters
             const params = new URLSearchParams();
-            params.append('format', 'excel');
+            params.append('format', 'csv');
 
             // Add filter parameters
             if (state.filters.search) {
@@ -1421,7 +1421,7 @@
             window.location.href = url;
 
             setTimeout(() => {
-                showToast(`Exporting ${state.totalCount} certificate(s) to Excel`, 'success');
+                showToast(`Exporting ${state.totalCount} certificate(s) to CSV`, 'success');
             }, 1000);
         } catch (error) {
             console.error('Error exporting certificates:', error);

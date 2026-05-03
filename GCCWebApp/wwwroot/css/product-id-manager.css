@@ -7,11 +7,10 @@
 }
 
 #productIdModal .modal-dialog {
-    /* Wide enough for the 2-column form (Type | Product ID, Partner alongside)
-       to actually render at col-md-6 instead of collapsing to a single stack
-       on desktop. Bootstrap modal-lg defaults to 800px; we go a bit wider for
-       the description textarea to breathe. */
-    max-width: 900px;
+    /* Match Bootstrap modal-xl width so the two-column form (Type | Product ID,
+       Partner) and the full-width Description textarea have real breathing room
+       on a typical desktop monitor. Previous 900px still felt cramped. */
+    max-width: 1140px;
 }
 
 .product-id-manager {

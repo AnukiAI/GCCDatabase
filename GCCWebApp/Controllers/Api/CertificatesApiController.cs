@@ -583,7 +583,9 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
-                _logger.LogInformation("API request to export certificates in {Format} format", request.Format);
+                // DEF-128: CSV-only output per CLAUDE.md. Endpoint is gated to AnalystOrAdmin so
+                // includeInternalTags is always true here.
+                _logger.LogInformation("API request to export certificates (CSV-only)");
 
                 var listRequest = new CertificateListRequest
                 {
@@ -596,27 +598,19 @@ namespace GCCWebApp.Controllers.Api
                     }
                 };
 
-                var exportData = await _certificateService.ExportCertificatesAsync(listRequest, request.Format);
-                
+                var exportData = await _certificateService.ExportCertificatesAsync(listRequest, includeInternalTags: true);
+
                 if (exportData == null)
                 {
-                    return BadRequest(new ApiErrorResponse 
-                    { 
-                        Message = "No certificates found to export or export failed." 
+                    return BadRequest(new ApiErrorResponse
+                    {
+                        Message = "No certificates found to export or export failed."
                     });
                 }
 
-                var contentType = request.Format.ToLower() switch
-                {
-                    "csv" => "text/csv",
-                    "excel" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    "pdf" => "application/pdf",
-                    _ => "text/csv"
-                };
+                var fileName = $"certificates_export_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
 
-                var fileName = $"certificates_export_{DateTime.Now:yyyyMMdd_HHmmss}.{request.Format.ToLower()}";
-                
-                return File(exportData, contentType, fileName);
+                return File(exportData, "text/csv", fileName);
             }
             catch (Exception ex)
             {

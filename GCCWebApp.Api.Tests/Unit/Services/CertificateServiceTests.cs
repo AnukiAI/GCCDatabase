@@ -1025,8 +1025,8 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             // Arrange
             var request = CreateDefaultRequest();
 
-            // Act
-            var result = await _service.ExportCertificatesAsync(request, "csv");
+            // Act — DEF-128: format param dropped; admin/analyst path passes includeInternalTags=true
+            var result = await _service.ExportCertificatesAsync(request, includeInternalTags: true);
 
             // Assert
             result.Should().NotBeNull();
@@ -1034,7 +1034,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
 
             // Verify CSV content
             var csvContent = System.Text.Encoding.UTF8.GetString(result);
-            csvContent.Should().Contain("Certificate Number");
+            csvContent.Should().Contain("Certificate #");
             csvContent.Should().Contain("24-0001");
         }
 
@@ -1045,7 +1045,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var request = CreateDefaultRequest();
 
             // Act
-            var result = await _service.ExportCertificatesAsync(request, "csv");
+            var result = await _service.ExportCertificatesAsync(request, includeInternalTags: true);
 
             // Assert
             var csvContent = System.Text.Encoding.UTF8.GetString(result!);
@@ -1057,18 +1057,19 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         }
 
         [Fact]
-        public async Task ExportCertificatesAsync_DefaultFormat_ReturnsCsv()
+        public async Task ExportCertificatesAsync_DefaultParams_ReturnsCsvWithoutInternalTags()
         {
-            // Arrange - "unknown" format should default to CSV
+            // Arrange - DEF-128: default includeInternalTags=false omits Internal Tag column
             var request = CreateDefaultRequest();
 
             // Act
-            var result = await _service.ExportCertificatesAsync(request, "unknown_format");
+            var result = await _service.ExportCertificatesAsync(request);
 
             // Assert
             result.Should().NotBeNull();
             var csvContent = System.Text.Encoding.UTF8.GetString(result!);
-            csvContent.Should().Contain("Certificate Number"); // CSV header
+            csvContent.Should().Contain("Certificate #"); // CSV header
+            csvContent.Should().NotContain("Internal Tag"); // DEF-128: hidden by default
         }
 
         [Fact]
@@ -1079,7 +1080,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             request.Filters.Statuses = new List<string> { "Active" };
 
             // Act
-            var result = await _service.ExportCertificatesAsync(request, "csv");
+            var result = await _service.ExportCertificatesAsync(request, includeInternalTags: true);
 
             // Assert
             var csvContent = System.Text.Encoding.UTF8.GetString(result!);
@@ -1099,7 +1100,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var ids = new List<string> { "100", "101" };
 
             // Act
-            var result = await _service.ExportCertificatesByIdsAsync(ids, "csv");
+            var result = await _service.ExportCertificatesByIdsAsync(ids, includeInternalTags: true);
 
             // Assert
             result.Should().NotBeNull();
@@ -1116,7 +1117,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
             var numbers = new List<string> { "24-0001", "24-0005" };
 
             // Act
-            var result = await _service.ExportCertificatesByIdsAsync(numbers, "csv");
+            var result = await _service.ExportCertificatesByIdsAsync(numbers, includeInternalTags: true);
 
             // Assert
             result.Should().NotBeNull();
@@ -1129,7 +1130,7 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         public async Task ExportCertificatesByIdsAsync_EmptyList_ReturnsNull()
         {
             // Act
-            var result = await _service.ExportCertificatesByIdsAsync(new List<string>(), "csv");
+            var result = await _service.ExportCertificatesByIdsAsync(new List<string>());
 
             // Assert
             result.Should().BeNull();
@@ -1139,10 +1140,36 @@ namespace GCCWebApp.Api.Tests.Unit.Services
         public async Task ExportCertificatesByIdsAsync_NullList_ReturnsNull()
         {
             // Act
-            var result = await _service.ExportCertificatesByIdsAsync(null!, "csv");
+            var result = await _service.ExportCertificatesByIdsAsync(null!);
 
             // Assert
             result.Should().BeNull();
+        }
+
+        [Fact]
+        public async Task ExportCertificatesAsync_DefaultParams_OmitsInternalTagColumn_DEF128()
+        {
+            // DEF-128: anonymous/External callers must NOT see the Internal Tag column.
+            var request = CreateDefaultRequest();
+            var result = await _service.ExportCertificatesAsync(request, includeInternalTags: false);
+
+            result.Should().NotBeNull();
+            var csv = System.Text.Encoding.UTF8.GetString(result!);
+            // Header should have "External Tag" but no "Internal Tag" between External Tag and ASIN.
+            csv.Should().Contain("External Tag");
+            csv.Should().NotContain("Internal Tag");
+        }
+
+        [Fact]
+        public async Task ExportCertificatesAsync_AdminInclude_IncludesInternalTagColumn_DEF128()
+        {
+            // DEF-128: admin/analyst callers retain Internal Tag column.
+            var request = CreateDefaultRequest();
+            var result = await _service.ExportCertificatesAsync(request, includeInternalTags: true);
+
+            result.Should().NotBeNull();
+            var csv = System.Text.Encoding.UTF8.GetString(result!);
+            csv.Should().Contain("Internal Tag");
         }
 
         #endregion

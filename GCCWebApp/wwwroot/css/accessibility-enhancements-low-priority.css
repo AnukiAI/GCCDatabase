@@ -418,10 +418,13 @@ textarea:disabled {
     font-weight: 500;
 }
 
-/* Add icon to error messages */
-.error::before,
-.invalid-feedback::before,
-.field-validation-error::before {
+/* Add icon to error messages — only when the element actually contains an error message.
+   Without :not(:empty), forms that pre-render an empty `.invalid-feedback` placeholder
+   (e.g., the Product ID modal) would render a stray ⚠ on initial load before any
+   validation has run. */
+.error:not(:empty)::before,
+.invalid-feedback:not(:empty)::before,
+.field-validation-error:not(:empty)::before {
     content: '\26A0 '; /* ⚠ warning sign */
     font-weight: bold;
 }

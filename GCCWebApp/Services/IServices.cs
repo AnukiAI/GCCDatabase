@@ -9,8 +9,10 @@ namespace GCCWebApp.Services
         Task<CertificateListResponse> GetCertificatesByPartnerAsync(string partnerName, CertificateListRequest request);
         Task<CertificateDetailsViewModel> GetCertificateDetailsAsync(int id, string userRole);
         Task<CertificateDownloadModel?> GetCertificateDownloadAsync(int id, string userRole);
-        Task<byte[]?> ExportCertificatesAsync(CertificateListRequest request, string format);
-    Task<byte[]?> ExportCertificatesByIdsAsync(List<string> certificateIds, string format);
+        // DEF-128: format param dropped — CSV is the only supported export format per CLAUDE.md
+        // "CSV ONLY" rule. includeInternalTags must be false for anonymous/External callers.
+        Task<byte[]?> ExportCertificatesAsync(CertificateListRequest request, bool includeInternalTags = false);
+        Task<byte[]?> ExportCertificatesByIdsAsync(List<string> certificateIds, bool includeInternalTags = false);
         Task<CertificateStatistics> GetCertificateStatisticsAsync(string userRole);
         Task<BulkActionResult> PerformBulkActionAsync(BulkActionRequest request);
         Task<List<string>> GetSearchSuggestionsAsync(string term, string type, string userRole);
@@ -27,7 +29,7 @@ namespace GCCWebApp.Services
         Task<bool> SaveFilterAsync(string userId, string filterName, CertificateListRequest filterConfig);
         Task<CertificateListRequest> LoadSavedFilterAsync(string userId, string filterName);
         Task<CertificateListResponse> ApplyDynamicFilterAsync(CertificateListRequest request);
-        Task<byte[]?> ExportFilteredResultsAsync(CertificateListRequest request, string format);
+        Task<byte[]?> ExportFilteredResultsAsync(CertificateListRequest request, bool includeInternalTags = false);
         Task<Certificate?> GetCertificateEntityAsync(int id);
         Task SaveChangesAsync();
     }

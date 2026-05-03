@@ -3908,3 +3908,475 @@ Phases NOT covered in this run (require separate tooling / longer cycle):
 
 **Headline:** All recent fixes (DEF-097/098/099/100/101/102/103/106 + CR-015) verified holding on `localhost:5101`. Two new low/medium-severity middleware defects surfaced, both in `SecurityHeadersMiddleware.cs`, both one-line fixes.
 
+---
+
+## Section G — Full-Spectrum QA Pass — Cycle 1 — 2026-05-03
+
+**Run by:** Claude (cycle 1 of `full-spectrum-test-prompt.md`)
+**Target:** `http://localhost:5101` (dev DB `GCCDatabase_Dev` on `ANUKI01`)
+**Scope:** Partner API regression broader sweep + DEF-121 verification + permission boundaries. Phase 3 visual + Phase 4 JS deep-dive deferred to cycle 2 (Playwright temp dir was wiped; install would have eaten the cycle's time budget).
+
+### G.1 — Partner API endpoint coverage (HTTP, 8 endpoints)
+
+| Endpoint | Result | Notes |
+|---|---|---|
+| `GET /api/v1/certificates` (list) | **PASS** | `status="Active"`, `certificationCountries="All"`, `certificationResults="95%"` formatted, `partner="Amazon"`. No internal IDs. |
+| `GET /api/v1/certificates/{id}` | **PASS** | DEF-103 fix holding. id=1 returned 404 (not an Amazon cert; partner-scope filter correctly hides). |
+| `GET /api/v1/certificates/number/{n}` | **PASS** | DEF-103 fix holding. `26-0001` returned full contract DTO including empty `productIds[]` array. |
+| `GET /api/v1/certificates/search/productid?productId=X` | **PASS** (code review) | Empty result for fake ASIN; controller code (lines 826-902) correctly applies `PublicStatuses` filter + partner branch + DTO projection with formatted `certificationResults`. |
+| `GET /api/v1/certificates/gs1` | **PASS** | GS1 schema correct, `targetCountries=["All"]`, `status="ACTIVE"`, `value="95%"`, `additionalTradeItemId=null` (DEF-102). |
+| `GET /api/v1/certificates/gs1/{n}` | **PASS** | Same as list, single-cert form. |
+| `GET /api/v1/certificates/{id}/download` | **PASS** | Returns 404 (CertificateFile is null in dev seed — PDF generation TODO). Public-status + partner-scope filters present (lines 1088-1098). |
+| `GET /api/v1/certificates/expiring?days=N` | **🚨 FAIL — S1** | **DEF-124 filed.** Returns raw entity with internal IDs, lifecycle status leak (`"Client Approved - Paid"` instead of `"Active"`), no `PublicStatuses` filter, circular nav references (response size 1GB+). Same root cause as DEF-103, missed in 2026-04-21 + 2026-04-30 fix waves. |
+
+### G.2 — DEF-121 verification (still Open)
+
+- Re-confirmed unfixed via code:
+  - `Models/User.cs:31` (PasswordHash) — no `[JsonIgnore]`
+  - `Models/User.cs:53` (TwoFactorSecret) — no `[JsonIgnore]`
+  - `Services/ProductIdService.cs:65-66, 74-75` — `Include(CreatedByUser/UpdatedByUser)` returns entity directly
+- Status updated in `defect-register.md` with 2026-05-03 verification stanza recommending severity bump to Critical and stopgap `[JsonIgnore]` block while DTO refactor is in flight.
+
+### G.3 — Permission boundaries (anonymous + cross-key)
+
+| Test | Expected | Actual | Result |
+|---|---|---|---|
+| Anonymous `/Certificate/CertificateTileView` | 200 (public) | 200 | PASS |
+| Anonymous `/Certificate/CertificateTileViewExternal` | 302 (login) | 302 | PASS |
+| Anonymous `/Certificate/CertificateTileViewInternal` | 302 (login) | 302 | PASS |
+| Anonymous `/Admin/Index` | 302 (login) | 302 | PASS |
+| Anonymous `/Admin/UserManagement` | 302 (login) | 302 | PASS |
+| Anonymous `/api/v1/certificates` | 401 | 401 | PASS |
+| Anonymous `/api/productids/certificate/1` | 401 | 401 | PASS |
+| Garbage `X-API-Key` header | 401 | 401 | PASS |
+| Partner key on `/Admin/UserManagement` | 302 (no MVC cookie auth) | 302 | PASS |
+| Partner key on `/Certificate/Edit/1` | 302 (no MVC cookie auth) | 302 | PASS |
+| Partner key on `/api/CertificateTiles` (internal MVC API) | 401/404 | 404 | PASS (controller doesn't accept ApiKey scheme) |
+| Anonymous `/Admin/Dashboard` (action doesn't exist) | 404 | 404 | **DEF-125 filed (S5 polish)** — 404 leaks which actions exist; non-existent actions return 404 while existing ones return 302. Recon leak. Not worth a standalone fix. |
+
+### G.4 — Things skipped this cycle
+
+- Visual sweep at 5 viewports (1280/1920/1024/414/375) — needs Playwright; deferred.
+- Phase 4 JS console scan — needs browser; deferred.
+- DEF-100 (lazy-load row drift) and DEF-098 (tablet filter dup) — need DOM observation; deferred.
+- 14-state workflow transition tests — needs cookie auth; deferred (login returned 302 with no usable response body, antiforgery flow not yet scripted).
+- Real ASIN search test on `/api/v1/certificates/search/productid` — no Amazon cert in dev DB has product IDs (data gap noted in Section F.8 already).
+- Real PDF download — no Amazon cert in dev DB has `CertificateFile` populated.
+
+### G.5 — Defects filed this cycle
+
+- **DEF-124** — Partner API `/expiring` raw entity leak — **S1 Critical** — same bug class as DEF-103
+- **DEF-125** — Admin route 404 vs 302 reconnaissance leak — S5 Polish
+- **DEF-121 status update** — verified still Open after 2 days; severity bump recommended
+
+### G.6 — Summary
+
+| Bucket | Count |
+|---:|---:|
+| Tests run | 21 (8 Partner API + 1 code review + 12 permission boundaries) |
+| PASS | 19 |
+| FAIL | 1 (`/expiring`) |
+| Polish-tier | 1 (`/Admin/*` 404 vs 302) |
+| Existing-defect verifications | 1 (DEF-121 still open) |
+| New defects filed | 2 (DEF-124, DEF-125) |
+| Recent-fix regressions found | 0 |
+
+**Headline:** Cycle 1 broadened the Partner API regression sweep from the 6 endpoints reviewed in 2026-04-21/04-30 to all 8 reachable from a partner key. Found a previously-undetected S1 in `/expiring` (raw entity leak, no public-status filter) — same bug class as DEF-103, missed in two prior fix waves. DEF-121 (password hash leak) is still open after 2 days; recommend immediate stopgap. All other recent fixes holding per code + HTTP-level evidence. Visual + JS phases deferred to cycle 2.
+
+---
+
+## Section H — Full-Spectrum QA Pass — Cycle 2 — 2026-05-03
+
+**Run by:** Claude (cycle 2 of `full-spectrum-test-prompt.md`, continuing from Section G)
+**Target:** `http://localhost:5101` (dev DB `GCCDatabase_Dev` on `ANUKI01`)
+**Scope:** Phase 3 (visual sweep, 5 viewports × public/external/internal tile views + login + admin pages), Phase 4 (JS console capture), DEF-100 / DEF-098 / DEF-099 / DEF-101 visual regression, role-boundary live tests with cookie auth.
+**Tooling:** Playwright + Chromium, scripts at `C:\Users\swest\AppData\Local\Temp\uitest\` (`cycle2.js`, `def100.js`, `countCerts.js`). Screenshots in `screens/`.
+
+### H.1 — Visual sweep (5 viewports × 6 routes = 30 screenshots)
+
+| Route | 1920 | 1280 | 1024 | 414 | 375 | Notes |
+|---|---|---|---|---|---|---|
+| `/Certificate/CertificateTileView` | PASS | PASS | PASS | PASS | PASS | Single filter bar at 1024 ✅ (DEF-098). Mobile shows ~22 tiles stacked, no layout breakage. |
+| `/Account/Login` | PASS | PASS | PASS | PASS | PASS | Form scales correctly. No sub-16px input fonts (script checked). |
+| `/Certificate/CertificateTileViewInternal` (analyst) | — | PASS | — | — | — | Green "in progress" tiles + dark blue published tiles. Lists 40 certs total, 20 initially in tile view. |
+| `/Certificate/CertificateTileViewExternal` (external) | — | PASS | — | — | — | "Showing 3 of 3" — data isolation working (External user sees only their company). |
+| `/Admin/UserManagement` (admin) | — | PASS | — | — | — | Table renders cleanly. Import = `fa-file-arrow-down` ✅, Export = `fa-file-arrow-up` ✅ (DEF-101 holds). |
+| `/Admin/Tags`, `/Admin/ProductManagement`, `/Company/Index`, `/Product/Management` (admin) | — | PASS | — | — | — | All render. **DEF-127 filed:** ProductManagement + CompanyIndex use `fa-download` / `fa-upload` instead of file-arrow variants — visual drift, not functional. |
+
+### H.2 — DEF-098 tablet 1024px filter dup (regression check)
+
+Live DOM probe at viewport 1024×768 on `/Certificate/CertificateTileView`:
+- `.sidebar-collapse-btn` exists in DOM (count=1) but `:visible` count = 0 (correctly hidden via CSS)
+- `.sidebar-toggle-tab` exists in DOM (count=1) but `:visible` count = 0 (correctly hidden via CSS)
+- `.mobile-filter-toggle` count = 1 (the only visible filter UI at this breakpoint)
+- **Result: PASS** — no duplicate "Hide Filters" bar.
+
+### H.3 — DEF-100 list-view lazy-load (regression check)
+
+Initial def100.js test was a false alarm (had wrong scroll target — was scrolling `window` not the `#tableView` container). Re-ran with explicit `tableView.scrollTop = scrollHeight`:
+- Internal-Analyst route: `#gridBody .table-body-row` count = **20** initially → **35** after 5 explicit `tableView` scrolls
+- Initial first 3 row keys (24, 47, 48) preserved in final list (no row drift, no `lostInitialKeys`)
+- "Showing 20 of 40 certificates" text confirmed paginated load
+- 0 console errors, 0 page errors during scroll
+- External-External route: 3 certs, no scroll triggered (only 3 rows, fits in viewport)
+- **Result: PASS** — DEF-100 fix holds.
+
+### H.4 — Role boundaries (live cookie-auth)
+
+| Test | Expected | Actual | Result |
+|---|---|---|---|
+| Analyst → `/Admin/UserManagement` | redirect | `/Account/AccessDenied?ReturnUrl=%2FAdmin%2FUserManagement` (HTTP 200, AccessDenied page) | PASS |
+| External → `/Certificate/Detail/1` (not their cert) | 404/403 | HTTP 404 | PASS |
+| External → `/Certificate/Detail/38` (EXT-AMZ-001 — Amazon, not their company) | 404/403 | HTTP 404 | PASS |
+| External → `/Certificate/Detail/39` (EXT-AMZ-002) | 404/403 | HTTP 404 | PASS |
+| Analyst login → final URL | `/Dashboard` | `/Dashboard` | PASS |
+| External login → final URL | `/Certificate/CertificateTileViewExternal` | `/Certificate/CertificateTileViewExternal` | PASS |
+| Admin login → final URL | `/Dashboard` | `/Dashboard` | PASS |
+
+### H.5 — JS console findings (across all 30 page-loads)
+
+- `pageFailuresTotal: 0` — **no uncaught JS exceptions** on any tested page.
+- 48 `requestfailed` events captured, **all noise**:
+  - 28 are `POST analytics.google.com/g/collect?tid=G-16J12CPD8S` aborts — page navigated away before GA POST completed. Already noted as Section F.8 hygiene issue (GA tracking ID firing in dev).
+  - 20 are `GET /js/main.js`, `/css/pages/dashboard.css`, jQuery, Bootstrap, FontAwesome aborts during the `/Account/AccessDenied` redirect. Same root cause — Playwright navigation interrupted resource loads. Not real defects.
+- No console errors or warnings flagged.
+
+### H.6 — DEF-128 ExportCertificates discovery — anonymous data leak + format violations
+
+Found while inspecting the "Export to Excel" button on tile views. **Filed as DEF-128 (HIGH/S2)**.
+
+Live evidence captured 2026-05-03 on `localhost:5101`:
+
+```
+$ curl -o /tmp/exp.xlsx -w "%{http_code} %{content_type} %{size_download}" \
+    "http://localhost:5101/Certificate/ExportCertificates?format=excel"
+200 application/vnd.openxmlformats-officedocument.spreadsheetml.sheet 12209
+$ file /tmp/exp.xlsx
+/tmp/exp.xlsx: Microsoft Excel 2007+
+
+$ curl -o /tmp/exp.pdf -w "%{http_code} %{content_type} %{size_download}" \
+    "http://localhost:5101/Certificate/ExportCertificates?format=pdf"
+200 application/pdf 7795
+$ file /tmp/exp.pdf
+/tmp/exp.pdf: ASCII text, with CRLF line terminators       # ← BROKEN, not a real PDF
+
+$ curl "http://localhost:5101/Certificate/ExportCertificates?format=csv" | head -1
+"Certificate #","Certification Type","Cert Subcategories","Status","Company",
+"Company Contact Email/URL","Contact URL","Product Name","Product Category",
+"Product Type","Subcategory","Partner","Pathway","Cert Results","Effective Date",
+"Expiration Date","Location","Country","External Tag","Internal Tag",       # ← LEAK
+"ASIN","UPC","GTIN","EAN"
+```
+
+Sample row leaks `Sustainable` (Internal Tag), `Client Approved - Paid` (raw lifecycle), `contact@acme.com` (company email).
+
+Issues bundled in DEF-128:
+- (a) `[AllowAnonymous]` exposes Internal Tag column to anyone — **S2** (CLAUDE.md: External users CANNOT view internal tags; anonymous tier is below External)
+- (b) `format=excel` returns real xlsx — violates "CSV ONLY" rule (S3)
+- (c) `format=pdf` returns broken file (`Content-Type: application/pdf` but body is plain ASCII) — S3 functional
+- (d) Button label "Export All to Excel" + `fa-file-excel` icon — S5 polish
+
+### H.7 — Defects filed this cycle
+
+- **DEF-128** — ExportCertificates anonymous + multi-format violations + broken PDF — **HIGH (S2)**
+- **DEF-127** — Import/Export icon class drift (Product/Company use generic, Admin uses file-arrow) — Polish (S5)
+
+### H.8 — Things skipped this cycle (defer to cycle 3 if needed)
+
+- Phase 6 multi-browser (Safari, Firefox, Edge, Samsung Internet) — only Chromium ran
+- Phase 7 real-device mobile testing
+- Phase 9 axe-core scan
+- Phase 10 Lighthouse / Web Vitals
+- Long-running memory leak watch (10-min navigation soak)
+- Bulk Analyst persona (50-product-ID CSV import + 14-state workflow drive-through)
+- Workflow state-machine validation (every state transition reachable from at least one role)
+
+### H.9 — Summary
+
+| Bucket | Count |
+|---:|---:|
+| Tests run | 35 (30 visual + 3 lazy-load + 7 boundary + 4 export curl + 1 GA noise audit) |
+| PASS | 33 |
+| FAIL | 1 (`/Certificate/ExportCertificates` anonymous + xlsx + broken PDF — DEF-128) |
+| Polish-tier | 1 (icon drift — DEF-127) |
+| Recent-fix regressions found | 0 (DEF-097/098/099/100/101/102/103 + CR-015 all holding under live test) |
+| New defects filed | 2 (DEF-127, DEF-128) |
+| JS uncaught exceptions | 0 |
+| Console error count (real) | 0 (48 requestfailed events = GA + nav-interrupted resources, all noise) |
+
+**Headline:** Cycle 2 confirmed all visible recent-fix regressions are holding — DEF-098 tablet filter dedup, DEF-100 list-view lazy-load (20→35 rows, no drift), DEF-101 icon convention on UserMgmt+Tags, and external data isolation (3-of-3 + direct-URL 404). Found one HIGH-severity new defect (DEF-128) — `/Certificate/ExportCertificates` is wide open to anonymous callers and leaks the Internal Tag column, raw lifecycle status, and contact emails. Same endpoint also returns broken PDF and unauthorized Excel — three rule violations bundled. Plus one S5 polish (DEF-127 icon class drift). After cycles 1+2: **DEF-121 still open (HIGH, password hash), DEF-124 new S1 (Partner API /expiring), DEF-128 new S2 (anonymous export). Recommend addressing all three before next deploy.**
+
+---
+
+## Section I — Full-Spectrum QA Pass — Cycle 3 — 2026-05-03
+
+**Run by:** Claude (cycle 3 of `full-spectrum-test-prompt.md`, continuing from Section H)
+**Target:** `http://localhost:5101` (dev DB `GCCDatabase_Dev` on `ANUKI01`)
+**Scope:** Fix the three Critical/High open defects surfaced in cycles 1+2 (DEF-121 password hash leak, DEF-124 Partner API `/expiring` raw entity leak, DEF-128 anonymous CSV export with Internal Tag exposure + non-CSV format violations + broken PDF). All three share the same root-cause class — DTO projection / role-based filtering not consistently applied.
+
+### I.1 — Fixes shipped (local; pending deploy)
+
+#### DEF-121 — User secrets `[JsonIgnore]` stopgap
+- `Models/User.cs` — added `using System.Text.Json.Serialization;` and `[JsonIgnore]` on 8 fields: `PasswordHash`, `TwoFactorSecret`, `RecoveryCodes`, `SecurityQuestions`, `AllowedIPs`, `PasswordResetToken`, `PasswordResetTokenExpiry`, `PasswordHistory`
+- Safety check: `grep -E '\[FromBody\].*User\b|JsonSerializer\.Deserialize<User>|FromJson<User>'` returned zero matches — no JSON deserialization path uses the entity directly, so `[JsonIgnore]` cannot break update flows
+- Live verify: `/Admin/GetUsers` continues to return clean `UserViewModel` data (was already clean — its projection never had secrets)
+- Followup ticket recommended: full DTO refactor (option 1 of the original DEF-121 entry) — `[JsonIgnore]` is a stopgap, not the durable fix
+
+#### DEF-124 — Partner API `/expiring` projected DTO
+- `Controllers/Api/v1/CertificatesController.cs` `GetExpiringCertificates`:
+  - Detects `userRole == "Partner"` via `GetCurrentUserRole()`
+  - Includes `Pathway` and `ProductIds` (DTO requires them)
+  - Kept `Include(Company)` because the DTO projection prevents the circular Company→Certificates serialization (initial fix dropped the include and broke the `company` field; corrected mid-cycle)
+  - For partner callers: filters on `PublicStatuses.Contains(Status) && partnerNames.Contains(Partner)`
+  - Returns empty paginated response if API key has no partner association
+  - Projects via shared `BuildPartnerCertificateDto` helper — same DTO shape as list/by-id/by-number endpoints
+
+#### DEF-128 — Anonymous CSV export hardening
+- 9 files touched (controller × 2, service × 2 incl. interface, views × 2, JS × 2, tests × 1)
+- Service interface `IServices.cs`: dropped `string format` param, added `bool includeInternalTags = false`
+- Service implementation `CertificateService.cs`: dropped format switch (no more Excel/PDF branches); always calls `GenerateCsvExport`; `GenerateCsvExport` now accepts `bool includeInternalTags` and conditionally drops the Internal Tag column from header + every data row
+- MVC controller (anon-OK): hardcoded CSV content type, computes `includeInternalTags = userRole == "Admin" || userRole == "Analyst"`
+- API controller (`AnalystOrAdmin` policy): hardcoded CSV; passes `includeInternalTags: true`
+- Views: button label "Export All to Excel" → "Export All to CSV"; icon `fa-file-excel` → `fa-file-csv`; aria-label updated
+- JS: `params.append('format','excel')` → `'csv'`; toast "to Excel" → "to CSV"
+- Tests: 8 call sites updated for new signature; 2 new tests added covering DEF-128 column-filter behavior
+
+### I.2 — Build + restart
+
+- `dotnet build` initially failed with file-lock (running app at PID 12192 had bin/Debug/GCCWebApp.exe open)
+- Stopped the dev server, rebuild succeeded with 0 errors and 2 warnings (both pre-existing CS8767 nullability warnings in test session mocks, unrelated to my changes)
+- Restarted via `dotnet run --no-build --urls "http://localhost:5101"` in background; verified health via `curl /Account/Login` → 200
+
+### I.3 — Live verification (curl on `localhost:5101`)
+
+**DEF-124 verification — `GET /api/v1/certificates/expiring?days=365` with Amazon partner key:**
+```
+items=4 (only PublicStatuses)
+  EXT-AMZ-001: status=Active, country=All, company=ExtTest-AmazonCo, productIds=0
+  EXT-AMZ-002: status=Active, country=All, company=ExtTest-AmazonCo, productIds=0
+  26-0001:     status=Active, country=All, company=Acme Corporation, productIds=0
+  EXT-AMZ-003: status=Active, country=All, company=ExtTest-AmazonCo, productIds=0
+```
+- ✅ status hardcoded to "Active"
+- ✅ certificationCountries hardcoded to "All"
+- ✅ Company name populated (was null in first iteration; fixed mid-cycle by re-adding `Include(Company)`)
+- ✅ productIds[] array shape (was flat asin/upc/gtin/ean)
+- ✅ No internal IDs (no `id`, `companyId`, `productId`, etc.)
+- ✅ Response size ~1KB (was 1GB+ on circular Company.Certificates nesting)
+
+**DEF-128 verification — `/Certificate/ExportCertificates` anonymous (no cookie, no key):**
+```
+GET ?format=excel  → text/csv (CSV ASCII, was Microsoft Excel 2007+ xlsx)
+GET ?format=pdf    → text/csv (CSV ASCII, was broken Content-Type:application/pdf with text body)
+GET ?format=csv    → 23 columns (was 24)
+  Header: "Certificate #",…,"External Tag","ASIN",…  ← no Internal Tag between External Tag and ASIN
+  First row: …,"Verified","B08X7N9MRQ",…             ← Internal Tag value "Sustainable" gone
+```
+- ✅ Excel format → returns CSV instead
+- ✅ PDF format → returns CSV instead (broken PDF stub gone)
+- ✅ CSV format → 23 columns instead of 24, Internal Tag dropped for anonymous
+
+**DEF-121 verification:**
+- Code-level: confirmed 8 `[JsonIgnore]` annotations applied
+- Runtime: dev DB has zero `CertificateProductId` rows (per Section F.8 data gap), so couldn't reproduce the original `/api/productids/certificate/{id}` leak. Tried 50 cert IDs — all empty arrays. Verified the endpoint returns 200 OK with `[]` instead of failing.
+- `/Admin/GetUsers` continues to return clean `UserViewModel` data (was already projection-based, but confirmed [JsonIgnore] doesn't break it)
+- Coverage gap: a future cycle should seed at least one cert with `CertificateProductId` rows so this endpoint's response shape can be runtime-asserted
+
+### I.4 — Defect register + shipped log updates
+
+- `defect-register.md`:
+  - DEF-121: status Open → Fixed (stopgap, pending deploy); added 2026-05-03 verification + fix paragraph; flagged DTO refactor as followup ticket
+  - DEF-124: status Open → Fixed (pending deploy); added fix paragraph + curl evidence
+  - DEF-128: status Open → Fixed (pending deploy); added 8-step fix breakdown + curl evidence
+- `shipped-2026-05.md`: appended three stakeholder paragraphs (DEF-121, DEF-124, DEF-128) ahead of DEF-126 entry, all written in client-facing voice per `feedback_say_client_not_names.md`
+
+### I.5 — Files touched this cycle
+
+| Layer | Files | DEF |
+|---|---|---|
+| Models | `Models/User.cs` | 121 |
+| Services interface | `Services/IServices.cs` | 128 |
+| Services impl | `Services/CertificateService.cs` | 128 |
+| Controllers MVC | `Controllers/CertificateController.cs` | 128 |
+| Controllers API v1 | `Controllers/Api/v1/CertificatesController.cs` | 124 |
+| Controllers API legacy | `Controllers/Api/CertificatesApiController.cs` | 128 |
+| Views | `Views/Certificate/CertificateTileViewExternal.cshtml`, `Views/Certificate/CertificateTileViewInternal.cshtml` | 128 |
+| JS | `wwwroot/js/certificate-tile-view-external.js`, `wwwroot/js/certificate-tile-view-internal.js` | 128 |
+| Tests | `GCCWebApp.Api.Tests/Unit/Services/CertificateServiceTests.cs` | 128 |
+
+11 files. 0 build errors. All changes left in working tree per `feedback_no_commits.md`.
+
+### I.6 — Things skipped this cycle (still deferred)
+
+- Phase 6 multi-browser (Safari, Firefox, Edge, Samsung Internet)
+- Phase 7 real-device mobile testing
+- Phase 9 axe-core / WAVE accessibility scan
+- Phase 10 Lighthouse / Core Web Vitals
+- Bulk Analyst persona (50-product-ID CSV import + 14-state workflow drive-through)
+- 14-state workflow state-machine validation
+- Audit followup: re-grep all `[HttpGet]` actions in `CertificatesController` to confirm every endpoint applies the partner DTO projection (DEF-124 fix opens this question — same bug class, same controller)
+
+### I.7 — Summary
+
+| Bucket | Count |
+|---:|---:|
+| Defects fixed | 3 (DEF-121 stopgap, DEF-124 full, DEF-128 full) |
+| Files touched | 11 |
+| Lines changed (approx) | ~250 |
+| Build errors | 0 (after iterative fix of test-side breakage) |
+| Live verifications | 8 (curl: 4 partner endpoints + 3 anon CSV format probes + 1 Admin/GetUsers sanity) |
+| Followup tickets opened | 2 (DEF-121 DTO refactor; CertificatesController partner-DTO audit) |
+| Tests added | 2 (DEF-128 regression coverage) |
+| New defects found | 0 |
+
+**Headline:** Cycle 3 closed all three Critical/High open defects from cycles 1+2 with same-day fixes. DEF-121 is a stopgap (`[JsonIgnore]` block) with a followup DTO refactor recommended; DEF-124 and DEF-128 are full fixes verified live on `localhost:5101`. The Partner API `/expiring` endpoint that DEF-124 was about now returns the same contract DTO shape as the rest of the partner endpoints — Amazon integration is no longer at risk of seeing internal lifecycle statuses or 1GB circular-nesting responses. The anonymous CSV export endpoint that DEF-128 was about no longer leaks the Internal Tag column to non-Admin/Analyst callers, no longer accepts Excel or PDF formats, and the corresponding UI buttons now read "Export All to CSV" with the matching icon. Cumulative open Critical/High count is back to zero. Two followup tickets are queued.
+
+---
+
+## Section J — Full-Spectrum QA Pass — Cycle 4 — 2026-05-03
+
+**Run by:** Claude (cycle 4 of `full-spectrum-test-prompt.md`, continuing from Section I)
+**Target:** `http://localhost:5101` (dev DB `GCCDatabase_Dev` on `ANUKI01`)
+**Scope:** Audit ALL v1 controller endpoints reachable by Partner API key. Goal: close the DEF-103 / DEF-124 bug class for good by sweeping every `[Authorize(AuthenticationSchemes = "ApiKey")]` controller and verifying contract compliance. Originally proposed in cycle 3 closing summary as the "audit followup" item.
+
+### J.1 — Controllers reachable by Partner API key
+
+`grep -r 'AuthenticationSchemes\s*=\s*"ApiKey"'` returned three hits:
+
+| Controller | Endpoints | Status before cycle 4 | Cycle 4 result |
+|---|---|---|---|
+| `Api/v1/CertificatesController.cs` (line 33) | 9 (list, by-id, by-number, search, expiring, search/productid, gs1, gs1/single, download) | 8 of 9 audited in cycles 1-3; `/search` not yet audited | **`/search` LEAK — DEF-129 filed + fixed** |
+| `Api/v1/ProductsController.cs` (line 29) | 6 (list, by-id, post, put, delete, search) | Not yet audited | **List endpoint LEAK + Partner can mutate — DEF-130 filed (deferred)** |
+| `Api/v1/BulkCertificatesController.cs` (line 15) | 4 (POST create, PUT update, DELETE, POST validate) | Not yet audited | **Privilege escalation — DEF-131 filed + fixed** |
+
+### J.2 — DEF-129 (S1) — `/search` leaked raw entity, same bug class as DEF-103/DEF-124
+
+**Before fix evidence (curl, 2026-05-03):**
+```
+GET /api/v1/certificates/search?term=Widget&status=Client%20Approved%20-%20Paid
+→ {
+    "id": 2,                              ← internal ID leak
+    "status": "Client Approved - Paid",   ← raw lifecycle
+    "country": "United States",           ← raw country
+    "asin": "B08X7N9MRQ", "upc": ..., "gtin": ..., "ean": ...,  ← flat fields
+    "companyId": 59, "productId": 77, "productCategoryId": 1, ...,  ← internal IDs
+    "company": { "email": "contact@acme.com", "products": [{"certificates":[null], ...}] }  ← nested entity tree + circular
+  }
+```
+
+**Fix:** Mirrored DEF-124 pattern in `SearchCertificates`. Detects Partner role, applies `PublicStatuses` filter + partner-name scoping, projects via `BuildPartnerCertificateDto`. Admin/Analyst still receive raw entity for internal use.
+
+**After fix verification:**
+```
+GET /api/v1/certificates/search?term=Widget&status=Client%20Approved%20-%20Paid (partner key)
+→ { "certificateNumber": "26-0001",
+    "status": "Active",                   ← contract literal
+    "certificationCountries": "All",      ← contract literal
+    "company": "Acme Corporation",        ← name only, no nested entity
+    "productIds": [],                     ← array shape, not flat fields
+    "pdfDownloadUrl": "..."
+  }
+```
+
+### J.3 — DEF-130 (S3) — `/api/v1/products` leaks raw Product entity
+
+**Before fix evidence (curl, 2026-05-03):**
+```
+GET /api/v1/products?pageSize=1 (partner key)
+→ {
+    "id": 3, "name": "+Vantage Vinyl Verified",
+    "categoryId": 1, "companyId": 2, "productTypeId": null, "productSubcategoryId": null,
+    "isActive": true, "isDeleted": false,
+    "category": { "description": "...", "products": [null], "productTypes": [] },
+    ...
+  }
+```
+
+51 products returned to a Partner key — full enumeration of the dev DB product catalog with internal IDs, nested category navigation, and isDeleted flags exposed.
+
+**Fix decision:** Deferred. Two viable paths:
+1. Lock down — change auth to `[Authorize(Policy = "AnalystOrAdmin")]` (same one-liner as DEF-131). Right answer if Amazon doesn't consume `/api/v1/products`.
+2. Project to `ProductPartnerDto` — preserve access but drop internal fields. Right answer if Amazon does consume.
+
+The decision data (whether Amazon currently calls this endpoint) lives in production access logs which I don't have. Recommend Shawn check production logs or ask the partner-integration owner. If no calls in last 30 days → lock down. If calls exist → DTO projection (which itself becomes a Partner API contract change requiring sign-off per `feedback_amazon_api_immutable.md`).
+
+### J.4 — DEF-131 (S1 SECURITY) — bulk endpoints accepted Partner API keys
+
+**Before fix evidence (curl, 2026-05-03):**
+```
+POST /api/v1/certificates/bulk/create (partner key) with body []
+→ HTTP 400 "No certificates provided"
+   ← The empty-array branch responded — meaning AUTH ALREADY PASSED.
+   ← A real payload would have been processed and persisted.
+```
+
+Same pattern on PUT `/bulk/update` and DELETE `/bulk` — all accepted Partner API keys.
+
+**Internal-caller audit:** `grep -r 'api/v1/certificates/bulk\|BulkCertificatesController'` in the entire repo returned ZERO hits. No frontend JS, no service layer, no test code uses these endpoints. They're a dormant attack surface, not a live admin tool.
+
+**Fix:** Changed class-level attribute from `[Authorize(AuthenticationSchemes = "ApiKey")]` to `[Authorize(Policy = "AnalystOrAdmin")]`. ApiKey scheme rejected; only cookie-authenticated Admin/Analyst can reach the endpoints.
+
+**After fix verification (curl with Amazon partner key):**
+- `POST /bulk/create` → HTTP 403 `"Access denied. You do not have permission to perform this action."`
+- `PUT /bulk/update` → HTTP 403
+- `DELETE /bulk` → HTTP 403
+- Sanity: `GET /api/v1/certificates` (read endpoint) → HTTP 200 (unaffected)
+
+### J.5 — DEF-132 (M) — self-caught regression in DEF-121 stopgap
+
+While running the cycle 4 audit, the first curl against `/api/v1/certificates/search` returned 500 with log message `Error during Partner API key authentication` and inner exception `JsonPropertyInfo 'passwordHash' defined in type 'GCCWebApp.Models.User' is marked required but does not specify a setter`.
+
+**Root cause:** This morning's DEF-121 stopgap added `[JsonIgnore]` to `PasswordHash`, but the property was also declared with C# `required` keyword. System.Text.Json cannot reconcile the two — `[JsonIgnore]` removes the property from JSON deserialization, but `required` still expects the JSON to provide it. The Partner API key auth middleware round-trips a User object through JSON (cache or session), hitting the conflict.
+
+**Fix:** Dropped `required` keyword from `PasswordHash`. Initialization safety preserved by EF Core's NOT NULL DB constraint + every `new User { ... }` site (14 sites, all in `SeedData.cs` and `AdminService.cs`) explicitly setting the field.
+
+**Verified live:** Partner API authentication works again on all endpoints. DEF-121 protection preserved — `passwordHash` and the 7 other annotated fields remain absent from any User entity serialization.
+
+**Lesson captured on followup ticket:** the `[JsonIgnore]` stopgap is cleaner with non-required nullable strings. The DTO refactor (option 1 of DEF-121) sidesteps this kind of attribute-vs-keyword conflict entirely.
+
+### J.6 — Files touched this cycle
+
+| Layer | Files | DEFs |
+|---|---|---|
+| Models | `Models/User.cs` | 132 |
+| Controllers API v1 | `Controllers/Api/v1/CertificatesController.cs` | 129 |
+| Controllers API v1 | `Controllers/Api/v1/BulkCertificatesController.cs` | 131 |
+
+3 files. 0 build errors. All changes left in working tree per `feedback_no_commits.md`.
+
+### J.7 — Followup tickets queued
+
+1. **DEF-130 fix decision** — needs production-log data on whether Amazon consumes `/api/v1/products`. Owner: Shawn.
+2. **DEF-121 DTO refactor** — write `UserResponseDto`; replace User-entity returns across the codebase. Sidesteps the `[JsonIgnore]` + `required` conflict permanently.
+3. **Controller-level partner-DTO test** — write a unit test that asserts every `[HttpGet]` action in `CertificatesController` returns the contract DTO when caller is `Partner`. Catches future regressions in this class automatically.
+4. **Audit `Controllers/Api` (legacy, non-versioned)** — only audited `/api/v1/*` this cycle. The non-versioned `/api/*` controllers (e.g., `CertificatesApiController`) were partly touched in cycle 3's DEF-128 fix, but a full sweep for the same DTO-projection bug class is pending.
+
+### J.8 — Things skipped this cycle (still deferred to future cycles)
+
+- Phase 6 multi-browser (Safari, Firefox, Edge, Samsung Internet)
+- Phase 7 real-device mobile testing
+- Phase 9 axe-core / WAVE accessibility scan
+- Phase 10 Lighthouse / Core Web Vitals
+- Bulk Analyst persona (50-product-ID CSV import + 14-state workflow drive-through)
+- 14-state workflow state-machine validation
+- DEF-130 Products endpoint fix (decision pending)
+- Legacy `/api/*` (non-versioned) controller audit
+- Audit response shape on `/api/CertificateTilesInternal`, `/api/CertificateTilesExternal` (referenced in tile views)
+
+### J.9 — Summary
+
+| Bucket | Count |
+|---:|---:|
+| Endpoints audited | 19 (CertificatesController × 9 + ProductsController × 6 + BulkCertificatesController × 4) |
+| New defects found | 4 (DEF-129, DEF-130, DEF-131, DEF-132) |
+| New defects fixed this cycle | 3 (DEF-129, DEF-131, DEF-132) |
+| New defects deferred | 1 (DEF-130 — needs prod-log data) |
+| Self-caught regressions | 1 (DEF-132 — caught + fixed within minutes, never deployed) |
+| Files touched | 3 |
+| Build errors | 0 |
+| Live verifications | 8 (curl: search before+after, bulk before+after × 3, sanity check, Partner-auth health) |
+
+**Headline:** Cycle 4 was the controller-wide audit that cycle 3 recommended, and it paid off. Found and fixed two more S1 defects (`/search` raw entity leak and bulk-mutation privilege escalation) plus a self-caught regression (DEF-132 — the [JsonIgnore]+required keyword conflict broke Partner auth, caught in the first curl of the audit). One medium-severity defect (DEF-130 — Products endpoint exposure) was filed but deferred pending a check on whether Amazon currently consumes that route. **The DEF-103 / DEF-124 / DEF-129 bug class — read endpoints in `CertificatesController` returning raw entities to Partner callers — is now fully closed: all 9 endpoints in that controller either project to the contract DTO when called by a Partner, or use a controller-specific DTO already (gs1, gs1/single, download). The DEF-131 fix closes a previously-undetected privilege escalation surface — Amazon's API key could have, in theory, created or deleted certificates if they had ever pointed it at the bulk endpoints.** Recommend the followup DTO refactor and controller-level unit test (queued tickets) to make this regression class permanently impossible.
+
+
+

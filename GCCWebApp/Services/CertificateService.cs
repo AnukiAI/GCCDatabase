@@ -362,7 +362,10 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<byte[]?> ExportCertificatesAsync(CertificateListRequest request, string format)
+        // DEF-128: CSV is the only supported export format. The Excel and PDF generators are
+        // retained as dead code below (GenerateExcelExport, GeneratePdfExportFromRows) so the
+        // diff is small and reviewable; cleanup lives on the followup ticket.
+        public async Task<byte[]?> ExportCertificatesAsync(CertificateListRequest request, bool includeInternalTags = false)
         {
             try
             {
@@ -370,22 +373,16 @@ namespace GCCWebApp.Services
                 if (!exportRows.Any())
                     return null;
 
-                return format.ToLower() switch
-                {
-                    "csv" => GenerateCsvExport(exportRows),
-                    "excel" => GenerateExcelExport(exportRows),
-                    "pdf" => GeneratePdfExportFromRows(exportRows),
-                    _ => GenerateCsvExport(exportRows)
-                };
+                return GenerateCsvExport(exportRows, includeInternalTags);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error exporting certificates to {Format}", format);
+                _logger.LogError(ex, "Error exporting certificates to CSV");
                 return null;
             }
         }
 
-        public async Task<byte[]?> ExportCertificatesByIdsAsync(List<string> certificateIds, string format)
+        public async Task<byte[]?> ExportCertificatesByIdsAsync(List<string> certificateIds, bool includeInternalTags = false)
         {
             try
             {
@@ -396,17 +393,11 @@ namespace GCCWebApp.Services
                 if (!exportRows.Any())
                     return null;
 
-                return format.ToLower() switch
-                {
-                    "csv" => GenerateCsvExport(exportRows),
-                    "excel" => GenerateExcelExport(exportRows),
-                    "pdf" => GeneratePdfExportFromRows(exportRows),
-                    _ => GenerateCsvExport(exportRows)
-                };
+                return GenerateCsvExport(exportRows, includeInternalTags);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error exporting certificates by IDs to {Format}", format);
+                _logger.LogError(ex, "Error exporting certificates by IDs to CSV");
                 return null;
             }
         }
@@ -1011,7 +1002,10 @@ namespace GCCWebApp.Services
                 .Text(value).FontSize(12);
         }
 
-        private byte[] GenerateCsvExport(List<CertificateExportRow> certificates)
+        // DEF-128: includeInternalTags gates the "Internal Tag" column. Anonymous + External callers
+        // pass false (per CLAUDE.md "External CANNOT view internal tags" — anonymous tier is below
+        // External). Admin/Analyst pass true.
+        private byte[] GenerateCsvExport(List<CertificateExportRow> certificates, bool includeInternalTags = false)
         {
             try
             {
@@ -1023,7 +1017,12 @@ namespace GCCWebApp.Services
 
                 // CSV Header — all certificate fields + admin custom fields
                 // CSV header text matches the certificate tile UI column labels.
-                csv.Append("\"Certificate #\",\"Certification Type\",\"Cert Subcategories\",\"Status\",\"Company\",\"Company Contact Email/URL\",\"Contact URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\",\"Internal Tag\",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"");
+                csv.Append("\"Certificate #\",\"Certification Type\",\"Cert Subcategories\",\"Status\",\"Company\",\"Company Contact Email/URL\",\"Contact URL\",\"Product Name\",\"Product Category\",\"Product Type\",\"Subcategory\",\"Partner\",\"Pathway\",\"Cert Results\",\"Effective Date\",\"Expiration Date\",\"Location\",\"Country\",\"External Tag\"");
+                if (includeInternalTags)
+                {
+                    csv.Append(",\"Internal Tag\"");
+                }
+                csv.Append(",\"ASIN\",\"UPC\",\"GTIN\",\"EAN\"");
                 foreach (var fieldName in customFieldNames)
                 {
                     csv.Append($",\"{EscapeCsvField(fieldName)}\"");
@@ -1033,7 +1032,12 @@ namespace GCCWebApp.Services
                 // CSV Data with proper escaping
                 foreach (var cert in certificates)
                 {
-                    csv.Append($"\"{EscapeCsvField(cert.CertificateNumber)}\",\"{EscapeCsvField(cert.CertificationType)}\",\"{EscapeCsvField(cert.CertificationSubcategories)}\",\"{EscapeCsvField(cert.Status)}\",\"{EscapeCsvField(cert.CompanyName)}\",\"{EscapeCsvField(cert.CompanyContactEmail)}\",\"{EscapeCsvField(cert.CompanyContactUrl)}\",\"{EscapeCsvField(cert.ProductName)}\",\"{EscapeCsvField(cert.ProductCategory)}\",\"{EscapeCsvField(cert.ProductType)}\",\"{EscapeCsvField(cert.ProductSubcategory)}\",\"{EscapeCsvField(cert.Partner)}\",\"{EscapeCsvField(cert.Pathway)}\",\"{EscapeCsvField(cert.CertificationResults)}\",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",\"{EscapeCsvField(cert.Location)}\",\"{EscapeCsvField(cert.Country)}\",\"{EscapeCsvField(cert.ExternalTags)}\",\"{EscapeCsvField(cert.InternalTags)}\",\"{EscapeCsvField(cert.Asin)}\",\"{EscapeCsvField(cert.Upc)}\",\"{EscapeCsvField(cert.Gtin)}\",\"{EscapeCsvField(cert.Ean)}\"");
+                    csv.Append($"\"{EscapeCsvField(cert.CertificateNumber)}\",\"{EscapeCsvField(cert.CertificationType)}\",\"{EscapeCsvField(cert.CertificationSubcategories)}\",\"{EscapeCsvField(cert.Status)}\",\"{EscapeCsvField(cert.CompanyName)}\",\"{EscapeCsvField(cert.CompanyContactEmail)}\",\"{EscapeCsvField(cert.CompanyContactUrl)}\",\"{EscapeCsvField(cert.ProductName)}\",\"{EscapeCsvField(cert.ProductCategory)}\",\"{EscapeCsvField(cert.ProductType)}\",\"{EscapeCsvField(cert.ProductSubcategory)}\",\"{EscapeCsvField(cert.Partner)}\",\"{EscapeCsvField(cert.Pathway)}\",\"{EscapeCsvField(cert.CertificationResults)}\",\"{cert.EffectiveDate:yyyy-MM-dd}\",\"{cert.ExpirationDate:yyyy-MM-dd}\",\"{EscapeCsvField(cert.Location)}\",\"{EscapeCsvField(cert.Country)}\",\"{EscapeCsvField(cert.ExternalTags)}\"");
+                    if (includeInternalTags)
+                    {
+                        csv.Append($",\"{EscapeCsvField(cert.InternalTags)}\"");
+                    }
+                    csv.Append($",\"{EscapeCsvField(cert.Asin)}\",\"{EscapeCsvField(cert.Upc)}\",\"{EscapeCsvField(cert.Gtin)}\",\"{EscapeCsvField(cert.Ean)}\"");
 
                     // Append custom field values (admin-added fields)
                     customFieldValueMap.TryGetValue(cert.Id, out var certFieldValues);
@@ -1383,9 +1387,9 @@ namespace GCCWebApp.Services
         /// <summary>
         /// Export filtered results in various formats
         /// </summary>
-        public async Task<byte[]?> ExportFilteredResultsAsync(CertificateListRequest request, string format)
+        public async Task<byte[]?> ExportFilteredResultsAsync(CertificateListRequest request, bool includeInternalTags = false)
         {
-            return await ExportCertificatesAsync(request, format);
+            return await ExportCertificatesAsync(request, includeInternalTags);
         }
 
         #endregion

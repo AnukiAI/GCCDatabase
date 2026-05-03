@@ -10,9 +10,14 @@ using GCCWebApp.Attributes;
 
 namespace GCCWebApp.Controllers.Api.v1
 {
+    // DEF-131: previously this controller used `[Authorize(AuthenticationSchemes = "ApiKey")]`
+    // which let any Partner API key holder POST/PUT/DELETE certificates. Partners are read-only
+    // per the Amazon Developer Guide contract; bulk mutation is internal-only. Switched to the
+    // AnalystOrAdmin policy (default cookie scheme) so Partner API keys are rejected. No code in
+    // the repo calls these endpoints, so the lockdown has zero functional impact internally.
     [ApiVersion("1.0")]
     [Route("api/v{version:apiVersion}/certificates/bulk")]
-    [Authorize(AuthenticationSchemes = "ApiKey")]
+    [Authorize(Policy = "AnalystOrAdmin")]
     [ApiController]
     public class BulkCertificatesController : BaseApiController
     {

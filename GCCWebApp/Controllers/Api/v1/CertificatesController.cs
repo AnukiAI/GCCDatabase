@@ -546,8 +546,13 @@ namespace GCCWebApp.Controllers.Api.v1
         /// <summary>
         /// Search certificates by various criteria
         /// </summary>
+        /// <remarks>
+        /// DEF-129: Partner callers receive the contract DTO (status="Active",
+        /// certificationCountries="All", productIds[] array, no internal IDs, public-status filter
+        /// applied). Admin/Analyst still see the full entity for internal dashboards.
+        /// </remarks>
         [HttpGet("search")]
-        [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<Certificate>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<object>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> SearchCertificates(
             [FromQuery] string term,
             [FromQuery] int? productId,
@@ -562,10 +567,18 @@ namespace GCCWebApp.Controllers.Api.v1
         {
             try
             {
+                var userRole = GetCurrentUserRole();
+                var isPartnerCaller = userRole == "Partner";
+
+                // DEF-129: include nav props the partner DTO needs (Pathway, ProductIds).
+                // Company is already included; the DTO projection prevents the circular
+                // Company.Certificates serialization that previously caused issues.
                 var query = _context.Certificates
                     .Include(c => c.Product)
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
+                    .Include(c => c.Pathway)
+                    .Include(c => c.ProductIds)
                     .AsQueryable();
 
                 if (!string.IsNullOrEmpty(term))
@@ -602,6 +615,33 @@ namespace GCCWebApp.Controllers.Api.v1
                 if (!string.IsNullOrEmpty(status))
                     query = query.Where(c => c.Status == status);
 
+                if (isPartnerCaller)
+                {
+                    // Partner API contract (Amazon Developer Guide §4 / §8): partners only see
+                    // public-status certs scoped to their partner association.
+                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                    if (!userPartnerNames.Any())
+                    {
+                        _logger.LogWarning("Partner API key used but no partner name found in claims");
+                        return Ok(new PaginatedResponse<IEnumerable<object>>
+                        {
+                            Success = true,
+                            Data = new List<object>(),
+                            TotalCount = 0,
+                            PageNumber = parameters.PageNumber,
+                            PageSize = parameters.PageSize,
+                            TotalPages = 0,
+                            HasPrevious = false,
+                            HasNext = false,
+                            Message = "No certificates found matching your access permissions"
+                        });
+                    }
+
+                    query = query.Where(c =>
+                        CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
+                        userPartnerNames.Contains(c.Partner ?? "None"));
+                }
+
                 var totalCount = await query.CountAsync();
 
                 var certificates = await query
@@ -612,7 +652,21 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 var totalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize);
 
-                return PaginatedResponse(certificates, totalCount, parameters.PageNumber, parameters.PageSize);
+                IEnumerable<object> data = isPartnerCaller
+                    ? certificates.Select(c => BuildPartnerCertificateDto(c)).ToList()
+                    : certificates.Cast<object>().ToList();
+
+                return Ok(new PaginatedResponse<IEnumerable<object>>
+                {
+                    Success = true,
+                    Data = data,
+                    TotalCount = totalCount,
+                    PageNumber = parameters.PageNumber,
+                    PageSize = parameters.PageSize,
+                    TotalPages = totalPages,
+                    HasPrevious = parameters.PageNumber > 1,
+                    HasNext = parameters.PageNumber < totalPages
+                });
             }
             catch (Exception ex)
             {
@@ -624,8 +678,13 @@ namespace GCCWebApp.Controllers.Api.v1
         /// <summary>
         /// Get certificates expiring within specified days
         /// </summary>
+        /// <remarks>
+        /// DEF-124: Partner callers receive the contract DTO (status="Active", certificationCountries="All",
+        /// productIds[] array, no internal IDs, public-status filter applied). Admin/Analyst still see the
+        /// full entity for internal dashboards.
+        /// </remarks>
         [HttpGet("expiring")]
-        [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<Certificate>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(StandardPaginatedResponse<IEnumerable<object>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetExpiringCertificates(
             [FromQuery] int days = 30,
             [FromQuery] PaginationParams? parameters = null)
@@ -635,12 +694,48 @@ namespace GCCWebApp.Controllers.Api.v1
                 parameters ??= new PaginationParams();
                 var cutoffDate = DateTime.UtcNow.AddDays(days);
 
+                var userRole = GetCurrentUserRole();
+                var isPartnerCaller = userRole == "Partner";
+
+                // DEF-124: include all nav props the partner DTO reads (Company name is in the
+                // contract — Amazon expects it). The DTO projection prevents the circular
+                // Company.Certificates serialization that previously blew the response to 1GB+.
                 var query = _context.Certificates
                     .Include(c => c.Product)
                     .Include(c => c.Company)
                     .Include(c => c.CertificationType)
-                    .Where(c => c.ExpirationDate <= cutoffDate && c.ExpirationDate >= CertificateStatusHelper.BusinessToday)
-                    .OrderBy(c => c.ExpirationDate);
+                    .Include(c => c.Pathway)
+                    .Include(c => c.ProductIds)
+                    .Where(c => c.ExpirationDate <= cutoffDate && c.ExpirationDate >= CertificateStatusHelper.BusinessToday);
+
+                if (isPartnerCaller)
+                {
+                    // Partner API contract (Amazon Developer Guide §4 / §8): partners only see
+                    // public-status certs scoped to their partner association.
+                    var userPartnerNames = await GetCurrentUserPartnerNamesAsync();
+                    if (!userPartnerNames.Any())
+                    {
+                        _logger.LogWarning("Partner API key used but no partner name found in claims");
+                        return Ok(new PaginatedResponse<IEnumerable<object>>
+                        {
+                            Success = true,
+                            Data = new List<object>(),
+                            TotalCount = 0,
+                            PageNumber = parameters.PageNumber,
+                            PageSize = parameters.PageSize,
+                            TotalPages = 0,
+                            HasPrevious = false,
+                            HasNext = false,
+                            Message = $"No certificates expiring within {days} days matching your access permissions"
+                        });
+                    }
+
+                    query = query.Where(c =>
+                        CertificateStatusHelper.PublicStatuses.Contains(c.Status) &&
+                        userPartnerNames.Contains(c.Partner ?? "None"));
+                }
+
+                query = query.OrderBy(c => c.ExpirationDate);
 
                 var totalCount = await query.CountAsync();
 
@@ -651,10 +746,14 @@ namespace GCCWebApp.Controllers.Api.v1
 
                 var totalPages = (int)Math.Ceiling(totalCount / (double)parameters.PageSize);
 
-                var response = new PaginatedResponse<IEnumerable<Certificate>>
+                IEnumerable<object> data = isPartnerCaller
+                    ? certificates.Select(c => BuildPartnerCertificateDto(c)).ToList()
+                    : certificates.Cast<object>().ToList();
+
+                var response = new PaginatedResponse<IEnumerable<object>>
                 {
                     Success = true,
-                    Data = certificates,
+                    Data = data,
                     TotalCount = totalCount,
                     PageNumber = parameters.PageNumber,
                     PageSize = parameters.PageSize,

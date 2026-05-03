@@ -471,32 +471,36 @@ namespace GCCWebApp.Controllers
                 case "product-categories-with-active-certs":
                     header = "Product Category";
                     groups = activeCerts
-                        .GroupBy(c => c.Product?.Category?.Name ?? c.ProductCategory?.Name ?? "Uncategorized")
-                        .Select(g => (Name: g.Key, Count: g.Count()))
+                        .GroupBy(c => c.Product?.Category?.Name ?? c.ProductCategory?.Name)
+                        .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+                        .Select(g => (Name: g.Key!, Count: g.Count()))
                         .OrderByDescending(g => g.Count);
                     break;
 
                 case "product-types-with-active-certs":
                     header = "Product Type";
                     groups = activeCerts
-                        .GroupBy(c => c.Product?.ProductType?.Name ?? c.ProductType?.Name ?? "Unassigned")
-                        .Select(g => (Name: g.Key, Count: g.Count()))
+                        .GroupBy(c => c.Product?.ProductType?.Name ?? c.ProductType?.Name)
+                        .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+                        .Select(g => (Name: g.Key!, Count: g.Count()))
                         .OrderByDescending(g => g.Count);
                     break;
 
                 case "product-subcategories-with-active-certs":
                     header = "Product Subcategory";
                     groups = activeCerts
-                        .GroupBy(c => c.Product?.ProductSubcategory?.Name ?? c.ProductSubcategory?.Name ?? "Unassigned")
-                        .Select(g => (Name: g.Key, Count: g.Count()))
+                        .GroupBy(c => c.Product?.ProductSubcategory?.Name ?? c.ProductSubcategory?.Name)
+                        .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+                        .Select(g => (Name: g.Key!, Count: g.Count()))
                         .OrderByDescending(g => g.Count);
                     break;
 
                 case "companies-with-active-certs":
                     header = "Company";
                     groups = activeCerts
-                        .GroupBy(c => c.Company?.Name ?? "Unknown")
-                        .Select(g => (Name: g.Key, Count: g.Count()))
+                        .GroupBy(c => c.Company?.Name)
+                        .Where(g => !string.IsNullOrWhiteSpace(g.Key))
+                        .Select(g => (Name: g.Key!, Count: g.Count()))
                         .OrderByDescending(g => g.Count);
                     break;
 

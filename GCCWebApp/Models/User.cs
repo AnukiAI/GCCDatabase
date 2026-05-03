@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace GCCWebApp.Models
 {
@@ -27,8 +28,15 @@ namespace GCCWebApp.Models
 
         public DateTime? DeletedAt { get; set; }
 
+        // DEF-121: Never serialize credential material in API responses. The C# `required` keyword
+        // was dropped here because System.Text.Json cannot reconcile [JsonIgnore] with `required` —
+        // deserialization throws "marked required but does not specify a setter" if a User object
+        // ever round-trips through JSON (Partner API key auth was hitting this). EF Core still
+        // enforces NOT NULL at the DB schema level, and every `new User { ... }` site in the code
+        // explicitly assigns this field.
+        [JsonIgnore]
         [MaxLength(255)]
-        public required string PasswordHash { get; set; } = string.Empty;
+        public string PasswordHash { get; set; } = string.Empty;
 
         [MaxLength(20)]
         public required string Status { get; set; } = "active"; // active/inactive/locked
@@ -50,38 +58,45 @@ namespace GCCWebApp.Models
         public DateTime? LockedUntil { get; set; }
         
         // Enhanced security fields
+        [JsonIgnore]
         public string? TwoFactorSecret { get; set; }
-        
+
         public bool TwoFactorEnabled { get; set; } = false;
-        
+
         public required string TwoFactorMethod { get; set; } = "Email"; // Email, SMS, TOTP, Both
-        
+
         public string? PhoneNumber { get; set; }
-        
+
         public bool IsPhoneVerified { get; set; } = false;
-        
+
         public bool IsEmailVerified { get; set; } = true; // Default to true for existing users
-        
+
+        [JsonIgnore]
         public string? RecoveryCodes { get; set; } // JSON array of backup codes
-        
+
         public DateTime? LastSecurityAudit { get; set; }
-        
+
+        [JsonIgnore]
         public string? SecurityQuestions { get; set; } // JSON array
-        
+
         public bool MustChangePassword { get; set; } = false;
-        
+
         public int MaxConcurrentSessions { get; set; } = 3;
-        
+
+        [JsonIgnore]
         public string? AllowedIPs { get; set; } // Comma-separated list
-        
+
+        [JsonIgnore]
         public string? PasswordResetToken { get; set; }
 
+        [JsonIgnore]
         public DateTime? PasswordResetTokenExpiry { get; set; }
 
         public bool RequirePasswordChange { get; set; } = false;
-        
+
         public DateTime? PasswordExpiresAt { get; set; }
-        
+
+        [JsonIgnore]
         public string? PasswordHistory { get; set; } // JSON array of previous password hashes
         
         public int MaxPasswordHistory { get; set; } = 5;

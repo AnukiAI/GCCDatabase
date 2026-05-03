@@ -18,6 +18,310 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-132 — REGRESSION (caught + fixed same-cycle): DEF-121 [JsonIgnore] + C# `required` keyword incompatibility broke Partner API key authentication
+
+- **Date:** 2026-05-03
+- **Severity:** Medium — caught + fixed within minutes during cycle 4 audit; never deployed
+- **Status:** **Fixed (pending deploy)**
+- **Reporter:** Cycle 4 audit run discovered Partner API was returning 500 on `/api/v1/certificates/search` with log message `"Error during Partner API key authentication"` and inner exception `JsonPropertyInfo 'passwordHash' defined in type 'GCCWebApp.Models.User' is marked required but does not specify a setter`.
+- **Root cause:** The DEF-121 stopgap added `[JsonIgnore]` on `User.PasswordHash`, but the property was also declared with the C# `required` keyword (`public required string PasswordHash { get; set; }`). System.Text.Json cannot reconcile the two: `[JsonIgnore]` removes the property from JSON deserialization, but `required` still expects the JSON to provide it. When the Partner API key auth path round-tripped a User object through JSON (likely cache/session), deserialization threw.
+- **Fix:** Dropped the `required` keyword from `PasswordHash` in `Models/User.cs`. Initialization safety preserved by EF Core's NOT NULL DB constraint and by every `new User { ... }` site explicitly setting the field (verified via grep).
+- **Verified:** Live curl with Amazon partner key on `localhost:5101` — `/api/v1/certificates` and `/api/v1/certificates/search` both return 200 with valid contract DTOs. No 500s.
+- **Lesson for followup ticket (DEF-121 DTO refactor):** the `[JsonIgnore]` stopgap is cleaner with non-required nullable string properties. The DTO refactor (option 1 of original DEF-121) is now even more attractive because it sidesteps this kind of attribute-vs-keyword conflict entirely.
+- **Files:** `Models/User.cs`
+
+---
+
+### DEF-131 — SECURITY: Partner API keys could POST/PUT/DELETE certificates via `/api/v1/certificates/bulk/*` (privilege escalation — read-only contract violated)
+
+- **Date:** 2026-05-03
+- **Severity:** **CRITICAL (S1)** — privilege escalation; partners are contractually read-only consumers, but they could create/update/delete certificates
+- **Status:** **Fixed (pending deploy)** — same-day fix in cycle 4
+- **Reporter:** Cycle 4 audit of all v1 controllers reachable by `[Authorize(AuthenticationSchemes = "ApiKey")]`
+- **Problem:** `Controllers/Api/v1/BulkCertificatesController.cs` was decorated with `[Authorize(AuthenticationSchemes = "ApiKey")]` at the class level (line 15). This permitted any valid Partner API key to call:
+  - `POST /api/v1/certificates/bulk/create` (line 28) — accepts up to 100 `Certificate` entities, persists them via `_context.SaveChangesAsync()`
+  - `PUT /api/v1/certificates/bulk/update` (line 128) — updates existing certs in batch
+  - `DELETE /api/v1/certificates/bulk` (line 228) — deletes by ID list
+  - `POST /api/v1/certificates/bulk/validate` (line 280)
+- **Live evidence (before fix):** `curl -X POST -H "X-API-Key: <amazon partner key>" -d '[]' http://localhost:5101/api/v1/certificates/bulk/create` → HTTP 400 with body `"No certificates provided"` — meaning **the auth check passed and only the empty-array branch rejected**. A real payload would have been processed.
+- **Why this got through:** Copy-pasted controller-level auth attribute from `CertificatesController` (which legitimately accepts ApiKey for read endpoints). Whoever added the bulk controller didn't differentiate read vs mutation auth requirements.
+- **Contract source:** Per CLAUDE.md `External User Restrictions`, External users (closest human analogue to Partner role) have no Add/Edit cert buttons. Per memory `feedback_amazon_api_immutable.md`, Amazon Partner API contract is read-only. Per the prompt's role table, Partner uses `X-API-Key` header for **read** access to `/api/v1/*`.
+- **Fix:** Changed class-level attribute from `[Authorize(AuthenticationSchemes = "ApiKey")]` to `[Authorize(Policy = "AnalystOrAdmin")]`. This forces cookie-based auth (default scheme) and rejects any caller not in the Analyst or Admin role. Partner API keys are now blocked.
+- **Verified live (post-fix curl, Amazon partner key):**
+  - `POST /api/v1/certificates/bulk/create` → HTTP 403 `"Access denied. You do not have permission to perform this action."`
+  - `PUT /api/v1/certificates/bulk/update` → HTTP 403
+  - `DELETE /api/v1/certificates/bulk` → HTTP 403
+  - Sanity: `GET /api/v1/certificates` (Partner read endpoint) → HTTP 200 (unaffected)
+- **Internal impact assessment:** `grep -r 'api/v1/certificates/bulk\|BulkCertificatesController'` found ZERO callers in the repo. No frontend JS, no service code, no test code references these endpoints. The lockdown is functionally invisible to the existing app — there is no internal feature that uses the bulk routes. If Admin/Analyst tooling needs them in future, they can authenticate via cookie just like every other admin route.
+- **Files:** `Controllers/Api/v1/BulkCertificatesController.cs`
+
+---
+
+### DEF-130 — DATA-EXPOSURE: `/api/v1/products` leaks raw Product entity (internal IDs, nested category navigation, isDeleted flag) to Partner API keys
+
+- **Date:** 2026-05-03
+- **Severity:** **MEDIUM (S3)** — not in the contracted endpoint set; structural data exposure but no credentials or internal status
+- **Status:** **Open** — fix deferred; needs `ProductPartnerDto` design and a check on whether Amazon currently consumes this route
+- **Reporter:** Cycle 4 audit of v1 controllers reachable by Partner API key
+- **Problem:** `Controllers/Api/v1/ProductsController.cs` is decorated with `[Authorize(AuthenticationSchemes = "ApiKey")]` at line 29 — Partner API keys can hit it. The list endpoint returns raw `Product` entities including:
+  - Internal IDs (`id`, `categoryId`, `companyId`, `productTypeId`, `productSubcategoryId`)
+  - `isActive`, `isDeleted` flags (internal lifecycle state)
+  - Nested `category` object with `description`, `sortOrder`, `products: [null]` (circular nav reference)
+  - Nested empty `productType`, `productSubcategory`, `company` references
+  - Nested `certificates: [null]` array (circular)
+- **Live evidence (Partner key → `GET /api/v1/products?pageSize=1`):** Returns 51 products (all of them — no partner scoping) with full internal structure visible.
+- **Contract:** Products endpoint is NOT in the Amazon Developer Guide §4 or §8 contract list. The contracted partner endpoints are `/api/v1/certificates*` only. So we have two reasonable fix paths:
+  1. **Drop Partner access entirely:** change auth to `[Authorize(Policy = "AnalystOrAdmin")]` (same as DEF-131 fix). This is the clean answer if Amazon doesn't consume it.
+  2. **Add a partner DTO projection:** if Amazon does consume the products endpoint, project to a clean `ProductPartnerDto` with only public-safe fields (id, name, description, asin, upc, gtin, ean) and drop the nested entity navigation.
+- **Why fix is deferred:** option 1 is a one-line lockdown; option 2 requires writing the DTO and updating the controller. The right choice depends on whether Amazon (or any other partner) currently calls `/api/v1/products`. That data lives in production logs, which I don't have access to in this dev environment. Recommend Shawn check production access logs or ask the partner-integration owner. If no calls in the last 30 days → option 1 (drop access). If calls exist → option 2 (DTO projection, treat as a Partner API contract change requiring sign-off per `feedback_amazon_api_immutable.md`).
+- **Files (when fix is scoped):** `Controllers/Api/v1/ProductsController.cs`, plus optional new file `Models/Api/ProductPartnerDto.cs` for option 2.
+
+---
+
+### DEF-129 — SECURITY/CONTRACT: Partner API `/api/v1/certificates/search` leaks raw entity (same bug class as DEF-103/DEF-124)
+
+- **Date:** 2026-05-03
+- **Severity:** **CRITICAL (S1)** — Partner API contract violation per `feedback_amazon_api_immutable.md` and prompt's S1 trigger list
+- **Status:** **Fixed (pending deploy)** — same-day fix in cycle 4 of the QA pass
+- **Reporter:** Cycle 4 audit of `[HttpGet]` actions in `CertificatesController` after DEF-124 fix
+- **Problem:** Identical bug class to DEF-124, found in the same controller. `GetExpiringCertificates` was projected in cycle 3, but `SearchCertificates` (line 549) was still returning the raw `Certificate` entity directly via `PaginatedResponse(certificates, ...)`. No DTO projection, no `PublicStatuses` filter, no role check.
+- **Live evidence (before fix):** `curl -H "X-API-Key: <amazon>" "/api/v1/certificates/search?term=Widget&status=Client%20Approved%20-%20Paid&pageSize=2"` returned a Certificate entity with `id: 2`, `status: "Client Approved - Paid"` (raw), `country: "United States"` (raw), flat `asin/upc/gtin/ean`, internal IDs `companyId/productId/*Id`, plus a nested `company` entity with `email`, `contactInfo`, and a nested `products` array containing more circular references.
+- **Why this got through:** DEF-103 (April 21) was supposed to cover all 6 partner endpoints but missed `/expiring`, `/{id}`, `/number/{n}`. The April 30 self-test caught the latter two. The May 3 cycle 1 caught `/expiring`. The May 3 cycle 4 audit caught `/search` — the fourth from the same scope-creep gap. **A controller-wide grep is now the right test.**
+- **Fix (cycle 4):** Same pattern as DEF-124. `SearchCertificates`:
+  1. Detects `userRole == "Partner"` via `GetCurrentUserRole()`
+  2. Includes `Pathway` and `ProductIds` (DTO requires them)
+  3. For partner callers: filters on `PublicStatuses.Contains(Status) && partnerNames.Contains(Partner)`. Empty paginated response if no partner association.
+  4. Projects via shared `BuildPartnerCertificateDto` helper. Admin/Analyst still get the raw entity.
+  5. Changed return type signature on the `PaginatedResponse` call so it accepts both projected DTOs and raw entities.
+- **Verified live (post-fix):** `curl ".../search?term=Widget&status=Client%20Approved%20-%20Paid"` now returns `{certificateNumber: "26-0001", status: "Active", certificationCountries: "All", company: "Acme Corporation", productIds: [], pdfDownloadUrl: ...}` — no internal IDs, no flat product fields, no nested entities.
+- **Followup ticket recommended:** rather than chasing endpoint-by-endpoint, write a controller-level unit test that asserts every `[HttpGet]` in `CertificatesController` returns the contract DTO when caller is `Partner`. Catches future regressions automatically.
+- **Files:** `Controllers/Api/v1/CertificatesController.cs`
+
+---
+
+### DEF-128 — DATA-EXPOSURE/FUNCTIONAL: `/Certificate/ExportCertificates` is `[AllowAnonymous]`, supports Excel/PDF (rule says CSV-only), and PDF format returns broken file
+
+- **Date:** 2026-05-03
+- **Severity:** **HIGH (S2)** — driven by Internal Tag exposure to anonymous callers (per CLAUDE.md, even External users cannot view internal tags; this endpoint exposes them to **anyone**)
+- **Status:** **Fixed (pending deploy)** — same-day fix in cycle 3 of the QA pass
+- **Reporter:** Internal QA pass cycle 2 (full-spectrum-test prompt)
+- **Composite finding — 4 sub-issues in one endpoint:**
+
+  **(a) Anonymous Internal Tag exposure — S2:**
+  - `Controllers/CertificateController.cs:1708` — `ExportCertificates` is `[AllowAnonymous]`
+  - Live test: `curl http://localhost:5101/Certificate/ExportCertificates?format=csv` (no cookie, no key) returns a 24-column CSV
+  - Column 20 is `"Internal Tag"`, populated with values like `"Sustainable"`, `"Eco-Friendly"`, `"Verified"` for real certs
+  - Per CLAUDE.md `External User Restrictions`: "CANNOT view/edit internal tags". Anonymous tier is below External, so this clearly violates the intent.
+  - Other sensitive columns leaked: `"Company Contact Email/URL"` (e.g., `contact@acme.com`), `"Status"` raw lifecycle (e.g., `"Client Approved - Paid"` instead of public-facing literal), `"ASIN"`, `"UPC"`, `"GTIN"`, `"EAN"`.
+
+  **(b) Excel format support violates "CSV ONLY" rule — S3:**
+  - CLAUDE.md Critical Rule: "**CSV ONLY** - No Excel/JSON/PDF from admin pages. Use `ExportUtils.exportToCSV()` directly"
+  - Endpoint accepts `format=excel`, returns real `Microsoft Excel 2007+` (.xlsx), MIME `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`, ~12KB
+  - Both internal AND external tile views send `format=excel` (`certificate-tile-view-external.js:1397`, `certificate-tile-view-internal.js`)
+
+  **(c) PDF format returns broken file — S3 functional:**
+  - `curl ".../ExportCertificates?format=pdf"` returns HTTP 200 OK, `Content-Type: application/pdf`, ~7.8KB
+  - But `file` reports the body as `ASCII text, with CRLF line terminators` — this is **not a real PDF** (no `%PDF-` magic bytes)
+  - User experience: clicking "Export to PDF" downloads a file that no PDF reader can open
+  - Probably the legacy CSV stream getting served with a PDF MIME, or the export service returns a stub. Either way, broken on the wire.
+
+  **(d) Button label says "Export All to Excel" — S5 polish:**
+  - `Views/Certificate/CertificateTileViewExternal.cshtml:184` and `CertificateTileViewInternal.cshtml:249`:
+    `<i class="fas fa-file-excel"></i> Export All to Excel`
+  - aria-label: `"Export all visible certificates to Excel file"`
+  - This contradicts "CSV ONLY" — the user believes they're getting Excel, the rule says CSV.
+
+- **Recommended fix (in priority order):**
+  1. **Add `[Authorize]` to `ExportCertificates`** (or remove the endpoint and route through `ExportUtils.exportToCSV()` per the rule). Anonymous callers should not be able to bulk-pull cert data with internal tags.
+  2. **Drop the Internal Tag column** from any export accessible to External or anonymous callers. (For Admin/Analyst, fine to keep.)
+  3. **Force `format=csv`** server-side, ignore other format values (or 400 them). Update both tile-view JS files to send `format=csv` and update button label/icon to match (`<i class="fas fa-file-csv"></i> Export All to CSV`).
+  4. **Project the Status field** through `CertificateStatusHelper.PublicStatuses` mapping when caller is anonymous/External (same DEF-103 pattern).
+  5. **Remove the `pdf` branch** from the `format` switch entirely — it's broken and not used.
+- **Files:** `Controllers/CertificateController.cs`, `wwwroot/js/certificate-tile-view-external.js`, `wwwroot/js/certificate-tile-view-internal.js`, `Views/Certificate/CertificateTileViewExternal.cshtml`, `Views/Certificate/CertificateTileViewInternal.cshtml`, `Services/CertificateService.cs` (ExportCertificatesAsync — confirm CSV-only output regardless of format param).
+- **Test evidence (cycle 2, 2026-05-03):** Curl outputs captured in test-execution-log Section H.
+- **Fix (2026-05-03 cycle 3):** All four sub-issues addressed in one batch.
+  1. **Service interface (`Services/IServices.cs`):** dropped `string format` param, added `bool includeInternalTags = false`. Same for `ExportCertificatesAsync`, `ExportCertificatesByIdsAsync`, `ExportFilteredResultsAsync`. Default `false` — most restrictive.
+  2. **Service implementation (`Services/CertificateService.cs`):** dropped the `format.ToLower() switch` (no more Excel / PDF branches). Always calls `GenerateCsvExport`. The `GenerateExcelExport` and `GeneratePdfExportFromRows` methods are retained as dead code for now; cleanup is a followup ticket.
+  3. **`GenerateCsvExport`:** added `bool includeInternalTags` parameter. When false, the `"Internal Tag"` column is dropped from both the header row and every data row. Column count goes from 24 → 23 for anon/External callers.
+  4. **MVC controller (`Controllers/CertificateController.cs:1709`):** kept `[AllowAnonymous]` (public tile view legitimately needs export), but: hardcoded `Content-Type: text/csv` and `.csv` extension; computes `includeInternalTags = (userRole == "Admin" || userRole == "Analyst")` so anon/External/Partner do NOT get the column.
+  5. **API controller (`Controllers/Api/CertificatesApiController.cs`):** dropped format switch, hardcoded CSV. Endpoint is `[Authorize(Policy = "AnalystOrAdmin")]` so always passes `includeInternalTags: true`.
+  6. **Views (`CertificateTileViewExternal.cshtml`, `CertificateTileViewInternal.cshtml`):** "Export All to Excel" → "Export All to CSV"; `fa-file-excel` → `fa-file-csv`; aria-label updated.
+  7. **JS (`certificate-tile-view-external.js`, `certificate-tile-view-internal.js`):** all `params.append('format', 'excel')` → `'csv'`; toast text "Exporting … to Excel" → "to CSV".
+  8. **Tests (`GCCWebApp.Api.Tests/Unit/Services/CertificateServiceTests.cs`):** updated 8 call sites to use new signature; added 2 new tests covering the include-internal-tags-false behavior (DEF-128 regression coverage).
+- **Verified live (curl on `localhost:5101`, 2026-05-03 — anonymous, no API key, no cookie):**
+  ```
+  GET /Certificate/ExportCertificates?format=excel  → text/csv (CSV ASCII, was Microsoft Excel 2007+)
+  GET /Certificate/ExportCertificates?format=pdf    → text/csv (CSV ASCII, was broken PDF stub)
+  GET /Certificate/ExportCertificates?format=csv    → 23 columns (was 24)
+    Header: "Certificate #",…,"External Tag","ASIN",…  ← no Internal Tag between External Tag and ASIN
+    First data row: …,"Verified","B08X7N9MRQ",…       ← Internal Tag value "Sustainable" gone
+  ```
+
+---
+
+### DEF-127 — POLISH: Import/Export icon convention drifted on Product/Company pages
+
+- **Date:** 2026-05-03
+- **Severity:** Low (S5 polish)
+- **Status:** Open
+- **Reporter:** Internal QA pass cycle 2 (visual sweep)
+- **Symptom:** DEF-101 standardized Import = down arrow, Export = up arrow across admin pages. The convention is honored everywhere, but the icon class names diverge:
+  - **`/Admin/UserManagement` and `/Admin/Tags`** use `fa-file-arrow-down` / `fa-file-arrow-up` (file-with-arrow icons)
+  - **`/Admin/ProductManagement` and `/Company/Index`** use generic `fa-download` / `fa-upload` (tray icons)
+- **Why it's polish-tier:** Both classes are visually down/up arrows so the DEF-101 spec ("Import = down arrow, Export = up arrow") is technically satisfied. Visual consistency is just slightly off — paged-side-by-side, the icons look different. No user is going to be confused, but design QC will notice.
+- **Fix:** Align all Import/Export buttons to use `fa-file-arrow-down` / `fa-file-arrow-up` (the file-specific variants are clearer). Touch points: `Views/Product/Management.cshtml`, `Views/Company/Index.cshtml`, plus any partials they include.
+- **Files:** `Views/Product/Management.cshtml`, `Views/Company/Index.cshtml`
+
+---
+
+### DEF-126 — Add/Edit Product ID modal: stray ⚠ triangle on initial open + still cramped at 900px
+
+- **Date:** 2026-05-03
+- **Severity:** Medium — visual / UX bug; not blocking but looks broken on every modal open
+- **Status:** **Fixed local** — pending deploy
+- **Reporter:** Shawn (`http://localhost:5101/Certificate/Edit/26-0147`, "Edit Product ID and Add Product ID is still not wide enough and getting triangle caution icon, validation issues?")
+- **Symptom:** Opening the Add Product ID (or Edit Product ID) modal on Certificate Create / Edit shows a small red ⚠ triangle below the empty Product ID input *before the user has touched anything*. Modal also still feels cramped on a 1920px desktop monitor.
+- **Root cause — triangle:**
+  - `wwwroot/css/accessibility-enhancements-low-priority.css` lines 422–427 add `content: '\26A0 '` (⚠) as a `::before` pseudo-element to **every** `.invalid-feedback` div globally — regardless of whether the field is in an error state.
+  - The Product ID modal markup pre-renders `<div class="invalid-feedback" id="valueValidation"></div>` as an empty placeholder ready for JS to fill with an error message.
+  - `wwwroot/css/product-id-manager.css` overrides Bootstrap's default `display: none` on `.invalid-feedback` with `display: block` so it always reserves vertical space.
+  - Combined: the empty placeholder div is forced visible, and the global pseudo-element paints the ⚠ even with no error to display.
+- **Root cause — width:** DEF-119 had bumped `#productIdModal .modal-dialog max-width` from 650px to 900px. On a 1920px desktop the modal still occupies under half the viewport and the two-column form looks pinched.
+- **Fix:**
+  1. `accessibility-enhancements-low-priority.css`: changed selector from `.invalid-feedback::before` → `.invalid-feedback:not(:empty)::before` (and same for `.error` and `.field-validation-error`). The ⚠ now only renders when the feedback element actually contains an error message.
+  2. `product-id-manager.css`: bumped `#productIdModal .modal-dialog max-width` from 900px → 1140px (matches Bootstrap's modal-xl).
+- **Files:** `wwwroot/css/accessibility-enhancements-low-priority.css`, `wwwroot/css/product-id-manager.css`
+- **Verified locally (2026-05-03):** Playwright on `http://localhost:5101/Certificate/Edit/26-0147`, viewport 1920×1080, admin user.
+  - **Fresh Add modal:** no triangle below empty Product ID input. DOM check confirmed `valueValidation` div has empty `textContent` and `getComputedStyle(...,'::before').content === 'none'`.
+  - **Invalid input (typed "B08N5WRWN" with ASIN selected):** red triangle ⚠ now renders alongside the message "ASIN must be exactly 10 alphanumeric characters" — accessibility behavior preserved for actual errors.
+  - **Modal width:** dialog bounding box now `1140 × ~990` (was `900 × 992`), centered at `x=390` on a 1920px viewport — visibly more breathing room around all form fields.
+- **Regression risk:** the `:not(:empty)` selector change is global. Any other form on the site that relied on the ⚠ pseudo-element appearing on a *deliberately empty* `.invalid-feedback` div (and the empty div being meaningful as a visual indicator) would lose the icon. Practical impact: zero — `.invalid-feedback` is always paired with a message in Bootstrap-style validation; an empty one is always a placeholder.
+
+---
+
+### DEF-125 — Polish: 404 vs 302 on Admin routes leaks which controller actions exist
+
+- **Date:** 2026-05-03
+- **Severity:** Low (Polish / S5) — minor reconnaissance leak; not a real attack vector
+- **Status:** **Open** — defer; not worth a fix unless touched anyway
+- **Reporter:** Internal QA pass (cycle 1 of full-spectrum-test prompt)
+- **Symptom:** Anonymous request to a non-existent admin action returns HTTP 404, while a real admin action returns HTTP 302 (redirect to login). This lets an attacker enumerate which admin actions exist without authenticating.
+- **Evidence (anon):**
+  - `/Admin/Index` → 302 (exists, redirects to login)
+  - `/Admin/UserManagement` → 302 (exists)
+  - `/Admin/Tags` → 302 (exists)
+  - `/Admin/Dashboard` → 404 (action does not exist)
+  - `/Admin/Roles` → 404 (action does not exist)
+- **Why minor:** The set of admin action names is deterministic and would be visible to anyone who logs in once. It's also obvious from URL conventions (UserManagement, Tags, etc.). Treating it as a security issue would mean adding `[AllowAnonymous]` 302 catch-alls just to spoof the response code, which adds complexity for negligible benefit.
+- **Recommendation:** Leave open; revisit only if a security review specifically flags it.
+- **Files:** N/A
+
+---
+
+### DEF-124 — SECURITY/CONTRACT: Partner API `/api/v1/certificates/expiring` leaks raw entity (status, internal IDs, file paths, no public-status filter)
+
+- **Date:** 2026-05-03
+- **Severity:** **CRITICAL (S1)** — Partner API contract violation per `feedback_amazon_api_immutable.md` and prompt's S1 trigger list
+- **Status:** **Fixed (pending deploy)** — same-day fix in cycle 3 of the QA pass
+- **Reporter:** Internal QA pass (cycle 1 of full-spectrum-test prompt) — found while regressing DEF-103 across all Partner API endpoints
+- **Problem:** `GET /api/v1/certificates/expiring?days=N` is reachable via Partner API key (controller-level `[Authorize(AuthenticationSchemes = "ApiKey")]` at `CertificatesController.cs:33`). The endpoint returns the raw `Certificate` entity instead of the contract DTO. Same root-cause class as DEF-103, but `/expiring` was missed when the fix was applied to `/{id}` and `/number/{n}`.
+- **Evidence (live `/api/v1/certificates/expiring?days=365` with active Amazon partner key):**
+  ```json
+  {
+    "data": [{
+      "id": 38,                                 // ← INTERNAL ID LEAK
+      "number": "EXT-AMZ-001",
+      "status": "Client Approved - Paid",       // ← INTERNAL LIFECYCLE STATUS LEAK (should be "Active")
+      "country": "United States",               // ← RAW COUNTRY LEAK (should be "All")
+      "asin": null, "upc": null,                // ← FLAT FIELDS (should be productIds[] array)
+      "gtin": null, "ean": null,
+      "certificateFile": null,                  // ← INTERNAL FILE PATH LEAK
+      "certificateImagePath": null,
+      "pathwayId": null,
+      "companyId": 61,                          // ← INTERNAL COMPANY ID LEAK
+      "productId": 84,                          // ← INTERNAL PRODUCT ID LEAK
+      "productCategoryId": null,
+      "productTypeId": null,
+      "productSubcategoryId": null,
+      "certificationTypeId": 1,                 // ← INTERNAL TYPE ID LEAK
+      "certificationTypeSubcategoryId": null,
+      "createdBy": null, "updatedBy": null,
+      "createdAt": "...", "updatedAt": "...",
+      "company": { "id": 61, "...": "...",
+                   "certificates": [ /* full nested entity tree */ ]
+      }
+    }]
+  }
+  ```
+- **No public-status filter:** `EXT-AMZ-001` is in legacy lifecycle status `"Client Approved - Paid"`. If any cert tagged `Amazon` is in `Draft`, `Submitted`, `Hold`, or `Expired`, it would also leak through this endpoint to the partner — violating the same Amazon Developer Guide §4 + §8 rule that DEF-103 was about.
+- **Circular nav references:** Because `Company` is `Include`d and `Company` has a back-reference to `Certificates`, the JSON serializer produces a deeply nested response. Live test response was 1GB+ before being truncated. This is also a **DoS amplification risk** (any partner key holder can demand 1GB responses).
+- **Root cause (`Controllers/Api/v1/CertificatesController.cs:627-674`):**
+  - Line 657: `Data = certificates` — returns raw `List<Certificate>`, no projection
+  - No `where (PublicStatuses.Contains(c.Status))` filter
+  - No partner-role branch to apply `BuildPartnerCertificateDto` helper
+  - `Include(c => c.Company)` triggers circular serialization
+- **Fix (recommended):**
+  1. Add `PublicStatuses` filter when caller is Partner: mirror lines 826-843 of the same controller (used in `SearchByProductId`).
+  2. Add partner branch that projects via `BuildPartnerCertificateDto` (the helper added in 2026-04-30 DEF-103 fix).
+  3. Add `Include(Pathway)` and `Include(ProductIds)` to the query (so the DTO has the data it needs).
+  4. Drop `Include(Company)` from the partner-facing path (DTO only needs `Company.Name`); keep it for analyst/admin if they ever call this endpoint.
+  5. Remove `id`, `companyId`, `productId`, `*Id`, `certificateFile`, `certificateImagePath`, `createdBy`, `updatedBy` from the response — these are internal-only.
+- **Why this got through 2026-04-21 fix:** DEF-103's commit message claimed "all 6 partner endpoints fixed" but the actual fix only touched list, GS1 list, GS1 single, and missed `/expiring`, `/{id}`, `/number/{n}`. The 2026-04-30 self-test caught `/{id}` + `/number/{n}` and fixed them. `/expiring` wasn't in scope of either pass — slipped through.
+- **Audit needed:** Re-grep all `[HttpGet]` actions in `CertificatesController` and confirm every one returns a projected DTO when `userRole == "Partner"`. Also audit all other API v1 controllers (`ProductsController`, `CompaniesController`) for the same pattern.
+- **Customer impact:** Amazon's Climate Pledge Friendly integration consumes `/api/v1/*`. Of the 7 contracted endpoints, `/expiring` is documented in Swagger and is reachable. If Amazon scripts hit it, they'd see internal lifecycle statuses (e.g., `"Submitted"`, `"Hold"`) which violates the contract literal `"Active"`. They might either reject the response (breaking their integration) or, worse, accept it and then question why our app exposes "draft" certifications externally.
+- **Fix (2026-05-03 cycle 3):** Mirrored the `SearchByProductId` pattern in the same controller. `GetExpiringCertificates`:
+  1. Detects `userRole == "Partner"` via `GetCurrentUserRole()`.
+  2. Includes `Pathway` and `ProductIds` (so the contract DTO has the data it needs); kept `Company` include because the DTO projection prevents the circular Company→Certificates serialization that previously blew the response to 1GB+.
+  3. For partner callers: filters on `PublicStatuses.Contains(Status) && partnerNames.Contains(Partner)`. Returns empty paginated response if the API key has no partner association.
+  4. Projects via shared `BuildPartnerCertificateDto` helper — same DTO shape as list/by-id/by-number endpoints. Anonymous/Admin/Analyst still get the raw entity for internal dashboards.
+- **Verified live (curl on `localhost:5101`, 2026-05-03):**
+  ```
+  GET /api/v1/certificates/expiring?days=365 (Amazon partner key)
+  → 4 items (only PublicStatuses survived filter)
+  → status: "Active" (was "Client Approved - Paid")
+  → certificationCountries: "All" (was "United States")
+  → company: "ExtTest-AmazonCo" / "Acme Corporation" (now populated, not null)
+  → productIds: [] (was flat asin/upc/gtin/ean fields)
+  → No internal IDs, no certificateFile/certificateImagePath leak
+  → Response size ~1KB (was 1GB+ on circular nesting)
+  ```
+- **Files:** `Controllers/Api/v1/CertificatesController.cs`
+
+---
+
+### DEF-123 — Dashboard: aggregate stat CSV exports show "Uncategorized" / "Unassigned" instead of real names; counts disagreed with tiles
+
+- **Date:** 2026-05-03
+- **Severity:** Medium (broken reporting; downloads were silently useless for product categories/types/subcategories)
+- **Status:** Fixed (pending deploy)
+- **Reporter:** Shawn — follow-up to DEF-122 ("test the export data is matching")
+- **Symptom:**
+  - `/Dashboard/DownloadStat?type=product-categories-with-active-certs` returned `"Uncategorized",22` instead of the real category name
+  - Same for `product-types-with-active-certs` → `"Unassigned",22`
+  - Same for `product-subcategories-with-active-certs` → `"Unassigned",22`
+  - `Total Product Types: 1` in the CSV header disagreed with the tile showing `0` (the "Unassigned" fallback bucket was being counted as if it were a real type)
+- **Root causes (two):**
+  1. **Missing eager loads.** `GetActiveCertificatesAsync()` only included `Company`, `Product`, and `CertificationType`. The controller's GroupBy expressions read `c.Product?.Category?.Name`, `c.ProductType?.Name`, `c.ProductSubcategory?.Name` — none of those nav properties were Included, so they all evaluated to null at runtime → fell to the `?? "Uncategorized"` / `?? "Unassigned"` fallback strings.
+  2. **GroupBy ignored the Product linkage path.** Controller grouped by cert-direct nav only (`c.ProductType?.Name`), ignoring the `c.Product.ProductType.Name` path. The tile counting logic in `GetCertificateStatisticsAsync` correctly considers both paths, so tile and CSV used different definitions even before the null-fallback issue.
+  3. **"Unassigned"/"Uncategorized" treated as a real group.** Group count included these fallback buckets, so `Total Product Types: N` could overstate by 1 if any cert was untyped.
+- **Fix:**
+  1. `Repositories/CertificateRepository.cs` — `GetActiveCertificatesAsync()` now `.ThenInclude`s `Product.Category`, `Product.ProductType`, `Product.ProductSubcategory`, and includes the cert-direct `ProductCategory`, `ProductType`, `ProductSubcategory` navs as well.
+  2. `Controllers/DashboardController.cs` `GenerateAggregatedStatCsv` — GroupBy now uses Product linkage preferred, cert-direct fallback (matching tile semantics), and filters out null/empty group keys via `.Where(g => !string.IsNullOrWhiteSpace(g.Key))`. CSV reports only real types; if there are zero typed certs, the report shows `Total: 0` with no rows.
+- **Validation (dev DB, 22 active certs):**
+  | Stat | Tile | CSV Total | CSV rows | Match |
+  |---|---|---|---|---|
+  | Product Categories | 1 | 1 | "Chemicals and Raw Materials",22 | ✅ |
+  | Product Types | 0 | 0 | (empty) | ✅ |
+  | Product Subcategories | 0 | 0 | (empty) | ✅ |
+  | Companies | 9 | 9 | 9 named rows summing to 22 | ✅ |
+- **Files touched:**
+  - `Repositories/CertificateRepository.cs`
+  - `Controllers/DashboardController.cs`
+- **Deploy:** Pending — same build as DEF-122
+- **Notes:** `GetActiveCertificatesAsync()` is also called from `GetCertificatesForStat` and `GetCertificatesForTable` for non-aggregate downloads (active cert lists, top-companies/types/categories tables). Adding ThenIncludes is incremental cost (no new joins for callers that don't read the nav, just one query with more JOINs); no behavior regression in those code paths.
+
+---
+
 ### DEF-122 — Dashboard: tile #3 label "# Product Categories with Active Certs" was bound to certification-types count
 
 - **Date:** 2026-05-02
@@ -40,9 +344,11 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ### DEF-121 — SECURITY: `/api/productids/certificate/{id}` leaks password hashes and 2FA secrets in CreatedByUser / UpdatedByUser
 
-- **Date:** 2026-05-01
+- **Date:** 2026-05-01 (filed) → 2026-05-03 stopgap → 2026-05-03 DTO refactor (this entry)
 - **Severity:** **HIGH** (information disclosure — credentials exposure)
-- **Status:** **Open** — needs immediate fix before next deploy
+- **Status:** **Fixed (stopgap + DTO refactor)** — pending deploy. Both layers of defense in place:
+  1. `[JsonIgnore]` on 8 sensitive `User` fields (2026-05-03 stopgap, still in place).
+  2. `ProductIdResponseDto` projection now removes the `User` entity surface entirely from `/api/productids/*` responses (2026-05-03 cycle 4 — this fix).
 - **Reporter:** Found incidentally while diagnosing DEF-120 (Created By column rendering)
 - **Problem:** `GET /api/productids/certificate/{certificateId}` returns the full `CertificateProductId` entity with `Include(p => p.CreatedByUser)` and `Include(p => p.UpdatedByUser)` (`Services/ProductIdService.cs:65-66`). Default JSON serialization emits the entire User object, including:
   - `passwordHash` (BCrypt hash — recoverable to plaintext via offline attack if leaked)
@@ -61,6 +367,30 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
   3. **Both:** belt-and-suspenders.
 - **Not fixed in this commit:** flagged as standalone defect. Needs Shawn's call on which approach + audit scope.
 - **Why this got through:** Pattern of `.Include(...).Returning(entity)` is convenient and is used in many places. No DTO layer enforced. Code review didn't catch it because the User entity grew over time (new security fields added) without revisiting which endpoints serialize it.
+- **2026-05-03 verification (cycle 1 QA pass):** Re-confirmed unfixed after 2 days. Code evidence:
+  - `Models/User.cs:31` — `PasswordHash` still has no `[JsonIgnore]`
+  - `Models/User.cs:53` — `TwoFactorSecret` still has no `[JsonIgnore]`
+  - `Services/ProductIdService.cs:65-66, 74-75` — still uses `Include(CreatedByUser)` / `Include(UpdatedByUser)` and returns the entity directly
+  - **Aging risk:** Open HIGH-severity credential leak sitting unaddressed for 2+ days. Every day this stays open is a window where any Analyst account compromise yields the admin password hash + 2FA secret (full account takeover). Recommend bumping severity to **CRITICAL** and either (a) putting a quick `[JsonIgnore]` block on `User.cs` today as a stopgap and following up with the DTO refactor, or (b) doing the full DTO refactor now.
+- **2026-05-03 STOPGAP FIX SHIPPED LOCAL** (cycle 3 QA pass): Applied option 2 (`[JsonIgnore]` on User secrets). Status now **Fixed (stopgap, pending deploy)** — DTO refactor still recommended as a followup ticket but the immediate credential exposure is closed.
+  - `Models/User.cs` — added `using System.Text.Json.Serialization;` and `[JsonIgnore]` on: `PasswordHash`, `TwoFactorSecret`, `RecoveryCodes`, `SecurityQuestions`, `AllowedIPs`, `PasswordResetToken`, `PasswordResetTokenExpiry`, `PasswordHistory`. Eight fields total.
+  - **Why this is safe:** No code in the repo deserializes JSON → `User` entity (`grep -E '\[FromBody\].*User\b|JsonSerializer\.Deserialize<User>|FromJson<User>'` → no matches). All update flows go through ViewModels (`UserCreateViewModel`, `UserEditViewModel`) and `AdminService`. EF Core reads from DB, not JSON. The `[JsonIgnore]` only affects API response serialization, not internal flows.
+  - **Verified runtime:** `/Admin/GetUsers` already uses `UserViewModel` projection — its output never had secrets. The `/api/productids/certificate/{id}` endpoint that DEF-121 originally flagged still uses `Include(CreatedByUser)`/`Include(UpdatedByUser)` patterns, but with `[JsonIgnore]` the serialized output now omits all 8 sensitive fields regardless. Dev DB has zero CertificateProductId rows so couldn't run a live curl reproduction; proceeded on code evidence.
+  - **Followup ticket needed:** DTO refactor (option 1 from this entry's "Recommended fixes") to remove the User entity surface entirely. The `[JsonIgnore]` stopgap protects against accidental serialization of the existing fields, but if a new sensitive field is added to `User` in future, the next dev has to remember to mark it. The DTO approach is the durable fix.
+  - **Files:** `Models/User.cs`
+- **2026-05-03 DTO REFACTOR SHIPPED LOCAL** (cycle 4 QA pass — followup to the stopgap above):
+  - Added `ProductIdResponseDto` and `ProductIdUserDto` to `Models/CertificateProductId.cs`. The DTO mirrors every public field on `CertificateProductId` and exposes only `{ id, username }` for `CreatedByUser` and `UpdatedByUser` — no email, no role, no audit fields, and no surface area for any future credential field added to `User`.
+  - Updated all four read/write endpoints on `Controllers/Api/ProductIdApiController.cs` (`GetProductIdsByCertificate`, `GetProductId`, `CreateProductId`, `UpdateProductId`) to project entities via `ProductIdResponseDto.FromEntity(...)` before returning. `ApiResponse<CertificateProductId>` and `ApiResponse<List<CertificateProductId>>` are now `ApiResponse<ProductIdResponseDto>` / `ApiResponse<List<ProductIdResponseDto>>`.
+  - `CreateProductId` and `UpdateProductId` now re-fetch the saved entity via `GetProductIdAsync(id)` (which has `Include(CreatedByUser).Include(UpdatedByUser)`) so the returned DTO has populated user nav data for the immediate row render.
+  - **Service layer untouched.** `IProductIdService` still returns `CertificateProductId` entities — internal callers (e.g., `ExportToCsvAsync`, the cascade in `SyncProductIdStatusesForCertificateAsync`) keep their existing typed access. Only the controller boundary maps to DTO.
+  - **JS frontend impact: zero.** The DTO preserves the exact field names the JS consumer reads: `productId.id`, `productId.productIdType`, `productId.productIdValue`, `productId.partner`, `productId.productName`, `productId.productSku`, `productId.description`, `productId.createdAt`, `productId.createdBy`, `productId.createdByUser.username`. Verified live (see below).
+  - **Build:** 0 errors, 57 warnings (all pre-existing, unrelated to this change).
+  - **Verified live (2026-05-03, `localhost:5101`, admin cookie):**
+    - `GET /api/productids/certificate/48` (cert 26-0147, 2 product IDs) → returns 18 fields per row. `createdByUser` is `{ id, username }` only. Forbidden-fields scan: `passwordHash`, `twoFactorSecret`, `recoveryCodes`, `securityQuestions`, `allowedIPs`, `passwordResetToken`, `passwordHistory` — none present anywhere in the JSON.
+    - `GET /api/productids/7` → same DTO shape, same forbidden-fields scan passes.
+    - `PUT /api/productids/7` → DTO returned, forbidden-fields scan passes, status 200.
+    - `GET /Certificate/Edit/26-0147` → table renders "admin" in Created By column for both rows; clicking Edit opens modal with all fields pre-populated from the DTO (Type=ASIN, Value=B0BRNPBZJ8, Partner=Amazon, ProductName populated, Description populated).
+  - **Files:** `Models/CertificateProductId.cs`, `Controllers/Api/ProductIdApiController.cs`
 
 ---
 

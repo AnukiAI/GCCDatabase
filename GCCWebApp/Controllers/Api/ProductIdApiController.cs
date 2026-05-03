@@ -37,13 +37,16 @@ namespace GCCWebApp.Controllers.Api
         {
             try
             {
+                // DEF-121: project to DTO before returning so the User entity (with credential
+                // fields) never reaches the JSON serializer for this endpoint.
                 var productIds = await _productIdService.GetProductIdsByCertificateAsync(certificateId);
-                var totalCount = productIds.Count;
+                var dtos = productIds.Select(ProductIdResponseDto.FromEntity).ToList();
+                var totalCount = dtos.Count;
 
                 // If pagination requested, apply it
                 if (page > 0 && pageSize > 0)
                 {
-                    var pagedData = productIds.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+                    var pagedData = dtos.Skip((page - 1) * pageSize).Take(pageSize).ToList();
                     return Ok(new
                     {
                         success = true,
@@ -56,17 +59,17 @@ namespace GCCWebApp.Controllers.Api
                     });
                 }
 
-                return Ok(new ApiResponse<List<CertificateProductId>>
+                return Ok(new ApiResponse<List<ProductIdResponseDto>>
                 {
                     Success = true,
-                    Data = productIds,
+                    Data = dtos,
                     Message = "Product IDs retrieved successfully"
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving product IDs for certificate {CertificateId}", certificateId);
-                return StatusCode(500, new ApiResponse<List<CertificateProductId>>
+                return StatusCode(500, new ApiResponse<List<ProductIdResponseDto>>
                 {
                     Success = false,
                     Message = "Error retrieving product IDs"
@@ -80,31 +83,31 @@ namespace GCCWebApp.Controllers.Api
         /// <param name="id">Product ID</param>
         /// <returns>Product ID details</returns>
         [HttpGet("{id}")]
-        public async Task<ActionResult<ApiResponse<CertificateProductId>>> GetProductId(int id)
+        public async Task<ActionResult<ApiResponse<ProductIdResponseDto>>> GetProductId(int id)
         {
             try
             {
                 var productId = await _productIdService.GetProductIdAsync(id);
                 if (productId == null)
                 {
-                    return NotFound(new ApiResponse<CertificateProductId>
+                    return NotFound(new ApiResponse<ProductIdResponseDto>
                     {
                         Success = false,
                         Message = "Product ID not found"
                     });
                 }
 
-                return Ok(new ApiResponse<CertificateProductId>
+                return Ok(new ApiResponse<ProductIdResponseDto>
                 {
                     Success = true,
-                    Data = productId,
+                    Data = ProductIdResponseDto.FromEntity(productId),
                     Message = "Product ID retrieved successfully"
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving product ID {Id}", id);
-                return StatusCode(500, new ApiResponse<CertificateProductId>
+                return StatusCode(500, new ApiResponse<ProductIdResponseDto>
                 {
                     Success = false,
                     Message = "Error retrieving product ID"
@@ -118,13 +121,13 @@ namespace GCCWebApp.Controllers.Api
         /// <param name="productId">Product ID data</param>
         /// <returns>Created product ID</returns>
         [HttpPost]
-        public async Task<ActionResult<ApiResponse<CertificateProductId>>> CreateProductId([FromBody] CertificateProductId productId)
+        public async Task<ActionResult<ApiResponse<ProductIdResponseDto>>> CreateProductId([FromBody] CertificateProductId productId)
         {
             try
             {
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(new ApiResponse<CertificateProductId>
+                    return BadRequest(new ApiResponse<ProductIdResponseDto>
                     {
                         Success = false,
                         Message = "Invalid product ID data",
@@ -140,7 +143,7 @@ namespace GCCWebApp.Controllers.Api
                 var isValid = await _productIdService.ValidateProductIdAsync(productId.ProductIdType, productId.ProductIdValue);
                 if (!isValid)
                 {
-                    return BadRequest(new ApiResponse<CertificateProductId>
+                    return BadRequest(new ApiResponse<ProductIdResponseDto>
                     {
                         Success = false,
                         Message = "Product ID validation failed"
@@ -149,18 +152,22 @@ namespace GCCWebApp.Controllers.Api
 
                 var createdProductId = await _productIdService.CreateProductIdAsync(productId);
 
+                // DEF-121: re-fetch with includes so the DTO can populate CreatedByUser.Username
+                // for the immediate row render. Falls back to the create result if re-fetch fails.
+                var hydrated = await _productIdService.GetProductIdAsync(createdProductId.Id) ?? createdProductId;
+
                 return CreatedAtAction(nameof(GetProductId), new { id = createdProductId.Id },
-                    new ApiResponse<CertificateProductId>
+                    new ApiResponse<ProductIdResponseDto>
                     {
                         Success = true,
-                        Data = createdProductId,
+                        Data = ProductIdResponseDto.FromEntity(hydrated),
                         Message = "Product ID created successfully"
                     });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating product ID");
-                return StatusCode(500, new ApiResponse<CertificateProductId>
+                return StatusCode(500, new ApiResponse<ProductIdResponseDto>
                 {
                     Success = false,
                     Message = "Error creating product ID"
@@ -175,13 +182,13 @@ namespace GCCWebApp.Controllers.Api
         /// <param name="productId">Updated product ID data</param>
         /// <returns>Updated product ID</returns>
         [HttpPut("{id}")]
-        public async Task<ActionResult<ApiResponse<CertificateProductId>>> UpdateProductId(int id, [FromBody] CertificateProductId productId)
+        public async Task<ActionResult<ApiResponse<ProductIdResponseDto>>> UpdateProductId(int id, [FromBody] CertificateProductId productId)
         {
             try
             {
                 if (id != productId.Id)
                 {
-                    return BadRequest(new ApiResponse<CertificateProductId>
+                    return BadRequest(new ApiResponse<ProductIdResponseDto>
                     {
                         Success = false,
                         Message = "Product ID mismatch"
@@ -190,7 +197,7 @@ namespace GCCWebApp.Controllers.Api
 
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(new ApiResponse<CertificateProductId>
+                    return BadRequest(new ApiResponse<ProductIdResponseDto>
                     {
                         Success = false,
                         Message = "Invalid product ID data",
@@ -206,7 +213,7 @@ namespace GCCWebApp.Controllers.Api
                 var isValid = await _productIdService.ValidateProductIdAsync(productId.ProductIdType, productId.ProductIdValue);
                 if (!isValid)
                 {
-                    return BadRequest(new ApiResponse<CertificateProductId>
+                    return BadRequest(new ApiResponse<ProductIdResponseDto>
                     {
                         Success = false,
                         Message = "Product ID validation failed"
@@ -216,24 +223,27 @@ namespace GCCWebApp.Controllers.Api
                 var updatedProductId = await _productIdService.UpdateProductIdAsync(productId);
                 if (updatedProductId == null)
                 {
-                    return NotFound(new ApiResponse<CertificateProductId>
+                    return NotFound(new ApiResponse<ProductIdResponseDto>
                     {
                         Success = false,
                         Message = "Product ID not found"
                     });
                 }
 
-                return Ok(new ApiResponse<CertificateProductId>
+                // DEF-121: re-fetch with includes so the DTO can populate user nav properties.
+                var hydrated = await _productIdService.GetProductIdAsync(updatedProductId.Id) ?? updatedProductId;
+
+                return Ok(new ApiResponse<ProductIdResponseDto>
                 {
                     Success = true,
-                    Data = updatedProductId,
+                    Data = ProductIdResponseDto.FromEntity(hydrated),
                     Message = "Product ID updated successfully"
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error updating product ID {Id}", id);
-                return StatusCode(500, new ApiResponse<CertificateProductId>
+                return StatusCode(500, new ApiResponse<ProductIdResponseDto>
                 {
                     Success = false,
                     Message = "Error updating product ID"

@@ -1702,9 +1702,15 @@ namespace GCCWebApp.Controllers
         #region Export Operations
 
         /// <summary>
-        /// Export certificates to various formats (CSV, Excel, PDF)
-        /// GET: /Certificate/Export?format=csv&amp;searchTerm=...&amp;filters=...
+        /// Export certificates to CSV.
+        /// GET: /Certificate/ExportCertificates?searchTerm=...&amp;filters=...
         /// </summary>
+        /// <remarks>
+        /// DEF-128: CSV is the only supported format per CLAUDE.md "CSV ONLY" rule. The legacy
+        /// `format` query parameter is accepted for backwards-compatibility but ignored — output is
+        /// always CSV regardless. Internal Tag column is included only for Admin/Analyst callers;
+        /// External and anonymous callers receive a stripped CSV.
+        /// </remarks>
         [AllowAnonymous]
         public async Task<IActionResult> ExportCertificates(
             string format = "csv",
@@ -1720,7 +1726,11 @@ namespace GCCWebApp.Controllers
             try
             {
                 var userRole = GetUserRole();
-                
+
+                // DEF-128: only Admin/Analyst see Internal Tag column. Anon/External/Partner do not.
+                var includeInternalTags = string.Equals(userRole, "Admin", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(userRole, "Analyst", StringComparison.OrdinalIgnoreCase);
+
                 var request = new CertificateListRequest
                 {
                     Page = 1,
@@ -1743,40 +1753,24 @@ namespace GCCWebApp.Controllers
                 if (!string.IsNullOrEmpty(ids))
                 {
                     var certificateIds = ids.Split(',').Select(id => id.Trim()).Where(id => !string.IsNullOrEmpty(id)).ToList();
-                    exportData = await _certificateService.ExportCertificatesByIdsAsync(certificateIds, format);
+                    exportData = await _certificateService.ExportCertificatesByIdsAsync(certificateIds, includeInternalTags);
                 }
                 else
                 {
-                    exportData = await _certificateService.ExportCertificatesAsync(request, format);
+                    exportData = await _certificateService.ExportCertificatesAsync(request, includeInternalTags);
                 }
-                
+
                 if (exportData == null || exportData.Length == 0)
                 {
                     return BadRequest("No data to export or export failed");
                 }
 
-                var fileName = $"certificates-{DateTime.Now:yyyy-MM-dd-HHmmss}";
-                var contentType = format.ToLower() switch
-                {
-                    "csv" => "text/csv",
-                    "excel" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                    "pdf" => "application/pdf",
-                    _ => "text/csv"
-                };
-                
-                var fileExtension = format.ToLower() switch
-                {
-                    "csv" => "csv",
-                    "excel" => "xlsx",
-                    "pdf" => "pdf",
-                    _ => "csv"
-                };
-
-                return File(exportData, contentType, $"{fileName}.{fileExtension}");
+                var fileName = $"certificates-{DateTime.Now:yyyy-MM-dd-HHmmss}.csv";
+                return File(exportData, "text/csv", fileName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error exporting certificates in format: {Format}", format);
+                _logger.LogError(ex, "Error exporting certificates");
                 return BadRequest("Failed to export certificates");
             }
         }

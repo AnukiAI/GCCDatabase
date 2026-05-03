@@ -77,6 +77,75 @@ namespace GCCWebApp.Models
     }
 
     /// <summary>
+    /// DEF-121 follow-up: explicit response shape for /api/productids endpoints.
+    /// Replaces returning the raw CertificateProductId entity, which transitively
+    /// pulled the full User entity for CreatedByUser/UpdatedByUser. The User entity
+    /// has accumulated credential-tier fields (PasswordHash, TwoFactorSecret,
+    /// RecoveryCodes, SecurityQuestions, AllowedIPs, PasswordResetToken,
+    /// PasswordHistory) that must never serialize to API responses. The [JsonIgnore]
+    /// stopgap on User.cs already blocks those, but this DTO eliminates the entire
+    /// User surface — defense in depth, and durable against new fields being added
+    /// to User without remembering to mark them.
+    /// </summary>
+    public class ProductIdResponseDto
+    {
+        public int Id { get; set; }
+        public int CertificateId { get; set; }
+        public string ProductIdType { get; set; } = string.Empty;
+        public string ProductIdValue { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string? Partner { get; set; }
+        public string? ProductName { get; set; }
+        public string? ProductSku { get; set; }
+        public string? Description { get; set; }
+        public bool IsActive { get; set; }
+        public bool IsPublic { get; set; }
+        public int? DisplayOrder { get; set; }
+        public int? CreatedBy { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public int? UpdatedBy { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public ProductIdUserDto? CreatedByUser { get; set; }
+        public ProductIdUserDto? UpdatedByUser { get; set; }
+
+        public static ProductIdResponseDto FromEntity(CertificateProductId p) => new()
+        {
+            Id = p.Id,
+            CertificateId = p.CertificateId,
+            ProductIdType = p.ProductIdType,
+            ProductIdValue = p.ProductIdValue,
+            Status = p.Status,
+            Partner = p.Partner,
+            ProductName = p.ProductName,
+            ProductSku = p.ProductSku,
+            Description = p.Description,
+            IsActive = p.IsActive,
+            IsPublic = p.IsPublic,
+            DisplayOrder = p.DisplayOrder,
+            CreatedBy = p.CreatedBy,
+            CreatedAt = p.CreatedAt,
+            UpdatedBy = p.UpdatedBy,
+            UpdatedAt = p.UpdatedAt,
+            CreatedByUser = p.CreatedByUser != null
+                ? new ProductIdUserDto { Id = p.CreatedByUser.Id, Username = p.CreatedByUser.Username }
+                : null,
+            UpdatedByUser = p.UpdatedByUser != null
+                ? new ProductIdUserDto { Id = p.UpdatedByUser.Id, Username = p.UpdatedByUser.Username }
+                : null,
+        };
+    }
+
+    /// <summary>
+    /// Minimal user shape exposed on Product ID responses — just enough for the
+    /// Created By / Updated By columns. Never includes credential or contact fields.
+    /// </summary>
+    public class ProductIdUserDto
+    {
+        public int Id { get; set; }
+        public string Username { get; set; } = string.Empty;
+    }
+
+    /// <summary>
     /// Enumeration of supported product ID types
     /// </summary>
     public enum ProductIdType

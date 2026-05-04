@@ -222,6 +222,10 @@ namespace GCCWebApp.Controllers
                         p.Description,
                         p.Model,
                         p.Sku,
+                        p.CompanyId,
+                        p.CategoryId,
+                        p.ProductTypeId,
+                        p.ProductSubcategoryId,
                         CompanyName = p.Company != null ? p.Company.Name : "",
                         CategoryName = p.Category != null ? p.Category.Name : "",
                         ProductTypeName = p.ProductType != null ? p.ProductType.Name : "",
@@ -246,6 +250,10 @@ namespace GCCWebApp.Controllers
                     Description = p.Description,
                     Model = p.Model,
                     Sku = p.Sku,
+                    CompanyId = p.CompanyId,
+                    CategoryId = p.CategoryId,
+                    ProductTypeId = p.ProductTypeId,
+                    ProductSubcategoryId = p.ProductSubcategoryId,
                     CompanyName = p.CompanyName,
                     CategoryName = p.CategoryName,
                     ProductTypeName = p.ProductTypeName,
@@ -749,19 +757,21 @@ namespace GCCWebApp.Controllers
                                 continue;
                             }
 
-                            // Find product type
+                            // Find product type (Level-1, ParentId == null)
                             int? productTypeId = null;
                             if (!string.IsNullOrWhiteSpace(productTypeName))
                             {
-                                var productType = await _context.ProductTypes.FirstOrDefaultAsync(pt => pt.Name == productTypeName);
+                                var productType = await _context.ProductTypes
+                                    .FirstOrDefaultAsync(pt => pt.Name == productTypeName && pt.ParentId == null);
                                 if (productType != null) productTypeId = productType.Id;
                             }
 
-                            // Find subcategory
+                            // Find subcategory (Level-2 ProductTypes child of the resolved type)
                             int? productSubcategoryId = null;
-                            if (!string.IsNullOrWhiteSpace(subcategoryName))
+                            if (!string.IsNullOrWhiteSpace(subcategoryName) && productTypeId.HasValue)
                             {
-                                var subcategory = await _context.ProductSubcategories.FirstOrDefaultAsync(ps => ps.Name == subcategoryName);
+                                var subcategory = await _context.ProductTypes
+                                    .FirstOrDefaultAsync(pt => pt.Name == subcategoryName && pt.ParentId == productTypeId.Value);
                                 if (subcategory != null) productSubcategoryId = subcategory.Id;
                             }
 
@@ -925,6 +935,10 @@ namespace GCCWebApp.Controllers
         public string? Description { get; set; }
         public string? Model { get; set; }
         public string? Sku { get; set; }
+        public int? CompanyId { get; set; }
+        public int CategoryId { get; set; }
+        public int? ProductTypeId { get; set; }
+        public int? ProductSubcategoryId { get; set; }
         public string CompanyName { get; set; } = string.Empty;
         public string CategoryName { get; set; } = string.Empty;
         public string ProductTypeName { get; set; } = string.Empty;

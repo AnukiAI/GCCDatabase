@@ -2277,9 +2277,10 @@ namespace GCCWebApp.Migrations
                         .WithMany("Products")
                         .HasForeignKey("CompanyId");
 
-                    b.HasOne("GCCWebApp.Models.ProductSubcategory", "ProductSubcategory")
-                        .WithMany("Products")
-                        .HasForeignKey("ProductSubcategoryId");
+                    b.HasOne("GCCWebApp.Models.ProductType", "ProductSubcategory")
+                        .WithMany()
+                        .HasForeignKey("ProductSubcategoryId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("GCCWebApp.Models.ProductType", "ProductType")
                         .WithMany("Products")
@@ -2446,11 +2447,6 @@ namespace GCCWebApp.Migrations
                 {
                     b.Navigation("ProductTypes");
 
-                    b.Navigation("Products");
-                });
-
-            modelBuilder.Entity("GCCWebApp.Models.ProductSubcategory", b =>
-                {
                     b.Navigation("Products");
                 });
 

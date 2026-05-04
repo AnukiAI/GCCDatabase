@@ -6,6 +6,40 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-134 — Product Management Type and Subcategory now actually save (2026-05-04)
+
+The Product Management table added Product Type and Subcategory columns under QC #91 back in March, marked Ready for UAT, and the columns rendered correctly. On 2026-05-04 the client reported the columns were blank for every product even when the user had filled them in on the Add or Edit modal. A check of the dev database confirmed it: every one of the 51 products had `NULL` for both `ProductTypeId` and `ProductSubcategoryId`, including products created after the cascade dropdowns shipped. Two independent root causes were eating the data.
+
+The first was a save-path silent wipe. The Edit Product modal's JavaScript only pre-filled the name and description fields when the modal opened. Company, Category, Product Type, and Subcategory dropdowns all stayed empty. When the user hit Save without manually re-picking each one, the controller blindly overwrote those four fields with the empty values. Every Edit operation was a silent erasure of the four fields that weren't pre-filled. The fix pre-fills all four dropdowns from the loaded product when the modal opens, awaiting the subcategory cascade fetch before showing the modal so the user sees the existing selection rather than an empty dropdown.
+
+The second was a foreign-key target mismatch in the data model. The `Product.ProductSubcategoryId` column was foreign-keyed to a `ProductSubcategories` table, but that table is empty and no part of the application populates it. The cascade dropdown in the modal actually fetches subcategory options from `ProductTypes` Level-2 child rows via the `/Certificate/GetProductSubcategories` endpoint. So when the user picked a subcategory in the modal, the value sent to the backend was a `ProductTypes.Id` — and the FK constraint rejected it because the value didn't exist in the `ProductSubcategories` table. The save threw, the exception was caught and rendered as a generic error toast, and the user couldn't tell why their product wasn't saving. The Certificate model already correctly treats subcategory as a `ProductType` reference (matching the actual data flow); only the Product model was inconsistent. The fix retypes `Product.ProductSubcategory` from the empty side-table to `ProductType?` and ships an EF migration that drops the old FK and adds a new one targeting `ProductTypes`. No data conversion was needed because every value was already NULL.
+
+Two follow-on fixes in the same change set. The product-type lookup in the CSV import path was scoped to Level-1 entries only, to avoid accidentally matching a child row sharing a name with a parent. The subcategory lookup in the import path was repointed from the empty table to `ProductTypes` Level-2 children. The Product API response was extended to include `companyId`, `categoryId`, `productTypeId`, and `productSubcategoryId` alongside the existing name fields, so the Edit modal has the IDs it needs to pre-select dropdown options.
+
+Verified end-to-end on `localhost:5101` with admin credentials. Created a product with category Chemicals, type Plastics, subcategory HDPE; saved successfully; the management table renders Plastics and HDPE in the new columns; the database row shows `ProductTypeId=4` and `ProductSubcategoryId=46`. Re-opened the same product in the Edit modal and confirmed all four dropdowns pre-fill to the saved values. The migration applied cleanly and `sys.foreign_keys` confirms `FK_Products_ProductTypes_ProductSubcategoryId` now points at the `ProductTypes` table.
+
+Out of scope. The 51 existing products in dev still have NULL for both fields — backfilling legacy product records is a data action and would need a CR. The orphaned `ProductSubcategories` DbSet and Repository pointer are left in place to keep this change set focused on the user-visible defect; they can be retired in a later cleanup. QC #91 stays Ready-for-UAT — the column-rendering work shipped in March was correct; this defect was the orthogonal save-path bug that left the cells empty.
+
+Files: `Models/Product.cs`, `Models/ProductSubcategory.cs`, `Data/ApplicationDbContext.cs`, `Controllers/ProductController.cs`, `Views/Product/Management.cshtml`, `Migrations/20260504204044_RetargetProductSubcategoryFkToProductTypes.cs`.
+
+---
+
+## DEF-130 — Partner API products endpoint locked down to internal-only access (2026-05-04)
+
+The `GET /api/v1/products` endpoint had been authorized for Partner API keys since the v1 controllers were first built. The endpoint returned raw Product database entities including internal database IDs, the soft-delete flag, the active flag, a circular nested category object containing all of its products as null entries, and circular nested certificate references — none of which are part of any partner contract. The endpoint is not listed in the Amazon Developer Guide §4 or §8 contract; the contracted partner endpoints are `/api/v1/certificates*` only. The data exposure was identified during a v1 controller audit as DEF-130.
+
+Two fix paths were on the table. The clean lockdown — change the controller-level authorization attribute from the API-key scheme to the cookie-based Analyst-or-Admin policy — and the contract-track path of writing a partner DTO projection. The DTO path would have been needed only if Amazon was actually consuming the endpoint, in which case the change would also have required partner-side sign-off per the immutability rule on the Amazon contract. We confirmed via the dev database that Amazon's partner key has no endpoint restriction configured, so they CAN structurally call the endpoint, but the only way to know whether they DO is the production stdout logs — which live on the Plesk box and were not accessible from the development machine.
+
+Shawn's call was to ship the lockdown immediately. The change is fully reversible within minutes if Amazon's logs come back showing usage, and `/api/v1/products` is not contractually bound, so the immutability rule does not apply here. The lockdown removes the data exposure today rather than waiting on a multi-day contract negotiation for an endpoint that may not be in use at all.
+
+The fix is a single-line attribute swap on `Controllers/Api/v1/ProductsController.cs`. We also confirmed via repo-wide search that no internal frontend JavaScript, Razor view, or backend service calls `/api/v1/products` — the only references are the controller's own self-reference for the `Created` response, a code comment in the partner middleware, a couple of example strings in API documentation, and the admin API documentation page (which still works because admin cookie auth still satisfies the new policy). Internal consumer impact: zero.
+
+Verification of the prod usage question is still pending — Shawn will pull `logs/stdout*.log` from the Plesk app folder and grep for `/api/v1/products`. If any partner calls show up, this fix is reverted and the partner-DTO path becomes a new CR routed through Carly and Kyle. If clean, the lockdown stays.
+
+Files: `Controllers/Api/v1/ProductsController.cs`.
+
+---
+
 ## DEF-127 — Import/Export icon convention now consistent across Product and Company pages (2026-05-04)
 
 DEF-101 standardized the rule that Import buttons use a down-arrow icon and Export buttons use an up-arrow icon across the admin pages. The convention was honored on every page, but four of the pages — Product Management, Admin Product Management, Company Index, and Product Categories — were using the generic tray-style `fa-download` and `fa-upload` icons rather than the file-with-arrow variants `fa-file-arrow-down` and `fa-file-arrow-up` used on Tags and User Management. Both icon classes satisfy the down/up direction rule, so this was a low-severity polish item, but design QC noticed it when the pages were paged side-by-side.

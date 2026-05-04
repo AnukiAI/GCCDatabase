@@ -20,6 +20,5 @@ namespace GCCWebApp.Models
 
         // Navigation properties
         public ProductType ProductType { get; set; } = null!;
-        public ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }

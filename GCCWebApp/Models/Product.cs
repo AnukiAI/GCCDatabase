@@ -41,7 +41,9 @@ namespace GCCWebApp.Models
         // Navigation properties
         public ProductCategory Category { get; set; } = null!;
         public ProductType? ProductType { get; set; }
-        public ProductSubcategory? ProductSubcategory { get; set; }
+        // ProductSubcategory FK targets ProductTypes (Level-2 child rows), matching Certificate.ProductSubcategory.
+        // The legacy ProductSubcategories table is unused for Product.
+        public ProductType? ProductSubcategory { get; set; }
         public Company? Company { get; set; }
 
         // Collections

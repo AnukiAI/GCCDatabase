@@ -200,9 +200,14 @@ namespace GCCWebApp.Data
                     .WithMany(pt => pt.Products)
                     .HasForeignKey(e => e.ProductTypeId);
 
+                // ProductSubcategoryId points at a Level-2 child row in ProductTypes
+                // (matches Certificate.ProductSubcategory). The legacy ProductSubcategories
+                // table is no longer referenced by Product.
                 entity.HasOne(e => e.ProductSubcategory)
-                    .WithMany(ps => ps.Products)
-                    .HasForeignKey(e => e.ProductSubcategoryId);
+                    .WithMany()
+                    .HasForeignKey(e => e.ProductSubcategoryId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
 
                 entity.HasOne(e => e.Company)
                     .WithMany(c => c.Products)

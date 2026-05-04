@@ -18,6 +18,34 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-134 — DATA-LOSS: Product Management Edit silently nulls Type/Subcategory; Subcategory FK pointed at the wrong table
+
+- **Date:** 2026-05-04
+- **Severity:** High — every product in dev DB has `ProductTypeId = NULL` and `ProductSubcategoryId = NULL` (51/51) despite the columns existing on the model. QC #91 (added "Product Type" + "Subcategory" columns to the management table) was marked Ready for UAT but the columns are blank because the data isn't being persisted.
+- **Status:** **Fixed (pending deploy)** — verified end-to-end on `localhost:5101` via Playwright; new product saved with Plastics/HDPE; edit modal pre-fills all four dropdowns.
+- **Reporter:** Shawn — "the product and product subcategories don't have any data even though the user entered it on a product"
+- **Two independent root causes:**
+  1. **`editProduct()` only set name + description.** `Views/Product/Management.cshtml:824-836` left Company, Category, Product Type, Subcategory dropdowns empty when the modal opened in Edit mode. When the user hit Save without manually re-picking each one, `ProductController.SaveProduct` blindly overwrote all four fields with `null`. Every Edit was a silent wipe.
+  2. **`Product.ProductSubcategoryId` FK pointed at the wrong table.** The model FKed subcategory to the `ProductSubcategories` table (`ApplicationDbContext.cs:203-205`), but `ProductSubcategories` has 0 rows and the cascade endpoint `/Certificate/GetProductSubcategories` returns Level-2 children from the `ProductTypes` table. So if a user picked a subcategory in the modal, EF rejected the save with FK violation → exception caught → `Success=false` → user saw a generic error toast. `Certificate.ProductSubcategory` already correctly used `ProductType?` (`Certificate.cs:113`); `Product` was the inconsistent one.
+- **Fix:**
+  - **Model:** `Product.ProductSubcategory` retyped from `ProductSubcategory?` → `ProductType?` (`Models/Product.cs`). Removed unused `Products` collection from `Models/ProductSubcategory.cs`.
+  - **DbContext:** `Product → ProductSubcategory` relationship reconfigured to `WithMany().OnDelete(Restrict).IsRequired(false)` targeting the `ProductTypes` table (`Data/ApplicationDbContext.cs`).
+  - **Migration:** `20260504204044_RetargetProductSubcategoryFkToProductTypes.cs` — drops `FK_Products_ProductSubcategories_ProductSubcategoryId`, adds `FK_Products_ProductTypes_ProductSubcategoryId`. No data conversion needed (all values were NULL). Reversible.
+  - **API surface:** `ProductController.GetProducts` now returns `companyId`, `categoryId`, `productTypeId`, `productSubcategoryId` alongside the existing `*Name` fields. `ProductListViewModel` extended with the four ID properties.
+  - **Edit pre-fill:** `editProduct()` made async; pre-fills Company + Category + Type + Subcategory from the loaded product, awaiting the subcategory cascade fetch before showing the modal.
+  - **Import lookup:** `ImportProducts` subcategory lookup repointed from the empty `ProductSubcategories` table to `ProductTypes` Level-2 children (filter: `Name == subcategoryName && ParentId == productTypeId`). Product type lookup also now scoped to Level-1 (`ParentId == null`) to prevent accidentally matching a child type with the same name.
+- **Verified live on `localhost:5101`:**
+  - Add Product modal: picked Chemicals → Plastics → HDPE, saved. DB row shows `ProductTypeId=4, ProductSubcategoryId=46`. Both columns render in the management table.
+  - Edit Product modal: opening an existing product pre-fills all four dropdowns to the saved values (company=1, cat=1, type=4, sub=46).
+  - Migration applied to dev DB; FK now reads `FK_Products_ProductTypes_ProductSubcategoryId` per `sys.foreign_keys`.
+- **Out of scope (not changed):**
+  - Existing 51 products in dev DB still have `NULL` for both fields — backfill is a data action, not a code fix; would need a CR if client wants legacy products tagged. Per `feedback_data_changes_require_cr.md`.
+  - The `ProductSubcategories` table is now orphaned for Product but is still referenced by `UnitOfWork`/`IUnitOfWork` and EF DbSet. Left in place to keep the surface area minimal; can be dropped in a later cleanup.
+  - QC #91 stays Ready-for-UAT — the column-rendering work it shipped was correct; this defect is the orthogonal save-path bug behind the empty cells.
+- **Files:** `Models/Product.cs`, `Models/ProductSubcategory.cs`, `Data/ApplicationDbContext.cs`, `Controllers/ProductController.cs`, `Views/Product/Management.cshtml`, `Migrations/20260504204044_RetargetProductSubcategoryFkToProductTypes.cs` (+ `.Designer.cs`, snapshot updated).
+
+---
+
 ### DEF-133 — UI: mojibake (`â–¶`, `â€¢`, `â€"`, `â†'`) baked into 4 Razor views — visible to users on Product Management
 
 - **Date:** 2026-05-03
@@ -89,22 +117,25 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ### DEF-130 — DATA-EXPOSURE: `/api/v1/products` leaks raw Product entity (internal IDs, nested category navigation, isDeleted flag) to Partner API keys
 
-- **Date:** 2026-05-03
+- **Date:** 2026-05-03 (reported), 2026-05-04 (fixed via lockdown)
 - **Severity:** **MEDIUM (S3)** — not in the contracted endpoint set; structural data exposure but no credentials or internal status
-- **Status:** **Open** — fix deferred; needs `ProductPartnerDto` design and a check on whether Amazon currently consumes this route
+- **Status:** **Fixed (pending deploy)** — option 1 (lockdown) shipped per Shawn's call on 2026-05-04
 - **Reporter:** Cycle 4 audit of v1 controllers reachable by Partner API key
-- **Problem:** `Controllers/Api/v1/ProductsController.cs` is decorated with `[Authorize(AuthenticationSchemes = "ApiKey")]` at line 29 — Partner API keys can hit it. The list endpoint returns raw `Product` entities including:
+- **Problem:** `Controllers/Api/v1/ProductsController.cs` was decorated with `[Authorize(AuthenticationSchemes = "ApiKey")]` at line 29 — Partner API keys could hit it. The list endpoint returned raw `Product` entities including:
   - Internal IDs (`id`, `categoryId`, `companyId`, `productTypeId`, `productSubcategoryId`)
   - `isActive`, `isDeleted` flags (internal lifecycle state)
   - Nested `category` object with `description`, `sortOrder`, `products: [null]` (circular nav reference)
   - Nested empty `productType`, `productSubcategory`, `company` references
   - Nested `certificates: [null]` array (circular)
-- **Live evidence (Partner key → `GET /api/v1/products?pageSize=1`):** Returns 51 products (all of them — no partner scoping) with full internal structure visible.
-- **Contract:** Products endpoint is NOT in the Amazon Developer Guide §4 or §8 contract list. The contracted partner endpoints are `/api/v1/certificates*` only. So we have two reasonable fix paths:
-  1. **Drop Partner access entirely:** change auth to `[Authorize(Policy = "AnalystOrAdmin")]` (same as DEF-131 fix). This is the clean answer if Amazon doesn't consume it.
-  2. **Add a partner DTO projection:** if Amazon does consume the products endpoint, project to a clean `ProductPartnerDto` with only public-safe fields (id, name, description, asin, upc, gtin, ean) and drop the nested entity navigation.
-- **Why fix is deferred:** option 1 is a one-line lockdown; option 2 requires writing the DTO and updating the controller. The right choice depends on whether Amazon (or any other partner) currently calls `/api/v1/products`. That data lives in production logs, which I don't have access to in this dev environment. Recommend Shawn check production access logs or ask the partner-integration owner. If no calls in the last 30 days → option 1 (drop access). If calls exist → option 2 (DTO projection, treat as a Partner API contract change requiring sign-off per `feedback_amazon_api_immutable.md`).
-- **Files (when fix is scoped):** `Controllers/Api/v1/ProductsController.cs`, plus optional new file `Models/Api/ProductPartnerDto.cs` for option 2.
+- **Live evidence (Partner key → `GET /api/v1/products?pageSize=1`):** Returned 51 products (all of them — no partner scoping) with full internal structure visible.
+- **Contract:** Products endpoint is NOT in the Amazon Developer Guide §4 or §8 contract list. The contracted partner endpoints are `/api/v1/certificates*` only. Two reasonable fix paths existed:
+  1. **Drop Partner access entirely:** change auth to `[Authorize(Policy = "AnalystOrAdmin")]` (same as DEF-131 fix). Clean answer if Amazon doesn't consume it.
+  2. **Add a partner DTO projection:** if Amazon does consume the products endpoint, project to a clean `ProductPartnerDto` with only public-safe fields and drop the nested entity navigation. Would require Carly→Kyle sign-off per `feedback_amazon_api_immutable.md`.
+- **Decision rationale (2026-05-04):** Production usage check — confirmed via dev DB that Amazon's API key has `AllowedEndpoints = NULL` (no endpoint restriction in middleware), so partners CAN structurally hit the route, but `/api/v1/products` is not part of the Amazon Developer Guide contract and so isn't bound by the contract-immutability rule. The aggregate `PartnerApiKey.RequestCount` doesn't break down by endpoint, and Application Insights is disabled in prod (`EnableApplicationInsights: false`), leaving stdout logs as the only behavioral source — Shawn opted to ship the lockdown immediately (fully reversible in minutes) and pull prod stdout logs in parallel. If logs come back showing Amazon usage, revert + ship option 2 as a follow-up CR.
+- **Fix (2026-05-04):** Single-attribute swap on `Controllers/Api/v1/ProductsController.cs:29` — `[Authorize(AuthenticationSchemes = "ApiKey")]` → `[Authorize(Policy = "AnalystOrAdmin")]`. Same pattern as DEF-131. Class-level only; no method-level overrides exist. XML doc-comment updated to reflect the new access posture and reference DEF-130 for the rationale.
+- **Internal-consumer impact analysis:** Grep across `*.cs`, `*.cshtml`, `*.js`, `*.html` for `api/v1/products` returned only (a) the controller's own `CreatedResponse` self-reference, (b) a code comment in `PartnerApiKeyAuthenticationMiddleware`, (c) an example string in `PartnerApiController` doc, (d) the `PartnerApiKey.AllowedEndpoints` example, and (e) the `Views/Admin/GCCAPI.cshtml` admin docs page (which still works for Admin/Analyst cookie auth). Zero JS or backend code consumes this endpoint internally — lockdown has zero functional impact on the internal app.
+- **Followup if logs show partner calls:** Revert the attribute, write `Models/Api/ProductPartnerDto.cs` with only public-safe fields (id, name, description, productIds[]), update controller methods to project, and route the change as a Partner API contract change requiring Carly→Kyle sign-off.
+- **Files:** `Controllers/Api/v1/ProductsController.cs`
 
 ---
 

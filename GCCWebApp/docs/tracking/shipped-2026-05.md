@@ -6,6 +6,32 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-127 — Import/Export icon convention now consistent across Product and Company pages (2026-05-04)
+
+DEF-101 standardized the rule that Import buttons use a down-arrow icon and Export buttons use an up-arrow icon across the admin pages. The convention was honored on every page, but four of the pages — Product Management, Admin Product Management, Company Index, and Product Categories — were using the generic tray-style `fa-download` and `fa-upload` icons rather than the file-with-arrow variants `fa-file-arrow-down` and `fa-file-arrow-up` used on Tags and User Management. Both icon classes satisfy the down/up direction rule, so this was a low-severity polish item, but design QC noticed it when the pages were paged side-by-side.
+
+The fix swaps the icon class on the Import button, the Export button, and the Import Preview modal header on each of the four pages. The four pages now match the file-with-arrow icon style already used on Tags and User Management. No JS or controller changes — purely the icon class on a handful of `<i>` tags.
+
+Out of scope: the admin pages with Export-only buttons — Certificate Fields, Certificate Types, Partners, Pathways, Role Management, Product Types, and CSF Attributes — still use the tray-style `fa-upload` icon. They satisfy the DEF-101 direction rule and were not flagged in this defect, so they are left alone. Standardizing them onto the file-arrow style is a separate polish ticket if it comes up. The `Views/Product/ManagementAlt.cshtml` and `ManagementV2.cshtml` alt views are not on the sitemap and were also left alone.
+
+Files: `Views/Product/Management.cshtml`, `Views/Company/Index.cshtml`, `Views/Admin/ProductManagement.cshtml`, `Views/Product/Categories.cshtml`.
+
+---
+
+## DEF-111 — Product Management page now surfaces a real error when the session expires instead of a silent broken table (2026-05-04)
+
+The Product Management page has had a silent-failure defect since the 2026-05-01 verification sweep. When a user's cookie session expires while they have the page open and the page's JavaScript fires its background `loadProducts` fetch, the browser auto-follows the auth redirect to the login page. The login page returns HTTP 200 with HTML, the JS sees `response.ok === true` and calls `response.json()`, the JSON parser chokes on the leading `<` of `<!DOCTYPE`, and the `catch` block writes a `console.error` and returns. The user sees an empty product table and no toast or banner — the page just looks broken.
+
+The fix updates the `loadProducts` function in the page's inline JavaScript to read the response's content type before calling `response.json()`. If the response was redirected or the content type is not `application/json`, the code shows a real `AdminCore.showNotification` toast — "Your session has expired. Reloading…" — and triggers a page reload after a brief delay, which re-enters the auth flow cleanly and lands the user back on the page after they re-authenticate. The non-OK and exception branches were also updated to surface a notification toast instead of writing only to the console, so any future fetch failure on this page is visible to the user instead of swallowed.
+
+The same silent-failure pattern exists in four other fetch sites in this same file — initial-data loaders for categories, types, and dropdown sources — and on a number of other admin pages. They were not in scope for this defect and were not modified. If the auth-redirect symptom shows up elsewhere, those will be addressed individually or refactored into a shared helper.
+
+Verified on source review and against a live `fetch('/Account/Login')` from the running app, which confirms the login page responds with `redirected: true` and `Content-Type: text/html`, exactly the pair the new guard checks for. The runtime behavior of the patched page renders only after the dev server is restarted; this project does not have Razor runtime view compilation enabled.
+
+Files: `Views/Product/Management.cshtml`.
+
+---
+
 ## DEF-121 (followup) — Product ID API now returns a DTO instead of the raw entity, removing the User surface entirely (2026-05-03)
 
 The Product ID management endpoints under `/api/productids/*` have been the source of a known credential-exposure defect since 2026-05-01. The root cause was that they returned the full `CertificateProductId` database entity, which transitively pulls in the full `User` entity for the `CreatedByUser` and `UpdatedByUser` navigation properties. The `User` entity has accumulated credential-tier fields over time — password hash, two-factor secret, recovery codes, security-question answers, an IP allowlist, the password-reset token, password history — and any one of those serializing into an API response is an account-takeover risk for every user who has ever created or modified a product ID, almost always the admin. The endpoint requires Analyst-or-Admin authorization, so the leak was not anonymous, but a single Analyst account compromise would have yielded the admin password hash and 2FA seed.

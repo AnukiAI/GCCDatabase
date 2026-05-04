@@ -191,16 +191,18 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ### DEF-127 — POLISH: Import/Export icon convention drifted on Product/Company pages
 
-- **Date:** 2026-05-03
+- **Date:** 2026-05-03 (reported), 2026-05-04 (fixed)
 - **Severity:** Low (S5 polish)
-- **Status:** Open
+- **Status:** **Fixed (pending deploy)**
 - **Reporter:** Internal QA pass cycle 2 (visual sweep)
 - **Symptom:** DEF-101 standardized Import = down arrow, Export = up arrow across admin pages. The convention is honored everywhere, but the icon class names diverge:
   - **`/Admin/UserManagement` and `/Admin/Tags`** use `fa-file-arrow-down` / `fa-file-arrow-up` (file-with-arrow icons)
   - **`/Admin/ProductManagement` and `/Company/Index`** use generic `fa-download` / `fa-upload` (tray icons)
 - **Why it's polish-tier:** Both classes are visually down/up arrows so the DEF-101 spec ("Import = down arrow, Export = up arrow") is technically satisfied. Visual consistency is just slightly off — paged-side-by-side, the icons look different. No user is going to be confused, but design QC will notice.
-- **Fix:** Align all Import/Export buttons to use `fa-file-arrow-down` / `fa-file-arrow-up` (the file-specific variants are clearer). Touch points: `Views/Product/Management.cshtml`, `Views/Company/Index.cshtml`, plus any partials they include.
-- **Files:** `Views/Product/Management.cshtml`, `Views/Company/Index.cshtml`
+- **Fix (2026-05-04):** Aligned Import/Export buttons on the four drifted pages to use `fa-file-arrow-down` / `fa-file-arrow-up`. Also updated the Import Preview modal headers on the same pages so the icon stays consistent inside the modal.
+- **Files:** `Views/Product/Management.cshtml` (lines 39, 42, 141), `Views/Company/Index.cshtml` (lines 38, 41, 96), `Views/Admin/ProductManagement.cshtml` (lines 37, 40, 116), `Views/Product/Categories.cshtml` (lines 18, 21).
+- **Verification:** Source-side grep confirms both icon classes present in all four files; localhost runtime verify pending — Razor runtime compilation isn't configured in this project, so the change reaches the browser only after the next dev server restart / publish.
+- **Out of scope (intentionally not touched):** Admin pages with Export-only buttons (`CertificateFields`, `CertificateTypes`, `Partners`, `Pathways`, `RoleManagement`, `ProductTypes`, `CSFAttributes`) currently use `fa-upload` for Export. Convention-wise they satisfy DEF-101 ("Export = up arrow"); standardizing them to `fa-file-arrow-up` is a separate polish ticket if design QC flags it. `Views/Product/ManagementAlt.cshtml` and `ManagementV2.cshtml` are alt views (not on sitemap) — left alone.
 
 ---
 
@@ -604,23 +606,20 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ### DEF-111 — `/Product/Management` "Error loading products: SyntaxError: Unexpected token '<'" — fetch parses HTML auth-redirect as JSON
 
-- **Date:** 2026-05-01
+- **Date:** 2026-05-01 (reported), 2026-05-04 (fixed)
 - **Severity:** Medium (silent functional failure; the user sees an empty/broken product list with no actionable error)
-- **Status:** **Open** — surfaced during DEF-108 verification sweep, not fixed in this cycle
+- **Status:** **Fixed (pending deploy)**
 - **Reporter:** Anuki internal full-spectrum QA pass (2026-05-01)
 - **Symptom:** Logged in as analyst, navigating to `/Product/Management` produces this console error: `Error loading products: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. The page renders but the products table is empty / not populated. No visible error toast or banner — the user has no idea anything went wrong.
-- **Suspected root cause:** An AJAX fetch on the Product Management page is hitting an API endpoint that returns HTML (almost certainly the login page or AccessDenied page after a session check) and the JS is calling `response.json()` without first checking `response.ok` or `Content-Type`. Two possible upstream causes:
-  1. The endpoint requires Admin role and the analyst silently 403s/302s to a login page.
-  2. There's a session/CSRF-token mismatch and auth middleware redirects the AJAX call to login.
-- **Why it matters:** Real defect for analysts trying to view products (one of the top-3 critical workflows). User sees "page is broken" with no feedback. Silent failure also masks data-integrity issues if downstream code assumes the product list loaded.
-- **Repro:** Login as `analyst` / `TestPass123!`, navigate to `http://localhost:5101/Product/Management`, open DevTools console.
-- **Investigation needed (NOT done in this cycle):**
-  1. Find the failing fetch URL via Network tab.
-  2. Check whether endpoint requires `[Authorize(Roles="Admin")]` or similar — if so, hide the page from analyst nav OR add Admin/Analyst to the policy.
-  3. Add `response.ok` / content-type guard to the JS so failures surface visibly via `AdminCore.showNotification('error', ...)` instead of console.
-- **Files (pending investigation):** likely `Views/Product/Management.cshtml` JS block + whatever controller endpoint it calls.
+- **Root cause confirmed:** The JS in `Views/Product/Management.cshtml` `loadProducts()` was calling `response.json()` after only checking `response.ok`. When the server-side cookie session expires mid-page-life, an AJAX `fetch('/Product/GetProducts')` is auto-redirected by the browser to `/Account/Login`, which returns HTTP 200 with `Content-Type: text/html` (the login page). `response.ok` is `true`, so `.json()` runs and chokes on the leading `<` of `<!DOCTYPE`. The `catch` block then logs to `console.error` only — no toast — so the user sees an empty table and no actionable feedback.
+- **Verified guard premise (2026-05-04):** A live `fetch('/Account/Login')` from the running app sets `response.redirected: true` and `Content-Type: text/html; charset=utf-8` — so a `(redirected || !contentType.includes('application/json'))` check correctly identifies the auth-redirect case.
+- **Fix (2026-05-04):** Updated `loadProducts()` in `Views/Product/Management.cshtml` to:
+  1. Read `response.headers.get('content-type')` and check for `application/json` before calling `.json()`. If the response was redirected or the content type isn't JSON, surface `AdminCore.showNotification('Your session has expired. Reloading…', 'error')` and `window.location.reload()` after 1500ms — giving the user a real signal and re-entering the auth flow cleanly.
+  2. Replace silent `console.error` calls in the non-OK and `catch` branches with visible `AdminCore.showNotification(..., 'error')` toasts — so any future fetch failure (network, 5xx, etc.) is surfaced to the user instead of masked.
+- **Scope decision:** Only `loadProducts()` was modified. The same pattern applies to four other fetch sites in this file (`loadInitialData`, save/edit/delete handlers) and to several other admin pages — those are out of scope for this defect. If the auth-redirect symptom is reported elsewhere, fix per-site or refactor into a shared helper. Per `feedback_only_requested_changes.md`, not expanding scope here.
+- **Files:** `Views/Product/Management.cshtml`
+- **Verification:** Source-side `loadProducts()` now contains the `response.redirected || !contentType.includes('application/json')` guard and `AdminCore.showNotification` calls. Localhost runtime verify pending — Razor runtime compilation isn't configured, so the change reaches the browser only after the next dev server restart / publish.
 - **Found by:** `fullspectrum_out/console-errors-rollup.json` (2026-05-01 verification run for DEF-107/108 fix).
-- **Deploy:** Open
 
 ### DEF-110 — CSV export headers don't match UI table column labels (12 export surfaces)
 

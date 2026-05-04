@@ -22,11 +22,13 @@ namespace GCCWebApp.Controllers.Api.v1
     /// - Searching products by various criteria
     /// - Viewing associated certificates
     ///
-    /// All endpoints require authentication via API Key or JWT token.
-    /// Partners receive filtered product data based on their associations.
+    /// **Access:** Internal use only — requires Analyst or Admin cookie authentication.
+    /// Partner API keys (`X-API-Key`) are NOT accepted on this controller; partners receive
+    /// product identifiers via `/api/v1/certificates*` per the Amazon Developer Guide contract.
+    /// See DEF-130 for the lockdown rationale.
     /// </remarks>
     [ApiVersion("1.0")]
-    [Authorize(AuthenticationSchemes = "ApiKey")]
+    [Authorize(Policy = "AnalystOrAdmin")]
     [SwaggerTag("Products")]
     public class ProductsController : BaseApiController
     {

@@ -1,4 +1,4 @@
-# Full-Spectrum Application Testing Prompt — GCC Database Solution
+c# Full-Spectrum Application Testing Prompt — GCC Database Solution
 
 > Adapted from the generic `full-app-testing-prompt.md` template for the GCC Database Solution. All `{{ALL_CAPS_BRACKETS}}` placeholders have been filled from `CLAUDE.md`, `docs/tracking/defect-register.md`, `docs/tracking/test-execution-log.md`, and `docs/tracking/cutover-2026-05-01.md`. Last updated 2026-05-01.
 

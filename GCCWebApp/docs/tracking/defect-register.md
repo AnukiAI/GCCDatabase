@@ -18,6 +18,36 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-133 — UI: mojibake (`â–¶`, `â€¢`, `â€"`, `â†'`) baked into 4 Razor views — visible to users on Product Management
+
+- **Date:** 2026-05-03
+- **Severity:** Medium — visible cosmetic corruption on Product Management page (`▶` row-expand triangle, `•` last-updated bullet) and Admin > Product Management (`—` em-dash placeholder for empty Parent Identifiers)
+- **Status:** **Fixed (pending deploy)**
+- **Reporter:** Shawn — "why am I seeing special characters. â–¶"
+- **Root cause:** Source files were UTF-8 with BOM, but at some point each was opened in an editor that interpreted them as Windows-1252 and re-saved as UTF-8 — re-encoding the multibyte sequences as their Windows-1252 visual aliases. The bad bytes were then literally checked in. Same family of bug as the prior `Database_Scripts/FixMojibakeProductNames.sql` (which corrected `™` → `â„¢` and `®` → `Â®` in product names on prod 2026-04-14).
+  - `▶` (U+25B6, UTF-8 `E2 96 B6`) → `â–¶`
+  - `•` (U+2022, UTF-8 `E2 80 A2`) → `â€¢`
+  - `—` (U+2014, UTF-8 `E2 80 94`) → `â€"`
+  - `→` (U+2192, UTF-8 `E2 86 92`) → `â†'`
+- **Fix:** Restored the 7 corrupted glyphs in 4 view files. Verified clean: `grep "â"` against `Views/` returns zero matches; dev DB product names have zero remaining mojibake (already fixed by 2026-04-14 SQL script).
+- **User-visible instances corrected:**
+  - `Views/Product/Management.cshtml:647` — row-expand triangle in product list
+  - `Views/Product/Management.cshtml:1497` — collapsed-state triangle assignment
+  - `Views/Product/Management.cshtml:1361` — last-updated bullet separator
+  - `Views/Admin/ProductManagement.cshtml:82` — em-dash empty-state for Parent Identifiers cell
+- **Comment-only instances (not user-visible, cleaned for hygiene):**
+  - `Views/Product/Management.cshtml:527` — JS comment
+  - `Views/Certificate/Edit.cshtml:499` — JS comment
+  - `Views/Certificate/Create.cshtml:447` — JS comment
+- **Out of scope (intentionally not touched):**
+  - `deploy-out/**` — regenerates on next `dotnet publish`
+  - `docs/tracking/test-execution-log.md`, `qc-readyforuat-2026-05-01.md`, `qc-manual-tests-2026-05-01.md`, `qc-sit-screenshots-2026-04-24/index.html` — internal docs, not served to users
+  - 30+ `.cs` controller/service files lack a UTF-8 BOM but contain only ASCII high-byte content in legitimate string literals; no rendering bug, no action.
+- **Prevention recommendation (NOT implemented — proposing for tracking):** add a pre-commit hook or CI check that greps `^Views/.*\.cshtml$` for the canonical mojibake byte sequences (`â„`, `â€`, `â†`, `â–`, `Â®`, `Â `) and fails the commit. Cheap to wire up; would have caught this at the moment of corruption.
+- **Files:** `Views/Product/Management.cshtml`, `Views/Admin/ProductManagement.cshtml`, `Views/Certificate/Edit.cshtml`, `Views/Certificate/Create.cshtml`
+
+---
+
 ### DEF-132 — REGRESSION (caught + fixed same-cycle): DEF-121 [JsonIgnore] + C# `required` keyword incompatibility broke Partner API key authentication
 
 - **Date:** 2026-05-03

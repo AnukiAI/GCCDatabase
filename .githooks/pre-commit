@@ -1,0 +1,67 @@
+#!/bin/sh
+# Pre-commit guard: block UTF-8 -> Windows-1252 mojibake in Razor views.
+# Context: docs/tracking/defect-register.md DEF-133.
+#
+# When a UTF-8 file is opened in an editor that interprets it as
+# Windows-1252 and re-saved, multibyte chars get re-encoded as their
+# Windows-1252 visual aliases. These byte sequences fingerprint that bug:
+#   E2 96 B6 (B6 ->) shows as  ▶   ->  â–¶
+#   E2 80 A2 (A2 ->) shows as  •   ->  â€¢
+#   E2 80 94 (94 ->) shows as  —   ->  â€"
+#   E2 86 92 (92 ->) shows as  →   ->  â†'
+#   E2 84 A2 (A2 ->) shows as  ™   ->  â„¢
+#   C2 AE    (AE ->) shows as  ®   ->  Â®
+
+set -e
+
+# Match canonical mojibake prefixes. Patterns are conservative -- they only
+# match Windows-1252 visual aliases of common UTF-8 multibyte chars. Verified
+# 2026-05-03 against the entire tracked .cshtml/.cs/.js corpus: zero false
+# positives.
+PATTERN='â„|â€|â†|â–|Â®'
+
+# Inspect staged .cshtml (Razor views), .cs (server code), .js (authored client
+# code). Skip build output and vendored libraries -- those are not our source
+# and may legitimately contain encoded byte sequences.
+files=$(git diff --cached --name-only --diff-filter=ACM \
+    | grep -E '\.(cshtml|cs|js)$' \
+    | grep -vE '/(bin|obj|deploy-out|node_modules|wwwroot/lib)/' \
+    || true)
+
+if [ -z "$files" ]; then
+    exit 0
+fi
+
+violations=0
+for f in $files; do
+    # Inspect the STAGED blob, not the worktree -- they may differ.
+    matches=$(git show ":$f" 2>/dev/null | grep -nE "$PATTERN" || true)
+    if [ -n "$matches" ]; then
+        if [ "$violations" -eq 0 ]; then
+            echo ""
+            echo "===================================================================="
+            echo " pre-commit: UTF-8 / Windows-1252 mojibake detected in staged files"
+            echo "===================================================================="
+        fi
+        echo ""
+        echo "  $f"
+        echo "$matches" | head -5 | sed 's/^/    /'
+        violations=$((violations + 1))
+    fi
+done
+
+if [ "$violations" -gt 0 ]; then
+    echo ""
+    echo "  Common substitutions:"
+    echo "    â–¶  -> ▶     â€¢  -> •     â€\" -> —     â†'  -> →"
+    echo "    â„¢ -> ™     Â®   -> ®"
+    echo ""
+    echo "  Re-save the file as UTF-8 (with BOM) and replace the corrupted glyphs."
+    echo "  See docs/tracking/defect-register.md DEF-133 for context."
+    echo ""
+    echo "  To bypass for this commit only (NOT recommended):  git commit --no-verify"
+    echo ""
+    exit 1
+fi
+
+exit 0

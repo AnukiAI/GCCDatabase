@@ -524,7 +524,7 @@
             }
             if (exportBtn) exportBtn.addEventListener('click', exportProducts);
 
-            // Modal cascade dropdowns: Category â†’ Type â†’ Subcategory
+            // Modal cascade dropdowns: Category → Type → Subcategory
             const categorySelect = document.getElementById('product-category');
             const typeSelect = document.getElementById('product-type');
             if (categorySelect) {
@@ -644,7 +644,7 @@
 
                 row.innerHTML = `
                     <td data-label="">
-                        <span class="expand-indicator" onclick="toggleRowDetails(${product.id})">â–¶</span>
+                        <span class="expand-indicator" onclick="toggleRowDetails(${product.id})">▶</span>
                     </td>
                     <td data-label="Product">
                         <div class="product-info">
@@ -1358,7 +1358,7 @@
             
             const now = new Date();
             document.getElementById('last-update-indicator').textContent = 
-                ` â€¢ Last updated: ${now.toLocaleTimeString()}`;
+                ` • Last updated: ${now.toLocaleTimeString()}`;
         }
         
         function createNotificationContainer() {
@@ -1494,7 +1494,7 @@
                 
                 if (isExpanded) {
                     detailRow.classList.remove('show');
-                    indicator.textContent = 'â–¶';
+                    indicator.textContent = '▶';
                     indicator.classList.remove('expanded');
                 } else {
                     detailRow.classList.add('show');

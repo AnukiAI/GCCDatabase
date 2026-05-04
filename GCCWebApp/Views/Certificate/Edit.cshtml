@@ -496,7 +496,7 @@
             const savedProductId = '@(Model.ProductId > 0 ? Model.ProductId.ToString() : "")';
             const savedCompanyId = '@(Model.CompanyId > 0 ? Model.CompanyId.ToString() : "")';
 
-            // ===== Company â†’ Product Cascading Dropdown (REQ-CERT-10) =====
+            // ===== Company → Product Cascading Dropdown (REQ-CERT-10) =====
 
             // Load products for a company and optionally pre-select a product
             async function loadProductsForCompany(companyId, preselectProductId) {

@@ -18,6 +18,63 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-137 — QC #107: Add User flow had two latent bugs — RequirePasswordReset silently dropped + soft-deleted email blocked re-create
+
+- **Date:** 2026-05-04
+- **Severity:** Medium — Admin/Analyst-side workflow defect; client retest at 5/1 pushed back on QC #107 with 5 sub-issues
+- **Status:** **Fixed (pending deploy)** — verified live on `localhost:5101`
+- **Reporter:** Client retest 5/1 on QC log row #107: "I still cannot add a user if I enter a password AND I have the checkbox checked... I tried to create another with my email and i was getting error message that a user with that email already exists"
+- **Prior-sprint context (why this resurfaced):** The Sprint 2 4/10 dev note on this row claimed `"QC #107 is already resolved. The fix wraps the BeginTransactionAsync() calls inside _context.Database.CreateExecutionStrategy().ExecuteAsync(), which is the correct pattern for SQL Server transient retries"` plus added a duplicate-email pre-check so users got a real error instead of "Invalid data provided". Both pieces of that sprint's work were real, but:
+  - The `BeginTransactionAsync` + `CreateExecutionStrategy().ExecuteAsync()` wrapper is **no longer in the current code** — `CreateUserAsync` was later collapsed to a single `await _context.SaveChangesAsync()` (line 167-168 carries the comment `// Single SaveChangesAsync — EF Core tracks all changes and commits atomically`). The simplification is valid (EF Core does an implicit transaction) but the prior sprint's rationale is moot in the current shape.
+  - The duplicate-email pre-check (line 108-113) landed, but didn't filter `!u.IsDeleted`. So the surface the client hit at 5/1 — *delete a user, recreate with the same email* — was outside the prior fix's coverage, and the unfiltered DB UNIQUE indexes on `Email` + `Username` would have rejected the INSERT anyway.
+  - The `RequirePasswordReset` checkbox-to-entity assignment was never added in any prior sprint — the field has been silently dropped on Create since the form was wired up.
+  - The Sprint 2 "Ready for UAT" verdict was technically true for the surface the dev tested (you now see a real error message), but did not address the soft-delete reuse case or the checkbox flag — exactly the two cases the client retested. Same trailing-comment blind spot pattern that surfaced across 13 other rows in the 5/4 Sprint 3 reconciliation; same remediation now codified in the validation prompt template's Phase 4 pre-write checklist.
+- **Sub-issue A — soft-deleted email blocked re-create:** `AdminService.CreateUserAsync` line 108-113 checked for duplicate emails via `_context.Users.FirstOrDefault(u.Email == email)` without filtering `!u.IsDeleted`. Soft-deleted users (set by `DeleteUserAsync` at line 322 — flips `IsDeleted=true`, leaves Email/Username intact) blocked re-create with the same email. Worse: even after fixing the C# check, `ApplicationDbContext.cs:374-375` defines unfiltered UNIQUE indexes on both `Email` and `Username`, so the DB itself rejects the INSERT (`SaveChanges` throws "An error occurred while saving the entity changes").
+  - **Fix part 1:** Added `&& !u.IsDeleted` to the duplicate-email guard so legitimate re-create attempts pass the C# check.
+  - **Fix part 2:** Modified `DeleteUserAsync` to suffix the soft-deleted user's `Email` and `Username` with `__deleted__<id>__<timestamp>` before SaveChanges. This frees the unique slot at the DB level. The audit log captures the original email in `oldUser` snapshot so the original value is preserved and reconstructable.
+  - **Why suffix vs filtered index:** Filtered unique indexes (`WHERE IsDeleted = 0`) are the cleaner long-term fix but require an EF migration + DB schema change. The suffix approach is zero-migration and works within the existing schema.
+- **Sub-issue B — RequirePasswordReset checkbox silently dropped on Create:** `AdminService.CreateUserAsync` lines 117-127 built the `User` entity setting `Status`, `TwoFactorMethod`, `IsActive`, `CreatedAt` but **never assigned `model.RequirePasswordReset` to `user.RequirePasswordReset`**. The checkbox state had zero effect on the created user. Per `Models/User.cs:50` the field defaults to `false`, so users always logged in without forced reset regardless of the checkbox.
+  - **Fix:** Added `RequirePasswordReset = model.RequirePasswordReset` to the User initializer.
+- **Sub-issue E — New External user couldn't log in (red herring):** Live test confirmed External users log in fine after creation. Carly's 5/1 complaint was likely a side-effect of Bug B — she set the checkbox expecting forced reset but got a normal login that confused her, OR she'd previously hit the soft-deleted-email block from a prior Carly Test user. Both root causes addressed by A + B.
+- **Live verification (2026-05-04 on `localhost:5101`):**
+  - Test A: created user → deleted → re-created with same email → both creates returned `{success: true}`. Soft-deleted row has email `qc107A_<ts>@example.com__deleted__<id>__<yyyyMMddHHmmss>`; live row has clean email.
+  - Test B: created user with `requirePasswordReset: true`, logged out, logged in as that user → redirected to `/Account/ForcePasswordReset`. Flag now honored.
+  - Test E: created External user with `requirePasswordReset: false`, logged out, logged in as External user → landed on `/Certificate/CertificateTileViewExternal`. Login works.
+- **Out of scope for this DEF (still open from QC #107 — track separately):**
+  - Sub-issue C — Password field clears when re-opening user. Working as designed (security best practice — never display stored password); needs UX helper "Leave blank to keep current password" + don't reset typed password on save. Defer to Sprint 3 polish or new ticket.
+  - Sub-issue D — Company Access not limiting Admin/Analyst data. Working as designed per Carly's own 5/1 quote: "Admin and Analyst will never be limited to companies." External-side scoping is implemented at `ProductController.cs:120,125,300` and `CertificateTileExternalApiController.cs:347,354,371`. No code change needed; verify in client UAT.
+- **Files:** `Services/AdminService.cs`
+- **Test artifact:** `C:\Users\swest\AppData\Local\Temp\uitest\qc107-test.js`
+
+---
+
+### DEF-136 — Product Management: post-save success path threw `notificationQueue is not defined`, surfacing a fake error toast on a successful save
+
+- **Date:** 2026-05-04
+- **Severity:** Medium — every successful Add or Edit Product showed an error toast saying "Error saving product" even though the row had been persisted. Verified against prod test DB: products 119/120/121 (created during Shawn's UAT minutes earlier) all saved correctly with `ProductTypeId=4`, `ProductSubcategoryId=46`, while he was watching error toasts for each one.
+- **Status:** **Fixed (pending deploy)** — verified DLL contents post-publish; old `showNotification(message, 'success');` literal is no longer in the compiled view.
+- **Reporter:** Shawn — pasted browser console showing `ReferenceError: notificationQueue is not defined at showNotification (Management:1653:13) at HTMLFormElement.saveProduct (Management:1206:25)`.
+- **Root cause:** `Views/Product/Management.cshtml` had a stale legacy `showNotification` function that referenced a `notificationQueue` global that was never declared at the top of the file (likely the residue of an unfinished in-page notification system; the auto-refresh scaffolding around it is also dead code that's never wired up). The post-save success branch in `saveProduct` called both `showNotification(message, 'success')` and `showToast(message)` redundantly. The first call threw a `ReferenceError`. The outer `catch` in `saveProduct` swallowed the error and called `showToast('Error saving product', 'error')` — which routes through `AdminCore.showNotification` (the working notification system) and rendered a misleading red toast.
+- **Fix:** Dropped the broken `showNotification(message, 'success');` call from the success branch. The next line (`showToast(message)`) already routes through `AdminCore.showNotification` for the success toast, so functionality is preserved with no replacement needed.
+- **Out of scope:** The dead in-page notification queue + auto-refresh scaffolding (functions `showNotification`, `processNotificationQueue`, `displayNotification`, `getNotificationIcon`, `closeNotification`, `removeNotification`, `initializeRealTimeUpdates`, `toggleAutoRefresh`, `startAutoRefresh`, `stopAutoRefresh`, `updateLastRefreshIndicator`, `createNotificationContainer`, `handleKeyboardShortcuts`) is left in place. Removing it is a polish / cleanup ticket. Same pattern likely exists in other admin views and could be refactored to a shared helper if it becomes a problem.
+- **Files:** `Views/Product/Management.cshtml`.
+
+---
+
+### DEF-135 — CSP: web.config script-src missing Google domains, blocking admin-enabled Google Analytics
+
+- **Date:** 2026-05-04
+- **Severity:** Medium — GA was enabled by an admin via `/Admin/GoogleAnalytics` (DB row `GoogleAnalyticsSettings.IsEnabled = 1`, TrackingId `G-16J12CPD8S`), the layout injected the `gtag.js` script tag, but the browser blocked the load with `script-src` violation. Zero analytics signals were being collected on the test env.
+- **Status:** **Fixed (pending deploy)** — included in the 2026-05-04 17:45 zip.
+- **Reporter:** Shawn — pasted browser console showing `Loading the script 'https://www.googletagmanager.com/gtag/js?id=G-16J12CPD8S' violates the following Content Security Policy directive: "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com"`.
+- **Root cause:** Two CSP sources are emitted on every response — the IIS-level header in `web.config` and the app-level header from `Middleware/SecurityHeadersMiddleware.cs`. The middleware version already lists `https://www.googletagmanager.com` and `https://www.google-analytics.com` in `script-src` and the relevant `connect-src` hosts. The `web.config` version did not. Browsers intersect multiple CSP headers, so the more-restrictive `web.config` value wins and blocks GA.
+- **Fix:** `web.config` `script-src` extended with `https://www.googletagmanager.com https://www.google-analytics.com`. `connect-src` extended with the GA4 beacon hosts (`*.google-analytics.com`, `analytics.google.com`, `www.google.com`, `stats.g.doubleclick.net`, `www.googletagmanager.com`) — same set the middleware already allows. The two CSP sources now agree.
+- **Per-environment scoping:** The DB toggle `GoogleAnalyticsSettings.IsEnabled` is the actual on/off switch — the layout only injects the script when it's true. CSP changes ship the same web.config to every environment, but real prod can keep `IsEnabled=false` and GA never fires there even though CSP allows it. Site is deindex-pending (Bing + Google tickets submitted by Shawn 2026-05-04) so analytics on the gated test env doesn't leak into search.
+- **Followup not done here:** The dual-CSP architecture (web.config + middleware) is fragile — drift between the two has now bitten us once. Consider removing the web.config CSP entirely and letting the middleware be the single source of truth in a later cleanup pass. Out of scope.
+- **Files:** `web.config`.
+
+---
+
 ### DEF-134 — DATA-LOSS: Product Management Edit silently nulls Type/Subcategory; Subcategory FK pointed at the wrong table
 
 - **Date:** 2026-05-04
@@ -43,6 +100,8 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
   - The `ProductSubcategories` table is now orphaned for Product but is still referenced by `UnitOfWork`/`IUnitOfWork` and EF DbSet. Left in place to keep the surface area minimal; can be dropped in a later cleanup.
   - QC #91 stays Ready-for-UAT — the column-rendering work it shipped was correct; this defect is the orthogonal save-path bug behind the empty cells.
 - **Files:** `Models/Product.cs`, `Models/ProductSubcategory.cs`, `Data/ApplicationDbContext.cs`, `Controllers/ProductController.cs`, `Views/Product/Management.cshtml`, `Migrations/20260504204044_RetargetProductSubcategoryFkToProductTypes.cs` (+ `.Designer.cs`, snapshot updated).
+- **Followup polish (same UAT cycle, 2026-05-04 17:45 zip):** `ProductController.GetProductTypes` was returning every active `ProductTypes` row regardless of `ParentId`, so the modal's Product Type dropdown showed Level-1 roots + Level-2 children mixed (and on prod, also Level-0 legacy "Construction" roots). The Subcategory cascade then re-displayed the same Level-2 entries as if they were direct subcategories of themselves. Fix: added `pt.ParentId == null` to the `GetProductTypes` filter so only root types reach the dropdown. Subcategory cascade is unchanged (already correctly returns direct children of the selected type).
+- **Migration applied to prod test DB:** 2026-05-04 — pre-flight confirmed 0 non-null `ProductSubcategoryId` rows and 100 total products before apply; post-apply, `sys.foreign_keys` shows `FK_Products_ProductTypes_ProductSubcategoryId` correctly targets `ProductTypes`. Migration logged in `__EFMigrationsHistory`. New saves verified working — products 119, 120, 121 created during UAT all persisted with `ProductTypeId=4` (Plastics) and `ProductSubcategoryId=46` (HDPE).
 
 ---
 
@@ -115,11 +174,11 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ---
 
-### DEF-130 — DATA-EXPOSURE: `/api/v1/products` leaks raw Product entity (internal IDs, nested category navigation, isDeleted flag) to Partner API keys
+### DEF-130 — SECURITY+DATA-EXPOSURE: `/api/v1/products` was Partner-API-key authorized at the class level — exposing GET data leak AND POST/PUT/DELETE mutation methods to partners
 
-- **Date:** 2026-05-03 (reported), 2026-05-04 (fixed via lockdown)
-- **Severity:** **MEDIUM (S3)** — not in the contracted endpoint set; structural data exposure but no credentials or internal status
-- **Status:** **Fixed (pending deploy)** — option 1 (lockdown) shipped per Shawn's call on 2026-05-04
+- **Date:** 2026-05-03 (reported), 2026-05-04 (fixed via lockdown, severity upgraded after method audit, deployed)
+- **Severity:** **CRITICAL (S1)** — upgraded 2026-05-04 from S3 after a smoke against prod confirmed the controller exposes `[HttpPost]` (line 207), `[HttpPut("{id}")]` (line 241), and `[HttpDelete("{id}")]` (line 292) in addition to the GET routes (lines 82, 171, 318). With the pre-fix class-level `[Authorize(AuthenticationSchemes = "ApiKey")]`, any valid partner API key (e.g., the live Amazon prod key) could **create, update, or delete products** via the API — the same privilege-escalation class as DEF-131. The 2026-05-04 attribute swap closes all four HTTP methods at once.
+- **Status:** **Deployed 2026-05-04** — option 1 (lockdown) shipped per Shawn's call. Verified live on gccwebapp.com: real Amazon partner key gets HTTP 403 ("Access denied. You do not have permission to perform this action.") on `GET /api/v1/products`. Anonymous returns 401. Test partner key (id=7) was generated, used for verification, and revoked in the same minute.
 - **Reporter:** Cycle 4 audit of v1 controllers reachable by Partner API key
 - **Problem:** `Controllers/Api/v1/ProductsController.cs` was decorated with `[Authorize(AuthenticationSchemes = "ApiKey")]` at line 29 — Partner API keys could hit it. The list endpoint returned raw `Product` entities including:
   - Internal IDs (`id`, `categoryId`, `companyId`, `productTypeId`, `productSubcategoryId`)
@@ -222,9 +281,9 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ### DEF-127 — POLISH: Import/Export icon convention drifted on Product/Company pages
 
-- **Date:** 2026-05-03 (reported), 2026-05-04 (fixed)
+- **Date:** 2026-05-03 (reported), 2026-05-04 (fixed + deployed)
 - **Severity:** Low (S5 polish)
-- **Status:** **Fixed (pending deploy)**
+- **Status:** **Deployed 2026-05-04** — verified live on gccwebapp.com: 4 affected pages (`/Admin/ProductManagement`, `/Company/Index`, `/Product/Management`, `/Product/Categories`) all show `fa-file-arrow-down`/`fa-file-arrow-up`; zero residual `fa-download`/`fa-upload` occurrences anywhere on those pages.
 - **Reporter:** Internal QA pass cycle 2 (visual sweep)
 - **Symptom:** DEF-101 standardized Import = down arrow, Export = up arrow across admin pages. The convention is honored everywhere, but the icon class names diverge:
   - **`/Admin/UserManagement` and `/Admin/Tags`** use `fa-file-arrow-down` / `fa-file-arrow-up` (file-with-arrow icons)
@@ -604,9 +663,17 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ### DEF-112 — Partner role: web-user "Partner" vs Partner API "Partner" share the same code path with different identities — needs an architectural decision
 
-- **Date:** 2026-05-01
+- **Date:** 2026-05-01 (reported), 2026-05-04 (resolved via Path 4)
 - **Severity:** Medium (no current bug, but the dual meaning makes future changes risky and the model is ambiguous to operators)
-- **Status:** **Open** — flagged during a walkthrough of the User Management modal; needs Shawn's call before any fix
+- **Status:** **Fixed (source + dev DB) — pending prod SQL run.** Path 4 selected after confirming on 2026-05-04 that the prod DB has zero human users with the Partner role (verified via `GET /Admin/GetUsers` → role distribution: Admin / Analyst / External / Public only; no `"role": "Partner"` matches across all 23 users).
+- **Resolution chosen — Path 4 (eliminate web-user Partner role):** The Partner role exists in the Roles table (id=6, IsActive=true) but is only ever assigned by `PartnerApiKeyAuthenticationMiddleware`, which injects `ClaimTypes.Role = "Partner"` directly without consulting the table. Soft-deactivating the row (`IsActive = false`) hides it from the User Management role dropdown (`GetRolesListAsync` filters on `IsActive`) and prevents future admins from accidentally creating human Partner users. Zero impact on Partner API auth (middleware doesn't read the row), zero impact on existing users (none are assigned). Fully reversible.
+- **Files touched (2026-05-04):**
+  - `Database_Scripts/20260504_DEF112_DeactivatePartnerRoleForHumans.sql` — idempotent script. Sets `Roles.IsActive = 0` on the Partner row + updates the description. Includes a defense-in-depth pre-check that aborts if any human users have the Partner role. Uses EF many-to-many table FK names `UserRoles.RolesId` / `UserRoles.UsersId`. Run on dev DB 2026-05-04: BEFORE→AFTER snapshot confirms IsActive=1→0.
+  - `Data/SeedData.cs:94` — Partner role definition now sets `IsActive = false` and the new description for forward consistency on fresh DBs. Comment block above the line explains the source-of-truth.
+  - `Middleware/PartnerApiKeyAuthenticationMiddleware.cs` (around line 132) — added a comment block at the claim-injection site marking it as the SINGLE SOURCE OF TRUTH for the "Partner" role claim and pointing to DEF-112.
+- **What this does NOT change:** the existing `userRole == "Partner"` checks in `CertificateTileExternalApiController.cs` and `Controllers/Api/v1/CertificatesController.cs` are left in place — they're correct. They only ever fire for API-key callers since no humans have the role. The dual-meaning concern from the original report is moot once the role is unassignable to humans. If a future requirement needs human Partner users, this is reversible: re-run the SQL with `IsActive = 1` and reapply `IsActive = true` in SeedData.
+- **Prod SQL run pending (Shawn):** `Database_Scripts/20260504_DEF112_DeactivatePartnerRoleForHumans.sql` needs to run against the prod DB. Idempotent and safe — has the human-count abort guard. Verified on dev 2026-05-04.
+- **Original problem statement (preserved):** Two completely different identities both flow through `if (userRole == "Partner")` in cert-listing controllers, and the codebase doesn't distinguish them at the policy/audit layer:
 - **Reporter:** Surfaced while explaining how Partner role gets applied during the Edit User modal review (2026-05-01)
 - **Problem:** Two completely different identities both flow through `if (userRole == "Partner")` in cert-listing controllers, and the codebase doesn't distinguish them at the policy/audit layer:
   1. **Web-user Partner role** — a human user logs in with email/password (cookie session). `User.Partners` collection is populated via the Edit User modal (Partner Assignment dropdown). They see the web UI filtered by `userPartnerNames.Contains(c.Partner ?? "None")`.
@@ -637,9 +704,9 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ### DEF-111 — `/Product/Management` "Error loading products: SyntaxError: Unexpected token '<'" — fetch parses HTML auth-redirect as JSON
 
-- **Date:** 2026-05-01 (reported), 2026-05-04 (fixed)
+- **Date:** 2026-05-01 (reported), 2026-05-04 (fixed + deployed)
 - **Severity:** Medium (silent functional failure; the user sees an empty/broken product list with no actionable error)
-- **Status:** **Fixed (pending deploy)**
+- **Status:** **Deployed 2026-05-04** — verified live on gccwebapp.com: served `/Product/Management` HTML contains the `response.redirected || !contentType.includes('application/json')` guard and the `AdminCore.showNotification('Your session has expired. Reloading…', 'error')` toast call.
 - **Reporter:** Anuki internal full-spectrum QA pass (2026-05-01)
 - **Symptom:** Logged in as analyst, navigating to `/Product/Management` produces this console error: `Error loading products: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON`. The page renders but the products table is empty / not populated. No visible error toast or banner — the user has no idea anything went wrong.
 - **Root cause confirmed:** The JS in `Views/Product/Management.cshtml` `loadProducts()` was calling `response.json()` after only checking `response.ok`. When the server-side cookie session expires mid-page-life, an AJAX `fetch('/Product/GetProducts')` is auto-redirected by the browser to `/Account/Login`, which returns HTTP 200 with `Content-Type: text/html` (the login page). `response.ok` is `true`, so `.json()` runs and chokes on the leading `<` of `<!DOCTYPE`. The `catch` block then logs to `console.error` only — no toast — so the user sees an empty table and no actionable feedback.

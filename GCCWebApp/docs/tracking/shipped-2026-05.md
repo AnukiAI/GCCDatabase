@@ -6,6 +6,52 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-112 — "Partner" role separated cleanly between API-key callers and web users (2026-05-04)
+
+The cert-listing controllers had a long-standing dual-meaning problem on the "Partner" role. The role meant two different things depending on how the request arrived. A human user could be assigned the Partner role via the User Management modal, log in with email and password, and see certificates filtered by their assigned partner names. An automated request from Amazon would hit the same `/api/v1/certificates*` endpoints with an API key, and the API key middleware would inject the same Partner role claim into the request, and the same filter branch would fire. Both identities flowed through the same `userRole == "Partner"` checks across `CertificateTileExternalApiController` and `CertificatesController`. The audit trail couldn't distinguish them, future filter changes had to be reasoned about under both identities at once, and the partner immutability rule on the Amazon API contract was sharing code paths with internal-app web-user logic.
+
+The original report (DEF-112) framed this as needing an architectural decision and laid out four resolution paths. We pulled the prod user list before deciding and confirmed that across all 23 users in the production database, zero have the Partner role. The role was always intended for human Partner-org users (e.g., Amazon staff with portal logins) but no such users were ever created. Path 4 was the cleanest answer: eliminate the web-user side of the role entirely.
+
+The fix is small. The Roles row for Partner gets soft-deactivated by setting `IsActive = false`. The User Management role-list endpoint already filters its dropdown on `IsActive`, so admins can no longer accidentally assign the role to a future human user. The Partner API key middleware is unaffected because it injects the role claim directly on each request without ever reading the Roles table — so partner API authentication continues to work exactly as before. The cert-listing `userRole == "Partner"` filter checks across both controllers are also untouched and still correct. They simply never fire for cookie-authenticated callers anymore because no human has the role. If a future requirement needs human Partner users, the change is reversible: re-run the SQL with `IsActive = 1` and the role reappears in the User Management dropdown.
+
+Three small source changes accompany the data fix. `SeedData.cs` now declares the Partner role with `IsActive = false` and the new description so fresh database initialization matches the prod state. The `PartnerApiKeyAuthenticationMiddleware` claim-injection site picked up a comment block marking it as the single source of truth for the Partner role claim, with a pointer to DEF-112 for context. The SQL data-fix script is idempotent and includes a defense-in-depth abort if any human users currently have the Partner role; we verified it runs cleanly against the development database with the BEFORE/AFTER snapshot showing the IsActive flip.
+
+Prod SQL run is pending — the script lives at `Database_Scripts/20260504_DEF112_DeactivatePartnerRoleForHumans.sql` and is safe to run on the production database whenever convenient. Shawn will execute it via the existing manual-migration workflow used for DEF-134's earlier today.
+
+Files: `Data/SeedData.cs`, `Middleware/PartnerApiKeyAuthenticationMiddleware.cs`, `Database_Scripts/20260504_DEF112_DeactivatePartnerRoleForHumans.sql`.
+
+---
+
+## DEF-135 — Google Analytics now allowed by Content Security Policy on the test environment (2026-05-04)
+
+The site has had Google Analytics configured for months. An admin enabled the property `G-16J12CPD8S` through the application's own admin page, the layout correctly injected the `gtag.js` script tag on every rendered view, and zero analytics signals were being collected because the browser was blocking the script load.
+
+The cause was two Content Security Policy headers being emitted on every response and disagreeing with each other. The IIS host emits one CSP header from `web.config`, and the application emits a second CSP header from its security headers middleware. Browsers handle two CSP headers by intersection — every directive uses the most-restrictive value across all sources. The application's middleware-level CSP had already been updated at some point to include the Google Tag Manager and Google Analytics domains in `script-src` and `connect-src`. The IIS-level CSP in `web.config` had not. So the intersection allowed everything the IIS-level CSP allowed, which did not include Google, and the script load was blocked.
+
+The fix is to bring `web.config`'s CSP in line with what the middleware already permits. `script-src` now includes `googletagmanager.com` and `google-analytics.com`. `connect-src` now allows the GA4 beacon hosts that the analytics library calls home — `analytics.google.com`, region-specific `*.google-analytics.com`, `www.google.com`, `stats.g.doubleclick.net`, and `googletagmanager.com`. The two CSP sources now agree.
+
+Per-environment scoping is handled at the database level, not the CSP level. The `GoogleAnalyticsSettings.IsEnabled` row in the database is the on/off switch — the layout only injects the script tag when that flag is true. The same web.config ships to every environment, so CSP allows the Google domains everywhere, but real production can keep `IsEnabled = false` and the script tag is never emitted, so the analytics library never runs. The test environment currently has `IsEnabled = true` because the property `G-16J12CPD8S` was registered for analytics validation. This pairs with the Bing and Google search-console removal tickets Shawn submitted today — the test domain is being deindexed from public search, and analytics on the gated test environment does not leak into discoverable web traffic.
+
+Out of scope but worth noting. Maintaining two CSP sources that have to be kept in sync is fragile, and the drift between them is exactly what caused this bug. A later cleanup pass should consider removing the IIS-level CSP entirely and treating the application middleware as the single source of truth, since the middleware version is environment-aware and can branch on dev vs production whereas a static web.config cannot. That refactor is intentionally not part of this fix.
+
+Files: `web.config`.
+
+---
+
+## DEF-136 — Product Management: false-positive "Error saving product" toast on every successful save (2026-05-04)
+
+After DEF-134's deploy enabled Type and Subcategory persistence on the Product Management page, every successful Add or Edit Product still surfaced a red error toast saying "Error saving product." The product was actually being saved correctly — verified against the prod test database, where three rows Shawn created during testing minutes earlier all persisted with the right type and subcategory IDs. The error toast was a false positive.
+
+The cause is in the Product Management page's inline JavaScript. The success branch of the save handler called two notification functions back-to-back: a stale `showNotification` (a residue of an unfinished in-page notification queue system) and the working `showToast` (which routes through the shared admin notification system). The stale `showNotification` function references a `notificationQueue` global that was never declared at the top of the file, so calling it threw a `ReferenceError`. The save function's outer `catch` block then swallowed the JavaScript error and called `showToast('Error saving product', 'error')`, painting a misleading red toast over what had actually been a successful save.
+
+The fix removes the stale `showNotification` call from the success branch. The very next line — `showToast(message)` — already handles the success notification through the shared admin notification system that does work, so functionality is preserved with no replacement needed.
+
+Out of scope but worth flagging. The dead in-page notification queue scaffolding is still present in the file — a half-finished feature with about a dozen unwired functions. It does no harm now that nothing calls into it, but a future cleanup pass should excise the dead code or consolidate it onto a shared helper. The same pattern may exist in other admin views; not chasing it under this defect.
+
+Files: `Views/Product/Management.cshtml`.
+
+---
+
 ## DEF-134 — Product Management Type and Subcategory now actually save (2026-05-04)
 
 The Product Management table added Product Type and Subcategory columns under QC #91 back in March, marked Ready for UAT, and the columns rendered correctly. On 2026-05-04 the client reported the columns were blank for every product even when the user had filled them in on the Add or Edit modal. A check of the dev database confirmed it: every one of the 51 products had `NULL` for both `ProductTypeId` and `ProductSubcategoryId`, including products created after the cascade dropdowns shipped. Two independent root causes were eating the data.

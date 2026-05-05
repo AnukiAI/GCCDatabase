@@ -1757,12 +1757,12 @@
                 <div class="table-body-cell tc-upc" data-ids="${escapeHtml(upc)}" title="Click to copy UPCs" role="gridcell">${upcCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(upc)}', 'UPC')">${upcCount}</span>` : ''}</div>
                 <div class="table-body-cell tc-gtin" data-ids="${escapeHtml(gtin)}" title="Click to copy GTINs" role="gridcell">${gtinCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(gtin)}', 'GTIN')">${gtinCount}</span>` : ''}</div>
                 <div class="table-body-cell tc-ean" data-ids="${escapeHtml(ean)}" title="Click to copy EANs" role="gridcell">${eanCount > 0 ? `<span class="id-count-badge" onclick="event.stopPropagation(); copyIdsToClipboard('${escapeHtml(ean)}', 'EAN')">${eanCount}</span>` : ''}</div>
-                <div class="table-body-cell tc-contact" title="${escapeHtml(contact)}" role="gridcell">${escapeHtml(contact)}</div>
                 <div class="table-body-cell tc-certresults" title="${escapeHtml(certResults)}" role="gridcell">${escapeHtml(certResults)}</div>
                 <div class="table-body-cell tc-pathway" title="${escapeHtml(pathway)}" role="gridcell">${escapeHtml(pathway)}</div>
                 <div class="table-body-cell tc-certsub" title="${escapeHtml(certSub)}" role="gridcell">${escapeHtml(certSub)}</div>
-                <div class="table-body-cell tc-companyurl" title="${escapeHtml(companyUrl)}" role="gridcell">${companyUrl ? `<a href="${escapeHtml(companyUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml(companyUrl)}</a>` : ''}</div>
                 ${renderCustomFieldCells(cert)}
+                <div class="table-body-cell tc-contact" title="${escapeHtml(contact)}" role="gridcell">${escapeHtml(contact)}</div>
+                <div class="table-body-cell tc-companyurl" title="${escapeHtml(companyUrl)}" role="gridcell">${companyUrl ? `<a href="${escapeHtml(companyUrl)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">${escapeHtml(companyUrl)}</a>` : ''}</div>
             </div>
         `;
     }
@@ -1895,12 +1895,18 @@
             row.innerHTML = `<span class="ct-label"><span class="ct-icon"><i class="fas fa-puzzle-piece"></i></span> ${escapeHtml(def.name)}</span><label class="ct-switch"><input type="checkbox"${isHidden ? '' : ' checked'} data-col="${colKey}"><span class="ct-slider"></span></label>`;
             dropdown.appendChild(row);
 
-            // Sticky header cell
+            // Sticky header cell — insert BEFORE Company Email (tc-contact) so custom fields
+            // sit ahead of the trailing Company Email / Company URL pair.
             const headerCell = document.createElement('div');
             headerCell.className = `sticky-header-cell ${colKey}${isHidden ? ' col-hidden' : ''}`;
             headerCell.title = def.name;
             headerCell.textContent = def.name;
-            headerInner.appendChild(headerCell);
+            const trailingAnchor = headerInner.querySelector('.sticky-header-cell.tc-contact');
+            if (trailingAnchor) {
+                headerInner.insertBefore(headerCell, trailingAnchor);
+            } else {
+                headerInner.appendChild(headerCell);
+            }
         });
 
         try {

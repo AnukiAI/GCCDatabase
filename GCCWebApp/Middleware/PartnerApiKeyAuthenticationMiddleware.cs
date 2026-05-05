@@ -129,7 +129,12 @@ namespace GCCWebApp.Middleware
                     return;
                 }
 
-                // Create claims identity for partner
+                // Create claims identity for partner.
+                // DEF-112: This is the SINGLE SOURCE OF TRUTH for the "Partner" role claim. No human
+                // user is ever assigned this role — the Roles table row is IsActive=false (DEF-112 SQL
+                // script) so the User Management role dropdown does not offer it. Cert-listing
+                // controllers checking `userRole == "Partner"` are exclusively branching for API-key
+                // callers identified by this middleware.
                 var claims = new List<Claim>
                 {
                     new Claim("partner_id", keyDetails.PartnerId.ToString()),

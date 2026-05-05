@@ -954,7 +954,10 @@
                         closeModal();
                         populateTable();
                         const message = result.message || (formData.id ? 'Product updated successfully' : 'Product added successfully');
-                        showNotification(message, 'success');
+                        // Note: dropped the legacy showNotification() call here. It referenced an
+                        // undeclared `notificationQueue` global and threw a ReferenceError that the
+                        // outer catch surfaced as a misleading "Error saving product" toast — even
+                        // though the row had already been persisted. showToast → AdminCore handles it.
                         showToast(message);
                     } else {
                         showToast(result.message || 'Error saving product', 'error');

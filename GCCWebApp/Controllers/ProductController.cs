@@ -531,8 +531,10 @@ namespace GCCWebApp.Controllers
         {
             try
             {
+                // Roots only (ParentId IS NULL). Level-2 children belong in the Subcategory
+                // cascade, not the Type dropdown — mixing them was DEF-134 follow-up noise.
                 var productTypes = await _context.ProductTypes
-                    .Where(pt => pt.IsActive)
+                    .Where(pt => pt.IsActive && pt.ParentId == null)
                     .Include(pt => pt.Category)
                     .Select(pt => new { pt.Id, pt.Name, CategoryId = pt.CategoryId, CategoryName = pt.Category.Name })
                     .ToListAsync();

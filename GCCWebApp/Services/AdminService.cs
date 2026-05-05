@@ -104,9 +104,10 @@ namespace GCCWebApp.Services
 
         public async Task<(bool Success, string ErrorMessage)> CreateUserAsync(CreateUserViewModel model, int userId, string username)
         {
-            // Check for duplicate email before attempting insert
+            // Check for duplicate email before attempting insert.
+            // Exclude soft-deleted users so a deleted email can be reused (QC #107 sub-issue E).
             var existingUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email.ToLower() == model.Email.ToLower());
+                .FirstOrDefaultAsync(u => u.Email.ToLower() == model.Email.ToLower() && !u.IsDeleted);
             if (existingUser != null)
             {
                 return (false, $"A user with email '{model.Email}' already exists");
@@ -123,6 +124,7 @@ namespace GCCWebApp.Services
                     Status = "active",
                     TwoFactorMethod = "Email",
                     IsActive = true,
+                    RequirePasswordReset = model.RequirePasswordReset,
                     CreatedAt = DateTime.UtcNow
                 };
 
@@ -321,6 +323,16 @@ namespace GCCWebApp.Services
 
                 user.IsDeleted = true;
                 user.DeletedAt = DateTime.UtcNow;
+
+                // Free the email/username slot so a future user can register the same address.
+                // Both columns have unfiltered UNIQUE indexes (ApplicationDbContext.cs:374-375),
+                // so the soft-deleted row would otherwise block any re-create with the same email.
+                // The original values are preserved on the audit log entry below (oldUser snapshot)
+                // and remain reconstructable by stripping the suffix.  (QC #107 sub-issue E)
+                var suffix = $"__deleted__{user.Id}__{user.DeletedAt:yyyyMMddHHmmss}";
+                user.Email = user.Email + suffix;
+                user.Username = user.Username + suffix;
+
                 await _context.SaveChangesAsync();
 
                 // Log audit history

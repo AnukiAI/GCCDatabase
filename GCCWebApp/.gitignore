@@ -8,6 +8,12 @@
 deploy-output/
 
 # Deployment artifacts
+# Canonical staging path is deployment-drops/staging/ (see scripts/deploy.ps1).
+# Anything under deployment-drops/ is a build artifact and should never be tracked.
+deployment-drops/
+publish-*/
+deploy-staging/
+deploy-staging-*/
 *.zip
 *.tar.gz
 *.7z

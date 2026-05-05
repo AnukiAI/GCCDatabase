@@ -91,7 +91,10 @@ namespace GCCWebApp.Data
             {
                 new Role { Name = "Admin", Description = "Full system access", IsSystem = true },
                 new Role { Name = "Analyst", Description = "Certificate management access", IsSystem = true },
-                new Role { Name = "Partner", Description = "Partner organization access - scoped to assigned partner data", IsSystem = true },
+                // DEF-112: Partner role is API-key-only. PartnerApiKeyAuthenticationMiddleware injects this
+                // role claim directly on every API-key request; no human user should be assigned this role.
+                // IsActive=false hides it from /Admin/UserManagement role dropdown (GetRolesListAsync filters on IsActive).
+                new Role { Name = "Partner", Description = "API-key-only role injected by PartnerApiKeyAuthenticationMiddleware. Not assignable to web users (DEF-112).", IsSystem = true, IsActive = false },
                 new Role { Name = "External", Description = "External user access", IsSystem = true },
                 new Role { Name = "Public", Description = "Public read-only access", IsSystem = true }
             };

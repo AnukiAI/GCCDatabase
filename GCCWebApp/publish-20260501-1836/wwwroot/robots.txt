@@ -1,3 +1,0 @@
-# Test environment — block all crawlers/indexers
-User-agent: *
-Disallow: /

@@ -336,6 +336,7 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser()
               .RequireAssertion(context =>
                   context.User.HasClaim("Role", "External") ||
+                  context.User.HasClaim("Role", "Partner") ||
                   context.User.HasClaim("Role", "Admin") ||
                   context.User.HasClaim("Role", "Analyst")));
 

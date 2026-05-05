@@ -105,7 +105,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Reset timeout on user activity
-    if (document.querySelector('#logoutForm')) {
+    // Skip the idle auto-logout entirely when "Remember Me" is active — the server-side
+    // auth cookie is good for 14 days; forcibly logging the user out at 30 min defeats it.
+    const rememberMeMeta = document.querySelector('meta[name="x-remember-me"]');
+    const rememberMeActive = rememberMeMeta && rememberMeMeta.getAttribute('content') === 'true';
+    if (document.querySelector('#logoutForm') && !rememberMeActive) {
         ['click', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
             document.addEventListener(event, resetSessionTimeout, { passive: true });
         });

@@ -756,7 +756,7 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<int> CreateCertificateAsync(CertificateEditViewModel certificate, string userRole)
+        public async Task<int> CreateCertificateAsync(CertificateEditViewModel certificate, string userRole, int? userId = null)
         {
             try
             {
@@ -775,6 +775,8 @@ namespace GCCWebApp.Services
                     CompanyId = certificate.CompanyId,
                     ProductId = certificate.ProductId,
                     CertificationTypeId = certificate.CertificationTypeId,
+                    CreatedBy = userId,
+                    UpdatedBy = userId,
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
@@ -791,7 +793,7 @@ namespace GCCWebApp.Services
             }
         }
 
-        public async Task<bool> UpdateCertificateAsync(int id, CertificateEditViewModel certificate, string userRole)
+        public async Task<bool> UpdateCertificateAsync(int id, CertificateEditViewModel certificate, string userRole, int? userId = null)
         {
             try
             {
@@ -813,6 +815,7 @@ namespace GCCWebApp.Services
                 existingCertificate.CompanyId = certificate.CompanyId;
                 existingCertificate.ProductId = certificate.ProductId;
                 existingCertificate.CertificationTypeId = certificate.CertificationTypeId;
+                existingCertificate.UpdatedBy = userId;
                 existingCertificate.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();

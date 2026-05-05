@@ -18,6 +18,105 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-142 — Partner-role web user has no navigation after login; cannot access Certificates or Products views
+
+- **Date:** 2026-05-05
+- **Severity:** Medium — Partner web users are completely locked out of the UI; only the API-key path works
+- **Status:** **Fixed (pending deploy)** — built clean locally; dev DB updated; needs Plesk deploy
+- **Reporter:** Shawn (internal QC), 2026-05-05: created testuser5 with Partner role on gccwebapp.com, logged in, saw no nav links.
+- **Root cause:** Three-part gap. (1) `Views/Shared/_Layout.cshtml:171` only renders the External-style nav for `userRole == "External"` — Partner falls through to no nav. (2) `Program.cs` `ExternalAccess` policy only authorizes Admin/Analyst/External Role claims — even if the nav linked to `/Certificate/CertificateTileViewExternal`, Partner would 403. (3) `Data/SeedData.cs:97` had Partner seeded with `IsActive=false` (per the prior DEF-112 Path 4 decision to eliminate web-user Partner role). The dev DB row reflected that flip, so the User Management role dropdown didn't even offer Partner on dev. On prod the deactivation SQL was never run, so the dropdown DID offer it — which is how testuser5 got assigned in the first place.
+- **Why this reverses DEF-112's resolution:** DEF-112 (resolved 2026-05-04) chose Path 4 (eliminate web-user Partner) on the assumption no human Partner users were needed — Amazon's UAT users could become External users with company scoping. Shawn confirmed 2026-05-05 that the actual requirement is the opposite: Partner web users DO exist, mirror External access pattern, but filter by partner instead of by company. So a Partner-role login should see the same Certificates + Products nav an External user sees, with results filtered to certs tagged with their assigned partner (e.g., all Amazon staff see all Amazon-tagged certs). The cert/product filtering plumbing for this case was already fully built (`Controllers/Api/CertificateTileExternalApiController.cs:98-110`, `Controllers/ProductController.cs:72-83 + 184-190`, Edit User modal Partner Assignment dropdown, `User.Partners` many-to-many). Only the policy/nav/active-flag wiring was missing.
+- **Fix (4 changes):**
+  1. `Program.cs` — `ExternalAccess` policy now also accepts `"Partner"` Role claim, so Partner web users can hit `/Certificate/CertificateTileViewExternal` and `/Product/Management`.
+  2. `Views/Shared/_Layout.cshtml:171` — nav branch fires for `userRole == "External" || userRole == "Partner"`. Both roles render the Certificates + Products nav. Comment updated.
+  3. `Data/SeedData.cs:94-97` — Partner role now seeds with `IsActive=true` and a description that reflects the dual-purpose use (web users + API keys both flow through this role; web path filters by `User.Partners`, API path is scoped at the controller level by middleware).
+  4. **Dev DB** — `UPDATE Roles SET IsActive = 1, Description = '...' WHERE Name = 'Partner'`. Verified: BEFORE IsActive=0 → AFTER IsActive=1. Prod DB needs no DB change because the deactivation SQL was never run there.
+- **Architectural caveat (carried forward from DEF-112):** The dual meaning of `userRole == "Partner"` (human user vs API-key request) still shares the same string in cert-listing controllers. Functionally the two flow through different controllers and don't collide — the External tile API gates by session userId → `User.Partners`, and the `/api/v1/certificates*` Partner API path is scoped by middleware before the role check fires. But audit-trail confusion remains a future hardening item (the DEF-112 Path 1 rename to `PartnerUser` or Path 2 explicit branch split). Not in scope for this fix.
+- **Verification plan:**
+  - Local: log in as a Partner-role user with `User.Partners` containing "Amazon"; confirm nav shows Certificates + Products; confirm `/Certificate/CertificateTileViewExternal` lists only Amazon-tagged certs; confirm `/Product/Management` lists only products with Amazon-tagged certs.
+  - After Plesk deploy: re-test Shawn's testuser5 scenario on gccwebapp.com (assign a partner via the Edit User modal first if not already assigned, then log in).
+- **Files:** `Program.cs`, `Views/Shared/_Layout.cshtml`, `Data/SeedData.cs`, dev DB Roles table
+
+---
+
+### DEF-141 — `/Product/Management` analyst page fires `/Admin/GetProducts` on every load, producing silent SyntaxError; wasted server round-trip + console noise
+
+- **Date:** 2026-05-05
+- **Severity:** Low (functionally harmless — page renders correctly; but wastes a round-trip per page load and produces a misleading console error every time)
+- **Status:** **Fixed (pending deploy)** — gate added in `wwwroot/js/admin/productManagement.js`
+- **Reporter:** Internal QC continued retest (Shawn-driven, 2026-05-05). Surfaced via multi-page smoke run (`multi-page-smoke.js`).
+- **Symptom:** Every load of `/Product/Management` as an analyst produces `Error loading products: SyntaxError: Unexpected token '<', "<!DOCTYPE "... is not valid JSON` in the console. The page renders correctly because the inline Razor JS handles its own `loadProducts()` against `/Product/GetProducts` (the analyst-allowed endpoint, fixed under DEF-111). But a *second* load is also firing.
+- **Root cause:** `Views/Product/Management.cshtml` includes `~/js/admin/productManagement.js` solely for the import-modal helper methods (the inline view delegates `addProductBtn` import-click handling to `window.productManagement.handleImportClick()`). That script auto-instantiates `new ProductManagement()` on DOMContentLoaded, whose `init()` unconditionally calls `loadProducts()` → `fetch('/Admin/GetProducts')`. The analyst lacks Admin policy, so the framework redirects `/Admin/GetProducts` to `/Account/AccessDenied` (HTTP 200, `Content-Type: text/html`). `response.ok === true`; the unguarded `response.json()` then chokes on the leading `<` of the HTML page. The catch logs the SyntaxError and triggers a "Error connecting to server" toast which is visible briefly. Net effect: a wasted authorization round-trip on every load + console-error noise + a confusing toast that contradicts the page's actually-working state.
+- **Why DEF-111's fix didn't catch this:** DEF-111 added the `response.redirected || !contentType.includes('application/json')` guard to the *inline* `loadProducts()` in `Views/Product/Management.cshtml`. The duplicate fetch comes from a *different* file — `wwwroot/js/admin/productManagement.js` — which wasn't in scope. Both functions are named `loadProducts`, which masked the duplication.
+- **Fix:** Single 4-line gate in `productManagement.js` `init()`: only call `loadProducts()` / `renderProducts()` / `updateProductCount()` when `document.getElementById('products-table-body')` exists. That element only lives on `Views/Admin/ProductManagement.cshtml` (the page this class actually owns). On `/Product/Management` (which uses `id="product-table"` not `products-table-body`) the class still instantiates and binds its event handlers — the inline view explicitly delegates import-modal handling to `window.productManagement.handleImportClick()` — but skips the data-load that was hitting the wrong endpoint.
+- **Verification plan:** After deploy, re-run `multi-page-smoke.js` and confirm zero console errors on `/Product/Management` for the analyst role. The Admin role's `/Admin/ProductManagement` should still load products as before (still hits `/Admin/GetProducts`, but admin has access).
+- **Adjacent findings (not fixed under this defect):**
+  - **Design-guide drift on success notifications.** `wwwroot/js/admin/admin-core.js` line 121 routes ALL `showNotification` calls (including `'success'`) to centered alertdialog modals that require an OK click. Project `.claude/CLAUDE.md` "User Notifications" section says "Success: Toast notification only". Either the design guide should be updated to reflect the modal-everywhere choice, or admin-core needs a separate transient-toast path for success. Not fixing without a decision — the modal-everywhere choice was deliberate per the inline code comment ("Route ALL notifications to centered modals for consistency"), so this is a doc-vs-code reconciliation, not an obvious bug.
+  - **`<h1>` count = 2** on Dashboard, Product Management, and Company Index per Playwright smoke. CLAUDE.md says "Use `ViewData[\"Title\"]` (no `<h1>` in views)". Visual + accessibility audit needed before yanking duplicates — one of them might be the layout-supplied page heading and the other a duplicate inside the view.
+  - **`/Admin/CertificationTypes` timed out at 30s** for analyst role during smoke. Should redirect to AccessDenied promptly. Likely a slow query or a misconfigured `[Authorize]` on a heavy endpoint that runs before the redirect. Worth a per-page timing/profiling pass.
+- **Files:** `wwwroot/js/admin/productManagement.js`
+- **Test artifact:** `C:\Users\swest\AppData\Local\Temp\uitest\check-def111.js`, `multi-page-smoke.js`, `product-mgmt-batch.js`
+
+---
+
+### DEF-140 — Login: "Remember Me" silently overridden by client-side 30-min idle auto-logout
+
+- **Date:** 2026-05-05
+- **Severity:** Medium — defeats the entire feature; user perceives Remember Me as broken
+- **Status:** **Fixed (pending deploy)** — built clean locally; needs Plesk deploy + manual verification
+- **Reporter:** Shawn (internal QC), 2026-05-05: "Testing: Remember Me on the login does not appear to be working" — confirmed scenario is leaving a tab open and idling.
+- **Root cause:** Two-layer problem. Server-side, the prior fix (commit `bc5d619`, 2026-03-20) correctly issues a 14-day persistent auth cookie when Remember Me is checked, and the session re-hydration middleware in `Program.cs` repopulates `Session.UserRole`/`UserEmail`/`UserName` from claims on each request, so browser-close-and-reopen works. But `wwwroot/js/auth.js:67-113` sets a hard-coded 30-minute idle timer that calls `document.getElementById('logoutForm').submit()` regardless of the user's Remember Me preference. So a Remember-Me user idling on an authenticated tab gets force-logged-out by client JS even though the server cookie is still valid for 14 days.
+- **Fix (3 files):**
+  1. `Controllers/AccountController.cs` `SignInUser` — added a `RememberMe` claim (`"true"`/`"false"`) to the auth ticket so downstream pages can read the preference without a separate cookie or DB lookup.
+  2. `Views/Shared/_Layout.cshtml` — emit `<meta name="x-remember-me" content="..." />` based on `User.FindFirst("RememberMe")` so client JS can read the active state.
+  3. `wwwroot/js/auth.js` — read the meta tag; when content is `"true"`, skip both the 5-min warning toast and the 30-min auto-logout entirely. Server-side cookie expiration (14 days) is the source of truth; the existing 401-fetch-interceptor at line 142 still redirects to login if the server says the session has expired.
+- **Decision (Shawn, 2026-05-05):** Remember Me checkbox stays **unchecked by default** on a fresh visit to `/Account/Login`, including after explicit logout. Pre-checking on shared computers is a security footgun, and most secure-app conventions default unchecked.
+- **Out of scope:** The Azure AD B2C path (`OnTokenValidated` in `AccountController.cs` line ~100) issues its own claims and doesn't go through `SignInUser`. AAD B2C is configured but not the active auth scheme today, so its claim set wasn't touched. If/when AAD B2C is enabled in production, the same `RememberMe` claim plumbing will need to be added there.
+- **Files:** `Controllers/AccountController.cs`, `Views/Shared/_Layout.cshtml`, `wwwroot/js/auth.js`
+
+---
+
+### DEF-139 — Product Mgmt: "Add New Product" subcategory dropdown shows empty placeholder — user can't tell if it's loading, empty, or stale
+
+- **Date:** 2026-05-05
+- **Severity:** Low-Medium — UX/feedback gap; not data-loss. Affects every Add-New / Edit Product cascade.
+- **Status:** **Fixed (pending deploy)** — code change in `Views/Product/Management.cshtml`
+- **Reporter:** Shawn (continuation of internal QC retest), 2026-05-05: "Add new Product: Subcategory is not loading the first time Product Type is select and there are subcategory" — reproduced on https://gccwebapp.com/Product/Management.
+- **Investigation:** Programmatically exercised the cascade against the live deployed page (Playwright, multiple scenarios: first-pick, rapid swap, close+reopen, kbd interaction) — every scenario loaded the correct subcategories from `/Certificate/GetProductSubcategories?productTypeId={id}`. Deployed JS matches source. So a deterministic "doesn't load" reproduction wasn't possible from automation, which points at one of: (a) browser cache holding pre-cascade JS, (b) slow-network race where the dropdown is briefly empty between change-event and fetch-completion and the user reads it as "didn't load", or (c) ambiguity — the placeholder reads "Select Subcategory" both while loading and when the type genuinely has no subs, so the user assumes the loading case.
+- **Fix (`Views/Product/Management.cshtml` `populateSubcategoryDropdown`):** three changes, all defensive:
+  1. **Loading state** — set `<option>Loading subcategories...</option>` immediately on type change, before await. Now the user always sees explicit feedback that a fetch is in flight.
+  2. **Empty state** — when fetch returns success+empty, render `<option>No subcategories available</option>` instead of leaving the generic "Select Subcategory" placeholder. Matches the `Views/Certificate/Create.cshtml` pattern (line 585) so behavior is consistent across the two cascades.
+  3. **Request-token guard** — module-scope `_subcategoryFetchSeq` counter. Each call captures `mySeq = ++_subcategoryFetchSeq`; after each await, bail if `mySeq !== _subcategoryFetchSeq`. Prevents a slow, earlier fetch from clobbering the dropdown after the user has switched to a different type. Closes a real (low-probability) race even if the user-visible symptom turns out to be cache.
+- **Files:** `Views/Product/Management.cshtml`
+- **Out of scope:** Same cascade exists on `Views/Admin/ProductManagement.cshtml` and `Views/Certificate/{Create,Edit}.cshtml`. Cert pages already show "No subcategories available". The Admin/ProductManagement page wasn't named in the report; left untouched pending evidence the same UX gap matters there.
+
+---
+
+### DEF-138 — QC #91: Product Mgmt save silently nulled Sku and Model fields on every update — client called it "a big issue"
+
+- **Date:** 2026-05-05
+- **Severity:** Medium-High — affected every product update through the Product Mgmt modal; existing Sku and Model values were silently destroyed
+- **Status:** **Fixed (pending deploy)** — verified live on `localhost:5101`
+- **Reporter:** Client retest 5/1 on QC #91: "There was no product type and subcat filled in from list. So I added to 25-8760 and 25-8777. But they then are not showing in list at all. What is going on. Also, another issue: When I went back into 25-8760 it keeps clearing out Product Name and Product Type even after saving edit (but it kept prod cat and subcat). What is going on? This is a big issue!"
+- **Root cause:** A prior sprint's QC #92 fix removed the Sku, Model, and Status inputs from the Add/Edit Product modal (per memory `2026-03-24` observation). The frontend `saveProduct` JS payload at `Views/Product/Management.cshtml:928-937` no longer includes `sku` or `model`. But `Controllers/ProductController.cs:386-387` (`SaveProduct` action, update branch) still unconditionally assigned `product.Sku = model.Sku` and `product.Model = model.Model`. Since the JS payload omits both fields, JSON deserialization sets `model.Sku` and `model.Model` to `null`. The server then overwrites the existing database values with `null` on every single product update. Sku/Model values populated by CSV import — or any other path that bypasses the modal — were silently destroyed by any subsequent edit.
+- **Why the client perceived it as "Product Name and Product Type cleared":** The Product Mgmt table renders each row's Product cell as two stacked lines: the product Name on top, and `SKU: ${product.sku || 'N/A'}` immediately below it (`Views/Product/Management.cshtml:667-671`). Cert and Product numbers like "25-8760" and "25-8777" referenced in the client's complaint look like they were SKU values. After the first save, those SKU strings flipped to "N/A" in the table; the client identified the products by their SKU values and reported them as "not showing in list at all" and "Product Name cleared." The actual Product Name (`product.name`) was never affected. Verified by live test against the dev DB: the Name field, ProductType, ProductSubcategory, CompanyId, and CategoryId were all correctly preserved across save; only Sku and Model were nulled.
+- **Fix:** Changed the SaveProduct update branch to only assign Sku/Model when the model carries a non-null value:
+  ```csharp
+  if (model.Sku != null) product.Sku = model.Sku;
+  if (model.Model != null) product.Model = model.Model;
+  ```
+  This preserves existing values when the modal omits the fields, while still allowing CSV import (or any future call site that does send the fields) to update them. The Create branch is unchanged because new products legitimately start with whatever Sku/Model the modal supplies (which is null today, but that's a separate UX decision about whether to surface those inputs).
+- **Live verification (2026-05-05 on `localhost:5101`):**
+  - Test 1 (the bug): seeded a product with Sku=`TEST-SKU-<ts>` and Model=`TEST-MODEL-<ts>`, then submitted the exact JSON payload the modal would send (no `sku`, no `model`). On the **un-patched** build, both fields flipped to `null` after save. On the **patched** build, both fields are preserved verbatim.
+  - Test 2: saving with a newly-set ProductTypeId works as before — the type and the joined ProductTypeName both flow through to the list correctly. So the second part of the client's complaint ("they're not showing in list at all" referring to type/subcat after save) was not a separate persistence bug; it was the same SKU-display-N/A symptom misread.
+- **Out of scope for this fix (related but separate decisions):**
+  - Whether to put Sku and Model inputs back into the Add/Edit Product modal. QC #92 explicitly removed them. If the client wants them back, it's a UX scope question — needs a decision before code change.
+  - Whether to drop the `SKU: ...` line from the product list cell entirely so future SKU values can't visually disappear and confuse the user. This is a polish question, not a defect.
+- **Files:** `Controllers/ProductController.cs`
+- **Test artifact:** `C:\Users\swest\AppData\Local\Temp\uitest\qc91-test.js`
+
+---
+
 ### DEF-137 — QC #107: Add User flow had two latent bugs — RequirePasswordReset silently dropped + soft-deleted email blocked re-create
 
 - **Date:** 2026-05-04
@@ -663,7 +762,9 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ### DEF-112 — Partner role: web-user "Partner" vs Partner API "Partner" share the same code path with different identities — needs an architectural decision
 
-- **Date:** 2026-05-01 (reported), 2026-05-04 (resolved via Path 4)
+> **2026-05-05 REVERSAL:** Path 4 ("eliminate web-user Partner role") was reversed by Shawn after testuser5 testing surfaced no nav for Partner-role users. The actual requirement is Partner web users DO exist and mirror External access pattern, filtered by partner instead of by company. See **DEF-142** for the new resolution. The Roles.IsActive=false flip was reversed on dev DB (back to IsActive=true). Prod DB flip was never run, so no prod rollback needed. The `Database_Scripts/20260504_DEF112_DeactivatePartnerRoleForHumans.sql` script referenced below was never actually committed to the repo. Architectural concern (dual-meaning of `userRole == "Partner"` string) remains as a future hardening item — see DEF-142 caveat.
+
+- **Date:** 2026-05-01 (reported), 2026-05-04 (resolved via Path 4), 2026-05-05 (Path 4 reversed → Path 2-equivalent in DEF-142)
 - **Severity:** Medium (no current bug, but the dual meaning makes future changes risky and the model is ambiguous to operators)
 - **Status:** **Fixed (source + dev DB) — pending prod SQL run.** Path 4 selected after confirming on 2026-05-04 that the prod DB has zero human users with the Partner role (verified via `GET /Admin/GetUsers` → role distribution: Admin / Analyst / External / Public only; no `"role": "Partner"` matches across all 23 users).
 - **Resolution chosen — Path 4 (eliminate web-user Partner role):** The Partner role exists in the Roles table (id=6, IsActive=true) but is only ever assigned by `PartnerApiKeyAuthenticationMiddleware`, which injects `ClaimTypes.Role = "Partner"` directly without consulting the table. Soft-deactivating the row (`IsActive = false`) hides it from the User Management role dropdown (`GetRolesListAsync` filters on `IsActive`) and prevents future admins from accidentally creating human Partner users. Zero impact on Partner API auth (middleware doesn't read the row), zero impact on existing users (none are assigned). Fully reversible.
@@ -1059,6 +1160,64 @@ Prod (`gccwebap_certificates`) has all of these correct. Migration `19_20260320_
 - See `feedback_certtypes_hierarchy.md`.
 
 **Found by:** TC-QC-045 in `docs/tracking/test-execution-log.md`. Originally flagged with wrong "prod duplicates" framing; corrected after schema check.
+
+---
+
+### DEF-109 — Product ID "Created By" column shows "System" instead of the user who added it
+
+- **Date:** 2026-05-05
+- **Severity:** Medium (audit data correctness; visible to client on Cert Edit page)
+- **Status:** Fixed (pending UAT)
+- **Reporter:** Shawn (continuing QC #80 testing)
+
+**Symptom:** On the Certificate Edit page → Product ID Manager table, the "Created By" column shows "System" for product IDs added through the certificate Create or Edit form, even when a logged-in analyst added them.
+
+**Root cause:** `CertificateController.Create` (POST) and `CertificateController.Edit` (POST) accept the `model.ProductIds` collection from the form and write each row directly to the DB without setting `CreatedBy`. The JS payload from `ProductIdManager.getProductIdsForSubmission()` only carries Type/Value/Partner/Name/SKU/Description — no audit fields — so `CreatedBy` defaults to `null`. On re-fetch, the `CreatedByUser` navigation comes back null, and `product-id-manager.js` line 244–245 falls back to the literal string `'System'`.
+
+This is distinct from `/api/productids` POST (the modal flow on Cert Edit *outside* the form save), which already sets `CreatedBy` correctly via `ProductIdApiController.CreateProductId`. The bug only fires on the Create/Edit page form-save path.
+
+**Fix:** `Controllers/CertificateController.cs`
+- Create flow (around line 481): set `CreatedBy = GetCurrentUserId()`, `CreatedAt = now`, `UpdatedAt = now` on each `productId` before adding to the certificate's collection.
+- Edit flow (around line 868): same, plus `UpdatedBy = currentUserId`. Note: the Edit flow's `certificate.ProductIds.Clear()` + re-add pattern means existing rows are deleted and re-inserted, so all rows get the new audit stamp on edit — consistent with how `Tags` and `CertificationTypeSubcategories` are handled in the same method.
+
+**Side effect / known limitation:** Existing rows already in DB with `CreatedBy = NULL` will continue to render as "System" until they are touched by a save. A backfill SQL update (`UPDATE CertificateProductIds SET CreatedBy = (SELECT CreatedBy FROM Certificates c WHERE c.Id = CertificateId) WHERE CreatedBy IS NULL`) would clear the historical rows but is a data change — per the project rule (`feedback_data_changes_require_cr.md`), that needs a formal CR before running on prod, so it is NOT included here.
+
+**Test plan:**
+1. Log in as `analyst` on `localhost:5101`.
+2. Navigate to `/Certificate/Create`. Add a product ID (any type/value) via the modal. Save the certificate.
+3. Open the saved certificate via `/Certificate/Edit/{id}`. Confirm the Product ID Manager row shows `Created By: analyst` (not `System`).
+4. Add another product ID directly on the Edit page. Save. Reload. Confirm new row also shows `Created By: analyst`.
+5. Cross-role check: log in as `admin`, add a product ID, confirm row shows `Created By: admin`.
+6. Negative: existing pre-fix product IDs (created before this commit) should still render `System` — confirms the limitation note.
+
+**Found by:** Continuing TC-QC-080 manual UAT. Spotted by Shawn; not in original 4/27 client QC log.
+
+---
+
+### DEF-110 — Admin `/api/certificates` POST/PUT path silently dropped CreatedBy / UpdatedBy
+
+- **Date:** 2026-05-05
+- **Severity:** Low (Admin-only API, no client UAT impact, but identical audit-data-loss pattern as DEF-109)
+- **Status:** Fixed (pending UAT)
+- **Reporter:** Anuki internal QA pass — DEF-109 follow-up sweep
+
+**Symptom:** Certificates created or updated through `POST /api/certificates` and `PUT /api/certificates/{id}` were saved with `CreatedBy = NULL` (and updates with `UpdatedBy = NULL`). The Cert Internal View hides the "Created By" line entirely when `CreatedByUser` is null (`CertificateInternalView.cshtml:187` guards the block), so no visible "System" string appears here — but the audit data is still missing.
+
+**Root cause:** `CertificatesApiController.MapToCertificate` builds a `Certificate` from the request DTO without setting CreatedBy. The controller then routes through `CertificateService.CreateCertificateAsync` / `UpdateCertificateAsync`, neither of which had any way to know the calling user — the methods only accepted a `userRole` string. The wiring lost the user identity between `User.FindFirst(NameIdentifier)` (available on the controller) and the entity (saved by the service).
+
+**Fix:**
+- `Services/IServices.cs` — added optional `int? userId = null` parameter to `CreateCertificateAsync` and `UpdateCertificateAsync`.
+- `Services/CertificateService.cs` — both methods now stamp `CreatedBy` (and `UpdatedBy` on update) from the new param.
+- `Controllers/Api/CertificatesApiController.cs` — added a `GetCurrentUserId()` helper (parses `ClaimTypes.NameIdentifier`) and passes the result into both service calls.
+
+The optional parameter default keeps any future caller that doesn't supply userId from breaking. The web `/Certificate/Create` and `/Certificate/Edit` paths don't use these service methods (they hit the repository directly with their own user-stamp logic), so they are unaffected.
+
+**Test plan:**
+1. Log in as `admin`. Use Postman or `curl` against `https://localhost:5101/api/certificates` with `Content-Type: application/json` and a valid CreateCertificateRequest body. Submit POST.
+2. Open the new cert via `/Certificate/CertificateInternalView/{id}`. Confirm the "Created By: <admin email>" line appears — previously this row was silently hidden.
+3. PUT to `/api/certificates/{id}` with an UpdateCertificateRequest body. Reload the cert detail. Confirm UpdatedBy was set (DB inspection or future audit-trail UI).
+
+**Found by:** Code-survey sweep after DEF-109 fix. Shawn asked "do we have this issue elsewhere in the views?" — this surfaced as the only remaining write path that produced null audit fields.
 
 ---
 

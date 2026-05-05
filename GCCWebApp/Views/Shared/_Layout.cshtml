@@ -29,6 +29,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     @Html.AntiForgeryToken()
+    <meta name="x-remember-me" content="@(User?.FindFirst("RememberMe")?.Value == "true" ? "true" : "false")" />
     <title>@ViewData["Title"] - GreenCircle Certified Database</title>
 
     <!-- FontAwesome Icons -->
@@ -167,9 +168,9 @@
 
                     @if (User.Identity?.IsAuthenticated == true)
                     {
-                        @if (userRole == "External")
+                        @if (userRole == "External" || userRole == "Partner")
                         {
-                            <!-- External Navigation Items - Only Products, no Companies -->
+                            <!-- External & Partner Navigation Items - Only Products, no Companies -->
                             <li class="nav-item">
                                 <a asp-controller="Certificate" asp-action="CertificateTileViewExternal" class="nav-link">
                                     Certificates

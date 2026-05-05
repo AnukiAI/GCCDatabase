@@ -18,9 +18,16 @@ class ProductManagement {
     async init() {
         console.log('Initializing Product Management...');
         this.bindEvents();
-        await this.loadProducts();
-        this.renderProducts();
-        this.updateProductCount();
+        // /Product/Management instantiates this class only for import-modal helper methods;
+        // it owns its own table render via inline JS. Only do data-load + render where this
+        // class actually owns the table (i.e. /Admin/ProductManagement). Without this gate,
+        // analyst loads of /Product/Management fire /Admin/GetProducts → 200 AccessDenied
+        // HTML → response.json() chokes on `<` → silent SyntaxError every page load.
+        if (document.getElementById('products-table-body')) {
+            await this.loadProducts();
+            this.renderProducts();
+            this.updateProductCount();
+        }
     }
     
     bindEvents() {

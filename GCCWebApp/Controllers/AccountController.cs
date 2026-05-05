@@ -1125,6 +1125,7 @@ namespace GCCWebApp.Controllers
                 new Claim("Email", email),
                 new Claim("Name", email), // Using email as name for simplicity
                 new Claim("Role", role), // Custom role claim for policies
+                new Claim("RememberMe", rememberMe ? "true" : "false"), // Read by client to skip idle auto-logout
                 new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
             };
 

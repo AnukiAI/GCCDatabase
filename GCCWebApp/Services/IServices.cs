@@ -17,8 +17,8 @@ namespace GCCWebApp.Services
         Task<BulkActionResult> PerformBulkActionAsync(BulkActionRequest request);
         Task<List<string>> GetSearchSuggestionsAsync(string term, string type, string userRole);
         Task<CertificateValidationResult> ValidateCertificateAsync(string certificateNumber);
-        Task<int> CreateCertificateAsync(CertificateEditViewModel certificate, string userRole);
-        Task<bool> UpdateCertificateAsync(int id, CertificateEditViewModel certificate, string userRole);
+        Task<int> CreateCertificateAsync(CertificateEditViewModel certificate, string userRole, int? userId = null);
+        Task<bool> UpdateCertificateAsync(int id, CertificateEditViewModel certificate, string userRole, int? userId = null);
         Task<bool> DeleteCertificateAsync(int id, string userRole);
         Task<CertificateDetailsViewModel?> GetCertificateByCertificateNumberAsync(string certificateNumber, string userRole);
         

@@ -210,7 +210,7 @@ namespace GCCWebApp.Controllers.Api
 
                 // Create certificate (convert to CertificateEditViewModel)
                 var certificateViewModel = MapToCertificateEditViewModel(certificate);
-                var certificateId = await _certificateService.CreateCertificateAsync(certificateViewModel, "Admin");
+                var certificateId = await _certificateService.CreateCertificateAsync(certificateViewModel, "Admin", GetCurrentUserId());
                 var createdCertificate = await _certificateService.GetCertificateDetailsAsync(certificateId, "Admin");
                 
                 if (createdCertificate == null)
@@ -275,7 +275,7 @@ namespace GCCWebApp.Controllers.Api
 
                 // Update certificate (convert to CertificateEditViewModel)
                 var certificateViewModel = MapToCertificateEditViewModel(certificate);
-                var success = await _certificateService.UpdateCertificateAsync(id, certificateViewModel, "Admin");
+                var success = await _certificateService.UpdateCertificateAsync(id, certificateViewModel, "Admin", GetCurrentUserId());
                 
                 if (!success)
                 {
@@ -665,6 +665,12 @@ namespace GCCWebApp.Controllers.Api
                 CertificationTypeId = request.CertificationTypeId,
                 UpdatedAt = DateTime.UtcNow
             };
+        }
+
+        private int? GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(userIdClaim, out var userId) ? userId : (int?)null;
         }
 
         private CertificateEditViewModel MapToCertificateEditViewModel(Certificate certificate)

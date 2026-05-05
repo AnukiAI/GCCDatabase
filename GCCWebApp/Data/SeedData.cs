@@ -91,10 +91,12 @@ namespace GCCWebApp.Data
             {
                 new Role { Name = "Admin", Description = "Full system access", IsSystem = true },
                 new Role { Name = "Analyst", Description = "Certificate management access", IsSystem = true },
-                // DEF-112: Partner role is API-key-only. PartnerApiKeyAuthenticationMiddleware injects this
-                // role claim directly on every API-key request; no human user should be assigned this role.
-                // IsActive=false hides it from /Admin/UserManagement role dropdown (GetRolesListAsync filters on IsActive).
-                new Role { Name = "Partner", Description = "API-key-only role injected by PartnerApiKeyAuthenticationMiddleware. Not assignable to web users (DEF-112).", IsSystem = true, IsActive = false },
+                // DEF-112 (revised 2026-05-05): Partner role is dual-purpose. (1) Web users assigned to a partner
+                // (e.g., Amazon staff) log in and see the External-style cert/product views, filtered by their
+                // User.Partners assignment. (2) Partner API-key requests get the same "Partner" role claim injected
+                // by PartnerApiKeyAuthenticationMiddleware. Both flow through cert filtering by partner name; web
+                // path filters via session userId → User.Partners; API path is scoped at the controller level.
+                new Role { Name = "Partner", Description = "Partner access — web users see certificates/products tied to their assigned partner; API-key requests get this role from PartnerApiKeyAuthenticationMiddleware.", IsSystem = true, IsActive = true },
                 new Role { Name = "External", Description = "External user access", IsSystem = true },
                 new Role { Name = "Public", Description = "Public read-only access", IsSystem = true }
             };

@@ -1,5 +1,59 @@
 # Observations Log
 
+## 2026-05-05 - Continued batch testing: admin pages + cert tile views
+
+Continued the QC retest cycle by exercising 8 admin pages logged in as admin, plus public/external cert tile views. **Headline result:** the admin surfaces are healthy — every page loads in 600–1500ms, returns HTTP 200, and produces zero console errors. UserMgmt (20 rows), Tags (5), AdmProductMgmt (26), Partners (5), Pathways (4), Roles (5), PartnerAPI (7), and CertificateTypes (route is /Admin/CertificateTypes — earlier 30s "timeout" for analyst was a wrong-URL artifact in my test, not a real perf issue) all rendered correctly with the right action buttons.
+
+Confirmed-and-quantified findings:
+
+1. **`<h1>` duplication is widespread.** Every admin / dashboard / company / product view that uses `_Layout.cshtml` renders two `<h1>` tags with identical "X Management" text. Root cause is mechanical: `Views/Shared/_Layout.cshtml:309` already renders `<h1 class="page-title">@ViewData["Title"]</h1>`, but ~25 view files also render `<h1 class="admin-page-title">@ViewData["Title"]</h1>`. The visual screenshot shows only one heading visible on screen — the second is in the DOM but rendered hidden, so this is an a11y / SEO defect rather than a visual regression. CLAUDE.md says "Use ViewData[\"Title\"] (no `<h1>` in views)" — fix is to drop the `<h1 class="admin-page-title">` line from all 25 violating views; layout already emits the correct h1. Not fixing this turn — batch refactor that needs Shawn's go-ahead. Public `CertificateTileView.cshtml` is correctly NOT a violator (relies on layout h1 only) — that's the pattern to copy.
+
+2. **External user empty-state UX gap.** Logged in as `external` and loaded `/Certificate/CertificateTileViewExternal`. The page renders header/filter chrome but zero tiles and zero list rows. Network capture shows the API call `/api/CertificateTileExternal` returns 200 with `totalCount: 0, certificates: []`. This is *expected per CLAUDE.md* ("External User Restrictions: See ONLY associated company/partner data") — the seeded `external` user has no associated company on prod, so legitimately has nothing to show. **However, the page surfaces no empty-state message.** The user sees a blank canvas under the filter chrome with no indication that "no certs are associated with your account" or similar. Worth a small UX patch on a future cycle. NOT fixing this turn.
+
+3. **External user role-gating works correctly.** Confirmed external sees no Add Certificate button and no Edit buttons (per CLAUDE.md "External User Restrictions: NO Add/Edit certificate buttons"). ✓
+
+4. **Admin page perf is good.** All 8 admin pages load in 600–1500ms, no need for a perf pass. Earlier "30s timeout for /Admin/CertificationTypes" was actually a wrong-URL test artifact — the real route is `/Admin/CertificateTypes`.
+
+5. **Memory note for future selectors:** the External tile API response uses key `certificates` (not `data` or `items`); wrapper is `{totalCount, page, pageSize, totalPages, hasMore, certificates}`. Public tile view list rows are `#gridBody .table-body-row`.
+
+Test artifacts: `C:\Users\swest\AppData\Local\Temp\uitest\admin-batch.js`, `cert-tile-test.js`, `correct-url-followups.js`, `external-tile-debug.js`. Screenshots in per-run `qc-admin-*` and `qc-followup-*` temp dirs.
+
+## 2026-05-05 - DEF-142 — Partner web users have no nav (DEF-112 reversal)
+
+Shawn created `testuser5` with Partner role on gccwebapp.com (Role Management, separate from API permission), logged in, saw no navigation. Diagnosed three-part gap: (1) `_Layout.cshtml` only branches nav for External, not Partner; (2) `ExternalAccess` policy in `Program.cs` only authorizes External/Admin/Analyst claims; (3) `SeedData.cs` had Partner `IsActive=false` per the recent DEF-112 Path 4 (eliminate web-user Partner). Filtering plumbing (`User.Partners` many-to-many, partner-name cert filter, Edit User modal Partner Assignment dropdown) was already fully built — only the policy/nav/active-flag wires were missing.
+
+Shawn's clarified requirement reverses DEF-112: Partner web users DO exist, mirror External access pattern, but filter by partner instead of by company. All Amazon staff users see all Amazon-tagged certs. Amazon API key (`/api/v1/certificates*`) still works as before — different controller, different code path, contract still locked.
+
+Fix shipped in working tree (4 changes): `Program.cs` ExternalAccess policy now accepts Partner claim; `_Layout.cshtml:171` nav branch fires for External || Partner; `SeedData.cs:97` Partner row IsActive=true with dual-purpose description; dev DB Roles row flipped IsActive 0→1. Prod DB needs no flip because the deactivation SQL was never run there. DEF-112 entry annotated with reversal note pointing at DEF-142. Build clean. Pending Plesk deploy to verify on gccwebapp.com.
+
+Architectural concern carried forward (not in scope): the dual meaning of `userRole == "Partner"` (human user vs API key) still shares the same string in cert-listing controllers. Functionally fine today (different controllers, different data sources), but audit-trail confusion remains a future hardening item.
+
+---
+
+## 2026-05-05 - DEF-141 + cross-page smoke run
+
+Continuing internal QC retest of the live test env (gccwebapp.com), did a batched multi-page Playwright smoke (Dashboard, CertTileView, Product/Management, Company/Index, plus role-gated admin pages) plus a deep regression of /Product/Management Add/Edit/Search/Filter/Sort/Export/Import. **Headline result:** the cascade end-to-end works (Add new with Plastics → 6 subs → save → row appears in list). Edit modal pre-fills correctly. Search, category filter, sort, and CSV export all pass. Import button uses the correct `fa-file-arrow-down` icon (down arrow per `feedback_import_export_icon_convention.md`).
+
+Three new findings:
+
+1. **DEF-141 (fixed in tree)** — `/Product/Management` analyst load fires `/Admin/GetProducts`, gets HTML AccessDenied, parses as JSON, errors silently. Source is `wwwroot/js/admin/productManagement.js` auto-instantiating its class on every page that includes it (the Razor view loads it solely for import-modal helpers). DEF-111 fixed the inline `loadProducts()` but missed this duplicate same-named function in a different file. Gated `init()` on `#products-table-body` existence. 4-line fix.
+
+2. **Design-guide drift on success notifications** — `admin-core.js` routes all `showNotification` calls (incl. success) to centered alertdialog modals requiring OK; CLAUDE.md says "Success: Toast notification only". Inline comment says the modal-everywhere routing is deliberate. Flagged but NOT fixed — needs a doc-vs-code decision.
+
+3. **`<h1>` duplicates on three pages** — Dashboard, ProductMgmt, CompanyIndex each report 2 `<h1>` tags via Playwright. CLAUDE.md says no `<h1>` in views (use `ViewData["Title"]`). Visual audit needed before yanking duplicates.
+
+4. **Bonus:** `/Admin/CertificationTypes` timed out at 30s for analyst — should redirect to AccessDenied promptly. Worth a perf pass.
+
+Test artifacts: `C:\Users\swest\AppData\Local\Temp\uitest\product-mgmt-batch.js`, `multi-page-smoke.js`, `check-def111.js`, `subcategory-test.js`, `subcategory-test2.js`.
+
+## 2026-05-05 - DEF-140 — Remember Me silently overridden by client-side idle auto-logout
+
+Shawn reported "Remember Me on the login does not appear to be working." Confirmed scenario: leaving an authenticated tab open and idling. Server-side, the prior fix (commit bc5d619, 2026-03-20) is intact — Remember Me yields a 14-day persistent auth cookie, and `Program.cs` middleware re-hydrates session from claims on each request. Bug is in `wwwroot/js/auth.js:67-113`: a hard-coded 30-min idle timer calls `logoutForm.submit()` regardless of Remember Me state, force-logging out users whose server cookie is still valid for 14 days. Browser-close-and-reopen path is unaffected (JS isn't running). Fix in 3 files: added `RememberMe` claim to the auth ticket in `SignInUser`, layout emits `<meta name="x-remember-me">`, JS reads the tag and skips both the 5-min warning and the 30-min auto-logout when content is "true". Existing 401-fetch-interceptor still handles non-RememberMe expiration. Decision (Shawn): Remember Me checkbox stays unchecked by default — including after explicit logout — for shared-computer safety. Out of scope: the AAD B2C `OnTokenValidated` path doesn't route through `SignInUser`; will need the same claim plumbing if/when AAD B2C is enabled in prod.
+
+## 2026-05-05 - DEF-139 — Subcategory cascade UX hardening on Product Management
+
+Continuing internal QC retest, Shawn reported "Add new Product: Subcategory is not loading the first time Product Type is selected and there are subcategory" on https://gccwebapp.com/Product/Management. Programmatically reproduced against the live page with Playwright across 6 scenarios (first-pick, mid-modal cat-change, close+reopen, rapid type swap, has-subs↔no-subs, kbd interaction) — all six rendered the correct subcategories from `/Certificate/GetProductSubcategories`. Deployed JS matched repo source. Capping diagnosis at ~5 tool calls per the "no chaos rabbit holes" rule, applied a defensive fix that closes all three plausible root causes (stale browser cache, slow-network race, ambiguous placeholder) regardless of which is biting: explicit "Loading subcategories..." state during fetch, "No subcategories available" on success+empty (matches the cert-create pattern), and a module-scope sequence-counter to drop stale fetch responses after a rapid type swap. File: `Views/Product/Management.cshtml`. Logged as DEF-139, shipped-log entry written.
+
 ## 2026-05-01 - Export CSV header alignment audit (DEF-110)
 
 Audited every Export feature in the app — 15 surfaces total. Found CSV headers diverging from UI table labels on 12 of them, plus a duplicate-handler bug (Product Management pages were downloading 2 CSVs per Export click) and a CSV-ONLY rule violation (Product Types admin page used a CSV/JSON/Excel chooser modal). Standardized all 12 export header lines to match UI labels exactly, removed the duplicate registration, and forced Product Types to direct CSV. Export header text and import-template column names are now deliberately decoupled: User import template still uses "User Company" for round-trip with Carly's QC #108; export uses "Company" to match UI. Same pattern for product imports. C# changes in CertificateService.cs and AdminService.cs need server restart to take effect; JS/Razor changes are live on localhost:5101. Files: 12. See defect-register DEF-110 for the per-export breakdown.
@@ -3825,5 +3879,30 @@ Shawn's directive (2026-04-23): **"All is not a default field. This is a CR chan
 PublicStatuses = `['Client Approved - Paid', 'Republished']` only. The DB also contains the literal status value `'Active'` (KAO certs use this) which is treated as NOT-public. Carly's complaint at row 159 — "reports aren't taking into account all 'Active' cert status types" — is a semantic naming collision, not a counting bug. Either:
 (a) rename/migrate the literal `'Active'` DB values to their proper workflow state, or
 (b) add `'Active'` to PublicStatuses. Needs product decision from GCC.
+
+---
+
+## 2026-05-05 - Product Management duplicate "test" rows (observation only, not a defect)
+
+**What Shawn saw:** 4 rows on `gccwebapp.com/Product/Management` named `test`, company `TEST` — 1 row with only `Chemicals and Raw Materials` filled, 3 more identical rows with `Chemicals and Raw Materials > Plastic > HDPE`.
+
+**On a fresh test:** Shawn re-added a new product through the modal — **single row created, no duplicates.** Not reliably reproducible from a clean attempt.
+
+**Why dups can still slip through:** there is no duplicate-prevention guard anywhere on the manual Add Product flow:
+
+| Layer | File | Has dup check? |
+|---|---|---|
+| Client (Save button) | `Views/Product/Management.cshtml:918-972` (`saveProduct`) | NO — button is not disabled on click; no spinner; modal stays open until response returns |
+| Server (`POST /Product/SaveProduct`) | `Controllers/ProductController.cs:401-419` | NO — straight `_context.Products.Add(product)` |
+| Database | `Products.Name` column | NO UNIQUE constraint, no filtered index |
+| CSV Import path (separate) | `Controllers/ProductController.cs:755-761` | YES — rejects duplicate `Name` |
+
+**Working theory for the existing 4 rows on prod-test:** an earlier session where the Save button was clicked multiple times during a slow Plesk → Kestrel response. With no UI signal that the save is in flight (no button-disable, no spinner, modal stays open) the user can reasonably click Save again. Each click fires a fresh POST with `id=0` → fresh insert. The 1 + 3 split (one row missing Type/Sub, three identical with full hierarchy) supports two distinct save sessions, the second one clicked 3×.
+
+**Status:** observation only per Shawn — not opening a DEF this round. Existing 3 prod-test dup rows would require a CR for SQL cleanup (Data Changes Require CR rule).
+
+**Future fix scope (if/when prioritized):**
+- Client: disable `#save-btn` and set text to "Saving…" inside `saveProduct`'s try; re-enable in `finally`. Prevents the 2nd-click race.
+- Server: in `SaveProduct` insert branch, add `Name` (case-insensitive) + `CompanyId` collision check matching the Import path's behavior at line 755-761. Belt-and-suspenders against any other client that calls the endpoint.
 
 

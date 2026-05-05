@@ -383,8 +383,12 @@ namespace GCCWebApp.Controllers
 
                     product.Name = model.Name;
                     product.Description = model.Description;
-                    product.Model = model.Model;
-                    product.Sku = model.Sku;
+                    // Sku and Model are not editable from the Product Mgmt modal (removed in QC #92).
+                    // The JS payload omits them, so deserialization makes them null — assigning would
+                    // wipe values set by CSV import or any other path. Only update when the caller
+                    // explicitly sent a non-null value. (QC #91 fix)
+                    if (model.Sku != null) product.Sku = model.Sku;
+                    if (model.Model != null) product.Model = model.Model;
                     product.CategoryId = model.CategoryId;
                     product.ProductTypeId = model.ProductTypeId;
                     product.ProductSubcategoryId = model.ProductSubcategoryId;

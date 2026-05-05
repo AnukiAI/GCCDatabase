@@ -219,8 +219,12 @@ namespace GCCWebApp.Controllers
                     return NotFound($"Certificate {id} not found");
                 }
 
-                // Block anonymous users from viewing non-public certificates via direct URL
-                // Public view should only show "Client Approved - Paid" or "Republished" with valid expiration
+                // Block anonymous users from viewing non-public certificates via direct URL.
+                // Public view should only show statuses in PublicStatuses with a valid expiration date.
+                // Message intentionally distinguishes "not yet published" from "not found" so that a
+                // recipient of a prematurely-shared link knows the URL is valid but the certificate
+                // is not yet publishable. Cert numbers are sequential, so acknowledging existence
+                // does not meaningfully aid enumeration.
                 if (User.Identity?.IsAuthenticated != true)
                 {
                     var isPublicStatus = CertificateStatusHelper.IsPubliclyVisible(certificate.Status);
@@ -228,8 +232,8 @@ namespace GCCWebApp.Controllers
 
                     if (!isPublicStatus || isExpired)
                     {
-                        _logger.LogWarning("Anonymous access denied for non-public certificate: {CertificateNumber}, Status: {Status}", id, certificate.Status);
-                        return NotFound($"Certificate {id} not found");
+                        _logger.LogWarning("Anonymous access denied for non-public certificate: {CertificateNumber}, Status: {Status}, Expired: {Expired}", id, certificate.Status, isExpired);
+                        return NotFound($"Certificate {id} is not currently available for public viewing.");
                     }
                 }
 
@@ -476,9 +480,14 @@ namespace GCCWebApp.Controllers
                     // Handle Product IDs from Product ID Manager
                     if (model.ProductIds != null && model.ProductIds.Any())
                     {
+                        var currentUserId = GetCurrentUserId();
+                        var now = DateTime.UtcNow;
                         foreach (var productId in model.ProductIds)
                         {
                             productId.CertificateId = certificate.Id;
+                            productId.CreatedBy = currentUserId;
+                            productId.CreatedAt = now;
+                            productId.UpdatedAt = now;
                             certificate.ProductIds.Add(productId);
                         }
                         await _unitOfWork.CompleteAsync();
@@ -861,9 +870,15 @@ namespace GCCWebApp.Controllers
                         certificate.ProductIds.Clear();
 
                         // Add new product IDs
+                        var currentUserId = GetCurrentUserId();
+                        var now = DateTime.UtcNow;
                         foreach (var productId in model.ProductIds)
                         {
                             productId.CertificateId = certificate.Id;
+                            productId.CreatedBy = currentUserId;
+                            productId.CreatedAt = now;
+                            productId.UpdatedBy = currentUserId;
+                            productId.UpdatedAt = now;
                             certificate.ProductIds.Add(productId);
                         }
                     }

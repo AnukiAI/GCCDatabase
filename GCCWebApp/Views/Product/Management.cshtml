@@ -493,22 +493,37 @@
             });
         }
 
+        let _subcategoryFetchSeq = 0;
         async function populateSubcategoryDropdown(typeId) {
             const subSelect = document.getElementById('product-subcategory');
             if (!subSelect) return;
-            subSelect.innerHTML = '<option value="">Select Subcategory</option>';
-            if (!typeId) return;
+            const mySeq = ++_subcategoryFetchSeq;
+            if (!typeId) {
+                subSelect.innerHTML = '<option value="">Select Subcategory</option>';
+                return;
+            }
+            subSelect.innerHTML = '<option value="">Loading subcategories...</option>';
             try {
                 const response = await fetch(`/Certificate/GetProductSubcategories?productTypeId=${typeId}`);
+                if (mySeq !== _subcategoryFetchSeq) return; // a newer request superseded us
                 if (response.ok) {
                     const data = await response.json();
-                    if (data.success && data.data) {
+                    if (mySeq !== _subcategoryFetchSeq) return;
+                    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+                        subSelect.innerHTML = '<option value="">Select Subcategory</option>';
                         data.data.forEach(s => {
                             subSelect.add(new Option(s.name, s.id));
                         });
+                    } else {
+                        subSelect.innerHTML = '<option value="">No subcategories available</option>';
                     }
+                } else {
+                    subSelect.innerHTML = '<option value="">Select Subcategory</option>';
                 }
             } catch (error) {
+                if (mySeq === _subcategoryFetchSeq) {
+                    subSelect.innerHTML = '<option value="">Select Subcategory</option>';
+                }
                 console.error('Error loading subcategories:', error);
             }
         }

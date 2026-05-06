@@ -18,6 +18,33 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-148 — Product ID Manager: "Product ID" column rendered in monospace and the row count was center-aligned, both inconsistent with the rest of the app
+
+- **Date:** 2026-05-06
+- **Severity:** Low (visual / UI consistency)
+- **Status:** Fixed locally (pending UAT / deploy)
+- **Reporter:** Shawn — observed on `/Certificate/Edit/26-0146`, two related sub-items raised back-to-back.
+
+**Symptom 1 — column font:** The "Product ID" column in the Product Identifiers section rendered values in `'Courier New', monospace` at `font-weight: 500`. Every adjacent column (Type, Product Name, SKU, Partner, Created, Created By) inherited the default proportional Open Sans, so the values column visually popped out as bolder typewriter text against the rest of the row.
+
+**Symptom 2 — count alignment:** The "Showing N product ID(s)" pagination caption beneath the table was centered. The rest of the app right-aligns count captions next to their tables (admin tables, cert tile views, etc.).
+
+**Root cause:**
+- `wwwroot/css/product-id-manager.css:215` — the `.product-id-value` class carried `font-family: 'Courier New', monospace; font-weight: 500;` overrides on top of the truncation properties. Likely a leftover from when the column was treated like a code/identifier display; no other column in the app uses monospace.
+- `Views/Shared/_ProductIdManager.cshtml:161` — the pagination wrapper used `class="pagination-info text-center text-muted mt-2"` (Bootstrap `text-center`).
+
+**Fix:**
+- CSS: dropped the `font-family` and `font-weight` declarations from `.product-id-value`; kept the truncation properties (`max-width`, `overflow`, `text-overflow`, `white-space`).
+- Razor: `text-center` → `text-end`.
+
+**Files:** `wwwroot/css/product-id-manager.css`, `Views/Shared/_ProductIdManager.cshtml`.
+
+**Out of scope (intentional):** The Import Preview modal's preview row still inlines `font-family: monospace` on the `productIdValue` cell (`wwwroot/js/product-id-manager.js:1025`). That's a separate modal not visible on the cert edit page; leaving it for now since the user only flagged the main table — can revisit if it shows up in QC.
+
+**Verification:** Static asset changes; reload `/Certificate/Edit/26-0146` to confirm.
+
+---
+
 ### DEF-147 — Product ID Manager action icons (Edit/Delete) didn't match the app standard; trash icon wasn't red
 
 - **Date:** 2026-05-05
@@ -1191,6 +1218,7 @@ The materialize-then-sort pattern matches `CertificateTilesApiController.cs:322`
 - **Date:** 2026-04-30
 - **Severity:** Medium (data hygiene; Amazon badging via Partner API was already filtered at the cert level so no live leak — but underlying state was wrong).
 - **Status:** **Fixed locally + dev DB backfilled + PROD DB backfilled 2026-05-01 — app deploy pending.**
+- **QC mapping:** **QC #164 (4/10/26 — Carly, "Product Identifiers / Amazon Integration")** maps to this fix. Re-verified against current code on 2026-05-06: cascade wired into all 8 mutation paths, Status surface removed from list/filter/modal/import-template/JS-export, prod backfill confirmed 0-mismatch by post-flight audit. Test env (`gccwebapp.com`) is the same prod DB per `project_plesk_deploy_env.md`, so backfill coverage is implicit. No additional work required for QC #164.
 - **Reporter:** Shawn (raised on the 2026-04-30 status conversation; client confirmed scope).
 - **Symptom:** `CertificateProductId.Status` defaulted to `"Active"` on insert and was never auto-flipped when the parent cert moved out of `PublicStatuses` (Draft / Hold / Expired / Confidential / Not Paid / Republished->Expired / Expired - No Annual Verification). Analysts could also pick any per-row status from the UI / CSV, drifting from the cert's actual eligibility.
 - **Why it matters:** Amazon badging integrity. The Partner API already filters cert lists to `PublicStatuses` (DEF-097 / 2026-04-21 fix), so live data going to Amazon was correct, but the underlying per-row state was stale and any future direct query / partner-side data hygiene check would surface the drift.

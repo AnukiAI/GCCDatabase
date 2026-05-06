@@ -217,8 +217,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-family: 'Courier New', monospace;
-    font-weight: 500;
 }
 
 .product-name, .product-sku {

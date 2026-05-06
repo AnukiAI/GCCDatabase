@@ -112,35 +112,66 @@ if ($listener) {
     }
 }
 
-# --- Clear stale staging ---
-if (Test-Path $stagingDir) {
-    Write-Host "Clearing stale staging at $stagingDir..." -ForegroundColor Gray
-    Remove-Item -Path $stagingDir -Recurse -Force
+# --- Clear stale staging (and any trailing-space siblings from prior bugs) ---
+# A previous version of this script passed "/p:PublishDir=`"$dir\`"" to dotnet, which
+# the arg parser collapsed into a literal folder named "staging --nologo " (trailing
+# space). NTFS allows trailing-space names but Win32 can't open them, so a single
+# leftover broke MSBuild glob enumeration project-wide (MSB3552 on **/*.resx).
+# Wipe any sibling whose name starts with "staging" to defuse that ahead of the run.
+if (Test-Path $dropsRoot) {
+    Get-ChildItem -LiteralPath $dropsRoot -Force -ErrorAction SilentlyContinue |
+        Where-Object { $_.PSIsContainer -and $_.Name -like 'staging*' } |
+        ForEach-Object {
+            $longPath = "\\?\$($_.FullName)"  # \\?\ prefix opens trailing-space names
+            Write-Host "Clearing stale staging-prefixed dir: $($_.Name)" -ForegroundColor Gray
+            Remove-Item -LiteralPath $longPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
 }
 New-Item -Path $stagingDir -ItemType Directory -Force | Out-Null
 
-# --- Restore + publish ---
+# --- Restore + publish to the pubxml's default location, then copy into staging ---
+# Earlier versions overrode PublishDir on the command line, but `dotnet`'s arg parser
+# treats "\\\"" inside "/p:PublishDir=`"$path\`"" as an escaped quote, swallowing the
+# next argument into the path. Sidestep the entire class of bug by letting publish
+# write to its default location and copying the result into our canonical staging.
 Write-Host "Running dotnet publish..." -ForegroundColor Gray
+$defaultPublishDir = Join-Path $projectRoot "bin\$Configuration\net8.0\win-x64\publish"
+if (Test-Path $defaultPublishDir) {
+    Remove-Item -Path $defaultPublishDir -Recurse -Force -ErrorAction SilentlyContinue
+}
 $publishArgs = @(
     "publish",
-    "`"$csproj`"",
+    $csproj,
     "-c", $Configuration,
     "/p:PublishProfile=$PublishProfile",
-    "/p:PublishDir=`"$stagingDir\`"",
-    "--nologo"
+    "--verbosity", "minimal"
 )
-$publishProc = Start-Process -FilePath "dotnet" -ArgumentList $publishArgs -NoNewWindow -PassThru -Wait
-if ($publishProc.ExitCode -ne 0) {
-    Write-Error "dotnet publish failed (exit code $($publishProc.ExitCode))."
-    exit $publishProc.ExitCode
+& dotnet @publishArgs
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "dotnet publish failed (exit code $LASTEXITCODE)."
+    exit $LASTEXITCODE
 }
+if (-not (Test-Path $defaultPublishDir)) {
+    Write-Error "Publish exited 0 but default publish dir not found: $defaultPublishDir"
+    exit 1
+}
+
+# Copy publish output into staging (robocopy /MIR for speed + correct attrs)
+Write-Host "Copying publish output into staging..." -ForegroundColor Gray
+$rcArgs = @($defaultPublishDir, $stagingDir, '/MIR', '/NFL', '/NDL', '/NJH', '/NJS', '/NC', '/NS', '/NP')
+& robocopy @rcArgs | Out-Null
+# robocopy exit codes: 0-7 are success variants; >=8 indicates failure
+if ($LASTEXITCODE -ge 8) {
+    Write-Error "robocopy failed copying publish to staging (exit $LASTEXITCODE)."
+    exit 1
+}
+$LASTEXITCODE = 0  # reset since robocopy success codes aren't 0
 
 # --- Sanity check: staging shouldn't be empty ---
 $stagedFileCount = (Get-ChildItem -Path $stagingDir -Recurse -File).Count
 if ($stagedFileCount -lt 50) {
-    Write-Warning "Staging folder has only $stagedFileCount files -- that looks low. Check before zipping."
-    $cont = Read-Host "Continue with zip? (yes/no)"
-    if ($cont -ne "yes") { exit 1 }
+    Write-Error "ABORT: staging has only $stagedFileCount files -- publish or copy failed silently. Investigate before re-running."
+    exit 1
 }
 Write-Host "  Published $stagedFileCount files to staging." -ForegroundColor Green
 

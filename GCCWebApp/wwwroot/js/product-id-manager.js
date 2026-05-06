@@ -204,14 +204,16 @@ class ProductIdManager {
     getProductIdRowHtml(productId) {
         const actionsHtml = this.isReadOnly ? '' : `
             <td>
-                <div class="btn-group btn-group-sm" role="group">
-                    <button type="button" class="btn btn-outline-primary btn-edit-product-id"
-                            data-product-id="${productId.id}" title="Edit">
-                        <i class="fas fa-edit"></i>
+                <div class="admin-inline-actions">
+                    <button type="button" class="admin-inline-action-btn admin-inline-action-btn--edit btn-edit-product-id"
+                            data-product-id="${productId.id}" title="Edit"
+                            aria-label="Edit product ID ${productId.productIdValue || ''}">
+                        <i class="fas fa-edit" aria-hidden="true"></i>
                     </button>
-                    <button type="button" class="btn btn-outline-danger btn-delete-product-id"
-                            data-product-id="${productId.id}" title="Delete">
-                        <i class="fas fa-trash"></i>
+                    <button type="button" class="admin-inline-action-btn admin-inline-action-btn--delete btn-delete-product-id"
+                            data-product-id="${productId.id}" title="Delete"
+                            aria-label="Delete product ID ${productId.productIdValue || ''}">
+                        <i class="fas fa-trash" aria-hidden="true"></i>
                     </button>
                 </div>
             </td>`;

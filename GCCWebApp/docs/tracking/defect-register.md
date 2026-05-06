@@ -18,6 +18,138 @@ Numbering continues from the pre-existing register (last known DEF-096 as of 202
 
 ## Open / Recent
 
+### DEF-147 — Product ID Manager action icons (Edit/Delete) didn't match the app standard; trash icon wasn't red
+
+- **Date:** 2026-05-05
+- **Severity:** Low (visual / UI consistency)
+- **Status:** Fixed locally (pending UAT / deploy)
+- **Reporter:** Shawn — observed on prod cert `https://gccwebapp.com/Certificate/Edit/26-0160`.
+
+**Symptom:** Action icons in the Product ID Manager rendered as Bootstrap outlined pill buttons (`btn btn-outline-primary` / `btn btn-outline-danger`) — square borders, larger footprint, and the delete icon used the muted Bootstrap danger outline rather than the bright red the rest of the app uses for destructive actions. Inconsistent with the canonical `admin-inline-action-btn--edit/--delete` pattern used on Pathways, Partners, Tags, etc.
+
+**Root cause:** Two render sites diverged from the standard:
+- `Views/Shared/_ProductIdManager.cshtml` rendered server-side rows with `btn btn-outline-primary` / `btn btn-outline-danger` inside a `btn-group btn-group-sm`.
+- `wwwroot/js/product-id-manager.js` (`getProductIdRowHtml`) rendered client-side rows with the same legacy classes.
+
+In addition, the canonical CSS `wwwroot/css/admin/admin-inline-editing.css` (which defines `.admin-inline-action-btn--edit` as `#00AEEF` blue and `.admin-inline-action-btn--delete` as `#FF5252` red) was not linked from either of the host pages (`Views/Certificate/Create.cshtml`, `Views/Certificate/Edit.cshtml`).
+
+**Fix:**
+- Replaced the action button markup at both render sites with the standard `<div class="admin-inline-actions">` wrapper plus `<button class="admin-inline-action-btn admin-inline-action-btn--edit">` / `--delete`. Kept the existing `btn-edit-product-id` / `btn-delete-product-id` hooks alongside the new classes so the JS event handlers continue to bind. Added `aria-label` per the app's accessibility convention.
+- Linked `~/css/admin/admin-inline-editing.css` from both Create.cshtml and Edit.cshtml.
+
+**Files:** `Views/Shared/_ProductIdManager.cshtml`, `wwwroot/js/product-id-manager.js`, `Views/Certificate/Create.cshtml`, `Views/Certificate/Edit.cshtml`.
+
+**Verification (localhost:5101 / `GCCDatabase_Dev`):** Playwright script `C:\Users\swest\AppData\Local\Temp\uitest\test-pid-icons.js` opened cert `26-0147` Edit page as `analyst`, scrolled to Product ID Manager, screenshotted (`pid-icons-after.png`), and read computed styles. **Edit icon `rgb(0, 174, 239)` (= `#00AEEF`)**, **Delete icon `rgb(255, 82, 82)` (= `#FF5252`)**, **zero remaining `btn-outline-*` action classes** on the page. Visual confirms the standard inline-icon footprint, edit blue, trash red.
+
+---
+
+### DEF-146 — Product ID Manager "Created By" was overwritten on every cert edit (showed "System" or current editor instead of the original creator)
+
+- **Date:** 2026-05-05
+- **Severity:** Medium (data-integrity / audit-trail)
+- **Status:** Fixed locally (pending UAT / deploy)
+- **Reporter:** Shawn — observed on prod cert `https://gccwebapp.com/Certificate/Edit/26-0147`, "Created by" cells showed `System` instead of the user that entered them.
+
+**Symptom:** Product ID Manager's "Created By" column on the cert Edit page showed `System` (or, after any edit, the editor's username) instead of the user that originally added the row.
+
+**Root cause:** `CertificateController.Edit (POST)` used a clear-and-readd pattern for the `ProductIds` collection (`certificate.ProductIds.Clear()` followed by `certificate.ProductIds.Add(productId)`), and stamped `CreatedBy = currentUserId` / `CreatedAt = now` on every row in the loop — overwriting the original creator on existing rows on every cert edit. Compounding factor: the Edit form's hidden `ProductIds[i].*` inputs (`Views/Certificate/Edit.cshtml`) don't include `CreatedBy`, so the model arrived with `CreatedBy = null`, and if `GetCurrentUserId()` ever returned null (e.g., Azure AD GUID claim that couldn't be mapped to an int user ID), the row landed with `CreatedBy = NULL`. The frontend `wwwroot/js/product-id-manager.js:244-245` falls back to literal `"System"` when `createdByUser` is null, producing the visible defect.
+
+**Fix:** Replaced the clear-and-readd in `Controllers/CertificateController.cs` (Edit POST, Product ID handling block) with a merge: build a `Dictionary<int, CertificateProductId>` of existing rows by Id; remove rows whose Id is not in the submitted set; for each submitted row, if `Id > 0` and matches an existing row, update only the editable fields (Type, Value, Partner, ProductName, ProductSku, Description) and stamp `UpdatedBy/UpdatedAt` — preserving the original `CreatedBy/CreatedAt`; if `Id == 0`, treat as new and stamp `CreatedBy = currentUserId, CreatedAt = now` plus the same Updated fields.
+
+**Files:** `Controllers/CertificateController.cs` (Edit POST, lines ~866-910).
+
+**Out of scope (intentional):** No data backfill on existing NULL-CreatedBy rows (e.g., prod 26-0147). Per [feedback_data_changes_require_cr.md], data UPDATE on real cert records needs a formal CR; flagged for the client if they want historical creator attribution restored.
+
+**Verification (localhost:5101 against `GCCDatabase_Dev`):** Playwright script at `C:\Users\swest\AppData\Local\Temp\uitest\test-pid-createdby.js` exercised three scenarios:
+- Scenario A: cert `26-0025` has `CreatedBy = NULL` on its PIDs. Logged in as `analyst`, opened Edit, clicked Save with no PID changes. Expected: NULL preserved (not overwritten to `analyst`). **PASS.**
+- Scenario B: cert `26-0147` has `CreatedBy = admin` on its PIDs. Logged in as `analyst`, opened Edit, clicked Save with no PID changes. Expected: `admin` preserved. **PASS.**
+- Scenario C: cert `26-0147`, logged in as `analyst`, used the Product ID Manager to add a brand-new SKU PID, then saved. Expected: new row `CreatedBy = analyst`, existing rows still `CreatedBy = admin`. **PASS.**
+
+---
+
+### DEF-145 — Cert tile filters: Public + External filter dropdowns listed Cert Types and Product Categories with no matching visible certs (dead clicks)
+
+- **Date:** 2026-05-05
+- **Severity:** Low (functional — empty result on click; not data-loss)
+- **Status:** Fixed (pending UAT / deploy)
+- **Reporter:** Anuki internal QA pass — surfaced during DEF-144 audit; fixed after Shawn explicit approval ("yes do it for Public and External")
+
+**Symptom:** On `/Certificate/CertificateTileView` (Public) and `/Certificate/CertificateTileViewExternal` (External), the filter sidebar's Cert Types and Product Categories dropdowns listed every admin-configured option, regardless of whether any cert in the user's visible cert pool actually used that option. Picking such an option produced an empty tile grid — silent zero-state, indistinguishable from a broken filter.
+
+**Root cause:** Both endpoints pulled the cert types and product hierarchy directly from `_context.CertificationTypes` and `_context.ProductCategories`/`_context.ProductTypes` admin tables, with only an `IsActive` filter — no relationship back to the controller's `baseQuery` (the user-visible cert set). External view already had this scoping for `certificationTypes` via `certTypeIds`, but neither view scoped the product hierarchy.
+
+**Fix:**
+- `Controllers/Api/CertificateTilesApiController.cs` (Public):
+  - Added `visibleCertTypeIds`, `visibleCategoryIds`, `visibleProductTypeIds`, `visibleSubcategoryIds` derived from `baseQuery`.
+  - `certificationTypes` query now requires `visibleCertTypeIds.Contains(ct.Id) || ct.Children.Any(child => visibleCertTypeIds.Contains(child.Id))`.
+  - `productCategoriesHierarchy` builder trims subcategories to those in `visibleSubcategoryIds`, keeps types if used directly OR if any visible subcat exists under them, and keeps categories if used directly OR if any visible type/subcat exists under them.
+- `Controllers/Api/CertificateTileExternalApiController.cs` (External):
+  - Same `productCategoriesHierarchy` scoping using the role-aware `baseQuery` (which already factors in user's company/partner scope).
+  - `certificationTypes` was already correctly scoped — left unchanged.
+- Internal view (`CertificateTileInternalApiController.cs`) intentionally unchanged. Admin/analyst should see the full taxonomy regardless of cert state, since they need to assign types/categories during cert creation.
+
+Net effect: every dropdown option in Public and External now corresponds to at least one cert the user can actually click into.
+
+**Tradeoff:** When admin adds a new cert type or product category but no public cert has been approved with it yet, it will not appear in the Public/External filter sidebar until an approved cert references it. This is intentional — favors filter signal over taxonomy completeness. Internal view still shows everything for admin operations.
+
+**Test plan:**
+1. Public view at `/Certificate/CertificateTileView` while logged out. Open Cert Types and Product Categories filters. Pick any option — should always return ≥1 cert.
+2. External view at `/Certificate/CertificateTileViewExternal` as `external` user. Same assertion.
+3. Internal view at `/Certificate/CertificateTileViewInternal` as `analyst` — confirm full taxonomy still shows (regression check).
+4. Admin: add a new "Test Category" via `/Admin/ProductTypes` with no certs assigned. Reload Public view — confirm "Test Category" does NOT appear in filter sidebar. Reload Internal view — confirm it DOES appear.
+
+**Found by:** During DEF-144 country-sort audit, code-survey of all three filter endpoints surfaced the "filters can include options with zero matching certs" UX gap. Confirmed with Shawn before implementing.
+
+---
+
+### DEF-144 — Cert tile filters: Countries dropdown didn't show "United States" first on Internal & External views
+
+- **Date:** 2026-05-05
+- **Severity:** Low (cosmetic — full country list is correct, just wrong sort order)
+- **Status:** Fixed (pending UAT / deploy)
+- **Reporter:** Anuki internal QA pass — Shawn directive during 2026-05-05 retest cycle
+
+**Symptom:** The Countries filter on `/Certificate/CertificateTileViewInternal` and `/Certificate/CertificateTileViewExternal` listed all countries strict A-Z. Per requirement, "United States" must be pinned to the top of the list, then the rest A-Z.
+
+**Root cause:** The two controllers were using a plain database `OrderBy(c => c)` for the countries filter. The Public-view controller already had the correct pattern (custom in-memory sort with US weighted to 0); Internal and External were missed when that pattern was added.
+
+**Fix:**
+- `Controllers/Api/CertificateTileInternalApiController.cs:526` — changed `countries = await ... .OrderBy(c => c).ToListAsync()` to materialize first via `.ToListAsync()`, then `.OrderBy(c => c == "United States" ? 0 : 1).ThenBy(c => c).ToList()`.
+- `Controllers/Api/CertificateTileExternalApiController.cs:549` — same change.
+- Public controller already correct — no change needed.
+
+The materialize-then-sort pattern matches `CertificateTilesApiController.cs:322` exactly so future maintainers see one shape.
+
+**Test plan:**
+1. Log in as `analyst`. Open `/Certificate/CertificateTileViewInternal`. Open the Countries filter dropdown. Confirm "United States" appears first, all other countries A-Z below it.
+2. Log in as `external`. Open `/Certificate/CertificateTileViewExternal`. Open Countries filter. Same assertion.
+3. Public view (`/Certificate/CertificateTileView`) — regression check. Countries filter should still have US first (was always correct, but verify).
+
+**Found by:** Code-survey of all three tile filter endpoints. While reviewing for the broader "filters reflect what the user can see" question, the country-sort discrepancy was the single objective fix; remaining visibility-scoping questions (e.g., filter sidebar showing cert types that have no public-visible certs) are flagged in the observations log for Shawn's CR call rather than fixed unilaterally.
+
+---
+
+### DEF-143 — Cert detail views load `js/certificates.js` (a list/grid initializer); page hits non-existent `/api/certificates` and throws `initializeSearch` TypeError on every load
+
+- **Date:** 2026-05-05
+- **Severity:** Low (functionally harmless — page renders correctly, download button still works because each detail view defines its own `window.downloadCertificate` inline; but two console errors fire on every detail-page navigation, including for unauthenticated public visitors hitting cert links from search engines)
+- **Status:** **Fixed (pending deploy)** — removed dead `<script>` tag from 3 detail views
+- **Reporter:** Internal QC continued retest, 2026-05-05. Surfaced in `session4-batch.js` test that loaded the public cert detail page for an arbitrary cert number from the live tile API.
+- **Symptom:** Loading any of `/Certificate/CertificateSingleView/{certificateNumber}`, `/Certificate/CertificateInternalView/{…}`, or `/Certificate/CertificateExternalView/{…}` produces these console errors:
+  1. `Failed to load resource: the server responded with a status of 404 ()` for `/api/certificates?pageSize=100&page=1`
+  2. `Error loading certificates from API: Error: HTTP error! status: 404 at loadCertificatesFromAPI (.../js/certificates.js:78:23)`
+  3. `TypeError: Cannot read properties of undefined (reading 'initializeSearch') at initializeCertificateSearch (.../js/certificates.js:122:25)` — cascading TypeError because the previous throw left state half-initialized
+- **Root cause:** All three single-cert detail views (`CertificateSingleView.cshtml:233`, `CertificateInternalView.cshtml:336`, `CertificateExternalView.cshtml:277`) include `<script src="~/js/certificates.js"></script>`. That script is a *list/grid/search/filter* initializer for a multi-cert table view — it auto-runs `initializeCertificates()` on DOMContentLoaded, which calls `loadCertificatesFromAPI()` → `fetch('/api/certificates?pageSize=100&page=1')`. That endpoint returns 404 on the deployed build. Looking at controllers: `Controllers/Api/CertificatesApiController.cs` declares `[Route("api/[controller]")]` which should resolve to `/api/certificates`, but the route is actually 404 (also `api/etl` from `ETLController.cs` returns 404). Best guess: the legacy un-versioned `/api/certificates` and `/api/etl` controllers were either never registered in the active route table or were disabled in favor of the v1 versioned controllers (`/api/v1/certificates` returns 401 / works as expected with API key). Either way, `certificates.js` calls a route that doesn't exist.
+- **Why this isn't worse:** All 3 detail views define their own `window.downloadCertificate` inline, and `openImageZoom` / `closeImageZoom` are also defined inline in the same scripts. The detail views genuinely don't need `certificates.js` for any functionality — there is no certificates grid, no search input, no filter UI on a single-cert detail page. The `<script>` tag is a dead include that produces noise on every page load with zero functional benefit.
+- **Fix:** Remove the `<script src="~/js/certificates.js"></script>` line from all three detail views. Each view's inline scripts handle download / zoom / etc. independently. No other JS dependency exists between the detail views and `certificates.js`. Three single-line deletions.
+- **Out of scope (separate decisions):**
+  - Whether `wwwroot/js/certificates.js` itself should be deleted from the codebase. After this fix it is no longer referenced by any view (verified by grep). But deleting unreferenced JS is a cleanup decision, not a defect.
+  - Whether the legacy `/api/certificates` and `/api/etl` routes should be re-enabled or the controllers deleted. The v1 versioned route at `/api/v1/certificates` is the supported Partner API surface today. If anything still relies on the unversioned routes, that would need to be migrated. Punted to a separate cleanup decision.
+- **Files:** `Views/Certificate/CertificateSingleView.cshtml`, `Views/Certificate/CertificateInternalView.cshtml`, `Views/Certificate/CertificateExternalView.cshtml`
+- **Test artifact:** `C:\Users\swest\AppData\Local\Temp\uitest\session4-batch.js`
+
+---
+
 ### DEF-142 — Partner-role web user has no navigation after login; cannot access Certificates or Products views
 
 - **Date:** 2026-05-05

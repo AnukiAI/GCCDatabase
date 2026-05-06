@@ -864,22 +864,50 @@ namespace GCCWebApp.Controllers
                     }
 
                     // Handle Product IDs from Product ID Manager
+                    // Merge instead of clear-and-readd so CreatedBy/CreatedAt are preserved
+                    // on existing rows. Only stamp creator on truly new rows (Id == 0).
                     if (model.ProductIds != null && model.ProductIds.Any())
                     {
-                        // Clear existing product IDs
-                        certificate.ProductIds.Clear();
-
-                        // Add new product IDs
                         var currentUserId = GetCurrentUserId();
                         var now = DateTime.UtcNow;
-                        foreach (var productId in model.ProductIds)
+
+                        var existingById = certificate.ProductIds.ToDictionary(p => p.Id);
+                        var submittedIds = new HashSet<int>(
+                            model.ProductIds.Where(p => p.Id > 0).Select(p => p.Id));
+
+                        // Remove rows the user deleted in the UI
+                        var toRemove = certificate.ProductIds
+                            .Where(p => !submittedIds.Contains(p.Id))
+                            .ToList();
+                        foreach (var pid in toRemove)
                         {
-                            productId.CertificateId = certificate.Id;
-                            productId.CreatedBy = currentUserId;
-                            productId.CreatedAt = now;
-                            productId.UpdatedBy = currentUserId;
-                            productId.UpdatedAt = now;
-                            certificate.ProductIds.Add(productId);
+                            certificate.ProductIds.Remove(pid);
+                        }
+
+                        foreach (var submitted in model.ProductIds)
+                        {
+                            if (submitted.Id > 0 && existingById.TryGetValue(submitted.Id, out var existing))
+                            {
+                                // Update editable fields only — preserve CreatedBy/CreatedAt
+                                existing.ProductIdType = submitted.ProductIdType;
+                                existing.ProductIdValue = submitted.ProductIdValue;
+                                existing.Partner = submitted.Partner;
+                                existing.ProductName = submitted.ProductName;
+                                existing.ProductSku = submitted.ProductSku;
+                                existing.Description = submitted.Description;
+                                existing.UpdatedBy = currentUserId;
+                                existing.UpdatedAt = now;
+                            }
+                            else
+                            {
+                                submitted.Id = 0;
+                                submitted.CertificateId = certificate.Id;
+                                submitted.CreatedBy = currentUserId;
+                                submitted.CreatedAt = now;
+                                submitted.UpdatedBy = currentUserId;
+                                submitted.UpdatedAt = now;
+                                certificate.ProductIds.Add(submitted);
+                            }
                         }
                     }
 

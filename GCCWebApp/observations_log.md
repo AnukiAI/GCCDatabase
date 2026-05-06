@@ -1,5 +1,135 @@
 # Observations Log
 
+## 2026-05-05 - DEF-147: Product ID Manager action icons match app standard
+
+Shawn reported on `gccwebapp.com/Certificate/Edit/26-0160` that the Edit/Delete icons under Product Identifiers didn't match the standard — trash icon was not the bright `#FF5252` red used elsewhere. Two render sites had drifted to legacy Bootstrap `btn btn-outline-primary` / `btn-outline-danger` styling: the Razor partial `Views/Shared/_ProductIdManager.cshtml` (initial page load) and the JS template `wwwroot/js/product-id-manager.js` `getProductIdRowHtml` (dynamic rows). Canonical pattern lives at `wwwroot/css/admin/admin-inline-editing.css` (`.admin-inline-action-btn--edit` blue `#00AEEF`, `--delete` red `#FF5252`) and is used on Pathways, Partners, Tags, etc. CSS was also not linked from `Views/Certificate/Create.cshtml` / `Edit.cshtml`.
+
+Fix updated both render sites to use the standard markup and added the CSS link to both host pages. Kept the existing `btn-edit-product-id` / `btn-delete-product-id` hooks alongside the new classes so JS handlers continue to bind unchanged. Added `aria-label` per a11y convention. Verified on `localhost:5101` / `GCCDatabase_Dev` via Playwright (`C:\Users\swest\AppData\Local\Temp\uitest\test-pid-icons.js`): computed color edit `rgb(0, 174, 239)`, delete `rgb(255, 82, 82)`, zero remaining `btn-outline-*` action classes. Screenshot confirms standard inline-icon footprint with red trash. Tracked as DEF-147; receipts in shipped-2026-05.md.
+
+---
+
+## 2026-05-05 - DEF-146: Product ID Manager "Created By" preserved on cert edit
+
+Shawn reported `gccwebapp.com/Certificate/Edit/26-0147` showing "Created By = System" on every Product ID row. Two-bug interaction: (1) `CertificateController.Edit` POST cleared and re-added the entire `ProductIds` collection on every save, hardcoding `CreatedBy = currentUserId` on every row in the loop — overwriting the original creator on every cert edit; (2) prod cert 26-0147 already had `CreatedBy = NULL` in the DB (likely a legacy state), and `wwwroot/js/product-id-manager.js:244` falls back to literal `"System"` when `createdByUser` is null.
+
+Fix replaces clear-and-readd with merge: existing rows keep their `CreatedBy/CreatedAt`, only get `UpdatedBy/UpdatedAt` stamped; new rows (Id==0) get `CreatedBy = currentUserId`; rows the user deleted in the UI are removed by Id-set diff. Backfill of existing NULL rows on prod is **out of scope** — real-record data UPDATEs need a CR from GCC.
+
+Verified locally on `localhost:5101` / `GCCDatabase_Dev` via Playwright (`C:\Users\swest\AppData\Local\Temp\uitest\test-pid-createdby.js`): three scenarios — preserve NULL on plain edit, preserve admin while analyst saves, new row gets analyst while existing rows keep admin — all PASS. Tracked as DEF-146 in defect register; receipts in shipped-2026-05.md.
+
+Files touched: `Controllers/CertificateController.cs` (Edit POST, Product ID handling block).
+
+---
+
+## 2026-05-05 - Partner API end-to-end verification + mobile smoke (batch 5)
+
+Batch round 5 of internal QC retest. Headline result: **Partner API is fully healthy and contract-compliant** — all four main endpoints verified end-to-end against the live deploy with a freshly-generated key, contract format intact per `feedback_amazon_api_immutable.md`. Mobile responsive smoke also clean across 3 viewports × 2 pages.
+
+**Partner API end-to-end (verified 2026-05-05):**
+
+Generated a fresh key on `/Admin/PartnerAPI` for the Amazon partner via the modal flow (selectors: `#generate-key-btn` → `#key-partner-id` → `#confirm-generate-btn` → `#generated-key-value`). Got a 76-character `gcc_partner_…` key. Tested all four contract endpoints with curl:
+
+1. **`GET /api/v1/certificates?pageSize=1`** — 200, returns 6 total Amazon certs. Each item includes `certificateNumber`, `status: "Active"` (literal, per DEF-103), `partner: "Amazon"`, `certificationResults: "100%"` (percent format per the DisplayFormatters fix from 2026-04-21), `pdfDownloadUrl`, `amazonCode`. No leaked internal IDs.
+
+2. **`GET /api/v1/certificates?pageSize=1&includeProductIds=true`** — 200, same shape plus `productIds: [{type, value, status, partner, productName, productSku}]` array. Verified with cert 26-0151 — got 3 ASINs (`B0BQN8PSY6`, `B0BQN9BJCB`, `B0C544FF8Q`).
+
+3. **`GET /api/v1/certificates/number/26-0151`** — 200, single-cert wrapped in `{success, data: {…}}`. Has `status: "Active"`, `productIds[]`. DEF-103 fix is intact on the live build.
+
+4. **`GET /api/v1/certificates/search/productid?productId=B0BQN8PSY6`** — 200, returns matching certs with `productIds[]` where each entry has an `isMatchedId: true|false` flag indicating which ID matched. This is Amazon's primary search use case.
+
+5. **`GET /api/v1/certificates/gs1/B0BQN8PSY6`** — 404 with structured JSON. Probably correct — GS1 lookups are for GTIN/EAN/UPC, not ASIN.
+
+**Path note for future cycles:** the search route is `/api/v1/certificates/search/productid` (no hyphen). My earlier test used `search/product-id` and got 404 — path typo, not API defect.
+
+**Test-tooling discovery worth saving:** generating a key from a Playwright admin session and then immediately calling `/api/v1/certificates` via Playwright's `ctx.request.get()` with the X-API-Key header returned 401 with empty body. The same key via curl returned 200 with proper JSON. Best guess: Playwright sends the admin session cookie (`GCC.Auth`) alongside X-API-Key, and the auth pipeline picks cookie auth (which doesn't have partner claims) over the API-key scheme. Future Partner API tests should use either a fresh logged-out Playwright context or shell out to curl. **No real defect** — the API auth works correctly when called the way Amazon actually calls it (no cookie, just X-API-Key).
+
+**Mobile responsive smoke** — 3 viewports (iPhone 375×812, iPad 768×1024, Desktop 1440×900) × 2 pages (`/Account/Login`, `/Certificate/CertificateTileView`) = 6 combos, all clean. Zero horizontal scroll on any combo. Confirms the mobile/tablet fixes from 2026-04-01 are still holding on the live deploy.
+
+**Cert workflow buttons on Edit page** — test couldn't complete because of a Playwright session-carryover issue (admin login bled into the analyst-login step). Punted.
+
+Test artifacts: `C:\Users\swest\AppData\Local\Temp\uitest\session5-batch.js`, `partner-api-fullkey.js`, `partner-api-curl-test.js`. Screenshots in `qc-s5-*`.
+
+## 2026-05-05 - Cert tile filters audit (Public / Internal / External) + countries US-first fix (DEF-144)
+
+Continued QC retest by auditing the certificate tile filter sidebar across all three views. Two findings:
+
+### Finding 1 — DEF-144 fix applied: Countries filter ordering
+
+Per requirement, the Countries filter must always show "United States" at the top, then A-Z. Audit results across the three filter endpoints:
+
+| View | Endpoint | Country sort |
+|------|----------|--------------|
+| Public | `Controllers/Api/CertificateTilesApiController.cs:322` | ✅ Already US-first then A-Z |
+| Internal | `Controllers/Api/CertificateTileInternalApiController.cs:526` | ❌ Plain A-Z (FIXED) |
+| External | `Controllers/Api/CertificateTileExternalApiController.cs:549` | ❌ Plain A-Z (FIXED) |
+
+Internal and External were doing only `OrderBy(c => c)`. Updated both to materialize the distinct country list, then `OrderBy(c => c == "United States" ? 0 : 1).ThenBy(c => c)` — same pattern Public already used. Compile clean (running dev server locked apphost.exe but C# valid; 0 compiler errors). Logged as DEF-144.
+
+### Finding 2 — Filter visibility scoping (each view's `baseQuery`)
+
+User asked "Are filters displaying data correctly based on what is visible to public?" Audited what each view's filter sidebar can show vs. what the underlying tile cards actually return.
+
+**Public** (`CertificateTilesApiController.GetFilterOptions`):
+- baseQuery is `PublicStatuses + non-expired` ✓ matches the visible cert set.
+- `companies`, `countries`, `productCategories` (flat), `additionalTags` are all scoped to baseQuery ✓
+- BUT `certificationTypes` and `productCategoriesHierarchy` are pulled directly from admin tables (all active rows, ignoring whether any public cert uses them). Possible UX gap: a user could pick a cert type or product category from the dropdown and get zero results.
+
+**Internal** (`CertificateTileInternalApiController.GetFilterOptions`):
+- No status scoping — by design (admin/analyst sees Drafts, Holds, Expired, etc.).
+- All filter lists pulled from full Certificates table or admin tables. Correct for internal.
+
+**External** (`CertificateTileExternalApiController.GetFilterOptions`):
+- baseQuery scoped to user's company/partner + `PublicStatuses + non-expired` ✓
+- `companies`, `countries`, `productCategories` (flat), `productTypes`, `certificationTypes`, `additionalTags`, `tags`, `partners` all scoped to baseQuery ✓
+- BUT `productCategoriesHierarchy` pulled from admin tables (not scoped) — same minor gap as Public.
+
+The strict-scoping fix for Public and External `certificationTypes` / `productCategoriesHierarchy` is straightforward but changes UX (filter sidebar shrinks for sparse data). Flagging for Shawn's call rather than implementing — matches CLAUDE.md rule to ask before building.
+
+### Finding 3 — DEF-145 fix applied: strict-scope Public + External filter hierarchies (Shawn approved)
+
+After surfacing Finding 2, Shawn directed: "yes do it for Public and External." Applied:
+
+- `Controllers/Api/CertificateTilesApiController.cs` (Public): added `visibleCertTypeIds`, `visibleCategoryIds`, `visibleProductTypeIds`, `visibleSubcategoryIds` from baseQuery. `certificationTypes` query now requires the type to be directly used OR have a child that's used. `productCategoriesHierarchy` keeps a node only if it (or a descendant) is used.
+- `Controllers/Api/CertificateTileExternalApiController.cs` (External): same `productCategoriesHierarchy` scoping. (External `certificationTypes` already had this scoping pattern via `certTypeIds` — left as-is.)
+- Internal view unchanged — admin/analyst should still see the full taxonomy.
+
+Build clean (0 errors, 49 warnings). Net effect: every option in Public's and External's filter dropdowns now corresponds to ≥1 cert the user can actually see — no more dead clicks that produce empty grids.
+
+Tradeoff to note for UAT: when a new cert type or product category is added by admin but no public cert uses it yet, it won't appear in the Public filter dropdown until a cert is approved with that type/category. This is the intended behavior per Shawn's call — filter UX favors signal over completeness.
+
+## 2026-05-05 - Cert detail + shareable URL + login edges + partner API batch (DEF-143)
+
+Batch round 4 of internal QC retest covered cert detail page render, shareable URL params, login edge cases, and partner API end-to-end. **5 of 6 checks pass; 1 real defect found and fixed (DEF-143).** Detail summary:
+
+- **DEF-143 (fixed in tree)** — All three single-cert detail views (`CertificateSingleView`, `CertificateInternalView`, `CertificateExternalView`) include `<script src="~/js/certificates.js">` which is a list/grid/search initializer. On every cert-detail page load it fires `fetch('/api/certificates')` → 404 (the legacy un-versioned route is gone; only `/api/v1/certificates` exists now), then cascades into a `TypeError: Cannot read properties of undefined (reading 'initializeSearch')`. Each detail view defines its own `window.downloadCertificate` and zoom handlers inline, so the script is genuinely dead. Three single-line deletions. After deploy, detail-page console will be clean.
+
+- **Cert detail icon position confirmed.** Public detail page renders the download icon at x=1337 (right edge), with the cert image at x=40,w=314 (left side). Memory `feedback_cert_detail_action_icons_right_aligned` says icons should be right-aligned with the image — confirmed. Note: only download icon was found in the test (zoom icon used a different selector pattern not picked up by my regex; visual inspection of the PNG screenshot confirms both are present and right-aligned).
+
+- **Shareable URL params work.** `?search=Plastic` on `/Certificate/CertificateTileView` correctly pre-fills the searchInput and filters the visible tiles to matching products. No console errors.
+
+- **Login edge cases all pass.** Wrong password keeps user on `/Account/Login` and shows a visible error message. Empty email is blocked by HTML5 native validation (`Please fill out this field.`).
+
+- **Partner API key generation flow incomplete in test.** The test logged in as admin, navigated to `/Admin/PartnerAPI`, clicked `#generate-key-btn`, but the test couldn't find the partner select modal (selectors didn't match the actual modal). The page renders correctly per screenshot. Punted to a future cycle — needs more time on the actual modal HTML to get selectors right. Did NOT verify the `/api/v1/certificates` end-to-end with a freshly-generated key this turn.
+
+Test artifact: `C:\Users\swest\AppData\Local\Temp\uitest\session4-batch.js`. Screenshots in `qc-s4-*` temp dir.
+
+## 2026-05-05 - Cert workflow surfaces + answer to standing "ID vs Number" CLAUDE.md question
+
+Continued the QC retest cycle by exercising the certificate workflow surfaces. Headline finding: **the user's standing CLAUDE.md concern — "why is table data on the certs pages showing ID instead of certificate number per requirements" — is no longer a defect in the current codebase.** All three tile views (public `wwwroot/js/certificate-tile-view.js:1407`, internal `certificate-tile-view-internal.js:407`, external `certificate-tile-view-external.js`) render `cert.certificateNumber` in the visible cert-number column, not `cert.id`. The Edit URL uses certificate number (e.g., `/Certificate/Edit/24-1605`) per explicit code comment at `certificate-tile-view.js:1442` ("Use certificate number… instead of ID for URL"). The internal `cert.id` only lives in `data-cert-id` attributes for client-side state, never as visible text. Either this was fixed in a prior sprint or the original concern was about an older version; current behavior is correct per requirement.
+
+Other findings during this batch:
+
+1. **Cert Create page `<h1>` count = 2** — same widespread duplication confirmed in the previous turn. Adds to the ~25-file `<h1>` cleanup batch.
+
+2. **Cert Create cascade dropdowns are wrapped in `SearchableSelect` widgets**: `Views/Certificate/Create.cshtml:404` instantiates `new SearchableSelect('#ProductCategoryId', …)` which hides the native `<select>` and replaces it with a custom searchable input. Playwright's `selectOption()` against the native element fails with "element is not visible". Future tests against Cert Create / Cert Edit cascades need to interact with the SearchableSelect widget (typing into its visible input + selecting from the rendered dropdown), not the underlying `<select>`. Memory note for future test cycles.
+
+3. **Tile cards use onclick handlers, not direct hrefs.** Cards render with `onclick="viewCertificateDetails('${cert.certificateNumber}')"` and target `/Certificate/CertificateSingleView/{number}` (opens in new tab via `window.open`). The action icon row uses `event.stopPropagation()` to keep download / external-link / edit handlers separate from the tile-body click. Selectors like `a[href*="/Certificate/Detail/"]` won't find tile links — must click the `.certificate-card` element or one of its onclick-bearing children. Memory note for future tests.
+
+4. **List view inside the tile page uses `<div class="grid-row">` with cells `<div class="grid-cell">`**, not a real `<table>`. Both list and tile flows correctly show `cert.certificateNumber` in the visible Number column.
+
+5. **Public Cert Detail page = `/Certificate/CertificateSingleView/{number}`** (not `/Certificate/Detail/{id}` — that route may not exist for public). Future test should use this URL pattern.
+
+Test artifacts: `C:\Users\swest\AppData\Local\Temp\uitest\cert-flows-batch.js` (pass-through; some assertions failed due to SearchableSelect / hrefless tiles, not real bugs — test design issues now corrected in memory for next cycle).
+
 ## 2026-05-05 - Continued batch testing: admin pages + cert tile views
 
 Continued the QC retest cycle by exercising 8 admin pages logged in as admin, plus public/external cert tile views. **Headline result:** the admin surfaces are healthy — every page loads in 600–1500ms, returns HTTP 200, and produces zero console errors. UserMgmt (20 rows), Tags (5), AdmProductMgmt (26), Partners (5), Pathways (4), Roles (5), PartnerAPI (7), and CertificateTypes (route is /Admin/CertificateTypes — earlier 30s "timeout" for analyst was a wrong-URL artifact in my test, not a real perf issue) all rendered correctly with the right action buttons.

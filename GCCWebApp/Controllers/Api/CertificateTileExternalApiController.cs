@@ -454,6 +454,24 @@ namespace GCCWebApp.Controllers.Api
                 // Filter to active certificates only
                 baseQuery = baseQuery.Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= CertificateStatusHelper.BusinessToday));
 
+                // Strict scoping for product hierarchy: only surface options the user can actually filter to.
+                var visibleCategoryIds = await baseQuery
+                    .Select(c => c.Product.CategoryId)
+                    .Distinct()
+                    .ToListAsync();
+
+                var visibleProductTypeIds = await baseQuery
+                    .Where(c => c.Product.ProductTypeId != null)
+                    .Select(c => c.Product.ProductTypeId!.Value)
+                    .Distinct()
+                    .ToListAsync();
+
+                var visibleSubcategoryIds = await baseQuery
+                    .Where(c => c.Product.ProductSubcategoryId != null)
+                    .Select(c => c.Product.ProductSubcategoryId!.Value)
+                    .Distinct()
+                    .ToListAsync();
+
                 // Build hierarchy matching Admin page: Category → Type (ParentId=null) → Subcategory (ParentId!=null)
                 var prodCategories = await _context.Set<ProductCategory>()
                     .Where(pc => pc.IsActive)
@@ -473,26 +491,33 @@ namespace GCCWebApp.Controllers.Api
                     .GroupBy(pt => pt.ParentId!.Value)
                     .ToDictionary(g => g.Key, g => g.ToList());
 
-                var productCategoriesHierarchy = prodCategories.Select(pc => new
-                {
-                    id = pc.Id,
-                    name = pc.Name,
-                    level = 1,
-                    types = (typesByCategory.TryGetValue(pc.Id, out var types) ? types : new List<ProductType>())
-                        .Select(pt => new
-                        {
-                            id = pt.Id,
-                            name = pt.Name,
-                            level = 2,
-                            subcategories = (childrenByParent.TryGetValue(pt.Id, out var children) ? children : new List<ProductType>())
-                                .Select(sub => new
-                                {
-                                    id = sub.Id,
-                                    name = sub.Name,
-                                    level = 3
-                                }).ToList()
-                        }).ToList()
-                }).ToList();
+                // Trim hierarchy: keep a node if itself is visible OR a descendant is visible.
+                var productCategoriesHierarchy = prodCategories
+                    .Select(pc => new
+                    {
+                        id = pc.Id,
+                        name = pc.Name,
+                        level = 1,
+                        types = (typesByCategory.TryGetValue(pc.Id, out var types) ? types : new List<ProductType>())
+                            .Select(pt => new
+                            {
+                                id = pt.Id,
+                                name = pt.Name,
+                                level = 2,
+                                subcategories = (childrenByParent.TryGetValue(pt.Id, out var children) ? children : new List<ProductType>())
+                                    .Where(sub => visibleSubcategoryIds.Contains(sub.Id))
+                                    .Select(sub => new
+                                    {
+                                        id = sub.Id,
+                                        name = sub.Name,
+                                        level = 3
+                                    }).ToList()
+                            })
+                            .Where(t => visibleProductTypeIds.Contains(t.id) || t.subcategories.Any())
+                            .ToList()
+                    })
+                    .Where(c => visibleCategoryIds.Contains(c.id) || c.types.Any())
+                    .ToList();
 
                 // Get unique certification type IDs from active certificates
                 var certTypeIds = await baseQuery
@@ -546,12 +571,14 @@ namespace GCCWebApp.Controllers.Api
                         .OrderBy(c => c.name)
                         .ToListAsync(),
 
-                    countries = await baseQuery
+                    countries = (await baseQuery
                         .Select(c => c.Country)
                         .Where(c => !string.IsNullOrEmpty(c))
                         .Distinct()
-                        .OrderBy(c => c)
-                        .ToListAsync(),
+                        .ToListAsync())
+                        .OrderBy(c => c == "United States" ? 0 : 1)
+                        .ThenBy(c => c)
+                        .ToList(),
 
                     tags = await baseQuery
                         .SelectMany(c => c.Tags)

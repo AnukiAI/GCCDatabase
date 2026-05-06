@@ -6,6 +6,48 @@ Period: 2026-05-01 → ongoing
 
 ---
 
+## DEF-147 — Product ID Manager action icons now match the app standard; trash icon is red (2026-05-05, fix in working tree pending deploy)
+
+Shawn flagged during continued internal QC on cert 26-0160 that the Edit and Delete action icons in the Product ID Manager did not look like the action icons elsewhere in the admin app. They were rendering as Bootstrap outlined pill buttons with a square border and a muted danger color, instead of the bright-red trash icon and bright-blue edit pencil that Pathways, Partners, Tags, and the other inline-edit admin tables use. The functional behavior was correct on click — only the visual treatment was off — but the inconsistency was visible enough to break the "this is the standard delete affordance, you can trust it" intuition that the rest of the app builds.
+
+Root cause was that the Product ID Manager was the last render site still using the legacy `btn btn-outline-primary` / `btn btn-outline-danger` button group, instead of the canonical `admin-inline-action-btn--edit` / `--delete` pair. The canonical pair is defined in `wwwroot/css/admin/admin-inline-editing.css` with edit at `#00AEEF` blue and delete at `#FF5252` red, with the right hover, scale, and focus treatments. Two divergent render sites needed updating: the Razor partial that draws the initial table rows on page load (`Views/Shared/_ProductIdManager.cshtml`), and the JavaScript template that draws rows added or refreshed via the manager's UI (`wwwroot/js/product-id-manager.js`'s `getProductIdRowHtml`). On top of that, the canonical CSS was not linked from either host page (Create.cshtml or Edit.cshtml), so even fixing the markup wouldn't have produced the right colors without that link.
+
+The fix updates both render sites to emit `<div class="admin-inline-actions">` wrapping `<button class="admin-inline-action-btn admin-inline-action-btn--edit">` / `--delete`, while keeping the existing `btn-edit-product-id` / `btn-delete-product-id` hooks alongside the new classes so the click event bindings keep working without any JS handler changes. Added `aria-label` on each button per the app's accessibility convention. Linked `~/css/admin/admin-inline-editing.css` from Create.cshtml and Edit.cshtml so the standard styling actually loads on the cert create/edit pages.
+
+Verified locally on `localhost:5101` against `GCCDatabase_Dev` via Playwright. Logged in as `analyst`, opened the Edit page for cert `26-0147`, scrolled to Product ID Manager, screenshotted, and read computed styles on the live DOM. Edit button computed color came back as `rgb(0, 174, 239)` (= `#00AEEF`, the standard blue). Delete button computed color came back as `rgb(255, 82, 82)` (= `#FF5252`, the standard red). Zero remaining `btn-outline-primary` / `btn-outline-danger` action button classes on the page. Visual screenshot confirms the standard compact inline-icon footprint and the bright trash icon Shawn was asking for.
+
+Files: `Views/Shared/_ProductIdManager.cshtml`, `wwwroot/js/product-id-manager.js`, `Views/Certificate/Create.cshtml`, `Views/Certificate/Edit.cshtml`, `docs/tracking/defect-register.md` (DEF-147 entry).
+
+---
+
+## DEF-146 — Product ID Manager now preserves the original "Created By" on every cert edit (2026-05-05, fix in working tree pending deploy)
+
+Shawn flagged during continued internal QC that on prod cert `26-0147` the Product ID Manager's "Created By" column was showing `System` for every Product ID row, instead of the user that originally added it. Product ID rows are part of the cert audit trail — knowing who entered which identifier matters when the client or a partner traces back why a particular ASIN got attached to a particular cert. "System" is a fallback string the UI shows whenever the row's `CreatedBy` foreign key is null, so two things were going wrong: the data on those rows was stored without a creator, and any user editing the cert later would have made it worse, not better.
+
+Root cause was in the cert Edit POST controller. The Product ID handling block did a clear-and-readd: `certificate.ProductIds.Clear()` followed by adding each submitted row back, with `CreatedBy` and `CreatedAt` blindly stamped to the current editor and current UTC time on every row in the loop. This meant every cert edit silently rewrote the audit trail on every Product ID row attached to that cert — replacing the original creator with whoever happened to be saving the form. Compounding factor: the Edit form's hidden `ProductIds[i].*` inputs that the JS form-builder generates don't include `CreatedBy`, so the model arrived with `CreatedBy = null`, and if `GetCurrentUserId()` ever returned null (e.g., an Azure AD path where the GUID claim couldn't be mapped to an int user ID in the local Users table), the row landed with `CreatedBy = NULL` in the DB. That is the state that produces "System" in the UI fallback at `wwwroot/js/product-id-manager.js`.
+
+The fix replaces the clear-and-readd with a proper merge. The controller now builds a dictionary of existing Product ID rows by Id, removes only the rows whose Id is not in the submitted set (the user actually deleted them), updates editable fields (Type, Value, Partner, ProductName, ProductSku, Description) on existing rows while preserving `CreatedBy/CreatedAt` and stamping `UpdatedBy/UpdatedAt`, and stamps `CreatedBy = currentUserId` only on truly new rows (Id == 0). Going forward, any cert edit on prod will preserve whatever `CreatedBy` is currently in the database — including the existing NULL values on prod 26-0147 (which is why this fix on its own won't change what 26-0147 displays today; the data is already null and stays null). Backfilling those NULL rows would be a data UPDATE on real cert records and is intentionally out of scope here per our standing rule that data changes on real business records need a CR from the client. Flagged separately for the client if they want historical creator attribution restored.
+
+Verified locally on `localhost:5101` against `GCCDatabase_Dev` with a Playwright script covering three scenarios. Cert `26-0025` has `CreatedBy = NULL` rows mirroring the prod 26-0147 state — logged in as `analyst` and saved the Edit form with no PID changes; the rows stayed NULL post-save (pre-fix, they would have been overwritten to `analyst`). Cert `26-0147` in dev has `CreatedBy = admin` rows — same `analyst` save flow; admin attribution preserved. Then on the same dev `26-0147` while still logged in as `analyst`, used the Product ID Manager UI to add a brand-new SKU row and saved; the new row landed with `CreatedBy = analyst` while the existing two admin rows kept `CreatedBy = admin`. All three scenarios passed; no regressions on the surrounding cert-edit flow.
+
+Files: `Controllers/CertificateController.cs` (Edit POST, ~lines 866-910), `docs/tracking/defect-register.md` (DEF-146 entry).
+
+---
+
+## DEF-143 — Cert detail pages no longer fire two console errors per visit (2026-05-05, fix in working tree pending deploy)
+
+While exercising the cert detail page during continued internal QC, every load of `/Certificate/CertificateSingleView/{certificateNumber}` produced a noisy pair of console errors: a 404 on `/api/certificates?pageSize=100&page=1`, followed by a `TypeError: Cannot read properties of undefined (reading 'initializeSearch')` cascade. The page itself rendered correctly and the download button worked, so the bug was invisible to a casual user — but it represented dead plumbing firing on every single cert-detail navigation, including for unauthenticated public visitors hitting cert links. The same noise was confirmed on the two sibling detail views, `CertificateInternalView` and `CertificateExternalView`, which all three include the same script.
+
+The root cause is a misuse rather than a broken endpoint. All three single-cert detail views include `wwwroot/js/certificates.js`, which despite the generic name is a *list/grid/search/filter* initializer designed for a multi-cert table view that no longer exists in the active routing. On DOMContentLoaded it auto-runs `initializeCertificates()`, which fires `fetch('/api/certificates?pageSize=100&page=1')`. That route returns 404 on the deployed build — looking at the controllers, `Controllers/Api/CertificatesApiController.cs` declares `[Route("api/[controller]")]` and *should* resolve to `/api/certificates`, but in practice the un-versioned API routes (also `/api/etl`) return 404 in the deployed build, while the v1 versioned route at `/api/v1/certificates` works as expected with a Partner API key. Best guess is that the legacy un-versioned controllers were either deregistered or never registered in the active route table when the v1 surface was introduced for Amazon. Either way `certificates.js` is calling a route that doesn't exist, and the failure cascades into a half-initialized state that surfaces a TypeError when the next init step runs.
+
+What saves this from being worse is that each of the three detail views is fully self-sufficient. They each define their own `window.downloadCertificate` inline, handle their own image zoom modal inline, and have no certificates grid, no search input, and no filter UI to need a list-page initializer for. The `<script>` tag is a dead include that produces console noise with zero functional benefit. The fix is three single-line deletions — one `<script src="~/js/certificates.js"></script>` line removed from each detail view's tail script block. After deploy, every cert detail page navigation will produce a clean console.
+
+Two adjacent cleanup decisions are deliberately punted. First, `wwwroot/js/certificates.js` itself becomes orphaned by this fix — no view references it after the deletion. Whether to delete the file from the codebase is a cleanup decision, not a defect, and it can wait. Second, whether the legacy `/api/certificates` and `/api/etl` routes should be re-enabled or their controllers deleted is a separate question. The v1 versioned `/api/v1/certificates*` is the supported Partner API surface today; if anything still relies on the un-versioned routes, it would need to be migrated, which is a separate scope decision.
+
+Files: `Views/Certificate/CertificateSingleView.cshtml`, `Views/Certificate/CertificateInternalView.cshtml`, `Views/Certificate/CertificateExternalView.cshtml`, `docs/tracking/defect-register.md` (DEF-143 entry).
+
+---
+
 ## DEF-142 — Partner-role web user now sees the Certificates and Products nav and the cert/product views filtered to their assigned partner (2026-05-05, fix in working tree pending deploy)
 
 Shawn flagged during continued internal QC that he had created `testuser5` on gccwebapp.com with the Partner role under Role Management, logged in, and saw no navigation at all. This pivots a recently-resolved decision: a week ago we treated the Partner role as API-key-only and shipped DEF-112 Path 4 to make it unassignable to humans. The actual requirement is the opposite — Partner web users do exist (Amazon staff with portal logins is the canonical case), they should see the same Certificates and Products view that an External user sees, and the data they see should be filtered to certificates tagged with their assigned partner. Amazon also continues to consume `/api/v1/certificates*` over the locked Partner API key contract; that path is unaffected by this change. All Amazon users see all Amazon-tagged certs (no per-user scoping beyond partner name); same pattern for any other partner.
@@ -581,3 +623,29 @@ The API already includes the navigation property, so the fix is a one-line chang
 Verified locally on `http://localhost:5101/Certificate/Edit/26-0150`. All three product ID rows now show "admin" in the Created By column instead of "1".
 
 Files: `wwwroot/js/product-id-manager.js`.
+
+---
+
+## DEF-144 — Countries filter pins "United States" to top on Internal & External tile views (2026-05-05)
+
+On the certificate tile filters, the Countries dropdown is supposed to always show "United States" first, with the rest of the world A-Z beneath it. The Public view already did this. The Internal view (`/Certificate/CertificateTileViewInternal`) and External view (`/Certificate/CertificateTileViewExternal`) did not — both were sorting strict A-Z, so "United States" landed alphabetically wherever it fell.
+
+Fix is two parallel one-line changes. Both controllers were using `OrderBy(c => c)` directly inside the EF query. Switched both to materialize the distinct country list first via `ToListAsync`, then in-memory `OrderBy(c => c == "United States" ? 0 : 1).ThenBy(c => c)`. Same shape as the Public controller already used, so all three endpoints now produce identical Countries lists.
+
+Verified the C# compiles cleanly (running dev server held a file lock on `apphost.exe` at build time, but compile produced 0 errors).
+
+Files: `Controllers/Api/CertificateTileInternalApiController.cs`, `Controllers/Api/CertificateTileExternalApiController.cs`.
+
+---
+
+## DEF-145 — Cert tile filters: Public + External dropdowns now hide options with no matching visible certs (2026-05-05)
+
+On the Public and External certificate tile views, the filter sidebar dropdowns for Cert Types and Product Categories were listing every admin-configured option, including options that no visible cert actually used. Picking such an option produced an empty grid with no explanation — a silent dead click.
+
+The Public filter endpoint pulled cert types and the product category hierarchy straight from the admin tables with only an `IsActive` flag, no link back to the user-visible cert set. The External endpoint had the right pattern for cert types but had the same gap for the product hierarchy. Internal stayed as-is on purpose — admin and analyst users need the full taxonomy when creating or editing certs.
+
+Fix derives four "visible" ID sets from the controller's baseQuery — visible cert type IDs, category IDs, product type IDs, and subcategory IDs — and uses them to trim the dropdown options. A category appears if it is directly used or has any visible type or subcategory under it. A type appears if it is directly used or has any visible subcategory. A subcategory appears only if directly used. A cert type appears if it is directly used or is a parent of a used child, matching the pattern External already used.
+
+Net effect: every dropdown option in Public and External now corresponds to at least one cert the user can actually open. New cert types and product categories added via admin will not appear in the Public filter sidebar until a public cert is approved with them — this is intentional UX per Shawn's call.
+
+Files: `Controllers/Api/CertificateTilesApiController.cs`, `Controllers/Api/CertificateTileExternalApiController.cs`.

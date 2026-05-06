@@ -249,9 +249,33 @@ namespace GCCWebApp.Controllers.Api
                 var baseQuery = _context.Certificates
                     .Where(c => CertificateStatusHelper.PublicStatuses.Contains(c.Status) && (c.ExpirationDate == null || c.ExpirationDate >= businessToday));
 
-                // Get all certification types from admin configuration (matches Admin > Certificate Types page)
+                // Strict scoping: only surface filter options that have at least one cert in baseQuery.
+                // Picking any dropdown option must always return >= 1 result (no dead clicks).
+                var visibleCertTypeIds = await baseQuery
+                    .Select(c => c.CertificationTypeId)
+                    .Distinct()
+                    .ToListAsync();
+
+                var visibleCategoryIds = await baseQuery
+                    .Select(c => c.Product.CategoryId)
+                    .Distinct()
+                    .ToListAsync();
+
+                var visibleProductTypeIds = await baseQuery
+                    .Where(c => c.Product.ProductTypeId != null)
+                    .Select(c => c.Product.ProductTypeId!.Value)
+                    .Distinct()
+                    .ToListAsync();
+
+                var visibleSubcategoryIds = await baseQuery
+                    .Where(c => c.Product.ProductSubcategoryId != null)
+                    .Select(c => c.Product.ProductSubcategoryId!.Value)
+                    .Distinct()
+                    .ToListAsync();
+
+                // Certification types: include if directly used by a visible cert, or a parent whose child is used.
                 var allCertTypes = await _context.CertificationTypes
-                    .Where(ct => ct.IsActive)
+                    .Where(ct => ct.IsActive && (visibleCertTypeIds.Contains(ct.Id) || ct.Children.Any(child => visibleCertTypeIds.Contains(child.Id))))
                     .OrderBy(ct => ct.SortOrder)
                     .Select(ct => new { ct.Id, ct.Name, ct.Level, ct.ParentId, ct.SortOrder })
                     .ToListAsync();
@@ -288,26 +312,33 @@ namespace GCCWebApp.Controllers.Api
                     .GroupBy(pt => pt.ParentId!.Value)
                     .ToDictionary(g => g.Key, g => g.ToList());
 
-                var productCategoriesHierarchy = categories.Select(pc => new
-                {
-                    id = pc.Id,
-                    name = pc.Name,
-                    level = 1,
-                    types = (typesByCategory.TryGetValue(pc.Id, out var types) ? types : new List<ProductType>())
-                        .Select(pt => new
-                        {
-                            id = pt.Id,
-                            name = pt.Name,
-                            level = 2,
-                            subcategories = (childrenByParent.TryGetValue(pt.Id, out var children) ? children : new List<ProductType>())
-                                .Select(sub => new
-                                {
-                                    id = sub.Id,
-                                    name = sub.Name,
-                                    level = 3
-                                }).ToList()
-                        }).ToList()
-                }).ToList();
+                // Trim hierarchy: keep a node if itself is visible OR a descendant is visible.
+                var productCategoriesHierarchy = categories
+                    .Select(pc => new
+                    {
+                        id = pc.Id,
+                        name = pc.Name,
+                        level = 1,
+                        types = (typesByCategory.TryGetValue(pc.Id, out var types) ? types : new List<ProductType>())
+                            .Select(pt => new
+                            {
+                                id = pt.Id,
+                                name = pt.Name,
+                                level = 2,
+                                subcategories = (childrenByParent.TryGetValue(pt.Id, out var children) ? children : new List<ProductType>())
+                                    .Where(sub => visibleSubcategoryIds.Contains(sub.Id))
+                                    .Select(sub => new
+                                    {
+                                        id = sub.Id,
+                                        name = sub.Name,
+                                        level = 3
+                                    }).ToList()
+                            })
+                            .Where(t => visibleProductTypeIds.Contains(t.id) || t.subcategories.Any())
+                            .ToList()
+                    })
+                    .Where(c => visibleCategoryIds.Contains(c.id) || c.types.Any())
+                    .ToList();
 
                 var filters = new
                 {

@@ -1116,17 +1116,26 @@ namespace GCCWebApp.Controllers
 
         private async Task SignInUser(string email, string role, bool rememberMe)
         {
+            // Look up the actual DB user so claims carry the real Id and Username.
+            // Audit fields (CreatedBy/UpdatedBy on Certificate, CertificateProductId, etc.)
+            // are int FKs to Users.Id. Every controller's GetCurrentUserId() helper parses
+            // ClaimTypes.NameIdentifier as int — if we stamp a Guid here, every parse fails
+            // and audit data is silently lost. Use the user's Id from the DB.
+            var user = _context.Users.FirstOrDefault(u => u.Email == email || u.Username == email);
+            var nameIdentifier = user != null ? user.Id.ToString() : Guid.NewGuid().ToString();
+            var displayName = user?.Username ?? email;
+
             // Create claims for the authenticated user
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.Name, email),
+                new Claim(ClaimTypes.Name, displayName),
                 new Claim(ClaimTypes.Email, email),
                 new Claim(ClaimTypes.Role, role), // Standard role claim for [Authorize(Roles = "...")]
                 new Claim("Email", email),
-                new Claim("Name", email), // Using email as name for simplicity
+                new Claim("Name", displayName),
                 new Claim("Role", role), // Custom role claim for policies
                 new Claim("RememberMe", rememberMe ? "true" : "false"), // Read by client to skip idle auto-logout
-                new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString())
+                new Claim(ClaimTypes.NameIdentifier, nameIdentifier)
             };
 
             var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);

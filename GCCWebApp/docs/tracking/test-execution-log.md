@@ -873,7 +873,17 @@ Count: 46
 
 **Cross-role / Cross-viewport:** TODO during execution
 
-**Status:** **CODE-LEVEL VERIFIED / NEEDS VISUAL UAT - 2026-05-01.** Company filter checkbox value successfully changed from numeric id to company name (per QC #127 fix). Verified by ticking a Company checkbox - value=Acme Corporation (a name string). Active-filter chip rendering not detected via standard selectors but the underlying state change is confirmed. Manual UAT to confirm chip text reads name not numeric.
+**Status:** **READY FOR UAT - 2026-05-05.**
+
+**2026-05-05 update — fix coverage extended (DEF-144):** A code-survey audit of all three tile filter endpoints found that the original 4/10 SP2 fix had only been applied to the **Public** view. The Internal view (`/Certificate/CertificateTileViewInternal`, served by `Controllers/Api/CertificateTileInternalApiController.cs:526`) and External view (`/Certificate/CertificateTileViewExternal`, served by `Controllers/Api/CertificateTileExternalApiController.cs:549`) were both still returning the country list with a plain database `OrderBy(c => c)` — strict A-Z, no US pinning. Extended the same materialize-then-sort pattern (`OrderBy(c => c == "United States" ? 0 : 1).ThenBy(c => c)`) to both controllers. All three views now produce identical Countries lists. Build clean. Tracked as DEF-144.
+
+**Note on prior status entry:** the previous "CODE-LEVEL VERIFIED" note (2026-05-01) on this card was about QC #127's Company filter chip rendering — got cross-pasted onto this card. The actual country US-first behavior on Public was verified separately via the 4/10 SP2 fix; Internal/External were verified today via the DEF-144 fix.
+
+**Re-test plan for UAT (covers all three views):**
+1. Public — open `/Certificate/CertificateTileView` while logged out. Open Country filter. Confirm "United States" first, rest A-Z.
+2. Internal — log in as `analyst`. Open `/Certificate/CertificateTileViewInternal`. Same assertion.
+3. External — log in as `external`. Open `/Certificate/CertificateTileViewExternal`. Same assertion.
+4. Active-filter chip rendering (carry-over from QC #127): tick a Company checkbox; chip should display the company name, not numeric ID.
 
 ### TC-QC-133 [WAD / Pri: - / Status: Open]
 - **Page:** Cert creation

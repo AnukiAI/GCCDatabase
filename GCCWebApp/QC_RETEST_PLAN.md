@@ -655,19 +655,22 @@ These are the items most likely to cause client-visible problems:
 ---
 
 ### QC 132 — Country Filter Missing Countries
-**Status:** Needs Tested | **Page:** Public view
+**Status:** Needs Tested (Public + Internal + External) | **Page:** Public, Internal, External tile views
 **Issue:** Germany, Canada missing from country filter
 
 **Test Steps:**
-1. Go to public view
+1. **Public** — go to `/Certificate/CertificateTileView` (logged out)
 2. Look at the Country filter in the sidebar
 3. Verify "United States" appears at the top of the list
 4. Verify remaining countries are in A-Z order
 5. If Germany/Canada have active certs, verify they appear in the list
 6. Note: Filter only shows countries with active (Client Approved - Paid / Republished) non-expired certs
+7. **Internal** — log in as analyst, go to `/Certificate/CertificateTileViewInternal`. Repeat steps 2-5. (Internal shows ALL countries including those used by Drafts/Holds — by design.)
+8. **External** — log in as external user, go to `/Certificate/CertificateTileViewExternal`. Repeat steps 2-6.
 
-**Expected:** United States at top, rest A-Z. Only countries with public certs shown.
-**Login:** None required
+**Expected:** United States at top, rest A-Z, on all three views. Public and External show only countries with public certs; Internal shows all.
+**Login:** None (Public), analyst / TestPass123! (Internal), external / TestPass123! (External)
+**Defect refs:** Original Public fix on 4/10 SP2; Internal + External coverage extended via DEF-144 (2026-05-05).
 
 ---
 
@@ -1107,7 +1110,7 @@ These are the items most likely to cause client-visible problems:
 | 150 | **Forgot Password** | Needs Azure AD B2C email verification with real email addresses. Not a code defect — infrastructure/config task. |
 | 151 | **Duo MFA** | Azure AD B2C may support Duo through custom policies. Needs B2C plan tier confirmation. Config change, not code. |
 | 158 | **Thousands of ASINs** | Current system loads ALL product IDs at once. Recommendation: collapsible section showing first 20 with "Show all X" button. Needs scope approval. |
-| 124 | **Missing Cert Types in Filter** | Filter shows only types with active public certs. Is this correct behavior, or should all configured types show? |
+| 124 | **Missing Cert Types in Filter** | ⚠ **CONFLICT — pending Shawn review (2026-05-05).** Today's "yes do it for Public and External" decision (DEF-145) reverts the **4/10 SP2 fix** that explicitly switched cert types filter to "show all configured types" in response to client (Alice)'s original complaint that "Certified Water Savings", "LCA Opt", "RM", "WD" were missing. Git evidence: commit 866c0ec (Apr 14 2026) removed the strict scoping; DEF-145 today re-added it. Need Shawn's call before closing this row: stand by DEF-145 (and notify client), revert just the cert-types portion of DEF-145, or formalize as a CR. Filter shows only types with active public certs vs. all configured types — depends on which side wins. |
 
 ---
 

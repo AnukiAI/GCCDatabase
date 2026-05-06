@@ -523,12 +523,14 @@ namespace GCCWebApp.Controllers.Api
                         .Select(c => new { c.id, c.name })
                         .ToListAsync(),
 
-                    countries = await _context.Certificates
+                    countries = (await _context.Certificates
                         .Where(c => !string.IsNullOrEmpty(c.Country))
                         .Select(c => c.Country!)
                         .Distinct()
-                        .OrderBy(c => c)
-                        .ToListAsync(),
+                        .ToListAsync())
+                        .OrderBy(c => c == "United States" ? 0 : 1)
+                        .ThenBy(c => c)
+                        .ToList(),
 
                     // Internal view: provide separate lists for internal and external tags
                     internalTags = await _context.Tags
